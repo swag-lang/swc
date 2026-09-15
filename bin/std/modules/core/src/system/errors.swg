@@ -117,7 +117,7 @@ func message(err: any?)->string
             return text.count ? text : name
         }
 
-        let structType = cast(const *Swag.TypeInfoStruct) type
+        let structType = cast #assume(const *Swag.TypeInfoStruct) type
         let fields     = structType.fields
         if fields.count == 0 or fields![0].offset != 0 do
             break

@@ -2,7 +2,7 @@ internal impl Properties
 {
     mtd refreshNative(item: *PropertiesItem)
     {
-        let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
+        let typeNative = cast #assume(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
         if item.sliderBox != null
@@ -61,7 +61,7 @@ internal impl Properties
 
     mtd validateNative(item: *PropertiesItem)
     {
-        let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
+        let typeNative = cast #assume(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
         if item.sliderBox != null
@@ -137,8 +137,8 @@ internal impl Properties
             if unit != null do
                 slider.edit.setUnit(attributeText(unit))
 
-            let minV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
-            let maxV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
+            let minV = cast #assume (f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
+            let maxV = cast #assume (f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
 
             // Whole bounds read as an integer slider (no trailing decimals), even for a
             // float field whose values are conceptually whole (a size, an angle...).
@@ -179,8 +179,8 @@ internal impl Properties
         if Reflection.hasAttribute(value, .MinMax)
         {
             hasMinMax = true
-            minV      = cast(s64) Reflection.attributeValue(value, .MinMax, "min")!
-            maxV      = cast(s64) Reflection.attributeValue(value, .MinMax, "max")!
+            minV      = cast #assume (s64) Reflection.attributeValue(value, .MinMax, "min")!
+            maxV      = cast #assume (s64) Reflection.attributeValue(value, .MinMax, "max")!
         }
 
         switch typeNative.nativeKind
@@ -240,8 +240,8 @@ internal impl Properties
             if unit != null do
                 slider.edit.setUnit(attributeText(unit))
 
-            let minV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
-            let maxV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
+            let minV = cast #assume (f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
+            let maxV = cast #assume (f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
 
             switch typeNative.nativeKind
             {
@@ -276,8 +276,8 @@ internal impl Properties
             if Reflection.hasAttribute(value, .MinMax)
             {
                 hasMinMax = true
-                minV      = cast(s64) Reflection.attributeValue(value, .MinMax, "min")!
-                maxV      = cast(s64) Reflection.attributeValue(value, .MinMax, "max")!
+                minV      = cast #assume (s64) Reflection.attributeValue(value, .MinMax, "min")!
+                maxV      = cast #assume (s64) Reflection.attributeValue(value, .MinMax, "max")!
             }
 
             item.assignEditBox(ed)

@@ -105,7 +105,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageLateFunctionCount += 1
         MessageSawLateFunction   = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type!
+        let typeFunc = cast #assume(const *TypeInfoFunc) msg.type!
         Swag.assert(typeFunc.parameters.count == 0)
         Swag.assert(typeFunc.returnType!.name == "s32")
     }
@@ -114,7 +114,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessagePlaceholderFunctionCount += 1
         MessageSawPlaceholderFunction   = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type!
+        let typeFunc = cast #assume(const *TypeInfoFunc) msg.type!
         let params   = typeFunc.parameters!
         Swag.assert(params.count == 1)
         Swag.assert(params[0].name == "value")
@@ -126,7 +126,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageMarkedNoParamCount += 1
         MessageSawMarkedNoParam   = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type!
+        let typeFunc = cast #assume(const *TypeInfoFunc) msg.type!
         Swag.assert(typeFunc.parameters.count == 0)
         Swag.assert(typeFunc.returnType!.name == "u32")
         var foundMarker = false
@@ -139,7 +139,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessagePlainNoParamCount += 1
         MessageSawPlainNoParam   = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type!
+        let typeFunc = cast #assume(const *TypeInfoFunc) msg.type!
         Swag.assert(typeFunc.parameters.count == 0)
         Swag.assert(typeFunc.returnType!.name == "u32")
         for attribute in typeFunc.attributes do
@@ -169,7 +169,7 @@ var MessageUnknownCountArrayCount = 0
         Swag.assert(msgType.kind == TypeInfoKind.Alias)
         Swag.assert(msgType.name == "MessageStrictHandle")
 
-        let aliasType = cast(const *TypeInfoAlias) msgType
+        let aliasType = cast #assume(const *TypeInfoAlias) msgType
         let rawType   = aliasType.rawType
         Swag.assert(rawType.name == "const *void")
     }
@@ -194,7 +194,7 @@ var MessageUnknownCountArrayCount = 0
         let msgType = msg.type!
         Swag.assert(msgType.kind == TypeInfoKind.Array)
 
-        let typeArray = cast(const *TypeInfoArray) msgType
+        let typeArray = cast #assume(const *TypeInfoArray) msgType
         Swag.assert(typeArray.pointedType.name == "s32")
         Swag.assert(typeArray.finalType.name == "s32")
         Swag.assert(typeArray.count == 0)

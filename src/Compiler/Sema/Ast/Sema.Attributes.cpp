@@ -177,6 +177,7 @@ namespace
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},
             {.name = IdentifierManager::PredefinedName::Discardable, .flag = RtAttributeFlagsE::Discardable},
             {.name = IdentifierManager::PredefinedName::NoCopy, .flag = RtAttributeFlagsE::NoCopy},
+            {.name = IdentifierManager::PredefinedName::DynCast, .flag = RtAttributeFlagsE::DynCast},
             {.name = IdentifierManager::PredefinedName::Opaque, .flag = RtAttributeFlagsE::Opaque},
             {.name = IdentifierManager::PredefinedName::NoDoc, .flag = RtAttributeFlagsE::NoDoc},
             {.name = IdentifierManager::PredefinedName::Strict, .flag = RtAttributeFlagsE::Strict},

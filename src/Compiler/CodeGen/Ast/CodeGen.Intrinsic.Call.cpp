@@ -887,7 +887,7 @@ namespace
     // pointer and a compile-time candidate type info. Types reflected from an
     // imported API are regenerated locally in every importing module, so the same
     // logical type has a different `TypeInfo` pointer per module; their reflection
-    // `crc` identity stays equal (the same identity `Swag.typeIs`/`Swag.typeCmp` rely on).
+    // `crc` remains stable across those module-local descriptors.
     // On match, falls through to the following code; otherwise jumps to mismatchLabel.
     void emitTypeInfoIdentityMatchOrJump(CodeGen& codeGen, MicroReg runtimeTypeReg, MicroReg candidateTypeReg, MicroLabelRef matchLabel, MicroLabelRef mismatchLabel)
     {
@@ -1009,45 +1009,6 @@ namespace
 
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, resultTypeRef);
         return Result::Continue;
-    }
-
-    Result codeGenIntrinsicIs(CodeGen& codeGen, const AstIntrinsicCall& node)
-    {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 2);
-
-        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
-
-        const MicroReg toTypeReg   = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
-        const MicroReg fromTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
-
-        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        const MicroReg            args[]        = {toTypeReg, fromTypeReg};
-        return emitIntrinsicRuntimeCall(codeGen, *payload->runtimeFunctionSymbol, args, resultPayload.reg);
-    }
-
-    Result codeGenIntrinsicAs(CodeGen& codeGen, const AstIntrinsicCall& node)
-    {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 3);
-
-        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
-
-        const MicroReg toTypeReg   = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
-        const MicroReg fromTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
-        const MicroReg ptrReg      = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
-
-        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        const MicroReg            args[]        = {toTypeReg, fromTypeReg, ptrReg};
-        return emitIntrinsicRuntimeCall(codeGen, *payload->runtimeFunctionSymbol, args, resultPayload.reg);
     }
 
     Result codeGenIntrinsicTableOf(CodeGen& codeGen, const AstIntrinsicCall& node)
@@ -2021,10 +1982,6 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMakeInterface(codeGen, *this);
         case TokenId::IntrinsicTableOf:
             return codeGenIntrinsicTableOf(codeGen, *this);
-        case TokenId::IntrinsicIs:
-            return codeGenIntrinsicIs(codeGen, *this);
-        case TokenId::IntrinsicAs:
-            return codeGenIntrinsicAs(codeGen, *this);
 
         default:
             SWC_UNREACHABLE();

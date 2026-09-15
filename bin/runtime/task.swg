@@ -33,7 +33,7 @@
 #[Swag.NoCopy]
 struct Task
 {
-    // Scheduler state. Must stay first: the entry recovers the task from its node.
+    // Scheduler state. The entry recovers the task through its dynamic identity.
     #[Swag.NoDoc]
     using node: WorkNode
 
@@ -83,7 +83,7 @@ impl Task
 
 private func taskEntry(node: *WorkNode)
 {
-    let task = cast(*Task) node
+    let task = cast #assume (*Task) node
     let body = task.body
     if not body do
         return
@@ -125,18 +125,17 @@ private const GroupInlineCapacity = 4'u32
 // Children of one [[Swag.TaskGroup]] beyond the inline storage, allocated in blocks so a node
 // never moves.
 //
-// The bootstrap allocator rounds every request up to one host page, so a block of sixteen
-// children already paid for a whole page and used a sixth of it. Filling that page instead costs
-// nothing and makes a large group take one page per thirty-nine children rather than one per
-// sixteen. The assertion below keeps that claim true if a child ever grows.
-private const GroupBlockCapacity = 39'u32
+// The bootstrap allocator rounds every request up to one host page. Size each block to fill
+// that page, accounting for the allocation header and the aligned block header.
 
 #[Swag.NoDoc]
 struct GroupChild
 {
-    using node: WorkNode        // Scheduler state. Must stay first.
+    using node: WorkNode        // Scheduler state and dynamic identity.
     body:       (func||())?     // The child's work.
 }
+
+private const GroupBlockCapacity = cast(u32) ((AllocatorHostCommitGranularity - BootstrapAllocationHeaderSize - 2 * #sizeof(u64)) / #sizeof(GroupChild))
 
 #[Swag.NoDoc]
 struct GroupBlock
@@ -285,6 +284,7 @@ impl TaskGroup
         if not block do
             Swag.panic("cannot allocate task group storage", #curlocation)
 
+        Swag.init(block, 1)
         block.next = .blocks
         block.used = 1
         .blocks    = block
@@ -294,7 +294,7 @@ impl TaskGroup
 
 private func groupChildEntry(node: *WorkNode)
 {
-    let child = cast(*GroupChild) node
+    let child = cast #assume (*GroupChild) node
     let body  = child.body
     if not body do
         return

@@ -39,9 +39,8 @@ impl ViewerReadingState
 {
     private mtd captureScrolls(wnd: *Wnd, path: *Array'u32)
     {
-        switch wnd.itf
+        if let scroll = cast #try (*ScrollWnd) wnd
         {
-        case ScrollWnd as scroll:
             .scrolls.add({path[], scroll.scrollPosition()})
             return
         }
@@ -61,41 +60,42 @@ impl ViewerReadingState
         .scrolls.clear()
         var path: Array'u32
         .captureScrolls(session.view!, &path)
-        switch session.view.itf
+        let target = session.view
+        switch
         {
-        case TextView as view:
+        case let view = cast #try (*TextView) target:
             .zoom     = view.zoomPercent
             .wrapping = view.wrapping
 
-        case CodeViewer as view:
+        case let view = cast #try (*CodeViewer) target:
             .zoom = view.zoomPercent
 
-        case HtmlViewer as view:
+        case let view = cast #try (*HtmlViewer) target:
             .zoom = view.zoomPercent
 
-        case OpenDocumentViewer as view:
+        case let view = cast #try (*OpenDocumentViewer) target:
             .zoom = view.zoomPercent
 
-        case PdfViewer as view:
+        case let view = cast #try (*PdfViewer) target:
             .pdfZoom     = view.pdfView.zoom
             .pdfZoomMode = view.pdfView.zoomMode
             .pdfLayout   = view.pdfView.pageLayout
             .page        = view.pdfView.pageIndex
 
-        case ImageViewer as view:
+        case let view = cast #try (*ImageViewer) target:
             .imageZoom     = view.imageView.zoom
             .imageFitted   = view.imageView.isFitted
             .imagePan      = view.imageView.panOffset
             .imageRotation = view.imageView.rotationQuarterTurns
             .imageMirrored = view.imageView.isMirrored
 
-        case SoundViewer as view:
+        case let view = cast #try (*SoundViewer) target:
             .seconds = view.voice ? view.voice.playbackPositionSeconds() : cast(f64) view.elapsed
             .playing = view.playing
             .volume  = view.volume
             .muted   = view.muted
 
-        case VideoViewer as view:
+        case let view = cast #try (*VideoViewer) target:
             .seconds      = view.currentSeconds()
             .playing      = view.playing
             .volume       = view.volume
@@ -104,30 +104,31 @@ impl ViewerReadingState
         }
 
         if key == "markdown" and session.info do
-            .zoom = (cast(*MarkdownZoomButton) session.info.children[0]).zoomPercent
+            .zoom = (cast #assume (*MarkdownZoomButton) session.info.children[0]).zoomPercent
     }
 
     mtd applySettings(session: *ViewerSession)
     {
-        switch session.view!.itf
+        let target = session.view!
+        switch
         {
-        case TextView as view:
+        case let view = cast #try (*TextView) target:
             view.setZoom(.zoom)
             if view.wrapping != .wrapping do
                 view.toggleWrap()
 
-        case CodeViewer as view:
+        case let view = cast #try (*CodeViewer) target:
             view.setZoom(.zoom)
 
-        case HtmlViewer as view:
+        case let view = cast #try (*HtmlViewer) target:
             view.setZoom(.zoom)
 
-        case OpenDocumentViewer as view:
+        case let view = cast #try (*OpenDocumentViewer) target:
             view.setZoom(.zoom)
         }
 
         if .viewer == "markdown" and session.info do
-            (cast(*MarkdownZoomButton) session.info.children[0]).applyZoom(.zoom)
+            (cast #assume (*MarkdownZoomButton) session.info.children[0]).applyZoom(.zoom)
         .restoring = true
         .contentSettingsApplied = false
     }
@@ -145,15 +146,16 @@ impl ViewerReadingState
         // Reapplying an unreachable position interrupts the viewer's own seek and scroll
         // animation on every watch tick, so a shorter replacement can never finish loading.
         .contentSettingsApplied = true
-        switch session.view.itf
+        let target = session.view
+        switch
         {
-        case PdfViewer as view:
+        case let view = cast #try (*PdfViewer) target:
             view.pdfView.setPageLayout(.pdfLayout)
             view.pdfView.setZoom(.pdfZoom)
             view.pdfView.setZoomMode(.pdfZoomMode)
             view.pdfView.showPage(.page)
 
-        case ImageViewer as view:
+        case let view = cast #try (*ImageViewer) target:
             if .imageMirrored do
                 view.imageView.mirrorHorizontally()
             for .imageRotation do
@@ -164,14 +166,14 @@ impl ViewerReadingState
                 view.imageView.setZoom(.imageZoom)
             view.imageView.setPanOffset(.imagePan)
 
-        case SoundViewer as view:
+        case let view = cast #try (*SoundViewer) target:
             view.setVolume(.volume)
             view.setMuted(.muted)
             view.seekSeconds(cast(f32) .seconds)
             if view.playing != .playing do
                 view.togglePlayback()
 
-        case VideoViewer as view:
+        case let view = cast #try (*VideoViewer) target:
             view.setVolume(.volume)
             view.setMuted(.muted)
             view.setPlaybackRate(.playbackRate)
@@ -196,10 +198,8 @@ impl ViewerReadingState
 
             if wnd
             {
-                switch wnd.itf
-                {
-                case ScrollWnd as scroll: scroll.setScrollPos(saved.position)
-                }
+                if let scroll = cast #try (*ScrollWnd) wnd do
+                    scroll.setScrollPos(saved.position)
             }
         }
 

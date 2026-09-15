@@ -38,14 +38,14 @@ func inlineUntypedVariadicScore(values: ...)->s32
         switch Swag.kindOf(v)
         {
         case s32:
-            sum2 += cast(s32) v
+            sum2 += cast #assume(s32) v
         case bool:
-            if cast(bool) v
+            if cast #assume(bool) v
             {
                 sum2 += 10
             }
         case string:
-            sum2 += (cast(string) v)[0]
+            sum2 += (cast #assume (string) v)[0]
         }
     }
 

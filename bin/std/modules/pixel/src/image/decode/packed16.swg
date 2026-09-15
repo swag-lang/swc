@@ -77,7 +77,7 @@ func(REVERSE: bool, GREEN6: bool) decodeBgr16RowImpl(source: const [*] u8, desti
     {
         #static if REVERSE do
             src -= 2
-        let pixel = cast(u32) src[as u16]
+        let pixel = cast(u32) (cast(const *u16) src)[]
         dst[0] = cast(u8) (((pixel & 0x1F) * 255 + 15) / 31)
         #static if GREEN6 do
             dst[1] = cast(u8) (((((pixel >> 5) & 0x3F) * 259) + 33) >> 6)
@@ -189,7 +189,7 @@ func decodeBgrMasked16Row(source: const [*] u8, destination: [*] u8, pixelCount:
 
     while count
     {
-        let pixel = src[as u16]
+        let pixel = (cast(const *u16) src)[]
         dst[0] = cast(u8) ((((pixel & bParams.mask) >> bParams.sourceShift) * bParams.scale + bParams.bias) >> bParams.resultShift)
         dst[1] = cast(u8) ((((pixel & gParams.mask) >> gParams.sourceShift) * gParams.scale + gParams.bias) >> gParams.resultShift)
         dst[2] = cast(u8) ((((pixel & rParams.mask) >> rParams.sourceShift) * rParams.scale + rParams.bias) >> rParams.resultShift)
@@ -247,7 +247,7 @@ func(REVERSE: bool) decodeBgra5551RowImpl(source: const [*] u8, destination: [*]
     {
         #static if REVERSE do
             src -= 2
-        let pixel = cast(u32) src[as u16]
+        let pixel = cast(u32) (cast(const *u16) src)[]
         dst[0] = cast(u8) (((pixel & 0x1F) * 255 + 15) / 31)
         dst[1] = cast(u8) ((((pixel >> 5) & 0x1F) * 255 + 15) / 31)
         dst[2] = cast(u8) ((((pixel >> 10) & 0x1F) * 255 + 15) / 31)

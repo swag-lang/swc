@@ -55,6 +55,8 @@ namespace
                 return "waiting for declaration";
             case TaskStateKind::SemaWaitSymTyped:
                 return "waiting for typing";
+            case TaskStateKind::SemaWaitSymConstraintsResolved:
+                return "waiting for constraint evaluation";
             case TaskStateKind::SemaWaitSymSemaCompleted:
                 return "waiting for semantic analysis completion";
             case TaskStateKind::SemaWaitSymCodeGenPreSolved:
@@ -396,6 +398,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 break;
             }
 
+            case TaskStateKind::SemaWaitSymConstraintsResolved:
             case TaskStateKind::SemaWaitSymSemaCompleted:
             {
                 SWC_ASSERT(state.symbol);

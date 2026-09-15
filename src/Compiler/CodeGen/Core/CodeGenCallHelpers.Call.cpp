@@ -544,6 +544,7 @@ namespace
 
         const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, argPayload, static_cast<uint32_t>(rawSize));
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, storageTypeRef, storageReg));
         if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::PostCopy))
             SWC_RESULT(codeGen.emitLifecycle(storageTypeRef, CodeGenLifecycleKind::PostCopy, storageReg));
         if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::Drop))
@@ -667,10 +668,10 @@ namespace
         return true;
     }
 
-    void materializePreparedIndirectCopyArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
+    Result materializePreparedIndirectCopyArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
     {
         if (!normalizedArg.isIndirect || !normalizedArg.needsIndirectCopy)
-            return;
+            return Result::Continue;
 
         SWC_ASSERT(normalizedArg.indirectSize != 0);
         tryResolvePreparedIndirectArgAddress(codeGen, argPayload, normalizedTypeRef, argRef);
@@ -681,10 +682,12 @@ namespace
         // example a constant string value). Spill through the generic payload helper
         // instead of requiring an l-value address here.
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, argPayload, normalizedArg.indirectSize);
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, normalizedTypeRef, storageReg));
 
         argPayload.reg     = storageReg;
         argPayload.typeRef = normalizedTypeRef;
         argPayload.setIsValue();
+        return Result::Continue;
     }
 
     TypeRef borrowedAggregateStorageTypeRef(CodeGen& codeGen, TypeRef typeRef)
@@ -909,12 +912,13 @@ namespace
 
         const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, sourcePayload, static_cast<uint32_t>(rawSize));
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, storageTypeRef, storageReg));
         if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::PostMove))
             SWC_RESULT(codeGen.emitLifecycle(storageTypeRef, CodeGenLifecycleKind::PostMove, storageReg));
 
         if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::Drop))
         {
-            SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, storageTypeRef, sourcePayload.reg));
+            SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, storageTypeRef, sourcePayload.reg));
             outPostCallDrops.push_back({storageTypeRef, storageReg});
         }
         else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
@@ -1057,7 +1061,7 @@ namespace
                 if (expandedType.isStruct() || expandedType.isAggregateStruct())
                     normalizedArg.needsIndirectCopy = true;
             }
-            materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize);
+            SWC_RESULT(materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize));
             materializePreparedBorrowedAggregateArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
         }

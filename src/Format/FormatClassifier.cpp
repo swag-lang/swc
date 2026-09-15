@@ -1304,11 +1304,6 @@ namespace
 
                 case AstNodeId::CastExpr:
                 {
-                    // 'expr[as T]' has no 'cast' keyword to mark: the pieces are the
-                    // operand's own and the bracket pair formats like an index.
-                    if (node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
-                        break;
-
                     addRole(span.minPiece, FormatRoleE::CastKeyword);
                     if (span.valid())
                     {

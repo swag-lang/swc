@@ -136,7 +136,7 @@ func borrowEscapeAnyComputedGlobal(value: s32)
 func borrowEscapeAnyComputedLocal(value: s32)->s32
 {
     let boxed: any = value + 1
-    return cast(s32) boxed
+    return cast #assume (s32) boxed
 }
 
 // A constant 'any' is stored in the compiler data segment, not in the frame.

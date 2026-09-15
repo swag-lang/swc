@@ -65,58 +65,58 @@
     Swag.assert(arr[2] == 9)
 }
 
-// 'expr[as T]' reads the pointed storage as a T of the same size
+// '(cast(*T) expr)[]' reads the pointed storage as a T of the same size
 #test
 {
     var bits = 0xFFFF_FFFF'u32
     let p    = &bits
-    Swag.assert(p[as s32] == -1)
+    Swag.assert((cast(const *s32) p)[] == -1)
 }
 
-// 'expr[as T]' writes through the reinterpreted place
+// '(cast(*T) expr)[]' writes through the reinterpreted place
 #test
 {
     var value = 0's32
     let p     = &value
-    p[as u32] = 0xFFFF_FFFF
+    (cast(*u32) p)[] = 0xFFFF_FFFF
     Swag.assert(value == -1)
 }
 
-// 'expr[as T]' opens a narrower window on the storage (x64 is little-endian)
+// '(cast(*T) expr)[]' opens a narrower window on the storage (x64 is little-endian)
 #test
 {
     var value = 0x0102_0304'u32
     let p     = &value
-    Swag.assert(p[as u8] == 0x04)
-    p[as u8] = 0xFF
+    Swag.assert((cast(const *u8) p)[] == 0x04)
+    (cast(*u8) p)[] = 0xFF
     Swag.assert(value == 0x0102_03FF)
 }
 
-// 'expr[as T]' exposes the bit pattern of a float
+// '(cast(*T) expr)[]' exposes the bit pattern of a float
 #test
 {
     var f = 1.0'f32
     let p = &f
-    Swag.assert(p[as u32] == 0x3F80_0000)
+    Swag.assert((cast(const *u32) p)[] == 0x3F80_0000)
 }
 
-// A conversion around 'expr[as T]' converts the T that was read; it never widens the read
+// A conversion around '(cast(*T) expr)[]' converts the T that was read; it never widens the read
 // itself. The conversion substitutes the dereference node, so a place typed from the live
 // view would answer with the converted type and open an eight-byte window on a four-byte
 // object - reading past the storage and returning whatever followed it.
 func derefPlaceWidenS32(data: const *void)->s64
 {
-    return data[as s32]
+    return (cast(const *s32) data)[]
 }
 
 func derefPlaceWidenU32(data: const *void)->u64
 {
-    return data[as u32]
+    return (cast(const *u32) data)[]
 }
 
 func derefPlaceWidenF32(data: const *void)->f64
 {
-    return data[as f32]
+    return (cast(const *f32) data)[]
 }
 
 #test
@@ -137,7 +137,7 @@ func derefPlaceWidenF32(data: const *void)->f64
 {
     var pair:    [2] s32 = [-7, 0x7FFF_FFFF]
     let p = &pair[0]
-    let widened: s64     = p[as s32]
+    let widened: s64     = (cast(const *s32) p)[]
     Swag.assert(widened == -7)
 }
 
@@ -165,7 +165,7 @@ impl DerefPlaceReceiver
 {
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
-    p[as DerefPlaceReceiver].record(11)
+    (cast(*DerefPlaceReceiver) p)[].record(11)
     Swag.assert(slot.seen == 11)
 }
 
@@ -174,7 +174,7 @@ impl DerefPlaceReceiver
 {
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
-    p[as DerefPlaceReceiver].seen = 5
+    (cast(*DerefPlaceReceiver) p)[].seen = 5
     Swag.assert(slot.seen == 5)
 }
 
@@ -183,7 +183,7 @@ impl DerefPlaceReceiver
 {
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
-    p[as DerefPlaceReceiver] = "beta"
+    (cast(*DerefPlaceReceiver) p)[] = "beta"
     Swag.assert(slot.seen == 4)
 }
 
@@ -192,6 +192,6 @@ impl DerefPlaceReceiver
 {
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
-    p[as DerefPlaceReceiver] += 3
+    (cast(*DerefPlaceReceiver) p)[] += 3
     Swag.assert(slot.seen == 3)
 }

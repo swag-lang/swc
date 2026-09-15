@@ -16,7 +16,7 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
             continue
         let key = Reflection.attributeValue(attribute, "name")
         if key != null do
-            return cast(string) key
+            return cast #assume (string) key
     }
 
     if val.name == null do
@@ -33,7 +33,7 @@ internal func wireSchema(type: typeinfo?)->string
     let schema = Reflection.attributeValue(type, Serialization.Schema, "name")
     if schema == null do
         return ""
-    return cast(string) schema
+    return cast #assume (string) schema
 }
 
 // Returns the explicit stable key of a struct type.
@@ -44,7 +44,7 @@ internal func wireTypeKey(type: typeinfo?)->string
     let key = Reflection.attributeValue(type, Serialization.TypeKey, "name")
     if key == null do
         return ""
-    return cast(string) key
+    return cast #assume (string) key
 }
 
 internal func getTypeInfoCrc(type: typeinfo?)->u32

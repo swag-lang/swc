@@ -11,7 +11,7 @@ func transformWinErrors(err: any?, val0: string? = null) fail
     if err == null do
         return
 
-    let sysErr = cast(const *Swag.SystemError) err
+    let sysErr = cast #assume (const *Swag.SystemError) err
     switch sysErr.errorID
     {
     case ERROR_FILE_NOT_FOUND: fail Errors.FileNotFoundError{fileName: Errors.mkString(val0)}

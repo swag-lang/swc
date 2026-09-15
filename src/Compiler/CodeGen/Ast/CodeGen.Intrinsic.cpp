@@ -188,7 +188,7 @@ namespace
             }
 
             builder.emitLoadMemReg(dstAddressReg, 0, srcReg, storeBits);
-            return Result::Continue;
+            return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, fillTypeRef, dstAddressReg);
         }
 
         const uint64_t sizeOf = fillType.sizeOf(ctx);
@@ -196,11 +196,11 @@ namespace
         if (srcPayload.isAddress())
         {
             CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, static_cast<uint32_t>(sizeOf));
-            return Result::Continue;
+            return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, fillTypeRef, dstAddressReg);
         }
 
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, dstAddressReg, srcPayload, static_cast<uint32_t>(sizeOf));
-        return Result::Continue;
+        return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, fillTypeRef, dstAddressReg);
     }
 
     Result buildIntrinsicInitTuplePayload(CodeGen& codeGen, const AstIntrinsicInit& node, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args, CodeGenNodePayload& outPayload)
@@ -221,6 +221,7 @@ namespace
             SWC_RESULT(emitIntrinsicInitStore(codeGen, fields[i]->typeRef(), codeGen.payload(args[i]), fieldAddressReg));
         }
 
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, fillTypeRef, storageReg));
         outPayload.typeRef = fillTypeRef;
         outPayload.reg     = storageReg;
         outPayload.setIsAddress();
@@ -244,12 +245,21 @@ namespace
         return true;
     }
 
+    Result emitIntrinsicInitRepeatRuntime(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg, MicroReg countReg);
+
     Result emitIntrinsicInitRepeatConst(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg, uint32_t count)
     {
         if (!count)
             return Result::Continue;
         if (count == 1)
             return emitIntrinsicInitStore(codeGen, fillTypeRef, srcPayload, dstAddressReg);
+
+        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), fillTypeRef))
+        {
+            const MicroReg countReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
+            return emitIntrinsicInitRepeatRuntime(codeGen, fillTypeRef, srcPayload, dstAddressReg, countReg);
+        }
 
         const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
         const uint64_t  sizeOf   = fillType.sizeOf(codeGen.ctx());

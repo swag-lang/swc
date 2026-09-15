@@ -17,8 +17,8 @@ private func assertMathSyntaxError(source: string, contains: string, seek: u64)
 {
     discard catch MathExpression.parse(source) as err
     Swag.assert(err != null)
-    Swag.assert(err is Errors.SyntaxError)
-    let syntax = (err as Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err != null))
+    let syntax = (cast #try (*Errors.SyntaxError) err)
     Swag.assert(syntax.seek == seek)
     Swag.assert(syntax.message != null)
     Swag.assert(Utf8.indexOf(syntax.message, contains) != Swag.U64.Max)

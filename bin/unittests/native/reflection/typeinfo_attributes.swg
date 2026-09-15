@@ -63,9 +63,9 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
             Swag.assert(attribute.params.count == 2)
             let params = attribute.params!
             Swag.assert(params[0].name == "tag")
-            Swag.assert(cast(s32) params[0].value == 7)
+            Swag.assert(cast #assume(s32) params[0].value == 7)
             Swag.assert(params[1].name == "label")
-            Swag.assert(cast(string?) params[1].value == "hello")
+            Swag.assert(cast #assume(string?) params[1].value == "hello")
             continue
         }
 
@@ -82,9 +82,9 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
             Swag.assert(attribute.params.count == 2)
             let params = attribute.params!
             Swag.assert(params[0].name == "priority")
-            Swag.assert(cast(s32) params[0].value == 5)
+            Swag.assert(cast #assume (s32) params[0].value == 5)
             Swag.assert(params[1].name == "enabled")
-            Swag.assert(cast(bool) params[1].value)
+            Swag.assert(cast #assume (bool) params[1].value)
             continue
         }
 
@@ -96,9 +96,9 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
             Swag.assert(params[0].name == "values")
             Swag.assert(params[1].name == "values")
             Swag.assert(params[2].name == "values")
-            Swag.assert(cast(s32) params[0].value == 3)
-            Swag.assert(cast(s32) params[1].value == 5)
-            Swag.assert(cast(s32) params[2].value == 8)
+            Swag.assert(cast #assume (s32) params[0].value == 3)
+            Swag.assert(cast #assume (s32) params[1].value == 5)
+            Swag.assert(cast #assume (s32) params[2].value == 8)
         }
     }
 
@@ -123,7 +123,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
         Swag.assert(attribute.params.count == 1)
         let params = attribute.params!
         Swag.assert(params[0].name == "name")
-        Swag.assert(cast(string?) params[0].value == "payload")
+        Swag.assert(cast #assume(string?) params[0].value == "payload")
     }
 
     Swag.assert(foundParamAttribute)
@@ -138,7 +138,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     Swag.assert(attribute.params.count == 1)
     let params = attribute.params!
     Swag.assert(params[0].name == "name")
-    Swag.assert(cast(string?) params[0].value == "demo")
+    Swag.assert(cast #assume(string?) params[0].value == "demo")
 
     Swag.assert(REFLECTED_STRUCT_INFO.fields.count == 1)
 
@@ -153,7 +153,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
         Swag.assert(fieldAttribute.params.count == 1)
         let fieldParams = fieldAttribute.params!
         Swag.assert(fieldParams[0].name == "weight")
-        Swag.assert(cast(s32) fieldParams[0].value == 11)
+        Swag.assert(cast #assume(s32) fieldParams[0].value == 11)
     }
 
     Swag.assert(foundFieldAttribute)
@@ -169,7 +169,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     Swag.assert(enumAttribute.params.count == 1)
     let enumParams = enumAttribute.params!
     Swag.assert(enumParams[0].name == "label")
-    Swag.assert(cast(string?) enumParams[0].value == "state")
+    Swag.assert(cast #assume(string?) enumParams[0].value == "state")
 
     var foundFirstValueAttribute  = false
     var foundSecondValueAttribute = false
@@ -187,14 +187,14 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
             if enumValue.name == "First"
             {
                 foundFirstValueAttribute = true
-                Swag.assert(cast(s32) valueParams[0].value == 1)
+                Swag.assert(cast #assume(s32) valueParams[0].value == 1)
                 continue
             }
 
             if enumValue.name == "Second"
             {
                 foundSecondValueAttribute = true
-                Swag.assert(cast(s32) valueParams[0].value == 2)
+                Swag.assert(cast #assume (s32) valueParams[0].value == 2)
             }
         }
     }

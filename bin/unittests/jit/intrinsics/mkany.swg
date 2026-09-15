@@ -161,7 +161,7 @@ enum MkanyKind: u16
     func mkanyCastStringFromAny(value: any)->string
     {
         let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
-        return cast(string) reboxed
+        return cast #assume(string) reboxed
     }
 
     const V = #run mkanyCastStringFromAny("gamma")
@@ -178,7 +178,7 @@ enum MkanyKind: u16
     func mkanyCastStringToBytesFromAny(value: any)->u64
     {
         let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
-        return mkanyStringBytesLen(cast(string) reboxed)
+        return mkanyStringBytesLen(cast #assume(string) reboxed)
     }
 
     const V = #run mkanyCastStringToBytesFromAny("delta")

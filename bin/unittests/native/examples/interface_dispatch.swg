@@ -2,7 +2,7 @@
 
 // Strategy pattern: a pipeline of pricing rules implemented as interfaces.
 // Demonstrates dynamic dispatch, interface arrays, state mutation, and
-// interface switch for classification.
+// checked casts for classification.
 
 enum ProductKind: u8
 {
@@ -136,14 +136,14 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     Swag.assert(rules[2].tag() == "flat")
 }
 
-// Interface switch to dispatch by concrete type.
+// Checked casts classify the concrete rule.
 func classifyRule(rule: IDiscountRule)->s32
 {
-    switch rule
+    switch
     {
-    case BulkDiscount: return 1
-    case BookDiscount: return 2
-    case FlatDiscount: return 3
+    case cast #try (*BulkDiscount) rule != null: return 1
+    case cast #try (*BookDiscount) rule != null: return 2
+    case cast #try (*FlatDiscount) rule != null: return 3
     default: return 0
     }
 }

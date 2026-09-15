@@ -10,7 +10,7 @@
     {
         var ns:    string? = null
         let boxed: any     = ns
-        let back           = cast(string) boxed     // swc-expected-error {{safety_err_runtime}}
+        let back           = cast #assume(string) boxed     // swc-expected-error {{safety_err_runtime}}
         return back == null
     }
 
@@ -24,7 +24,7 @@
     {
         var np:    *s32? = null
         let boxed: any   = np
-        let back         = cast(*s32) boxed     // swc-expected-error {{safety_err_runtime}}
+        let back         = cast #assume(*s32) boxed     // swc-expected-error {{safety_err_runtime}}
         return back == null
     }
 
@@ -39,7 +39,7 @@
     {
         var ns:    string? = null
         let boxed: any     = ns
-        let back           = cast(string) boxed
+        let back           = cast #assume(string) boxed
         return back == null
     }
 
@@ -55,15 +55,15 @@
     {
         var ns:    string? = null
         var boxed: any     = ns
-        if cast(string?) boxed != null do
+        if cast #assume(string?) boxed != null do
             return false
 
         boxed = "hello"
-        if cast(string) boxed != "hello" do
+        if cast #assume(string) boxed != "hello" do
             return false
 
         boxed = 42's32
-        return cast(s32) boxed == 42
+        return cast #assume(s32) boxed == 42
     }
 
     Swag.assert(nullAnyExtractOk())

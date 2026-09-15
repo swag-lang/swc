@@ -26,20 +26,20 @@ internal impl Properties
             switch item.typeValue.pointedType!.sizeof
             {
             case 1:
-                val1 = cast(u64) item.data![as u8]
-                val2 = cast(u64) item.typeValue.value![as u8]
+                val1 = cast(u64) (cast(const *u8) item.data!)[]
+                val2 = cast(u64) (cast(const *u8) item.typeValue.value!)[]
 
             case 2:
-                val1 = cast(u64) item.data![as u16]
-                val2 = cast(u64) item.typeValue.value![as u16]
+                val1 = cast(u64) (cast(const *u16) item.data!)[]
+                val2 = cast(u64) (cast(const *u16) item.typeValue.value!)[]
 
             case 4:
-                val1 = cast(u64) item.data![as u32]
-                val2 = cast(u64) item.typeValue.value![as u32]
+                val1 = cast(u64) (cast(const *u32) item.data!)[]
+                val2 = cast(u64) (cast(const *u32) item.typeValue.value!)[]
 
             case 8:
-                val1 = cast(u64) item.data![as u64]
-                val2 = cast(u64) item.typeValue.value![as u64]
+                val1 = cast(u64) (cast(const *u64) item.data!)[]
+                val2 = cast(u64) (cast(const *u64) item.typeValue.value!)[]
             }
 
             // Multi-selection: a flag whose bit disagrees across instances is indeterminate.
@@ -55,17 +55,17 @@ internal impl Properties
     {
         if item.comboBox != null
         {
-            let typeEnum = cast(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
+            let typeEnum = cast #assume(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
 
             var val1, val2:   u64
             var val1s, val2s: string?
             switch typeEnum.rawType!.sizeof
             {
-            case 1:  val1 = cast(u64) item.data![as u8]
-            case 2:  val1 = cast(u64) item.data![as u16]
-            case 4:  val1 = cast(u64) item.data![as u32]
-            case 8:  val1 = cast(u64) item.data![as u64]
-            case 16: val1s = item.data![as string]
+            case 1:  val1 = cast(u64) (cast(const *u8) item.data!)[]
+            case 2:  val1 = cast(u64) (cast(const *u16) item.data!)[]
+            case 4:  val1 = cast(u64) (cast(const *u32) item.data!)[]
+            case 8:  val1 = cast(u64) (cast(const *u64) item.data!)[]
+            case 16: val1s = (cast(const *string) item.data!)[]
             }
 
             var idxSel = 0'u64
@@ -73,11 +73,11 @@ internal impl Properties
             {
                 switch typeEnum.rawType!.sizeof
                 {
-                case 1:  val2 = cast(u64) v.value![as u8]
-                case 2:  val2 = cast(u64) v.value![as u16]
-                case 4:  val2 = cast(u64) v.value![as u32]
-                case 8:  val2 = cast(u64) v.value![as u64]
-                case 16: val2s = v.value![as string]
+                case 1:  val2 = cast(u64) (cast(const *u8) v.value!)[]
+                case 2:  val2 = cast(u64) (cast(const *u16) v.value!)[]
+                case 4:  val2 = cast(u64) (cast(const *u32) v.value!)[]
+                case 8:  val2 = cast(u64) (cast(const *u64) v.value!)[]
+                case 16: val2s = (cast(const *string) v.value!)[]
                 }
 
                 if val1 == val2 and val1s == val2s do
@@ -131,7 +131,7 @@ internal impl Properties
                 p[] = p1[]
             }
 
-            let typeEnum = cast(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
+            let typeEnum = cast #assume(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
             let sel      = item.comboBox.selectedIndex
 
             // A deselected combo means "mixed" was just shown (multi-selection); there is

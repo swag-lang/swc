@@ -214,7 +214,7 @@ namespace
 
         const TypeInfo& sourceType = typeMgr.get(sourceTypeToCheck);
         const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
-        if (sourceType.isPointerOrReference() || sourceType.isNull())
+        if (sourceType.isPointerOrReference() || sourceType.isTypeInfo() || sourceType.isNull())
             return false;
         if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
             return false;
@@ -271,7 +271,7 @@ namespace
 
         const TypeInfo& sourceType = typeMgr.get(sourceTypeToCheck);
         const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
-        if (sourceType.isPointerOrReference() || sourceType.isNull())
+        if (sourceType.isPointerOrReference() || sourceType.isTypeInfo() || sourceType.isNull())
             return false;
         if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
             return false;
@@ -879,6 +879,221 @@ namespace
         return CodeGenSafety::emitDynCastCheck(codeGen, *panicFn, node);
     }
 
+    Result emitRuntimeTargetCast(CodeGen& codeGen, const AstCastExpr& node, const CodeGenLoweringPayload& lowering)
+    {
+        MicroBuilder&            builder    = codeGen.builder();
+        const MicroReg           targetReg  = materializePointerLikeInterfaceObjectReg(codeGen, codeGen.payload(node.nodeTypeRef));
+        const CodeGenNodePayload source     = sourcePayloadForCast(codeGen, node.nodeExprRef);
+        const MicroReg           resultReg  = codeGen.nextVirtualIntRegister();
+        MicroReg                 storageReg = MicroReg::invalid();
+        const TypeRef            resultType = codeGen.curViewType().typeRef();
+        SWC_ASSERT(lowering.runtimeFunctionSymbol);
+        if (lowering.runtimeTypeCast)
+        {
+            const MicroReg sourceReg = materializePointerLikeInterfaceObjectReg(codeGen, source);
+            const MicroReg args[]    = {targetReg, sourceReg};
+            SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering.runtimeFunctionSymbol, args, resultReg));
+        }
+        else
+        {
+            SWC_ASSERT(source.isAddress());
+            storageReg                 = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            const MicroReg readOnlyReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(readOnlyReg, ApInt(codeGen.typeMgr().get(resultType).isConst() ? 1 : 0, 64), MicroOpBits::B64);
+            const MicroReg args[] = {targetReg, source.reg, storageReg, readOnlyReg};
+            SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering.runtimeFunctionSymbol, args, resultReg));
+        }
+        if (lowering.assumedDynamicCast && lowering.hasRuntimeSafety(Runtime::SafetyWhat::DynCast))
+        {
+            const MicroLabelRef valid = builder.createLabel();
+            const MicroOpBits   bits  = lowering.runtimeTypeCast ? MicroOpBits::B64 : MicroOpBits::B8;
+            builder.emitCmpRegImm(resultReg, ApInt(0, getNumBits(bits)), bits);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, valid);
+            SWC_RESULT(emitDynCastPanic(codeGen, node));
+            builder.placeLabel(valid);
+        }
+        if (lowering.runtimeTypeCast)
+            codeGen.setPayloadValue(codeGen.curNodeRef(), resultType).reg = resultReg;
+        else
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), storageReg, resultType);
+        return Result::Continue;
+    }
+
+    uint32_t countFixedUsingPaths(const TaskContext& ctx, const SymbolStruct& source, const SymbolStruct& target)
+    {
+        if (&source == &target)
+            return 1;
+        uint32_t count = 0;
+        for (const SymbolVariable* field : source.fields())
+        {
+            if (!field->isUsingField())
+                continue;
+            const TypeRef   fieldTypeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, field->typeRef());
+            const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
+            if (!fieldType.isStruct())
+                continue;
+            count += countFixedUsingPaths(ctx, fieldType.payloadSymStruct(), target);
+            if (count > 1)
+                return 2;
+        }
+        return count;
+    }
+
+    Result emitCheckedDynamicCast(CodeGen& codeGen, AstNodeRef sourceRef, TypeRef resultTypeRef)
+    {
+        const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
+        SWC_ASSERT(lowering && lowering->dynamicCast);
+        const TypeRef            sourceTypeRef = codeGen.viewType(sourceRef).typeRef();
+        const CodeGenNodePayload sourcePayload = sourcePayloadForCast(codeGen, sourceRef);
+        const TypeInfo&          resultType    = codeGen.typeMgr().get(resultTypeRef);
+        TypeRef                  targetTypeRef = TypeRef::invalid();
+        if (resultType.isInterface())
+        {
+            TypeInfo interfaceType = resultType;
+            interfaceType.removeFlag(TypeInfoFlagsE::Nullable);
+            interfaceType.removeFlag(TypeInfoFlagsE::Const);
+            targetTypeRef = codeGen.typeMgr().addType(interfaceType);
+        }
+        else
+            targetTypeRef = resultType.payloadTypeRef();
+        DynamicStructCastSourceInfo sourceInfo;
+        SWC_INTERNAL_CHECK(resolveDynamicStructCastSourceInfo(codeGen.sema(), sourceRef, sourceTypeRef, sourceInfo));
+        MicroBuilder& builder       = codeGen.builder();
+        MicroReg      sourcePtrReg  = codeGen.nextVirtualIntRegister();
+        MicroReg      sourceTypeReg = MicroReg::invalid();
+
+        if (sourceInfo.structTypeRef.isValid())
+        {
+            if (sourceInfo.kind == DynamicStructCastSourceKind::StructPointerLike && sourcePayload.isAddress())
+                builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, 0, MicroOpBits::B64);
+            else
+                builder.emitLoadRegReg(sourcePtrReg, sourcePayload.reg, MicroOpBits::B64);
+
+            // An asserted downcast along a known by-value composition needs only
+            // its fixed address adjustment when the dynamic guard is disabled.
+            if (lowering->assumedDynamicCast && !lowering->hasRuntimeSafety(Runtime::SafetyWhat::DynCast) && resultType.isValuePointer())
+            {
+                const TypeInfo& targetType = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), targetTypeRef));
+                if (targetType.isStruct())
+                {
+                    const SymbolStruct&                    sourceStruct = codeGen.typeMgr().get(sourceInfo.structTypeRef).payloadSymStruct();
+                    const SymbolStruct&                    targetStruct = targetType.payloadSymStruct();
+                    SmallVector<SymbolStructUsingPathStep> path;
+                    bool                                   found     = sourceStruct.resolveUsingFieldPath(codeGen.ctx(), targetStruct, path);
+                    int64_t                                direction = 1;
+                    if (!found)
+                    {
+                        path.clear();
+                        found     = targetStruct.resolveUsingFieldPath(codeGen.ctx(), sourceStruct, path);
+                        direction = -1;
+                    }
+                    const uint32_t pathCount = direction > 0 ? countFixedUsingPaths(codeGen.ctx(), sourceStruct, targetStruct) : countFixedUsingPaths(codeGen.ctx(), targetStruct, sourceStruct);
+                    if (found && pathCount == 1 && std::ranges::none_of(path, [](const auto& step) { return step.isPointer; }))
+                    {
+                        int64_t offset = 0;
+                        for (const auto& step : path)
+                            offset += direction * step.field->offset();
+                        const MicroLabelRef done = builder.createLabel();
+                        if (offset)
+                        {
+                            if (codeGen.typeMgr().get(sourceTypeRef).isNullable())
+                            {
+                                builder.emitCmpRegImm(sourcePtrReg, ApInt(0, 64), MicroOpBits::B64);
+                                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+                            }
+                            builder.emitOpBinaryRegImm(sourcePtrReg, ApInt(static_cast<uint64_t>(offset), 64), MicroOp::Add, MicroOpBits::B64);
+                        }
+                        builder.placeLabel(done);
+                        codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef).reg = sourcePtrReg;
+                        return Result::Continue;
+                    }
+                }
+            }
+            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
+        }
+        else if (sourceInfo.kind == DynamicStructCastSourceKind::Interface)
+        {
+            SWC_ASSERT(sourcePayload.isAddress());
+            const MicroReg tableReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(tableReg, sourcePayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+            sourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            const MicroLabelRef done = builder.createLabel();
+            builder.emitCmpRegImm(tableReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+            builder.emitLoadRegMem(sourceTypeReg, tableReg, 0, MicroOpBits::B64);
+            builder.placeLabel(done);
+            builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
+        }
+        else
+        {
+            SWC_ASSERT(sourceInfo.kind == DynamicStructCastSourceKind::Any && sourcePayload.isAddress());
+            sourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(sourceTypeReg, sourcePayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+            builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
+        }
+
+        MicroReg targetTypeReg = MicroReg::invalid();
+        // Qualify the borrowed view, not the nominal interface type used to find
+        // its table. In particular, '#try' adds nullability only to the result.
+        const TypeRef runtimeTargetTypeRef = resultType.isInterface()
+                                                 ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(targetTypeRef, resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
+                                                 : resultTypeRef;
+        SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, runtimeTargetTypeRef));
+        MicroReg interfaceReg = codeGen.nextVirtualIntRegister();
+        if (resultType.isInterface())
+            interfaceReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        else
+            builder.emitLoadRegImm(interfaceReg, ApInt(0, 64), MicroOpBits::B64);
+        const MicroReg resultReg          = codeGen.nextVirtualIntRegister();
+        const MicroReg allowNullObjectReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(allowNullObjectReg, ApInt(sourceInfo.kind == DynamicStructCastSourceKind::Interface ? 1 : 0, 64), MicroOpBits::B64);
+        const bool checksBoxedNull = lowering->assumedDynamicCast && resultType.isNullable() && !resultType.isInterface() &&
+                                     sourceInfo.kind == DynamicStructCastSourceKind::Any && lowering->hasRuntimeSafety(Runtime::SafetyWhat::DynCast);
+        MicroReg matchedNullReg = codeGen.nextVirtualIntRegister();
+        if (checksBoxedNull)
+            matchedNullReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        else
+            builder.emitLoadRegImm(matchedNullReg, ApInt(0, 64), MicroOpBits::B64);
+        const MicroReg args[] = {targetTypeReg, sourceTypeReg, sourcePtrReg, interfaceReg, allowNullObjectReg, matchedNullReg};
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering->runtimeFunctionSymbol, args, resultReg));
+        if (lowering->assumedDynamicCast && lowering->hasRuntimeSafety(Runtime::SafetyWhat::DynCast))
+        {
+            const MicroLabelRef valid    = builder.createLabel();
+            MicroReg            matchReg = resultReg;
+            if (resultType.isInterface())
+            {
+                matchReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(matchReg, interfaceReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+            }
+            builder.emitCmpRegImm(matchReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, valid);
+            if (resultType.isNullable())
+            {
+                if (checksBoxedNull)
+                {
+                    const MicroReg nullMatchReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegMem(nullMatchReg, matchedNullReg, 0, MicroOpBits::B8);
+                    builder.emitCmpRegImm(nullMatchReg, ApInt(0, 8), MicroOpBits::B8);
+                    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, valid);
+                }
+                const MicroReg nullReg = sourceInfo.kind == DynamicStructCastSourceKind::Interface ? sourceTypeReg : sourcePtrReg;
+                builder.emitCmpRegImm(nullReg, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, valid);
+            }
+            SWC_RESULT(emitDynCastPanic(codeGen, codeGen.curNode()));
+            builder.placeLabel(valid);
+        }
+        if (resultType.isInterface())
+        {
+            builder.emitLoadMemReg(interfaceReg, offsetof(Runtime::Interface, obj), resultReg, MicroOpBits::B64);
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), interfaceReg, resultTypeRef);
+        }
+        else
+            codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef).reg = resultReg;
+        return Result::Continue;
+    }
+
     Result emitAnyRuntimeAsCall(MicroReg& outResultReg, CodeGen& codeGen, const SymbolFunction& asFn, TypeRef targetTypeRef, MicroReg sourceTypeReg, MicroReg valueAddrReg)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -1248,6 +1463,9 @@ namespace
 
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
+        const auto* dynamicPayload = codeGen.loweringPayload(codeGen.curNodeRef());
+        if (dynamicPayload && dynamicPayload->dynamicCast)
+            return emitCheckedDynamicCast(codeGen, srcNodeRef, dstTypeRef);
         MicroBuilder&            builder             = codeGen.builder();
         const CodeGenNodePayload srcPayload          = sourcePayloadForCast(codeGen, srcNodeRef);
         const auto*              castPayload         = codeGen.loweringPayload(codeGen.curNodeRef());
@@ -1841,29 +2059,23 @@ Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
     return emitNumericCast(codeGen, nodeExprRef, codeGen.curViewType().typeRef());
 }
 
+Result AstCastExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeTypeRef)
+    {
+        // A generic target can be a bare identifier. Only runtime targets need
+        // expression code; a static type has no value or storage to generate.
+        const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
+        if (!lowering || (!lowering->runtimeTypeCast && !lowering->runtimeValueCast))
+            return Result::SkipChildren;
+    }
+    return Result::Continue;
+}
+
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    // 'expr[as T]' opens the pointed storage as a T: publish the pointee address as an
-    // lvalue place of T, never a value conversion.
-    if (hasFlag(AstCastExprFlagsE::DerefPlace))
-    {
-        MicroBuilder&      builder        = codeGen.builder();
-        CodeGenNodePayload childPayload   = codeGen.payload(nodeExprRef);
-        TypeRef            operandTypeRef = codeGen.viewType(nodeExprRef).typeRef();
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
-
-        // The place is T, whatever the expression around it converts that T into. A conversion
-        // substitutes this node, so the live view would answer with the converted type and the
-        // place would then be read at the converted width - eight bytes out of a four-byte object
-        // for 's32' reaching an 's64' context.
-        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), codeGen.transparentPayloadTypeRef());
-        if (childPayload.isAddress())
-            builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
-        else
-            builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
-        return Result::Continue;
-    }
-
+    if (const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef()); lowering && (lowering->runtimeTypeCast || lowering->runtimeValueCast))
+        return emitRuntimeTargetCast(codeGen, *this, *lowering);
     return emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef());
 }
 

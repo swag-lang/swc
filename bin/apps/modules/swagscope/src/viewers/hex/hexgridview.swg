@@ -1064,7 +1064,7 @@ impl IActionUI for ActionHex
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let grid    = cast(*HexGridView) cxt.wnd!
+        let grid    = cast #assume(*HexGridView) cxt.wnd!
         let bounded = grid.selectionLength() > HexCopyLimit
         let limit   = StrConv.toDisplaySize(HexCopyLimit)
 
@@ -1099,7 +1099,7 @@ impl IActionUI for ActionHex
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let grid = cast(*HexGridView) cxt.wnd!
+        let grid = cast #assume(*HexGridView) cxt.wnd!
         switch cxt.id
         {
         case ActionHex.CopyBytes: grid.copySelection(.Bytes)

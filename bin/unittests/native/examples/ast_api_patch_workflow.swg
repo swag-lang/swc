@@ -39,7 +39,7 @@ func appendAst(buffer: [*] u8, start: u64, text: string)->u64
 #[Swag.Compiler]
 func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
 {
-    let typeStruct = cast(const *Swag.TypeInfoStruct) type
+    let typeStruct = cast #assume(const *Swag.TypeInfoStruct) type
     var len        = start
 
     for field in typeStruct.fields

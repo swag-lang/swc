@@ -230,12 +230,12 @@ func matchReferenceValue(value: s32)->bool
 {
     var value: s32 = 42
     var raw:   any = Swag.makeAny(&value, s32)
-    let boxed      = (&raw)[as CompareStrictAny]
+    let boxed      = (cast(const *CompareStrictAny) (&raw))[]
 
-    Swag.assert(boxed == s32)
-    Swag.assert(s32 == boxed)
-    Swag.assert(boxed != string)
-    Swag.assert(string != boxed)
+    Swag.assert(cast #try (*s32) boxed != null)
+    Swag.assert(cast #try (*s32) boxed != null)
+    Swag.assert(cast #try (*string) boxed == null)
+    Swag.assert(cast #try (*string) boxed == null)
 }
 
 #test

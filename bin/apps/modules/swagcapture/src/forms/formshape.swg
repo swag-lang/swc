@@ -32,7 +32,9 @@ impl IForm for FormShape
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormShape) ptr
+        let other = cast #try (*FormShape) ptr
+        if not other do
+            return false
         return .isSameBase(ptr) and
                .kind == other.kind and
                .roundSize == other.roundSize
@@ -41,8 +43,8 @@ impl IForm for FormShape
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormShape) dst
-        let srcf = cast(*FormShape) src
+        let dstf = cast #assume (*FormShape) dst
+        let srcf = cast #assume (*FormShape) src
         dstf.kind      = srcf.kind
         dstf.roundSize = srcf.roundSize
     }

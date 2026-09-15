@@ -53,7 +53,7 @@ impl PlaybackButton
         result.toolTip = appStrings().ui_PlayMode
         result.enable(playback.isAvailable())
         result.refreshIcon()
-        result.sigPressed += func(button) { (cast(*PlaybackButton) button).showMenu() }
+        result.sigPressed += func(button) { (cast #assume (*PlaybackButton) button).showMenu() }
         return result
     }
 

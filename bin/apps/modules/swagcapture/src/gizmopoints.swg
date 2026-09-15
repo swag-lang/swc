@@ -95,7 +95,7 @@ impl GizmoPoints
 
     func apply(iform: IForm, diff: Math.Point, pt: u32, first: bool)
     {
-        let form    = cast(*BaseForm) iform.buffer
+        let form    = cast #assume (*BaseForm) iform
         let capture = form.capture!
         if not first do
             capture.undo()

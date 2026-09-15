@@ -161,13 +161,13 @@ private func runTextStatistics(thread: Threading.Thread)
 
 func textRevealMatch(wnd: *Wnd, match: Viewer.SearchMatch, text: string)->bool
 {
-    return (cast(*TextView) wnd).revealOffset(match.offset, text)
+    return (cast #assume (*TextView) wnd).revealOffset(match.offset, text)
 }
 
 func textSearchBounds(wnd: *Wnd, match: Viewer.SearchMatch, result: *Math.Rectangle)->bool
 {
     discard match
-    let view = cast(*TextView) wnd
+    let view = cast #assume (*TextView) wnd
     if view.pendingMatch.length do
         return false
     return Viewer.richEditMatchBounds(view.editor, result)
@@ -175,12 +175,12 @@ func textSearchBounds(wnd: *Wnd, match: Viewer.SearchMatch, result: *Math.Rectan
 
 func textClearSearch(wnd: *Wnd)
 {
-    let view = cast(*TextView) wnd
+    let view = cast #assume (*TextView) wnd
     view.pendingMatch.clear()
     Viewer.clearRichEditMatch(view.editor)
 }
 
-func textIsLoading(wnd: *Wnd)->bool => (cast(*TextView) wnd).loadTimer != null
+func textIsLoading(wnd: *Wnd)->bool => (cast #assume (*TextView) wnd).loadTimer != null
 
 impl TextView
 {
@@ -738,9 +738,9 @@ impl TextView
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            switch evt
+            switch
             {
-            case PaintEvent as paintEvt:
+            case let paintEvt = cast #try (*PaintEvent) evt:
 
                 // Caret placement and wrapping publish scroll corrections during paint. They
                 // must not reload the text whose lines the renderer is currently traversing.
@@ -750,35 +750,35 @@ impl TextView
                 paintEvt.target!.processEvent(evt)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
                 view.setZoom(view.zoomPercent + 25)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
                 view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
                 view.setZoom(100)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .W and keyEvt.modifiers == .Control:
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .W and keyEvt.modifiers == .Control:
                 view.toggleWrap()
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
                 discard view.revealOffset(view.fileSize, "")
                 view.pendingNavigation = .End
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = false
                 discard view.revealOffset(0, "")
                 view.pendingNavigation = .Home
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
                 view.pauseStreaming = false
                 view.scheduleMore()
                 return false
@@ -791,7 +791,7 @@ impl TextView
         result.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            if evt is ResizeEvent
+            if cast #try (*ResizeEvent) evt != null
             {
                 view.updateEstimatedHeight()
                 view.scheduleMore()
@@ -845,5 +845,5 @@ func createTextViewer(host: Viewer.Host)
         clear: &textClearSearch})
     host.setLifecycle({
         isLoading: &textIsLoading,
-        retire: func(wnd)->bool { return (cast(*TextView) wnd).retire() }})
+        retire: func(wnd)->bool { return (cast #assume (*TextView) wnd).retire() }})
 }

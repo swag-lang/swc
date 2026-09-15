@@ -33,7 +33,9 @@ impl IForm for FormStep
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormStep) ptr
+        let other = cast #try (*FormStep) ptr
+        if not other do
+            return false
         return .isSameBase(ptr) and
                .kind == other.kind and
                .typeIndex == other.typeIndex
@@ -42,8 +44,8 @@ impl IForm for FormStep
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormStep) dst
-        let srcf = cast(*FormStep) src
+        let dstf = cast #assume (*FormStep) dst
+        let srcf = cast #assume (*FormStep) src
         dstf.kind      = srcf.kind
         dstf.typeIndex = srcf.typeIndex
         dstf.ws        = srcf.ws

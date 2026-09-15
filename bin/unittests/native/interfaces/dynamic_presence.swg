@@ -102,7 +102,7 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     Swag.assert(value != null)
     Swag.assert((value ? 1 : 2) == 1)
     let boxed     = Swag.makeAny(&value, #typeof(value))
-    let extracted = cast(MetadataAlias) boxed
+    let extracted = cast #assume (MetadataAlias) boxed
     Swag.assert((cast(IMetadata) extracted).answer() == 42)
     Swag.assert(metadata(#typeof(Metadata))!.answer() == 42)
     Swag.assert((metadata(#typeof(Metadata))?.answer() orelse 0) == 42)

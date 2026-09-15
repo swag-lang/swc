@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/RefTypes.h"
@@ -36,6 +36,9 @@ public:
         Panic,
         SafetyPanic,
         As,
+        DynamicCast,
+        RuntimeTypeCast,
+        RuntimeValueCast,
         Is,
         TypeCmp,
         TlsAlloc,
@@ -82,6 +85,7 @@ public:
         Foreign,
         Discardable,
         NoCopy,
+        DynCast,
         Opaque,
         NoDoc,
         Strict,
@@ -159,6 +163,9 @@ public:
         RuntimePanic,
         RuntimeSafetyPanic,
         RuntimeAs,
+        RuntimeDynamicCast,
+        RuntimeTypeCast,
+        RuntimeValueCast,
         RuntimeIs,
         RuntimeTypeCmp,
         RuntimeStringCmp,

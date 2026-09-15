@@ -30,7 +30,7 @@ func catchAsErrRun(ok: bool)->s32
 {
     catch catchAsErrMayFail(ok) as err
     if err != null do
-        return (cast(CatchAsErrError) err).code
+        return (cast #assume(CatchAsErrError) err).code
     return 1000
 }
 
@@ -39,7 +39,7 @@ func catchAsErrValue(ok: bool)->s32
 {
     let x = catch catchAsErrCount(ok) as err
     if err != null do
-        return -(cast(CatchAsErrError) err).code
+        return -(cast #assume(CatchAsErrError) err).code
     return x
 }
 
@@ -113,7 +113,7 @@ func catchAsErrReraise(ok: bool)->s32 fail
     var seen = 0
     discard catch catchAsErrReraise(false) as err
     if err != null do
-        seen = (cast(CatchAsErrError) err).code
+        seen = (cast #assume(CatchAsErrError) err).code
     Swag.assert(seen == 7)
 }
 

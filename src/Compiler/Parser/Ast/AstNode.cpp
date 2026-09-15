@@ -8,6 +8,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
+AstNodeRef AstSwitchCaseStmt::conditionBindingRef(const Ast& ast) const
+{
+    if (!spanExprRef.isValid())
+        return AstNodeRef::invalid();
+    const AstNodeRef first = ast.nthNode(spanExprRef, 0);
+    const AstNode&   node  = ast.node(first);
+    if (node.is(AstNodeId::SingleVarDecl) || node.is(AstNodeId::MultiVarDecl) || node.is(AstNodeId::VarDeclList))
+        return first;
+    return AstNodeRef::invalid();
+}
+
 namespace
 {
     void walkBoundaryOnSameLine(const TaskContext& ctx, const Ast& ast, const SourceView& view, const AstNode& root, SourceViewRef baseViewRef, uint32_t baseLine, bool walkLeft, SourceCodeRange& boundaryLoc)

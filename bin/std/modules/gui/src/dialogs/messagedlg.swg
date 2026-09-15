@@ -164,10 +164,10 @@ public impl MessageDlg
                 .messageScroll     = scroll
                 scroll.hookOnEvent = func(wnd, evt)
                 {
-                    let key = evt as KeyEvent
+                    let key = cast #try (*KeyEvent) evt
                     if not key or key.kind != .Pressed or key.modifiers != .None do
                         return false
-                    let scroll = cast(*ScrollWnd) wnd
+                    let scroll = cast #assume (*ScrollWnd) wnd
                     var y      = scroll.scrollPosition().y
                     switch key.key
                     {
@@ -365,16 +365,11 @@ public impl MessageDlg
         // unconditionally, the separator left an empty line the box still had to be tall
         // enough to hold.
         var txt: String = String.from(message)
-        if err != null
+        if let sysErr = cast #try (const *Swag.SystemError) err
         {
-            switch err
-            {
-            case Swag.SystemError:
-                let sysErr = cast(Swag.SystemError) err
-                if not txt.isEmpty() do
-                    txt += "\n\n"
-                txt += sysErr.message
-            }
+            if not txt.isEmpty() do
+                txt += "\n\n"
+            txt += sysErr.message
         }
 
         // The glyph carries the severity, so it is set in the colour that reports one. Filled

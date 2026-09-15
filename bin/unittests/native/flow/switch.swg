@@ -598,11 +598,11 @@ func toto()->s32 => 1
 {
     func switchAnyUsingBase(x: any)->s32
     {
-        switch x
+        switch
         {
-        case SwitchAnyBase:
+        case cast #try (*SwitchAnyBase) x != null:
             return 1
-        case s32:
+        case cast #try (*s32) x != null:
             return 2
         default:
             return 0
@@ -617,9 +617,9 @@ func toto()->s32 => 1
 {
     func switchAnyUsingBaseBinding(x: any)->s32
     {
-        switch x
+        switch
         {
-        case SwitchAnyBase as ptr:
+        case let ptr = cast #try (*SwitchAnyBase) x:
             return ptr.value
         default:
             return 0
@@ -634,10 +634,10 @@ func toto()->s32 => 1
 {
     func switchAnyStringBinding(x: any)->bool
     {
-        switch x
+        switch
         {
-        case string as str:
-            return str == "value"
+        case let str = cast #try (*string) x:
+            return str[] == "value"
         default:
             return false
         }

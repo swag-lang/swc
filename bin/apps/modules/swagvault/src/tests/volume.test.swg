@@ -796,7 +796,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var stopped = catch Volume.create(path, testPassword(), MinimumSize, &progress) as cancelError
     stopped.close()
     Swag.assert(cancelError != null)
-    Swag.assert((cast(Error) cancelError).kind == .Canceled)
+    Swag.assert((cast #assume(Error) cancelError).kind == .Canceled)
     Swag.assert(not File.exists(path))
 
     // Arming the tracker for the next operation clears the cancellation the stopped one left.
@@ -961,7 +961,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let previousPhysical = stopped.physicalSize
     discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelError
     Swag.assert(cancelError != null)
-    Swag.assert((cast(Error) cancelError).kind == .Canceled)
+    Swag.assert((cast #assume(Error) cancelError).kind == .Canceled)
     Swag.assert(stopped.containerSize == MinimumSize)
     stopped.close()
 
@@ -1049,7 +1049,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     progress.cancel()
     let previousPhysical = volume.physicalSize
     discard catch volume.resize(MinimumSize, &progress) as cancelError
-    Swag.assert(cancelError != null and (cast(Error) cancelError).kind == .Canceled)
+    Swag.assert(cancelError != null and (cast #assume(Error) cancelError).kind == .Canceled)
     Swag.assert(volume.containerSize == InitialSize)
     volume.close()
     Swag.assert(expect File.info(path).size == previousPhysical)
@@ -1125,9 +1125,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     {
         if err == null do
             return false
-        switch err
+        switch
         {
-        case Error as volumeError: return volumeError.kind == .WriteProtected
+        case let volumeError = cast #try (*Error) err: return volumeError.kind == .WriteProtected
         }
 
         return false

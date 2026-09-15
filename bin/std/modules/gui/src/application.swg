@@ -185,14 +185,14 @@ private impl Application
         for hook in .hookOnEvent do
             hook.itf.onHookEvent(evt)
 
-        if let ptr = evt as QuitEvent
+        if let ptr = cast #try (*QuitEvent) evt
         {
             .mustQuit = true
             .quitCode = ptr.quitCode
             return
         }
 
-        let event = cast(*Event) evt
+        let event = cast #assume (*Event) evt
 
         // Be sure we have a target
         if not event.target do
@@ -489,9 +489,9 @@ private impl Application
         var needUpdateState = false
         for it in copy
         {
-            let evt = (it as Event)!
+            let evt = cast #assume (*Event) it
 
-            if it is InvalidateEvent
+            if cast #try (*InvalidateEvent) it != null
             {
                 let target = evt.target!
                 target.invalidate()
@@ -500,10 +500,10 @@ private impl Application
                 .sendEvent(it)
 
             // Special event post process
-            if it is CommandEvent do
+            if cast #try (*CommandEvent) it != null do
                 needUpdateState = true
 
-            .toDelete.add({evt, evt.type!})
+            .toDelete.add({it.buffer, Swag.kindOf(it)})
         }
 
         if needUpdateState do
@@ -577,7 +577,7 @@ private impl Application
         // Be sure there's no posted event for that window
         for e in .postedEvents
         {
-            let ptr = (e as Event)!
+            let ptr = cast #assume (*Event) e
             if ptr.target == wnd do
                 ptr.target = null
         }
@@ -879,11 +879,8 @@ impl Application
             it.destroy()
         .sendDestroyEvents()
 
-        for it in .postedEvents
-        {
-            let ptr = (it as Event)!
-            .toDelete.add({ptr, ptr.type!})
-        }
+        for it in .postedEvents do
+            .toDelete.add({it.buffer, Swag.kindOf(it)})
 
         .deletePointers()
         if .appIconLoaded
@@ -1381,7 +1378,7 @@ impl Application
 
         if wnd.isAllocated
         {
-            .toDelete.add({wnd, wnd.type})
+            .toDelete.add({wnd.itf.buffer, Swag.kindOf(wnd.itf)})
         }
     }
 

@@ -321,6 +321,18 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 - Use expression-bodied functions for one direct expression, but keep blocks when validation,
   ownership, or failure behavior deserves to remain visible.
 
+## Use One Dynamic Cast Vocabulary
+
+- Use `cast #try (*T) value` to borrow a concrete value from `any`, an interface, or a
+  pointer to a `#[Swag.DynCast]` struct. Prefer `if let found = cast #try (*T) value`
+  when the branch uses the result; compare with `null` when it only tests compatibility.
+- Use `cast #assume (T) boxed` or `cast #assume (*T) value` only when the concrete type
+  is an established invariant. `.DynCast` safety checks that assertion; disabling it
+  does not make a wrong assumption valid.
+- Query type compatibility with `cast #try (Target) Source`, including in generic
+  constraints. Expression `as`, expression `is`, `Swag.typeAs`, and `Swag.typeIs` are
+  retired; `catch ... as err` still binds an error.
+
 ## Keep APIs Hard to Misuse
 
 - Prefer values, slices, and single-value pointers (`*T`) at the product layer; isolate raw

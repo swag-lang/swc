@@ -35,11 +35,11 @@ const AnyNullValue: any? = null
 
 const AnyTrueValue: any = true
 #assert(AnyTrueValue != null)
-#assert(cast(bool) AnyTrueValue)
+#assert(cast #assume(bool) AnyTrueValue)
 
 const AnyFalseValue: any = false
 #assert(AnyFalseValue != null)
-#assert(not cast(bool) AnyFalseValue)
+#assert(not cast #assume(bool) AnyFalseValue)
 
 func semaTest001()
 {

@@ -85,7 +85,7 @@ alias ReflectedMyStructMethod = func(*MyStruct)->s32
 
 #test
 {
-    let type    = cast(const *Swag.TypeInfoStruct) #type MyStruct
+    let type    = cast #assume(const *Swag.TypeInfoStruct) #type MyStruct
     let methods = type.methods!
     var returnX: const *Swag.TypeValue?
 

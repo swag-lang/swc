@@ -48,10 +48,10 @@ const PersistentAnyArray: [2] any = #run
 #assert(#typeof(DeducePowerOfTwo) == [4] s32)
 #assert(DeducePowerOfTwo[0] == 1)
 #assert(DeducePowerOfTwo[3] == 4)
-#assert(cast(string) PersistentAnyPair.item == "abc")
-#assert(cast(string) PersistentAnyPair.other == "def")
-#assert(cast(string) PersistentAnyArray[0] == "first")
-#assert(cast(string) PersistentAnyArray[1] == "second")
+#assert(cast #assume(string) PersistentAnyPair.item == "abc")
+#assert(cast #assume(string) PersistentAnyPair.other == "def")
+#assert(cast #assume(string) PersistentAnyArray[0] == "first")
+#assert(cast #assume(string) PersistentAnyArray[1] == "second")
 
 #test
 {
@@ -68,8 +68,8 @@ const PersistentAnyArray: [2] any = #run
         return [cast(any) "first", cast(any) "second"]
     }
 
-    Swag.assert(cast(string) value.item == "abc")
-    Swag.assert(cast(string) value.other == "def")
-    Swag.assert(cast(string) values[0] == "first")
-    Swag.assert(cast(string) values[1] == "second")
+    Swag.assert(cast #assume(string) value.item == "abc")
+    Swag.assert(cast #assume(string) value.other == "def")
+    Swag.assert(cast #assume(string) values[0] == "first")
+    Swag.assert(cast #assume(string) values[1] == "second")
 }

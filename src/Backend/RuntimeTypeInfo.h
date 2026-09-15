@@ -72,6 +72,7 @@ namespace Runtime
         Const                = 0x00010000,
         Nullable             = 0x00020000,
         RequiresExplicitInit = 0x00080000,
+        HasDynamicStorage    = 0x00100000,
     };
 
     enum class TypeValueFlags : uint32_t
@@ -109,15 +110,19 @@ namespace Runtime
         uint32_t         padding;
     };
 
+    struct DynamicStructInfo;
+
     struct TypeInfo
     {
-        String        fullname;
-        String        name;
-        uint32_t      sizeofType;
-        uint32_t      crc;
-        TypeInfoFlags flags = TypeInfoFlags::Zero;
-        TypeInfoKind  kind  = TypeInfoKind::Invalid;
-        uint8_t       padding[3];
+        String                   fullname;
+        String                   name;
+        uint32_t                 sizeofType;
+        uint32_t                 crc;
+        TypeInfoFlags            flags = TypeInfoFlags::Zero;
+        TypeInfoKind             kind  = TypeInfoKind::Invalid;
+        uint8_t                  padding[3];
+        const TypeInfo*          unqualified;
+        const DynamicStructInfo* dynamicIdentity;
     };
 
     struct TypeInfoNative
@@ -144,6 +149,13 @@ namespace Runtime
         const TypeInfo* rawType;
     };
 
+    struct DynamicStructInfo
+    {
+        const TypeInfo* type;
+        uint64_t        offset;
+        const TypeInfo* runtimeType;
+    };
+
     struct TypeInfoStruct
     {
         TypeInfo base;
@@ -151,14 +163,15 @@ namespace Runtime
         void (*opDrop)(void*);
         void (*opPostCopy)(void*);
         void (*opPostMove)(void*);
-        String           structName;
-        const TypeInfo*  fromGeneric;
-        Slice<TypeValue> generics;
-        Slice<TypeValue> fields;
-        Slice<TypeValue> usingFields;
-        Slice<TypeValue> methods;
-        Slice<TypeValue> interfaces;
-        Slice<Attribute> attributes;
+        String                   structName;
+        const TypeInfo*          fromGeneric;
+        Slice<TypeValue>         generics;
+        Slice<TypeValue>         fields;
+        Slice<TypeValue>         usingFields;
+        Slice<TypeValue>         methods;
+        Slice<TypeValue>         interfaces;
+        Slice<Attribute>         attributes;
+        Slice<DynamicStructInfo> dynamicSlots;
     };
 
     struct TypeInfoFunc

@@ -16,7 +16,7 @@ func reflectLocalContext()->s32
     let info = cast(const *TypeInfoFunc) #typeof(localValue)
     Swag.assert(info.attributes.count == 1)
     Swag.assert(info.attributes[0].type == #typeof(LocalContextTag))
-    Swag.assert(cast(s32) info.attributes[0].params[0].value == 73)
+    Swag.assert(cast #assume(s32) info.attributes[0].params[0].value == 73)
     return localValue()
 }
 

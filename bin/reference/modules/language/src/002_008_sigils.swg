@@ -279,21 +279,21 @@ clearly than disabling overflow checks for a file.
 
 # Contextual Keywords Are Different
 
-Bare 'as' and 'is' are grammar keywords used by matching and conversion expressions.
-`value as IFoo` converts a value to its interface, like `cast(IFoo) value`;
-`T is IFoo` tests a type's interface contract at compile time and can constrain
-a generic declaration with 'where'. 'Swag.typeAs' and 'Swag.typeIs' are runtime
-intrinsics that operate on type metadata. The parser and type checker give
-these forms distinct roles.
+'cast' is the common conversion expression. Its '#try' modifier returns a nullable
+view for a dynamic conversion; testing that view against 'null' tests compatibility.
+Its '#assume' modifier asserts compatibility and checks that assertion when dynamic
+cast safety is enabled. A compile-time expression such as
+`cast #try(IFoo) T != null` can constrain a generic declaration with 'where'.
+The contextual 'as' in a 'catch' clause names the caught error.
 */
 
 #test
 {
     let value: any = "text"
 
-    switch value
+    switch
     {
-    case string as text: Swag.assert(text == "text")
+    case let text = cast #try (*string) value: Swag.assert(text[] == "text")
     default: Swag.assert(false)
     }
 }

@@ -26,7 +26,7 @@ public impl Image
             var context = f
             .transformLogicalPixels(&context)
             {
-                let blend = userData![as f32]
+                let blend = (cast(const *f32) userData!)[]
                 let gray  = value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
                 value.r = Math.lerp(value.r, gray, blend)
                 value.g = Math.lerp(value.g, gray, blend)
@@ -115,7 +115,7 @@ public impl Image
         .visitPixels(&context)
         {
             let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
-            let blend     = userData![as f32]
+            let blend     = (cast(const *f32) userData!)[]
             let weight0   = blueFirst ? 19's32 : 54's32
             let weight2   = blueFirst ? 54's32 : 19's32
             let gray      = cast(f32) ((((pix[0] * weight0) + (pix[1] * 183's32) + (pix[2] * weight2)) >> 8) & 0xFF)

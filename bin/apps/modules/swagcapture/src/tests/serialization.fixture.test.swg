@@ -64,34 +64,34 @@ func serializationFixturePath(name: string)->String
     Swag.assert(Swag.kindOf(capture.forms[7]) == #typeof(FormImage))
     Swag.assert(Swag.kindOf(capture.forms[8]) == #typeof(FormCallout))
 
-    let shape = cast(*FormShape) capture.forms[0].buffer
+    let shape = cast #assume (*FormShape) capture.forms[0]
     Swag.assert(shape.x == 2 and shape.y == 3 and shape.w == 20 and shape.h == 18)
     Swag.assert(shape.kind == .RoundRectangle)
     Swag.assert(shape.roundSize == 17)
     Swag.assert(shape.borderSize == 6)
     Swag.assert(shape.backColor == ColorYellow)
 
-    let line = cast(*FormLine) capture.forms[1].buffer
+    let line = cast #assume (*FormLine) capture.forms[1]
     Swag.assert(line.xa == 5 and line.ya == 7 and line.xb == 91 and line.yb == 33)
     Swag.assert(line.bezier and line.xc == 38 and line.yc == 4)
     Swag.assert(line.beginCap == .Round and line.endCap == .Triangle)
 
-    let arrow = cast(*FormArrow) capture.forms[2].buffer
+    let arrow = cast #assume (*FormArrow) capture.forms[2]
     Swag.assert(arrow.xa == 8 and arrow.ya == 82 and arrow.xb == 113 and arrow.yb == 54)
     Swag.assert(arrow.startSize == 7 and arrow.endSize == 13)
 
-    let polygon = cast(*FormPolygon) capture.forms[3].buffer
+    let polygon = cast #assume (*FormPolygon) capture.forms[3]
     Swag.assert(polygon.points.count == 3)
     Swag.assert(polygon.points[0] == Math.Vector2{18, 18})
     Swag.assert(polygon.points[2] == Math.Vector2{41, 62})
     Swag.assert(polygon.bezier)
 
-    let draw = cast(*FormDraw) capture.forms[4].buffer
+    let draw = cast #assume (*FormDraw) capture.forms[4]
     Swag.assert(draw.points.count == 3)
     Swag.assert(draw.anchorSize == 9)
     Swag.assert(draw.subKind == .PixSel)
 
-    let text = cast(*FormText) capture.forms[5].buffer
+    let text = cast #assume (*FormText) capture.forms[5]
     Swag.assert(text.text == "fixture text")
     Swag.assert(text.fontName == "Arial")
     Swag.assert(text.fontSize == 27)
@@ -99,12 +99,12 @@ func serializationFixturePath(name: string)->String
     Swag.assert(text.alignHorz == .RightBottom)
     Swag.assert(text.alignVert == .LeftTop)
 
-    let step = cast(*FormStep) capture.forms[6].buffer
+    let step = cast #assume (*FormStep) capture.forms[6]
     Swag.assert(step.index == 7)
     Swag.assert(step.kind == .RoundRectangle)
     Swag.assert(step.typeIndex == .LetterDown)
 
-    let image = cast(*FormImage) capture.forms[7].buffer
+    let image = cast #assume (*FormImage) capture.forms[7]
     Swag.assert(image.kind == .Image)
     Swag.assert(image.place == .Free)
     Gui.Testing.assertRect(image.freePos, 4, 5, 11, 13)
@@ -112,7 +112,7 @@ func serializationFixturePath(name: string)->String
     Swag.assert(image.image.width == 3 and image.image.height == 2)
     Swag.assert(image.image.pixelColor(0, 0).argb == Argb.Magenta)
 
-    let callout = cast(*FormCallout) capture.forms[8].buffer
+    let callout = cast #assume (*FormCallout) capture.forms[8]
     Swag.assert(callout.text == "fixture callout")
     Swag.assert(callout.roundSize == 19)
     Swag.assert(callout.tailX == 87 and callout.tailY == 91)

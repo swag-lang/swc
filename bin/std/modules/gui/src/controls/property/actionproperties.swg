@@ -37,7 +37,7 @@ internal impl IActionUI for ActionProperties
     // logic that used to live inline in popupMenu next to each addItem.
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let prop = cast(*Properties) cxt.wnd!
+        let prop = cast #assume (*Properties) cxt.wnd!
         let item = prop.menuItem
         if not item do
             return false
@@ -108,7 +108,7 @@ internal impl IActionUI for ActionProperties
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let prop = cast(*Properties) cxt.wnd!
+        let prop = cast #assume (*Properties) cxt.wnd!
         let item = prop.menuItem
         if not item do
             return false

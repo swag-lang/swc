@@ -147,9 +147,9 @@
 <p><span class="code-inline">onEvent</span> receives GUI events for the surface. Pattern cases select the concrete event type and can bind the typed value with <span class="code-inline">as</span>, as the paint case does. A larger application can distribute this work across controls or interfaces; a single callback keeps this example local.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">onEvent</span>(wnd: *<span class="SCst">Wnd</span>, evt: <span class="SCst">IEvent</span>)-&gt;<span class="STpe">bool</span>
 {
-    <span class="SLgc">switch</span> evt
+    <span class="SLgc">switch</span>
     {
-    <span class="SLgc">case</span> <span class="SCst">CreateEvent</span>:
+    <span class="SLgc">case</span> <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">CreateEvent</span>) evt != <span class="SKwd">null</span>:
         g_Rect = wnd.<span class="SFct">clientRect</span>()
 
         <span class="SCmt">// 'loadAssets' can fail. 'expect' converts that recoverable error into a</span>
@@ -158,10 +158,10 @@
 
         <span class="SFct">start</span>()
 
-    <span class="SLgc">case</span> <span class="SCst">ResizeEvent</span>:
+    <span class="SLgc">case</span> <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">ResizeEvent</span>) evt != <span class="SKwd">null</span>:
         g_Rect = wnd.<span class="SFct">clientRect</span>()
 
-    <span class="SLgc">case</span> <span class="SCst">PaintEvent</span> <span class="SLgc">as</span> paintEvt:
+    <span class="SLgc">case</span> <span class="SKwd">let</span> paintEvt = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">PaintEvent</span>) evt:
         <span class="SKwd">let</span> painter = paintEvt.paintContext.painter
 
         <span class="SCmt">// Elapsed time since the previous frame, in seconds.</span>
@@ -421,7 +421,7 @@
 }</span></div>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.503</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.666</div>
 </footer>
 </section>
 </main>

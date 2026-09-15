@@ -527,53 +527,6 @@ namespace
         return Result::Continue;
     }
 
-    Result semaIntrinsicIs(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
-    {
-        SemaNodeView toTypeView   = sema.viewTypeConstant(children[0]);
-        SemaNodeView fromTypeView = sema.viewTypeConstant(children[1]);
-
-        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, toTypeView));
-        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, fromTypeView));
-
-        if (!isTypeInfoOperand(sema, toTypeView))
-            return SemaError::raiseRequestedTypeFam(sema, toTypeView.nodeRef(), toTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
-        if (!isTypeInfoOperand(sema, fromTypeView))
-            return SemaError::raiseRequestedTypeFam(sema, fromTypeView.nodeRef(), fromTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
-
-        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
-        sema.setIsValue(node);
-        return SemaHelpers::attachRuntimeIsFunctionToNode(sema, sema.curNodeRef(), node.codeRef());
-    }
-
-    Result semaIntrinsicAs(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
-    {
-        SemaNodeView toTypeView   = sema.viewTypeConstant(children[0]);
-        SemaNodeView fromTypeView = sema.viewTypeConstant(children[1]);
-        const auto   ptrView      = sema.viewType(children[2]);
-
-        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, toTypeView));
-        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, fromTypeView));
-        SWC_RESULT(SemaCheck::isValue(sema, ptrView.nodeRef()));
-
-        if (!isTypeInfoOperand(sema, toTypeView))
-            return SemaError::raiseRequestedTypeFam(sema, toTypeView.nodeRef(), toTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
-        if (!isTypeInfoOperand(sema, fromTypeView))
-            return SemaError::raiseRequestedTypeFam(sema, fromTypeView.nodeRef(), fromTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
-
-        if (!ptrView.type())
-            return SemaError::raiseRequestedTypeFam(sema, ptrView.nodeRef(), ptrView.typeRef(), sema.typeMgr().typeValuePtrVoid());
-
-        const TypeRef   ptrTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), ptrView.typeRef());
-        const TypeInfo& ptrType    = sema.typeMgr().get(ptrTypeRef);
-        if (!ptrType.isPointerOrReference())
-            return SemaError::raiseRequestedTypeFam(sema, ptrView.nodeRef(), ptrView.typeRef(), sema.typeMgr().typeValuePtrVoid());
-
-        const TypeRef resultTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(sema.typeMgr().typeVoid(), TypeInfoFlagsE::Nullable));
-        sema.setType(sema.curNodeRef(), resultTypeRef);
-        sema.setIsValue(node);
-        return SemaHelpers::attachRuntimeAsFunctionToNode(sema, sema.curNodeRef(), node.codeRef());
-    }
-
     Result semaIntrinsicTableOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         SemaNodeView objectTypeView    = sema.viewTypeConstant(children[0]);
@@ -614,10 +567,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicMakeSlice(sema, *this, children, true);
         case TokenId::IntrinsicMakeInterface:
             return semaIntrinsicMakeInterface(sema, *this, children);
-        case TokenId::IntrinsicIs:
-            return semaIntrinsicIs(sema, *this, children);
-        case TokenId::IntrinsicAs:
-            return semaIntrinsicAs(sema, *this, children);
         case TokenId::IntrinsicTableOf:
             return semaIntrinsicTableOf(sema, *this, children);
 

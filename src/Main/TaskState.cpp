@@ -25,6 +25,8 @@ const char* TaskState::kindName(const TaskStateKind kind)
             return "Wait symbol declared";
         case TaskStateKind::SemaWaitSymTyped:
             return "Wait symbol typed";
+        case TaskStateKind::SemaWaitSymConstraintsResolved:
+            return "Wait symbol constraints resolved";
         case TaskStateKind::SemaWaitSymSemaCompleted:
             return "Wait symbol sema completed";
         case TaskStateKind::SemaWaitSymCodeGenPreSolved:
@@ -57,6 +59,7 @@ bool TaskState::hasPauseReason() const
         case TaskStateKind::SemaWaitImplRegistrations:
         case TaskStateKind::SemaWaitSymDeclared:
         case TaskStateKind::SemaWaitSymTyped:
+        case TaskStateKind::SemaWaitSymConstraintsResolved:
         case TaskStateKind::SemaWaitSymSemaCompleted:
         case TaskStateKind::SemaWaitSymCodeGenPreSolved:
         case TaskStateKind::SemaWaitSymCodeGenCompleted:
@@ -90,6 +93,7 @@ bool TaskState::canPause() const
 
         case TaskStateKind::SemaWaitSymDeclared:
         case TaskStateKind::SemaWaitSymTyped:
+        case TaskStateKind::SemaWaitSymConstraintsResolved:
         case TaskStateKind::SemaWaitSymSemaCompleted:
         case TaskStateKind::SemaWaitSymCodeGenPreSolved:
         case TaskStateKind::SemaWaitSymCodeGenCompleted:

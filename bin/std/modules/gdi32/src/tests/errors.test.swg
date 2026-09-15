@@ -13,5 +13,5 @@ func SetLastError(errorCode: DWORD)
     defer catch DeleteDC(dc)
     SetLastError(0)
     discard catch GetFontData(dc, 0x3F3F3F3F, 0, null, 0) as missingTable
-    Swag.assert(missingTable is SystemError)
+    Swag.assert((cast #try (*SystemError) missingTable != null))
 }

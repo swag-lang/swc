@@ -78,8 +78,8 @@ Variadic parameters can be forwarded between functions while preserving their ty
         Swag.assert(params.count == 2)
         Swag.assert(Swag.kindOf(params[0]) == string)
         Swag.assert(Swag.kindOf(params[1]) == bool)
-        Swag.assert(cast(string) params[0] == "value")
-        Swag.assert(cast(bool) params[1] == true)
+        Swag.assert(cast #assume(string) params[0] == "value")
+        Swag.assert(cast #assume (bool) params[1] == true)
     }
 
     func B(params: ...)
@@ -100,7 +100,7 @@ internal func print()
     {
         for msg in messages
         {
-            Swag.print(prefix, " => ", cast(string) msg)
+            Swag.print(prefix, " => ", cast #assume(string) msg)
         }
     }
 

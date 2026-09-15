@@ -2247,15 +2247,15 @@ func createVideoViewer(host: Viewer.Host)
     host.attachView(view!)
     host.setDetails(view.details.toString())
     host.setLifecycle({
-        retire: func(wnd)->bool { return (cast(*VideoViewer) wnd).retire() },
+        retire: func(wnd)->bool { return (cast #assume (*VideoViewer) wnd).retire() },
         isLoading: func(wnd)->bool
     {
-        let videoView = cast(*VideoViewer) wnd
+        let videoView = cast #assume (*VideoViewer) wnd
         return not videoView.openFinished or videoView.awaitingFrame
     },
         needsLoadingOverlay: func(wnd)->bool
     {
-        let videoView = cast(*VideoViewer) wnd
+        let videoView = cast #assume (*VideoViewer) wnd
         return not videoView.hasFrame or videoView.awaitingFrame
     }})
 }

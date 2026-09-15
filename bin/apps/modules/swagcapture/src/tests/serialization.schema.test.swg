@@ -10,7 +10,7 @@ using Swag, Core
 func testSchemaOf(type: typeinfo)->String fail
 {
     var result: retval
-    let plan = try Serialization.planFor(cast(const *Swag.TypeInfoStruct) type)
+    let plan = try Serialization.planFor(cast #assume(const *Swag.TypeInfoStruct) type)
 
     for &pf in plan.fields
     {

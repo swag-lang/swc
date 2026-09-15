@@ -60,7 +60,7 @@ func verifyImportedInterfaceTablePreparation()
 {
     let objectType    = #typeof(DepTableScore{})
     let objectInfo    = cast(const *Swag.TypeInfoStruct) objectType
-    let interfaceInfo = cast(const *Swag.TypeInfoStruct) #typeof(IDepTableScore)
+    let interfaceInfo = #typeof(IDepTableScore)
     let table         = Swag.tableOf(objectInfo, interfaceInfo)
     Swag.assert(table != null)
 
@@ -384,8 +384,8 @@ func verifyDllAbiCalls()
 }
 
 // `Swag.setContext` installs a POINTER to its argument, so the patched copy must outlive the frame
-// that builds it: a stack local would leave every later `Swag.getContext` — including the error
-// machinery behind `fail`/`catch` — reading a dead frame.
+// that builds it: a stack local would leave every later `Swag.getContext` â€” including the error
+// machinery behind `fail`/`catch` â€” reading a dead frame.
 var gPatchedContext: Swag.Context
 
 func verifyRuntimeContext()
@@ -431,9 +431,9 @@ var gEvtClassified: s32
 
 func onDepEvt(evt: IDepEvt)
 {
-    if evt is DepDestroyEvt do
+    if (cast #try (*DepDestroyEvt) evt != null) do
         gEvtClassified = 1
-    elif evt is DepResizeEvt do
+    elif (cast #try (*DepResizeEvt) evt != null) do
         gEvtClassified = 3
     else do
         gEvtClassified = -1
@@ -500,19 +500,19 @@ func verifyRuntimeTypeCrossDllIdentity()
     // it here uses this executable's.
     catch ctxSharedRaiseSystemError() as raised
     Swag.assert(raised != null)
-    Swag.assert(raised is Swag.SystemError)
-    Swag.assert(raised is Swag.BaseError)
+    Swag.assert((cast #try (*Swag.SystemError) raised != null))
+    Swag.assert((cast #try (*Swag.BaseError) raised != null))
 
-    switch raised
+    switch
     {
-    case Swag.SystemError:
+    case cast #try (*Swag.SystemError) raised != null:
         hit = 2
     default:
         hit = -2
     }
     Swag.assert(hit == 2)
 
-    let sysErr = raised as Swag.SystemError
+    let sysErr = cast #try (*Swag.SystemError) raised
     Swag.assert(sysErr != null)
     Swag.assert(sysErr.message == "raised across the boundary")
 }

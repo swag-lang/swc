@@ -43,7 +43,7 @@ var _46 = Swag.bitCountLz(a)
 var _47 = Swag.makeSlice(a, b)
 var _49 = Swag.makeString(a, b)
 var _50 = Swag.makeAny(a, b)
-var _54 = Swag.typeIs(a, b)
+var _54 = cast #try(a) b
 var _55 = Swag.tableOf(a, b)
 var _56 = Swag.min(a, b)
 var _57 = Swag.max(a, b)
@@ -58,7 +58,7 @@ var _65 = Swag.atomand(a, b)
 var _66 = Swag.atomadd(a, b)
 
 var _67 = Swag.makeInterface(a, b, c)
-var _69 = Swag.typeAs(a, b, c)
+var _69 = cast #try(a) c
 var _70 = Swag.atomcmpxchg(a, b, c)
 var _71 = Swag.typeCmp(a, b, c)
 var _72 = Swag.muladd(a, b, c)

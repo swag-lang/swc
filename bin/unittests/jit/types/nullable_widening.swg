@@ -26,7 +26,7 @@ func nullableWidening()->bool
         return false
 
     let boxed = widenNullableAny(123)
-    if boxed == null or cast(s32) boxed != 123 do
+    if boxed == null or cast #assume(s32) boxed != 123 do
         return false
 
     var cstrData: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]

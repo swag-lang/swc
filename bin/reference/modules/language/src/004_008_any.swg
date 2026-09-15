@@ -18,27 +18,28 @@
 
     // Store an s32 literal value in the 'any'
     a = 6
-    Swag.assert(cast(s32) a == 6)
+    Swag.assert(cast #assume(s32) a == 6)
 
     // Now store a string
     a = "string"
-    Swag.assert(cast(string) a! == "string")
+    Swag.assert(cast #assume (string) a! == "string")
 
     // Now store a bool
     a = true
-    Swag.assert(cast(bool) a == true)
+    Swag.assert(cast #assume (bool) a == true)
 }
 
 /**
 # Working with 'any' and Pointers
 
-Use '.buffer' to access a pointer to the underlying value stored inside 'any'.
+Use `cast #try (*T)` to borrow the stored value after checking its type.
 */
 
 #test
 {
     let a: any = 6
-    let ptr    = cast(const *s32) a.buffer
+    let ptr    = cast #try (const *s32) a
+    Swag.assert(ptr != null)
     Swag.assert(ptr[] == 6)
 }
 
@@ -71,10 +72,10 @@ You can retrieve the stored value directly or through a constant pointer.
     #assert(#typeof(a) == any)
     Swag.assert(Swag.kindOf(a) == s32)
 
-    let b = cast(s32) a     // Get the value itself
+    let b = cast #assume(s32) a     // Get the value itself
     Swag.assert(b == 42)
 
-    let d = cast(const *s32) a     // Get a constant pointer to the value
+    let d = cast #assume (const *s32) a     // Get a constant pointer to the value
     Swag.assert(d[] == 42)
 }
 
@@ -93,10 +94,10 @@ You can create heterogeneous arrays where each element holds a different type.
     Swag.assert(Swag.kindOf(array[2]) == f32)
     Swag.assert(Swag.kindOf(array[3]) == string)
 
-    Swag.assert(cast(bool) array[0] == true)
-    Swag.assert(cast(s32) array[1] == 2)
-    Swag.assert(cast(f32) array[2] == 3.0)
-    Swag.assert(cast(string) array[3] == "4")
+    Swag.assert(cast #assume(bool) array[0] == true)
+    Swag.assert(cast #assume (s32) array[1] == 2)
+    Swag.assert(cast #assume (f32) array[2] == 3.0)
+    Swag.assert(cast #assume (string) array[3] == "4")
 }
 
 /**
@@ -114,11 +115,11 @@ value, just as for pointers and other nullable types.
 
     x = 6
     Swag.assert(x != null)
-    Swag.assert(cast(s32) x == 6)
+    Swag.assert(cast #assume(s32) x == 6)
 
     x = "string"
     Swag.assert(x != null)
-    Swag.assert(cast(string) x == "string")
+    Swag.assert(cast #assume (string) x == "string")
 
     x = null
     Swag.assert(x == null)
@@ -127,8 +128,8 @@ value, just as for pointers and other nullable types.
 /**
 # Type Checking with 'any'
 
-An 'any' can be compared to a type using '==' or '!='.
-This uses 'Swag.kindOf' internally to compare the stored value's type.
+Compare the result of `cast #try (*T)` with `null` to test whether the value can
+be viewed as `T`. Save that result when the branch also needs to access the value.
 */
 
 #test
@@ -137,14 +138,14 @@ This uses 'Swag.kindOf' internally to compare the stored value's type.
     Swag.assert(x == null)
 
     x = 6
-    Swag.assert(x == s32)
-    Swag.assert(x != bool)
+    Swag.assert(cast #try (*s32) x != null)
+    Swag.assert(cast #try (*bool) x == null)
 
     x = "string"
-    Swag.assert(x != s32)
-    Swag.assert(x == string)
+    Swag.assert(cast #try (*s32) x == null)
+    Swag.assert(cast #try (*string) x != null)
 
     struct A {}
     x = A{}
-    Swag.assert(x == A)
+    Swag.assert(cast #try (*A) x != null)
 }

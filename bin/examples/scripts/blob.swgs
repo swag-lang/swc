@@ -8,7 +8,7 @@ const NoiseMax = 5.0
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    let paintEvt = evt as PaintEvent
+    let paintEvt = cast #try (*PaintEvent) evt
     if not paintEvt do
         return false
 

@@ -33,12 +33,6 @@ namespace
             case AstNodeId::AutoCastExpr:
                 return node.cast<AstAutoCastExpr>().nodeExprRef;
             case AstNodeId::CastExpr:
-                // 'expr[as T]' shares the cast node but is a dereference, not a conversion: its
-                // operand is the pointer, not the value. Looking through it reports the pointer as
-                // the expression's source, which makes a receiver's address stop travelling into
-                // the 'me' parameter of a method or operator call on the opened place.
-                if (node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
-                    return AstNodeRef::invalid();
                 return node.cast<AstCastExpr>().nodeExprRef;
             case AstNodeId::AsCastExpr:
                 return node.cast<AstAsCastExpr>().nodeExprRef;
@@ -49,6 +43,14 @@ namespace
 
     AstNodeRef transparentConditionExprOperandRef(const AstNode& node)
     {
+        // Dynamic conversions can produce null from a present box containing a null pointer.
+        if (node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+            return AstNodeRef::invalid();
+        if (node.is(AstNodeId::AutoCastExpr) && node.cast<AstAutoCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+            return AstNodeRef::invalid();
+        if (node.is(AstNodeId::AsCastExpr))
+            return AstNodeRef::invalid();
+
         const AstNodeRef castOperandRef = transparentCastExprOperandRef(node);
         if (castOperandRef.isValid())
             return castOperandRef;

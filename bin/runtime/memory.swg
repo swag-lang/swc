@@ -26,14 +26,14 @@ func __memoryCopyForward(target: [*] u8, source: const [*] u8, size: u64)
 
     while size - offset >= MemoryVectorSize
     {
-        let sourceVector = (source + offset)[as MemoryVector]
-        (target + offset)[as MemoryVector] = sourceVector
+        let sourceVector = (cast(const *MemoryVector) (source + offset))[]
+        (cast(*MemoryVector) (target + offset))[] = sourceVector
         offset += MemoryVectorSize
     }
 
     while size - offset >= MemoryWordSize
     {
-        (target + offset)[as u64] = (source + offset)[as u64]
+        (cast(*u64) (target + offset))[] = (cast(const *u64) (source + offset))[]
         offset += MemoryWordSize
     }
 
@@ -65,14 +65,14 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
     while offset >= MemoryVectorSize
     {
         offset -= MemoryVectorSize
-        let sourceVector = (source + offset)[as MemoryVector]
-        (target + offset)[as MemoryVector] = sourceVector
+        let sourceVector = (cast(const *MemoryVector) (source + offset))[]
+        (cast(*MemoryVector) (target + offset))[] = sourceVector
     }
 
     while offset >= MemoryWordSize
     {
         offset -= MemoryWordSize
-        (target + offset)[as u64] = (source + offset)[as u64]
+        (cast(*u64) (target + offset))[] = (cast(const *u64) (source + offset))[]
     }
 
     while offset
@@ -104,13 +104,13 @@ func memset(dst: [*] void?, value: u8, size: u64)
 
     while size - offset >= MemoryVectorSize
     {
-        (target + offset)[as MemoryFillVector] = vector
+        (cast(*MemoryFillVector) (target + offset))[] = vector
         offset += MemoryVectorSize
     }
 
     while size - offset >= MemoryWordSize
     {
-        (target + offset)[as u64] = word
+        (cast(*u64) (target + offset))[] = word
         offset += MemoryWordSize
     }
 
@@ -152,8 +152,8 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
     var offset     = 0'u64
     while size - offset >= MemoryVectorSize
     {
-        let leftVector  = (leftBytes + offset)[as MemoryVector]
-        let rightVector = (rightBytes + offset)[as MemoryVector]
+        let leftVector  = (cast(const *MemoryVector) (leftBytes + offset))[]
+        let rightVector = (cast(const *MemoryVector) (rightBytes + offset))[]
         if Swag.vecmask(leftVector == rightVector) != 0xFFFF
         {
             for index in MemoryVectorSize
@@ -168,8 +168,8 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
 
     while size - offset >= MemoryWordSize
     {
-        let leftWord  = (leftBytes + offset)[as u64]
-        let rightWord = (rightBytes + offset)[as u64]
+        let leftWord  = (cast(const *u64) (leftBytes + offset))[]
+        let rightWord = (cast(const *u64) (rightBytes + offset))[]
         if leftWord != rightWord
         {
             for index in MemoryWordSize

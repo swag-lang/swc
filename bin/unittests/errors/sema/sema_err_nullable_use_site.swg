@@ -44,7 +44,7 @@ func nullableUseSiteDeref(p: *s32?)->s32
 
 func nullableUseSiteDerefCast(p: *s32?)->u32
 {
-    return p[as u32]     // swc-expected-error {{sema_err_nullable_deref}}
+    return (cast(*u32?) p)[]     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
 func nullableUseSiteIndexBlock(p: [*] s32?)->s32

@@ -18,7 +18,7 @@ using Swag, Core
     Swag.assert(textPaint.itf.buffer != textItf.buffer)
     Swag.assert(f.main.mdlFormText.text == "Keep me")
     Swag.assert(textItf.boundRect() == textRectBefore)
-    Swag.assert((cast(*FormText) (textPaint.itf!).buffer).text == "A")
+    Swag.assert((cast #assume (*FormText) (textPaint.itf!)).text == "A")
     quickStyleReleasePaintForm(&textPaint)
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -31,7 +31,7 @@ using Swag, Core
     Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
     Swag.assert(f.main.mdlFormPolygon.points.count == 3)
     Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    Swag.assert((cast(*FormPolygon) (polyPaint.itf!).buffer).points.count == 6)
+    Swag.assert((cast #assume (*FormPolygon) (polyPaint.itf!)).points.count == 6)
     quickStyleReleasePaintForm(&polyPaint)
 }
 
@@ -210,14 +210,14 @@ using Swag, Core
 
     for it in quick.qsHighlight.forms
     {
-        let base = cast(*BaseForm) it.buffer
+        let base = cast #assume (*BaseForm) it
         Swag.assert(base.subKind == .Highlight)
         Swag.assert(base.alpha < 100)
     }
 
     for it in quick.qsPixSel.forms
     {
-        let base = cast(*BaseForm) it.buffer
+        let base = cast #assume (*BaseForm) it
         Swag.assert(base.subKind == .PixSel)
         Swag.assert(not base.paintShadow)
     }
@@ -227,7 +227,7 @@ using Swag, Core
     for it in quick.qsImage.forms
     {
         Swag.assert(Swag.kindOf(it) == FormImage)
-        imageKinds.add((cast(*FormImage) it.buffer).kind)
+        imageKinds.add((cast #assume (*FormImage) it).kind)
     }
 
     Swag.assert(imageKinds.contains(FormImageKind.Image))
@@ -253,12 +253,12 @@ using Swag, Core
         var result: retval
         for c in quick.layout.children
         {
-            let btn = cast(*QuickButton) c
+            let btn = cast #assume (*QuickButton) c
             if btn.userData or not btn.formItf do
                 continue
             if Swag.kindOf(btn.formItf) != FormImage do
                 continue
-            if (cast(*FormImage) (btn.formItf).buffer).kind == .Blur do
+            if (cast #assume (*FormImage) (btn.formItf)).kind == .Blur do
                 return btn.toolTip
         }
 

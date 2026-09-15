@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Report/Assert.h"
@@ -241,7 +242,7 @@ namespace
         {
             CodeGenNodePayload rightPayload = *encodeCtx.rightPayload;
             stabilizeAssignAddressPayload(codeGen, rightPayload);
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, targetPayload.reg, rightPayload.reg, encodeCtx.copySize);
+            CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(codeGen, encodeCtx.target.opTypeRef, targetPayload.reg, rightPayload.reg);
             return Result::Continue;
         }
 
@@ -262,6 +263,13 @@ namespace
         SWC_ASSERT(encodeCtx.target.typeRef.isValid());
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
+
+        // An eight-byte dynamic value contains only its identity slot.
+        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), encodeCtx.target.opTypeRef))
+        {
+            SWC_ASSERT(codeGen.typeMgr().get(encodeCtx.target.opTypeRef).sizeOf(codeGen.ctx()) == sizeof(void*));
+            return Result::Continue;
+        }
 
         MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
@@ -530,11 +538,11 @@ namespace
         // with its stale bits: under lifecycle safety it is poisoned and marked moved-from.
         const bool shouldInvalidateSource = canTouchSource && !shouldResetSource && CodeGenSafety::hasLifecycleInvalidate(codeGen);
 
-        // Drop elision: a '#move' source that is provably dead afterwards skips both its
-        // reset and its scope-exit drop; under lifecycle safety it is poisoned instead.
+        // A local whose lifetime ends at a move or relocation has no remaining value
+        // to reset or drop. Lifecycle safety can still poison its abandoned storage.
         AstNodeRef            resolvedRightRef = AstNodeRef::invalid();
         const SymbolVariable* rightVar         = CodeGenMoveElision::directStructVariable(codeGen, rightRef, &resolvedRightRef);
-        const bool            elideSource      = shouldResetSource && rightVar &&
+        const bool            elideSource      = (shouldResetSource || (canTouchSource && isRelocate)) && rightVar &&
                                  CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
         if (elideSource)
             codeGen.markImplicitDropElided(*rightVar);
@@ -544,6 +552,8 @@ namespace
         if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource && !shouldInvalidateSource)
         {
             SWC_RESULT(emitAssignEncoded(codeGen, encodeCtx, assignOp));
+            if (modifierFlags.has(AstModifierFlagsE::FirstInit))
+                SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, encodeCtx.target.opTypeRef, encodeCtx.target.payload.reg));
             if (movesTemporary)
                 codeGen.cancelTemporaryDrop(*sourceStorage);
             return Result::Continue;
@@ -582,6 +592,9 @@ namespace
 
         SWC_RESULT(emitAssignEncoded(codeGen, lifecycleCtx, assignOp));
 
+        if (modifierFlags.has(AstModifierFlagsE::FirstInit))
+            SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, encodeCtx.target.opTypeRef, lifecycleCtx.target.payload.reg));
+
         if (hasPostLifecycle)
             SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, postKind, lifecycleCtx.target.payload.reg));
 
@@ -598,7 +611,7 @@ namespace
         }
 
         if (shouldResetSource && !elideSource)
-            SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, rightTypeRef, stableRight.reg));
+            SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, rightTypeRef, stableRight.reg));
         else if (wantInvalidateSource && !invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
 

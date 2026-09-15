@@ -14,9 +14,9 @@ impl SourceActions
     {
         if .children.count != 4 do
             return
-        let compile   = cast(*PushButton) .children[0]
-        let format    = cast(*PushButton) .children[1]
-        let automatic = cast(*CheckButton) .children[2]
+        let compile   = cast #assume(*PushButton) .children[0]
+        let format    = cast #assume(*PushButton) .children[1]
+        let automatic = cast #assume(*CheckButton) .children[2]
         let examples  = .children[3]
         let rect      = .paddedClientRect()
         compile.setText(rect.width >= 440 ? appStrings().ui_CompileVisible : "")

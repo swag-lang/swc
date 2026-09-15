@@ -24,7 +24,7 @@ alias StrictTestFlags = TestFlags
 func boxStrictTestFlags(value: StrictTestFlags)->bool
 {
     let boxed: any = value
-    return Swag.kindOf(boxed) == StrictTestFlags and cast(StrictTestFlags) boxed == value
+    return Swag.kindOf(boxed) == StrictTestFlags and cast #assume(StrictTestFlags) boxed == value
 }
 
 #[Swag.Inline]
@@ -38,7 +38,7 @@ func widen(value: u32)->u64
 func boxStrictTestFlagsAuto(value: StrictTestFlags)->bool
 {
     let boxed: any = value
-    return Swag.kindOf(boxed) == StrictTestFlags and cast(StrictTestFlags) boxed == value
+    return Swag.kindOf(boxed) == StrictTestFlags and cast #assume(StrictTestFlags) boxed == value
 }
 
 #test

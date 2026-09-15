@@ -607,8 +607,8 @@ func __hostImageBaseForAddress(address: *void)->*void?
     return result
 }
 
-private func __peU16(p: [*] u8, off: u64)->u16 => (&p[off])[as u16]
-private func __peU32(p: [*] u8, off: u64)->u32 => (&p[off])[as u32]
+private func __peU16(p: [*] u8, off: u64)->u16 => (cast(const *u16) (&p[off]))[]
+private func __peU32(p: [*] u8, off: u64)->u32 => (cast(const *u32) (&p[off]))[]
 
 // Locates the linker-owned `.swagdbg` payload in one Windows PE image.
 func __hostDebugSection(base: *void)->[*] u8?

@@ -10,7 +10,7 @@ func isNamedStruct(type: typeinfo?, name: string?)->bool
     if not isStruct(type) do
         return false
 
-    let typeStruct = cast(const *TypeInfoStruct) type!
+    let typeStruct = cast #assume(const *TypeInfoStruct) type!
     return typeStruct.structName == name
 }
 
@@ -22,7 +22,7 @@ func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
     if not isStruct(type) do
         return null
 
-    let typeStruct = cast(const *TypeInfoStruct) type!
+    let typeStruct = cast #assume(const *TypeInfoStruct) type!
     for &it in typeStruct.methods where it.name == name do
         return it
     return null
@@ -36,7 +36,7 @@ func findField(type: typeinfo?, name: string?)->const *TypeValue?
     if not isStruct(type) do
         return null
 
-    let typeStruct = cast(const *TypeInfoStruct) type!
+    let typeStruct = cast #assume(const *TypeInfoStruct) type!
     for &it in typeStruct.fields where it.name == name do
         return it
     return null
@@ -93,18 +93,18 @@ func canCompare(type: typeinfo?)->bool
     switch nnType.kind
     {
     case .Alias:
-        let typeAlias = cast(const *TypeInfoAlias) nnType
+        let typeAlias = cast #assume(const *TypeInfoAlias) nnType
         return canCompare(typeAlias.rawType)
 
     case .Enum:
-        let typeEnum = cast(const *TypeInfoEnum) nnType
+        let typeEnum = cast #assume(const *TypeInfoEnum) nnType
         return canCompare(typeEnum.rawType)
 
     case .Pointer:
         return true
 
     case .Native:
-        let typeNative = cast(const *TypeInfoNative) nnType
+        let typeNative = cast #assume(const *TypeInfoNative) nnType
         switch typeNative.nativeKind
         {
         case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String: return true
@@ -130,6 +130,11 @@ func canCompare(type: typeinfo?)->bool
     // Returns whether this value has post copy.
     func hasPostCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
 
+    // Returns whether values contain identity slots managed by [[Swag.DynCast]], including
+    // embedded fields and array elements. Initialize new storage and use typed assignments
+    // when copying a view of such a value into a new complete object.
+    func hasDynamicStorage(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDynamicStorage) ? true : false
+
     // Returns whether this value can copy.
     func canCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
 
@@ -138,7 +143,7 @@ func canCompare(type: typeinfo?)->bool
     {
         if not type do
             return false
-        return type.flags & (TypeInfoFlags.HasDrop | TypeInfoFlags.HasPostMove | TypeInfoFlags.HasPostCopy) ? false : true
+        return type.flags & (TypeInfoFlags.HasDrop | TypeInfoFlags.HasPostMove | TypeInfoFlags.HasPostCopy | TypeInfoFlags.HasDynamicStorage) ? false : true
     }
 }
 
@@ -149,7 +154,7 @@ func hasInterface(type: typeinfo?, itf: typeinfo)->bool
     if not isStruct(type) do
         return false
 
-    let typeStruct = cast(const *TypeInfoStruct) type!
+    let typeStruct = cast #assume(const *TypeInfoStruct) type!
     for it in typeStruct.interfaces
     {
         // Compare with the canonical crc so a '?'-qualified interface type matches the

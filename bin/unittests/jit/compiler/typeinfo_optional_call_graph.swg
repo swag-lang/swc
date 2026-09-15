@@ -14,7 +14,7 @@ impl MetadataSignal
             #ast
             {
                 let signature = #typeof(T)
-                return #stringof("callback(cast(", signature.parameters[0].pointedType.fullname, ") params[0])")
+                return #stringof("callback(cast #assume(", signature.parameters[0].pointedType.fullname, ") params[0])")
             }
         }
     }
@@ -28,7 +28,7 @@ interface IMetadataReceiver
 struct MetadataReceiver
 {
     signal: MetadataSignal'func||(*MetadataReceiver)
-    count: s32
+    count:  s32
 }
 
 // Reflection reaches this completed method while emit is still instantiating the
@@ -74,7 +74,7 @@ func metadataCallGraphWorks()
     Swag.assert(receiver.count == 2)
 
     var ready = MetadataReady{value: 42}
-    let info = cast(const *Swag.TypeInfoStruct) #typeof(MetadataReady)
+    let info  = cast(const *Swag.TypeInfoStruct) #typeof(MetadataReady)
     Swag.assert(info.methods.count == 1)
     let address = info.methods![0].value
     Swag.assert(address != null)

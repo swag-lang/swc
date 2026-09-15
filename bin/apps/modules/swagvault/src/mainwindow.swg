@@ -330,9 +330,9 @@ internal func caughtMessage(err: any?)->String
 {
     let s = appStrings()
 
-    switch err
+    switch
     {
-    case Error as volumeError:
+    case let volumeError = cast #try (*Error) err:
         logDiagnostic(volumeError.message)
         switch #complete volumeError.kind
         {
@@ -389,7 +389,7 @@ internal func caughtMessage(err: any?)->String
             return s.msg_ErrDamaged
         }
 
-    case Swag.SystemError as systemError:
+    case let systemError = cast #try (*Swag.SystemError) err:
         logDiagnostic(systemError.message)
         return s.msg_SystemError
     }
@@ -416,9 +416,9 @@ private func logDiagnostic(message: string?)
 // about the container or the system stopped it.
 internal func isCanceledError(err: any?)->bool
 {
-    switch err
+    switch
     {
-    case Error as volumeError: return volumeError.kind == .Canceled
+    case let volumeError = cast #try (*Error) err: return volumeError.kind == .Canceled
     }
 
     return false
@@ -910,7 +910,7 @@ impl MainWindow
         .mountedDrives.list.listView.hookOnEvent = func|window = me|(wnd, evt)
         {
             discard wnd
-            if evt is ResizeEvent do
+            if cast #try (*ResizeEvent) evt != null do
                 window.mountedDrives.layoutColumns()
             return false
         }

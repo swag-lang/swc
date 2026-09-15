@@ -259,7 +259,7 @@ func freeOne(itf: IAllocator, address: *void?)
 
     // 'second' is now the head and its stored link must decode to 'first'.
     Swag.assert(page.decode(page.freeList) == cast(u64) second)
-    let storedLink = second[as u64]
+    let storedLink = (cast(const *u64) second)[]
     Swag.assert(storedLink != cast(u64) first)
     Swag.assert(page.decode(storedLink) == cast(u64) first)
 

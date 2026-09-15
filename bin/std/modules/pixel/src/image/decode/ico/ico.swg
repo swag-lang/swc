@@ -217,7 +217,7 @@ impl Decoder
         if countof < #sizeof(IconDir) do
             fail InvalidFormatError{"invalid source buffer"}
 
-        let dir = base[as IconDir]
+        let dir = (cast(const *IconDir) base)[]
         if dir.type != 1 and dir.type != 2 do
             fail InvalidFormatError{"not an icon"}
         if dir.count == 0 do
@@ -235,7 +235,7 @@ impl Decoder
         {
             if index >= 0 and i != index do
                 continue
-            let entry = (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))[as IconDirEntry]
+            let entry = (cast(const *IconDirEntry) (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry)))[]
             let area  = cast(u64) dimFromByte(entry.width) * cast(u64) dimFromByte(entry.height)
             let score = (area << 16) + entry.bitCount
             if not found or score > bestScore
@@ -264,7 +264,7 @@ impl Decoder
         if imgLen < #sizeof(DibHeader) do
             fail InvalidFormatError{"invalid source buffer"}
 
-        let dib = imgPtr[as DibHeader]
+        let dib = (cast(const *DibHeader) imgPtr)[]
         if dib.size < #sizeof(DibHeader) do
             fail UnsupportedFormatError{"unsupported icon header"}
         if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do
@@ -299,14 +299,14 @@ impl IImageSetDecoder for Decoder
         probeOptions.decodePixels = false
         discard try .decodeEntry(buffer, probeOptions)
         .bytes      = buffer
-        .entryCount = buffer.buffer[as IconDir].count
+        .entryCount = (cast(const *IconDir) buffer.buffer)[].count
         try options.checkFrameCount(.entryCount)
         var result:    retval
         var bestScore: u64
         for index in .entryCount
         {
             let probe = try .decodeEntry(buffer, probeOptions, cast(s32) index)
-            let entry = (buffer.buffer + #sizeof(IconDir) + cast(u64) index * #sizeof(IconDirEntry))[as IconDirEntry]
+            let entry = (cast(const *IconDirEntry) (buffer.buffer + #sizeof(IconDir) + cast(u64) index * #sizeof(IconDirEntry)))[]
             let score = (cast(u64) dimFromByte(entry.width) * dimFromByte(entry.height) << 16) + entry.bitCount
             if score > bestScore
             {

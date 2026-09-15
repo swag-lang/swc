@@ -13,7 +13,7 @@ public impl Image
             var context = Math.clamp(factor, -1.0, 1.0)
             .transformLogicalPixels(&context)
             {
-                let adjustment = userData![as f32]
+                let adjustment = (cast(const *f32) userData!)[]
                 value.r += adjustment
                 value.g += adjustment
                 value.b += adjustment

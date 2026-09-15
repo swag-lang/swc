@@ -77,9 +77,9 @@ alias PointerArithmeticStrictU8     = u8
     let p4   = 4 + base
     let p1   = p4 - 3
 
-    Swag.assert(p2[as s32] == 30)
-    Swag.assert(p4[as s32] == 50)
-    Swag.assert(p1[as s32] == 20)
+    Swag.assert((cast(const *s32) p2)[] == 30)
+    Swag.assert((cast(const *s32) p4)[] == 50)
+    Swag.assert((cast(const *s32) p1)[] == 20)
     Swag.assert((p4 - base) == 4)
     Swag.assert((p2 - p1) == 1)
 }

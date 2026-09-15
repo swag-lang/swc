@@ -165,7 +165,7 @@ impl Encoder
     func writeU32(dst: [*] u8, val: u32)
     {
         let v = Math.nativeToBigEndian(val)
-        dst[as u32] = v
+        (cast(*u32) dst)[] = v
     }
 
     mtd writeData(buf: const [*] u8, bytes: u32)
@@ -277,7 +277,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .userOptions = options.buffer![as EncodeOptions]
+            .userOptions = (cast(const *EncodeOptions) options.buffer!)[]
         }
 
         let supported = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8 or image.pixelFormat == .Gray16 or image.pixelFormat == .GrayAlpha16 or image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8 or image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 or image.pixelFormat == .RGB16 or image.pixelFormat == .RGBA16

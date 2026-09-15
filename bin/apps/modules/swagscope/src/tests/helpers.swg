@@ -41,7 +41,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
     plugin.create(host)
     if waitForText and plugin.key == TextViewerKey and result.view
     {
-        let view = cast(*TextView) result.view
+        let view = cast #assume (*TextView) result.view
         if view.read.started
         {
             view.read.task.wait()
@@ -107,7 +107,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
             let instance = &window.instances[index]
             if instance.view and window.choices[index].key == TextViewerKey
             {
-                let view = cast(*TextView) instance.view
+                let view = cast #assume (*TextView) instance.view
                 if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
                     view.statisticsThread.wait()
             }
@@ -133,7 +133,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
             break
         if window.choices[window.activeChoiceIndex].key == TextViewerKey
         {
-            let view = cast(*TextView) instance.view
+            let view = cast #assume (*TextView) instance.view
             completeTextReads(host, view)
             host.fireTimer(view.loadTimer)
         }

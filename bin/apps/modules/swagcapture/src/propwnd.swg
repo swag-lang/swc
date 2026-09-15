@@ -150,7 +150,7 @@ impl PropWnd
         if not capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
-            return cast(*BaseForm) iform.buffer
+            return cast #assume (*BaseForm) iform
         }
 
         return capture.getSelectedBaseForm()!
@@ -166,9 +166,7 @@ impl PropWnd
     // '#complete switch' over a three-value enum ends up with a value it has no case for.
     mtd(T) getSelectedForm()->*T?
     {
-        if .getSelectedFormType() != T do
-            return null
-        return cast(*T) .getSelectedBaseForm()
+        return cast #try (*T) .getSelectedBaseForm()
     }
 
     mtd getSelectedFormType()->typeinfo
@@ -286,7 +284,7 @@ impl PropWnd
             let cur = selectedKind(prop, type, fieldName)
             for c in layout.children
             {
-                let btn  = cast(*IconButton) c
+                let btn  = cast #assume (*IconButton) c
                 let kind = enumFromUserData'FormShapeKind(btn.userData)
                 btn.setChecked(cur == kind)
                 btn.invalidate()
@@ -360,7 +358,7 @@ impl PropWnd
             let type = prop.getSelectedFormType()
             if type != FormLine and type != FormArrow do
                 return .None
-            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
+            let curSel = cast #assume (*FormLine) prop.getSelectedBaseForm()
             return begin ? curSel.beginCap : curSel.endCap
         }
 
@@ -499,9 +497,9 @@ impl PropWnd
         let curSel = .getSelectedBaseForm()
         switch .getSelectedFormType()
         {
-        case FormLine:  return (cast(*FormLine) curSel).outlineColor
-        case FormArrow: return (cast(*FormArrow) curSel).outlineColor
-        case FormDraw:  return (cast(*FormDraw) curSel).outlineColor
+        case FormLine:  return (cast #assume (*FormLine) curSel).outlineColor
+        case FormArrow: return (cast #assume (*FormArrow) curSel).outlineColor
+        case FormDraw:  return (cast #assume (*FormDraw) curSel).outlineColor
         }
 
         return Argb.Black
@@ -566,7 +564,7 @@ impl PropWnd
 
             if curSelType == FormImage
             {
-                let imgSel = cast(*FormImage) curSel
+                let imgSel = cast #assume (*FormImage) curSel
                 if imgSel.kind != .Image do
                     return
             }
@@ -669,7 +667,7 @@ impl PropWnd
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
+            let curSel = cast #assume (*FormLine) prop.getSelectedBaseForm()
             bc.painter.setParams(.Antialiased)
             drawCapGlyph(bc.painter, curSel.beginCap, true, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -688,7 +686,7 @@ impl PropWnd
         {
             if prop.getSelectedFormType() != FormLine and prop.getSelectedFormType() != FormArrow do
                 return
-            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
+            let curSel = cast #assume (*FormLine) prop.getSelectedBaseForm()
             bc.painter.setParams(.Antialiased)
             drawCapGlyph(bc.painter, curSel.endCap, false, pos, btn.themeColors().btnIcon_Icon)
         }
@@ -977,10 +975,16 @@ impl PropWnd
             var label: *Label?
             if it.sliderBox != null do
                 label = it.sliderBox.label
-            elif (it.comboBox != null) and it.comboBox.parent!.type == ComboCtrl do
-                label = (cast(*ComboCtrl) it.comboBox.parent!).label
-            elif (it.editBox != null) and it.editBox.parent!.type == EditCtrl do
-                label = (cast(*EditCtrl) it.editBox.parent!).label
+            elif it.comboBox != null
+            {
+                if let ctrl = cast #try (*ComboCtrl) it.comboBox.parent do
+                    label = ctrl.label
+            }
+            elif it.editBox != null
+            {
+                if let ctrl = cast #try (*EditCtrl) it.editBox.parent do
+                    label = ctrl.label
+            }
 
             if label do
                 width = Math.max(width, Painter.measureString(label.name.raw.toString(), label.font().regular!).width)
@@ -995,15 +999,15 @@ impl PropWnd
                 let ctrl = it.sliderBox
                 ctrl.setLayoutMetrics(width, ctrl.valueWidth, ctrl.spacing)
             }
-            elif (it.comboBox != null) and it.comboBox.parent!.type == ComboCtrl
+            elif it.comboBox != null
             {
-                let ctrl = cast(*ComboCtrl) it.comboBox.parent!
-                ctrl.setLayoutMetrics(width, ctrl.comboWidth, ctrl.spacing)
+                if let ctrl = cast #try (*ComboCtrl) it.comboBox.parent do
+                    ctrl.setLayoutMetrics(width, ctrl.comboWidth, ctrl.spacing)
             }
-            elif (it.editBox != null) and it.editBox.parent!.type == EditCtrl
+            elif it.editBox != null
             {
-                let ctrl = cast(*EditCtrl) it.editBox.parent!
-                ctrl.setLayoutMetrics(width, ctrl.editWidth, ctrl.spacing)
+                if let ctrl = cast #try (*EditCtrl) it.editBox.parent do
+                    ctrl.setLayoutMetrics(width, ctrl.editWidth, ctrl.spacing)
             }
         }
     }
@@ -1141,7 +1145,7 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormLine.startSize), #nameof(FormLine.endSize):
             if .gridBindType == FormLine or .gridBindType == FormArrow
             {
-                let line = cast(*FormLine) base
+                let line = cast #assume (*FormLine) base
                 let cap  = name == #nameof(FormLine.startSize) ? line.beginCap : line.endCap
                 return base.subKind != .PixSel and capStyleHasSize(cap)
             }
@@ -1151,14 +1155,14 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormShape.roundSize):
             if .gridBindType == FormShape
             {
-                let shape = cast(*FormShape) base
+                let shape = cast #assume (*FormShape) base
                 return shape.kind == .RoundRectangle
             }
 
         case #nameof(FormImage.strength):
             if .gridBindType == FormImage
             {
-                let img = cast(*FormImage) base
+                let img = cast #assume (*FormImage) base
                 return img.kind != .Image
             }
         }

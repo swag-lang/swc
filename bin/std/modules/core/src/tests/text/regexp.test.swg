@@ -1011,7 +1011,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "a{2,1}") as err
 
     Swag.assert(err != null)
-    Swag.assert(err is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err != null))
 }
 
 #test
@@ -1019,7 +1019,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "{1}") as err2
 
     Swag.assert(err2 != null)
-    Swag.assert(err2 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err2 != null))
 }
 
 #test
@@ -1027,7 +1027,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "(") as err3
 
     Swag.assert(err3 != null)
-    Swag.assert(err3 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err3 != null))
 }
 
 #test
@@ -1035,7 +1035,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "[abc") as err4
 
     Swag.assert(err4 != null)
-    Swag.assert(err4 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err4 != null))
 }
 
 #test
@@ -1043,7 +1043,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "\pQ") as err5
 
     Swag.assert(err5 != null)
-    Swag.assert(err5 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err5 != null))
 }
 
 #test
@@ -1051,7 +1051,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "\p{Lx}") as err6
 
     Swag.assert(err6 != null)
-    Swag.assert(err6 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err6 != null))
 }
 
 #test
@@ -1059,7 +1059,7 @@ using Swag
     discard catch Parser.RegExp.create("\\") as err7
 
     Swag.assert(err7 != null)
-    Swag.assert(err7 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err7 != null))
 }
 
 #test
@@ -1067,7 +1067,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "\q") as err8
 
     Swag.assert(err8 != null)
-    Swag.assert(err8 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err8 != null))
 }
 
 #test
@@ -1075,7 +1075,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "[\q]") as err9
 
     Swag.assert(err9 != null)
-    Swag.assert(err9 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err9 != null))
 }
 
 #test
@@ -1083,7 +1083,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "\p") as err10
 
     Swag.assert(err10 != null)
-    Swag.assert(err10 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err10 != null))
 }
 
 #test
@@ -1091,7 +1091,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "\p{L") as err11
 
     Swag.assert(err11 != null)
-    Swag.assert(err11 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err11 != null))
 }
 
 #test
@@ -1099,7 +1099,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "[[:bogus:]]") as err12
 
     Swag.assert(err12 != null)
-    Swag.assert(err12 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err12 != null))
 }
 
 #test
@@ -1107,7 +1107,7 @@ using Swag
     discard catch Parser.RegExp.create(#raw "[[:digit]]") as err13
 
     Swag.assert(err13 != null)
-    Swag.assert(err13 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err13 != null))
 }
 
 #test
@@ -1433,7 +1433,7 @@ using Swag
 
     discard catch Parser.RegExp.create(#raw "a{1001}") as tooMany
     Swag.assert(tooMany != null)
-    Swag.assert(tooMany is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) tooMany != null))
 }
 
 #test
@@ -1441,34 +1441,34 @@ using Swag
     // Constructs that are not supported must be rejected, not silently matched as something
     // else.
     discard catch Parser.RegExp.create(#raw "(?=abc)") as lookAhead
-    Swag.assert(lookAhead is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) lookAhead != null))
 
     discard catch Parser.RegExp.create(#raw "(?<=abc)") as lookBehind
-    Swag.assert(lookBehind is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) lookBehind != null))
 
     discard catch Parser.RegExp.create(#raw "a*+") as possessive
-    Swag.assert(possessive is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) possessive != null))
 
     discard catch Parser.RegExp.create(#raw "(?<name") as unterminatedName
-    Swag.assert(unterminatedName is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) unterminatedName != null))
 
     discard catch Parser.RegExp.create(#raw "(?<>a)") as emptyName
-    Swag.assert(emptyName is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) emptyName != null))
 
     discard catch Parser.RegExp.create(#raw "\x{}") as emptyHex
-    Swag.assert(emptyHex is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) emptyHex != null))
 
     discard catch Parser.RegExp.create(#raw "\x{110000}") as tooWide
-    Swag.assert(tooWide is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) tooWide != null))
 
     discard catch Parser.RegExp.create(#raw "(?y)a") as badFlag
-    Swag.assert(badFlag is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) badFlag != null))
 
     discard catch Parser.RegExp.create(#raw "^*") as repeatedAssert
-    Swag.assert(repeatedAssert is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) repeatedAssert != null))
 
     discard catch Parser.RegExp.create(#raw "[a-\d]") as classBound
-    Swag.assert(classBound is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) classBound != null))
 }
 
 #test

@@ -34,12 +34,12 @@ func tilePos(i, j: s32)->Math.Rectangle
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case ResizeEvent:
+    case cast #try (*ResizeEvent) evt != null:
         g_Rect = wnd.clientRect()
 
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         var dataPath: String = Path.directoryName(#curlocation.fileName)
         dataPath = Path.combine(dataPath, "datas")
         dataPath = Path.combine(dataPath, "taquin")
@@ -77,7 +77,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let j = Random.shared().nextU64(0, cast(u64) NumElems - 1)
         g_Matrix[i, j].empty = true
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .Move:
+    case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Move:
         let pt = wnd.surfaceToLocal(mouseEvt.surfacePos)
 
         g_HotX, g_HotY = -1
@@ -99,7 +99,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             }
         }
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
+    case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Pressed:
         if g_Moving do
             break
         if g_HotX == -1 do
@@ -125,7 +125,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             cur.moveDt = 0
         }
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
         let dt      = wnd.app().deltaSeconds()
 

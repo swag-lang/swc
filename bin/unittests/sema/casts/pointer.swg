@@ -166,9 +166,9 @@ func semaTest018()
     #assert(#typeof(cstr) == cstring)
 }
 
-// A pointer cast between two structs is a move inside one composition. The compiler sees the
-// whole 'using' graph, so a pair with no path either way reads one object as an unrelated one.
+// An upcast follows a static composition path. A downcast checks the allocation's identity.
 
+#[Swag.DynCast]
 struct SemaCastBase { a: s32 }
 struct SemaCastDerived { using base: SemaCastBase; b: s32 }
 struct SemaCastDeeper { using derived: SemaCastDerived; c: s32 }
@@ -176,7 +176,7 @@ struct SemaCastAlien { x, y, z, w: s64 }
 
 func semaTestCastDescend(b: *SemaCastBase)->*SemaCastDeeper
 {
-    return cast(*SemaCastDeeper) b
+    return cast #assume(*SemaCastDeeper) b
 }
 
 func semaTestCastAscend(d: *SemaCastDeeper)->*SemaCastBase

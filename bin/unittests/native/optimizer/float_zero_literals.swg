@@ -4,14 +4,14 @@
 func floatBits32(value: f32)->u32
 {
     var stored = value
-    return (&stored)[as u32]
+    return (cast(const *u32) (&stored))[]
 }
 
 #[Swag.NoInline]
 func floatBits64(value: f64)->u64
 {
     var stored = value
-    return (&stored)[as u64]
+    return (cast(const *u64) (&stored))[]
 }
 
 // Literal arguments must preserve the sign bit of zero through both the JIT

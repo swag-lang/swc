@@ -134,8 +134,8 @@ namespace compiler1665
 
     func C(x: ...)
     {
-        var ptr1 = cast(const * TT) x[0]
-        var ptr2 = cast(TT) x[0]
+        var ptr1 = cast #assume(const * TT) x[0]
+        var ptr2 = cast #assume(TT) x[0]
         Swag.assert(ptr1.x == 456)
         Swag.assert(ptr2.y == 456)
         ptr2.x = 100
@@ -726,9 +726,9 @@ namespace compiler4849
             return [cast(any) "first", cast(any) "second"]
         }
 
-        Swag.assert(cast(string) value.item == "abc")
-        Swag.assert(cast(string) value.other == "def")
-        Swag.assert(cast(string) values[0] == "first")
-        Swag.assert(cast(string) values[1] == "second")
+        Swag.assert(cast #assume(string) value.item == "abc")
+        Swag.assert(cast #assume(string) value.other == "def")
+        Swag.assert(cast #assume(string) values[0] == "first")
+        Swag.assert(cast #assume (string) values[1] == "second")
     }
 }

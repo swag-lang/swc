@@ -67,7 +67,7 @@ impl FormImage
             var pix1    = maskImg.pixels.storage() + x * 4
             pix1 += maskImg.width * y * 4
             if not pix1[0] do
-                pix[as u32] = 0
+                (cast(*u32) pix)[] = 0
         }
 
         renderer.removeTexture(&.texture)
@@ -106,7 +106,9 @@ impl IForm for FormImage
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormImage) ptr
+        let other = cast #try (*FormImage) ptr
+        if not other do
+            return false
 
         // backColor only matters for the plain image kind; the processed kinds
         // (blur, pixelate, zoom, capture) have no fill.
@@ -118,8 +120,8 @@ impl IForm for FormImage
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormImage) dst
-        let srcf = cast(*FormImage) src
+        let dstf = cast #assume (*FormImage) dst
+        let srcf = cast #assume (*FormImage) src
         dstf.kind     = srcf.kind
         dstf.strength = srcf.strength
         if srcf.image.isValid() do

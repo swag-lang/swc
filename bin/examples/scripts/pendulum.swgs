@@ -71,9 +71,9 @@ func stepPendulum(dt: f32)->bool
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         let rect = wnd.clientRect()
         cx = (rect.width - PanelWidth) * 0.5
         cy = 50
@@ -111,7 +111,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             btn.sigPressed += func(btn) { restartPendulum() }
         }
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
 
         var remaining = Math.min(wnd.app().deltaSeconds() * SimulationSpeed, MaxFrameStep)

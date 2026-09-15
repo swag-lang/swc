@@ -142,7 +142,7 @@ namespace compiler1651
     //
     func toto1(x: any)->s32
     {
-        let v = cast(s32) x
+        let v = cast #assume(s32) x
         Swag.assert(v == 100)
         return v
     }
@@ -275,7 +275,7 @@ namespace compiler1666
 
     func C(x: ...)
     {
-        let ptr1 = cast(TT) x[0]
+        let ptr1 = cast #assume(TT) x[0]
         // Swag.print(cast(s64) ptr1.value)
         Swag.assert(ptr1.value == 456)
     }
@@ -405,7 +405,7 @@ namespace compiler1678
 
     func C(x: any)->s64
     {
-        return D(cast(TT) x)
+        return D(cast #assume(TT) x)
     }
 
     #test
@@ -435,7 +435,7 @@ namespace compiler1679
 
     func E(x: any)->s64
     {
-        let ptr = cast(TT) x
+        let ptr = cast #assume(TT) x
         // C(cast(TT) x)
         return C(ptr)
     }
@@ -474,7 +474,7 @@ namespace compiler1680
 
     func E(x: any)->s64
     {
-        return C(cast(TT) x)
+        return C(cast #assume(TT) x)
     }
 
     func C(x: TT)->s64
@@ -538,7 +538,7 @@ namespace compiler1682
     func C(x: any)->s64
     {
         // Swag.print(cast(s64) x.value)
-        let val = cast(myStruct) x
+        let val = cast #assume(myStruct) x
         Swag.assert(val.value == 456)
         return val.value
     }

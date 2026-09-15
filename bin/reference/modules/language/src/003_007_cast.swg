@@ -18,14 +18,11 @@ specified 'type'.
 }
 
 /**
-# Interface Conversion with 'as'
-`value as IFoo` is equivalent to `cast(IFoo) value`. It produces an 'IFoo'
-interface value and follows the same implementation, constness, nullability,
-and borrowing rules as the explicit cast. Pass a pointer when borrowing an
-existing object. A type alias for an interface works as the target too.
-
-With a concrete struct as the target, `value as T` remains a dynamic cast
-that returns a nullable pointer to 'T'.
+# Interface Conversion
+`cast(IFoo) value` produces an 'IFoo' interface value when the source type
+implements that interface. The compiler establishes this conversion statically.
+Pass a pointer when borrowing an existing object. A type alias for an interface
+works as the target too.
 */
 
 interface ICount
@@ -42,11 +39,150 @@ impl ICount for Counter
 
 #test
 {
-    var counter  = Counter{42}
-    let view     = (&counter) as ICount
-    let explicit = cast(ICount) &counter
-    Swag.assert(view.count() == explicit.count())
+    var counter = Counter{42}
+    let view    = cast(ICount) &counter
+    Swag.assert(view.count() == 42)
     #assert(#typeof(view) == ICount)
+}
+
+/**
+# Dynamic Casts
+Use `cast #try (*T) value` when the concrete type is known only at runtime.
+It returns a nullable pointer: a compatible object produces a view of that object,
+and a type mismatch or null source produces `null`. It never copies the object or
+extends its lifetime. Test compatibility by comparing the result with `null`;
+save the result when the same branch needs to use it.
+
+Use `cast #assume (*T) value` when the concrete type is an invariant established
+by the caller. With `.DynCast` safety enabled, a failed assertion panics. With
+that safety disabled, the type assertion is unchecked. Pointer adjustments
+required by the destination representation still apply.
+
+These forms apply to `any`, interfaces, and pointers to dynamic structs. A plain
+struct pointer can expose a concrete enclosing type only when its struct is marked
+`#[Swag.DynCast]`, or inherits that capability through a by-value `using` field.
+The attribute adds a compiler-managed metadata pointer to object storage; pointers
+to the object retain their ordinary size. A pointer-valued `using` field does not
+make its pointee part of the enclosing object's storage.
+
+Converting towards a known embedded parent remains a static conversion. A plain
+`cast` cannot perform a downcast. The former expression operators `as` and `is`
+are replaced by `cast #try` and a null comparison when only a test is needed.
+*/
+
+#[Swag.DynCast]
+struct CastNode { id: s32 }
+
+struct CastButton
+{
+    using node: CastNode
+    label:      string = "Apply"
+}
+
+#test
+{
+    var button: CastButton
+    let node:   *CastNode = &button
+    let found = cast #try (*CastButton) node
+    if found != null do
+        Swag.assert(found.label == "Apply")
+    Swag.assert(found != null)
+    Swag.assert(cast #assume (*CastButton) node == &button)
+}
+
+/**
+## Testing and Using the Same Result
+
+A conditional binding tests presence and gives the branch a non-null view. The
+same binding works in an expressionless `switch`; a `where` clause can inspect
+the converted value before the case is selected.
+*/
+#test
+{
+    var counter = Counter{42}
+    let view    = cast(ICount) &counter
+    if let found = cast #try (*Counter) view do
+        Swag.assert(found.value == 42)
+
+    switch
+    {
+    case let found = cast #try (*Counter) view where found.value > 0: Swag.assert(found == &counter)
+    default: Swag.assert(false)
+    }
+}
+
+/**
+## Values Stored in `any`
+
+`cast #try (*T) boxed` borrows a stored value of type `T`. Dereference the result
+to read or update that value. A stored pointer can also expose the object it
+points to. A mismatching type produces `null` in either case.
+
+`cast #assume (T) boxed` extracts a value when its type is an invariant. For a
+pointer or interface destination, it produces the corresponding borrowed view.
+Neither mode extends the lifetime of the boxed value or its pointee.
+*/
+#test
+{
+    var boxed: any = 42's32
+    if let value = cast #try (*s32) boxed do
+        Swag.assert(value[] == 42)
+    Swag.assert(cast #try (*s64) boxed == null)
+    Swag.assert(cast #assume (s32) boxed == 42)
+}
+
+/**
+## Compile-Time Compatibility
+
+When the operand names a type, `cast #try (Target) Source` tests whether `Source`
+exposes a view of type `Target`. It produces the source type information on
+success and `null` otherwise. This also works in a generic `where` clause.
+The same rule applies when the source is a `typeinfo` value evaluated at runtime.
+Numeric widening does not establish type compatibility: `s32` and `s64` are
+different dynamic types. Non-strict aliases are transparent; strict aliases and
+enumerations retain their identity.
+*/
+#assert(cast #try (ICount) Counter != null)
+#assert(cast #try (ICount) s32 == null)
+#assert(cast #try (s64) s32 == null)
+
+func supportsCounterType(source: typeinfo)->bool
+{
+    return cast #try(ICount) source != null
+}
+
+/**
+## Targets Chosen at Runtime
+
+The target can also be a 'typeinfo' value, including a function result. With a
+type-information operand, 'cast #try' returns the source descriptor when the
+types are compatible, or 'null'. With a value operand, it borrows a value of the
+requested type and returns an 'any?'. The target must be a descriptor emitted
+by the compiler; constructing or copying a descriptor does not create a type.
+
+The value result borrows its source and can also refer to an interface view in
+the current function. It does not allocate and must not escape that function.
+'cast #assume' uses the same conversion and checks failure when dynamic cast
+safety is enabled.
+*/
+func supportsRuntimeType(target, source: typeinfo)->bool
+{
+    return cast #try(target) source != null
+}
+
+#test
+{
+    Swag.assert(supportsRuntimeType(ICount, Counter))
+    Swag.assert(not supportsRuntimeType(ICount, s32))
+    Swag.assert(supportsCounterType(Counter))
+    Swag.assert(not supportsCounterType(s32))
+
+    var value = 42's32
+    let target: typeinfo = s32
+    let view  = cast #try(target) &value
+    if let number = cast #try(*s32) view do
+        Swag.assert(number[] == 42)
+    Swag.assert(view != null)
 }
 
 /**

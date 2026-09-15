@@ -62,7 +62,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     registerHexStrings(&host.app)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
     var viewerSession = openTestViewer(hexViewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
-    let view          = cast(*HexViewer) viewerSession.view!
+    let view          = cast #assume (*HexViewer) viewerSession.view!
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel!)
     view.dockStyle = .Center
@@ -121,7 +121,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     var result = openTestViewer(hexViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let view = cast(*HexViewer) result.view
+    let view = cast #assume (*HexViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -327,7 +327,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     completeHexViewerOpen(&host, window)
-    let view = cast(*HexViewer) window.currentView!
+    let view = cast #assume (*HexViewer) window.currentView!
 
     window.searchBox.setText("DE AD ?E EF")
     completeHexViewerSearch(&host, window)
@@ -399,7 +399,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     Swag.assert(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     completeHexViewerOpen(&host, window)
-    let view = cast(*HexViewer) window.currentView!
+    let view = cast #assume (*HexViewer) window.currentView!
     Swag.assert(window.currentInfo != null)
     Swag.assert(view.analysisButton.position.x - window.currentInfo.position.right() == ViewerInfoSideButtonSpacing)
 

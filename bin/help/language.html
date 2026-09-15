@@ -772,7 +772,7 @@ indent-style = spaces</span></div>
 <p><span class="code-inline">me</span> names the receiver inside methods.</p>
 <h3 id="_002_007_keywords_swg_Control_Flow_and_Expressions">Control Flow and Expressions</h3>
 <div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
-<span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
+<span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
 <span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
@@ -802,15 +802,15 @@ indent-style = spaces</span></div>
 <span class="SItr">#uniq5</span>  <span class="SItr">#uniq6</span>  <span class="SItr">#uniq7</span>  <span class="SItr">#uniq8</span>  <span class="SItr">#uniq9</span></span></div>
 <h3 id="_002_007_keywords_swg_Modifiers">Modifiers</h3>
 <p>Modifiers refine the type, operand, conversion, literal, or statement that follows them. They annotate what carries no symbol; a declaration takes an attribute instead.</p>
-<div class="code-block"><span class="SCde"><span class="SItr">#bit</span>  <span class="SItr">#complete</span>  <span class="SItr">#fail</span>  <span class="SItr">#fwd</span>  <span class="SItr">#move</span>  <span class="SItr">#nodrop</span>  <span class="SItr">#nofail</span>
-<span class="SItr">#prom</span>  <span class="SItr">#raw</span>  <span class="SItr">#relocate</span>  <span class="SItr">#simd</span>  <span class="SItr">#unconst</span>  <span class="SItr">#wrap</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SItr">#assume</span>  <span class="SItr">#bit</span>  <span class="SItr">#complete</span>  <span class="SItr">#fail</span>  <span class="SItr">#fwd</span>  <span class="SItr">#move</span>  <span class="SItr">#nodrop</span>  <span class="SItr">#nofail</span>
+<span class="SItr">#prom</span>  <span class="SItr">#raw</span>  <span class="SItr">#relocate</span>  <span class="SItr">#simd</span>  <span class="SItr">#try</span>  <span class="SItr">#unconst</span>  <span class="SItr">#wrap</span></span></div>
 <h3 id="_002_007_keywords_swg_Runtime_and_Compiler_Intrinsics">Runtime and Compiler Intrinsics</h3>
 <p>Intrinsic values:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">args</span>()  <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()  <span class="SNsp">Swag</span>.<span class="SFct">gvtd</span>()  <span class="SNsp">Swag</span>.<span class="SFct">jit</span>()
 <span class="SNsp">Swag</span>.<span class="SFct">modules</span>()  <span class="SNsp">Swag</span>.<span class="SFct">processInfos</span>()  <span class="SNsp">Swag</span>.<span class="SFct">runtimeFlags</span>()</span></div>
 <p>Type, value, lifecycle, and control intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.typeAs  <span class="SNsp">Swag</span>.assert  <span class="SNsp">Swag</span>.breakpoint  <span class="SNsp">Swag</span>.compilerError  <span class="SNsp">Swag</span>.compilerWarning
-.count  .buffer  <span class="SNsp">Swag</span>.drop  <span class="SNsp">Swag</span>.getContext  <span class="SNsp">Swag</span>.init  <span class="SNsp">Swag</span>.typeIs
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.assert  <span class="SNsp">Swag</span>.breakpoint  <span class="SNsp">Swag</span>.compilerError  <span class="SNsp">Swag</span>.compilerWarning
+.count  .buffer  <span class="SNsp">Swag</span>.drop  <span class="SNsp">Swag</span>.getContext  <span class="SNsp">Swag</span>.init
 <span class="SNsp">Swag</span>.kindOf  <span class="SNsp">Swag</span>.makeAny  <span class="SNsp">Swag</span>.makeInterface  <span class="SNsp">Swag</span>.makeSlice  <span class="SNsp">Swag</span>.makeString  <span class="SNsp">Swag</span>.panic
 <span class="SNsp">Swag</span>.postCopy  <span class="SNsp">Swag</span>.postMove  <span class="SNsp">Swag</span>.print  <span class="SNsp">Swag</span>.safetyPanic  <span class="SNsp">Swag</span>.setContext
 <span class="SNsp">Swag</span>.stringCmp  <span class="SNsp">Swag</span>.tableOf  <span class="SNsp">Swag</span>.typeCmp</span></div>
@@ -989,14 +989,14 @@ indent-style = spaces</span></div>
 }</span></div>
 <p>Both spellings are legitimate, and the rule above says which is which: <span class="code-inline">#wrap</span> annotates one operation, <span class="code-inline">Swag.Safety</span> annotates a scope. Use the narrowest one that expresses the intent. A local <span class="code-inline">#wrap</span> documents one deliberate wrap more clearly than disabling overflow checks for a file.</p>
 <h3 id="_002_008_sigils_swg_Contextual_Keywords_Are_Different">Contextual Keywords Are Different</h3>
-<p>Bare <span class="code-inline">as</span> and <span class="code-inline">is</span> are grammar keywords used by matching and conversion expressions. <span class="code-inline">value as IFoo</span> converts a value to its interface, like <span class="code-inline">cast(IFoo) value</span>; <span class="code-inline">T is IFoo</span> tests a type's interface contract at compile time and can constrain a generic declaration with <span class="code-inline">where</span>. <span class="code-inline">Swag.typeAs</span> and <span class="code-inline">Swag.typeIs</span> are runtime intrinsics that operate on type metadata. The parser and type checker give these forms distinct roles.</p>
+<p><span class="code-inline">cast</span> is the common conversion expression. Its <span class="code-inline">#try</span> modifier returns a nullable view for a dynamic conversion; testing that view against <span class="code-inline">null</span> tests compatibility. Its <span class="code-inline">#assume</span> modifier asserts compatibility and checks that assertion when dynamic cast safety is enabled. A compile-time expression such as <span class="code-inline">cast #try(IFoo) T != null</span> can constrain a generic declaration with <span class="code-inline">where</span>. The contextual <span class="code-inline">as</span> in a <span class="code-inline">catch</span> clause names the caught error.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value: <span class="STpe">any</span> = <span class="SStr">"text"</span>
 
-    <span class="SLgc">switch</span> value
+    <span class="SLgc">switch</span>
     {
-    <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> text: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text == <span class="SStr">"text"</span>)
+    <span class="SLgc">case</span> <span class="SKwd">let</span> text = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) value: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[] == <span class="SStr">"text"</span>)
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
@@ -2218,9 +2218,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(y) == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">1</span>)
 }</span></div>
-<h3 id="_003_007_cast_swg_Interface_Conversion_with__as_">Interface Conversion with <span class="code-inline">as</span></h3>
-<p><span class="code-inline">value as IFoo</span> is equivalent to <span class="code-inline">cast(IFoo) value</span>. It produces an <span class="code-inline">IFoo</span> interface value and follows the same implementation, constness, nullability, and borrowing rules as the explicit cast. Pass a pointer when borrowing an existing object. A type alias for an interface works as the target too.</p>
-<p>With a concrete struct as the target, <span class="code-inline">value as T</span> remains a dynamic cast that returns a nullable pointer to <span class="code-inline">T</span>.</p>
+<h3 id="_003_007_cast_swg_Interface_Conversion">Interface Conversion</h3>
+<p><span class="code-inline">cast(IFoo) value</span> produces an <span class="code-inline">IFoo</span> interface value when the source type implements that interface. The compiler establishes this conversion statically. Pass a pointer when borrowing an existing object. A type alias for an interface works as the target too.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">ICount</span>
 {
     <span class="SKwd">mtd</span> <span class="SFct">count</span>()-&gt;<span class="STpe">s32</span>
@@ -2235,11 +2234,92 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> counter  = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
-    <span class="SKwd">let</span> view     = (&amp;counter) <span class="SLgc">as</span> <span class="SCst">ICount</span>
-    <span class="SKwd">let</span> explicit = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>) &amp;counter
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view.<span class="SFct">count</span>() == explicit.<span class="SFct">count</span>())
+    <span class="SKwd">var</span> counter = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
+    <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>) &amp;counter
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view.<span class="SFct">count</span>() == <span class="SNum">42</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(view) == <span class="SCst">ICount</span>)
+}</span></div>
+<h3 id="_003_007_cast_swg_Dynamic_Casts">Dynamic Casts</h3>
+<p>Use <span class="code-inline">cast #try (*T) value</span> when the concrete type is known only at runtime. It returns a nullable pointer: a compatible object produces a view of that object, and a type mismatch or null source produces <span class="code-inline">null</span>. It never copies the object or extends its lifetime. Test compatibility by comparing the result with <span class="code-inline">null</span>; save the result when the same branch needs to use it.</p>
+<p>Use <span class="code-inline">cast #assume (*T) value</span> when the concrete type is an invariant established by the caller. With <span class="code-inline">.DynCast</span> safety enabled, a failed assertion panics. With that safety disabled, the type assertion is unchecked. Pointer adjustments required by the destination representation still apply.</p>
+<p>These forms apply to <span class="code-inline">any</span>, interfaces, and pointers to dynamic structs. A plain struct pointer can expose a concrete enclosing type only when its struct is marked <span class="code-inline">#[Swag.DynCast]</span>, or inherits that capability through a by-value <span class="code-inline">using</span> field. The attribute adds a compiler-managed metadata pointer to object storage; pointers to the object retain their ordinary size. A pointer-valued <span class="code-inline">using</span> field does not make its pointee part of the enclosing object's storage.</p>
+<p>Converting towards a known embedded parent remains a static conversion. A plain <span class="code-inline">cast</span> cannot perform a downcast. The former expression operators <span class="code-inline">as</span> and <span class="code-inline">is</span> are replaced by <span class="code-inline">cast #try</span> and a null comparison when only a test is needed.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">DynCast]</span>
+<span class="SKwd">struct</span> <span class="SCst">CastNode</span> { id: <span class="STpe">s32</span> }
+
+<span class="SKwd">struct</span> <span class="SCst">CastButton</span>
+{
+    <span class="SKwd">using</span> node: <span class="SCst">CastNode</span>
+    label:      <span class="STpe">string</span> = <span class="SStr">"Apply"</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> button: <span class="SCst">CastButton</span>
+    <span class="SKwd">let</span> node:   *<span class="SCst">CastNode</span> = &amp;button
+    <span class="SKwd">let</span> found = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">CastButton</span>) node
+    <span class="SLgc">if</span> found != <span class="SKwd">null</span> <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.label == <span class="SStr">"Apply"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found != <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (*<span class="SCst">CastButton</span>) node == &amp;button)
+}</span></div>
+<h4 id="_003_007_cast_swg_Testing_and_Using_the_Same_Result">Testing and Using the Same Result</h4>
+<p>A conditional binding tests presence and gives the branch a non-null view. The same binding works in an expressionless <span class="code-inline">switch</span>; a <span class="code-inline">where</span> clause can inspect the converted value before the case is selected.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> counter = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
+    <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>) &amp;counter
+    <span class="SLgc">if</span> <span class="SKwd">let</span> found = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">Counter</span>) view <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.value == <span class="SNum">42</span>)
+
+    <span class="SLgc">switch</span>
+    {
+    <span class="SLgc">case</span> <span class="SKwd">let</span> found = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">Counter</span>) view <span class="SLgc">where</span> found.value &gt; <span class="SNum">0</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found == &amp;counter)
+    <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
+    }
+}</span></div>
+<h4 id="_003_007_cast_swg_Values_Stored_in__any_">Values Stored in <span class="code-inline">any</span></h4>
+<p><span class="code-inline">cast #try (*T) boxed</span> borrows a stored value of type <span class="code-inline">T</span>. Dereference the result to read or update that value. A stored pointer can also expose the object it points to. A mismatching type produces <span class="code-inline">null</span> in either case.</p>
+<p><span class="code-inline">cast #assume (T) boxed</span> extracts a value when its type is an invariant. For a pointer or interface destination, it produces the corresponding borrowed view. Neither mode extends the lifetime of the boxed value or its pointee.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> boxed: <span class="STpe">any</span> = <span class="SNum">42</span>'<span class="STpe">s32</span>
+    <span class="SLgc">if</span> <span class="SKwd">let</span> value = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s32</span>) boxed <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value[] == <span class="SNum">42</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s64</span>) boxed == <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">s32</span>) boxed == <span class="SNum">42</span>)
+}</span></div>
+<h4 id="_003_007_cast_swg_Compile-Time_Compatibility">Compile-Time Compatibility</h4>
+<p>When the operand names a type, <span class="code-inline">cast #try (Target) Source</span> tests whether <span class="code-inline">Source</span> exposes a view of type <span class="code-inline">Target</span>. It produces the source type information on success and <span class="code-inline">null</span> otherwise. This also works in a generic <span class="code-inline">where</span> clause. The same rule applies when the source is a <span class="code-inline">typeinfo</span> value evaluated at runtime. Numeric widening does not establish type compatibility: <span class="code-inline">s32</span> and <span class="code-inline">s64</span> are different dynamic types. Non-strict aliases are transparent; strict aliases and enumerations retain their identity.</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SCst">ICount</span>) <span class="SCst">Counter</span> != <span class="SKwd">null</span>)
+<span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SCst">ICount</span>) <span class="STpe">s32</span> == <span class="SKwd">null</span>)
+<span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="STpe">s64</span>) <span class="STpe">s32</span> == <span class="SKwd">null</span>)
+
+<span class="SKwd">func</span> <span class="SFct">supportsCounterType</span>(source: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span>
+{
+    <span class="SLgc">return</span> <span class="SKwd">cast</span> <span class="SItr">#try</span>(<span class="SCst">ICount</span>) source != <span class="SKwd">null</span>
+}</span></div>
+<h4 id="_003_007_cast_swg_Targets_Chosen_at_Runtime">Targets Chosen at Runtime</h4>
+<p>The target can also be a <span class="code-inline">typeinfo</span> value, including a function result. With a type-information operand, 'cast #try' returns the source descriptor when the types are compatible, or <span class="code-inline">null</span>. With a value operand, it borrows a value of the requested type and returns an <span class="code-inline">any?</span>. The target must be a descriptor emitted by the compiler; constructing or copying a descriptor does not create a type.</p>
+<p>The value result borrows its source and can also refer to an interface view in the current function. It does not allocate and must not escape that function. 'cast #assume' uses the same conversion and checks failure when dynamic cast safety is enabled.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">supportsRuntimeType</span>(target, source: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span>
+{
+    <span class="SLgc">return</span> <span class="SKwd">cast</span> <span class="SItr">#try</span>(target) source != <span class="SKwd">null</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">supportsRuntimeType</span>(<span class="SCst">ICount</span>, <span class="SCst">Counter</span>))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> <span class="SFct">supportsRuntimeType</span>(<span class="SCst">ICount</span>, <span class="STpe">s32</span>))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">supportsCounterType</span>(<span class="SCst">Counter</span>))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> <span class="SFct">supportsCounterType</span>(<span class="STpe">s32</span>))
+
+    <span class="SKwd">var</span> value = <span class="SNum">42</span>'<span class="STpe">s32</span>
+    <span class="SKwd">let</span> target: <span class="STpe">typeinfo</span> = <span class="STpe">s32</span>
+    <span class="SKwd">let</span> view  = <span class="SKwd">cast</span> <span class="SItr">#try</span>(target) &amp;value
+    <span class="SLgc">if</span> <span class="SKwd">let</span> number = <span class="SKwd">cast</span> <span class="SItr">#try</span>(*<span class="STpe">s32</span>) view <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(number[] == <span class="SNum">42</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view != <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_003_007_cast_swg_Automatic_Cast_with__cast___">Automatic Cast with <span class="code-inline">cast()</span></h3>
 <p>A <span class="code-inline">cast()</span> without a type performs an <b>automatic cast</b>, allowing the compiler to infer the target type based on the left-hand side of the assignment.</p>
@@ -3420,19 +3500,19 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(grid[<span class="SNum">1</span>, <span class="SNum">2</span>] == <span class="SNum">5</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Reinterpreting_the_Pointed_Storage">Reinterpreting the Pointed Storage</h3>
-<p><span class="code-inline">expr[as T]</span> opens the same place but types it as a <span class="code-inline">T</span>: the pointed storage is reinterpreted, never converted. The result is a read/write place of type <span class="code-inline">T</span>, so both reads and writes go through it. The classic use is reaching the bit pattern of a value without a chain of pointer casts.</p>
+<p>Cast the pointer, then dereference it: <span class="code-inline">(cast(*T) expr)[]</span> reads or writes the same storage through a pointer to <span class="code-inline">T</span>. This changes the view of the bytes; it does not perform a numeric conversion. Use <span class="code-inline">const *T</span> for a read-only view. The caller is responsible for providing storage large enough for the requested type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> f = <span class="SNum">1.0</span>'<span class="STpe">f32</span>
     <span class="SKwd">let</span> p = &amp;f
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p[<span class="SLgc">as</span> <span class="STpe">u32</span>] == <span class="SNum">0x3F80_0000</span>)     <span class="SCmt">// The float's bit pattern, not a conversion</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">u32</span>) p)[] == <span class="SNum">0x3F80_0000</span>)     <span class="SCmt">// The float's bit pattern, not a conversion</span>
 
     <span class="SKwd">var</span> value = <span class="SNum">0</span>'<span class="STpe">s32</span>
     <span class="SKwd">let</span> vp    = &amp;value
-    vp[<span class="SLgc">as</span> <span class="STpe">u32</span>] = <span class="SNum">0xFFFF_FFFF</span>     <span class="SCmt">// Writes through the reinterpreted place</span>
+    (<span class="SKwd">cast</span>(*<span class="STpe">u32</span>) vp)[] = <span class="SNum">0xFFFF_FFFF</span>     <span class="SCmt">// Writes through the reinterpreted place</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == -<span class="SNum">1</span>)
 }</span></div>
-<p><span class="code-inline">[as T]</span> opens <b>one</b> place, so a following index applies to that <span class="code-inline">T</span> and not to a buffer of them: <span class="code-inline">p[as u32][2]</span> asks a <span class="code-inline">u32</span> to be indexed. To walk a buffer under a different lane type, reinterpret the pointer instead — <span class="code-inline">(cast([*] T) p)[i]</span> is the spelling to use. An array shape works too, and keeps the reinterpretation postfix when the element count is known: <span class="code-inline">p[as [4] u32][1]</span> names the second word of the first four.</p>
+<p><span class="code-inline">*T</span> points to <b>one</b> value. To walk a buffer with another element type, cast to a block pointer: <span class="code-inline">(cast([*] T) p)[i]</span>. When the element count is known, a pointer to an array provides a fixed shape: <span class="code-inline">(cast(*[4] u32) p)[][1]</span> names its second word.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> bytes: [<span class="SNum">16</span>] <span class="STpe">u8</span>
@@ -3444,9 +3524,9 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(words[<span class="SNum">0</span>] == <span class="SNum">0x0302_0100</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(words[<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
 
-    <span class="SCmt">// Or name a fixed shape in one postfix step.</span>
+    <span class="SCmt">// Or name a fixed array shape.</span>
     <span class="SKwd">let</span> p = bytes.buffer
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p[<span class="SLgc">as</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>][<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SKwd">const</span> *[<span class="SNum">4</span>] <span class="STpe">u32</span>) p)[][<span class="SNum">1</span>] == <span class="SNum">0x0706_0504</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Pointers_to_Const_Data">Pointers to Const Data</h3>
 <p><span class="code-inline">const</span> qualifies the <b>pointed-to data</b>, never the pointer itself. Written just before a <span class="code-inline">*</span>, it makes whatever that <span class="code-inline">*</span> points to read-only, so <span class="code-inline">const *u8</span> is a pointer to a read-only <span class="code-inline">u8</span> and assigning through <span class="code-inline">[]</span> is rejected. The pointer variable stays free to point somewhere else; <span class="code-inline">let</span> is what makes a pointer itself immutable.</p>
@@ -3516,22 +3596,23 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SCmt">// Store an s32 literal value in the 'any'</span>
     a = <span class="SNum">6</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s32</span>) a == <span class="SNum">6</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) a == <span class="SNum">6</span>)
 
     <span class="SCmt">// Now store a string</span>
     a = <span class="SStr">"string"</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) a! == <span class="SStr">"string"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">string</span>) a! == <span class="SStr">"string"</span>)
 
     <span class="SCmt">// Now store a bool</span>
     a = <span class="SKwd">true</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">bool</span>) a == <span class="SKwd">true</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">bool</span>) a == <span class="SKwd">true</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Working_with__any__and_Pointers">Working with <span class="code-inline">any</span> and Pointers</h3>
-<p>Use <span class="code-inline">.buffer</span> to access a pointer to the underlying value stored inside <span class="code-inline">any</span>.</p>
+<p>Use <span class="code-inline">cast #try (*T)</span> to borrow the stored value after checking its type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
-    <span class="SKwd">let</span> ptr    = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>) a.buffer
+    <span class="SKwd">let</span> ptr    = <span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SKwd">const</span> *<span class="STpe">s32</span>) a
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == <span class="SNum">6</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Type_Information_and__any_">Type Information and <span class="code-inline">any</span></h3>
@@ -3553,10 +3634,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a) == <span class="STpe">any</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(a) == <span class="STpe">s32</span>)
 
-    <span class="SKwd">let</span> b = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) a     <span class="SCmt">// Get the value itself</span>
+    <span class="SKwd">let</span> b = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) a     <span class="SCmt">// Get the value itself</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">42</span>)
 
-    <span class="SKwd">let</span> d = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>) a     <span class="SCmt">// Get a constant pointer to the value</span>
+    <span class="SKwd">let</span> d = <span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="SKwd">const</span> *<span class="STpe">s32</span>) a     <span class="SCmt">// Get a constant pointer to the value</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(d[] == <span class="SNum">42</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Arrays_of__any_">Arrays of <span class="code-inline">any</span></h3>
@@ -3570,10 +3651,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(array[<span class="SNum">2</span>]) == <span class="STpe">f32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(array[<span class="SNum">3</span>]) == <span class="STpe">string</span>)
 
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">bool</span>) array[<span class="SNum">0</span>] == <span class="SKwd">true</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s32</span>) array[<span class="SNum">1</span>] == <span class="SNum">2</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">f32</span>) array[<span class="SNum">2</span>] == <span class="SNum">3.0</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) array[<span class="SNum">3</span>] == <span class="SStr">"4"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">bool</span>) array[<span class="SNum">0</span>] == <span class="SKwd">true</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">s32</span>) array[<span class="SNum">1</span>] == <span class="SNum">2</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">f32</span>) array[<span class="SNum">2</span>] == <span class="SNum">3.0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">string</span>) array[<span class="SNum">3</span>] == <span class="SStr">"4"</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Nullability_of__any_">Nullability of <span class="code-inline">any</span></h3>
 <p>An <span class="code-inline">any?</span> value can be null and defaults to that absent state. A bare <span class="code-inline">any</span> requires a value. Prove presence before inspecting or converting a nullable value, just as for pointers and other nullable types.</p>
@@ -3584,33 +3665,33 @@ swc test -w path/to/workspace -m messages</span></div>
 
     x = <span class="SNum">6</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s32</span>) x == <span class="SNum">6</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) x == <span class="SNum">6</span>)
 
     x = <span class="SStr">"string"</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) x == <span class="SStr">"string"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">string</span>) x == <span class="SStr">"string"</span>)
 
     x = <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Type_Checking_with__any_">Type Checking with <span class="code-inline">any</span></h3>
-<p>An <span class="code-inline">any</span> can be compared to a type using <span class="code-inline">==</span> or <span class="code-inline">!=</span>. This uses <span class="code-inline">Swag.kindOf</span> internally to compare the stored value's type.</p>
+<p>Compare the result of <span class="code-inline">cast #try (*T)</span> with <span class="code-inline">null</span> to test whether the value can be viewed as <span class="code-inline">T</span>. Save that result when the branch also needs to access the value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x: <span class="STpe">any</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SKwd">null</span>)
 
     x = <span class="SNum">6</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="STpe">s32</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != <span class="STpe">bool</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s32</span>) x != <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">bool</span>) x == <span class="SKwd">null</span>)
 
     x = <span class="SStr">"string"</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x != <span class="STpe">s32</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="STpe">string</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s32</span>) x == <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x != <span class="SKwd">null</span>)
 
     <span class="SKwd">struct</span> <span class="SCst">A</span> {}
     x = <span class="SCst">A</span>{}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SCst">A</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">A</span>) x != <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg">Simd</h3>
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
@@ -4834,26 +4915,27 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h3 id="_005_005_switch_swg_Switching_on_Type_with__any__or__interface_">Switching on Type with <span class="code-inline">any</span> or <span class="code-inline">interface</span></h3>
-<p>When switching on <span class="code-inline">any</span> or <span class="code-inline">interface</span> types, cases match based on the <b>underlying runtime type</b>.</p>
+<p>Use the same <span class="code-inline">cast #try</span> as in an ordinary expression. A switch without a subject tests its cases in order; the first successful cast selects the branch.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"value"</span>
-    <span class="SLgc">switch</span> x
+    <span class="SLgc">switch</span>
     {
-    <span class="SLgc">case</span> <span class="STpe">string</span>: <span class="SLgc">break</span>
-    <span class="SLgc">default</span>:     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">case</span> <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x != <span class="SKwd">null</span>: <span class="SLgc">break</span>
+    <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
 <h3 id="_005_005_switch_swg_Switch_Statement_with_Type_Guard_and_Variable_Binding">Switch Statement with Type Guard and Variable Binding</h3>
-<p>You can bind a matched type or value to a variable using <span class="code-inline">as</span>, allowing direct access inside the <span class="code-inline">case</span> block. You may also use <span class="code-inline">where</span> for conditional refinement.</p>
+<p><span class="code-inline">case let name = expression</span> evaluates the expression once, binds its result, and enters the branch when that result is present. The binding belongs to that case. A <span class="code-inline">where</span> clause runs only after the binding succeeds and sees a non-null view. There is no separate type-testing or type-conversion operation in a case label.</p>
+<p><span class="code-inline">switch #complete</span> also accepts these conditional cases. It asserts that one case matches; a miss panics while <span class="code-inline">.Switch</span> safety is enabled. A <span class="code-inline">fallthrough</span> into a case binding evaluates that binding and its <span class="code-inline">where</span> clause before entering its body.</p>
 <p>Example 1: Simple Type Binding</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"value"</span>
-    <span class="SLgc">switch</span> x
+    <span class="SLgc">switch</span>
     {
-    <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> str:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str == <span class="SStr">"value"</span>)
+    <span class="SLgc">case</span> <span class="SKwd">let</span> str = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x:
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str[] == <span class="SStr">"value"</span>)
         <span class="SLgc">break</span>
 
     <span class="SLgc">default</span>:
@@ -4864,14 +4946,14 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"value"</span>
-    <span class="SLgc">switch</span> x
+    <span class="SLgc">switch</span>
     {
-    <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> str <span class="SLgc">where</span> str == <span class="SStr">"value"</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str == <span class="SStr">"value"</span>)
+    <span class="SLgc">case</span> <span class="SKwd">let</span> str = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x <span class="SLgc">where</span> str[] == <span class="SStr">"value"</span>:
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str[] == <span class="SStr">"value"</span>)
         <span class="SLgc">break</span>
 
-    <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> str <span class="SLgc">where</span> str == <span class="SStr">"not_a_value"</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str == <span class="SStr">"not_a_value"</span>)
+    <span class="SLgc">case</span> <span class="SKwd">let</span> str = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x <span class="SLgc">where</span> str[] == <span class="SStr">"not_a_value"</span>:
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str[] == <span class="SStr">"not_a_value"</span>)
         <span class="SLgc">break</span>
 
     <span class="SLgc">default</span>:
@@ -5097,7 +5179,7 @@ swc test -w path/to/workspace -m messages</span></div>
             <span class="SKwd">fail</span> <span class="SCst">ParallelInputError</span>{index}
         values[index] = index + <span class="SNum">1</span>
     } <span class="SLgc">as</span> error
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(error != <span class="SKwd">null</span> <span class="SLgc">and</span> error <span class="SLgc">is</span> <span class="SCst">ParallelInputError</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(error != <span class="SKwd">null</span> <span class="SLgc">and</span> (<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">ParallelInputError</span>) error != <span class="SKwd">null</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">3</span>] == <span class="SNum">0</span>)
 
     <span class="SKwd">expect</span> <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values| index <span class="SLgc">in</span> <span class="SNum">8</span> <span class="SLgc">do</span>
@@ -5353,7 +5435,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> type    = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) <span class="SItr">#type</span> <span class="SCst">MyStruct</span>
+    <span class="SKwd">let</span> type    = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) <span class="SItr">#type</span> <span class="SCst">MyStruct</span>
     <span class="SKwd">let</span> methods = type.methods!
     <span class="SKwd">var</span> returnX: <span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeValue</span>?
 
@@ -6753,8 +6835,8 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(params.count == <span class="SNum">2</span>)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(params[<span class="SNum">0</span>]) == <span class="STpe">string</span>)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(params[<span class="SNum">1</span>]) == <span class="STpe">bool</span>)
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) params[<span class="SNum">0</span>] == <span class="SStr">"value"</span>)
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">bool</span>) params[<span class="SNum">1</span>] == <span class="SKwd">true</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">string</span>) params[<span class="SNum">0</span>] == <span class="SStr">"value"</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">bool</span>) params[<span class="SNum">1</span>] == <span class="SKwd">true</span>)
     }
 
     <span class="SKwd">func</span> <span class="SFct">B</span>(params: ...)
@@ -6772,7 +6854,7 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SLgc">for</span> msg <span class="SLgc">in</span> messages
         {
-            <span class="SNsp">Swag</span>.<span class="SFct">print</span>(prefix, <span class="SStr">" =&gt; "</span>, <span class="SKwd">cast</span>(<span class="STpe">string</span>) msg)
+            <span class="SNsp">Swag</span>.<span class="SFct">print</span>(prefix, <span class="SStr">" =&gt; "</span>, <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">string</span>) msg)
         }
     }
 
@@ -7195,7 +7277,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(view) == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view.buffer == &amp;value)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span>(<span class="STpe">s32</span>) view == <span class="SNum">42</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">s32</span>) view == <span class="SNum">42</span>)
 }</span></div>
 <p><span class="code-inline">Swag.makeInterface</span> and <span class="code-inline">Swag.tableOf</span> are the corresponding low-level building blocks for interface values. Normal 'cast(MyInterface) value' syntax is safer and clearer; use the intrinsics only when implementing generic runtime machinery.</p>
 <p>With a runtime type descriptor, <span class="code-inline">Swag.makeInterface</span> returns a nullable interface: it is absent when the concrete type does not implement the requested interface. Presence is determined by the method table. The instance pointer may be null when the methods only return static metadata and do not access instance storage.</p>
@@ -7457,10 +7539,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">classify</span>(<span class="SNum">1.5</span>'<span class="STpe">f32</span>) == <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_009_003_where_constraints_swg_Interface_Requirements">Interface Requirements</h3>
-<p>The preferred declaration-site form for an interface requirement is <span class="code-inline">where T is IValue</span>. With a type on the left and an interface on the right, <span class="code-inline">is</span> evaluates to a compile-time <span class="code-inline">bool</span>: a struct satisfies the contract if it implements that interface, directly or through a <span class="code-inline">using</span> field. An interface satisfies its own contract. Other types answer <span class="code-inline">false</span>.</p>
+<p>An interface requirement uses the same conversion request as a value: <span class="code-inline">where cast #try (IValue) T != null</span>. When the operand denotes a type, the compiler checks whether that type can be viewed through the requested contract. Success retains the source type as a compile-time type value; failure returns <span class="code-inline">null</span>. This does not construct an object or perform a runtime check.</p>
+<p>A struct satisfies the interface contract when it implements that interface, directly or through a <span class="code-inline">using</span> field. An interface satisfies its own contract.</p>
 <p>The bound participates in overload selection just like other <span class="code-inline">where</span> clauses. Combine requirements with <span class="code-inline">and</span>, or write one <span class="code-inline">where</span> per interface.</p>
 <p>Borrow the concrete argument through the required interface to call its operations. The body is checked for each concrete specialization; the bound does not make the generic parameter an interface type or check the body independently of instantiation.</p>
-<p>A type that does not implement <span class="code-inline">IValue</span> is rejected at the call. The diagnostic names the function, its generic arguments, and the failed <span class="code-inline">where T is IValue</span> declaration. With a value on the left, <span class="code-inline">is</span> retains its dynamic type-test behavior. For exact type equality, use <span class="code-inline">T == U</span>.</p>
+<p>A type that does not implement <span class="code-inline">IValue</span> is rejected at the call. The diagnostic names the function, its generic arguments, and the failed <span class="code-inline">where cast #try (IValue) T != null</span> declaration. For exact type equality, use <span class="code-inline">T == U</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IValue</span>
 {
     <span class="SKwd">mtd</span> <span class="SFct">value</span>()-&gt;<span class="STpe">s32</span>
@@ -7474,9 +7557,9 @@ swc test -w path/to/workspace -m messages</span></div>
 }
 
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">readValue</span>(value: *<span class="SCst">T</span>)-&gt;<span class="STpe">s32</span>
-    <span class="SLgc">where</span> <span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">IValue</span>
+    <span class="SLgc">where</span> <span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SCst">IValue</span>) <span class="SCst">T</span> != <span class="SKwd">null</span>
 {
-    <span class="SKwd">let</span> view = value <span class="SLgc">as</span> <span class="SCst">IValue</span>
+    <span class="SKwd">let</span> view = <span class="SKwd">cast</span>(<span class="SCst">IValue</span>) value
     <span class="SLgc">return</span> view.<span class="SFct">value</span>()
 }
 
@@ -7620,8 +7703,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>You can inspect attributes via type reflection at runtime. This enables behavior that adapts based on which attributes are present and how they are configured.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> type = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(function2)     <span class="SCmt">// Reflect the function type</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.attributes.count == <span class="SNum">1</span>)                          <span class="SCmt">// Exactly one attribute on 'function2'</span>
+    <span class="SKwd">let</span> type = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(function2)     <span class="SCmt">// Reflect the function type</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.attributes.count == <span class="SNum">1</span>)                                  <span class="SCmt">// Exactly one attribute on 'function2'</span>
 }</span></div>
 <h3 id="_010_002_predefined_attributes_swg">Predefined Attributes</h3>
 <h3 id="_010_002_predefined_attributes_swg_Predefined_Attributes">Predefined Attributes</h3>
@@ -8288,7 +8371,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_012_001_aggregate_reflection_swg">Aggregate Reflection</h3>
 <h3 id="_012_001_aggregate_reflection_swg_Struct_and_Enum_Reflection">Struct and Enum Reflection</h3>
-<p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Inspect its <span class="code-inline">kind</span> before casting to a specialized descriptor. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
+<p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Use 'cast #try' to borrow a specialized descriptor, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ExportType(.Methods)]</span>
 <span class="SKwd">struct</span> <span class="SCst">ReflectedPoint</span>
 {
@@ -8313,7 +8396,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> base = <span class="SItr">#typeof</span>(<span class="SCst">ReflectedPoint</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(base.kind == .<span class="SCst">Struct</span>)
 
-    <span class="SKwd">let</span> type   = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) base
+    <span class="SKwd">let</span> type   = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) base
     <span class="SKwd">let</span> fields = type.fields!
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.structName == <span class="SStr">"ReflectedPoint"</span>)
@@ -8336,7 +8419,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> base = <span class="SItr">#typeof</span>(<span class="SCst">ReflectedState</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(base.kind == .<span class="SCst">Enum</span>)
 
-    <span class="SKwd">let</span> type   = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoEnum</span>) base
+    <span class="SKwd">let</span> type   = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoEnum</span>) base
     <span class="SKwd">let</span> values = type.values!
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.rawType == <span class="STpe">u8</span>)
@@ -8346,7 +8429,19 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">2</span>].name == <span class="SStr">"Done"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">0</span>].pointedType == <span class="SCst">ReflectedState</span>)
 }</span></div>
-<p>Reflection describes declarations; it does not bypass visibility, constness, or ownership. When writing a generic serializer or editor, validate <span class="code-inline">kind</span>, check nullable descriptor slices, and derive field addresses from a live instance plus <span class="code-inline">TypeValue.offset</span>.</p>
+<p>Reflection describes declarations; it does not bypass visibility, constness, or ownership. When writing a generic serializer or editor, check the descriptor with 'cast #try', check nullable descriptor slices, and derive field addresses from a live instance plus <span class="code-inline">TypeValue.offset</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">reflectedFieldCount</span>(type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">u64</span>
+{
+    <span class="SLgc">if</span> <span class="SKwd">let</span> info = <span class="SKwd">cast</span> <span class="SItr">#try</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) type <span class="SLgc">do</span>
+        <span class="SLgc">return</span> info.fields.count
+    <span class="SLgc">return</span> <span class="SNum">0</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">reflectedFieldCount</span>(<span class="SCst">ReflectedPoint</span>) == <span class="SNum">2</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">reflectedFieldCount</span>(<span class="STpe">s32</span>) == <span class="SNum">0</span>)
+}</span></div>
 <h3 id="_012_002_function_and_container_reflection_swg">Function and Container Reflection</h3>
 <h3 id="_012_002_function_and_container_reflection_swg_Function_Reflection">Function Reflection</h3>
 <p><span class="code-inline">#typeof</span> on a function yields <span class="code-inline">Swag.TypeInfoFunc</span>. Its parameter entries are <span class="code-inline">TypeValue</span> records, and <span class="code-inline">returnType</span> is <span class="code-inline">null</span> for a function with no return value.</p>
@@ -8362,7 +8457,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> type       = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(reflectedAdd)
+    <span class="SKwd">let</span> type       = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(reflectedAdd)
     <span class="SKwd">let</span> parameters = type.parameters!
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(parameters.count == <span class="SNum">2</span>)
@@ -8372,25 +8467,25 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(parameters[<span class="SNum">1</span>].pointedType == <span class="STpe">s32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(type.returnType == <span class="STpe">s32</span>)
 
-    <span class="SKwd">let</span> noResult = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(reflectedNotify)
+    <span class="SKwd">let</span> noResult = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(reflectedNotify)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(noResult.returnType == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_012_002_function_and_container_reflection_swg_Pointer__Array__and_Slice_Reflection">Pointer, Array, and Slice Reflection</h3>
 <p>Container descriptors identify their element type. Arrays additionally expose their dimensions; pointer and slice descriptors expose the pointed-to type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> pointer = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoPointer</span>) <span class="SItr">#type</span> *<span class="STpe">s32</span>
+    <span class="SKwd">let</span> pointer = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoPointer</span>) <span class="SItr">#type</span> *<span class="STpe">s32</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pointer.kind == .<span class="SCst">Pointer</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pointer.pointedType == <span class="STpe">s32</span>)
 
-    <span class="SKwd">let</span> array = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoArray</span>) <span class="SItr">#type</span> [<span class="SNum">2</span>, <span class="SNum">3</span>] <span class="STpe">u16</span>
+    <span class="SKwd">let</span> array = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoArray</span>) <span class="SItr">#type</span> [<span class="SNum">2</span>, <span class="SNum">3</span>] <span class="STpe">u16</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.kind == .<span class="SCst">Array</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.pointedType == <span class="SItr">#type</span> [<span class="SNum">3</span>] <span class="STpe">u16</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.finalType == <span class="STpe">u16</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.count == <span class="SNum">2</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(array.totalCount == <span class="SNum">6</span>)
 
-    <span class="SKwd">let</span> slice = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoSlice</span>) <span class="SItr">#type</span> [..] <span class="STpe">f32</span>
+    <span class="SKwd">let</span> slice = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoSlice</span>) <span class="SItr">#type</span> [..] <span class="STpe">f32</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slice.kind == .<span class="SCst">Slice</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slice.pointedType == <span class="STpe">f32</span>)
 }</span></div>
@@ -8427,7 +8522,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
 
-    <span class="SKwd">let</span> e = <span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err
+    <span class="SKwd">let</span> e = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.code == <span class="SNum">7</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.message == <span class="SStr">"name cannot be null"</span>)
 }</span></div>
@@ -8484,7 +8579,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Explicit_Error_Handling">Explicit Error Handling</h3>
 <p>Every call to a function declared with <span class="code-inline">fail</span> needs <span class="code-inline">try</span>, <span class="code-inline">catch</span>, or <span class="code-inline">expect</span>. Declaring the caller with <span class="code-inline">fail</span> permits propagation, but does not make it implicit. The compiler rejects a call that omits its error-management keyword.</p>
@@ -8498,7 +8593,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Error-Handling_Blocks">Error-Handling Blocks</h3>
 <p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as err' or <span class="code-inline">else</span>), and <span class="code-inline">expect</span> can also guard a whole block of code. Each fallible call inside the block still needs its own keyword: use <span class="code-inline">try</span> to pass its error to the enclosing block's handler.</p>
@@ -8525,7 +8620,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">if</span> err == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SLgc">return</span> -<span class="SNum">1</span>
 
-    <span class="SLgc">return</span> (<span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err).code
+    <span class="SLgc">return</span> (<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code
 }
 
 <span class="SKwd">func</span> <span class="SFct">blockCatchElse</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
@@ -8544,7 +8639,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> err
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>((<span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SCst">MyError</span>) err).code == <span class="SNum">7</span>)
 }
 
 <span class="SFct">#test</span>
@@ -8556,7 +8651,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_013_001_error_management_swg_Expect">Expect</h3>
 <p><span class="code-inline">expect</span> asserts that a fallible operation succeeds. An unexpected failure panics while the <span class="code-inline">.Expect</span> safety guard is enabled; when that guard is disabled, the result uses its type's default. Use it for an invariant, not for an ordinary failure that the caller should recover from.</p>
 <p>Forms that need a default result, including <span class="code-inline">catch</span> and <span class="code-inline">expect</span>, require a result type with a safe default. A non-null pointer has none; propagate such a result with <span class="code-inline">try</span>, or design the failure-handling boundary to return a type that can represent absence.</p>
-<p>Inside <span class="code-inline">#test</span>, <span class="code-inline">try</span> is equivalent to <span class="code-inline">expect</span>, so both forms keep the success path concise when failure is not expected.</p>
+<p>Inside <span class="code-inline">#test</span>, <span class="code-inline">try</span> is equivalent to <span class="code-inline">expect</span>, so both forms keep the success path concise when failure is not expected. An inlined function keeps its own error propagation: <span class="code-inline">try</span> in its body still passes failures to the caller's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value = <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SStr">"swag"</span>)
@@ -8687,7 +8782,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"1"</span>
-    <span class="SKwd">let</span> y      = <span class="SKwd">cast</span>(<span class="STpe">string</span>) x
+    <span class="SKwd">let</span> y      = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="STpe">string</span>) x
 
     <span class="SCmt">// var z = cast(s32) x  // Would panic: underlying type mismatch</span>
     <span class="SCmt">// Swag.assert(z == 0)</span>
@@ -10012,7 +10107,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
     <span class="SLgc">if</span> message.type == <span class="SKwd">null</span> <span class="SLgc">or</span> message.name == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SLgc">return</span>
 
-    <span class="SKwd">let</span> functionType = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) message.type
+    <span class="SKwd">let</span> functionType = <span class="SKwd">cast</span> <span class="SItr">#assume</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoFunc</span>) message.type
     <span class="SCmt">// Inspect functionType.parameters, functionType.returnType, and attributes.</span>
 }</span></div>
 <p>The payload fields are nullable because their meaning depends on the event. Check <span class="code-inline">message.kind</span> and the fields you need before casting.</p>
@@ -10088,7 +10183,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.503</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.666</div>
 </footer>
 </section>
 </main>
@@ -10512,7 +10607,12 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Operator Precedence|_003_006_operators_swg_Operator_Precedence|",
 "h|Cast|_003_007_cast_swg|",
 "h|Explicit Cast with cast|_003_007_cast_swg_Explicit_Cast_with__cast_|",
-"h|Interface Conversion with as|_003_007_cast_swg_Interface_Conversion_with__as_|",
+"h|Interface Conversion|_003_007_cast_swg_Interface_Conversion|",
+"h|Dynamic Casts|_003_007_cast_swg_Dynamic_Casts|",
+"h|Testing and Using the Same Result|_003_007_cast_swg_Testing_and_Using_the_Same_Result|",
+"h|Values Stored in any|_003_007_cast_swg_Values_Stored_in__any_|",
+"h|Compile-Time Compatibility|_003_007_cast_swg_Compile-Time_Compatibility|",
+"h|Targets Chosen at Runtime|_003_007_cast_swg_Targets_Chosen_at_Runtime|",
 "h|Automatic Cast with cast()|_003_007_cast_swg_Automatic_Cast_with__cast___|",
 "h|Bit Cast|_003_007_cast_swg_Bit_Cast|",
 "h|Implicit Casts|_003_007_cast_swg_Implicit_Casts|",

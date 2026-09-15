@@ -36,11 +36,14 @@ by different `where` clauses.
 
 /**
 # Interface Requirements
-The preferred declaration-site form for an interface requirement is
-`where T is IValue`. With a type on the left and an interface on the right,
-`is` evaluates to a compile-time `bool`: a struct satisfies the contract if
-it implements that interface, directly or through a `using` field. An
-interface satisfies its own contract. Other types answer `false`.
+An interface requirement uses the same conversion request as a value:
+`where cast #try (IValue) T != null`. When the operand denotes a type, the
+compiler checks whether that type can be viewed through the requested contract.
+Success retains the source type as a compile-time type value; failure returns
+`null`. This does not construct an object or perform a runtime check.
+
+A struct satisfies the interface contract when it implements that interface,
+directly or through a `using` field. An interface satisfies its own contract.
 
 The bound participates in overload selection just like other `where` clauses.
 Combine requirements with `and`, or write one `where` per interface.
@@ -52,8 +55,7 @@ the body independently of instantiation.
 
 A type that does not implement `IValue` is rejected at the call. The
 diagnostic names the function, its generic arguments, and the failed
-`where T is IValue` declaration.
-With a value on the left, `is` retains its dynamic type-test behavior.
+`where cast #try (IValue) T != null` declaration.
 For exact type equality, use `T == U`.
 */
 
@@ -70,9 +72,9 @@ impl IValue for ConstantValue
 }
 
 func(T) readValue(value: *T)->s32
-    where T is IValue
+    where cast #try (IValue) T != null
 {
-    let view = value as IValue
+    let view = cast(IValue) value
     return view.value()
 }
 

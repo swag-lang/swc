@@ -66,7 +66,7 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
     let version = Reflection.attributeValue(structType, Serialization.Version, "v")
     if version != null
     {
-        plan.version    = cast(u32) version
+        plan.version    = cast #assume (u32) version
         plan.hasVersion = true
     }
 

@@ -976,7 +976,7 @@ func createSoundViewer(host: Viewer.Host)
     host.attachView(view!)
     host.setDetails(view.details.toString())
     host.setLifecycle({
-        retire: func(wnd)->bool { return (cast(*SoundViewer) wnd).retire() },
-        isLoading: func(wnd)->bool { return (cast(*SoundViewer) wnd).isLoading() },
-        needsLoadingOverlay: func(wnd)->bool { return not (cast(*SoundViewer) wnd).openFinished }})
+        retire: func(wnd)->bool { return (cast #assume (*SoundViewer) wnd).retire() },
+        isLoading: func(wnd)->bool { return (cast #assume (*SoundViewer) wnd).isLoading() },
+        needsLoadingOverlay: func(wnd)->bool { return not (cast #assume (*SoundViewer) wnd).openFinished }})
 }

@@ -561,27 +561,27 @@ func createArchiveViewer(host: Viewer.Host)
         collectMatches: func(wnd, text, options, progress, matches)->bool
     {
         discard progress
-        (cast(*ArchiveViewer) wnd).collectMatches(text, options, matches)
+        (cast #assume (*ArchiveViewer) wnd).collectMatches(text, options, matches)
         return true
     },
         revealMatch: func(wnd, match, text)->bool
     {
         discard text
-        return (cast(*ArchiveViewer) wnd).revealEntry(match)
+        return (cast #assume (*ArchiveViewer) wnd).revealEntry(match)
     },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*ArchiveViewer) wnd).searchBounds(bounds)
+        return (cast #assume (*ArchiveViewer) wnd).searchBounds(bounds)
     },
-        clear: func(wnd) { (cast(*ArchiveViewer) wnd).clearSearch() },
-        describe: func(wnd, presentation) { (cast(*ArchiveViewer) wnd).describeSearch(presentation) }})
+        clear: func(wnd) { (cast #assume (*ArchiveViewer) wnd).clearSearch() },
+        describe: func(wnd, presentation) { (cast #assume (*ArchiveViewer) wnd).describeSearch(presentation) }})
     host.setLifecycle({
         isLoading: func(wnd)->bool
     {
-        let viewer = cast(*ArchiveViewer) wnd
+        let viewer = cast #assume (*ArchiveViewer) wnd
         return viewer.loadTimer != null or viewer.extract.started or viewer.embedded.isLoading()
     },
-        needsLoadingOverlay: func(wnd)->bool { return (cast(*ArchiveViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*ArchiveViewer) wnd).retire() }})
+        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*ArchiveViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*ArchiveViewer) wnd).retire() }})
 }

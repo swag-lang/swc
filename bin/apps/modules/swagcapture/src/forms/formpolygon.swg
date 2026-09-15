@@ -29,15 +29,17 @@ impl IForm for FormPolygon
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormPolygon) ptr
+        let other = cast #try (*FormPolygon) ptr
+        if not other do
+            return false
         return .isSameBase(ptr) and .bezier == other.bezier
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormPolygon) dst
-        let srcf = cast(*FormPolygon) src
+        let dstf = cast #assume (*FormPolygon) dst
+        let srcf = cast #assume (*FormPolygon) src
         dstf.bezier = srcf.bezier
     }
 

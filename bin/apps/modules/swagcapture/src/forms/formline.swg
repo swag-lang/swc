@@ -81,7 +81,9 @@ impl IForm for FormLine
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormLine) ptr
+        let other = cast #try (*FormLine) ptr
+        if not other do
+            return false
         return .isSameBase(ptr) and
                .outlineSize == other.outlineSize and
                .outlineColor == other.outlineColor and
@@ -96,8 +98,8 @@ impl IForm for FormLine
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormLine) dst
-        let srcf = cast(*FormLine) src
+        let dstf = cast #assume (*FormLine) dst
+        let srcf = cast #assume (*FormLine) src
         dstf.outlineSize  = srcf.outlineSize
         dstf.outlineColor = srcf.outlineColor
         dstf.beginCap     = srcf.beginCap

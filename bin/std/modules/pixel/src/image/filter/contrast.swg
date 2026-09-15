@@ -14,7 +14,7 @@ public impl Image
             var context = level
             .transformLogicalPixels(&context)
             {
-                let adjustment = userData![as f32]
+                let adjustment = (cast(const *f32) userData!)[]
                 value.r = (value.r - 0.5) * adjustment + 0.5
                 value.g = (value.g - 0.5) * adjustment + 0.5
                 value.b = (value.b - 0.5) * adjustment + 0.5

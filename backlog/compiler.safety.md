@@ -46,7 +46,7 @@ is the current scorecard.
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Recorded: 2026-09-04 17:05
-- Updated: 2026-09-14 06:26 — Restore the checked-downcast prerequisite and separate the full unsafe surface from the binding census.
+- Updated: 2026-09-15 15:47 — Narrow the unsafe-boundary work to the operations left after checked downcasts.
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
@@ -83,8 +83,8 @@ is the current scorecard.
   the operations above are single expressions, and Swag already spells a compiler instruction on an
   expression with `#`. A modifier on the operation (`#unsafe cast(*T) addr`) plus one file-level
   opt-in (`#global #[Swag.Unsafe]`) for a binding or codec layer would make the boundary visible
-  to `rg`. Neither spelling is implemented; affordability depends on the checked-downcast
-  prerequisite below.
+  to `rg`. Neither spelling is implemented; the remaining census must account for the checked
+  downcast forms now available.
 - The census the previous next action asked for, run on 2026-09-08 13:34 over `bin/` with the vendored
   `.dep` and `.output` copies and `bin/unittests` excluded, so every number is a shipped site:
 
@@ -107,47 +107,18 @@ is the current scorecard.
   a base pointer in a hand-rolled hierarchy. `bin/std` is the same story, 404 user types
   against 56 primitives, plus the opaque-handle round trip the drivers and the generic
   containers are written with. An integer becoming a pointer is nowhere in that population.
-- Consequence for the design: the marker is unaffordable while the dominant idiom has no
-  safe spelling. Marking 1593 sites, or opting most of `bin/std` and all three applications
-  out at file level, does not draw a boundary - it moves it. The affordable order is the
-  reverse of what this entry assumed: give the downcast a checked spelling first, then count
-  what is left, and only then choose the marker.
-- The mechanism already exists, and half of it is already hand-rolled. `Swag.typeAs` and
-  `Swag.typeIs` (`bin/runtime/core.swg:21,57`) already walk the `using` graph: they iterate
-  `usingFields`, recurse into nested bases, adjust the pointer by each field's offset, and follow
-  a `using` on a pointer field. Every `case T as x` over an `any` or an interface calls them. What
-  they need is `fromType`, the CONCRETE type - exactly what a bare `*Wnd` does not carry. The
-  missing piece is one fact, not a mechanism.
-- And `Gui.Wnd` already carries that fact by hand: `late type: typeinfo` ("Runtime type of the
-  concrete window allocation"), written as `res.type = T` in the generic `Wnd.create'T`, the single
-  funnel every window is born through. The language would be sanctioning a field the library
-  already maintains, not inventing one.
-- Measured on `bin/` on 2026-09-08 15:08: 259 structs compose with `using`; the `using` member is
-  the FIRST member in 288 of 299 declarations, and in every window, view and event type, so a
-  `*Wnd` IS the address of the complete object - no offset-to-complete, no per-subobject tag, none
-  of the C++ multiple-inheritance vptr machinery. The deepest chain is 3
-  (`EditWnd` - `ScrollWnd` - `FrameWnd` - `Wnd`), and only two shipped structs carry several
-  `using` members (`Surface{native, state}`, `EditBox{wnd, minMax}`): in both, one base plus a data
-  mixin nothing ever recovers.
-- A fat pointer carrying the typeinfo beside the address was considered and rejected. Inside a
-  method of the base, `me` is already a plain `*Wnd`, so the concrete type is lost before the value
-  is ever stored; keeping it would force `children`, `parent` and every `*Wnd` parameter to widen -
-  viral, and it doubles the window tree. The tag belongs in the object.
-- What the absence costs, measured while writing this: `Wnd.revealFocus` tested
-  `parent.type == ScrollWnd`, an EQUALITY, so revealing the focus silently did nothing for all five
-  shipped viewports built by composition (`EditWnd`, `QuickWnd`, `RecentWnd`, `SheetWnd`,
-  `WidgetWall`). Fixed with `Swag.typeAs` and a regression test in
-  `bin/std/modules/gui/src/tests/scroll.test.swg`; `isEditorWnd` in `properties.keyboard.swg` had
-  the same shape and was made robust. Hand-rolling the tag makes the exact-versus-ancestor mistake
-  the default one.
-- Current source check: `Wnd` still stores `late type: typeinfo` and initializes it in
-  `Wnd.create'T`; the struct-pointer cast rule checks the static `using` relationship, without
-  validating the concrete allocation type. The checked-downcast prerequisite remains open.
-- Next: specify a checked downcast using the concrete allocation type before choosing the unsafe
-  marker. Then recount each operation family above across current `bin/`, including tagged native
-  integration tests, and distinguish safe downcasts from ABI reinterpretations and raw memory
-  operations. Use that remaining population to choose expression and file-level opt-ins; the
-  historical two production binding files do not define the whole boundary.
+- Downcasts now have explicit language forms: `#[Swag.DynCast]` attaches allocation identity to
+  struct storage while ordinary pointers remain one word. `cast #try` returns a nullable view;
+  `cast #assume` checks the invariant when `.DynCast` safety is enabled. The same modifiers cover
+  `any`, interfaces and runtime type descriptors. Expression `as`/`is` and `Swag.typeAs`/`typeIs`
+  have been removed, and `Wnd` uses the language-managed identity.
+- The census above predates that migration. Its cast total cannot be used as the size of the
+  remaining unsafe surface: distinguish checked views from deliberate reinterpretation and
+  from assumptions whose runtime check is disabled.
+- Next: recount each remaining operation family across current `bin/`, including tagged native
+  integration tests. Use that population to choose expression and file-level opt-ins for ABI
+  reinterpretation, raw memory, foreign calls, lifecycle bypasses and unchecked assumptions.
+  Then define and enforce the guarantee of the safe subset.
 - Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
   them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
   states which faults the safe subset excludes.

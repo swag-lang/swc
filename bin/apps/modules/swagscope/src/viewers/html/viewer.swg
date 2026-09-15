@@ -116,17 +116,17 @@ func createHtmlViewer(host: Viewer.Host)
     result.hookOnChildEvent = func|viewer = result|(wnd, evt)
     {
         discard wnd
-        switch evt
+        switch
         {
-        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
+        case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
             viewer.setZoom(viewer.zoomPercent + 25)
             return true
 
-        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
+        case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
             viewer.setZoom(viewer.zoomPercent > 50 ? viewer.zoomPercent - 25 : 50)
             return true
 
-        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
+        case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
             viewer.setZoom(100)
             return true
 
@@ -152,14 +152,14 @@ func createHtmlViewer(host: Viewer.Host)
     DocumentOutline.create(host).bindHtml(result.view)
     host.setDetails(htmlStrings().ui_Details)
     host.setSearch({
-        revealMatch: func(wnd, match, text)->bool { return (cast(*HtmlViewer) wnd).view.revealFileOffset(match.offset, text) },
+        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text) },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*HtmlViewer) wnd).view.searchMatchRect(bounds)
+        return (cast #assume (*HtmlViewer) wnd).view.searchMatchRect(bounds)
     },
-        clear: func(wnd) { (cast(*HtmlViewer) wnd).view.clearSearch() }})
-    host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*HtmlViewer) wnd).view.isLoading() }})
+        clear: func(wnd) { (cast #assume (*HtmlViewer) wnd).view.clearSearch() }})
+    host.setLifecycle({isLoading: func(wnd)->bool { return (cast #assume (*HtmlViewer) wnd).view.isLoading() }})
     result.view.sigLinkActivated += func(html, url)
     {
         discard html

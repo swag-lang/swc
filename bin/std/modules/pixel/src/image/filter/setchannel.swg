@@ -35,7 +35,7 @@ public impl Image
             var alpha = value / 255.0
             .transformLogicalPixels(&alpha)
             {
-                value.a = userData![as f32]
+                value.a = (cast(const *f32) userData!)[]
             }
 
             return
@@ -81,7 +81,7 @@ public impl Image
             var context = {mode: rmode, valueMode: value, color: color / 255.0}
             .transformLogicalPixels(&context)
             {
-                let params = userData![as #decltype(context)]
+                let params = (cast(const *#decltype(context)) userData!)[]
                 var channelValue: f32
                 switch #complete params.valueMode
                 {

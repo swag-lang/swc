@@ -55,7 +55,7 @@ interface IForm
 // and the panel builds itself by reflection, undo included. Field order below is the
 // display order of the generated panel; serialization matches fields by canonical key, so it is
 // free to follow the UI. A Category paints as a thin separator above its field.
-#[Swag.Using(Properties)]
+#[Swag.Using(Properties), Swag.DynCast]
 struct BaseForm
 {
     // x/y/w/h carry no grid attribute: the panel appends its own compact x/y and w/h
@@ -110,7 +110,7 @@ impl BaseForm
         if quickMode do
             return QuickPaintOverdraw
 
-        let base   = cast(*BaseForm) itf.buffer
+        let base   = cast #assume (*BaseForm) itf
         let type   = Swag.kindOf(itf)
         var extent = base.borderSize * 1.5
         if type == FormLine or type == FormArrow
@@ -124,7 +124,7 @@ impl BaseForm
             // The caps are shaped from the stroke itself and the contour is pushed out around the
             // result, so the contour adds its own width once rather than widening the stroke the
             // caps are measured against.
-            let line   = cast(*FormLine) base
+            let line   = cast #assume (*FormLine) base
             let stroke = base.borderSize
             let beg    = Painter.capStyleRadius(line.beginCap, stroke, line.startSize)
             let end    = Painter.capStyleRadius(line.endCap, stroke, line.endSize)
@@ -132,7 +132,7 @@ impl BaseForm
         }
         elif type == FormDraw
         {
-            let draw = cast(*FormDraw) base
+            let draw = cast #assume (*FormDraw) base
             extent = base.borderSize * 1.5 + draw.outlineSize
         }
 
@@ -244,7 +244,7 @@ impl BaseForm
     {
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
-        let base = cast(*BaseForm) itf.buffer
+        let base = cast #assume (*BaseForm) itf
         var pos  = Math.Vector2{pt.x, pt.y}
         if base.subKind != .Highlight and base.subKind != .PixSel and not Math.isZeroEpsilon(base.rotate)
         {

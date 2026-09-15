@@ -53,9 +53,9 @@ impl C
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         var pl = expect wnd.theme().res.defaultTypeFaceR.buildStringOutline("Swag", 200)
 
         // The outline arrives in the type's own coordinates, so the word is measured before it is
@@ -95,7 +95,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             c.pos.y    = c.target.y + g_Rng.nextF32(-100, 100)
         }
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
         let rect    = wnd.clientRect()
 

@@ -20,10 +20,10 @@ struct Channel
 internal struct Decoder { bytes: const [..] u8?; parts: Array'Part; multipart: bool }
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => source[as u32]
+func readU32(source: const [*] u8)->u32 => (cast(const *u32) source)[]
 
 #[Swag.Inline]
-func readU64(source: const [*] u8)->u64 => source[as u64]
+func readU64(source: const [*] u8)->u64 => (cast(const *u64) source)[]
 
 func readText(buffer: const [..] u8, offset: *u64, maxLength: u64)->String fail
 {
@@ -128,7 +128,7 @@ func writeChunk(image: *Image, channels: const [..] Channel, source: const [..] 
                 for x in image.width
                 {
                     let input  = source.buffer + offset + cast(u64) x * bytes
-                    let value  = channel.pixelType == 1 ? halfToFloat(input[as u16]) : input[as f32]
+                    let value  = channel.pixelType == 1 ? halfToFloat((cast(const *u16) input)[]) : (cast(const *f32) input)[]
                     let target = image.pixels.storage() + cast(u64) targetY * image.rowStride + cast(u64) x * image.bytesPerPixel
                     var pixel  = readPixelValue(target, image.pixelFormat)
                     switch component

@@ -180,7 +180,9 @@ impl IForm for FormCallout
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormCallout) ptr
+        let other = cast #try (*FormCallout) ptr
+        if not other do
+            return false
         return .isSameBase(ptr) and
                .roundSize == other.roundSize and
                .fontSize == other.fontSize and
@@ -195,8 +197,8 @@ impl IForm for FormCallout
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let d = cast(*FormCallout) dst
-        let s = cast(*FormCallout) src
+        let d = cast #assume (*FormCallout) dst
+        let s = cast #assume (*FormCallout) src
         d.roundSize = s.roundSize
         d.fontSize  = s.fontSize
         d.boldSize  = s.boldSize

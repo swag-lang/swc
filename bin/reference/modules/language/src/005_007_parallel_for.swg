@@ -141,7 +141,7 @@ struct ParallelInputError
             fail ParallelInputError{index}
         values[index] = index + 1
     } as error
-    Swag.assert(error != null and error is ParallelInputError)
+    Swag.assert(error != null and (cast #try (*ParallelInputError) error != null))
     Swag.assert(values[3] == 0)
 
     expect parallel for |&values| index in 8 do

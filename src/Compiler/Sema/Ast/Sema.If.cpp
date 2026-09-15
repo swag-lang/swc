@@ -325,39 +325,6 @@ namespace
         candidates = std::move(kept);
     }
 
-    Result checkIfVarDeclCondition(Sema& sema, AstNodeRef varDeclRef)
-    {
-        AstNodeRef     declRef = varDeclRef;
-        const AstNode& varNode = sema.node(varDeclRef);
-        if (varNode.is(AstNodeId::VarDeclList))
-        {
-            const auto&             list = varNode.cast<AstVarDeclList>();
-            SmallVector<AstNodeRef> decls;
-            sema.ast().appendNodes(decls, list.spanChildrenRef);
-            if (decls.size() != 1)
-                return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, varDeclRef);
-            declRef = decls.front();
-        }
-
-        const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
-        const Symbol*      sym      = declView.singleSymbol();
-        if (!sym)
-            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, declRef);
-
-        const TypeRef typeRef = sym->typeRef();
-        if (typeRef.isInvalid())
-            return Result::Continue;
-
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (type.isConvertibleToBoolAliasAware(sema.ctx()))
-            return Result::Continue;
-
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, sym->codeRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeBool());
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
 }
 
 Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -437,7 +404,7 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
     // `if` in the else slot of another, so its publication would sit on top of the enclosing
     // branch's region frame and keep that frame from popping on schedule. The frame reached
     // here is the one the statement started in, and it already ends where the facts stop
-    // holding — the enclosing block, or the branch region of the `if` this one chains from.
+    // holding â€” the enclosing block, or the branch region of the `if` this one chains from.
     SemaHelpers::addNarrowFacts(sema.frame(), {merged.data(), merged.size()});
     return Result::Continue;
 }
@@ -510,7 +477,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
 {
     if (childRef == nodeVarRef)
     {
-        SWC_RESULT(checkIfVarDeclCondition(sema, nodeVarRef));
+        SWC_RESULT(SemaCheck::conditionBinding(sema, nodeVarRef));
         const bool usesConditionBinding                                                                       = nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef);
         SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ifVarDeclWhereUsesConditionBinding = usesConditionBinding;
         if (usesConditionBinding)
@@ -563,7 +530,7 @@ Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     }
 
     // The block reaches the subject by writing it out again for every '.member' it holds. That is
-    // exact for a place — a variable, a field, an element — and wrong for anything computed: a
+    // exact for a place â€” a variable, a field, an element â€” and wrong for anything computed: a
     // call would run once more per member the block touches, on a different value each time, and
     // the value the statement itself produced would be dropped.
     if (baseExprRef.isValid() && !sema.isLValue(baseExprRef))

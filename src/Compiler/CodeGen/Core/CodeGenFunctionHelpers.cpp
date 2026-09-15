@@ -626,6 +626,8 @@ namespace
 
         if (typeInfo.isStruct())
         {
+            if (typeInfo.payloadSymStruct().hasDynamicStorage())
+                return false;
             for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
             {
                 if (field && !canEmitDefaultPayloadBytesInline(codeGen, field->typeRef()))
@@ -804,7 +806,7 @@ namespace
                 SWC_RESULT(emitStructFieldDefaultValue(codeGen, *field, dstAddressReg));
         }
 
-        return Result::Continue;
+        return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeInfo.payloadSymStruct().typeRef(), dstAddressReg);
     }
 
     bool shouldComposeLargeSparseStructDefault(CodeGen& codeGen, const TypeInfo& typeInfo, std::span<const std::byte> payloadBytes)
@@ -868,7 +870,7 @@ namespace
             CodeGenMemoryHelpers::emitMemZero(codeGen, paddingAddressReg, structSize - initializedEnd);
         }
 
-        return Result::Continue;
+        return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeInfo.payloadSymStruct().typeRef(), dstAddressReg);
     }
 
     Result lowerStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, SmallVector<std::byte>& outStorage, std::span<const std::byte>& outPayloadBytes)
@@ -890,30 +892,54 @@ namespace
         return Result::Continue;
     }
 
-    bool materializeStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, std::span<const std::byte>& outPayloadBytes)
+    Result materializeStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, std::span<const std::byte>& outPayloadBytes)
     {
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isStruct());
-        const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().resolveImplicitDefaultValueRef(codeGen.sema(), typeRef);
+        ConstantRef defaultValueRef = ConstantRef::invalid();
+        SWC_RESULT(typeInfo.payloadSymStruct().resolveImplicitDefaultValueRef(codeGen.sema(), typeRef, defaultValueRef));
         if (defaultValueRef.isInvalid())
-            return false;
+            return Result::Error;
 
         outSafeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, typeRef);
         if (outSafeDefaultValueRef.isInvalid())
-            return false;
+            return Result::Error;
 
         const ConstantValue& defaultValue = codeGen.cstMgr().get(outSafeDefaultValueRef);
         if (!defaultValue.isStruct())
-            return false;
+            return Result::Error;
 
         outPayloadBytes = defaultValue.getStruct();
-        return true;
+        return Result::Continue;
     }
 }
 
 Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, const TypeRef typeRef, const MicroReg dstAddressReg)
 {
     return emitImplicitDefaultValue(codeGen, typeRef, dstAddressReg);
+}
+
+Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+{
+    typeRef              = unwrapDefaultStorageTypeRef(codeGen, typeRef);
+    const TypeInfo& type = codeGen.typeMgr().get(typeRef);
+    if (!type.isStruct() || !type.payloadSymStruct().isDynamic())
+        return emitTypeDefaultValue(codeGen, typeRef, dstAddressReg);
+
+    // Moving out resets user fields, but does not turn an embedded base into a standalone
+    // object. Ordinary members and array elements already have their declared root identity.
+    const auto            slots = type.payloadSymStruct().dynamicSlotOffsets();
+    SmallVector<MicroReg> identities;
+    for (const uint32_t offset : slots)
+    {
+        const MicroReg identity = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(identity, dstAddressReg, offset, MicroOpBits::B64);
+        identities.push_back(identity);
+    }
+    SWC_RESULT(emitTypeDefaultValue(codeGen, typeRef, dstAddressReg));
+    for (size_t i = 0; i < slots.size(); ++i)
+        codeGen.builder().emitLoadMemReg(dstAddressReg, slots[i], identities[i], MicroOpBits::B64);
+    return Result::Continue;
 }
 
 Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
@@ -947,8 +973,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         return emitStructComposedDefaultValue(codeGen, typeInfo, dstAddressReg);
 
     ConstantRef safeDefaultValueRef = ConstantRef::invalid();
-    if (!materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
-        return Result::Continue;
+    SWC_RESULT(materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes));
 
     const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
@@ -996,8 +1021,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
 
     ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
     std::span<const std::byte> payloadBytes;
-    if (!materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
-        return Result::Continue;
+    SWC_RESULT(materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes));
 
     const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);

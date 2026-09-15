@@ -50,7 +50,7 @@ impl ICannotCastConst for CannotCastConstBox {}
     var value = 1's32
     let ptr: const *s32 = &value
     let boxed = Swag.makeAny(ptr, s32)
-    let data  = cast(*s32) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
+    let data  = cast #assume(*s32) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
@@ -58,7 +58,7 @@ impl ICannotCastConst for CannotCastConstBox {}
     var data:  [2] u8        = [1, 2]
     let bytes: const [..] u8 = cast(const [..] u8) data
     let boxed                = Swag.makeAny(&bytes, const [..] u8)
-    let mutable              = cast([..] u8) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
+    let mutable              = cast #assume([..] u8) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
@@ -119,7 +119,7 @@ impl ICannotCastConst for CannotCastConstBox {}
     var data: [3] u8        = ['a'u8, 'b'u8, 0]
     let text: const cstring = cast(const cstring) &data[0]
     let boxed               = Swag.makeAny(&text, const cstring)
-    let mutable             = cast(cstring) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
+    let mutable             = cast #assume(cstring) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
@@ -128,7 +128,7 @@ impl ICannotCastConst for CannotCastConstBox {}
     let ptr:   const *CannotCastConstBox = &value
     let itf                              = Swag.makeInterface(ptr, CannotCastConstBox, ICannotCastConst)
     let boxed                            = Swag.makeAny(&itf, const ICannotCastConst)
-    let mutable                          = cast(ICannotCastConst) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
+    let mutable                          = cast #assume(ICannotCastConst) boxed     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test

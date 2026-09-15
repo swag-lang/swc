@@ -118,7 +118,7 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, mas
     var dst = destination
     for pixelCount
     {
-        writeMaskedPixel(dst, src[as u16], masks, false)
+        writeMaskedPixel(dst, (cast(const *u16) src)[], masks, false)
         src += 2
         dst += 3
     }

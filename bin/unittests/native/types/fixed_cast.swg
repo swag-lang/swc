@@ -18,8 +18,8 @@ struct CastWide
 
 func castVariadicValue(x: ...)
 {
-    let refValue  = cast(const *CastTriple) x[0]
-    var copyValue = cast(CastTriple) x[0]
+    let refValue  = cast #assume(const *CastTriple) x[0]
+    var copyValue = cast #assume(CastTriple) x[0]
     copyValue.x = 100
     Swag.assert(refValue.x == 456)
     Swag.assert(copyValue.x == 100)
@@ -38,7 +38,7 @@ func castVariadicValue(x: ...)
 {
     var value: CastWide
     var boxed: any = value
-    let copyValue  = cast(CastWide) boxed
+    let copyValue  = cast #assume(CastWide) boxed
     Swag.assert(copyValue.value == 456)
     Swag.assert(copyValue.value4 == 456)
 }
@@ -47,8 +47,8 @@ func castVariadicValue(x: ...)
 {
     var value: CastTriple
     var boxed: any = value
-    var copyValue  = cast(CastTriple) boxed
-    let refValue   = cast(const *CastTriple) boxed
+    var copyValue  = cast #assume(CastTriple) boxed
+    let refValue   = cast #assume(const *CastTriple) boxed
     copyValue.y = 99
     Swag.assert(copyValue.x == 456)
     Swag.assert(copyValue.y == 99)

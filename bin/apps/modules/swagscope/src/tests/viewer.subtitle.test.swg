@@ -44,7 +44,7 @@ func subtitleViewerFixturePath()->String
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     Swag.assert(result.details == "SubRip")
 
-    let view = cast(*SubtitleViewer) result.view
+    let view = cast #assume (*SubtitleViewer) result.view
     Swag.assert(view.track!.cueCount() == 2)
     Swag.assert(view.cueButton.text() == "2 cues" and (view.durationButton.text()).count)
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)

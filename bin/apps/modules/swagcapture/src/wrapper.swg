@@ -46,9 +46,9 @@ impl MainWnd
 {
     mtd updateModelValues(f: IForm)
     {
-        switch f
+        switch
         {
-        case FormStep as b:
+        case let b = cast #try (*FormStep) f:
             .mdlFormStep    = b[]
             .mdlFormStep.ws = b.w
             .mdlFormStep.hs = b.h
@@ -81,29 +81,29 @@ impl MainWnd
     // template used to create the next form of that type
     mtd copyFormToModel(f: IForm)
     {
-        switch #complete f
+        switch #complete
         {
-        case FormShape as b:
+        case let b = cast #try (*FormShape) f:
             .mdlFormShape = b[]
 
-        case FormImage as b:
+        case let b = cast #try (*FormImage) f:
             .mdlFormImage = b[]
 
-        case FormStep as b:
+        case let b = cast #try (*FormStep) f:
             .mdlFormStep    = b[]
             .mdlFormStep.ws = b.w
             .mdlFormStep.hs = b.h
 
-        case FormArrow as b:
+        case let b = cast #try (*FormArrow) f:
             .mdlFormArrow = b[]
 
-        case FormLine as b:
+        case let b = cast #try (*FormLine) f:
             .mdlFormLine = b[]
 
-        case FormPolygon as b:
+        case let b = cast #try (*FormPolygon) f:
             .mdlFormPolygon = b[]
 
-        case FormText as b:
+        case let b = cast #try (*FormText) f:
             .mdlFormText = b[]
 
             // The model is the style the next text form starts from, not the geometry of this
@@ -113,17 +113,17 @@ impl MainWnd
             .mdlFormText.borderPaths.clear()
             .mdlFormText.isDirty = true
 
-        case FormDraw as b:
+        case let b = cast #try (*FormDraw) f:
             .mdlFormDraw = b[]
 
-        case FormCallout as b:
+        case let b = cast #try (*FormCallout) f:
             .mdlFormCallout = b[]
         }
     }
 
     mtd updateModel(f: IForm)
     {
-        let form = cast(*BaseForm) f.buffer
+        let form = cast #assume (*BaseForm) f
 
         if form.subKind == .Highlight do
             .mdlHighlight = f
@@ -149,7 +149,7 @@ impl MainWnd
             return
         }
 
-        let form = cast(*BaseForm) f.buffer
+        let form = cast #assume (*BaseForm) f
         if form.subKind == .Highlight
         {
             .editMode = .Highlight
@@ -186,8 +186,10 @@ impl MainWnd
         // Clone the model of the given mode, whatever its concrete type
         let mdlItf  = .editModeToModel(mode)
         let mdlType = Swag.kindOf(mdlItf)
-        let mdl     = cast(*BaseForm) Memory.new(mdlType)!
-        mdlItf.copy(mdl, cast(*BaseForm) mdlItf.buffer)
+        let storage = Memory.new(mdlType)!
+        let result  = Swag.makeInterface(storage, mdlType, IForm)!
+        let mdl     = cast #assume (*BaseForm) result
+        mdlItf.copy(mdl, cast #assume (*BaseForm) mdlItf)
 
         // A new form starts without the model content, just its style
         if clear
@@ -195,31 +197,33 @@ impl MainWnd
             switch mdlType
             {
             case FormImage:
-                let f = cast(*FormImage) mdl
+                let f = cast #assume (*FormImage) mdl
                 f.image.release()
 
             case FormPolygon:
-                let f = cast(*FormPolygon) mdl
+                let f = cast #assume (*FormPolygon) mdl
                 f.points.clear()
 
             case FormDraw:
-                let f = cast(*FormDraw) mdl
+                let f = cast #assume (*FormDraw) mdl
                 f.points.clear()
 
             case FormCallout:
-                let f = cast(*FormCallout) mdl
+                let f = cast #assume (*FormCallout) mdl
                 f.text.clear()
             }
         }
 
-        // Every registered form type implements IForm, so the table resolves.
-        return Swag.makeInterface(mdl, mdlType, IForm)!
+        return result
     }
 
     func newFormFromForm(it: IForm)->*BaseForm
     {
-        let mdlValue = cast(*BaseForm) Memory.new(Swag.kindOf(it))!
-        it.copy(mdlValue, cast(*BaseForm) it.buffer)
+        let type     = Swag.kindOf(it)
+        let storage  = Memory.new(type)!
+        let view     = Swag.makeInterface(storage, type, IForm)!
+        let mdlValue = cast #assume (*BaseForm) view
+        it.copy(mdlValue, cast #assume (*BaseForm) it)
         return mdlValue
     }
 }

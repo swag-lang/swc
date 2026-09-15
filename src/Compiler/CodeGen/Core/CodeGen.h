@@ -390,6 +390,7 @@ public:
     bool                      keepsFoldedConstant(AstNodeRef nodeRef);
     void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
+    const CodeGenNodePayload& conditionBindingPayload(TypeRef& outTypeRef, AstNodeRef nodeRef);
     void                      setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
     uint32_t                  localStackFrameSize() const { return localStackFrameSize_; }
     bool                      hasLocalStackFrame() const { return localStackFrameSize_ != 0; }

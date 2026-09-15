@@ -46,7 +46,7 @@ func testCoreTupleRuntimeLifecycle()->bool
     if tupleType.kind != TypeInfoKind.Struct or not (tupleType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast(const *TypeInfoStruct) tupleType
+    let tupleStruct = cast #assume(const *TypeInfoStruct) tupleType
     if tupleStruct.opInit or tupleStruct.opDrop or tupleStruct.opPostCopy or tupleStruct.opPostMove do
         return false
 
@@ -103,11 +103,11 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     if arrayType.kind != TypeInfoKind.Array do
         return false
 
-    let arrayStruct = cast(const *TypeInfoArray) arrayType
+    let arrayStruct = cast #assume(const *TypeInfoArray) arrayType
     if not (arrayStruct.pointedType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast(const *TypeInfoStruct) arrayStruct.pointedType
+    let tupleStruct = cast #assume(const *TypeInfoStruct) arrayStruct.pointedType
     let values      = Memory.new(arrayType)
     if not values do
         return false
@@ -151,11 +151,11 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
        not (aliasType.flags & TypeInfoFlags.HasPostMove) do
         return false
 
-    let rawType = (cast(const *TypeInfoAlias) aliasType).rawType
+    let rawType = (cast #assume(const *TypeInfoAlias) aliasType).rawType
     if not (rawType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast(const *TypeInfoStruct) rawType
+    let tupleStruct = cast #assume(const *TypeInfoStruct) rawType
     let value       = Memory.new(aliasType)
     if not value do
         return false

@@ -59,7 +59,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let preservedArray = rejectedAppend == null and rejectedArray.buffer == null and not rejectedArray.count and not rejectedArray.capacity
 
     let zeroType       = #typeof(CoreNonNullZeroUnion)
-    let zeroStructType = cast(const *Swag.TypeInfoStruct) zeroType
+    let zeroStructType = cast #assume(const *Swag.TypeInfoStruct) zeroType
     if zeroStructType.opInit != null or zeroType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
 

@@ -37,7 +37,7 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
     if content.x > root.position.width + tolerance or content.y > root.position.height + tolerance
     {
         Console.println("content does not fit in ",
-                        root.type.name,
+                        Swag.kindOf(root.itf).name,
                         " '",
                         root.name.raw,
                         "': needs ",
@@ -108,7 +108,7 @@ func indexedImage(w, h: s32)->Image
         let value = cast(u8) ((1 + x + y * 17) % 251)
         let green = cast(u8) ((cast(u32) value + 3) % 251)
         let blue  = cast(u8) ((cast(u32) value + 7) % 251)
-        pix[as u32] = Color.fromArgb(255'u8, value, green, blue).argb
+        (cast(*u32) pix)[] = Color.fromArgb(255'u8, value, green, blue).argb
     }
 
     return result

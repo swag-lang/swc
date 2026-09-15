@@ -23,7 +23,7 @@ impl ITableProbe for TableProbe
 
 func runtimeTableOf(objectType, interfaceType: typeinfo)->const *void?
 {
-    return Swag.tableOf(cast(const *Swag.TypeInfoStruct) objectType, cast(const *Swag.TypeInfoStruct) interfaceType)
+    return Swag.tableOf(objectType, interfaceType)
 }
 
 func canLookupImplementedTypeAtRuntime()
@@ -49,4 +49,6 @@ func hasNoRuntimeTableForUnimplementedType()->bool
     Swag.assert(materializeInterfaceTable())
     canLookupImplementedTypeAtRuntime()
     Swag.assert(hasNoRuntimeTableForUnimplementedType())
+    Swag.assert(runtimeTableOf(s32, ITableProbe) == null)
+    Swag.assert(runtimeTableOf(TableProbe, s32) == null)
 }

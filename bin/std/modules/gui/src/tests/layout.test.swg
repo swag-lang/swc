@@ -40,7 +40,7 @@ using Swag, Core
     host.root.hookOnEvent = func|count = &rootResizeCount|(wnd, evt)
     {
         discard wnd
-        if evt is ResizeEvent do
+        if cast #try (*ResizeEvent) evt != null do
             count[] += 1
         return false
     }

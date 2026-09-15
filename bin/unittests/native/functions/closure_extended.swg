@@ -141,7 +141,7 @@ func normalUntypedVariadicClosureCapture(values: ...)->s32
 {
     let cb = func|values|()->s32
     {
-        return cast(s32) values[0] + cast(s32) values[1]
+        return cast #assume(s32) values[0] + cast #assume(s32) values[1]
     }
 
     return cb()
@@ -152,7 +152,7 @@ func inlineUntypedVariadicClosureCapture(values: ...)->s32
 {
     let cb = func|values|()->s32
     {
-        return cast(s32) values[0] + cast(s32) values[1]
+        return cast #assume(s32) values[0] + cast #assume(s32) values[1]
     }
 
     return cb()
@@ -162,7 +162,7 @@ func normalAnyVariadicClosureCapture(values: any...)->s32
 {
     let cb = func|values|()->s32
     {
-        return cast(s32) values[0] + cast(s32) values[1]
+        return cast #assume(s32) values[0] + cast #assume(s32) values[1]
     }
 
     return cb()
@@ -173,7 +173,7 @@ func inlineAnyVariadicClosureCapture(values: any...)->s32
 {
     let cb = func|values|()->s32
     {
-        return cast(s32) values[0] + cast(s32) values[1]
+        return cast #assume(s32) values[0] + cast #assume(s32) values[1]
     }
 
     return cb()

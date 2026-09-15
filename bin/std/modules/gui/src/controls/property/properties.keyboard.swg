@@ -188,7 +188,7 @@ internal impl Properties
             return true
 
         case .Escape:
-            if let editor = .focusedWindow()!.itf as EditBox do
+            if let editor = cast #try (*EditBox) .focusedWindow() do
                 editor.cancelEdit(.edView)
             else do
                 .commitEdit()
@@ -213,12 +213,10 @@ internal impl Properties
         if not w do
             return false
 
-        // Asking whether the runtime type CONTAINS the editor covers a widget built by
-        // composition, which an equality would miss.
-        return Swag.typeIs(EditBox, w.type) or
-               Swag.typeIs(ComboBox, w.type) or
-               Swag.typeIs(Slider, w.type) or
-               Swag.typeIs(CheckButton, w.type)
+        return cast #try (*EditBox) w != null or
+               cast #try (*ComboBox) w != null or
+               cast #try (*Slider) w != null or
+               cast #try (*CheckButton) w != null
     }
 }
 
@@ -254,7 +252,7 @@ private impl Properties
     // A row is navigable when it is visible and is a real value/editor row. This
     // covers the built-in editors, rows with a custom editor (which still carry a
     // data+type, e.g. color pickers), hand-appended host rows embedding their own
-    // interactive editors (unless flagged NoFocus), and — in grid mode — expandable
+    // interactive editors (unless flagged NoFocus), and â€” in grid mode â€” expandable
     // group headers so they can be collapsed/expanded by keyboard. Pure
     // section/category headers (no data, no type, no editor) are skipped.
     mtd isNavigable(item: *PropertiesItem?)->bool

@@ -439,9 +439,9 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
 
 func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
         let rect    = view.clientRect()
         painter.fillRect(rect, view.themeColors().view_Bk)

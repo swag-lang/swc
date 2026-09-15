@@ -15,7 +15,7 @@ public impl Image
             var context = {target: target, factor: factor}
             .transformLogicalPixels(&context)
             {
-                let params = userData![as #decltype(context)]
+                let params = (cast(const *#decltype(context)) userData!)[]
                 value.r = Math.lerp(value.r, params.target.r, params.factor)
                 value.g = Math.lerp(value.g, params.target.g, params.factor)
                 value.b = Math.lerp(value.b, params.target.b, params.factor)

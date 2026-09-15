@@ -50,7 +50,7 @@ impl IActionUI for ActionCapture
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd!
+        let main = cast #assume (*MainWnd) cxt.wnd!
 
         // A per-monitor command names its monitor by index. The entry stays visible but
         // disabled when that monitor was disconnected after the menu was built.
@@ -127,7 +127,7 @@ impl IActionUI for ActionCapture
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd!
+        let main = cast #assume (*MainWnd) cxt.wnd!
 
         let monitor = ActionCapture.screenIndex(cxt.id)
         if monitor != Swag.U64.Max

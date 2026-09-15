@@ -164,7 +164,7 @@ func print(params: ...)
 
         if ko.flags & TypeInfoFlags.PointerRef
         {
-            let ptr = cast(const *TypeInfoPointer) ko
+            let ptr = cast #assume(const *TypeInfoPointer) ko
             ko = cast() ptr.pointedType
             let val = cast(**u64) v.buffer
             v = Swag.makeAny(val[], ko)
@@ -173,7 +173,7 @@ func print(params: ...)
         if ko.flags & TypeInfoFlags.PointerTypeInfo
         {
             #[Safety(.DynCast, false)]
-            let ptr = cast(const *TypeInfo) v
+            let ptr = cast #assume (const *TypeInfo) v
             __printString(ptr.name)
             continue
         }
@@ -181,7 +181,7 @@ func print(params: ...)
         if ko.flags & TypeInfoFlags.CString
         {
             #[Safety(.DynCast, false)]
-            let ptr = cast(const [*] u8) v
+            let ptr = cast #assume (const [*] u8) v
             let len = (cast(const cstring) ptr).count
             __printString(Swag.makeString(ptr, len))
             continue
@@ -190,7 +190,7 @@ func print(params: ...)
         if ko.kind == .Pointer
         {
             #[Safety(.DynCast, false)]
-            __printU64(cast(u64) v)
+            __printU64(cast #assume (u64) v)
             continue
         }
 
@@ -199,23 +199,23 @@ func print(params: ...)
         // the '?' fallback and silently drop the value it was asked to print.
         if ko.kind == .Native
         {
-            let native = cast(const *TypeInfoNative) ko
+            let native = cast #assume(const *TypeInfoNative) ko
             let data   = v.buffer
             switch native.nativeKind
             {
-            case .S8:     __printS64(cast(s64) data[as s8])
-            case .S16:    __printS64(cast(s64) data[as s16])
-            case .S32:    __printS64(cast(s64) data[as s32])
-            case .S64:    __printS64(data[as s64])
-            case .U8:     __printU64(cast(u64) data[as u8])
-            case .U16:    __printU64(cast(u64) data[as u16])
-            case .U32:    __printU64(cast(u64) data[as u32])
-            case .U64:    __printU64(data[as u64])
-            case .Rune:   __printU64(cast(u64) data[as rune])
-            case .F32:    __printF64(data[as f32])
-            case .F64:    __printF64(data[as f64])
-            case .String: __printString(data[as string])
-            case .Bool:   __printString(data[as bool] ? "true" : "false")
+            case .S8:     __printS64(cast(s64) (cast(const *s8) data)[])
+            case .S16:    __printS64(cast(s64) (cast(const *s16) data)[])
+            case .S32:    __printS64(cast(s64) (cast(const *s32) data)[])
+            case .S64:    __printS64((cast(const *s64) data)[])
+            case .U8:     __printU64(cast(u64) (cast(const *u8) data)[])
+            case .U16:    __printU64(cast(u64) (cast(const *u16) data)[])
+            case .U32:    __printU64(cast(u64) (cast(const *u32) data)[])
+            case .U64:    __printU64((cast(const *u64) data)[])
+            case .Rune:   __printU64(cast(u64) (cast(const *rune) data)[])
+            case .F32:    __printF64((cast(const *f32) data)[])
+            case .F64:    __printF64((cast(const *f64) data)[])
+            case .String: __printString((cast(const *string) data)[])
+            case .Bool:   __printString((cast(const *bool) data)[] ? "true" : "false")
             default:      __printString("?")
             }
 

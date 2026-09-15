@@ -255,7 +255,7 @@ func jitNonNullConstruction()->bool
         return false
     if families.text != "nonull" or families.ctext[0] != 'a'u8 do
         return false
-    if cast(s32) families.boxed != 123 or families.reflectedType.name != "JitNonNullItem" do
+    if cast #assume(s32) families.boxed != 123 or families.reflectedType.name != "JitNonNullItem" do
         return false
     if boxedNullableValuePointer == null or
        boxedNullableBlockPointer == null or

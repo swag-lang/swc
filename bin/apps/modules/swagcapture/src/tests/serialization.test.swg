@@ -115,45 +115,45 @@ using Swag, Core
     Swag.assert(loaded.favorite)
     Swag.assert(loaded.rating == 5)
 
-    let lShape = cast(*FormShape) loaded.forms[0].buffer
+    let lShape = cast #assume (*FormShape) loaded.forms[0]
     Swag.assert(lShape.capture == loaded)
     Swag.assert(lShape.subKind == .Highlight)
     Swag.assert(lShape.kind == .RoundRectangle)
     Swag.assert(lShape.roundSize == 18)
 
-    let lLine = cast(*FormLine) loaded.forms[1].buffer
+    let lLine = cast #assume (*FormLine) loaded.forms[1]
     Swag.assert(lLine.subKind == .PixSel)
     Swag.assert(lLine.bezier)
     Swag.assert(lLine.xc == 6)
     Swag.assert(lLine.yc == 7)
     Swag.assert(not lLine.paintShadow)
 
-    let lArrow = cast(*FormArrow) loaded.forms[2].buffer
+    let lArrow = cast #assume (*FormArrow) loaded.forms[2]
     Swag.assert(lArrow.endSize == 9)
 
-    let lPolygon = cast(*FormPolygon) loaded.forms[3].buffer
+    let lPolygon = cast #assume (*FormPolygon) loaded.forms[3]
     Swag.assert(lPolygon.subKind == .Highlight)
     Swag.assert(lPolygon.bezier)
     Swag.assert(not lPolygon.paintShadow)
     Swag.assert(lPolygon.points.count == 3)
 
-    let lDraw = cast(*FormDraw) loaded.forms[4].buffer
+    let lDraw = cast #assume (*FormDraw) loaded.forms[4]
     Swag.assert(lDraw.subKind == .PixSel)
     Swag.assert(not lDraw.paintShadow)
     Swag.assert(lDraw.points.count == 3)
 
-    let lText = cast(*FormText) loaded.forms[5].buffer
+    let lText = cast #assume (*FormText) loaded.forms[5]
     Swag.assert(lText.text == "roundtrip")
     Swag.assert(lText.fontSize == 32)
     Swag.assert(lText.alignHorz == .RightBottom)
     Swag.assert(lText.alignVert == .LeftTop)
 
-    let lStep = cast(*FormStep) loaded.forms[6].buffer
+    let lStep = cast #assume (*FormStep) loaded.forms[6]
     Swag.assert(lStep.index == 5)
     Swag.assert(lStep.kind == .Rectangle)
     Swag.assert(lStep.typeIndex == .LetterUp)
 
-    let lImage = cast(*FormImage) loaded.forms[7].buffer
+    let lImage = cast #assume (*FormImage) loaded.forms[7]
     Swag.assert(lImage.kind == .Image)
     Swag.assert(lImage.place == .Free)
     Gui.Testing.assertRect(lImage.freePos, 2, 3, 8, 9)
@@ -161,7 +161,7 @@ using Swag, Core
     Swag.assert(lImage.image.width == 4)
     Swag.assert(lImage.image.height == 3)
 
-    let lCallout = cast(*FormCallout) loaded.forms[8].buffer
+    let lCallout = cast #assume (*FormCallout) loaded.forms[8]
     Swag.assert(lCallout.capture == loaded)
     Swag.assert(lCallout.text == "hi there")
     Swag.assert(lCallout.roundSize == 20)

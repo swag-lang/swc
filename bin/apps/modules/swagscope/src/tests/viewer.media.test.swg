@@ -28,7 +28,7 @@ using Core, Pixel, Gui
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     var session = openTestViewer(imageViewerPlugin(), &host.root, fileName)
-    let view    = cast(*ImageViewer) session.view!
+    let view    = cast #assume (*ImageViewer) session.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     session.commands!.hide()

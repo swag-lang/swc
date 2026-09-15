@@ -69,7 +69,7 @@ struct CodeLanguageSample
 
     var result = openTestViewer(codeViewerPlugin(), &host.root, fileName.toString(), infoParent: &host.root)
     Swag.assert(result.view != null and result.info != null)
-    let view = cast(*CodeViewer) result.view
+    let view = cast #assume (*CodeViewer) result.view
     assertViewerInfoButton(view.zoomLabel!)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
 

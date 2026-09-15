@@ -449,45 +449,70 @@ namespace
 Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 {
     SWC_RESULT(collect(sema, lookUpCxt));
-    lookup(lookUpCxt, idRef);
-    preferOwnModuleNamespace(sema, lookUpCxt, idRef);
-    if (lookUpCxt.empty())
+    while (true)
     {
-        if (lookUpCxt.blockedByIgnored())
-            return Result::Error;
-        if (lookUpCxt.noWaitOnEmpty)
+        lookup(lookUpCxt, idRef);
+        preferOwnModuleNamespace(sema, lookUpCxt, idRef);
+        if (lookUpCxt.empty())
+        {
+            if (lookUpCxt.blockedByIgnored())
+                return Result::Error;
+            if (lookUpCxt.noWaitOnEmpty)
+                return Result::Continue;
+            return sema.waitIdentifier(idRef, lookUpCxt.codeRef);
+        }
+
+        SWC_RESULT(reportUsingCurrentModuleNamespace(sema, lookUpCxt));
+
+        bool retryLookup = false;
+        for (const Symbol* other : lookUpCxt.symbols())
+        {
+            if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
+            {
+                if (!other->isDeclared() && lookUpCxt.noWaitOnPendingSymbols)
+                    return Result::Continue;
+                const Result ready = declareGenericRootFunctionCandidate(sema, other->cast<SymbolFunction>(), lookUpCxt.codeRef);
+                if (other->isExcludedByCondition())
+                {
+                    retryLookup = true;
+                    break;
+                }
+                SWC_RESULT(ready);
+                continue;
+            }
+            if (!other->isDeclared())
+            {
+                if (lookUpCxt.noWaitOnPendingSymbols)
+                    return Result::Continue;
+                const Result ready = sema.waitDeclared(other, lookUpCxt.codeRef);
+                if (other->isExcludedByCondition())
+                {
+                    retryLookup = true;
+                    break;
+                }
+                SWC_RESULT(ready);
+            }
+            if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+                continue;
+            if (!other->isTyped())
+            {
+                if (lookUpCxt.noWaitOnPendingSymbols)
+                    return Result::Continue;
+                const Result ready = sema.waitTyped(other, lookUpCxt.codeRef);
+                if (other->isExcludedByCondition())
+                {
+                    retryLookup = true;
+                    break;
+                }
+                SWC_RESULT(ready);
+            }
+        }
+
+        // Another worker can discard a compiler-if candidate between lookup and its
+        // readiness check. Resolve the name again instead of reporting a failed job.
+        if (!retryLookup)
             return Result::Continue;
-        return sema.waitIdentifier(idRef, lookUpCxt.codeRef);
     }
-
-    SWC_RESULT(reportUsingCurrentModuleNamespace(sema, lookUpCxt));
-
-    for (const Symbol* other : lookUpCxt.symbols())
-    {
-        if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
-        {
-            if (!other->isDeclared() && lookUpCxt.noWaitOnPendingSymbols)
-                return Result::Continue;
-            SWC_RESULT(declareGenericRootFunctionCandidate(sema, other->cast<SymbolFunction>(), lookUpCxt.codeRef));
-            continue;
-        }
-        if (!other->isDeclared())
-        {
-            if (lookUpCxt.noWaitOnPendingSymbols)
-                return Result::Continue;
-            SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
-        }
-        if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
-            continue;
-        if (!other->isTyped())
-        {
-            if (lookUpCxt.noWaitOnPendingSymbols)
-                return Result::Continue;
-            SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
-        }
-    }
-
-    return Result::Continue;
 }
 
 Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols)

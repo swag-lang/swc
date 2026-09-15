@@ -239,7 +239,7 @@ impl Inflate
             // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
             if cur < fastLimit
             {
-                cb  |= (src! + cur)[as u64] << #wrap nb
+                cb  |= (cast(const *u64) (src! + cur))[] << #wrap nb
                 cur += cast(u64) ((63 - nb) >> 3)
                 nb  |= 56
             }
@@ -409,7 +409,7 @@ impl Inflate
                 var dst = count
                 while dst < end
                 {
-                    (obuf + dst)[as u64] = (obuf + from)[as u64]
+                    (cast(*u64) (obuf + dst))[] = (cast(const *u64) (obuf + from))[]
                     dst  += 8
                     from += 8
                 }

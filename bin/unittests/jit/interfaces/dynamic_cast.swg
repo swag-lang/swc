@@ -1,5 +1,6 @@
 #global private
 
+#[Swag.DynCast]
 struct Base
 {
     value: s32 = 10
@@ -32,11 +33,11 @@ func runDynamicStructCast()->bool
     var derived = Derived{}
 
     let derivedPtr = &derived
-    let asMid      = derivedPtr as Mid
-    let asBase     = derivedPtr as Base
-    if not derivedPtr is Derived or not derivedPtr is Mid or not derivedPtr is Base do
+    let asMid      = cast #try (*Mid) derivedPtr
+    let asBase     = cast #try (*Base) derivedPtr
+    if not (cast #try (*Derived) derivedPtr != null) or not (cast #try (*Mid) derivedPtr != null) or not (cast #try (*Base) derivedPtr != null) do
         return false
-    if derivedPtr is PointerWrapper do
+    if (cast #try (*PointerWrapper) derivedPtr != null) do
         return false
     if asMid == null or asBase == null do
         return false
@@ -46,15 +47,15 @@ func runDynamicStructCast()->bool
     var base        = Base{value: 77}
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
-    let wrappedBase = wrapperPtr as Base
-    if not wrapperPtr is Base or wrappedBase != &base do
+    let wrappedBase = cast #try (*Base) wrapperPtr
+    if not (cast #try (*Base) wrapperPtr != null) or wrappedBase != &base do
         return false
 
     let itf: INode = derived
-    let itfBase    = itf as Base
-    if not itf is Derived or not itf is Mid or not itf is Base do
+    let itfBase    = cast #try (*Base) itf
+    if not (cast #try (*Derived) itf != null) or not (cast #try (*Mid) itf != null) or not (cast #try (*Base) itf != null) do
         return false
-    if itf is PointerWrapper do
+    if (cast #try (*PointerWrapper) itf != null) do
         return false
     if itf.buffer == null do
         return false
@@ -62,24 +63,24 @@ func runDynamicStructCast()->bool
         return false
 
     let dyn: any = derived
-    let dynBase  = dyn as Base
-    if not dyn is Derived or not dyn is Base do
+    let dynBase  = cast #try (*Base) dyn
+    if not (cast #try (*Derived) dyn != null) or not (cast #try (*Base) dyn != null) do
         return false
-    if dyn is PointerWrapper do
+    if (cast #try (*PointerWrapper) dyn != null) do
         return false
     if dynBase == null or dynBase.value != 10 do
         return false
 
     let notStruct: any = 33
-    if notStruct is Base do
+    if (cast #try (*Base) notStruct != null) do
         return false
-    if notStruct as Base != null do
+    if cast #try (*Base) notStruct != null do
         return false
 
     return true
 }
 
-func runIntrinsicDynamicTypeInfo()->bool
+func runRuntimeTargetCasts()->bool
 {
     let baseType:    typeinfo = Base
     let midType:     typeinfo = Mid
@@ -90,24 +91,25 @@ func runIntrinsicDynamicTypeInfo()->bool
     var number  = 45
     var derived = Derived{}
 
-    if not Swag.typeIs(baseType, derivedType) or not Swag.typeIs(midType, derivedType) or not Swag.typeIs(intType, s32) do
+    if cast #try(baseType) derivedType == null or cast #try(midType) derivedType == null or cast #try(intType) s32 == null do
         return false
-    if Swag.typeIs(stringType, intType) do
-        return false
-
-    let intRaw = Swag.typeAs(intType, s32, &number)
-    if intRaw == null do
+    if cast #try(stringType) intType != null do
         return false
 
-    let baseRaw = Swag.typeAs(baseType, derivedType, &derived)
-    if baseRaw == null do
+    let intView = cast #try(intType) &number
+    if intView == null do
         return false
 
-    let intPtr  = cast(*s32?) intRaw
-    let basePtr = cast(*Base?) baseRaw
-    if intPtr != &number or intPtr[] != 45 do
+    let baseView = cast #try(baseType) &derived
+    if baseView == null do
         return false
-    if Swag.typeAs(bool, intType, &number) != null do
+
+    let intPtr  = cast #try(*s32) intView
+    let basePtr = cast #try(*Base) baseView
+    if intPtr == null or intPtr != &number or intPtr[] != 45 do
+        return false
+    let boolType: typeinfo = bool
+    if cast #try(boolType) &number != null do
         return false
     if basePtr != &derived.mid.base do
         return false
@@ -123,6 +125,6 @@ func runIntrinsicDynamicTypeInfo()->bool
 
 #test
 {
-    const ok = #run runIntrinsicDynamicTypeInfo()
+    const ok = #run runRuntimeTargetCasts()
     #assert(ok)
 }

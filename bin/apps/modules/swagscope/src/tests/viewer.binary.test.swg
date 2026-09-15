@@ -280,7 +280,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
     var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName.toString(), actionParent: commands)
-    let view          = cast(*BinaryViewer) viewerSession.view!
+    let view          = cast #assume (*BinaryViewer) viewerSession.view!
     finishBinaryViewer(&host, view)
     view.resize(860, 520)
     view.applyLayout()
@@ -781,7 +781,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     defer host.shutdown()
     var result = openTestViewer(binaryViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.commands != null and result.collectMatches != null and result.isLoading != null)
-    let view = cast(*BinaryViewer) result.view
+    let view = cast #assume (*BinaryViewer) result.view
     finishBinaryViewer(&host, view)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -789,7 +789,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
     var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName)
-    let view = cast(*BinaryViewer) viewerSession.view!
+    let view = cast #assume (*BinaryViewer) viewerSession.view!
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -984,7 +984,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     window.searchFilterMode = true
     window.updateSearchAvailability()
     window.searchBox.setText("header")
-    while (cast(*BinaryViewer) window.currentView!).filterTimer do
+    while (cast #assume (*BinaryViewer) window.currentView!).filterTimer do
         host.pump()
     host.settleAnimations(window.commandBar, 4)
     image = host.render(window.commandBar)

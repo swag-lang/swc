@@ -89,8 +89,8 @@ func interfaceFallback()->bool
         return missing == null and
                boolTrue != null and
                boolFalse != null and
-               cast(bool) boolTrue and
-               not cast(bool) boolFalse
+               cast #assume(bool) boolTrue and
+               not cast #assume(bool) boolFalse
     }
 
     Swag.assert(explicitAnyChecks())

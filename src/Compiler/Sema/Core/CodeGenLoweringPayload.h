@@ -24,6 +24,10 @@ struct CodeGenLoweringPayload
     // A UFCS receiver cast to a pointer parameter: the receiver's ADDRESS becomes the
     // pointer value, never a numeric conversion of the receiver's bits.
     bool ufcsReceiverAddress = false;
+    bool dynamicCast         = false;
+    bool assumedDynamicCast  = false;
+    bool runtimeTypeCast     = false;
+    bool runtimeValueCast    = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {

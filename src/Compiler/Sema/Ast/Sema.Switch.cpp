@@ -136,7 +136,7 @@ namespace
 
         const TypeRef   ultimateTypeRef = switchExprUltimateTypeRef(sema, exprTypeRef);
         const TypeInfo& finalType       = sema.typeMgr().get(ultimateTypeRef);
-        if (finalType.isIntLike() || finalType.isFloat() || finalType.isBool() || finalType.isString() || finalType.isAnyPointer() || finalType.isAnyTypeInfo(sema.ctx()) || finalType.isInterface() || finalType.isAny())
+        if (finalType.isIntLike() || finalType.isFloat() || finalType.isBool() || finalType.isString() || finalType.isAnyPointer() || finalType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
 
         return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, exprRef);
@@ -497,8 +497,6 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     // Exhaustiveness is decided per switch, so '#complete' is a modifier of this statement
     // and not an attribute: there is no symbol to hang an attribute on.
     const bool isComplete = modifierFlags.has(AstModifierFlagsE::Complete);
-    if (isComplete && !nodeExprRef.isValid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
 
     // Register switch
     SemaFrame frame = sema.frame();
@@ -514,8 +512,11 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
 
 Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
-    const SwitchPayload* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
+    SwitchPayload* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
     SWC_ASSERT(payload != nullptr);
+
+    if (payload->exprTypeRef.isInvalid())
+        SWC_RESULT(setupSwitchRuntimeSafety(sema, *payload, sema.node(sema.curNodeRef()).codeRef()));
 
     // Close the borrow-flow alternatives; the entry state joins them (a switch may
     // fall through every case).
@@ -668,9 +669,25 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     const SwitchPayload* payload = sema.semaPayload<SwitchPayload>(switchRef);
     SWC_ASSERT(payload != nullptr);
     const TypeRef switchTypeRef = payload->exprTypeRef;
-    if (switchTypeRef.isInvalid())
-        return Result::Continue;
 
+    const AstNodeRef bindingRef = conditionBindingRef(sema.ast());
+    if (bindingRef.isValid())
+    {
+        if (switchTypeRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_binding_has_expr, bindingRef);
+        if (childRef == nodeWhereRef || childRef == nodeBodyRef)
+        {
+            const Symbol* symbol = sema.viewSymbol(bindingRef).singleSymbol();
+            if (symbol && symbol->isVariable() && symbol->typeInfo(sema.ctx()).isNullable())
+            {
+                SemaFrame                          frame = sema.frame();
+                const std::array<const Symbol*, 1> path  = {symbol};
+                frame.addNarrowFact(path, SemaNarrowFactKind::NonNull);
+                sema.pushFramePopOnPostChild(frame, childRef);
+            }
+        }
+        return Result::Continue;
+    }
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
     {
@@ -681,6 +698,9 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
 
         return validateDefaultSwitchCase(sema, switchRef, sema.frame().currentSwitchCase());
     }
+
+    if (switchTypeRef.isInvalid())
+        return Result::Continue;
 
     // Only touch case expressions (not the statements in the case body).
     if (!spanExprRef.isValid())
@@ -791,6 +811,9 @@ namespace
 
     Result checkDuplicateCaseValuesAfterWhere(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef)
     {
+        const auto* switchPayload = sema.semaPayload<SwitchPayload>(switchRef);
+        if (switchPayload->exprTypeRef.isInvalid())
+            return Result::Continue;
         const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
         if (!caseStmt.nodeWhereRef.isValid() || !whereClauseIsUnconditionalTrue(sema, caseStmt.nodeWhereRef))
             return Result::Continue;
@@ -908,6 +931,8 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     // This is a switch without an expression
     if (switchTypeRef.isInvalid())
     {
+        if (childRef == conditionBindingRef(sema.ast()))
+            return SemaCheck::conditionBinding(sema, childRef);
         SemaNodeView view = sema.viewNodeTypeConstant(childRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
         return Result::Continue;

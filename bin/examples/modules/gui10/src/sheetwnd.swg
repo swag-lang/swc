@@ -131,7 +131,7 @@ impl SheetView
     private mtd buildColors()
     {
         let colors = &app.theme.colors
-        let type   = cast(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
+        let type   = cast #assume(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
 
         for field in type.fields
         {
@@ -140,7 +140,7 @@ impl SheetView
                 continue
             .openFamily(familyOf(name))
 
-            let value = (cast([*] u8) colors + field.offset)[as Color]
+            let value = (cast(const *Color) (cast([*] u8) colors + field.offset))[]
 
             with var row: SheetRow
             {
@@ -162,7 +162,7 @@ impl SheetView
             .grounds[i] = palettes[i].bk
         }
 
-        let type = cast(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
+        let type = cast #assume(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
         for field in type.fields
         {
             let name = field.name!
@@ -172,7 +172,7 @@ impl SheetView
             var row: SheetRow
             row.name = name
             for i in ThemeVariantCount do
-                row.colors[i] = (cast([*] u8) &palettes[i] + field.offset)[as Color]
+                row.colors[i] = (cast(const *Color) (cast([*] u8) &palettes[i] + field.offset))[]
 
             .openFamily(familyOf(name))
             .rows.add(row)
@@ -182,7 +182,7 @@ impl SheetView
     private mtd buildMetrics()
     {
         let metrics = &app.theme.metrics
-        let type    = cast(const *Swag.TypeInfoStruct) #typeof(ThemeMetrics)
+        let type    = cast #assume(const *Swag.TypeInfoStruct) #typeof(ThemeMetrics)
 
         for field in type.fields
         {
@@ -197,12 +197,12 @@ impl SheetView
             {
                 .name = name
                 if field.pointedType == #typeof(f32) do
-                    .text = Format.toString("%", raw[as f32])
+                    .text = Format.toString("%", (cast(const *f32) raw)[])
                 elif field.pointedType == #typeof(u32) do
-                    .text = Format.toString("%", raw[as u32])
+                    .text = Format.toString("%", (cast(const *u32) raw)[])
                 else
                 {
-                    let vec = raw[as Math.Vector4]
+                    let vec = (cast(const *Math.Vector4) raw)[]
                     .text = Format.toString("% % % %", vec.x, vec.y, vec.z, vec.w)
                 }
             }

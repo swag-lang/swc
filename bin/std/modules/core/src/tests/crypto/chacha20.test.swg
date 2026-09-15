@@ -170,7 +170,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     Memory.set(actual.storage(), 0xA5, actual.count)
     let tooLong = actual.toSlice()[until 65537]
     discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as overflowError
-    Swag.assert(overflowError is Errors.OverflowError)
+    Swag.assert((cast #try (*Errors.OverflowError) overflowError != null))
     for index in actual.count do
         Swag.assert(actual[index] == 0xA5)
 
@@ -202,7 +202,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     var twoBlocks: [Crypto.ChaCha20BlockSize + 1] u8
     discard catch Crypto.chacha20Xor(key, nonce, twoBlocks, twoBlocks, Swag.U32.Max) as overflowError
-    Swag.assert(overflowError is Errors.OverflowError)
+    Swag.assert((cast #try (*Errors.OverflowError) overflowError != null))
 }
 
 // A wrong key, nonce, or destination length is a caller mistake, reported before anything is
@@ -214,13 +214,13 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     var out: [16] u8
     discard catch Crypto.chacha20Block(key[until 31], 0, nonce) as keyError
-    Swag.assert(keyError is Errors.BadParameterError)
+    Swag.assert((cast #try (*Errors.BadParameterError) keyError != null))
     discard catch Crypto.chacha20Block(key, 0, nonce[until 11]) as nonceError
-    Swag.assert(nonceError is Errors.BadParameterError)
+    Swag.assert((cast #try (*Errors.BadParameterError) nonceError != null))
 
     var shorter: [8] u8
     discard catch Crypto.chacha20Xor(key, nonce, out, shorter) as sizeError
-    Swag.assert(sizeError is Errors.BadParameterError)
+    Swag.assert((cast #try (*Errors.BadParameterError) sizeError != null))
 
     // An empty message is not an error and touches nothing.
     var untouched: [1] u8 = [0x42]

@@ -3,6 +3,32 @@
 
 using Swag, Core
 
+struct AncestorTestWnd
+{
+    using wnd: Wnd
+}
+
+impl IWnd for AncestorTestWnd {}
+
+// Typed lookup borrows the nearest matching ancestor and follows reparenting.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    let outer = Wnd.create'AncestorTestWnd(&host.root)
+    let inner = Wnd.create'AncestorTestWnd(outer)
+    let child = Wnd.create'Wnd(inner)
+    Swag.assert(child.ancestorByType'AncestorTestWnd() == inner)
+    Swag.assert(inner.ancestorByType'AncestorTestWnd() == outer)
+    Swag.assert(outer.ancestorByType'AncestorTestWnd() == null)
+    Swag.assert(child.ancestorByType'PushButton() == null)
+
+    child.setParent(outer)
+    Swag.assert(child.ancestorByType'AncestorTestWnd() == outer)
+}
+
 // An unhandled command state is empty in every field. Presenters use UpdatedFields as the sole
 // authority for applying state, so stray bits here can randomly hide or rename menu entries.
 #test

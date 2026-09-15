@@ -36,7 +36,7 @@ impl IActionUI for ActionImage
             return true
         }
 
-        let main    = cast(*MainWnd) cxt.wnd!
+        let main    = cast #assume (*MainWnd) cxt.wnd!
         let capture = main.getCapture()
 
         switch cxt.id
@@ -52,7 +52,7 @@ impl IActionUI for ActionImage
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd!
+        let main    = cast #assume (*MainWnd) cxt.wnd!
         let capture = main.getCapture()!
 
         // The backImgOriginal snapshot (which enables appStrings().act_RestoreOriginal) is taken lazily
@@ -208,7 +208,7 @@ impl MainWnd
                 {
                     if c.userData
                     {
-                        let btnc = cast(*CheckButton) c
+                        let btnc = cast #assume(*CheckButton) c
                         btnc.setState(c != btn ? .Unchecked : .Indeterminate)
                         btnc.invalidate()
                     }
@@ -278,7 +278,7 @@ impl MainWnd
         {
             if c.userData
             {
-                let btnc = cast(*CheckButton) c
+                let btnc = cast #assume (*CheckButton) c
                 if btnc.state != .Unchecked
                 {
                     g_ResizeMode = cast(u64) btnc.userData

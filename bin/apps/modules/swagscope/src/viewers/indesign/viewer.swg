@@ -1276,13 +1276,13 @@ internal impl IndesignViewer
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            switch evt
+            switch
             {
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .G and keyEvt.modifiers == .Control:
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .G and keyEvt.modifiers == .Control:
                 view.promptGoToPage()
                 return true
 
-            case KeyEvent as keyEvt where view.isMarkup() and keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
+            case let keyEvt = cast #try (*KeyEvent) evt where view.isMarkup() and keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
                 switch keyEvt.key
                 {
                 case .Left, .PageUp:
@@ -1332,18 +1332,18 @@ func createIndesignViewer(host: Viewer.Host)
         collectMatches: func(wnd, text, options, progress, matches)->bool
     {
         discard progress
-        (cast(*IndesignViewer) wnd).collectMatches(text, options, matches)
+        (cast #assume (*IndesignViewer) wnd).collectMatches(text, options, matches)
         return true
     },
-        revealMatch: func(wnd, match, text)->bool { return (cast(*IndesignViewer) wnd).revealMatch(match, text) },
+        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*IndesignViewer) wnd).revealMatch(match, text) },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*IndesignViewer) wnd).searchBounds(bounds)
+        return (cast #assume (*IndesignViewer) wnd).searchBounds(bounds)
     },
-        clear: func(wnd) { (cast(*IndesignViewer) wnd).clearSearch() }})
+        clear: func(wnd) { (cast #assume (*IndesignViewer) wnd).clearSearch() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { let view = cast(*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { let view = cast(*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent) },
-        retire: func(wnd)->bool { return (cast(*IndesignViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent) },
+        retire: func(wnd)->bool { return (cast #assume (*IndesignViewer) wnd).retire() }})
 }

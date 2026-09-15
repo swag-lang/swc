@@ -306,29 +306,29 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     var result: retval
     result.kind   = Swag.kindOf(itf)
     result.rect   = itf.boundRect()
-    result.rotate = (cast(*BaseForm) itf.buffer).rotate
+    result.rotate = (cast #assume (*BaseForm) itf).rotate
 
     if result.kind == FormLine
     {
-        let line = cast(*FormLine) itf.buffer
+        let line = cast #assume (*FormLine) itf
         result.points.add({cast(f32) line.xa, cast(f32) line.ya})
         result.points.add({cast(f32) line.xb, cast(f32) line.yb})
     }
     elif result.kind == FormArrow
     {
-        let arrow = cast(*FormArrow) itf.buffer
+        let arrow = cast #assume (*FormArrow) itf
         result.points.add({cast(f32) arrow.xa, cast(f32) arrow.ya})
         result.points.add({cast(f32) arrow.xb, cast(f32) arrow.yb})
     }
     elif result.kind == FormPolygon
     {
-        let poly = cast(*FormPolygon) itf.buffer
+        let poly = cast #assume (*FormPolygon) itf
         for pt in poly.points do
             result.points.add(pt)
     }
     elif result.kind == FormDraw
     {
-        let draw = cast(*FormDraw) itf.buffer
+        let draw = cast #assume (*FormDraw) itf
         for pt in draw.points do
             result.points.add(pt)
     }

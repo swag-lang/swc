@@ -13,7 +13,7 @@ func variadicReferencedValueIsIntact(values: ...)->bool
     if Swag.kindOf(values[0]) != VariadicReferencedValue do
         return false
 
-    let value = cast(VariadicReferencedValue) values[0]
+    let value = cast #assume(VariadicReferencedValue) values[0]
     return value.first == 11 and value.second == 22 and value.third == 33
 }
 

@@ -169,6 +169,15 @@ void Symbol::setTyped(TaskContext& ctx)
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymTyped});
 }
 
+void Symbol::setConstraintsResolved(TaskContext& ctx)
+{
+    if (areConstraintsResolved())
+        return;
+    flags_.add(SymbolFlagsE::ConstraintsResolved);
+    ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymConstraintsResolved});
+}
+
 void Symbol::setSemaCompleted(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::SemaCompleted))

@@ -641,7 +641,7 @@ namespace
             SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
             if (SymbolStruct::typeRequiresExplicitInitialization(sema, explicitTypeRef))
                 return reportTypeRequiresInit(sema, context, explicitTypeRef);
-            outInfo.defaultValueCstRef = explicitType->payloadSymStruct().resolveImplicitDefaultValueRef(sema, explicitTypeRef);
+            SWC_RESULT(explicitType->payloadSymStruct().resolveImplicitDefaultValueRef(sema, explicitTypeRef, outInfo.defaultValueCstRef));
         }
 
         nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
@@ -1075,11 +1075,11 @@ namespace
                     return variable && isGlobalStorageVariable(*variable);
                 });
                 if (hasGlobalStorage)
-                    implicitStructStoreRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
+                    SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitStructStoreRef));
                 if (isConst)
-                    implicitStructCstRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
+                    SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
                 else if (isLet)
-                    implicitStructCstRef = symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef);
+                    SWC_RESULT(symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
             }
         }
         const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();

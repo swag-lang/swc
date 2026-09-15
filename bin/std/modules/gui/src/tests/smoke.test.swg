@@ -87,10 +87,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     defer host.shutdown()
     host.root.hookOnEvent = func|count = &timerCount|(wnd, evt)
     {
-        switch evt
-        {
-        case TimerEvent: count[] += 1
-        }
+        if cast #try (*TimerEvent) evt != null do
+            count[] += 1
 
         return false
     }
@@ -120,10 +118,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     view.hookOnEvent = func|count = &timerCount|(wnd, evt)
     {
         discard wnd
-        switch evt
-        {
-        case TimerEvent: count[] += 1
-        }
+        if cast #try (*TimerEvent) evt != null do
+            count[] += 1
 
         return false
     }
@@ -151,9 +147,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let view = Wnd.create'Wnd(&host.root)
     view.hookOnEvent = func|retired = &stagedWasRetired|(wnd, evt)
     {
-        switch evt
+        if cast #try (*TimerEvent) evt != null
         {
-        case TimerEvent:
             let staged = wnd.addTimer(1'ms)
             wnd.destroy()
             retired[] = staged.isPendingRemoval
@@ -289,7 +284,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.surfaceWnd.hitTestBorders({30, 1}) & SizingBorder.Top)
 
     host.surfaceWnd.itf     = &host.surfaceWnd
-    host.surfaceWnd.type    = SurfaceWnd
     host.surfaceWnd.surface = &host.surface
     host.app.mouseEnterWnd  = &host.surfaceWnd
 

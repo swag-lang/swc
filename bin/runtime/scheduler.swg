@@ -19,6 +19,7 @@ const MaxObservers = 64'u32
 // one address from submission until the work is observed finished. Programs use [[Swag.Task]],
 // [[Swag.TaskGroup]], or `parallel for` rather than this node directly.
 #[Swag.NoDoc]
+#[Swag.DynCast]
 struct WorkNode
 {
     entry:    (func(*WorkNode))?     // Runs the work. Set by the owner before submission.

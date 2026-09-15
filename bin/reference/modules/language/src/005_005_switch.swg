@@ -280,24 +280,31 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
 /**
 # Switching on Type with 'any' or 'interface'
 
-When switching on `any` or `interface` types, cases match based on the **underlying runtime type**.
+Use the same `cast #try` as in an ordinary expression. A switch without a subject
+tests its cases in order; the first successful cast selects the branch.
 */
 
 #test
 {
     let x: any = "value"
-    switch x
+    switch
     {
-    case string: break
-    default:     Swag.assert(false)
+    case cast #try (*string) x != null: break
+    default: Swag.assert(false)
     }
 }
 
 /**
 # Switch Statement with Type Guard and Variable Binding
 
-You can bind a matched type or value to a variable using `as`, allowing direct access inside the `case` block.
-You may also use `where` for conditional refinement.
+`case let name = expression` evaluates the expression once, binds its result, and
+enters the branch when that result is present. The binding belongs to that case.
+A `where` clause runs only after the binding succeeds and sees a non-null view.
+There is no separate type-testing or type-conversion operation in a case label.
+
+`switch #complete` also accepts these conditional cases. It asserts that one case
+matches; a miss panics while `.Switch` safety is enabled. A `fallthrough` into a
+case binding evaluates that binding and its `where` clause before entering its body.
 */
 
 /**
@@ -307,10 +314,10 @@ Example 1: Simple Type Binding
 #test
 {
     let x: any = "value"
-    switch x
+    switch
     {
-    case string as str:
-        Swag.assert(str == "value")
+    case let str = cast #try (*string) x:
+        Swag.assert(str[] == "value")
         break
 
     default:
@@ -325,14 +332,14 @@ Example 2: Type Binding with 'where' Clause
 #test
 {
     let x: any = "value"
-    switch x
+    switch
     {
-    case string as str where str == "value":
-        Swag.assert(str == "value")
+    case let str = cast #try (*string) x where str[] == "value":
+        Swag.assert(str[] == "value")
         break
 
-    case string as str where str == "not_a_value":
-        Swag.assert(str == "not_a_value")
+    case let str = cast #try (*string) x where str[] == "not_a_value":
+        Swag.assert(str[] == "not_a_value")
         break
 
     default:

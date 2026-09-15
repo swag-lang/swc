@@ -24,8 +24,8 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
     // No viewport, no editable field, and no stop the keyboard traversal could land on.
     for wnd in tree
     {
-        Swag.assert(wnd.type != ScrollWnd)
-        Swag.assert(wnd.type != RichEditCtrl)
+        Swag.assert(cast #try (*ScrollWnd) wnd == null)
+        Swag.assert(cast #try (*RichEditCtrl) wnd == null)
         Swag.assert(wnd.focusPolicy == FocusPolicy.None)
     }
 
@@ -48,7 +48,7 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 func showTip(owner: *Wnd, text: string)->*Label
 {
     ToolTip.show(owner, {40, 40}, text, 0's)
-    return cast(*Label) owner.app().toolTip.current!.view
+    return cast #assume (*Label) owner.app().toolTip.current!.view
 }
 
 // A tip holding one short line is exactly as large as that line, and shows nothing else.

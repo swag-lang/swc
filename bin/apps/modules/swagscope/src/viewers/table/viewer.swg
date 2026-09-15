@@ -527,7 +527,7 @@ private func fillTableVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line == null do
         return
-    (cast(*TableViewer) list.parent!).fillLine(line, index)
+    (cast #assume (*TableViewer) list.parent!).fillLine(line, index)
 }
 
 // Creates the integrated CSV/TSV table view.
@@ -540,22 +540,22 @@ func createTableViewer(host: Viewer.Host)
         collectMatches: func(wnd, text, options, progress, matches)->bool
     {
         discard progress
-        (cast(*TableViewer) wnd).collectMatches(text, options, matches)
+        (cast #assume (*TableViewer) wnd).collectMatches(text, options, matches)
         return true
     },
         revealMatch: func(wnd, match, text)->bool
     {
         discard text
-        return (cast(*TableViewer) wnd).revealMatch(match)
+        return (cast #assume (*TableViewer) wnd).revealMatch(match)
     },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*TableViewer) wnd).searchBounds(bounds)
+        return (cast #assume (*TableViewer) wnd).searchBounds(bounds)
     },
-        clear: func(wnd) { (cast(*TableViewer) wnd).clearSearch() }})
+        clear: func(wnd) { (cast #assume (*TableViewer) wnd).clearSearch() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*TableViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { return (cast #assume (*TableViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*TableViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*TableViewer) wnd).retire() }})
 }

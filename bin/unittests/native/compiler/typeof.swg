@@ -55,8 +55,8 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
 {
     var types: [?] typeinfo = [#typeof(#type [2, 3] TypeOfPair), #typeof(#type [..] TypeOfPair)]
 
-    let arrayInfo = cast(const *Swag.TypeInfoArray) types[0]
-    let sliceInfo = cast(const *Swag.TypeInfoSlice) types[1]
+    let arrayInfo = cast #assume(const *Swag.TypeInfoArray) types[0]
+    let sliceInfo = cast #assume(const *Swag.TypeInfoSlice) types[1]
 
     Swag.assert(types[0] == #type [2, 3] TypeOfPair)
     Swag.assert(types[1] == #type [..] TypeOfPair)

@@ -6,7 +6,7 @@ interface IValue
 }
 
 func(T) readValue(value: *T)->s32
-    where T is IValue     // swc-expected-note {{the constraint 'where T is IValue' is declared here}}
+    where cast #try (IValue) T != null     // swc-expected-note {{the constraint 'where cast #try (IValue) T != null' is declared here}}
 {
     let view: IValue = value
     return view.value()
@@ -35,7 +35,7 @@ impl IValue for Present
 }
 
 struct(T) ValueHolder
-    where T is IValue     // swc-expected-note {{the constraint 'where T is IValue' is declared here}}
+    where cast #try (IValue) T != null     // swc-expected-note {{the constraint 'where cast #try (IValue) T != null' is declared here}}
 {
     value: T
 }
@@ -46,7 +46,7 @@ struct(T) ValueHolder
 }
 
 func(T) overloaded(value: *T)->s32
-    where T is IValue     // swc-expected-note {{the constraint 'where T is IValue' is declared here}}
+    where cast #try (IValue) T != null     // swc-expected-note {{the constraint 'where cast #try (IValue) T != null' is declared here}}
 {
     let view: IValue = value
     return view.value()
@@ -83,7 +83,7 @@ func(T) rejectedBlock(value: T)
 
 // swc-expected-note@+2 {{accepts(T))' is declared here}}
 func(T) rejectedMultiline(value: T)
-    where (T is IValue and
+    where (cast #try (IValue) T != null and
            accepts(T)) {}
 
 #test

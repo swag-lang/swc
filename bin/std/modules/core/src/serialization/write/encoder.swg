@@ -171,7 +171,7 @@ impl Encoder
                 let itf = cast(const *Swag.Interface) data
                 if not itf.itable and type.flags & .Nullable == 0 do
                     fail SerializationError{"non-null interface value is missing"}
-                let objType = itf.itable ? cast(const *Swag.TypeInfoStruct?) itf.itable[] : null
+                let objType = itf.itable ? cast(const *Swag.TypeInfo?) itf.itable[] : null
                 discard try .serializer.interfaceTypeKey(objType)
             }
         }
@@ -182,20 +182,20 @@ impl Encoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast(const *TypeInfoNative) type
+            let typeNative = cast #assume(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case .Bool:       .serializer.writeNative(data[as bool])
-            case .U8:         .serializer.writeNative(data[as u8])
-            case .U16:        .serializer.writeNative(data[as u16])
-            case .U32, .Rune: .serializer.writeNative(data[as u32])
-            case .U64:        .serializer.writeNative(data[as u64])
-            case .S8:         .serializer.writeNative(data[as s8])
-            case .S16:        .serializer.writeNative(data[as s16])
-            case .S32:        .serializer.writeNative(data[as s32])
-            case .S64:        .serializer.writeNative(data[as s64])
-            case .F32:        .serializer.writeNative(data[as f32])
-            case .F64:        .serializer.writeNative(data[as f64])
+            case .Bool:       .serializer.writeNative((cast(const *bool) data)[])
+            case .U8:         .serializer.writeNative((cast(const *u8) data)[])
+            case .U16:        .serializer.writeNative((cast(const *u16) data)[])
+            case .U32, .Rune: .serializer.writeNative((cast(const *u32) data)[])
+            case .U64:        .serializer.writeNative((cast(const *u64) data)[])
+            case .S8:         .serializer.writeNative((cast(const *s8) data)[])
+            case .S16:        .serializer.writeNative((cast(const *s16) data)[])
+            case .S32:        .serializer.writeNative((cast(const *s32) data)[])
+            case .S64:        .serializer.writeNative((cast(const *s64) data)[])
+            case .F32:        .serializer.writeNative((cast(const *f32) data)[])
+            case .F64:        .serializer.writeNative((cast(const *f64) data)[])
             }
 
             return
@@ -203,7 +203,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = data![as typeinfo?]
+            let typeType = (cast(const *(typeinfo?)) data!)[]
             .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }
@@ -218,7 +218,7 @@ impl Encoder
             var objType, itfType: typeinfo?
             if itf.itable
             {
-                objType = cast(const *Swag.TypeInfoStruct?) itf.itable![]
+                objType = cast(const *Swag.TypeInfo?) itf.itable![]
                 itfType = type
             }
 
@@ -301,7 +301,7 @@ impl Encoder
             }
 
             // Start a fields section
-            let structType = cast(const *TypeInfoStruct) type
+            let structType = cast #assume(const *TypeInfoStruct) type
             var treated: bool
             #static if T == Write.TagBin do
                 treated = try .serializer.beginStruct(structType, data)
@@ -329,7 +329,7 @@ impl Encoder
         // A static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr  = cast(const *TypeInfoArray) type
+            let typeArr  = cast #assume(const *TypeInfoArray) type
             let elemType = typeArr.pointedType
             let treated  = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()

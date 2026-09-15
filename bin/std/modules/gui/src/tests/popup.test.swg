@@ -126,7 +126,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     popup.setSelectedIndex(1)
     popup.show(20, 20, 100)
 
-    let view = cast(*PopupListView) popup.scrollWnd.view
+    let view = cast #assume (*PopupListView) popup.scrollWnd.view
     Swag.assert(view.hotIdx == 1)
     host.app.setMouseCaptureRaw(null)
     popup.destroy()
@@ -139,7 +139,7 @@ func popupListContentPainter(item: *PopupListCtrlItem, cxt: *PaintContext, rect:
     marked.setSelectedIndex(1)
     marked.show(20, 20, 100)
 
-    let markedView = cast(*PopupListView) marked.scrollWnd.view
+    let markedView = cast #assume (*PopupListView) marked.scrollWnd.view
     Swag.assert(markedView.hotIdx == Swag.U32.Max)
 
     // The keyboard still starts from the selection, so the first step up lands before it.

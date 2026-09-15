@@ -401,12 +401,12 @@ func createPdfViewer(host: Viewer.Host)
     // hands the host stable logical matches for counting and bidirectional navigation, a page at
     // a time as the extraction progresses on its worker.
     host.setSearch({
-        collectMatches: func(wnd, text, options, progress, matches)->bool { return (cast(*PdfViewer) wnd).collectMatches(text, options, progress, matches) },
-        revealMatch: func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) },
-        matchBounds: func(wnd, match, bounds)->bool { return (cast(*PdfViewer) wnd).searchBounds(match, bounds) },
-        clear: func(wnd) { (cast(*PdfViewer) wnd).pdfView.clearSelection() }})
+        collectMatches: func(wnd, text, options, progress, matches)->bool { return (cast #assume (*PdfViewer) wnd).collectMatches(text, options, progress, matches) },
+        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*PdfViewer) wnd).revealMatch(match, text) },
+        matchBounds: func(wnd, match, bounds)->bool { return (cast #assume (*PdfViewer) wnd).searchBounds(match, bounds) },
+        clear: func(wnd) { (cast #assume (*PdfViewer) wnd).pdfView.clearSelection() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*PdfViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { return (cast #assume (*PdfViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*PdfViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*PdfViewer) wnd).retire() }})
 }

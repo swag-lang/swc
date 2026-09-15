@@ -116,7 +116,7 @@ func currentErrCode(err: any?)->s32
     if err == null do
         return 0
 
-    return (cast(ErrValue) err).code
+    return (cast #assume (ErrValue) err).code
 }
 
 #[Swag.Inline]
@@ -275,7 +275,7 @@ func catchFailureInfo()->CatchInfo
     result.hasErr = err != null
     if err != null
     {
-        let errv = cast(ErrValue) err
+        let errv = cast #assume (ErrValue) err
         result.code = errv.code
     }
 
@@ -289,7 +289,7 @@ func inlineCatchFailureInfo()->CatchInfo
     result.hasErr = err2 != null
     if err2 != null
     {
-        let errv = cast(ErrValue) err2
+        let errv = cast #assume (ErrValue) err2
         result.code = errv.code
     }
 
@@ -303,7 +303,7 @@ func catchTryFailureInfo()->CatchInfo
     result.hasErr = err3 != null
     if err3 != null
     {
-        let errv = cast(ErrValue) err3
+        let errv = cast #assume (ErrValue) err3
         result.code = errv.code
     }
 
@@ -347,7 +347,7 @@ func catchTryBlockVoidFailureCode()->s32
     if err5 == null do
         return -1
 
-    let errv = cast(ErrValue) err5
+    let errv = cast #assume (ErrValue) err5
     return errv.code
 }
 
@@ -363,7 +363,7 @@ func catchAggregateFailureInfo()->AggregateInfo
     result.hasErr = err6 != null
     if err6 != null
     {
-        let errv = cast(ErrValue) err6
+        let errv = cast #assume (ErrValue) err6
         result.code      = errv.code
         result.messageOk = errv.message == "aggregate failure"
     }
@@ -392,7 +392,7 @@ func repeatedCatchFailureSum()->s32
     for index in 40
     {
         catch alwaysFailVoid(cast(s32) index + 1) as err7
-        let err = cast(ErrValue) err7
+        let err = cast #assume (ErrValue) err7
         result += err.code
     }
 
@@ -409,7 +409,7 @@ func nestedTryHandled()->s32
     if err == null do
         return -1
 
-    let errv = cast(ErrValue) err
+    let errv = cast #assume (ErrValue) err
     return errv.code
 }
 
@@ -566,13 +566,13 @@ func errIsAsFailureInfo()->ErrCastInfo
     var result: ErrCastInfo
     catch alwaysFailTypedVoid(86) as err8
 
-    let exactErr = err8 as ErrValue
-    let baseErr  = err8 as Swag.BaseError
-    let otherErr = err8 as OtherErrValue
+    let exactErr = cast #try (*ErrValue) err8
+    let baseErr  = cast #try (*Swag.BaseError) err8
+    let otherErr = cast #try (*OtherErrValue) err8
 
-    result.exactType     = err8 is ErrValue
-    result.baseType      = err8 is Swag.BaseError
-    result.wrongType     = err8 is OtherErrValue
+    result.exactType     = (cast #try (*ErrValue) err8 != null)
+    result.baseType      = (cast #try (*Swag.BaseError) err8 != null)
+    result.wrongType     = (cast #try (*OtherErrValue) err8 != null)
     result.exactCastOk   = exactErr != null
     result.baseCastOk    = baseErr != null
     result.wrongCastNull = otherErr == null
@@ -588,10 +588,10 @@ func errIsAsNullInfo()->ErrNullCastInfo
     var result: ErrNullCastInfo
     catch mayFailVoid() as err9
 
-    result.exactType     = err9 is ErrValue
-    result.baseType      = err9 is Swag.BaseError
-    result.exactCastNull = err9 as ErrValue == null
-    result.baseCastNull  = err9 as Swag.BaseError == null
+    result.exactType     = (cast #try (*ErrValue) err9 != null)
+    result.baseType      = (cast #try (*Swag.BaseError) err9 != null)
+    result.exactCastNull = cast #try (*ErrValue) err9 == null
+    result.baseCastNull  = cast #try (*Swag.BaseError) err9 == null
     return result
 }
 

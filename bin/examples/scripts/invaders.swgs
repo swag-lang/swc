@@ -300,18 +300,18 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     g_Dt = wnd.app().deltaSeconds()
 
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         g_Wnd  = wnd
         g_Rect = wnd.clientRect()
         loadBindTextures()
         startGame()
 
-    case ResizeEvent:
+    case cast #try (*ResizeEvent) evt != null:
         g_Rect = wnd.clientRect()
 
-    case PaintEvent as ptr:
+    case let ptr = cast #try (*PaintEvent) evt:
         g_Painter = ptr.paintContext.painter
         gameLoop()
         display()

@@ -404,7 +404,7 @@ struct PropHeadlessArrayData
     var desc: *Label?
     for c in chkRow.children do
         if c != cast(*Wnd?) chk do
-            desc = cast(*Label) c
+            desc = cast #assume (*Label) c
     let descLbl = desc!
     Swag.assert(descLbl.textPadding.y > 0)
     Swag.assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
@@ -463,8 +463,8 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     for c in w.children
     {
-        if c.type == IconButton do
-            return cast(*IconButton) c
+        if let button = cast #try (*IconButton) c do
+            return button
         let sub = findIconButton(c)
         if sub do
             return sub
@@ -601,7 +601,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(combo.popup != null)
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?) prop.edView)
 
-    let pview = cast(*PopupListView) combo.popup.scrollWnd.view
+    let pview = cast #assume (*PopupListView) combo.popup.scrollWnd.view
     Swag.assert(pview.hotIdx == 1)     // highlight starts on the current value
 
     // Down moves the highlight only; the committed value stays until Enter.
@@ -640,7 +640,7 @@ func findIconButton(w: *Wnd)->*IconButton?
 
     host.keyPress(Input.Key.Return)     // edit -> focus the first inner editbox
     let f = host.app.keyboardFocusWnd!
-    Swag.assert(f.type == EditBox)
+    Swag.assert(cast #try (*EditBox) f != null)
 
     host.keyPress(Input.Key.Down)     // commit + move to the next row
     Swag.assert(prop.selItem == prop.items[2])
@@ -811,7 +811,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     host.pump()
 
     let option      = findFieldItem(prop, #nameof(MultiBadges.Star))!
-    let optionLabel = cast(*Label) option.line.children[1]
+    let optionLabel = cast #assume (*Label) option.line.children[1]
     Swag.assert(option.checkBox.dockStyle == .Left)
     Swag.assert(option.line.position.height == prop.gridLineHeight)
     Swag.assert(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
@@ -918,8 +918,8 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 {
     for c in w.children
     {
-        if c.type == EditBox do
-            out.add(cast(*EditBox) c)
+        if let edit = cast #try (*EditBox) c do
+            out.add(edit)
         collectEditBoxes(c, out)
     }
 }
@@ -1422,7 +1422,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     // The default value comes from a real default-constructed instance of the struct.
     Swag.assert(countItem.defaultData != null)
-    Swag.assert(countItem.defaultData[as s32] == 42)
+    Swag.assert((cast(const *s32) countItem.defaultData)[] == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     Swag.assert(not countItem.isModified)
@@ -1505,7 +1505,7 @@ impl IPropertyNotify for PropDefaultCustom
     let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))!
 
     // Value equals the declared default (5), but the override forces "modified".
-    Swag.assert(valItem.data![as s32] == 5)
+    Swag.assert((cast(const *s32) valItem.data!)[] == 5)
     Swag.assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
@@ -1634,16 +1634,16 @@ impl IPropertyNotify for PropDefaultCustom
     Swag.assert(not prop.canUndo() and not prop.canRedo())
 
     // Writing the same value back records nothing.
-    it.data![as s32] = 42
+    (cast(*s32) it.data!)[] = 42
     prop.commitItemChange(it)
     Swag.assert(not prop.canUndo())
 
     // Two real edits.
-    it.data[as s32] = 100
+    (cast(*s32) it.data)[] = 100
     prop.commitItemChange(it)
     Swag.assert(data.count == 100 and prop.canUndo() and not prop.canRedo())
 
-    it.data[as s32] = 7
+    (cast(*s32) it.data)[] = 7
     prop.commitItemChange(it)
     Swag.assert(data.count == 7)
 
@@ -1660,7 +1660,7 @@ impl IPropertyNotify for PropDefaultCustom
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
-    it.data[as s32] = 55
+    (cast(*s32) it.data)[] = 55
     prop.commitItemChange(it)
     Swag.assert(data.count == 55 and not prop.canRedo())
     prop.undo()
@@ -1680,7 +1680,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(MultiTile.name))!
 
-    it.data![as String] = "beta"
+    (cast(*String) it.data!)[] = "beta"
     prop.commitItemChange(it)
     Swag.assert(data.name == "beta")
 
@@ -1705,7 +1705,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
 
-    it.data![as s32] = 100     // edit instance 0; hasChanged propagates
+    (cast(*s32) it.data!)[] = 100     // edit instance 0; hasChanged propagates
     prop.commitItemChange(it)
     Swag.assert(t0.count == 100 and t1.count == 100)
 
@@ -1727,7 +1727,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.focusNavigation()
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
-    it.data![as s32] = 100
+    (cast(*s32) it.data!)[] = 100
     prop.commitItemChange(it)
     Swag.assert(data.count == 100)
 
@@ -1846,8 +1846,8 @@ struct PropHeadlessPanelStringData
 
     let dynamic     = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.dynamic))!
     let fixed       = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))!
-    let dynamicCtrl = cast(*EditCtrl) dynamic.line.children[1]
-    let fixedCtrl   = cast(*EditCtrl) fixed.line.children[1]
+    let dynamicCtrl = cast #assume (*EditCtrl) dynamic.line.children[1]
+    let fixedCtrl   = cast #assume (*EditCtrl) fixed.line.children[1]
     Swag.assert(not dynamic.label.isVisible() and not fixed.label.isVisible())
     Swag.assert(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
     Swag.assert(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
@@ -1874,8 +1874,8 @@ struct PropHeadlessPanelStringData
     // first child, followed by the sub-line that stacks the B and I buttons.
     let item      = prop.items[1]!
     let stack     = item.line.children[1]
-    let btnBold   = cast(*IconButton) stack.children[0]
-    let btnItalic = cast(*IconButton) stack.children[1]
+    let btnBold   = cast #assume (*IconButton) stack.children[0]
+    let btnItalic = cast #assume (*IconButton) stack.children[1]
 
     host.clickWnd(btnBold)
     Swag.assert(data.style == .Bold)

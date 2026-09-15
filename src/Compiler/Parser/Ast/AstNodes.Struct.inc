@@ -928,9 +928,6 @@ enum class AstCastExprFlagsE : AstNode::ParserFlags
 {
     Zero     = 0,
     Explicit = 1 << 0,
-    // 'expr[as T]': reinterpret the pointed storage as a T and open it. The node is an
-    // lvalue place of T, never a value conversion.
-    DerefPlace = 1 << 1,
 };
 
 struct AstCastExpr : AstNodeT<AstNodeId::CastExpr, AstCastExprFlagsE>
@@ -940,6 +937,7 @@ struct AstCastExpr : AstNodeT<AstNodeId::CastExpr, AstCastExprFlagsE>
     AstNodeRef       nodeExprRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
+    Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -1853,6 +1851,8 @@ struct AstSwitchCaseStmt : AstNodeT<AstNodeId::SwitchCaseStmt>
     AstNodeRef nodeWhereRef;
     SpanRef    spanExprRef;
     AstNodeRef nodeBodyRef;
+
+    AstNodeRef conditionBindingRef(const Ast& ast) const;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {

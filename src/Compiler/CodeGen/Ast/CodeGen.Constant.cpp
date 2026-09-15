@@ -847,6 +847,7 @@ namespace
             }
         }
 
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, aggregateTypeRef, dstBaseReg));
         codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);
         return Result::Continue;
     }

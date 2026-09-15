@@ -19,7 +19,7 @@ public impl Image
             var context = {color0: color0, color1: color1}
             .transformLogicalPixels(&context)
             {
-                let params = userData![as #decltype(context)]
+                let params = (cast(const *#decltype(context)) userData!)[]
                 let factor = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
                 let first  = colorPixelValue(params.color0)
                 let second = colorPixelValue(params.color1)
@@ -78,7 +78,7 @@ public impl Image
         {
             .transformLogicalPixels(&ctx)
             {
-                let colors      = userData![as FillGradient4Context]
+                let colors      = (cast(const *FillGradient4Context) userData!)[]
                 let factor0     = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
                 let factor1     = image.height > 1 ? y / cast(f32) (image.height - 1) : 0
                 let topLeft     = colorPixelValue(colors.topLeft)

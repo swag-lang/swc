@@ -325,6 +325,18 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     return *(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
 
+TypeRef TypeManager::unwrapNonStrictAlias(TypeRef typeRef) const
+{
+    while (typeRef.isValid())
+    {
+        const TypeInfo& type = get(typeRef);
+        if (!type.isAlias() || type.payloadSymAlias().isStrict())
+            break;
+        typeRef = type.payloadSymAlias().underlyingTypeRef();
+    }
+    return typeRef;
+}
+
 TypeRef TypeManager::unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const
 {
     if (!typeRef.isValid())

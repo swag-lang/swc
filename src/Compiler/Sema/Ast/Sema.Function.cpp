@@ -1569,7 +1569,8 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (waitResult != Result::Continue)
             return waitResult;
 
-        if (sym.isTyped() && canDelayGenericInstanceFunctionBody(sema, *this, sym, declImpl))
+        const bool interfaceMethod = declImpl && declImpl->isForInterface();
+        if (!interfaceMethod && sym.isTyped() && canDelayGenericInstanceFunctionBody(sema, *this, sym, declImpl))
         {
             sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
             return Result::SkipChildren;
@@ -1591,11 +1592,23 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
             if (whereFailure.diagId == DiagnosticId::sema_err_function_where_failed)
             {
                 sym.addExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed);
+                sym.setConstraintsResolved(sema.ctx());
                 return Result::SkipChildren;
             }
 
             bool directSatisfied = true;
             return SemaGeneric::evaluateFunctionWhereConstraints(sema, directSatisfied, sym, nullptr);
+        }
+
+        // Reflection needs method availability before the body: that body may itself
+        // reflect its owner. Publish constraints independently of body completion.
+        if (spanConstraintsRef.isValid())
+            sym.setConstraintsResolved(sema.ctx());
+
+        if (sym.isTyped() && canDelayGenericInstanceFunctionBody(sema, *this, sym, declImpl))
+        {
+            sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+            return Result::SkipChildren;
         }
 
         auto frame = sema.frame();

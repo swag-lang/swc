@@ -7,16 +7,18 @@ func __dropErr(err: any?)
     if err == null do
         return
     let data = err.buffer
-    let type = cast(const *Swag.TypeInfoStruct) Swag.kindOf(err)
-    if type.opDrop do
-        type.opDrop(data)
+    if let type = cast #try(const *Swag.TypeInfoStruct) Swag.kindOf(err)
+    {
+        if type.opDrop do
+            type.opDrop(data)
+    }
 }
 
-func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
+func __setErrRaw(data: *void, type: typeinfo)
 {
-    if type.kind == .Native and (cast(const *Swag.TypeInfoNative) type).nativeKind == .Any
+    if let native = cast #try(const *Swag.TypeInfoNative) type where native.nativeKind == .Any
     {
-        __setErr(data[as any])
+        __setErr((cast(const *any) data)[])
         return
     }
 
@@ -33,8 +35,12 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 
     let ptr = cxt.errorAllocator.alloc(cast(u64) type.sizeof)
     Swag.memcpy(ptr, data, cast(u64) type.sizeof)
-    if type.opPostCopy do
-        type.opPostCopy(ptr)
+    if let info = cast #try(const *Swag.TypeInfoStruct) type
+    {
+        if info.opPostCopy do
+            info.opPostCopy(ptr)
+    }
+
     cxt.errors[cxt.errorIndex].value = Swag.makeAny(ptr, type)
     cxt.hasError = 1
 }
@@ -42,7 +48,7 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 func __setErr(err: any)
 {
     let data = err.buffer
-    let type = cast(const *Swag.TypeInfoStruct) Swag.kindOf(err)
+    let type = Swag.kindOf(err)
     __setErrRaw(data, type)
 }
 
@@ -164,10 +170,9 @@ func __failedExpect(loc: SourceCodeLocation)
     str[len] = ']'
     len      += 1
 
-    if type.kind == TypeInfoKind.Struct
+    if let typeStruct = cast #try(const *Swag.TypeInfoStruct) type
     {
-        let typeStruct = cast(const *Swag.TypeInfoStruct) type
-        let fields     = typeStruct.fields
+        let fields = typeStruct.fields
         if (fields != null and fields.count > 0 and fields[0].pointedType == Swag.BaseError) or
            (type == Swag.BaseError)
         {

@@ -385,7 +385,7 @@ func appStrings()->const *AppStrings => &g_AppStrings
 // symbol such as `"%"` or `"1...2...3..."` alone.
 func resolvePropertyText(key: string)->string?
 {
-    let type      = cast(const *Swag.TypeInfoStruct) #typeof(AppStrings)
+    let type      = cast #assume(const *Swag.TypeInfoStruct) #typeof(AppStrings)
     let reference = cast(const [*] u8) &g_PropertyKeys
     let active    = cast(const [*] u8) &g_AppStrings
 
@@ -394,9 +394,9 @@ func resolvePropertyText(key: string)->string?
         let field = f
         if not Utf8.startsWith(field.name orelse "", PropertyKeyPrefix) do
             continue
-        if (reference + field.offset)[as string] != key do
+        if (cast(const *string) (reference + field.offset))[] != key do
             continue
-        return (active + field.offset)[as string]
+        return (cast(const *string) (active + field.offset))[]
     }
 
     return null
@@ -427,7 +427,7 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
 private func checkPropertyKeysAreDistinct()
 {
     var keys: AppStrings
-    let type = cast(const *Swag.TypeInfoStruct) #typeof(AppStrings)
+    let type = cast #assume(const *Swag.TypeInfoStruct) #typeof(AppStrings)
     let data = cast(const [*] u8) &keys
 
     for f in type.fields!
@@ -437,7 +437,7 @@ private func checkPropertyKeysAreDistinct()
         if not Utf8.startsWith(name, PropertyKeyPrefix) do
             continue
 
-        let value = (data + field.offset)[as string]
+        let value = (cast(const *string) (data + field.offset))[]
         for g in type.fields
         {
             let other = g
@@ -445,7 +445,7 @@ private func checkPropertyKeysAreDistinct()
                 break
             if not Utf8.startsWith(other.name orelse "", PropertyKeyPrefix) do
                 continue
-            if (data + other.offset)[as string] != value do
+            if (cast(const *string) (data + other.offset))[] != value do
                 continue
 
             let clash = Format.toString("property key [[%]] is declared by both [[%]] and [[%]]", value, other.name orelse "", name)

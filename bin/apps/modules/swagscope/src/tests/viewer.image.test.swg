@@ -72,7 +72,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
         var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName)
         Swag.assert(session.view != null)
-        let view = cast(*ImageViewer) session.view
+        let view = cast #assume (*ImageViewer) session.view
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
         view.imageView.setPaused(true)
         if view.imageView.movie.frameCount > 1 do
@@ -128,7 +128,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     actionBar.centerGroup = result.commands
     infoBar.centerGroup   = result.info
 
-    let view = cast(*ImageViewer) result.view
+    let view = cast #assume (*ImageViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     assertViewerInfoButton(view.zoomLabel, result.info.preferredSize.x - 2 * ViewerInfoControlInset)
     var navigation: s32
@@ -191,7 +191,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     var result = openTestViewer(imageViewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
-    let view = cast(*ImageViewer) result.view
+    let view = cast #assume (*ImageViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(not view.failureReason.isEmpty())
 }
@@ -234,7 +234,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
     var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
     Swag.assert(session.view != null)
-    let view = cast(*ImageViewer) session.view
+    let view = cast #assume (*ImageViewer) session.view
     var reports: ImageReports
     view.userData = &reports
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -256,7 +256,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
             let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
             var session  = openTestViewer(imageViewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
             Swag.assert(session.view != null)
-            let view    = cast(*ImageViewer) session.view
+            let view    = cast #assume (*ImageViewer) session.view
             var reports = ImageReports{answer: answer}
             view.userData = &reports
             completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

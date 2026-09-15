@@ -542,15 +542,13 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
         case TokenId::IntrinsicMakeSlice:
         case TokenId::IntrinsicMakeString:
         case TokenId::IntrinsicMakeInterface:
-        case TokenId::IntrinsicIs:
-        case TokenId::IntrinsicAs:
         case TokenId::IntrinsicTableOf:
         {
             uint32_t count = 1;
             if (intrinsicId == TokenId::IntrinsicMakeAny || intrinsicId == TokenId::IntrinsicMakeSlice ||
-                intrinsicId == TokenId::IntrinsicMakeString || intrinsicId == TokenId::IntrinsicIs || intrinsicId == TokenId::IntrinsicTableOf)
+                intrinsicId == TokenId::IntrinsicMakeString || intrinsicId == TokenId::IntrinsicTableOf)
                 count = 2;
-            else if (intrinsicId == TokenId::IntrinsicMakeInterface || intrinsicId == TokenId::IntrinsicAs)
+            else if (intrinsicId == TokenId::IntrinsicMakeInterface)
                 count = 3;
             requireArgs(count);
             auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IntrinsicCall>(tokNameRef);

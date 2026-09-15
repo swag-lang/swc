@@ -349,7 +349,15 @@ namespace
 
     Result materializeStaticStruct(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload& payload)
     {
-        TaskContext& ctx = sema.ctx();
+        TaskContext&        ctx       = sema.ctx();
+        const SymbolStruct& symStruct = typeInfo.payloadSymStruct();
+        if (symStruct.hasOwnDynamicSlot())
+        {
+            const uint32_t slotOffset  = symStruct.dynamicSlotOffsets().front();
+            const auto*    descriptor  = readable<const Runtime::DynamicStructInfo*>(subBytes(payload.srcBytes, slotOffset, sizeof(void*)));
+            auto&          destination = writable<const Runtime::DynamicStructInfo*>(subBytes(payload.dstBytes, slotOffset, sizeof(void*)));
+            SWC_RESULT(relocateSegmentPointer<Runtime::DynamicStructInfo>(destination, sema, segment, payload.baseOffset + slotOffset, descriptor));
+        }
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
         {
             if (!field)
@@ -1022,7 +1030,8 @@ namespace
 
 Result ConstantLower::lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
 {
-    return lowerConstantToBytes(sema, dstBytes, dstTypeRef, cstRef);
+    SWC_RESULT(lowerConstantToBytes(sema, dstBytes, dstTypeRef, cstRef));
+    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstTypeRef);
 }
 
 Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
@@ -1032,7 +1041,8 @@ Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, std::span<std::byte
 
 Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
-    return lowerAggregateStructToBytesInternal(sema, dstBytes, dstType, nullptr, values);
+    SWC_RESULT(lowerAggregateStructToBytesInternal(sema, dstBytes, dstType, nullptr, values));
+    return SymbolStruct::initializeDynamicIdentityBytes(sema, dstBytes, dstType.payloadSymStruct().typeRef());
 }
 
 Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const std::span<const std::byte> srcBytes)

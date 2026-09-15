@@ -586,21 +586,8 @@ AstNodeRef Parser::parseErrorManagementStmt()
     else
         nodePtr->nodeBodyRef = parseExpression();
 
-    // 'catch e as err' captures the caught error into a fresh local 'err' (of type 'nullable any')
-    // bound in the ENCLOSING scope: null on success, the error on failure (dismissed). The 'as'
-    // operator also spells a cast, so after a catch a trailing 'as IDENT' is ALWAYS an error
-    // capture, never a cast (to cast a catch result, parenthesize: '(catch f()) as T'). Here the
-    // operand parse folded 'as err' into an 'AsCastExpr'; unwrap it back into operand + bound name.
-    if (nodePtr->nodeBodyRef.isValid() &&
-        ast_->node(nodePtr->nodeBodyRef).is(AstNodeId::AsCastExpr))
-    {
-        const auto& asCast     = ast_->node(nodePtr->nodeBodyRef).cast<AstAsCastExpr>();
-        nodePtr->errNameTokRef = ast_->node(asCast.nodeTypeRef).tokRef();
-        nodePtr->nodeBodyRef   = asCast.nodeExprRef;
-    }
-    // 'catch { ... } as err': the block-catch form parsed its body as an EmbeddedBlock, so the
-    // trailing 'as err' sits after the '}' and was not folded into a cast; consume it here.
-    else if (consumeIf(TokenId::KwdAs).isValid())
+    // Both expression and block catches can bind the caught error in the enclosing scope.
+    if (opTokenId == TokenId::KwdCatch && consumeIf(TokenId::KwdAs).isValid())
         nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     // 'catch e else { H }' / 'catch e else do H': the anonymous lazy handler H runs only when 'e'
     // fails (it cannot inspect the error — use 'as err' for that). Emitted on the failure path only.
@@ -623,9 +610,10 @@ AstNodeRef Parser::parseSwitchCaseDefault()
     if (consumeIf(TokenId::KwdCase).isValid())
     {
         SmallVector<AstNodeRef> nodeExpressions;
-        AstNodeRef              nodeExpr = parseRangeExpression();
+        const bool              binding  = isAny(TokenId::KwdLet, TokenId::KwdVar, TokenId::KwdConst);
+        AstNodeRef              nodeExpr = binding ? parseVarDecl() : parseRangeExpression();
         nodeExpressions.push_back(nodeExpr);
-        while (consumeIf(TokenId::SymComma).isValid())
+        while (!binding && consumeIf(TokenId::SymComma).isValid())
         {
             nodeExpr = parseRangeExpression();
             nodeExpressions.push_back(nodeExpr);

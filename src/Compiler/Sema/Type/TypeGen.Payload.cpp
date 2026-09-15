@@ -304,10 +304,14 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Const);
         if (type.isNullable())
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
+        if (type.isAlias() && type.payloadSymAlias().isStrict())
+            addFlag(rtType, Runtime::TypeInfoFlags::Strict);
         if (type.isAggregateStruct())
             addFlag(rtType, Runtime::TypeInfoFlags::Tuple);
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))
             addFlag(rtType, Runtime::TypeInfoFlags::RequiresExplicitInit);
+        if (SymbolStruct::typeHasDynamicStorage(ctx, typeRef))
+            addFlag(rtType, Runtime::TypeInfoFlags::HasDynamicStorage);
         if (type.isTypeInfo())
             addFlag(rtType, Runtime::TypeInfoFlags::PointerTypeInfo);
         if (isGenericRuntimeType(type))
@@ -469,12 +473,14 @@ namespace
         }
     }
 
-    bool canReflectMethodValue(const SymbolFunction& symFunc)
+    bool canReflectMethodValue(const SymbolFunction& symFunc, bool interfaceTable = false)
     {
         if (symFunc.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
             return false;
         const auto* decl = symFunc.decl() ? symFunc.decl()->safeCast<AstFunctionDecl>() : nullptr;
-        return !decl || decl->spanConstraintsRef.isInvalid();
+        if (decl && decl->spanConstraintsRef.isValid())
+            return interfaceTable && symFunc.areConstraintsResolved();
+        return true;
     }
 
     void materializeInlineAny(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, ConstantRef valueCstRef)
@@ -655,6 +661,8 @@ namespace
         rtType.interfaces.count        = 0;
         rtType.attributes.ptr          = nullptr;
         rtType.attributes.count        = 0;
+        rtType.dynamicSlots.ptr        = nullptr;
+        rtType.dynamicSlots.count      = 0;
         entry.structFromGenericTypeRef = TypeRef::invalid();
         entry.structGenericsOffset     = 0;
         entry.structGenericsCount      = 0;
@@ -671,6 +679,20 @@ namespace
         if (type.isStruct())
         {
             const SymbolStruct& symStruct = type.payloadSymStruct();
+            const auto          slots     = symStruct.dynamicSlotOffsets();
+            if (!slots.empty())
+            {
+                const auto [slotsOffset, slotsPtr] = storage.reserveSpan<Runtime::DynamicStructInfo>(static_cast<uint32_t>(slots.size()));
+                rtType.dynamicSlots.ptr            = slotsPtr;
+                rtType.dynamicSlots.count          = slots.size();
+                storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, dynamicSlots.ptr), slotsOffset);
+                for (size_t i = 0; i < slots.size(); ++i)
+                {
+                    slotsPtr[i].type   = &rtType.base;
+                    slotsPtr[i].offset = slots[i];
+                    storage.addRelocation(slotsOffset + static_cast<uint32_t>(i * sizeof(Runtime::DynamicStructInfo)) + offsetof(Runtime::DynamicStructInfo, type), offset);
+                }
+            }
             if (!SymbolStruct::typeRequiresExplicitInitialization(sema, symStruct.typeRef()))
             {
                 if (const auto* opInit = symStruct.effectiveOpInit(ctx))
@@ -945,7 +967,7 @@ namespace
                     if (!itableComplete)
                         break;
                     const SymbolFunction* implMethod = itfMethod ? symImpl->resolveInterfaceMethodTarget(ctx, *itfMethod) : nullptr;
-                    if (!implMethod || !canReflectMethodValue(*implMethod) || implMethod->isGenericRoot())
+                    if (!implMethod || !canReflectMethodValue(*implMethod, true) || implMethod->isGenericRoot())
                     {
                         itableComplete = false;
                         break;
@@ -957,8 +979,8 @@ namespace
                 {
                     const uint32_t slotCount           = static_cast<uint32_t>(implMethods.size()) + 1;
                     const auto [tableOffset, tablePtr] = storage.reserveSpan<const void*>(slotCount);
-                    SWC_UNUSED(tablePtr);
                     // slot 0: the owning struct's own typeinfo (this typeinfo, currently at `offset`).
+                    tablePtr[0] = storage.ptr<Runtime::TypeInfo>(offset);
                     storage.addRelocation(tableOffset, offset);
                     for (uint32_t m = 0; m < implMethods.size(); ++m)
                         storage.addFunctionRelocation(tableOffset + static_cast<uint32_t>((m + 1) * sizeof(void*)), implMethods[m], true);
@@ -1153,6 +1175,28 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 {
     const TaskContext& ctx     = sema.ctx();
     TypeManager&       typeMgr = sema.typeMgr();
+
+    const auto& metadataEntry = requireCacheEntry(cache, entry.rtTypeRef);
+    const auto* metadata      = storage.ptr<Runtime::TypeInfoStruct>(metadataEntry.offset);
+    SWC_ASSERT(metadata->dynamicSlots.count == 1);
+    SWC_ASSERT(metadata->dynamicSlots.ptr[0].offset == offsetof(Runtime::TypeInfo, dynamicIdentity));
+    auto*    payload     = storage.ptr<Runtime::TypeInfo>(entry.offset);
+    TypeInfo unqualified = typeMgr.get(key);
+    unqualified.removeFlag(TypeInfoFlagsE::Const);
+    unqualified.removeFlag(TypeInfoFlagsE::Nullable);
+    const auto& unqualifiedEntry = requireCacheEntry(cache, typeMgr.addType(unqualified));
+    addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfo, unqualified), unqualifiedEntry.offset);
+
+    // A copied or user-created descriptor must not acquire a compiler type's identity.
+    // Its self reference is sealed in the hidden DynCast slot, outside public fields.
+    const auto [identityOffset, identity] = storage.reserve<Runtime::DynamicStructInfo>();
+    identity->type                        = &metadata->base;
+    identity->offset                      = offsetof(Runtime::TypeInfo, dynamicIdentity);
+    identity->runtimeType                 = payload;
+    payload->dynamicIdentity              = identity;
+    storage.addRelocation(identityOffset + offsetof(Runtime::DynamicStructInfo, type), metadataEntry.offset);
+    storage.addRelocation(identityOffset + offsetof(Runtime::DynamicStructInfo, runtimeType), entry.offset);
+    storage.addRelocation(entry.offset + offsetof(Runtime::TypeInfo, dynamicIdentity), identityOffset);
 
     switch (kind)
     {

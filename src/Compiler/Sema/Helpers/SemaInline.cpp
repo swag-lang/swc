@@ -218,7 +218,7 @@ namespace
 
     struct InlineBindingVisitedNodes
     {
-        SmallVector<AstNodeRef>                         small;
+        SmallVector<AstNodeRef>                       small;
         std::optional<std::unordered_set<AstNodeRef>> large;
 
         bool insert(AstNodeRef nodeRef)
@@ -1340,10 +1340,10 @@ namespace
             }
         }
 
-        const auto* assignStmt  = node.safeCast<AstAssignStmt>();
-        const auto* foreachStmt = node.safeCast<AstForeachStmt>();
-        const auto* unary       = node.safeCast<AstUnaryExpr>();
-        const bool takesAddress = unary && sema.token(node.codeRef()).id == TokenId::SymAmpersand;
+        const auto* assignStmt   = node.safeCast<AstAssignStmt>();
+        const auto* foreachStmt  = node.safeCast<AstForeachStmt>();
+        const auto* unary        = node.safeCast<AstUnaryExpr>();
+        const bool  takesAddress = unary && sema.token(node.codeRef()).id == TokenId::SymAmpersand;
 
         SmallVector<AstNodeRef> children;
         collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
@@ -1748,12 +1748,12 @@ namespace
     // The callee side of an expansion: what every binding is classified against.
     struct InlineBindingContext
     {
-        const SymbolFunction*           fn        = nullptr;
-        const Ast*                      sourceAst = nullptr;
-        const AstFunctionDecl*          decl      = nullptr;
-        InlineBodyIdentifiers           identifiers;
+        const SymbolFunction*            fn        = nullptr;
+        const Ast*                       sourceAst = nullptr;
+        const AstFunctionDecl*           decl      = nullptr;
+        InlineBodyIdentifiers            identifiers;
         std::optional<InlineBindingUses> uses;
-        bool                            isOrdinaryInline = false;
+        bool                             isOrdinaryInline = false;
     };
 
     void collectInlineBodyIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, InlineBodyIdentifiers& outIdentifiers)
@@ -2276,6 +2276,36 @@ namespace
             AstNodeRef clonedArgRef = SemaClone::cloneAst(sema, argRef, noBindings);
             if (clonedArgRef.isInvalid())
                 return Result::Continue;
+
+            // A captured pack may be cloned without its array's contextual type.
+            // Keep real boxing expressions: a type-only pin would label scalar bits
+            // as an Any descriptor without constructing its value/type pair.
+            const TypeInfo& elementType = sema.typeMgr().get(targetElemTypeRef);
+            if (elementType.isAny())
+            {
+                const AstNode& argument  = sema.node(clonedArgRef);
+                auto [typeRef, typeNode] = sema.ast().makeNode<AstNodeId::BuiltinType>(argument.tokRef());
+                typeNode->setCodeRef(argument.codeRef());
+                typeNode->typeTokenId    = TokenId::TypeAny;
+                AstNodeRef targetNodeRef = typeRef;
+                if (elementType.isConst() || elementType.isNullable())
+                {
+                    auto [qualifiedRef, qualifiedNode] = sema.ast().makeNode<AstNodeId::QualifiedType>(argument.tokRef());
+                    qualifiedNode->setCodeRef(argument.codeRef());
+                    qualifiedNode->nodeTypeRef = typeRef;
+                    if (elementType.isConst())
+                        qualifiedNode->addFlag(AstQualifiedTypeFlagsE::Const);
+                    if (elementType.isNullable())
+                        qualifiedNode->addFlag(AstQualifiedTypeFlagsE::Nullable);
+                    targetNodeRef = qualifiedRef;
+                }
+                auto [castRef, castNode] = sema.ast().makeNode<AstNodeId::CastExpr>(argument.tokRef());
+                castNode->setCodeRef(argument.codeRef());
+                castNode->addFlag(AstCastExprFlagsE::Explicit);
+                castNode->nodeTypeRef = targetNodeRef;
+                castNode->nodeExprRef = clonedArgRef;
+                clonedArgRef          = castRef;
+            }
 
             clonedValues.push_back(clonedArgRef);
         }

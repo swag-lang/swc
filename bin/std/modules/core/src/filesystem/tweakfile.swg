@@ -135,7 +135,7 @@ impl TweakFile
                     // A folder line names the struct without its namespace, so a tweak
                     // written for 'Gui.ThemeColors' simply says '/ThemeColors'. The full
                     // name keeps working for files that spelled it out.
-                    let structType = cast(const *Swag.TypeInfoStruct) folder.type
+                    let structType = cast #assume(const *Swag.TypeInfoStruct) folder.type
                     if folder.type.name == folderName or structType.structName == folderName
                     {
                         currentFolder = folder

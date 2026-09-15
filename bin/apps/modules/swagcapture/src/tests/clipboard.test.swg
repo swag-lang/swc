@@ -83,7 +83,7 @@ func testResetClipboardToImage()
     Swag.assert(f.capture.selection.count == 1)
     Swag.assert(f.capture.selection[0] == 1)
     Swag.assert(Swag.kindOf(f.capture.forms[1]) == FormShape)
-    Swag.assert((cast(*FormShape) f.capture.forms[1].buffer).kind == .RoundRectangle)
+    Swag.assert((cast #assume (*FormShape) f.capture.forms[1]).kind == .RoundRectangle)
 
     f.capture.undo()
     Swag.assert(f.capture.forms.count == 1)
@@ -118,7 +118,7 @@ func testResetClipboardToImage()
 
     Swag.assert(f.capture.forms.count == 1)
     Swag.assert(Swag.kindOf(f.capture.forms[0]) == FormImage)
-    let pastedImage = cast(*FormImage) f.capture.forms[0].buffer
+    let pastedImage = cast #assume (*FormImage) f.capture.forms[0]
     Swag.assert(pastedImage.kind == .Image)
     Swag.assert(pastedImage.image.isValid())
     Swag.assert(pastedImage.image.width == 11)

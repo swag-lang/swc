@@ -96,6 +96,19 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(source.isAtEnd())
 }
 
+// A signed field reads with its exact bit pattern; the ascender and descender of a font table
+// are the shape that exposed this.
+#test
+{
+    const Bytes: [9] u8 = [0x03, 0x20, 0xFC, 0xE0, 0xFF, 0xFE, 0xEE, 0x90, 0x9C]
+    var source = ByteSource.openMemory(Bytes)
+    Swag.assert(expect source.readBigEndian's16() == 800)
+    Swag.assert(expect source.readBigEndian's16() == -800)
+    Swag.assert(expect source.readBigEndian's32() == -70000)
+    Swag.assert(expect source.readBigEndian's8() == -100)
+    Swag.assert(source.isAtEnd())
+}
+
 // A line ends at a line feed whichever end-of-line convention wrote it, and a line that never
 // ends is refused at its bound rather than read to the end of the stream.
 #test

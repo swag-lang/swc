@@ -52,6 +52,12 @@ public struct HtmlLayout
     // its own formatting context truncates the list back on exit, so a float never reaches
     // outside the context that owns it.
     floats: Array'HtmlFloatBand
+
+    // The boxes the flow stepped over, in the order it met them. They are placed once the
+    // in-flow pass is over, because an absolute box resolves against the padding box of its
+    // nearest positioned ancestor, and that ancestor's own height is not settled while it is
+    // still stacking its children.
+    outOfFlow: Array'u32
 }
 
 // The size a box resolves its percentages against.
@@ -1162,6 +1168,15 @@ impl HtmlLayout
 
         .boxes[box].rect.offset(dx, dy)
         .boxes[box].content.offset(dx, dy)
+
+        // A box still waiting for placement carries the flow position it would have had, and that
+        // position belongs to the subtree that is moving.
+        if .boxes[box].outOfFlowQueued
+        {
+            .boxes[box].staticPos.x += dx
+            .boxes[box].staticPos.y += dy
+        }
+
         for &item in .boxes[box].items
         {
             item.x += dx
@@ -1207,11 +1222,14 @@ impl HtmlLayout
 
         .viewport = {Math.max(width, 1), Math.max(height, 1)}
 
+        .outOfFlow.clear()
+
         // Intrinsic widths must be measured on the items the build produced, so the fragments a
         // previous narrower layout split are re-joined before anything reads them.
         for boxIndex in .boxes.count
         {
-            .boxes[boxIndex].hasIntrinsic = false
+            .boxes[boxIndex].hasIntrinsic    = false
+            .boxes[boxIndex].outOfFlowQueued = false
             .mergeContinuations(cast(u32) boxIndex)
         }
 
@@ -1235,6 +1253,10 @@ impl HtmlLayout
 
         .boxes[.root].rect.height    = contentHeight
         .boxes[.root].content.height = contentHeight
+
+        // Everything that left the flow is placed here, against boxes whose rectangles are final.
+        .placeOutOfFlow()
+
         let paintBounds = .computePaintBounds(.root)
         .documentHeight = Math.max(contentHeight, paintBounds.bottom())
     }
@@ -1269,7 +1291,9 @@ impl HtmlLayout
     // Stacks the in-flow children of a block container, collapsing the margins between them.
     private mtd layoutBlockChildren(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
     {
-        var inner: HtmlContainingBlock
+        // The children resolve their percentages against this box's content box, so its height
+        // travels with its width rather than being dropped here.
+        var inner = containing
         inner.width = contentWidth
 
         var y            = contentY
@@ -1283,7 +1307,7 @@ impl HtmlLayout
         {
             if .styles[.boxes[child].style].isOutOfFlow()
             {
-                .layoutAbsolute(child, box, containing)
+                .queueOutOfFlow(child, contentX, y)
                 continue
             }
 
@@ -1373,8 +1397,15 @@ impl HtmlLayout
         .boxes[box].rect    = {x, originY, borderWidth, extraY}
         .boxes[box].content = {contentX, contentY, contentWidth, 0}
 
+        // A child resolves a percentage height only against a parent whose height is already
+        // known, so this box settles its own first. That is what makes the classic
+        // `html, body, .app { height: 100% }` chain mean anything.
+        let definite = .definiteContentHeight(style, styleIndex, containing, extraY)
+
         var inner: HtmlContainingBlock
-        inner.width = contentWidth
+        inner.width     = contentWidth
+        inner.height    = definite.has ? definite.value : 0
+        inner.hasHeight = definite.has
 
         // A box that establishes its own block formatting context owns its floats: they never
         // narrow a line outside it, and its height closes past them. This is also what makes
@@ -1423,13 +1454,7 @@ impl HtmlLayout
             }
         }
 
-        var usedHeight = contentHeight
-        if not style.height.isAuto() and not style.height.isNone() and style.height.isDefinite(.pool, containing.hasHeight)
-        {
-            let value = style.height.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), contentHeight)
-            usedHeight = style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value
-        }
-
+        var usedHeight = definite.has ? definite.value : contentHeight
         usedHeight = .clampHeight(usedHeight, style, styleIndex, containing, extraY)
 
         // A single flex line consumes a definite or minimum cross size. Aligning it only inside
@@ -1458,6 +1483,22 @@ impl HtmlLayout
             let dy = style.inset.top.isAuto() ? -.resolveLength(style.inset.bottom, styleIndex, containing.height) : .resolveLength(style.inset.top, styleIndex, containing.height)
             .translate(box, dx, dy)
         }
+    }
+
+    // Returns this box's used content height when it is known without measuring its content.
+    //
+    // Only a written `height` counts. A minimum or a maximum bounds what the content produces; it
+    // does not tell a child what a percentage of its parent is.
+    private mtd const definiteContentHeight(style: const *HtmlComputedStyle, styleIndex: u32, containing: HtmlContainingBlock, extraY: f32)->{ value: f32, has: bool }
+    {
+        var result: retval
+        if style.height.isAuto() or style.height.isNone() or not style.height.isDefinite(.pool, containing.hasHeight) do
+            return result
+
+        let value = style.height.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), 0)
+        result.value = style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value
+        result.has   = true
+        return result
     }
 
     private mtd const clampWidth(width: f32, style: const *HtmlComputedStyle, styleIndex: u32, containingWidth, extraX: f32)->f32
@@ -1496,22 +1537,80 @@ impl HtmlLayout
         return Math.max(result, 0)
     }
 
-    // Places a box that left the normal flow against its container's padding box.
-    private mtd layoutAbsolute(box: u32, container: u32, containing: HtmlContainingBlock)
+    // Records a box the flow stepped over, with the position the flow would have given it.
+    //
+    // Placing it now would resolve it against a container whose height is still being built, so
+    // the queue is drained once every in-flow rectangle is final.
+    private mtd queueOutOfFlow(box: u32, staticX, staticY: f32)
     {
-        let styleIndex     = .boxes[box].style
-        let style          = &.styles[styleIndex]
-        let containerStyle = &.styles[.boxes[container].style]
-        let containerRect  = .boxes[container].rect
-        let frame          = Math.Rectangle{containerRect.x + containerStyle.borderLeft.width, containerRect.y + containerStyle.borderTop.width, Math.max(containerRect.width - containerStyle.borderWidthX(), 0), Math.max(containerRect.height - containerStyle.borderWidthY(), 0)}
+        if .boxes[box].outOfFlowQueued do
+            return
+        .boxes[box].outOfFlowQueued = true
+        .boxes[box].staticPos       = {staticX, staticY}
+        .outOfFlow.add(box)
+    }
+
+    // Places every box that left the flow. One of them can contain another, so the queue is
+    // walked by index: a nested positioned box is appended while its own container is being laid
+    // out, and the same pass reaches it after the container it resolves against is final.
+    private mtd placeOutOfFlow()
+    {
+        var index = 0'u64
+        while index < .outOfFlow.count
+        {
+            .layoutOutOfFlow(.outOfFlow[index])
+            index += 1
+        }
+
+        .outOfFlow.clear()
+    }
+
+    // Returns the box whose padding box an out-of-flow box resolves against, or `HtmlNoNode` for
+    // the initial containing block.
+    //
+    // An absolute box walks up to the nearest ancestor that is itself positioned — the `relative`
+    // card a badge two levels down is pinned to. A fixed box answers to the viewport, whatever
+    // stands between it and the root.
+    private mtd const containingBlockOf(box: u32)->u32
+    {
+        if .styles[.boxes[box].style].position == .Fixed do
+            return HtmlNoNode
+
+        var ancestor = .boxes[box].parent
+        while ancestor != HtmlNoNode and ancestor != .root
+        {
+            if .styles[.boxes[ancestor].style].position != .Static do
+                return ancestor
+            ancestor = .boxes[ancestor].parent
+        }
+
+        return HtmlNoNode
+    }
+
+    // Places a box that left the normal flow against the padding box of what really contains it.
+    private mtd layoutOutOfFlow(box: u32)
+    {
+        let styleIndex = .boxes[box].style
+        let style      = &.styles[styleIndex]
+        let container  = .containingBlockOf(box)
+
+        var frame = Math.Rectangle{0, 0, .viewport.x, .viewport.y}
+        if container != HtmlNoNode
+        {
+            let containerStyle = &.styles[.boxes[container].style]
+            let containerRect  = .boxes[container].rect
+            frame = {containerRect.x + containerStyle.borderLeft.width, containerRect.y + containerStyle.borderTop.width, Math.max(containerRect.width - containerStyle.borderWidthX(), 0), Math.max(containerRect.height - containerStyle.borderWidthY(), 0)}
+        }
 
         var inner: HtmlContainingBlock
         inner.width     = frame.width
         inner.height    = frame.height
         inner.hasHeight = true
 
-        var x = frame.x
-        var y = frame.y
+        // An automatic inset keeps the box where the flow would have put it; only a written inset
+        // measures from the containing block's edge.
+        var x = .boxes[box].staticPos.x
+        var y = .boxes[box].staticPos.y
         if not style.inset.left.isAuto() do
             x = frame.x + .resolveLength(style.inset.left, styleIndex, frame.width)
         if not style.inset.top.isAuto() do
@@ -1996,12 +2095,22 @@ private impl HtmlLayout
 // Flexible box, grid, and table layout.
 private impl HtmlLayout
 {
-    // Returns the children that take part in a container's own layout.
-    mtd flowChildren(box: u32)->Array'u32
+    // Returns the children that take part in a container's own layout, and queues the ones that
+    // do not.
+    //
+    // A flex, grid or table container has no flow position to offer a box that left it, so its
+    // content origin stands in for the static position.
+    mtd flowChildren(box: u32, contentX, contentY: f32)->Array'u32
     {
         var result: retval
-        for child in .boxes[box].children where not .styles[.boxes[child].style].isOutOfFlow() do
-            result.add(child)
+        for child in .boxes[box].children
+        {
+            if .styles[.boxes[child].style].isOutOfFlow() do
+                .queueOutOfFlow(child, contentX, contentY)
+            else do
+                result.add(child)
+        }
+
         return result
     }
 
@@ -2010,7 +2119,7 @@ private impl HtmlLayout
     {
         let styleIndex = .boxes[box].style
         let style      = &.styles[styleIndex]
-        let items      = .flowChildren(box)
+        let items      = .flowChildren(box, contentX, contentY)
         if items.isEmpty() do
             return 0
 
@@ -2252,7 +2361,7 @@ private impl HtmlLayout
     {
         let styleIndex = .boxes[box].style
         let style      = &.styles[styleIndex]
-        let items      = .flowChildren(box)
+        let items      = .flowChildren(box, contentX, contentY)
         if items.isEmpty() do
             return 0
 
@@ -2322,7 +2431,7 @@ private impl HtmlLayout
     // Lays a table out, sizing its columns from what their cells need.
     mtd layoutTable(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
     {
-        let rows = .flowChildren(box)
+        let rows = .flowChildren(box, contentX, contentY)
         if rows.isEmpty() do
             return 0
 

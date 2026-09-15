@@ -1264,6 +1264,211 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(view.hasFocus())
 }
 
+// A percentage height resolves against a parent that has one, down a whole chain of them, and
+// still falls back to content height where nothing definite stands above it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>html, body { margin: 0; height: 100% }"
+    source += ".app { height: 100% }"
+    source += ".half { height: 50% }"
+    source += ".loose { padding: 4px }"
+    source += ".inside { height: 100% }"
+    source += ".line { height: 12px }"
+    source += "</style>"
+    source += "<div class=\"app\" id=\"app\"><div class=\"half\" id=\"half\"></div></div>"
+    source += "<div class=\"loose\" id=\"loose\"><div class=\"inside\" id=\"inside\"><div class=\"line\"></div></div></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let height = view.scroll.paddedClientRect().height
+    let app    = view.layout.constBox(view.boxOfNode(view.elementById("app")))
+    let half   = view.layout.constBox(view.boxOfNode(view.elementById("half")))
+    Swag.assert(Math.abs(app.rect.height - height) <= 0.5)
+    Swag.assert(Math.abs(half.rect.height - height * 0.5) <= 0.5)
+
+    // Nothing definite stands above `.loose`, so `height: 100%` inside it keeps meaning content.
+    let inside = view.layout.constBox(view.boxOfNode(view.elementById("inside")))
+    Swag.assert(inside.rect.height == 12)
+}
+
+// A positioned box answers to the nearest positioned ancestor, not to whatever box happens to
+// hold it. The badge of a card is the shape this is written for: `position: relative` on the card,
+// `position: absolute` on the badge two levels down.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 }"
+    source += ".card { position: relative; margin: 30px; padding: 10px; border: 2px solid #000000; height: 100px }"
+    source += ".inner { padding: 7px }"
+    source += ".badge { position: absolute; top: 0; right: 0; width: 20px; height: 8px }"
+    source += ".filler { position: absolute; left: 0; bottom: 0; width: 6px; height: 50% }"
+    source += "</style>"
+    source += "<div class=\"card\" id=\"card\"><div class=\"inner\"><span>text</span>"
+    source += "<div class=\"badge\" id=\"badge\"></div><div class=\"filler\" id=\"filler\"></div></div></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let card   = view.layout.constBox(view.boxOfNode(view.elementById("card")))
+    let badge  = view.layout.constBox(view.boxOfNode(view.elementById("badge")))
+    let filler = view.layout.constBox(view.boxOfNode(view.elementById("filler")))
+
+    // The frame is the card's padding box: its border box less its own two-pixel border.
+    let frameLeft   = card.rect.x + 2
+    let frameTop    = card.rect.y + 2
+    let frameRight  = card.rect.right() - 2
+    let frameBottom = card.rect.bottom() - 2
+
+    Swag.assert(badge.rect.y == frameTop)
+    Swag.assert(badge.rect.right() == frameRight)
+
+    // A percentage height needs the frame's real height, which the flow only knows once the card
+    // has closed over its content.
+    Swag.assert(filler.rect.x == frameLeft)
+    Swag.assert(filler.rect.bottom() == frameBottom)
+    Swag.assert(Math.abs(filler.rect.height - (frameBottom - frameTop) * 0.5) <= 0.5)
+}
+
+// Two automatic insets keep a positioned box where the flow would have put it, rather than
+// collapsing it onto the edge of its containing block.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 }"
+    source += ".page { position: relative; padding: 24px }"
+    source += ".line { height: 30px }"
+    source += ".note { position: absolute; width: 40px; height: 10px }"
+    source += "</style>"
+    source += "<div class=\"page\" id=\"page\"><div class=\"line\"></div><div class=\"note\" id=\"note\"></div></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let page = view.layout.constBox(view.boxOfNode(view.elementById("page")))
+    let note = view.layout.constBox(view.boxOfNode(view.elementById("note")))
+    Swag.assert(note.rect.x == page.content.x)
+    Swag.assert(note.rect.y == page.content.y + 30)
+}
+
+// A positioned child of a flex or grid container is laid out like any other positioned box. It
+// takes no part in the container's own line, but it is placed and sized.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 }"
+    source += ".bar { position: relative; display: flex; gap: 10px; padding: 5px }"
+    source += ".item { flex: none; width: 60px; height: 20px }"
+    source += ".grid { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 5px }"
+    source += ".cell { height: 20px }"
+    source += ".pin { position: absolute; top: 4px; right: 4px; width: 12px; height: 6px }"
+    source += "</style>"
+    source += "<div class=\"bar\" id=\"bar\"><div class=\"item\" id=\"first\"></div><div class=\"item\"></div>"
+    source += "<div class=\"pin\" id=\"barpin\"></div></div>"
+    source += "<div class=\"grid\" id=\"grid\"><div class=\"cell\"></div><div class=\"cell\"></div>"
+    source += "<div class=\"pin\" id=\"gridpin\"></div></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let bar     = view.layout.constBox(view.boxOfNode(view.elementById("bar")))
+    let first   = view.layout.constBox(view.boxOfNode(view.elementById("first")))
+    let barPin  = view.layout.constBox(view.boxOfNode(view.elementById("barpin")))
+    let grid    = view.layout.constBox(view.boxOfNode(view.elementById("grid")))
+    let gridPin = view.layout.constBox(view.boxOfNode(view.elementById("gridpin")))
+
+    // The positioned child leaves the flex line alone: the first item still starts the row.
+    Swag.assert(first.rect.x == bar.content.x)
+    Swag.assert(barPin.rect.width == 12 and barPin.rect.height == 6)
+    Swag.assert(barPin.rect.y == bar.rect.y + 4)
+    Swag.assert(barPin.rect.right() == bar.rect.right() - 4)
+
+    Swag.assert(gridPin.rect.width == 12 and gridPin.rect.height == 6)
+    Swag.assert(gridPin.rect.y == grid.rect.y + 4)
+    Swag.assert(gridPin.rect.right() == grid.rect.right() - 4)
+}
+
+// A positioned span written in the middle of a paragraph splits that paragraph's text into
+// anonymous blocks. The box still answers to the card, not to the paragraph it was written in.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 }"
+    source += ".card { position: relative; margin: 12px; padding: 6px }"
+    source += "p { margin: 0; padding: 8px }"
+    source += ".tag { position: absolute; top: 3px; right: 5px; width: 16px; height: 7px }"
+    source += "</style>"
+    source += "<div class=\"card\" id=\"card\"><p id=\"para\">Some words around "
+    source += "<span class=\"tag\" id=\"tag\"></span> a positioned span.</p></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    let card = view.layout.constBox(view.boxOfNode(view.elementById("card")))
+    let para = view.layout.constBox(view.boxOfNode(view.elementById("para")))
+    let tag  = view.layout.constBox(view.boxOfNode(view.elementById("tag")))
+    Swag.assert(para.children.count >= 2)
+    Swag.assert(tag.rect.width == 16 and tag.rect.height == 7)
+    Swag.assert(tag.rect.y == card.rect.y + 3)
+    Swag.assert(tag.rect.right() == card.rect.right() - 5)
+}
+
+// A positioned box with no positioned ancestor resolves against the initial containing block:
+// the top of the document, and the viewport's width.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 300)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0 }"
+    source += ".spacer { height: 40px }"
+    source += ".wrap { margin: 10px; padding: 20px }"
+    source += ".corner { position: absolute; top: 0; left: 0; width: 50%; height: 9px }"
+    source += "</style>"
+    source += "<div class=\"spacer\"></div><div class=\"wrap\" id=\"wrap\"><div class=\"corner\" id=\"corner\"></div></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(400, 300)
+    view.applyLayout()
+    view.rebuild()
+
+    // The wrapper is static, so it contains nothing: the box answers to the document's own origin
+    // and to the viewport's width, not to the padding box it happens to sit in.
+    let wrap   = view.layout.constBox(view.boxOfNode(view.elementById("wrap")))
+    let corner = view.layout.constBox(view.boxOfNode(view.elementById("corner")))
+    let width  = view.scroll.paddedClientRect().width
+    Swag.assert(wrap.rect.x > 0 and wrap.rect.y > 0)
+    Swag.assert(corner.rect.x == 0 and corner.rect.y == 0)
+    Swag.assert(Math.abs(corner.rect.width - width * 0.5) <= 0.5)
+}
+
 // An absolutely positioned generated rule is a box of its own, and a functional color paints it.
 #test
 {

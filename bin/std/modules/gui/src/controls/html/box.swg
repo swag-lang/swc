@@ -126,6 +126,15 @@ public struct HtmlBox
     sticky:    bool
     stickyTop: f32
 
+    // Where the flow would have put an out-of-flow box had it stayed in it. An automatic inset
+    // resolves there, which is what `top: auto` on a positioned box means. A container that has
+    // no flow position to offer, such as a flex or grid row, gives its content origin instead.
+    staticPos: Math.Point
+
+    // Whether this box is already waiting in the out-of-flow queue. A container laid out more
+    // than once — a table sizing its columns — must not enqueue the same box twice.
+    outOfFlowQueued: bool
+
     // Intrinsic sizes are measured once, because a table column and a shrink-to-fit box both
     // need them and both are laid out more than once.
     minContent:   f32

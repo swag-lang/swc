@@ -61,10 +61,16 @@ private const Rev8Arr: [256] u8 = [
     func ror(x: u64, y: u8) => Swag.ror(x, y)
 
     // Reverse the byte order of the value.
-    // Converts between little-endian and big-endian representations.
+    // Converts between little-endian and big-endian representations. A signed value keeps
+    // its exact bit pattern, and a single byte has no byte order to reverse.
+    func byteswap(x: u8)  => x
     func byteswap(x: u16) => Swag.byteSwap(x)
     func byteswap(x: u32) => Swag.byteSwap(x)
     func byteswap(x: u64) => Swag.byteSwap(x)
+    func byteswap(x: s8)  => x
+    func byteswap(x: s16) => cast #bit (s16) Swag.byteSwap(cast #bit (u16) x)
+    func byteswap(x: s32) => cast #bit (s32) Swag.byteSwap(cast #bit (u32) x)
+    func byteswap(x: s64) => cast #bit (s64) Swag.byteSwap(cast #bit (u64) x)
 }
 
 // Reverse all bits in an 8-bit value using lookup table.

@@ -251,3 +251,40 @@ using Swag, Core
     Swag.assert(Clipboard.getString() == "Frozen")
     Swag.assert(ed.text() == "Frozen")
 }
+
+// Wrapping uses the viewport left by the vertical scrollbar, and bounds even a long token.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 220)
+    defer host.shutdown()
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 340, 200})
+    ed.marginLeft  = 12
+    ed.marginRight = 12
+    ed.setFlags(.ReadOnly | .WordWrap)
+    var text: Core.String
+    for 16_384 do
+        text += "x"
+    ed.setText(text.toString())
+    ed.setVirtualDocumentRange(0, 100_000)
+    host.root.applyLayout()
+    discard host.render(ed)
+    discard host.render(ed)
+    Swag.assert(ed.scrollWnd.paddingZ > 0)
+    Swag.assert(ed.lines.count > 1)
+    let right = ed.scrollWnd.paddedClientRect().width - ed.scrollWnd.paddingZ - ed.marginRight
+    for line, index in ed.lines
+    {
+        let position = ed.cursorDisplayPosition({index, line!.length()})
+        Swag.assert(position.x <= right + 1)
+    }
+
+    Swag.assert(ed.text() == text)
+    ed.addText(" tail")
+    text += " tail"
+    discard host.render(ed)
+    Swag.assert(ed.text() == text)
+    ed.setFlags(.ReadOnly)
+    discard host.render(ed)
+    Swag.assert(ed.lines.count == 1 and ed.text() == text)
+}

@@ -1899,8 +1899,8 @@ internal impl IWnd for View
                     .clearSelection()
                 let displayText = blockDisplayText(block.kind, block.searchText.toString())
                 block.inline!.clearSearchHighlight()
-                block.inline!.parse(displayText.toString())
-                block.inline!.invalidate()
+                block.inline.parse(displayText.toString())
+                block.inline.invalidate()
                 changed = true
             }
 

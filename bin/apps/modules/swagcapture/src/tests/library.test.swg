@@ -406,23 +406,23 @@ impl IAllocator for LibraryRejectAllocator
     let view = lib.view
 
     let chrome = testAddLibraryItem(view, "chrome.scc", 30, 2, title: "Documentation")
-    chrome.capture!.sourceKind        = .Screen
-    chrome.capture!.sourceApplication = "chrome"
-    chrome.capture!.sourceWindowTitle = "Swag language reference"
-    chrome.capture!.tags.add("docs")
-    chrome.capture!.favorite = true
-    chrome.capture!.rating   = 5
-    chrome.width             = 1920
-    chrome.height            = 1080
+    chrome.capture!.sourceKind       = .Screen
+    chrome.capture.sourceApplication = "chrome"
+    chrome.capture.sourceWindowTitle = "Swag language reference"
+    chrome.capture.tags.add("docs")
+    chrome.capture.favorite = true
+    chrome.capture.rating   = 5
+    chrome.width            = 1920
+    chrome.height           = 1080
 
     let slack = testAddLibraryItem(view, "slack.scc", 20, 3, title: "Team")
-    slack.capture!.sourceKind        = .Screen
-    slack.capture!.sourceApplication = "slack"
-    slack.capture!.sourceWindowTitle = "Engineering"
-    slack.capture!.tags.add("work")
-    slack.capture!.rating = 2
-    slack.width  = 800
-    slack.height = 600
+    slack.capture!.sourceKind       = .Screen
+    slack.capture.sourceApplication = "slack"
+    slack.capture.sourceWindowTitle = "Engineering"
+    slack.capture.tags.add("work")
+    slack.capture.rating = 2
+    slack.width          = 800
+    slack.height         = 600
 
     let imported = testAddLibraryItem(view, "imported.scc", 10, 1, "photo.png", title: "Photo")
     imported.capture!.sourceKind = .ImageFile
@@ -633,11 +633,11 @@ impl IAllocator for LibraryRejectAllocator
 
     let chrome = testAddLibraryItem(lib.view, "chrome.scc", 10, 1)
     chrome.capture!.sourceApplication = "Chrome"
-    chrome.capture!.sourceExecutable  = Env.executablePath()
-    chrome.capture!.tags.add("docs")
+    chrome.capture.sourceExecutable   = Env.executablePath()
+    chrome.capture.tags.add("docs")
     let slack = testAddLibraryItem(lib.view, "slack.scc", 10, 2)
     slack.capture!.sourceApplication = "Slack"
-    slack.capture!.tags.add("work")
+    slack.capture.tags.add("work")
     lib.refreshAutomaticFilters()
 
     Swag.assert(lib.sidebarApplications.count == 2)
@@ -697,7 +697,7 @@ impl IAllocator for LibraryRejectAllocator
 
     // A malformed legacy executable path must keep the application filter usable and
     // simply omit its optional shell icon.
-    chrome.capture!.sourceExecutable = "bad|application.exe"
+    chrome.capture.sourceExecutable = "bad|application.exe"
     lib.refreshAutomaticFilters()
     var foundApplication = false
     for i in lib.listCtrl.lineCount()

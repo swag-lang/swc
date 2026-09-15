@@ -343,7 +343,7 @@ impl MainWnd
 
         let img = catch Image.load(dlg.selectedPath()) as err
         if err != null do
-            MessageDlg.error(.surface!, appStrings().msg_FailedLoadImage, err)
+            MessageDlg.error(.surface, appStrings().msg_FailedLoadImage, err)
         else do
             .newCapture(img, dlg.selectedPath())
     }

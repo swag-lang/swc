@@ -745,7 +745,7 @@ private func runHevcFrameThread(thread: Threading.Thread)
         frame = catch frameThread.decoder!.decodePreparedPicture() as decodeError
         if decodeError != null
         {
-            frameThread.decoder!.failPreparedPicture()
+            frameThread.decoder.failPreparedPicture()
             frameThread.errorText = Errors.message(decodeError)
         }
         elif frame

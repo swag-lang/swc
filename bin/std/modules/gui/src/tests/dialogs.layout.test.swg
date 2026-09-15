@@ -21,8 +21,8 @@ using Swag, Core, Pixel
     let metrics       = dlg.themeMetrics()
     let contentHeight = dlg.edit!.position.height + dlg.label.position.height + dlg.label.margin.w
     var expected      = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
-    expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface!.shadowMargin()
-    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 1.5)
+    expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface.shadowMargin()
+    Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 1.5)
 }
 
 // A prompt is as tall as its explanation, not as tall as the shell it opened in.
@@ -43,8 +43,8 @@ using Swag, Core, Pixel
     Swag.assert(long.surface!.position.height > short.surface!.position.height)
     Swag.assert(long.label.itf.measureContent({long.label.position.width, 0}).y <= long.label.position.height + 0.5)
 
-    short.surface!.destroy()
-    long.surface!.destroy()
+    short.surface.destroy()
+    long.surface.destroy()
     host.pump()
 }
 
@@ -66,9 +66,9 @@ using Swag, Core, Pixel
     let contentHeight = dlg.richEdit!.position.height + dlg.label.position.height + dlg.label.margin.w
     let visibleHeight = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize + metrics.wnd_SmallCaptionCY
     let outerHeight   = visibleHeight + 2 * dlg.surface!.shadowMargin()
-    Swag.assert(Math.abs(dlg.richEdit!.position.height - cast(f32) options.editorHeight) < 0.5)
-    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(outerHeight) * dlg.surface!.dpiScale) < 1.5)
-    Swag.assert(Math.abs(dlg.surface!.minSize.y - dlg.surface!.position.height / dlg.surface!.dpiScale) < 0.5)
+    Swag.assert(Math.abs(dlg.richEdit.position.height - cast(f32) options.editorHeight) < 0.5)
+    Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(outerHeight) * dlg.surface.dpiScale) < 1.5)
+    Swag.assert(Math.abs(dlg.surface.minSize.y - dlg.surface.position.height / dlg.surface.dpiScale) < 0.5)
 }
 
 // The default about box measures its identity block instead of retaining the old 300-unit shell.
@@ -92,7 +92,7 @@ using Swag, Core, Pixel
     contentHeight += metrics.dialog_BtnPadding * 2
     var expected = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
     expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface!.shadowMargin()
-    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 0.5)
+    Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 0.5)
     Swag.assert(dlg.identityView.backgroundStyle == .View)
     Swag.assert(dlg.identityView.position.width > 0)
     Swag.assert(dlg.identityAccent.form == .Accent and dlg.identityAccent.dockStyle == .Top)
@@ -163,7 +163,7 @@ using Swag, Core, Pixel
     small.addButton("No", Dialog.BtnNo)
     small.addButton("Cancel", Dialog.BtnCancel, true)
     small.adaptSizeToMessage()
-    Swag.assert(Math.abs(small.surface!.size().x - (MessageDlg.MinMessageWidth + 2 * small.surface!.shadowMargin())) < 1)
+    Swag.assert(Math.abs(small.surface!.size().x - (MessageDlg.MinMessageWidth + 2 * small.surface.shadowMargin())) < 1)
 
     // Long actions: the bar decides, and no invisible button is reserved beside them.
     let wide = MessageDlg.create(&host.surface, "Save changes?")
@@ -178,10 +178,10 @@ using Swag, Core, Pixel
         expected += btn.position.width
     expected += cast(f32) (wide.buttons.count - 1) * metrics.dialog_BtnPadding
     Swag.assert(expected > MessageDlg.MinMessageWidth)
-    Swag.assert(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface!.shadowMargin())) < 1)
+    Swag.assert(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface.shadowMargin())) < 1)
 
-    small.surface!.destroy()
-    wide.surface!.destroy()
+    small.surface.destroy()
+    wide.surface.destroy()
     host.pump()
 }
 
@@ -219,7 +219,7 @@ using Swag, Core, Pixel
         let needed = dlg.label.itf.measureContent({dlg.label.position.width, 0}).y
         Swag.assert(needed <= dlg.label.position.height + 0.5)
 
-        dlg.surface!.destroy()
+        dlg.surface.destroy()
         host.pump()
         tail += "!"
     }
@@ -249,7 +249,7 @@ using Swag, Core, Pixel
     Swag.assert(Math.abs(dlg.label.surfaceRect().bottom() - scroll.view.surfaceRect().bottom()) <= 1)
     host.keyPress(.Home)
     Swag.assert(scroll.scrollPosition().y == 0)
-    dlg.surface!.destroy()
+    dlg.surface.destroy()
     host.pump()
 }
 
@@ -278,7 +278,7 @@ using Swag, Core, Pixel
 
     dlg.addSection("Formats", "One short line of supporting detail.")
     Swag.assert(dlg.sectionsScroll != null)
-    let oneHeight = dlg.surface!.position.height
+    let oneHeight = dlg.surface.position.height
     Swag.assert(oneHeight > plainHeight)
     Swag.assert(dlg.sectionsScroll.position.height < AboutDlg.MaxSectionsHeight)
 
@@ -291,5 +291,5 @@ using Swag, Core, Pixel
     let scroll = dlg.sectionsScroll
     Swag.assert(scroll.position.height <= AboutDlg.MaxSectionsHeight)
     Swag.assert(scroll.scrollSize.y > scroll.position.height)
-    Swag.assert(dlg.surface!.position.height > oneHeight)
+    Swag.assert(dlg.surface.position.height > oneHeight)
 }

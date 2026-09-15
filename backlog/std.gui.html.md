@@ -66,6 +66,77 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Entries
 
+### std.gui.html.012 — Dashed, dotted and double borders paint solid
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-15 09:12 — Per-corner radii, mixed side colours and the border's placement inside the box shipped; only the line patterns remain.
+- Shipped: `LinePath.setRoundRectRaw` gained a per-corner form, carrying the proportional scaling
+  CSS applies when two radii sharing a side would overlap, and `Painter` gained the matching
+  `fillRoundRect` and `drawRoundRect`. `paintDecorations` passes the four radii through instead of
+  collapsing them to the largest, so a box that rounds one corner keeps the other three square. A
+  rounded box whose sides agree is drawn as one stroke; one whose sides differ is drawn side by
+  side in each side's own colour — it previously painted the whole ring in the top side's colour
+  and dropped the other three — with square corners as the one documented approximation.
+- Shipped: that stroke is now placed with `BorderPos.Inside`. A pen defaults to `.None`, which
+  centres it on the outline, so a rounded border used to hang half its width outside the element
+  and paint over whatever sat beside it, while the mitred sides of a square box filled inward. The
+  two paths now agree, and a test pins that nothing of the border reaches the row or column just
+  outside the box. Six `linepath.test.swg` cases pin the geometry and three `htmlview.test.swg`
+  cases the rendering.
+- Evidence: `HtmlBorderStyle` distinguishes `Dashed`, `Dotted` and `Double`, but `paintDecorations`
+  only tests for `None`, so every side is filled as a solid rectangle or trapezoid and
+  `border: 1px dashed` draws exactly like `border: 1px solid`.
+- Next: give a side its dash pattern at paint time, deciding where the phase restarts at a corner
+  and how a pattern follows a rounded one, then draw `double` as two strokes sharing the declared
+  width.
+- Complete when: dashed and dotted sides draw their pattern and `double` draws its two lines, on
+  square and rounded boxes alike, with a golden holding each.
+
+### std.gui.html.006 — A fixed box is placed against the viewport and then scrolls away from it
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-15 07:52 — Containing-block resolution and the unplaced out-of-flow children of flex, grid and table containers shipped; what remains is paint order, and the stacking half moved to std.gui.html.023.
+- Shipped: out-of-flow boxes are now placed by `placeOutOfFlow`, a second pass drained after the
+  in-flow layout, so the box they resolve against already has its final rectangle — `bottom` and a
+  percentage height against a `relative` card previously measured against a zero height.
+  `containingBlockOf` walks past static ancestors to the nearest positioned one, and answers the
+  initial containing block when there is none, so the standard card-and-badge pattern anchors to
+  the card. `flowChildren` queues what it steps over, so a positioned child of a flex, grid or
+  table container is placed instead of being left at the rectangle it was born with. An automatic
+  inset now keeps the box at the flow position it would have had rather than on the containing
+  block's edge. Five `htmlview.test.swg` cases cover these.
+- Evidence: `position: fixed` resolves against the viewport, which places it correctly while the
+  document sits at scroll zero, but `paintBox` still reaches it through its parent and adds the
+  scroll translation, so a fixed header leaves the screen. It is also pruned with an ancestor whose
+  `paintBounds` left the viewport, and hit tested at the scrolled position rather than the drawn one.
+- Next: collect the fixed boxes the layout placed, then give the four tree walks of `paint.swg` —
+  painting, hit testing, scroll-region lookup and selection — a root-level pass over that list,
+  excluded from the ordinary walk and from `computePaintBounds`, so a fixed box neither scrolls
+  nor is pruned with an ancestor that left the viewport.
+- Complete when: a fixed box holds its viewport position while the document scrolls, is hit tested
+  where it is drawn, and stays visible when the box that holds it in the tree has scrolled away.
+- Related: std.gui.html.023
+
+### std.gui.html.023 — `z-index` does not hoist a positioned descendant into its stacking context
+
+- Recorded: 2026-09-15 07:52
+- Historical provenance: split from std.gui.html.006, which owned it beside the containing-block
+  resolution that has since shipped.
+- Evidence: `paintChildren` orders positioned *siblings* by `stackingLevel` within their parent, and
+  `hasStacked` is set on a box only when one of its own children carries a non-zero level. A
+  positioned box nested under static ancestors therefore paints at its tree level: a `z-index: 10`
+  badge inside a plain wrapper still draws under a later sibling of that wrapper, which is the
+  ordinary overlay and dropdown idiom. Hit testing, scroll-region lookup and selection repeat the
+  same walk shape, so the order has to be shared rather than fixed in the painter alone.
+- Next: decide where the stacking context is built. Collecting each context's positioned
+  descendants once, at the end of layout, keeps the four walks reading one ordered list instead of
+  each rediscovering the order; establish which boxes create a context — a positioned box with a
+  level, `opacity` below one, an `overflow` region — before choosing the representation.
+- Complete when: a positioned descendant paints, hit tests and selects at its stacking-context
+  level rather than its tree level, the boxes that create a context are documented, and a golden
+  holds the overlay idiom.
+- Related: std.gui.html.006
+
 ### std.gui.html.009 — Inline and embedded SVG images are not rendered
 
 - Recorded: 2026-08-18 14:57
@@ -81,18 +152,6 @@ mean, and CSS surface that is read and silently dropped.
   local SVG, their dimensions are honored, unsupported content has a visible placeholder, and
   regression fixtures preserve the working local-image path.
 
-### std.gui.html.008 — Percentage heights resolve against nothing in normal flow
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-12 07:14 — Name the current containing-block construction site.
-- Intent: `layoutBlockBox` builds each child's containing block with a width and
-  `hasHeight: false`, so `height: 100%` resolves only for the root and for absolutely
-  positioned boxes. The classic full-height chain — `html, body, .app { height: 100% }` — and
-  every percentage-height panel inside a definite-height parent collapse to content height.
-- Complete when: a child whose parent's used height is definite resolves percentage heights
-  against it, the definiteness propagates down a chain of definite heights, and an indefinite
-  parent still falls back to content height as it does today.
-
 ### std.gui.html.011 — Shadows are not drawn
 
 - Recorded: 2026-08-18 14:57
@@ -103,18 +162,6 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: an outset `box-shadow` with offset, blur and color draws behind the border box
   (inset may be recorded as a limitation), `text-shadow` draws behind the run, and both respect
   border radius.
-
-### std.gui.html.012 — Dashed, dotted and double borders paint solid
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-12 07:14 — Distinguish the existing absent-border check from missing patterns.
-- Intent: `HtmlBorderStyle` distinguishes the styles but `paintDecorations` only tests for `None` —
-  every side is filled as a solid rectangle or trapezoid, so `border: 1px dashed` draws exactly
-  like `solid`. Corner radii are also collapsed: the largest of the four corners is applied to
-  all of them, drawn with the top side's width and color alone.
-- Complete when: dashed and dotted sides draw their pattern, double draws its two lines, each
-  corner uses its own radius, and mixed side colors on a rounded box either draw correctly or
-  are recorded as the one documented approximation.
 
 ### std.gui.html.013 — `transform` does not exist
 
@@ -249,24 +296,6 @@ mean, and CSS surface that is read and silently dropped.
   `align-content`, row items align on their first baselines, a column container distributes free
   main-axis space per `justify-content`, and the flex fixture asserts each against browser
   geometry.
-
-### std.gui.html.006 — A positioned box is positioned against the wrong ancestor
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
-- Intent: three related divergences. `layoutAbsolute` positions an absolute box against its
-  direct parent box, not against its nearest positioned ancestor, so the standard pattern —
-  `position: relative` on a card, `position: absolute` on a badge two levels down — anchors to
-  the wrong frame. `position: fixed` takes the same path and then scrolls away with the
-  document, so a fixed header leaves the screen. And only `layoutBlockChildren` ever calls
-  `layoutAbsolute`: an absolutely positioned child of a flex, grid or table container is built
-  and painted but never laid out, so it draws at whatever zero-sized rectangle it was born with.
-  `z-index` meanwhile orders positioned siblings within their parent without hoisting a
-  positioned descendant through static ancestors into its stacking context.
-- Complete when: an absolute box resolves its containing block by walking to the nearest
-  non-static ancestor, a fixed box holds its viewport position while the document scrolls,
-  every container layout routes its out-of-flow children through `layoutAbsolute`, and a
-  positioned descendant paints at its stacking-context level rather than its tree level.
 
 ### std.gui.html.007 — Right-to-left text is drawn left-to-right
 

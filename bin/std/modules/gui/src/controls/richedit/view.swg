@@ -192,6 +192,12 @@ impl IWnd for RichEditView
         var x          = 0'f32
         var y          = edn.residentContentOffset
         let size       = edn.xGlyphSize()
+        var clientRect = .clientRect()
+        clientRect.width = edn.scrollWnd.paddedClientRect().width - edn.scrollWnd.paddingZ
+        let sizeChanged = .lastClientRect != clientRect
+        .lastClientRect = clientRect
+        if sizeChanged or edn.recomputeWrap do
+            edn.recomputeScroll = true
 
         // Force visible caret
         if edn.forceCaretVisible do
@@ -221,12 +227,22 @@ impl IWnd for RichEditView
             edn.countVisibleLines = 0
         edn.dirtyFirstLineView = false
 
-        let clientRect  = .clientRect()
         let firstHidden = true
         var maxx        = 0'f32
 
-        let sizeChanged = .lastClientRect != clientRect
-        .lastClientRect = clientRect
+        // An append can dirty a wrapped continuation. Reflow its authored line without
+        // rebuilding the thousands of unchanged lines before it on every streamed chunk.
+        if edn.recomputeScroll
+        {
+            var authored = 0'u64
+            for line, index in edn.lines
+            {
+                if not line!.wordWrap do
+                    authored = index
+                elif line.dirtyStyle do
+                    edn.lines[authored]!.dirtyStyle = true
+            }
+        }
 
         // All lines
         while i < edn.lines.count
@@ -262,7 +278,7 @@ impl IWnd for RichEditView
             }
 
             // Lex the line
-            if not l.wordWrap and (l.dirtyStyle or sizeChanged or edn.recomputeScroll)
+            if not l.wordWrap and (l.dirtyStyle or sizeChanged or edn.recomputeWrap)
             {
                 edn.unwrap(i)
 
@@ -277,7 +293,7 @@ impl IWnd for RichEditView
                 l.dirtyStyle = false
             }
 
-            if bvis or edn.recomputeScroll
+            if bvis or (edn.recomputeScroll and not (edn.flags & .WordWrap))
             {
                 x = .paintLine(evt.paintContext, i, y - .scrollPos.y, bvis)
             }
@@ -332,6 +348,7 @@ impl IWnd for RichEditView
         }
 
         edn.recomputeScroll = false
+        edn.recomputeWrap   = false
         edn.scrollWnd.setScrollSize(maxx, y)
 
         // Force visible caret
@@ -397,7 +414,8 @@ impl RichEditView
             painter.fillRect(rect, strStyle.colBk)
         }
 
-        painter.drawShapedRun(x, y, &shaped, font, Brush.createSolid(strStyle.colFg), strStyle.underline)
+        if visible do
+            painter.drawShapedRun(x, y, &shaped, font, Brush.createSolid(strStyle.colFg), strStyle.underline)
         return right
     }
 

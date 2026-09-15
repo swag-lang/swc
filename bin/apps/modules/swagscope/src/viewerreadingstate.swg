@@ -60,7 +60,7 @@ impl ViewerReadingState
         .scrolls.clear()
         var path: Array'u32
         .captureScrolls(session.view!, &path)
-        let target = session.view!
+        let target = session.view
         switch
         {
         case let view = cast #try (*TextView) target:

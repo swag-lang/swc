@@ -67,8 +67,8 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.assert(not window.readingState.restoring)
     Swag.assert(window.choices[window.activeChoiceIndex].key == "markdown")
     Swag.assert(window.searchBox.text() == "manuscript")
-    Swag.assert((cast #assume (*MarkdownZoomButton) window.currentInfo!.children[0]).zoomPercent == 150)
-    Swag.assert((cast #assume (*ScrollWnd) window.currentView!.children[0]).scrollPosition() == position)
+    Swag.assert((cast #assume (*MarkdownZoomButton) window.currentInfo.children[0]).zoomPercent == 150)
+    Swag.assert((cast #assume (*ScrollWnd) window.currentView.children[0]).scrollPosition() == position)
     pollFileWatch(&host, window)
     Swag.assert(window.pendingFile.isEmpty())
 
@@ -167,7 +167,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     completeQueuedViewerFile(&host, window)
     for 64 where window.readingState.restoring do
         host.fireTimer(window.fileWatchTimer)
-    let replacement = (cast #assume (*PdfViewer) window.currentView!).pdfView
+    let replacement = (cast #assume (*PdfViewer) window.currentView).pdfView
     Swag.assert(replacement.pageCount() == 3 and replacement.pageIndex == 1)
     Swag.assert(replacement.zoom == 1.5 and replacement.zoomMode == zoomMode)
     Swag.assert(replacement.pageLayout == .Single)
@@ -212,7 +212,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         host.advanceAnimations(0.1)
     }
 
-    let replacement = cast #assume (*Markdown.View) window.currentView!
+    let replacement = cast #assume (*Markdown.View) window.currentView
     Swag.assert(not window.readingState.restoring and not replacement.isLoading())
     let scroll   = cast #assume (*ScrollWnd) replacement.children[0]
     let position = scroll.scrollPosition()
@@ -258,7 +258,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.reloadCurrentFile()
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
-    let replacement = (cast #assume (*ImageViewer) window.currentView!).imageView
+    let replacement = (cast #assume (*ImageViewer) window.currentView).imageView
     Swag.assert(not replacement.isFitted and replacement.zoom == 2)
     Swag.assert(replacement.rotationQuarterTurns == 1 and replacement.isMirrored)
     Swag.assert(replacement.panOffset == pan)

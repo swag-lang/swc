@@ -28,7 +28,7 @@ impl RichEditCtrl
                 }
             }
 
-            if start.lineIndex != end.lineIndex
+            if start.lineIndex != end.lineIndex and not .lines[start.lineIndex + 1]!.wordWrap
             {
                 result.text.add('\n')
                 result.styles.add(0)
@@ -48,8 +48,11 @@ impl RichEditCtrl
                 {
                     result.text.add(.lines[i]!.chars.toSlice())
                     result.styles.add(.lines[i]!.styles.toSlice())
-                    result.text.add('\n')
-                    result.styles.add(0)
+                    if not .lines[i + 1]!.wordWrap
+                    {
+                        result.text.add('\n')
+                        result.styles.add(0)
+                    }
                 }
             }
 
@@ -96,9 +99,6 @@ impl RichEditCtrl
 
     mtd unwrap(lineIndex: u64)
     {
-        if not (.flags & .WordWrap) do
-            return
-
         // Make one single line with current wrapped lines
         var i       = lineIndex + 1
         let dstLine = .lines[lineIndex]!
@@ -150,78 +150,81 @@ impl RichEditCtrl
         if not (.flags & .WordWrap) do
             return
 
-        let fontR = .font().getFont(.styles[0].fontMode)
-        if not fontR do
+        if not .font().getFont(.styles[0].fontMode) do
             return
-        let font = nnFont(fontR)
+        let line  = .lines[lineIndex]!
+        let right = .scrollWnd.paddedClientRect().width - .scrollWnd.paddingZ - .rightMargin()
+        var cuts: Array'u64
+        var start, i, wordEnd: u64
+        var x     = .leftMargin()
 
-        // Do the wrap
-        var curLine    = lineIndex
-        var i          = 0'u64
-        var clientRect = .edView.clientRect()
-        clientRect.width -= .rightMargin()
-
-        var str: String
-
-        var cutAti = i
-        while i < .lines[curLine]!.length()
+        // Advance once per rune instead of shaping every growing prefix. A word longer than
+        // the viewport also needs a cut, including input interpreted with the wrong encoding.
+        while i < line.length()
         {
-            let l  = .lines[curLine]!
-            let ch = l.chars[i]
-            str += ch
-
-            if not Unicode.isLetterOrDigit(ch) do
-                cutAti = i + 1
-
-            if cutAti > 1
+            var next = .advanceRuneX(line, i, x)
+            if i == start and start and line.chars[i] != '\t'
             {
-                let x = .leftMargin() + Painter.measureString(str, font).width
-                if x > clientRect.right()
-                {
-                    if cutAti and cutAti == i + 1 do
-                        cutAti -= 1
-
-                    // A cursor below the line being split keeps the place it points at, one display
-                    // line further down; one on the split line follows the runes it sits among.
-                    // Leaving the first case out is what made a search reveal land on whatever
-                    // sentence happened to carry the same index once a line above it wrapped.
-                    if .cursorPos.lineIndex > curLine do
-                        .cursorPos.lineIndex += 1
-                    elif .cursorPos.lineIndex == curLine and .cursorPos.charPosInLine >= cutAti
-                    {
-                        .cursorPos.lineIndex     += 1
-                        .cursorPos.charPosInLine -= cutAti
-                    }
-
-                    if .selBeg.lineIndex > curLine do
-                        .selBeg.lineIndex += 1
-                    elif .selBeg.lineIndex == curLine and .selBeg.charPosInLine >= cutAti
-                    {
-                        .selBeg.lineIndex     += 1
-                        .selBeg.charPosInLine -= cutAti
-                    }
-
-                    i = cutAti
-                    let newL = .newLine(curLine + 1)
-                    newL.wordWrap = true
-
-                    newL.chars.add(Swag.makeSlice(l.chars.buffer + i, l.chars.count - i))
-                    newL.styles.add(Swag.makeSlice(l.styles.buffer + i, l.chars.count - i))
-                    newL.dirtyStyle       = false
-                    newL.lexerEndingState = l.lexerEndingState
-                    newL.lexerCptCmt      = l.lexerCptCmt
-                    l.chars.resize(i)
-                    l.styles.resize(i)
-
-                    curLine   += 1
-                    i, cutAti = 0
-                    str.clear()
-                    continue
-                }
+                // A new display line has no preceding glyph to kern against.
+                let info  = .computeTextDrawInfo(line.styles[i])
+                let font  = info.drawFont.resolveRune(line.chars[i])
+                let glyph = font.getGlyphDescByIndex(font.glyphIndex(line.chars[i]))
+                next = Painter.advanceTextX(x, 0, glyph.advanceX, info, true).rightX
             }
 
+            if next > right and i > start
+            {
+                let cut = wordEnd > start ? wordEnd : i
+                cuts.add(cut)
+                start   = cut
+                i       = cut
+                wordEnd = cut
+                x       = .leftMargin()
+                continue
+            }
+
+            x = next
             i += 1
+            if not Unicode.isLetterOrDigit(line.chars[i - 1]) do
+                wordEnd = i
         }
+
+        // Split from the end so every rune is copied once, even for a single huge logical line.
+        var end = line.length()
+        for cut in cuts.reversed()
+        {
+            // A cursor below the line being split keeps the place it points at, one display
+            // line further down; one on the split line follows the runes it sits among.
+            // Leaving the first case out is what made a search reveal land on whatever
+            // sentence happened to carry the same index once a line above it wrapped.
+            if .cursorPos.lineIndex > lineIndex do
+                .cursorPos.lineIndex += 1
+            elif .cursorPos.lineIndex == lineIndex and .cursorPos.charPosInLine >= cut
+            {
+                .cursorPos.lineIndex     += 1
+                .cursorPos.charPosInLine -= cut
+            }
+
+            if .selBeg.lineIndex > lineIndex do
+                .selBeg.lineIndex += 1
+            elif .selBeg.lineIndex == lineIndex and .selBeg.charPosInLine >= cut
+            {
+                .selBeg.lineIndex     += 1
+                .selBeg.charPosInLine -= cut
+            }
+
+            let nextLine = .newLine(lineIndex + 1)
+            nextLine.wordWrap = true
+            nextLine.chars.add(line.chars.toSlice()[cut until end])
+            nextLine.styles.add(line.styles.toSlice()[cut until end])
+            nextLine.dirtyStyle       = false
+            nextLine.lexerEndingState = line.lexerEndingState
+            nextLine.lexerCptCmt      = line.lexerCptCmt
+            end = cut
+        }
+
+        line.chars.resize(end)
+        line.styles.resize(end)
     }
 
     mtd insertRunePrivate(cp: *RichEditCursor, c: rune, txtStyle: RichEditStyleRef)

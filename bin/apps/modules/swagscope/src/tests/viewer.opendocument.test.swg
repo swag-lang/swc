@@ -353,8 +353,8 @@ private func drawingOpenDocumentXml()->String
     flatView.sendEvent(&last)
     Swag.assert(last.accepted and flatView.slideIndex == 1)
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(flatResult.collectMatches!, flatResult.view!, "Read-only drawing page", &matches)
-    let revealed = matches.count == 1 and matches[0].major == 0 and flatResult.revealMatch!(flatResult.view!, matches[0], "Read-only drawing page")
+    collectViewerMatches(flatResult.collectMatches!, flatResult.view, "Read-only drawing page", &matches)
+    let revealed = matches.count == 1 and matches[0].major == 0 and flatResult.revealMatch!(flatResult.view, matches[0], "Read-only drawing page")
     Swag.assert(revealed)
     Swag.assert(flatView.slideIndex == 0)
 
@@ -442,13 +442,13 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(view.sheetIndex == 0 and view.table.document.rows.count == 2 and view.table.document.rows[1].cells[0] == "Berlin")
 
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(result.collectMatches!, result.view!, "Lyon", &matches)
-    let revealed = matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Lyon")
+    collectViewerMatches(result.collectMatches!, result.view, "Lyon", &matches)
+    let revealed = matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view, matches[0], "Lyon")
     Swag.assert(revealed)
     Swag.assert(view.sheetIndex == 1 and view.table.document.rows[0].cells[0] == "Lyon")
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
-    result.clearSearch!(result.view!)
+    Swag.assert(result.searchBounds!(result.view, matches[0], &bounds) and not bounds.isEmpty())
+    result.clearSearch!(result.view)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
@@ -486,13 +486,13 @@ private func drawingOpenDocumentXml()->String
     Swag.assert(view.slideIndex == 0 and Utf8.contains(view.document.slides[view.slideIndex].html.toString(), "Prepare the offline review"))
 
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(result.collectMatches!, result.view!, "Offline review is ready", &matches)
-    let revealed = matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view!, matches[0], "Offline review is ready")
+    collectViewerMatches(result.collectMatches!, result.view, "Offline review is ready", &matches)
+    let revealed = matches.count == 1 and matches[0].major == 1 and result.revealMatch!(result.view, matches[0], "Offline review is ready")
     Swag.assert(revealed)
     Swag.assert(view.slideIndex == 1)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and not bounds.isEmpty())
-    result.clearSearch!(result.view!)
+    Swag.assert(result.searchBounds!(result.view, matches[0], &bounds) and not bounds.isEmpty())
+    result.clearSearch!(result.view)
 
     var previous = KeyEvent{kind: .Pressed, key: .Left}
     view.sendEvent(&previous)

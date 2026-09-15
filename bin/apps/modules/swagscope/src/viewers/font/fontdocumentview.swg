@@ -134,10 +134,10 @@ private impl FontDocumentView
     {
         let colors = .themeColors()
         let family = .face!.familyName
-        let style  = .face!.styleName.isEmpty() ? fontStrings().ui_Regular : .face!.styleName.toString()
+        let style  = .face.styleName.isEmpty() ? fontStrings().ui_Regular : .face.styleName.toString()
 
         painter.drawString(FontContentInset, .layout.nameTop, family.toString(), .fontName, colors.label_Text)
-        let metrics = Format.toString(fontStrings().ui_Metrics, style, .face!.glyphCount, .face!.unitsPerEm)
+        let metrics = Format.toString(fontStrings().ui_Metrics, style, .face.glyphCount, .face.unitsPerEm)
         painter.drawString(FontContentInset, .layout.metricsTop, metrics.toString(), .fontCode, colors.label_TextFaint)
         painter.drawString(FontContentInset, .layout.captionTop, fontStrings().ui_Specimen, .fontLabel, colors.label_TextFaint)
 

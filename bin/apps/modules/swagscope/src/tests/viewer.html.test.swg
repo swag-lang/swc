@@ -41,12 +41,13 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.assert(Utf8.contains(result.details.toString(), "HTML"))
     let view = cast #assume (*HtmlViewer) result.view
     finishHtmlViewer(&host, &result)
+    Swag.assert(result.view != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent!(view.view, &zoomIn))
     Swag.assert(view.zoomPercent == 125 and view.view.documentStyle.bodyFontSize == 20)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent!(view.view, &resetZoom) and view.zoomPercent == 100)
+    Swag.assert(view.hookOnChildEvent(view.view, &resetZoom) and view.zoomPercent == 100)
 
     let source = expect File.readAllText(fileName.toString())
     let offset = source.indexOf("immutable")
@@ -91,6 +92,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishHtmlViewer(&host, &result)
+    Swag.assert(result.info != null)
     view.dockStyle        = .Center
     result.info.dockStyle = .None
 

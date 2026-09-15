@@ -25,6 +25,14 @@ func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
     return bytes
 }
 
+// 'expect' needs a valid fallback, so it cannot produce a non-null slice directly. This hands
+// the same successful slice back as nullable, to be consumed as 'expect tableSlice(...)!'.
+func tableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8? fail
+    => try getTableSlice(faceData, tag, missingCode)
+
+func sliceRange(buffer: const [..] u8, offset, length: u64)->const [..] u8? fail
+    => try getSlice(buffer, offset, length)
+
 func writeBigU32(buffer: *Array'u8, offset: u64, value: u32)
 {
     buffer[offset + 0] = cast(u8) ((value >> 24) & 0xFF)

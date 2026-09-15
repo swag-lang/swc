@@ -223,6 +223,19 @@ public:
     void                             hideLookupSymbol(const Symbol* sym);
     bool                             isLookupSymbolHidden(const Symbol* sym) const;
 
+    // A frame pushed only to carry a binding type or lookup context for one operand -- the
+    // initializer of a declaration, the right side of an assignment. It is popped with that
+    // operand, so it scopes name resolution, never a flow proof: a proof recorded while it is
+    // on top belongs to the statement's own frame and is written past it.
+    bool bindingScoped() const { return bindingScoped_; }
+    void setBindingScoped() { bindingScoped_ = true; }
+
+    // The frame of a 'defer' body. Its statements run at scope exit, so what they invalidate
+    // cannot reach back to the code written between the 'defer' and that exit: a kill recorded
+    // inside it stops here instead of propagating to the enclosing regions.
+    bool deferBody() const { return deferBody_; }
+    void setDeferBody() { deferBody_ = true; }
+
     void addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
     void addNarrowKill(std::span<const Symbol* const> path);
     bool queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const { return queryNarrowFact(narrowFacts_.span(), path, kind); }
@@ -257,6 +270,8 @@ private:
     SemaScope*                          lookupScope_                   = nullptr;
     const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes_      = nullptr;
     SemaScope*                          upLookupScope_                 = nullptr;
+    bool                                bindingScoped_                 = false;
+    bool                                deferBody_                     = false;
     bool                                ignoreRuntimeAccess_           = false;
     bool                                ignoreRedirectedLookupSymMaps_ = false;
     BreakContext                        breakable_;

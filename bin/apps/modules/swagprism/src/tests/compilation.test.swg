@@ -8,8 +8,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
     var cancelled = 0'u32
     Swag.assert(lease.wait(&cancelled))
     if lease.artifact!.result.failed do
-        Console.print(lease.artifact!.result.text.toString())
-    Swag.assert(not lease.artifact!.result.failed)
+        Console.print(lease.artifact.result.text.toString())
+    Swag.assert(not lease.artifact.result.failed)
 }
 
 // Identical requests share an in-flight process and retain completed output for later reuse.
@@ -191,7 +191,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     Swag.assert(panel.options.editor.text().toString() == Pipeline.BuildSettings.DefaultConfiguration)
     Swag.assert(window.panels[1].optimCombo.selectedIndex == 2)
     panel.showOptions(false)
-    Swag.assert(panel.viewer!.window().isVisible() and not panel.optionsButton.isChecked)
+    Swag.assert(panel.viewer.window().isVisible() and not panel.optionsButton.isChecked)
     window.shutdown()
 }
 

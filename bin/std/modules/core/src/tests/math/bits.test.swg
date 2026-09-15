@@ -334,3 +334,29 @@ func expectedByteswap16(value: u16)->u16
     Swag.assert(Math.byteswap(0x12345678'u32) == 0x78563412'u32)
     Swag.assert(Math.byteswap(0x01234567_89ABCDEF'u64) == 0xEFCDAB89_67452301'u64)
 }
+
+// A single byte has no byte order, and a signed value keeps its exact bit pattern.
+#test
+{
+    Swag.assert(Math.byteswap(0x12'u8) == 0x12'u8)
+    Swag.assert(Math.byteswap(0x12's8) == 0x12's8)
+    Swag.assert(Math.byteswap(-1's8) == -1's8)
+
+    Swag.assert(Math.byteswap(800's16) == 0x2003's16)
+    Swag.assert(Math.byteswap(0x2003's16) == 800's16)
+    Swag.assert(Math.byteswap(-1's16) == -1's16)
+    Swag.assert(Math.byteswap(0x00FF's16) == cast #bit (s16) 0xFF00'u16)
+
+    Swag.assert(Math.byteswap(0x12345678's32) == 0x78563412's32)
+    Swag.assert(Math.byteswap(-1's32) == -1's32)
+    Swag.assert(Math.byteswap(cast #bit (s32) 0xFFFFFF00'u32) == 0x00FFFFFF's32)
+
+    Swag.assert(Math.byteswap(0x01234567_89ABCDEF's64) == cast #bit (s64) 0xEFCDAB89_67452301'u64)
+    Swag.assert(Math.byteswap(-1's64) == -1's64)
+
+    // Swapping twice is the identity on every width, including the negative values a
+    // signed field carries.
+    Swag.assert(Math.byteswap(Math.byteswap(-12345's16)) == -12345's16)
+    Swag.assert(Math.byteswap(Math.byteswap(-1234567's32)) == -1234567's32)
+    Swag.assert(Math.byteswap(Math.byteswap(-5_000_000_000's64)) == -5_000_000_000's64)
+}

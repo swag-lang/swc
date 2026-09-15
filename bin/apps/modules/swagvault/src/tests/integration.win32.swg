@@ -115,7 +115,7 @@ namespace Integration
 
         var items: *Win32.IUnknown?
         try verify(SHCreateShellItemArrayFromIDLists(cast(u32) idLists.count, idLists.storage(), &items) >= 0, "the Shell must collect the batch rename sources")
-        defer discard (items!.lpVtbl.Release)(items!)
+        defer discard (items!.lpVtbl.Release)(items)
 
         // Suppress UI, stop on errors, and let Windows choose numbered names while keeping extensions.
         const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000

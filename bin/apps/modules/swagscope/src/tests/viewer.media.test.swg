@@ -37,7 +37,7 @@ using Core, Pixel, Gui
     Swag.assert(not session.sidePanelHost!.isLocallyVisible())
     session.sidePanelButton.setChecked(true)
     session.sidePanelButton.sigCheckedChanged.call(session.sidePanelButton)
-    Swag.assert(session.sidePanelHost!.isLocallyVisible())
+    Swag.assert(session.sidePanelHost.isLocallyVisible())
     Swag.assert(Utf8.contains(view.information.text(), "Author: Camera owner"))
     Swag.assert(view.information.list.lineCount() == view.information.data.rows.count)
     Swag.assert(Utf8.contains(view.information.text(), "96 × 64 px"))
@@ -46,7 +46,7 @@ using Core, Pixel, Gui
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
-    Swag.assert(view.position.width > session.sidePanelHost!.position.width)
+    Swag.assert(view.position.width > session.sidePanelHost.position.width)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.media.information")
 
@@ -57,7 +57,7 @@ using Core, Pixel, Gui
     Swag.assert(Utf8.contains(view.information.text(), "Author: Camera owner"))
     Testing.assertContentFits(&host.root)
     host.clickWnd(view.information.closeButton)
-    Swag.assert(not session.sidePanelHost!.isLocallyVisible() and not session.sidePanelButton.isChecked)
+    Swag.assert(not session.sidePanelHost.isLocallyVisible() and not session.sidePanelButton.isChecked)
 }
 
 // JPEG EXIF is interpreted from the preserved APP1 payload, while decodeMetadata remains optional.

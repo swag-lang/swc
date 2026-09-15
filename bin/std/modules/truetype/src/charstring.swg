@@ -190,7 +190,7 @@ private impl Type2State
     }
 }
 
-private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fail
+private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
 {
     if depth >= MaxCharstringDepth do
         try fault(0x89)
@@ -225,7 +225,7 @@ private func execType2(state: *Type2State, code: const [..] u8?, depth: u32) fai
             else
             {
                 // A 16.16 fixed-point literal, the only fractional operand the format has.
-                state.push(cast(f64) (try readS32(code!, pos)) / 65536.0)
+                state.push(cast(f64) (try readS32(code, pos)) / 65536.0)
                 pos += 4
             }
 
@@ -792,7 +792,7 @@ private impl Type1State
     }
 }
 
-private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fail
+private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
 {
     if depth >= MaxCharstringDepth do
         try fault(0x89)
@@ -823,7 +823,7 @@ private func execType1(state: *Type1State, code: const [..] u8?, depth: u32) fai
             {
                 // Type 1 spells its wide literals as plain 32-bit integers, not as the
                 // fixed-point form Type 2 introduced for the same encoding byte.
-                state.push(cast(f64) (try readS32(code!, pos)))
+                state.push(cast(f64) (try readS32(code, pos)))
                 pos += 4
             }
 

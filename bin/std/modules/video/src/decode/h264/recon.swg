@@ -58,10 +58,10 @@ impl Decoder
             if parsedRows < endRow do
                 break
 
-            let firstRow = cast(u32) .sps!.mbHeight * band / .pipelineBandCount
+            let firstRow = cast(u32) .sps.mbHeight * band / .pipelineBandCount
             let decoder  = me
-            let first    = firstRow * cast(u32) .sps!.mbWidth
-            let last     = endRow * cast(u32) .sps!.mbWidth
+            let first    = firstRow * cast(u32) .sps.mbWidth
+            let last     = endRow * cast(u32) .sps.mbWidth
             .pipelineTasks[band].submit(func|decoder, first, last|() { reconstructBand(decoder, first, last) })
             .pipelineScheduled += 1
         }

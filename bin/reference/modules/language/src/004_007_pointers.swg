@@ -115,8 +115,21 @@ code that follows without a `!`. A path that leaves the block — a `return`, a 
 
 Write `!` where an invariant makes the value always present and a null would be a bug
 worth stopping on; write `?.` where absence is an ordinary outcome the code handles.
-Both are tolerated on a value the flow already proved, so a redundant one in a narrowed
-region is dead, not wrong.
+
+A `!` is an assertion, so the code after it is reachable only when the value was there: it
+proves its own path for the remainder of the enclosing block, exactly like the
+`Swag.assert(p != null)` it stands for. A second `!` on that path therefore asserts what the
+first already established, and is rejected rather than charged for a guard that cannot fire.
+Written twice, `!` is saying the path has an invariant — and an invariant is stated once: give
+the value a non-null type, declare the field `late`, bind it to a local, or open the block with
+`Swag.assert`. Every proof dies where the path is reassigned, and the assertion is needed again.
+
+A `!` the flow reaches only after a decision taken to its left — the right operand of
+`and`/`or`, a branch of `?:`, the fallback of `orelse`, the tail of a `?.` chain — may not have
+run at all, so it proves nothing past its own region. A generic body is analyzed once per
+instantiation and an inlined body is judged at a call site it did not choose, so neither is
+reported: this is the same line `orelse` draws, on what the type can be rather than on what the
+flow proves at one site.
 */
 #test
 {
@@ -138,16 +151,13 @@ region is dead, not wrong.
     if p != null do
         Swag.assert(p.count == 2)
 
-    // The postfix '!' asserts the proof explicitly (panics at runtime if wrong).
+    // The postfix '!' asserts the proof explicitly (panics at runtime if wrong), and that
+    // assertion covers the rest of the block: 'p' needs no second '!' below.
     let q = p!
     Swag.assert(q.count == 2)
-
-    // 'Swag.assert' proves the path for the rest of the block, like a precondition.
-    Swag.assert(p != null)
     Swag.assert(p.count == 2)
 
-    // p is already proven; '!' asserts the nullable next member instead of skipping it.
-    Swag.assert(p.count == 2)
+    // 'p' is already proven; '!' asserts the nullable next member instead of skipping it.
     Swag.assert(p.next!.count == 7)
 
     // '?.' skips the access when null; 'orelse' provides the scalar fallback.

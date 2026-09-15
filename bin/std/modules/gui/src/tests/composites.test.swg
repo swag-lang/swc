@@ -48,7 +48,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     Swag.assert(dlg.buttonBar.mode == .HorizontalEnd)
     Swag.assert(dlg.buttonBar.spacing == dlg.themeMetrics().dialog_BtnPadding)
     Swag.assert(dlg.contentView!.padding.x == dlg.themeMetrics().dialog_Padding)
-    Swag.assert(dlg.contentView!.padding.y == dlg.themeMetrics().dialog_Padding)
+    Swag.assert(dlg.contentView.padding.y == dlg.themeMetrics().dialog_Padding)
 
     var didClose: bool
     host.app.sigFrame += func|host = &host, didClose = &didClose|(app)

@@ -270,7 +270,7 @@ impl IForm for FormText
                 let borderPath = &.borderPaths[idx]
                 if not Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
-                    borderPath[] = expect face!.buildStringOutline(t, cast() fSize, cast() sSize)
+                    borderPath[] = expect face.buildStringOutline(t, cast() fSize, cast() sSize)
                     borderPath.flatten(.Normal)
                     borderPath.clean()
                     borderPath.offset(bSize, .joinStyle, 0.25)

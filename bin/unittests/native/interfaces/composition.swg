@@ -68,7 +68,8 @@ func increment(h: *Holder)
     increment(&h)
     increment(&h)
     Swag.assert(c.count == 12)
-    Swag.assert(h.itf.getValue() == 12)
+    // Both calls alias the holder, so the assignment above no longer proves the field.
+    Swag.assert(h.itf!.getValue() == 12)
 }
 
 // Iterate over an array of interfaces with different concrete types.

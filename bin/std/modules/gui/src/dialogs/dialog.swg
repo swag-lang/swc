@@ -66,7 +66,7 @@ impl Dialog
     {
         for stop in FocusOrder.collect(.surface!.wnd).stops where not stop.wndFlags.has(.ActivatesOnKey) do
             return stop
-        return .surface!.defaultButton
+        return .surface.defaultButton
     }
 
     // Returns the button Escape and the close cross stand for, or null when the box offers

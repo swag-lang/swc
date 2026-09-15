@@ -122,6 +122,22 @@ func nullableUseSiteKilled(p: *NullableUseSiteItem?, q: *NullableUseSiteItem?)->
     return a + cur.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
+// Aliasing a plain struct is what lets a callee rewrite the nullable fields reached through
+// it, so taking its address drops their proofs -- the prefix carrying the kill is itself a
+// bare type, which is exactly when the path is NOT nullable-declared.
+func nullableUseSiteWritesThroughStructAlias(box: *NullableUseSiteBox)
+{
+    box.slot = null
+}
+
+func nullableUseSiteKilledByStructAlias(source: NullableUseSiteBox)->s32
+{
+    var local = source
+    let first = local.slot!.value
+    nullableUseSiteWritesThroughStructAlias(&local)
+    return first + local.slot.value     // swc-expected-error {{sema_err_nullable_member_access}}
+}
+
 // An 'Swag.assert' proof is scoped to its own block and does not outlive it.
 func nullableUseSiteAssertScoped(p: *NullableUseSiteItem?)->s32
 {

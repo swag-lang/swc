@@ -6,6 +6,79 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.045 — A conditionally evaluated `!` cannot record the proof it makes
+
+- Recorded: 2026-09-15 12:47
+- Found while: making the postfix `!` prove its own path so a second one on that path is
+  rejected (`sema_err_notnull_already_proven`).
+- Evidence: a proof is recorded by mutating live frames in place, because pushing a frame with
+  an ancestor-anchored pop from the middle of a statement breaks the LIFO discipline of the
+  deferred pops. The right operand of `and`/`or`, a branch of `?:`, the fallback of `orelse` and
+  the tail of a `?.` chain are each evaluated on a decision taken to their left, and none of them
+  carries a frame of its own: `AstLogicalExpr::semaPostNodeChild` pushes one only when the left
+  side yielded facts, and the other three push none. A fact recorded inside one would therefore
+  outlive the region that justifies it, so `notNullRunsUnconditionally` in
+  `Sema.Function.Flow.cpp` refuses to record anything there.
+- Cost: `p!` written in those positions teaches the compiler nothing, so a later `!` on the same
+  path is not reported and its runtime guard is still emitted. Measured on the 2026-09-15 sweep:
+  246 assertions were removed across `bin/`, and the paths left untouched are dominated by
+  sibling `case` bodies (which are correctly out of scope) and by these conditional operands.
+- Next: give each conditionally evaluated operand its own frame unconditionally — the `and`/`or`
+  right side whatever the left side yielded, both branches of `?:`, the `orelse` fallback, and
+  the `?.` chain tail — then drop the `notNullRunsUnconditionally` guard and let the frame pop
+  scope the fact. Measure sema time on `bin/std` before and after: this adds a frame push per
+  logical expression.
+- Complete when: `p!` in an `and` right side proves the path for the rest of that operand and
+  for nothing beyond it, with a JIT case for each of the four forms in
+  `bin/unittests/jit/flow/nullable_narrow.swg` and the negative controls in
+  `bin/unittests/errors/sema/sema_err_notnull_already_proven.swg` still passing.
+
+### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
+
+- Recorded: 2026-09-15 12:47
+- Found while: the same change, on `bin/unittests/sanity/self_borrow_move.swg`.
+- Evidence: `Swag.assert(target.cursor![] == 13)` records the non-null proof for the rest of the
+  block, but `Swag.Safety(.Assert, false)` and the `release` preset drop the whole assertion,
+  including the `!` inside its argument. The proof survives compilation; the runtime guard does
+  not. `Swag.assert(p != null)` has the same property and the reference documents it as the
+  precondition form, which is why it reads as deliberate there; a `!` inside an argument does not
+  read as a precondition at all.
+- Cost: no unsoundness in `release`, where every guard is already off. In `devmode` with an
+  explicit safety override, a path can be used unguarded because of an assertion that was
+  compiled out.
+- Next: decide whether a proof recorded inside an argument of a removable intrinsic should be
+  kept. Either record nothing from inside a `Swag.assert` argument, or state the rule in
+  `bin/reference/modules/language/src/004_007_pointers.swg` next to the existing `Swag.assert`
+  paragraph.
+- Complete when: the chosen rule is implemented or documented, with a case showing what
+  `Swag.Safety(.Assert, false)` does to the proof.
+
+### compiler.core.044 — Preserve captured errors when a fallible result feeds a struct setter
+
+- Recorded: 2026-09-15 09:20
+- Found while: moving Swag Scope text reads out of GUI events.
+- Evidence: DevMode compiler 0.1.606, program configuration `devmode`, reproduces in both JIT
+  and the native Scope tests. In a method with a `text: Core.String` field, open an existing
+  UTF-8 file with `var stream = try Core.File.openReadLive(fileName)`, then execute
+  `.text = catch stream.readTextChunk(16 * 1024, .Utf8) as readError`. The field contains the
+  correct decoded text, but `readError != null` and `Core.Errors.message(readError)` is empty.
+  The same read into `var chunk = catch ... as readError`, followed by assignment after checking
+  the error, passes JIT and native execution. The text worker uses that staged publication.
+- Generated-code evidence: `#[Swag.PrintMicro]` on the reduced method shows the native
+  `FileStream.readTextChunk` call followed by `String.opCast` and `String.opSet`, but no catch
+  entry or capture-slot initialization around that call. Its failure guard propagates to the
+  containing fallible method instead. The later assertion reads an uninitialized stack slot.
+- Reduction: the reproducer still imports `core`. A standalone value with `opDrop`,
+  `opPostCopy`, an implicit inline `opCast`, an implicit `opSet`, and a fallible producer did
+  not reproduce, including alternating success and failure. There is no retained compiler
+  fix or language-suite regression yet; changing the wrapper owner lookup alone did not fix it.
+- Next: reduce the imported setter/conversion path, trace the contextual cast and inline
+  receiver substitution that bypasses the error-management expression, and preserve the
+  handler around evaluation of its original operand.
+- Complete when: direct field assignment captures actual failures and leaves a null error on
+  success, with a standalone JIT/native regression that fails before the fix; rerun the Scope
+  text-loading tests with that form before removing the entry.
+
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 
 - Recorded: 2026-08-10 12:35

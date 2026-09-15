@@ -85,7 +85,9 @@ using Swag, Core
     Swag.assert(inkAfter > inkBefore)
 
     discard expect face.loadChar('A')
-    let sampleIdx     = findPointWithNonZeroY(&face.glyph.outline)
+    let sampleIdx = findPointWithNonZeroY(&face.glyph.outline)
+
+    // The calls above alias the outline, so the point array is unproven again here.
     let samplePts     = face.glyph.outline.points!
     let sampleBeforeX = samplePts[sampleIdx].x
     let sampleBeforeY = samplePts[sampleIdx].y

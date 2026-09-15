@@ -140,7 +140,7 @@ impl ViewerPanel
 
         .viewer = .cached[index].viewer
         .viewer!.setOptimization(cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)
-        .viewer!.window().show(not .optionsButton.isChecked)
+        .viewer.window().show(not .optionsButton.isChecked)
         .refreshPlayback()
         .kindCombo.setSelectedIndex(cast(u32) kind, notify: false)
         .applyLayout()
@@ -177,7 +177,7 @@ impl ViewerPanel
     mtd compile(request: Pipeline.BuildRequest)
     {
         .viewer!.setOptimization(request.settings.optimization)
-        .viewer!.compile(request)
+        .viewer.compile(request)
     }
 
     mtd shutdown() { .viewer!.shutdown() }

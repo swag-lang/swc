@@ -49,7 +49,7 @@
 {
     var buf: [512] u8
     var p:   const [*] u8? = &buf[0]
-    p = p! + (256 - (cast(u64) p! & 0xFF))     // force the address low byte to 0
+    p = p! + (256 - (cast(u64) p & 0xFF))     // force the address low byte to 0
     Swag.assert((cast(u64) p & 0xFF) == 0)
 
     // through .buffer (the original Swag.print swallowed-strings repro)

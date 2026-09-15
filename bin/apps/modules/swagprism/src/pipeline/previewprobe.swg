@@ -49,12 +49,12 @@ impl PreviewProbe
         if not lease.wait(&.cancelled) do
             return
         .compileMs  = lease.artifact!.elapsedMs
-        .artifactId = lease.artifact!.id
+        .artifactId = lease.artifact.id
         .reused     = lease.reused
-        if lease.artifact!.result.failed
+        if lease.artifact.result.failed
         {
             .failed      = true
-            .diagnostics = lease.artifact!.result.text
+            .diagnostics = lease.artifact.result.text
             return
         }
 
@@ -65,8 +65,8 @@ impl PreviewProbe
         let channelPath = Path.combine(.folder.session, "frame.bin")
         try .channel.open(channelPath.toString(), true)
         let executable = Env.executablePath()
-        let outDir     = Path.combine(lease.artifact!.folder.session, "out")
-        let childArgs  = Env.joinArguments(["--prism-preview-host", channelPath.toString(), lease.artifact!.binary.toString(), request.kind == .Gui ? "gui" : "pixel"])
+        let outDir     = Path.combine(lease.artifact.folder.session, "out")
+        let childArgs  = Env.joinArguments(["--prism-preview-host", channelPath.toString(), lease.artifact.binary.toString(), request.kind == .Gui ? "gui" : "pixel"])
         var child      = try Env.startProcess(Env.StartInfo{fileName: executable, arguments: childArgs.toString(), workingDirectory: outDir.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
         defer retireProcess(&child)
         Atomic.exchange(&.ready, 1)

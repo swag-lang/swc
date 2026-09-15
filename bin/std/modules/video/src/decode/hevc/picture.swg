@@ -651,7 +651,7 @@ impl Decoder
         .cuQpDeltaVal     = 0
         .isCuQpDeltaCoded = false
         let first = job.bounds![row]
-        let last  = job.bounds![row + 1]
+        let last  = job.bounds[row + 1]
         .cabac.start(job.owner!.rbsp.storage() + first, last - first)
 
         if row
@@ -703,7 +703,7 @@ impl Decoder
         {
             job.events![row].reset()
             if Atomic.get(job.progress! + row) < needed and Atomic.get(job.failed!) == 0 do
-                job.events![row].wait()
+                job.events[row].wait()
         }
 
         return Atomic.get(job.failed!) == 0
@@ -722,7 +722,7 @@ private func runWppRow(job: *WppRowJob)
     if rowError != null
     {
         job.errorText = Errors.message(rowError)
-        Atomic.exchange(job.failed!, 1)
+        Atomic.exchange(job.failed, 1)
         for index in job.rowCount do
             job.events![index].signal()
     }

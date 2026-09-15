@@ -178,7 +178,8 @@ internal impl Properties
         let sz = .fieldSize(item)
         for k in n
         {
-            let addr = .instanceAddr(item, k)
+            // Only a value row reaches here, and a value row has storage.
+            let addr = .instanceAddr(item, k)!
             var v    = readEnumBits(addr, sz)
             if set do
                 v |= mask
@@ -211,27 +212,27 @@ internal impl Properties
 
 private impl Properties
 {
-    func readEnumBits(addr: *u8?, sz: u64)->u64
+    func readEnumBits(addr: *u8, sz: u64)->u64
     {
         switch sz
         {
-        case 1: return cast(u64) (cast(const *u8) addr!)[]
-        case 2: return cast(u64) (cast(const *u16) addr!)[]
-        case 4: return cast(u64) (cast(const *u32) addr!)[]
-        case 8: return (cast(const *u64) addr!)[]
+        case 1: return cast(u64) (cast(const *u8) addr)[]
+        case 2: return cast(u64) (cast(const *u16) addr)[]
+        case 4: return cast(u64) (cast(const *u32) addr)[]
+        case 8: return (cast(const *u64) addr)[]
         }
 
         return 0
     }
 
-    func writeEnumBits(addr: *u8?, sz, val: u64)
+    func writeEnumBits(addr: *u8, sz, val: u64)
     {
         switch sz
         {
-        case 1: (cast(*u8) addr!)[] = cast(u8) val
-        case 2: (cast(*u16) addr!)[] = cast(u16) val
-        case 4: (cast(*u32) addr!)[] = cast(u32) val
-        case 8: (cast(*u64) addr!)[] = val
+        case 1: (cast(*u8) addr)[] = cast(u8) val
+        case 2: (cast(*u16) addr)[] = cast(u16) val
+        case 4: (cast(*u32) addr)[] = cast(u32) val
+        case 8: (cast(*u64) addr)[] = val
         }
     }
 }

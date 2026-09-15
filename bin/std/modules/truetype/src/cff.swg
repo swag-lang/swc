@@ -30,10 +30,12 @@ impl CffIndex
     mtd const count()->u32 => .starts.count ? cast(u32) (.starts.count - 1) : 0
 
     // Returns one item of the index, or an empty slice for a position it does not hold.
-    mtd const item(block: const [..] u8?, index: u32)->const [..] u8? fail
+    mtd const item(block: const [..] u8, index: u32)->const [..] u8 fail
     {
+        // A position the index does not hold answers empty, not absent: every reader loops to
+        // 'count', so an empty program is the benign outcome a malformed font deserves.
         if cast(u64) index + 1 >= .starts.count do
-            return null
+            return Swag.makeSlice(block.buffer, 0)
         let from = .starts[index]
         let stop = .starts[index + 1]
         if stop < from do
@@ -86,7 +88,7 @@ impl CffDict
 // tables needed to address a glyph — by index, by name, by code, or by CID — are expanded.
 struct CffFont
 {
-    block: const [..] u8?     // Borrowed CFF program; the face owns the bytes.
+    late block: const [..] u8     // Borrowed CFF program; the face owns the bytes.
 
     charStrings: CffIndex
     globalSubrs: CffIndex
@@ -174,7 +176,7 @@ func subrBias(count: u32)->s32
     return 32768
 }
 
-func readCffIndex(block: const [..] u8?, offset: u64)->CffIndex fail
+func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 {
     var result: retval
     let count = peekU16(block, offset)
@@ -209,7 +211,7 @@ func readCffIndex(block: const [..] u8?, offset: u64)->CffIndex fail
 }
 
 // Decodes the packed decimal form a DICT stores a real number in.
-func readCffReal(data: const [..] u8?, offset: u64)->{ value: f64, next: u64 } fail
+func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fail
 {
     var result: retval
     var mantissa    = 0.0'f64
@@ -281,7 +283,7 @@ func readCffReal(data: const [..] u8?, offset: u64)->{ value: f64, next: u64 } f
     return result
 }
 
-func parseCffDict(data: const [..] u8?)->CffDict fail
+func parseCffDict(data: const [..] u8)->CffDict fail
 {
     var result:  retval
     var pending: Array'f64
@@ -317,7 +319,7 @@ func parseCffDict(data: const [..] u8?)->CffDict fail
         }
         elif b0 == 29
         {
-            pending.add(cast(f64) (try readS32(data!, pos + 1)))
+            pending.add(cast(f64) (try readS32(data, pos + 1)))
             pos += 5
         }
         elif b0 == 30
@@ -554,7 +556,7 @@ private func readCffFdArray(font: *CffFont, offset: u64) fail
 }
 
 // Reads a complete CFF program into the form the charstring interpreter addresses.
-func parseCffFont(block: const [..] u8?)->CffFont fail
+func parseCffFont(block: const [..] u8)->CffFont fail
 {
     var result: retval
     result.block = block

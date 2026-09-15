@@ -372,11 +372,12 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
         SWC_RESULT(SemaHelpers::requireRuntimeErrorContextDependency(sema, node.codeRef()));
 
     // A defer body runs at scope exit, not here: narrowing facts valid at the declaration
-    // point may no longer hold when it executes.
-    if (sema.frame().hasNarrowFacts())
+    // point may no longer hold when it executes, and what the body invalidates cannot reach
+    // back to the statements written before that exit.
     {
         SemaFrame frame = sema.frame();
         frame.clearNarrowFacts();
+        frame.setDeferBody();
         sema.pushFramePopOnPostNode(frame);
     }
 

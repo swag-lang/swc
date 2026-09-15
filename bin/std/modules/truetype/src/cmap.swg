@@ -21,14 +21,14 @@ func scoreCMapFormat(format: u16)->s32
 }
 
 // Format 0: a flat 256-entry byte map, still used by small and very old faces.
-func lookupCMap0(cmap: const [..] u8?, charCode: u32)->u32
+func lookupCMap0(cmap: const [..] u8, charCode: u32)->u32
 {
     if charCode > 0xFF do
         return 0
     return peekU8(cmap, 6 + cast(u64) charCode)
 }
 
-func lookupCMap4(cmap: const [..] u8?, charCode: u32)->u32
+func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32
 {
     if charCode > 0xFFFF do
         return 0
@@ -79,7 +79,7 @@ func lookupCMap4(cmap: const [..] u8?, charCode: u32)->u32
 
 // Format 6: one contiguous run of codes, which is how a face covering a single
 // script block stays small.
-func lookupCMap6(cmap: const [..] u8?, charCode: u32)->u32
+func lookupCMap6(cmap: const [..] u8, charCode: u32)->u32
 {
     let firstCode  = cast(u32) peekU16(cmap, 6)
     let entryCount = cast(u32) peekU16(cmap, 8)
@@ -88,7 +88,7 @@ func lookupCMap6(cmap: const [..] u8?, charCode: u32)->u32
     return peekU16(cmap, 10 + cast(u64) (charCode - firstCode) * 2)
 }
 
-func lookupCMap12(cmap: const [..] u8?, charCode: u32)->u32
+func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32
 {
     let numGroups = peekU32(cmap, 12)
     var left      = 0'u32
@@ -120,7 +120,7 @@ func lookupCMap12(cmap: const [..] u8?, charCode: u32)->u32
 
 // Format 13: the same group array as format 12, except every code in a group maps
 // to the one glyph the group names. This is what a last-resort face is made of.
-func lookupCMap13(cmap: const [..] u8?, charCode: u32)->u32
+func lookupCMap13(cmap: const [..] u8, charCode: u32)->u32
 {
     let numGroups = peekU32(cmap, 12)
     var left      = 0'u32
@@ -152,7 +152,7 @@ func lookupCMap13(cmap: const [..] u8?, charCode: u32)->u32
 
 // Returns the offset of the format-14 selector record for 'selector', or zero when
 // the face registers no sequence for it. Records are sorted by selector value.
-func findVariationSelector(cmap: const [..] u8?, selector: u32)->u64
+func findVariationSelector(cmap: const [..] u8, selector: u32)->u64
 {
     let recordCount = peekU32(cmap, 6)
     var left        = 0'u32
@@ -183,7 +183,7 @@ func findVariationSelector(cmap: const [..] u8?, selector: u32)->u64
 
 // Returns whether the default-UVS range list registers 'charCode'. Such a sequence
 // resolves through the ordinary map, so the selector only confirms the default glyph.
-func isDefaultVariation(cmap: const [..] u8?, listOffset, charCode: u32)->bool
+func isDefaultVariation(cmap: const [..] u8, listOffset, charCode: u32)->bool
 {
     let rangeCount = peekU32(cmap, cast(u64) listOffset)
     var left       = 0'u32
@@ -215,7 +215,7 @@ func isDefaultVariation(cmap: const [..] u8?, listOffset, charCode: u32)->bool
 }
 
 // Returns the glyph the non-default-UVS list assigns to 'charCode', or zero.
-func lookupNonDefaultVariation(cmap: const [..] u8?, listOffset, charCode: u32)->u32
+func lookupNonDefaultVariation(cmap: const [..] u8, listOffset, charCode: u32)->u32
 {
     let mappingCount = peekU32(cmap, cast(u64) listOffset)
     var left         = 0'u32

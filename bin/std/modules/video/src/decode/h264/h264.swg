@@ -1009,7 +1009,7 @@ impl Decoder
             .prevFrameNumOffset = frameNumOffset
             .prevFrameNum       = header.frameNum
 
-            let cycleCount = cast(s32) .sps!.pocCycle.count
+            let cycleCount = cast(s32) .sps.pocCycle.count
             if not cycleCount do
                 return 0
 
@@ -1028,7 +1028,7 @@ impl Decoder
                 let inCycle = (absFrameNum - 1) % cycleCount
                 expected = cycles * expectedDelta
                 for index in cast(u64) inCycle + 1 do
-                    expected += .sps!.pocCycle[index]
+                    expected += .sps.pocCycle[index]
             }
 
             if not .isRefPicture do

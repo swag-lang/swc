@@ -286,6 +286,8 @@ public:
     const SemaFrame&           frame() const { return frames_.back(); }
     std::span<const SemaFrame> frames() const { return frames_; }
     void                       addNarrowKillAllFrames(std::span<const Symbol* const> path);
+    void                       addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
+    bool                       anyFrameHasNarrowFacts() const;
     // A branch proves its facts in the innermost frame its body owns, and that frame is popped
     // before the construct owning the branches can compare the paths. These keep one such set
     // alive across the pop: 'arm' asks postNode() to snapshot the body's frame just before it

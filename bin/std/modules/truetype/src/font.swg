@@ -181,7 +181,7 @@ func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
     return null
 }
 
-func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8? fail
+func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8 fail
 {
     let rec = findTable(faceData, tag)
     if not rec do

@@ -123,7 +123,7 @@ private impl FileDlg
             let path = Path.combine(browser.currentFolder, folderName.toString())
             if Directory.exists(path)
             {
-                MessageDlg.error(dlg.surface!, strings().fileDlg_ErrFolderExists)
+                MessageDlg.error(dlg.surface, strings().fileDlg_ErrFolderExists)
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -137,7 +137,7 @@ private impl FileDlg
 
         if not .browser.createFolder(edit.text())
         {
-            MessageDlg.error(.surface!, strings().fileDlg_ErrFolderCreate)
+            MessageDlg.error(.surface, strings().fileDlg_ErrFolderCreate)
             return
         }
 

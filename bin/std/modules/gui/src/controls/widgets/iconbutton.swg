@@ -261,7 +261,7 @@ impl IWnd for IconButton
         // mark cuts across its own button: a square tool marked with a rounded hairline reads as
         // two controls stacked rather than as one that is picked.
         let framedRadius = Math.max(subRectBk!.radius - 0.5, 0)
-        .focusRingRadius = subRectBk!.radius
+        .focusRingRadius = subRectBk.radius
 
         var paintFlags: PaintItemFlags = .None
         switch
@@ -421,7 +421,7 @@ impl IWnd for IconButton
             // has to follow. An indicator on one edge leaves the box in charge of both.
             if .checkIndicator == .Full
             {
-                .focusRingRadius = subRectBk!.radius
+                .focusRingRadius = subRectBk.radius
                 .focusRingGround = colorChecked
             }
         }
@@ -685,7 +685,7 @@ impl IWnd for IconButton
             if cur.a
             {
                 bc.painter.setParams(.Antialiased)
-                let rad = subRectBk!.radius
+                let rad = subRectBk.radius
                 bc.painter.fillRoundRect(clientRect, rad, rad, cur)
             }
         }

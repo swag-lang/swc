@@ -1288,13 +1288,13 @@ impl ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "scope.main")
         result.surface!.setView(result)
-        result.surface!.minSize = {ViewerMinWidth, 420}
-        result.backgroundStyle  = .Application
-        result.index            = #move index
-        result.language         = Gui.ReferenceLanguage
+        result.surface.minSize = {ViewerMinWidth, 420}
+        result.backgroundStyle = .Application
+        result.index           = #move index
+        result.language        = Gui.ReferenceLanguage
         result.index.attachTo(result.app())
 
-        result.appearanceButton = AppearanceButton.create(result.surface!, "scope.appearance")
+        result.appearanceButton = AppearanceButton.create(result.surface, "scope.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
             window.themeIndex = cast(u32) button.appearanceTheme
@@ -2277,7 +2277,7 @@ impl ViewerWindow
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands.dockStyle = .None
-        .currentView!.show()
+        .currentView.show()
         .currentInfo?.show()
         .currentCommands?.show()
         .updateViewerBar()
@@ -2618,7 +2618,7 @@ impl ViewerWindow
                     next.commands.setPosition(.outgoingCommands.position, computeLayout: false)
             }
 
-            .outgoingView!.bringToFront()
+            .outgoingView.bringToFront()
             .outgoingActions?.bringToFront()
             .outgoingInfo?.bringToFront()
             .outgoingCommands?.bringToFront()

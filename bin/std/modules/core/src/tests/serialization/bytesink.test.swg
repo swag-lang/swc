@@ -38,6 +38,10 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     expected.add([0'u8, 0, 0, 0])
     expect sink.writeBigEndian(0x1234'u16)
     expected.add([0x12'u8, 0x34])
+    expect sink.writeBigEndian(-800's16)
+    expected.add([0xFC'u8, 0xE0])
+    expect sink.writeLittleEndian(-100's8)
+    expected.add(0x9C'u8)
     expect sink.writeByte(0xEE)
     expected.add(0xEE'u8)
 
@@ -46,7 +50,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     expect sink.patch(sizeField, FirstPatch)
     for value, index in FirstPatch do
         expected[sizeField + index] = value
-    Swag.assert(sink.position() == 11)
+    Swag.assert(sink.position() == 14)
 
     let payload = sinkLargePayload()
     expect sink.write(payload.toSlice())

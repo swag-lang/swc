@@ -110,6 +110,50 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert(reader.position() == 10)
 }
 
+// A signed field is written and read with its exact bit pattern, and a single byte carries
+// no byte order at all.
+#test
+{
+    var buffer: Array'u8
+    var writer = ByteStream.openWrite(&buffer)
+    writer.writeBigEndian(800's16)
+    writer.writeBigEndian(-800's16)
+    writer.writeBigEndian(-70000's32)
+    writer.writeBigEndian(-5_000_000_000's64)
+    writer.writeBigEndian(200'u8)
+    writer.writeBigEndian(-100's8)
+
+    // 800 is 0x0320, so a big-endian field stores its high byte first.
+    Swag.assert(assertBytes(buffer[0 until 2], [0x03, 0x20]))
+    Swag.assert(assertBytes(buffer[2 until 4], [0xFC, 0xE0]))
+
+    var reader = ByteStream.openRead(buffer.toSlice())
+    Swag.assert(expect reader.readBigEndian's16() == 800)
+    Swag.assert(expect reader.readBigEndian's16() == -800)
+    Swag.assert(expect reader.readBigEndian's32() == -70000)
+    Swag.assert(expect reader.readBigEndian's64() == -5_000_000_000)
+    Swag.assert(expect reader.readBigEndian'u8() == 200)
+    Swag.assert(expect reader.readBigEndian's8() == -100)
+    Swag.assert(reader.position() == 18)
+}
+
+#test
+{
+    var buffer: Array'u8
+    var writer = ByteStream.openWrite(&buffer)
+    writer.writeLittleEndian(800's16)
+    writer.writeLittleEndian(-70000's32)
+    writer.writeLittleEndian(-100's8)
+
+    Swag.assert(assertBytes(buffer[0 until 2], [0x20, 0x03]))
+
+    var reader = ByteStream.openRead(buffer.toSlice())
+    Swag.assert(expect reader.readLittleEndian's16() == 800)
+    Swag.assert(expect reader.readLittleEndian's32() == -70000)
+    Swag.assert(expect reader.readLittleEndian's8() == -100)
+    Swag.assert(reader.position() == 7)
+}
+
 #test
 {
     var buffer: Array'u8

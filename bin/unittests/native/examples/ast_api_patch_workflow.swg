@@ -47,7 +47,7 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
         len = appendAst(buffer, len, "has_")
         len = appendAst(buffer, len, field.name!)
         len = appendAst(buffer, len, ": bool\n")
-        len = appendAst(buffer, len, field.name!)
+        len = appendAst(buffer, len, field.name)
         len = appendAst(buffer, len, ": ")
         len = appendAst(buffer, len, field.pointedType!.name!)
         if field.pointedType == string do
@@ -102,9 +102,9 @@ func(T) capturePatch(patch: *ApiPatch'T, value: T)
             len = appendAst(&buffer[0], len, field.name!)
             len = appendAst(&buffer[0], len, " = true\n")
             len = appendAst(&buffer[0], len, "patch.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = value.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do
@@ -173,9 +173,9 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
             len = appendAst(&buffer[0], len, field.name!)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    result.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = patch.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
 
             // A 'string?' field needs the assertion on the generated read.
             if field.pointedType == string do

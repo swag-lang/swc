@@ -176,15 +176,37 @@ func narrowIfLet(o: *NarrowOwner)->s32
     return -1
 }
 
-// `!` on an already non-null value is a tolerated no-op. It is also reported, because a
-// caller writing one is asserting what the flow already proved; the test keeps the form and
-// silences the report, since proving the form is tolerated is exactly what it is for.
-#[Swag.Warning("sema_warn_notnull_already_proven", .Disable)]
-func narrowNotNullTolerant()->s32
+// `!` is an assertion in operand position, so the code after it is reachable only when the
+// value was present: it proves its own path for the remainder of the block, like `Swag.assert`.
+func narrowNotNull(p: *NarrowNode?)->s32
 {
-    var node = NarrowNode{value: 9}
-    let q: *NarrowNode = &node
-    return takesPtr(q!)
+    let first = p!.value
+    return first + takesPtr(p)
+}
+
+// The proof covers a member path exactly like a root.
+func narrowNotNullField(o: *NarrowOwner)->s32
+{
+    let first = o.node!.value
+    return first + takesPtr(o.node)
+}
+
+// Reassigning from a nullable source kills it; the second assertion re-proves the path.
+func narrowNotNullKill(p, q: *NarrowNode?)->s32
+{
+    var cur   = p
+    var total = cur!.value
+    cur = q
+    return total + cur!.value
+}
+
+// A `!` reached only when a short-circuit decided to evaluate it proves nothing past its own
+// region, so the path is still nullable afterwards.
+func narrowNotNullShortCircuit(flag: bool, p: *NarrowNode?)->s32
+{
+    if flag and p!.value > 0 do
+        discard flag
+    return p?.value orelse -1
 }
 
 // `Swag.assert` panics when its condition is false, so the statements after it are only
@@ -286,7 +308,11 @@ func narrowAssertScoped(p: *NarrowNode?)->s32
     Swag.assert(narrowKillAssign(&node, &node2) == 50)
     Swag.assert(narrowKillAssign(&node, null) == 42)
     Swag.assert(narrowKillAssign(null, &node2) == -1)
-    Swag.assert(narrowNotNullTolerant() == 9)
+    Swag.assert(narrowNotNull(&node) == 84)
+    Swag.assert(narrowNotNullField(&owner) == 84)
+    Swag.assert(narrowNotNullKill(&node, &node2) == 50)
+    Swag.assert(narrowNotNullShortCircuit(true, &node) == 42)
+    Swag.assert(narrowNotNullShortCircuit(false, null) == -1)
 
     Swag.assert(narrowAssert(&node) == 42)
     Swag.assert(narrowAssertAcrossStatements(&node) == 85)

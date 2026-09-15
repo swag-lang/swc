@@ -383,7 +383,7 @@ func videoMatroskaFixturePath()->String
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0)
     view.seekRelative(10)
-    Swag.assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == 1 and view.seekOverlay!.text == "+10")
+    Swag.assert(view.seekOverlay.isLocallyVisible() and view.seekOverlay.direction == 1 and view.seekOverlay.text == "+10")
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 3)
     view.timeline.setValue(3)
@@ -441,14 +441,14 @@ func videoMatroskaFixturePath()->String
 
     let overlayTimer = view.seekOverlay!.timer!
     host.fireTimer(overlayTimer)
-    Swag.assert(not view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.timer == null)
+    Swag.assert(not view.seekOverlay.isLocallyVisible() and view.seekOverlay.timer == null)
 
     host.theme.setLight()
     host.notify(.ThemeChanged)
     view.showSeekFeedback(-10)
-    Swag.assert(view.seekOverlay!.backgroundStyle == .Transparent)
+    Swag.assert(view.seekOverlay.backgroundStyle == .Transparent)
     Swag.assert(Voltage.contrastRatio(Ink) >= 4.5)
-    host.fireTimer(view.seekOverlay!.timer!)
+    host.fireTimer(view.seekOverlay.timer!)
 }
 
 #test
@@ -689,14 +689,14 @@ func videoMatroskaFixturePath()->String
     var press = KeyEvent{kind: .Pressed, key: .Space}
     Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &press))
     Swag.assert(view.playing and view.voice!.isPlaying() and window.viewerCombo.hasFocus())
-    Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &press))
     Swag.assert(view.playing and view.voice!.isPlaying())
 
     var release = KeyEvent{kind: .Released, key: .Space}
-    Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &release))
-    Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &release))
+    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &press))
     Swag.assert(not view.playing and not view.voice!.isPlaying() and window.viewerCombo.hasFocus())
-    Swag.assert(window.hookOnChildEvent!(window.viewerCombo, &release))
+    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &release))
 }
 
 // A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates
@@ -867,7 +867,7 @@ func videoMatroskaFixturePath()->String
     view.resumeAudio()
     Swag.assert(not view.audioRangePending and not view.resumeAudioAfterSeek and view.voice!.isPlaying())
     Swag.assert(view.voice!.playbackSampleFrame() >= 200)
-    view.voice!.destroy()
+    view.voice.destroy()
     view.voice = null
     view.audio = null
 }

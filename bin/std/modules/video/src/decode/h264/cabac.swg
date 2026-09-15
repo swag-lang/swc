@@ -39,10 +39,10 @@ struct CabacReader
 // rebuilt one address for every table it touched, on every bin. Behind a single base they are
 // one address and a displacement, which the addressing of a memory operand already carries at no
 // cost, and the two registers this frees are two the loop no longer spills.
-const CabacLpsAt   = 0'u64   // Table 9-44, read as `2 * (range & 0xC0) + state`.
-const CabacStateAt = 512'u64 // The state after a bin, read as `128 + state`.
-const CabacSigAt   = 768'u64 // Table 9-43 frame coding, significance context per 8x8 scan position.
-const CabacLastAt  = 832'u64 // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
+const CabacLpsAt   = 0'u64       // Table 9-44, read as `2 * (range & 0xC0) + state`.
+const CabacStateAt = 512'u64     // The state after a bin, read as `128 + state`.
+const CabacSigAt   = 768'u64     // Table 9-43 frame coding, significance context per 8x8 scan position.
+const CabacLastAt  = 832'u64     // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
 const CabacTables: [896] u8 = #run buildCabacTables()
 
 func buildCabacTables()->[896] u8
@@ -75,7 +75,6 @@ func buildCabacTables()->[896] u8
 
     return result
 }
-
 
 impl CabacReader
 {
@@ -135,7 +134,7 @@ impl CabacReader
         let extra = cast(u32) Swag.bitCountTz(low) - 16
         var bits  = 0'u32
         if .position <= .size do
-            bits = (cast(u32) .data![.position] << 9) | (cast(u32) .data![.position + 1] << 1)
+            bits = (cast(u32) .data![.position] << 9) | (cast(u32) .data[.position + 1] << 1)
         .position += 2
         return low - #wrap (0xFFFF'u32 << extra) + #wrap (bits << extra)
     }

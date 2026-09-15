@@ -729,7 +729,7 @@ impl Properties
             return
 
         for item in .items where item!.numChilds do
-            item!.flags.add(.Expanded)
+            item.flags.add(.Expanded)
         .updateStates()
     }
 
@@ -761,7 +761,7 @@ impl Properties
 
         for item in .items where item!.isModified
         {
-            var parent = item!.parent
+            var parent = item.parent
             while parent
             {
                 if parent.numChilds do

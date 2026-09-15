@@ -272,11 +272,9 @@ private func writeZipFixture()->String
     Swag.assert(embedded.choices[0].key == "text")
     Swag.assert(embedded.currentView != null)
 
-    for 4_096 where viewer.embedded.isLoading()
-    {
-        Threading.Thread.sleep(1'ms)
-        host.fireTimers()
-    }
+    let textView = cast #assume (*TextView) embedded.currentView
+    completeTextReads(&host, textView)
+    host.fireTimer(textView.loadTimer)
 
     Swag.assert(not viewer.embedded.isLoading())
     host.settleAnimations(window, 4)

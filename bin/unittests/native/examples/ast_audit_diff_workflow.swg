@@ -48,15 +48,15 @@ func appendAuditDiffFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
         len = appendAst(buffer, len, ": bool\n")
 
         len = appendAst(buffer, len, "old_")
-        len = appendAst(buffer, len, field.name!)
+        len = appendAst(buffer, len, field.name)
         len = appendAst(buffer, len, ": ")
         len = appendAst(buffer, len, field.pointedType!.name!)
         len = appendAst(buffer, len, "\n")
 
         len = appendAst(buffer, len, "new_")
-        len = appendAst(buffer, len, field.name!)
+        len = appendAst(buffer, len, field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, field.pointedType!.name!)
+        len = appendAst(buffer, len, field.pointedType.name!)
         len = appendAst(buffer, len, "\n")
     }
 
@@ -88,21 +88,21 @@ func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
             len = appendAst(&buffer[0], len, "result.changed_")
             len = appendAst(&buffer[0], len, field.name!)
             len = appendAst(&buffer[0], len, " = before.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " != after.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
 
             len = appendAst(&buffer[0], len, "result.old_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = before.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
 
             len = appendAst(&buffer[0], len, "result.new_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = after.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do
@@ -148,9 +148,9 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
             len = appendAst(&buffer[0], len, field.name!)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    result.")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = diff.new_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do

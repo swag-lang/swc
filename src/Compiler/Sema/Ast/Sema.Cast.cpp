@@ -3,10 +3,12 @@
 #include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Support/Report/Assert.h"
 
@@ -88,43 +90,8 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-namespace
-{
-    // 'expr[as T]' reinterprets the pointed storage as a T and opens it: the result is
-    // an lvalue place of T. Write protection through a const source follows the same
-    // source-inspection route as the plain dereference.
-    Result semaDerefPlace(Sema& sema, AstCastExpr& node)
-    {
-        const SemaNodeView exprView = sema.viewNodeTypeConstantSymbol(node.nodeExprRef);
-        const SemaNodeView typeView = sema.viewType(node.nodeTypeRef);
-
-        SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
-        SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
-
-        const TypeRef   srcResolvedTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), exprView.typeRef());
-        const TypeInfo& srcType            = sema.typeMgr().get(srcResolvedTypeRef.isValid() ? srcResolvedTypeRef : exprView.typeRef());
-        if (!srcType.isAnyPointer())
-            return SemaError::raiseDerefOperandType(sema, sema.curNodeRef(), exprView.nodeRef(), exprView.typeRef());
-
-        // Use-site nullability: narrowing was already applied to the live view, so a
-        // remaining 'nullable' means no dominating test proves this dereference safe.
-        if (srcType.isNullable() && (!exprView.hasConstant() || exprView.cst()->isNull()) && !SemaHelpers::nullabilityValidatedBeforeInlining(sema))
-            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, exprView.nodeRef(), exprView.typeRef());
-
-        const TypeRef resultTypeRef = typeView.typeRef();
-        SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeTypeRef));
-        sema.setType(sema.curNodeRef(), resultTypeRef);
-        sema.setIsValue(node);
-        sema.setIsLValue(node);
-        return Result::Continue;
-    }
-}
-
 Result AstCastExpr::semaPostNode(Sema& sema)
 {
-    if (hasFlag(AstCastExprFlagsE::DerefPlace))
-        return semaDerefPlace(sema, *this);
-
     if (!hasFlag(AstCastExprFlagsE::Explicit))
         return Result::Continue;
 
@@ -133,10 +100,11 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
     // Value-check
-    SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
+    if (!modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+        SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
-    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap));
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap | AstModifierFlagsE::Try | AstModifierFlagsE::Assume));
 
     // Cast kind
     CastFlags castFlags = CastFlagsE::Zero;
@@ -146,7 +114,70 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         castFlags.add(CastFlagsE::UnConst);
     if (modifierFlags.has(AstModifierFlagsE::Wrap))
         castFlags.add(CastFlagsE::NoOverflow);
+    if (modifierFlags.has(AstModifierFlagsE::Try))
+        castFlags.add(CastFlagsE::Try);
+    if (modifierFlags.has(AstModifierFlagsE::Assume))
+        castFlags.add(CastFlagsE::Assume);
     castFlags.add(CastFlagsE::FromExplicitNode);
+
+    const bool runtimeTarget     = sema.isValue(nodeTypeRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), nodeTypeView.typeRef());
+    const bool runtimeTypeSource = modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) &&
+                                   sema.isValue(nodeExprRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), srcTypeView.typeRef()) &&
+                                   !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), nodeTypeView.typeRef()) && !nodeTypeView.type()->isTypeInfo();
+    if (runtimeTarget || runtimeTypeSource)
+    {
+        const bool tryCast    = modifierFlags.has(AstModifierFlagsE::Try);
+        const bool assumeCast = modifierFlags.has(AstModifierFlagsE::Assume);
+        if (tryCast == assumeCast || modifierFlags.hasAny({AstModifierFlagsE::Bit, AstModifierFlagsE::Wrap, AstModifierFlagsE::UnConst}))
+            return SemaError::raise(sema, DiagnosticId::sema_err_dynamic_cast_modifier, sema.curNodeRef());
+
+        SemaNodeView targetView = sema.viewNodeTypeConstant(nodeTypeRef);
+        SemaHelpers::normalizeTypeOperandToConstant(sema, targetView);
+        const TypeRef nullableTypeInfo = sema.typeMgr().addType(TypeInfo::makeTypeInfo(TypeInfoFlagsE::Nullable));
+        SWC_RESULT(Cast::cast(sema, targetView, nullableTypeInfo, CastKind::Implicit));
+
+        SemaNodeView  sourceView  = sema.viewNodeTypeConstant(nodeExprRef);
+        const bool    typeQuery   = !sema.isValue(nodeExprRef) || SemaHelpers::isTypeLikeTypeRef(sema.ctx(), sourceView.typeRef());
+        const TypeRef knownTarget = SemaHelpers::resolveRepresentedTypeRef(sema, targetView);
+        const TypeRef knownSource = SemaHelpers::resolveRepresentedTypeRef(sema, sourceView);
+        if (typeQuery && knownTarget.isValid() && (knownSource.isValid() || !sema.isValue(nodeExprRef)) &&
+            !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), knownTarget))
+        {
+            sema.inheritPayloadFlags(*this, nodeExprRef);
+            sema.setType(sema.curNodeRef(), sourceView.typeRef());
+            SemaNodeView view = sema.curViewNodeTypeConstant();
+            return Cast::castDynamic(sema, view, knownTarget, castFlags);
+        }
+        TypeInfoFlags resultFlags = tryCast ? TypeInfoFlagsE::Nullable : TypeInfoFlagsE::Zero;
+        if (!typeQuery && sourceView.type()->isConst())
+            resultFlags.add(TypeInfoFlagsE::Const);
+        const TypeRef resultType = sema.typeMgr().addType(typeQuery ? TypeInfo::makeTypeInfo(resultFlags) : TypeInfo::makeAny(resultFlags));
+        if (typeQuery)
+        {
+            SemaHelpers::normalizeTypeOperandToConstant(sema, sourceView);
+            SWC_RESULT(Cast::cast(sema, sourceView, nullableTypeInfo, CastKind::Implicit));
+        }
+        else
+        {
+            TypeInfoFlags sourceFlags = resultFlags;
+            sourceFlags.add(TypeInfoFlagsE::Nullable);
+            SWC_RESULT(Cast::cast(sema, sourceView, sema.typeMgr().addType(TypeInfo::makeAny(sourceFlags)), CastKind::Implicit));
+            const uint64_t count       = 4;
+            const TypeRef  storageType = sema.typeMgr().addType(TypeInfo::makeArray(std::span{&count, 1}, sema.typeMgr().typeU64()));
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, storageType, "__runtime_cast_storage"));
+        }
+        sema.clearConstant(sema.curNodeRef());
+        sema.setType(sema.curNodeRef(), resultType);
+        sema.setIsValue(*this);
+        auto& payload              = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+        payload.runtimeTypeCast    = typeQuery;
+        payload.runtimeValueCast   = !typeQuery;
+        payload.assumedDynamicCast = assumeCast;
+        if (assumeCast)
+            SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::DynCast, codeRef()));
+        const auto function = typeQuery ? IdentifierManager::RuntimeFunctionKind::RuntimeTypeCast : IdentifierManager::RuntimeFunctionKind::RuntimeValueCast;
+        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), function, codeRef());
+    }
 
     sema.inheritPayloadFlags(*this, nodeExprView.nodeRef());
     if (srcTypeView.hasConstant())
@@ -263,10 +294,11 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView exprView     = sema.viewTypeConstant(nodeExprRef);
 
     // Value-check
-    SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
+    if (!modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+        SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
-    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap));
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap | AstModifierFlagsE::Try | AstModifierFlagsE::Assume));
 
     // We do not know the destination type here (it comes from context),
     // but we still need the source expression type or constant. Copying the raw payload would

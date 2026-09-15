@@ -1248,7 +1248,7 @@ impl LibraryWnd
                     .addItem(ActionLibView.LinkMarkers)
                 }
 
-                discard menu.doModal(cast(*IconButton) btn, autoDestroy: true)
+                discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
             }
         }
 
@@ -1277,7 +1277,7 @@ impl LibraryWnd
                     .addItem(ActionLibSort.Invert)
                 }
 
-                discard menu.doModal(cast(*IconButton) btn, autoDestroy: true)
+                discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
             }
         }
 
@@ -1291,7 +1291,7 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                res.showFilterMenu(cast(*IconButton) btn)
+                res.showFilterMenu(cast #assume (*IconButton) btn)
             }
         }
 
@@ -1305,7 +1305,7 @@ impl LibraryWnd
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
             .toolTip    = appStrings().tip_LibraryFolders
-            .sigPressed += func|res|(btn) { res.showFolderMenu(cast(*IconButton) btn) }
+            .sigPressed += func|res|(btn) { res.showFolderMenu(cast #assume (*IconButton) btn) }
         }
 
         // Loading state stays with the commands it updates, before the flexible gap, so it

@@ -8,7 +8,7 @@ var Sink: u32 = 0
 #test
 {
     var storage: [16] u8
-    storage.buffer[as u32] = 0x0102_0304
+    (cast(*u32) storage.buffer)[] = 0x0102_0304
     Swag.assert(storage[0] == 4)
     Swag.assert(storage[3] == 1)
 }
@@ -31,7 +31,7 @@ var Sink: u32 = 0
 {
     // The parenthesized and the bound-to-a-local spellings keep working.
     var storage: [4] u8
-    (storage.buffer)[as u32] = 0x0102_0304
+    (cast(*u32) (storage.buffer))[] = 0x0102_0304
     let p = storage.buffer
     p[0] = 9
     Swag.assert(storage[0] == 9)

@@ -33,14 +33,14 @@ func initC(i: s32)
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         g_Font = wnd.theme().createDefaultFont(FontSize)
         for i in MaxColumns do
             initC(i)
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
         let rect    = wnd.clientRect()
 

@@ -789,9 +789,11 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef, const TypeInfoLockMode lockMode)
 {
-    TaskContext& ctx          = sema.ctx();
-    typeRef                   = normalizeTypeInfoTarget(sema, typeRef);
-    const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
+    TaskContext& ctx = sema.ctx();
+    typeRef          = normalizeTypeInfoTarget(sema, typeRef);
+    // Type-info graphs share dependencies. Keep them in one cache so a type and
+    // its interface tables retain one identity regardless of the requesting root.
+    constexpr uint32_t shardIndex = 0;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
 

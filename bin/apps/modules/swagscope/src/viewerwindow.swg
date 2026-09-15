@@ -496,18 +496,13 @@ impl IWnd for ViewerInfoBar
             return
         }
 
-        (cast(*ViewerWindow) .parent!.parent!).showCurrentFileActions(evt.surfacePos)
+        (cast #assume(*ViewerWindow) .parent!.parent!).showCurrentFileActions(evt.surfacePos)
     }
 }
 
 func viewerWindowFor(view: *Wnd)->*ViewerWindow
 {
-    Swag.assert(view.parent != null)
-    if view.parent.userData do
-        return cast(*ViewerWindow) view.parent.userData
-
-    // Focused host-service tests attach their synthetic view directly to the application window.
-    return cast(*ViewerWindow) view.parent
+    return view.ancestorByType'ViewerWindow()!
 }
 
 func reportViewerFailure(view: *Wnd, reason: string)
@@ -1078,7 +1073,7 @@ impl IWnd for ViewerWindow
         elif evt.kind == .ThemeChanged
         {
             for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
-                (cast(*ViewerErrorView) instance.view).refreshTheme()
+                (cast #assume(*ViewerErrorView) instance.view).refreshTheme()
             .refreshArtwork()
             .refreshEmptyArtwork()
             .dropHighlight.refreshTheme()
@@ -1720,7 +1715,6 @@ impl ViewerWindow
         {
             .dockStyle       = .Center
             .backgroundStyle = .Panel
-            .userData        = result
             .style.addStyleSheetColors("wnd_Bk $view_Bk")
         }
 
@@ -1757,11 +1751,11 @@ impl ViewerWindow
         result.hookOnChildEvent = func|window = result|(wnd, evt)
         {
             discard wnd
-            switch evt
+            switch
             {
-            case KeyEvent as key where window.routePlaybackKey(key):         return true
-            case KeyEvent as key where window.routeSearchNavigationKey(key): return true
-            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
+            case let key = cast #try (*KeyEvent) evt where window.routePlaybackKey(key):         return true
+            case let key = cast #try (*KeyEvent) evt where window.routeSearchNavigationKey(key): return true
+            case let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
             }
 
             return false
@@ -3505,7 +3499,7 @@ impl ViewerWindow
         .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
-            (cast(*ViewerErrorView) instance.view).retranslate()
+            (cast #assume(*ViewerErrorView) instance.view).retranslate()
         if .currentFile.isEmpty() do
             .folderLabel.setText(texts.ui_Folder)
         if .currentFile.isEmpty()

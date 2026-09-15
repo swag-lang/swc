@@ -186,7 +186,7 @@ internal impl IImageDecoder for Decoder
 
         try checkBuffer(dataof, last, #sizeof(u32))
         let headerStart = dataof
-        let size        = dataof[as u32]
+        let size        = (cast(const *u32) dataof)[]
         if size < #sizeof(CoreHeader) do
             fail UnsupportedFormatError{"unsupported BMP header"}
 
@@ -231,18 +231,18 @@ internal impl IImageDecoder for Decoder
             let maskPtr = headerStart + #sizeof(Header)
             if size >= 52
             {
-                masks.r = readMask(maskPtr[as u32])
-                masks.g = readMask((maskPtr + 4)[as u32])
-                masks.b = readMask((maskPtr + 8)[as u32])
+                masks.r = readMask((cast(const *u32) maskPtr)[])
+                masks.g = readMask((cast(const *u32) (maskPtr + 4))[])
+                masks.b = readMask((cast(const *u32) (maskPtr + 8))[])
                 if size >= 56 do
-                    masks.a = readMask((maskPtr + 12)[as u32])
+                    masks.a = readMask((cast(const *u32) (maskPtr + 12))[])
             }
             elif size == #sizeof(Header)
             {
                 try checkBuffer(dataof, last, 12)
-                masks.r = readMask(dataof[as u32])
-                masks.g = readMask((dataof + 4)[as u32])
-                masks.b = readMask((dataof + 8)[as u32])
+                masks.r = readMask((cast(const *u32) dataof)[])
+                masks.g = readMask((cast(const *u32) (dataof + 4))[])
+                masks.b = readMask((cast(const *u32) (dataof + 8))[])
                 dataof  += 12
             }
             else do

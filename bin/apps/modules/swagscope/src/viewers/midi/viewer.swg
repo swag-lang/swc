@@ -222,7 +222,7 @@ func createMidiViewer(host: Viewer.Host)
     let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.createInfoGroup(ViewerZoomSlotWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*MidiViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { return (cast #assume (*MidiViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*MidiViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*MidiViewer) wnd).retire() }})
 }

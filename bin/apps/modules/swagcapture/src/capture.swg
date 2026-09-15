@@ -317,7 +317,7 @@ func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(for
                 continue
         }
 
-        #inject(stmt, form = cast(*T) f.buffer, itf = f, idx = visitIdx)
+        #inject(stmt, form = cast #assume (*T) f, itf = f, idx = visitIdx)
         visitIdx += 1
     }
 }
@@ -360,41 +360,41 @@ impl CaptureClipboardForm
 {
     mtd add(itf: IForm)
     {
-        switch itf
+        switch
         {
-        case FormArrow as form:
+        case let form = cast #try (*FormArrow) itf:
             .kind  = .Arrow
             .arrow = form[]
 
-        case FormDraw as form:
+        case let form = cast #try (*FormDraw) itf:
             .kind = .Draw
             .draw = form[]
 
-        case FormImage as form:
+        case let form = cast #try (*FormImage) itf:
             .kind  = .Image
             .image = form[]
 
-        case FormLine as form:
+        case let form = cast #try (*FormLine) itf:
             .kind = .Line
             .line = form[]
 
-        case FormPolygon as form:
+        case let form = cast #try (*FormPolygon) itf:
             .kind    = .Polygon
             .polygon = form[]
 
-        case FormShape as form:
+        case let form = cast #try (*FormShape) itf:
             .kind  = .Shape
             .shape = form[]
 
-        case FormStep as form:
+        case let form = cast #try (*FormStep) itf:
             .kind = .Step
             .step = form[]
 
-        case FormText as form:
+        case let form = cast #try (*FormText) itf:
             .kind = .Text
             .text = form[]
 
-        case FormCallout as form:
+        case let form = cast #try (*FormCallout) itf:
             .kind    = .Callout
             .callout = form[]
 
@@ -592,7 +592,7 @@ impl Capture
             for sel in .selection
             {
                 let f = .forms[sel]
-                let b = cast(*BaseForm) f.buffer
+                let b = cast #assume (*BaseForm) f
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -602,7 +602,7 @@ impl Capture
         {
             for f in .forms
             {
-                let b = cast(*BaseForm) f.buffer
+                let b = cast #assume (*BaseForm) f
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -1015,7 +1015,7 @@ impl Capture
             // Add real image
             if not imgDone and Swag.kindOf(itf) == FormImage
             {
-                let fimg = cast(*FormImage) itf.buffer
+                let fimg = cast #assume (*FormImage) itf
                 if fimg.kind == .Image and fimg.image.isValid()
                 {
                     imgDone = true
@@ -1212,7 +1212,7 @@ impl Capture
         if Swag.kindOf(f) != FormImage do
             return true
 
-        let fi = cast(*FormImage) f.buffer
+        let fi = cast #assume (*FormImage) f
         switch fi.kind
         {
         case .Image:   return not fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and not fi.dirty)
@@ -1233,7 +1233,7 @@ impl Capture
     // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
     mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
     {
-        let base = cast(*BaseForm) f.buffer
+        let base = cast #assume (*BaseForm) f
 
         // The geometry of the direct path, without its view clip: the cache keeps the
         // whole form, so scrolling never invalidates it.
@@ -1374,7 +1374,7 @@ impl Capture
         var savePaintPos:  Math.Rectangle
         var saveNoClipPos: Math.Rectangle
         var wt2, ht2:      s32
-        with let base = cast(*BaseForm) f.buffer
+        with let base = cast #assume (*BaseForm) f
         {
             savePaintPos = .paintPos
 
@@ -1717,13 +1717,13 @@ impl Capture
 
         if .selection.count == 1 and type == FormPolygon
         {
-            let poly = cast(*FormPolygon) form.buffer
+            let poly = cast #assume (*FormPolygon) form
             result.x = poly.points[idxPt].x + nx
             result.y = poly.points[idxPt].y + ny
         }
         elif (.selection.count == 1 or editForm) and (type == FormLine or type == FormArrow)
         {
-            let line = cast(*FormLine) form.buffer
+            let line = cast #assume (*FormLine) form
             if not right or not bottom
             {
                 result.x = line.xa
@@ -1800,12 +1800,11 @@ impl Capture
         for f, i in .forms
         {
             let autoSel = .selection.contains(i) or f.buffer == editForm.buffer
-            let form    = cast(*BaseForm) f.buffer
+            let form    = cast #assume (*BaseForm) f
 
-            switch f
+            switch
             {
-            case FormLine, FormArrow:
-                let form2 = cast(*FormLine) form
+            case let form2 = cast #try (*FormLine) f:
                 if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
                     arrX.add(cast(s32) form2.xa)
                 if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
@@ -1817,8 +1816,7 @@ impl Capture
                     arrY.add(cast(s32) form2.yb)
                 }
 
-            case FormPolygon:
-                let form2 = cast(*FormPolygon) form
+            case let form2 = cast #try (*FormPolygon) f:
                 for pt, idx in form2.points
                 {
                     if not autoSel or idx != idxPt
@@ -1828,7 +1826,7 @@ impl Capture
                     }
                 }
 
-            case FormDraw:
+            case cast #try (*FormDraw) f != null:
                 if autoSel do
                     continue
                 let boundR = f.boundRect()
@@ -2001,7 +1999,7 @@ impl Capture
             if .selection.count == 1
             {
                 let selForm = .forms[.selection[0]]
-                let p       = cast(*BaseForm) selForm.buffer
+                let p       = cast #assume (*BaseForm) selForm
                 if not view.main.freezeSel or not p.freeze
                 {
                     if selForm.mouse(view, localPos, evt)
@@ -2029,7 +2027,7 @@ impl Capture
                 var ht = .hitTest(localPos)
                 if ht != Swag.U64.Max
                 {
-                    let p = cast(*BaseForm) (.forms[ht]).buffer
+                    let p = cast #assume (*BaseForm) (.forms[ht])
                     if view.main.freezeSel and p.freeze do
                         ht = Swag.U64.Max
                 }
@@ -2286,7 +2284,7 @@ impl Capture
                 let mode = editView.main.getEditMode()
                 let itf  = editView.main.newFormFromModel(mode, clear: true)
                 itf.setup(me)
-                let base = cast(*BaseForm) itf.buffer
+                let base = cast #assume (*BaseForm) itf
                 if editView.main.editMode == .PixSel do
                     base.subKind = .PixSel
                 let undo = .newUndo(.CreateForm)
@@ -2374,7 +2372,7 @@ impl Capture
     {
         if .selection.isEmpty() do
             return null
-        return cast(*BaseForm) (.forms[.selection.back()]).buffer
+        return cast #assume (*BaseForm) .forms[.selection.back()]
     }
 
     mtd getSelectedFormType()->typeinfo?
@@ -2433,7 +2431,7 @@ impl Capture
     // grouped form expands to every form sharing this id, so a group moves as a whole.
     func formOuterGroup(f: IForm)->u64
     {
-        let b = cast(*BaseForm) f.buffer
+        let b = cast #assume (*BaseForm) f
         if b.groups.isEmpty() do
             return 0
         return b.groups[0]
@@ -2524,7 +2522,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast(*BaseForm) f.buffer
+            let b = cast #assume (*BaseForm) f
             for gid in b.groups
             {
                 if gid == 0 or groupIndexOf(oldIds, gid) >= 0 do
@@ -2536,7 +2534,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast(*BaseForm) f.buffer
+            let b = cast #assume (*BaseForm) f
             for i in b.groups.count
             {
                 let idx = groupIndexOf(oldIds, b.groups[i])

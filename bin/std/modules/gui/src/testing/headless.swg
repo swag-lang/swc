@@ -129,7 +129,6 @@ impl HeadlessHost
 
         let root = &.root
         root.itf     = root[]
-        root.type    = Wnd
         root.surface = &.surface
         root.style.share(&.app.style)
         root.position        = {0, 0, width, height}
@@ -141,7 +140,6 @@ impl HeadlessHost
         // root view. This enables popup-based widgets (combobox, menus, tabs)
         // which anchor their popups to the top view.
         .surfaceWnd.itf     = &.surfaceWnd
-        .surfaceWnd.type    = SurfaceWnd
         .surfaceWnd.surface = &.surface
         .surfaceWnd.style.share(&.app.style)
         .surfaceWnd.position = {0, 0, width, height}
@@ -282,7 +280,7 @@ impl HeadlessHost
             {
                 if not wnd.isVisible() do
                     return
-                if wnd.type == PushButton and wnd.id
+                if cast #try (*PushButton) wnd != null and wnd.id
                 {
                     let id = String.from(wnd.id)
                     if not ids.contains(id) do
@@ -468,9 +466,9 @@ impl HeadlessHost
     {
         .root.hookOnEvent = func|host = me|(wnd, evt)
         {
-            switch evt
+            switch
             {
-            case CommandEvent as cmd:
+            case let cmd = cast #try (*CommandEvent) evt:
                 host.commandCount += 1
                 host.lastCommand  = cmd.id
                 cmd.accepted      = true
@@ -486,9 +484,9 @@ impl HeadlessHost
     {
         .root.hookOnEvent = func|host = me, cmdId|(wnd, evt)
         {
-            switch evt
+            switch
             {
-            case CommandEvent as cmd:
+            case let cmd = cast #try (*CommandEvent) evt:
                 host.commandCount += 1
                 host.lastCommand  = cmd.id
                 if cmd.id == cmdId
@@ -743,9 +741,8 @@ impl HeadlessHost
     // Finds edit ctrl by label.
     mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->*EditCtrl?
     {
-        if wnd.type == EditCtrl
+        if let ctrl = cast #try (*EditCtrl) wnd
         {
-            let ctrl = cast(*EditCtrl) wnd
             if (ctrl.label != null) and ctrl.label.name.raw == label do
                 return ctrl
         }
@@ -778,8 +775,8 @@ impl HeadlessHost
     // Finds file browser ctrl.
     mtd findFileBrowserCtrl(wnd: *Wnd)->*FileBrowserCtrl?
     {
-        if wnd.type == FileBrowserCtrl do
-            return cast(*FileBrowserCtrl) wnd
+        if let ctrl = cast #try (*FileBrowserCtrl) wnd do
+            return ctrl
 
         for child in wnd.children
         {
@@ -823,10 +820,9 @@ impl HeadlessHost
     // Returns captured popup menu.
     mtd capturedPopupMenu()->*MenuCtrl?
     {
-        if not .app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
+        let menu = cast #try (*MenuCtrl) .app.mouseCaptureWnd
+        if not menu do
             return null
-
-        let menu = cast(*MenuCtrl?) .app.mouseCaptureWnd
         if menu.bar do
             return null
 
@@ -1137,8 +1133,8 @@ impl HeadlessHost
         var needUpdateState = false
         for it in copy
         {
-            let evt = (it as Event)!
-            if it is InvalidateEvent
+            let evt = cast #assume (*Event) it
+            if cast #try (*InvalidateEvent) it != null
             {
                 let target = evt.target
                 if target do
@@ -1147,10 +1143,10 @@ impl HeadlessHost
             else do
                 .app.sendEvent(it)
 
-            if it is CommandEvent do
+            if cast #try (*CommandEvent) it != null do
                 needUpdateState = true
 
-            Memory.delete(evt, evt.type!)
+            Memory.delete(it.buffer, Swag.kindOf(it))
         }
 
         if needUpdateState and not .root.isPendingDestroy do

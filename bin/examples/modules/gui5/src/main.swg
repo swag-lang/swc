@@ -319,9 +319,9 @@ func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: 
 
 func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
         let rect    = view.clientRect()
         let colors  = view.themeColors()
@@ -366,9 +366,9 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
 
 func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
         let rect    = view.clientRect()
         let colors  = view.themeColors()
@@ -418,9 +418,9 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
 func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter   = paintEvt.paintContext.painter
         let rect      = view.clientRect()
         let colors    = view.themeColors()
@@ -515,12 +515,12 @@ func layoutRootView()
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent
+    if cast #try (*ResizeEvent) evt != null
     {
         layoutRootView()
         buildPage()
     }
-    elif evt is DestroyEvent
+    elif cast #try (*DestroyEvent) evt != null
     {
         app.sigFrame.disable()
         g_Surface     = null

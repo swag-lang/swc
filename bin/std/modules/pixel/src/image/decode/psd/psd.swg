@@ -112,7 +112,7 @@ func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] 
         {
             let sourceOffset = cast(u64) x * 2
             let sample       = (cast(u16) source[sourceOffset] << 8) | cast(u16) source[sourceOffset + 1]
-            (target + cast(u64) channel * 2)[as u16] = sample
+            (cast(*u16) (target + cast(u64) channel * 2))[] = sample
             target += image.bytesPerPixel
         }
     }

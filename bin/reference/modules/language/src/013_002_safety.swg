@@ -167,7 +167,7 @@ Swag panics if a cast from 'any' to another type is invalid.
 #test
 {
     let x: any = "1"
-    let y      = cast(string) x
+    let y      = cast #assume(string) x
 
     // var z = cast(s32) x  // Would panic: underlying type mismatch
     // Swag.assert(z == 0)

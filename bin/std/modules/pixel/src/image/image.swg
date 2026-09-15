@@ -1,4 +1,4 @@
-﻿#global public
+#global public
 
 using Swag, Core, Core.Serialization
 
@@ -140,16 +140,16 @@ internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelVa
         result = {value, value, value, cast(f32) source[1] / 255.0}
 
     case .Gray16, .GrayAlpha16:
-        let value = cast(f32) source[as u16] / 65535.0
-        result = {value, value, value, format == .GrayAlpha16 ? cast(f32) (source + 2)[as u16] / 65535.0 : 1}
+        let value = cast(f32) (cast(const *u16) source)[] / 65535.0
+        result = {value, value, value, format == .GrayAlpha16 ? cast(f32) (cast(const *u16) (source + 2))[] / 65535.0 : 1}
 
     case .GrayF16, .GrayAlphaF16:
-        let value = halfToFloat(source[as u16])
-        result = {value, value, value, format == .GrayAlphaF16 ? halfToFloat((source + 2)[as u16]) : 1}
+        let value = halfToFloat((cast(const *u16) source)[])
+        result = {value, value, value, format == .GrayAlphaF16 ? halfToFloat((cast(const *u16) (source + 2))[]) : 1}
 
     case .GrayF32, .GrayAlphaF32:
-        let value = source[as f32]
-        result = {value, value, value, format == .GrayAlphaF32 ? (source + 4)[as f32] : 1}
+        let value = (cast(const *f32) source)[]
+        result = {value, value, value, format == .GrayAlphaF32 ? (cast(const *f32) (source + 4))[] : 1}
 
     case .BGR8:
         result = {cast(f32) source[2] / 255.0, cast(f32) source[1] / 255.0, cast(f32) source[0] / 255.0, 1}
@@ -164,22 +164,22 @@ internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelVa
         result = {cast(f32) source[0] / 255.0, cast(f32) source[1] / 255.0, cast(f32) source[2] / 255.0, cast(f32) source[3] / 255.0}
 
     case .RGB16:
-        result = {cast(f32) source[as u16] / 65535.0, cast(f32) (source + 2)[as u16] / 65535.0, cast(f32) (source + 4)[as u16] / 65535.0, 1}
+        result = {cast(f32) (cast(const *u16) source)[] / 65535.0, cast(f32) (cast(const *u16) (source + 2))[] / 65535.0, cast(f32) (cast(const *u16) (source + 4))[] / 65535.0, 1}
 
     case .RGBA16:
-        result = {cast(f32) source[as u16] / 65535.0, cast(f32) (source + 2)[as u16] / 65535.0, cast(f32) (source + 4)[as u16] / 65535.0, cast(f32) (source + 6)[as u16] / 65535.0}
+        result = {cast(f32) (cast(const *u16) source)[] / 65535.0, cast(f32) (cast(const *u16) (source + 2))[] / 65535.0, cast(f32) (cast(const *u16) (source + 4))[] / 65535.0, cast(f32) (cast(const *u16) (source + 6))[] / 65535.0}
 
     case .RGBF16:
-        result = {halfToFloat(source[as u16]), halfToFloat((source + 2)[as u16]), halfToFloat((source + 4)[as u16]), 1}
+        result = {halfToFloat((cast(const *u16) source)[]), halfToFloat((cast(const *u16) (source + 2))[]), halfToFloat((cast(const *u16) (source + 4))[]), 1}
 
     case .RGBAF16:
-        result = {halfToFloat(source[as u16]), halfToFloat((source + 2)[as u16]), halfToFloat((source + 4)[as u16]), halfToFloat((source + 6)[as u16])}
+        result = {halfToFloat((cast(const *u16) source)[]), halfToFloat((cast(const *u16) (source + 2))[]), halfToFloat((cast(const *u16) (source + 4))[]), halfToFloat((cast(const *u16) (source + 6))[])}
 
     case .RGBF32:
-        result = {source[as f32], (source + 4)[as f32], (source + 8)[as f32], 1}
+        result = {(cast(const *f32) source)[], (cast(const *f32) (source + 4))[], (cast(const *f32) (source + 8))[], 1}
 
     case .RGBAF32:
-        result = {source[as f32], (source + 4)[as f32], (source + 8)[as f32], (source + 12)[as f32]}
+        result = {(cast(const *f32) source)[], (cast(const *f32) (source + 4))[], (cast(const *f32) (source + 8))[], (cast(const *f32) (source + 12))[]}
 
     case .Yuv420, .Yuv444:
         Swag.assert(false, "a planar pixel cannot be read from packed storage")
@@ -199,19 +199,19 @@ internal func writePixelValue(destination: [*] u8, format: PixelFormat, value: P
             destination[1] = normalizedToU8(value.a)
 
     case .Gray16, .GrayAlpha16:
-        destination[as u16] = normalizedToU16(value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722)
+        (cast(*u16) destination)[] = normalizedToU16(value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722)
         if format == .GrayAlpha16 do
-            (destination + 2)[as u16] = normalizedToU16(value.a)
+            (cast(*u16) (destination + 2))[] = normalizedToU16(value.a)
 
     case .GrayF16, .GrayAlphaF16:
-        destination[as u16] = floatToHalf(value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722)
+        (cast(*u16) destination)[] = floatToHalf(value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722)
         if format == .GrayAlphaF16 do
-            (destination + 2)[as u16] = floatToHalf(value.a)
+            (cast(*u16) (destination + 2))[] = floatToHalf(value.a)
 
     case .GrayF32, .GrayAlphaF32:
-        destination[as f32] = value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
+        (cast(*f32) destination)[] = value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
         if format == .GrayAlphaF32 do
-            (destination + 4)[as f32] = value.a
+            (cast(*f32) (destination + 4))[] = value.a
 
     case .BGR8:
         destination[0] = normalizedToU8(value.b)
@@ -232,25 +232,25 @@ internal func writePixelValue(destination: [*] u8, format: PixelFormat, value: P
             destination[3] = normalizedToU8(value.a)
 
     case .RGB16, .RGBA16:
-        destination[as u16]       = normalizedToU16(value.r)
-        (destination + 2)[as u16] = normalizedToU16(value.g)
-        (destination + 4)[as u16] = normalizedToU16(value.b)
+        (cast(*u16) destination)[]       = normalizedToU16(value.r)
+        (cast(*u16) (destination + 2))[] = normalizedToU16(value.g)
+        (cast(*u16) (destination + 4))[] = normalizedToU16(value.b)
         if format == .RGBA16 do
-            (destination + 6)[as u16] = normalizedToU16(value.a)
+            (cast(*u16) (destination + 6))[] = normalizedToU16(value.a)
 
     case .RGBF16, .RGBAF16:
-        destination[as u16]       = floatToHalf(value.r)
-        (destination + 2)[as u16] = floatToHalf(value.g)
-        (destination + 4)[as u16] = floatToHalf(value.b)
+        (cast(*u16) destination)[]       = floatToHalf(value.r)
+        (cast(*u16) (destination + 2))[] = floatToHalf(value.g)
+        (cast(*u16) (destination + 4))[] = floatToHalf(value.b)
         if format == .RGBAF16 do
-            (destination + 6)[as u16] = floatToHalf(value.a)
+            (cast(*u16) (destination + 6))[] = floatToHalf(value.a)
 
     case .RGBF32, .RGBAF32:
-        destination[as f32]       = value.r
-        (destination + 4)[as f32] = value.g
-        (destination + 8)[as f32] = value.b
+        (cast(*f32) destination)[]       = value.r
+        (cast(*f32) (destination + 4))[] = value.g
+        (cast(*f32) (destination + 8))[] = value.b
         if format == .RGBAF32 do
-            (destination + 12)[as f32] = value.a
+            (cast(*f32) (destination + 12))[] = value.a
 
     case .Yuv420, .Yuv444:
         Swag.assert(false, "a planar pixel cannot be written to packed storage")
@@ -549,11 +549,11 @@ impl Image
         #static switch BPP
         {
         case 24:
-            pixDst[as u16] = pixSrc[as u16]
-            pixDst[2]      = pixSrc[2]
+            (cast(*u16) pixDst)[] = (cast(const *u16) pixSrc)[]
+            pixDst[2] = pixSrc[2]
 
         case 32:
-            pixDst[as u32] = pixSrc[as u32]
+            (cast(*u32) pixDst)[] = (cast(const *u32) pixSrc)[]
 
         default:
             #assert("invalid pixelCopy BPP")

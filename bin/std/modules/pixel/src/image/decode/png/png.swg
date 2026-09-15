@@ -181,7 +181,7 @@ impl Decoder
             fail InvalidFormatError{"PNG IHDR chunk size is not 13 bytes"}
 
         let chunk = try .readChunk(ch)
-        .header        = (Decoder.safeDatas(chunk)).buffer[as Header]
+        .header        = (cast(const *Header) (Decoder.safeDatas(chunk)).buffer)[]
         .header.width  = Math.bigEndianToNative(.header.width)
         .header.height = Math.bigEndianToNative(.header.height)
 
@@ -294,30 +294,30 @@ impl Decoder
                     fail InvalidFormatError{"PNG animation control chunk is invalid or misplaced"}
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
-                declaredFrames = Math.bigEndianToNative(data[as u32])
+                declaredFrames = Math.bigEndianToNative((cast(const *u32) data)[])
                 if not declaredFrames do
                     fail InvalidFormatError{"PNG animation declares no frames"}
                 try .decOptions.checkFrameCount(declaredFrames)
-                .animation.loopCount = Math.bigEndianToNative((data + 4)[as u32])
+                .animation.loopCount = Math.bigEndianToNative((cast(const *u32) (data + 4))[])
 
             case .FCTL:
                 if not declaredFrames or ch.length != 26 or (currentFrame >= 0 and not frameHasData) do
                     fail InvalidFormatError{"PNG animation frame control is invalid or misplaced"}
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
-                if Math.bigEndianToNative(data[as u32]) != sequence do
+                if Math.bigEndianToNative((cast(const *u32) data)[]) != sequence do
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
                 sequence     += 1
                 currentFrame += 1
                 frameHasData = false
                 if cast(u32) currentFrame >= declaredFrames do
                     fail InvalidFormatError{"PNG animation has too many frames"}
-                let width       = Math.bigEndianToNative((data + 4)[as u32])
-                let height      = Math.bigEndianToNative((data + 8)[as u32])
-                let x           = Math.bigEndianToNative((data + 12)[as u32])
-                let y           = Math.bigEndianToNative((data + 16)[as u32])
-                let numerator   = Math.bigEndianToNative((data + 20)[as u16])
-                let denominator = Math.bigEndianToNative((data + 22)[as u16])
+                let width       = Math.bigEndianToNative((cast(const *u32) (data + 4))[])
+                let height      = Math.bigEndianToNative((cast(const *u32) (data + 8))[])
+                let x           = Math.bigEndianToNative((cast(const *u32) (data + 12))[])
+                let y           = Math.bigEndianToNative((cast(const *u32) (data + 16))[])
+                let numerator   = Math.bigEndianToNative((cast(const *u16) (data + 20))[])
+                let denominator = Math.bigEndianToNative((cast(const *u16) (data + 22))[])
                 if not width or not height or width > .header.width or height > .header.height or x > .header.width - width or y > .header.height - height or data[24] > 2 or data[25] > 1 do
                     fail InvalidFormatError{"PNG animation frame rectangle or operation is invalid"}
                 if not seenIDAT and (x or y or width != .header.width or height != .header.height) do
@@ -330,7 +330,7 @@ impl Decoder
                     fail InvalidFormatError{"PNG animation frame data is invalid or misplaced"}
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk)
-                if Math.bigEndianToNative(data.buffer[as u32]) != sequence do
+                if Math.bigEndianToNative((cast(const *u32) data.buffer)[]) != sequence do
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
                 sequence     += 1
                 frameHasData = true

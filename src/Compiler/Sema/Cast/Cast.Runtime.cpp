@@ -167,11 +167,9 @@ namespace
         return false;
     }
 
-    // An explicit cast between two struct pointers is a move inside one composition: down to a
-    // type that composes the source, or up to one the source composes. The compiler sees the whole
-    // 'using' graph, so a pair with no path either way is not a descent at all - it reads one
-    // object as an unrelated one, and every field it then touches is at the wrong place.
-    Result explicitStructPointerCastIsUnrelated(Sema& sema, const CastRequest& castRequest, TypeRef srcPointeeTypeRef, TypeRef dstPointeeTypeRef, bool& outUnrelated)
+    // Only an upcast follows storage known from the source type. The inverse needs an explicit
+    // dynamic cast: a standalone base has the same static type as an embedded base.
+    Result explicitStructPointerCastIsUnrelated(Sema& sema, CastRequest& castRequest, TypeRef srcPointeeTypeRef, TypeRef dstPointeeTypeRef, bool& outUnrelated)
     {
         outUnrelated = false;
 
@@ -183,14 +181,21 @@ namespace
         if (!typeMgr.get(srcPointee).isStruct() || !typeMgr.get(dstPointee).isStruct())
             return Result::Continue;
 
+        bool ascends = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcPointee, dstPointee, ascends));
+        if (ascends)
+            return Result::Continue;
+
         bool descends = false;
         SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, dstPointee, srcPointee, descends));
         if (descends)
-            return Result::Continue;
+        {
+            if (!typeMgr.get(srcPointee).payloadSymStruct().isDynamic())
+                return castRequest.fail(DiagnosticId::sema_err_downcast_dynamic, srcPointee, dstPointee);
+            return castRequest.fail(DiagnosticId::sema_err_dynamic_cast_modifier, srcPointee, dstPointee);
+        }
 
-        bool ascends = false;
-        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcPointee, dstPointee, ascends));
-        outUnrelated = !ascends;
+        outUnrelated = true;
         return Result::Continue;
     }
 
@@ -498,7 +503,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
                     if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                         return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
-                    return Result::Continue;
+                    return castRequest.fail(DiagnosticId::sema_err_dynamic_cast_modifier, srcTypeRef, dstTypeRef);
                 }
             }
         }
@@ -861,6 +866,20 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
         {
             const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
             SWC_RESULT(sema.makeRuntimeTypeInfo(castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
+            const TypeRef metadataTypeRef = sema.cstMgr().get(castRequest.outConstRef).typeRef();
+            CastRequest   metadataCast(castRequest.kind);
+            metadataCast.flags        = castRequest.flags;
+            metadataCast.errorNodeRef = castRequest.errorNodeRef;
+            metadataCast.errorCodeRef = castRequest.errorCodeRef;
+            metadataCast.setConstantFoldingSrc(castRequest.outConstRef);
+            const Result result = castToFromTypeInfo(sema, metadataCast, metadataTypeRef, dstTypeRef);
+            if (result != Result::Continue)
+            {
+                if (result == Result::Error)
+                    castRequest.failure = metadataCast.failure;
+                return result;
+            }
+            castRequest.outConstRef = metadataCast.outConstRef;
         }
 
         return Result::Continue;
@@ -869,16 +888,20 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToFromTypeInfo(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToFromTypeInfo(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    SWC_UNUSED(sema);
-    SWC_UNUSED(srcTypeRef);
-    SWC_UNUSED(dstTypeRef);
-
-    if (castRequest.isConstantFolding())
-        castRequest.outConstRef = castRequest.srcConstRef;
-
-    return Result::Continue;
+    TypeRef baseTypeRef = TypeRef::invalid();
+    SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, baseTypeRef, sema.node(sema.curNodeRef()).codeRef()));
+    const auto normalize = [&](TypeRef typeRef) {
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (!type.isTypeInfo())
+            return typeRef;
+        TypeInfoFlags flags = TypeInfoFlagsE::Const;
+        if (type.isNullable())
+            flags.add(TypeInfoFlagsE::Nullable);
+        return sema.typeMgr().addType(TypeInfo::makeValuePointer(baseTypeRef, flags));
+    };
+    return castToPointer(sema, castRequest, normalize(srcTypeRef), normalize(dstTypeRef));
 }
 
 Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -1158,8 +1181,15 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         const SymbolStruct& fromStruct       = objectStructType.payloadSymStruct();
         SWC_RESULT(sema.waitSemaCompleted(&objectStructType, castRequest.errorNodeRef));
         const SymbolInterface& toItf = dstType.payloadSymInterface();
-        if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
+        if (const SymbolImpl* impl = fromStruct.findInterfaceImplOrUsingFields(sema.ctx(), toItf))
         {
+            const Result constraints = impl->validateInterfaceConstraints(sema, castRequest.failure);
+            if (constraints != Result::Continue)
+            {
+                castRequest.failure.nodeRef = castRequest.errorNodeRef;
+                castRequest.failure.codeRef = castRequest.errorCodeRef;
+                return constraints;
+            }
             if ((srcType.isConst() || objectStructType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource)) && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
@@ -1178,6 +1208,9 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     if (castRequest.kind != CastKind::Explicit && !isImplicitNullableAnyStringCast(srcType, dstType))
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (!castRequest.flags.has(CastFlagsE::Assume))
+        return castRequest.fail(DiagnosticId::sema_err_dynamic_cast_modifier, srcTypeRef, dstTypeRef);
 
     if (srcType.isConst() &&
         (dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer() || dstType.isSlice() || dstType.isCString() || dstType.isInterface()) &&
@@ -1264,6 +1297,14 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         dstType.payloadTypeRef() == valueTypeRef)
     {
         SWC_RESULT(constantFoldPointerLikeFromValue(sema, valueCstRef, valueTypeRef, dstTypeRef, castRequest.outConstRef));
+        return Result::Continue;
+    }
+
+    // Extracting an any checks its stored type; it must not fold an ordinary conversion
+    // such as s32 to s64. Leave other cases to the runtime check, including dead branches.
+    if (sema.typeMgr().unwrapNonStrictAlias(valueTypeRef) != sema.typeMgr().unwrapNonStrictAlias(dstTypeRef))
+    {
+        castRequest.setConstantFoldingResult(ConstantRef::invalid());
         return Result::Continue;
     }
 

@@ -42,9 +42,9 @@ func variadicAnyRune(a: rune, values: ...)->s32
 
 func variadicAnyString(values: ...)->u8
 {
-    let s0 = cast(string) values[0]
-    let s1 = cast(string) values[1]
-    let s2 = cast(string) values[2]
+    let s0 = cast #assume(string) values[0]
+    let s1 = cast #assume(string) values[1]
+    let s2 = cast #assume(string) values[2]
     return cast #wrap(u8) (cast(u16) s0[0] + cast(u16) s1[0] + cast(u16) s2[0])
 }
 
@@ -63,12 +63,12 @@ alias VariadicStrictF32Alias  = f32
 
 func variadicAnyStrictFlag(values: ...)->bool
 {
-    return Swag.kindOf(values[0]) == VariadicStrictFlagAlias and cast(VariadicStrictFlagAlias) values[0] == cast(VariadicStrictFlagAlias) VariadicStrictFlag.B
+    return Swag.kindOf(values[0]) == VariadicStrictFlagAlias and cast #assume(VariadicStrictFlagAlias) values[0] == cast(VariadicStrictFlagAlias) VariadicStrictFlag.B
 }
 
 func variadicAnyStrictF32(values: ...)->bool
 {
-    return Swag.kindOf(values[0]) == VariadicStrictF32Alias and cast(VariadicStrictF32Alias) values[0] == cast(VariadicStrictF32Alias) 1.5
+    return Swag.kindOf(values[0]) == VariadicStrictF32Alias and cast #assume(VariadicStrictF32Alias) values[0] == cast(VariadicStrictF32Alias) 1.5
 }
 
 func variadicAnyWideIntArray(values: ...)->bool
@@ -78,7 +78,7 @@ func variadicAnyWideIntArray(values: ...)->bool
     if Swag.kindOf(values[0]) != [2] s64 do
         return false
 
-    let arr = cast([2] s64) values[0]
+    let arr = cast #assume([2] s64) values[0]
     var sum = 0's64
     for v in arr do
         sum += v

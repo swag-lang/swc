@@ -23,7 +23,7 @@ var g_Functions: Array'OneFunc
     if msg.type.kind != TypeInfoKind.Func do
         return
 
-    let typeFunc = cast(const *TypeInfoFunc) msg.type
+    let typeFunc = cast #assume(const *TypeInfoFunc) msg.type
     if not Reflection.hasAttribute(typeFunc, Extension) do
         return
     g_Functions.add({type: typeFunc, name: cast(string) (msg.name)})

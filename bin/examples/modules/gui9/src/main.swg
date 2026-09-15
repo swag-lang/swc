@@ -200,7 +200,7 @@ func createRootView()
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
-    if evt is DestroyEvent
+    if cast #try (*DestroyEvent) evt != null
     {
         app.sigFrame.disable()
         g_Surface = null

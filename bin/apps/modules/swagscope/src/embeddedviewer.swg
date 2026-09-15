@@ -35,11 +35,7 @@ struct EmbeddedViewer
 
 private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer
 {
-    var parent = view.parent
-    while parent and not parent.userData do
-        parent = parent.parent
-    Swag.assert(parent != null and parent.userData != null)
-    return cast(*EmbeddedViewer) parent.userData
+    return view.ancestorByType'EmbeddedViewer()!
 }
 
 private func reportEmbeddedFailure(view: *Wnd, reason: string)
@@ -329,7 +325,6 @@ private impl EmbeddedViewer
         {
             .dockStyle       = .Center
             .backgroundStyle = .View
-            .userData        = result
         }
 
         result.applyLayout()

@@ -46,7 +46,7 @@ public impl Image
                                       (foregroundValue.b - groundValue.b) * (foregroundValue.b - groundValue.b))}
             .transformLogicalPixels(&context)
             {
-                let params = userData![as #decltype(context)]
+                let params = (cast(const *#decltype(context)) userData!)[]
                 let amount = ((value.r - params.ground.r) * params.dr +
                               (value.g - params.ground.g) * params.dg +
                               (value.b - params.ground.b) * params.db) * params.inverseLength

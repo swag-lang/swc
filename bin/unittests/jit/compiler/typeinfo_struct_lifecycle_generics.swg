@@ -108,7 +108,7 @@ func eventSum()->s32
 
 func typeStruct(type: typeinfo)->const *Swag.TypeInfoStruct
 {
-    return cast(const *Swag.TypeInfoStruct) type
+    return cast #assume(const *Swag.TypeInfoStruct) type
 }
 
 func hasDropFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false

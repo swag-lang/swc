@@ -8,7 +8,7 @@ struct(T) DeferredMethodProbe
 
 func reflectedMethod(type: typeinfo)->const *void?
 {
-    let info = cast(const *Swag.TypeInfoStruct) type
+    let info = cast #assume(const *Swag.TypeInfoStruct) type
     return info.methods![0].value
 }
 

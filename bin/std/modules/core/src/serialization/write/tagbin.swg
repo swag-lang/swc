@@ -456,7 +456,7 @@ impl TagBin
             return false
         }
 
-        let plan = try planFor(cast(const *Swag.TypeInfoStruct) structType)
+        let plan = try planFor(cast #assume(const *Swag.TypeInfoStruct) structType)
         if plan.podFinal
         {
             output.addNative(TagBinSignature.Raw)

@@ -18,6 +18,7 @@ namespace SemaCheck
     Result isValueOrTypeInfo(Sema& sema, SemaNodeView& view);
     Result prepareBoolExprValue(Sema& sema, SemaNodeView& view);
     Result castToBool(Sema& sema, SemaNodeView& view);
+    Result conditionBinding(Sema& sema, AstNodeRef varDeclRef);
     Result isConstant(Sema& sema, AstNodeRef nodeRef);
     bool   isReadOnlyParameterPath(Sema& sema, AstNodeRef nodeRef);
     bool   isImmutableBinding(Sema& sema, AstNodeRef nodeRef);

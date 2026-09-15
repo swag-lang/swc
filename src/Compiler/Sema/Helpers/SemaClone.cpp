@@ -749,6 +749,10 @@ namespace
         clonedPayload.runtimeSafetyMask |= sourcePayload->runtimeSafetyMask;
         clonedPayload.notNullUnwrap |= sourcePayload->notNullUnwrap;
         clonedPayload.ufcsReceiverAddress |= sourcePayload->ufcsReceiverAddress;
+        clonedPayload.dynamicCast |= sourcePayload->dynamicCast;
+        clonedPayload.assumedDynamicCast |= sourcePayload->assumedDynamicCast;
+        clonedPayload.runtimeTypeCast |= sourcePayload->runtimeTypeCast;
+        clonedPayload.runtimeValueCast |= sourcePayload->runtimeValueCast;
     }
 
     void copyClonedCastCallArguments(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
@@ -1155,6 +1159,11 @@ namespace
             if (void* semaPayload = sema.semaPayload<void>(sourceRef); semaPayload && !sema.semaPayload<void>(clonedRef))
                 sema.setSemaPayload(clonedRef, semaPayload);
             copyClonedCastCallArguments(sema, sourceRef, clonedRef);
+            if (sema.node(sourceRef).is(AstNodeId::CastExpr) || sema.node(sourceRef).is(AstNodeId::AutoCastExpr))
+            {
+                const SemaClone::CloneContext detachedContext{std::span<const SemaClone::ParamBinding>{}, {}, false, nullptr, false, true};
+                copyImplicitCastLoweringPayload(sema, detachedContext, sourceRef, clonedRef);
+            }
         }
         if (sema.node(sourceRef).is(AstNodeId::Identifier) &&
             sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())

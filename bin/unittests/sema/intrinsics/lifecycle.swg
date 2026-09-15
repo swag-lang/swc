@@ -418,7 +418,7 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
     catch intrinsicAutoDropErrorImpl() as errc
     if errc != null
     {
-        let err = cast(IntrinsicLifecycleErr) errc
+        let err = cast #assume(IntrinsicLifecycleErr) errc
         result.first  = err.code
         result.second = 1
     }
@@ -571,7 +571,7 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
         catch intrinsicAutoDropCatchResumeImpl(55) as errc
         if errc != null
         {
-            let err = cast(IntrinsicLifecycleErr) errc
+            let err = cast #assume(IntrinsicLifecycleErr) errc
             first  = err.code
             second = outer.second.value
             third  = 1

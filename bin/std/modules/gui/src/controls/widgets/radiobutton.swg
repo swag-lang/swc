@@ -249,9 +249,9 @@ impl RadioButton
         var current = 0's64
         for child in .parent.children
         {
-            if child.type != RadioButton do
+            let other = cast #try (*RadioButton) child
+            if not other do
                 continue
-            let other = cast(*RadioButton) child
             if other.groupId != .groupId do
                 continue
             if child == cast(*Wnd) me do
@@ -278,9 +278,11 @@ impl RadioButton
 
         for c in .parent.children
         {
-            if c == cast(*Wnd) me or c.type != RadioButton do
+            if c == cast(*Wnd) me do
                 continue
-            let other = cast(*RadioButton) c
+            let other = cast #try (*RadioButton) c
+            if not other do
+                continue
             if other.groupId == .groupId do
                 other.setChecked(false)
         }

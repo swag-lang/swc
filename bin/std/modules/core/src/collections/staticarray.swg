@@ -111,7 +111,7 @@ impl StaticArray
         Swag.assert(countof <= N, "slice is too big")
         var dataof = arr.buffer
 
-        #static if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             for i in countof do
                 .buffer[i] = #nodrop dataof[i]
@@ -284,7 +284,7 @@ impl StaticArray
         Swag.assert(.count != N, "the array is full")
         .count += 1
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = .count - 1; idx > index; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - 1]
@@ -320,7 +320,7 @@ impl StaticArray
         Swag.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
@@ -330,7 +330,7 @@ impl StaticArray
             Memory.copyOverlapping(&.buffer[index + sliceCount], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #static if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             let vals = values!
             for var idx = 0; idx < sliceCount; idx += 1 do
@@ -365,7 +365,7 @@ impl StaticArray
         Swag.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
@@ -375,7 +375,7 @@ impl StaticArray
             Memory.copyOverlapping(&.buffer[index + values.count], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
                 .buffer[index + idx] = #nodrop #move values[idx]
@@ -407,7 +407,7 @@ impl StaticArray
         var oldCount = .count
         .count += sliceCount
 
-        #static if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             let vals    = values!
             var destPtr = cast([*] T) &.buffer[oldCount]
@@ -433,7 +433,7 @@ impl StaticArray
         let oldCount   = .count
         let shiftCount = .count - (index + num)
 
-        #static if not Reflection.hasPostMove(T) and not Reflection.hasDrop(T)
+        #static if not (Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)) and not Reflection.hasDrop(T)
         {
             Memory.copyOverlapping(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
         }
@@ -453,7 +453,7 @@ impl StaticArray
 
         .count -= num
 
-        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             Swag.init(&.buffer[.count], oldCount - .count)
         }
@@ -486,7 +486,7 @@ impl StaticArray
             .buffer[index] = #relocate .buffer[.count]
         }
 
-        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             Swag.init(&.buffer[.count], oldCount - .count)
         }
@@ -510,7 +510,7 @@ impl StaticArray
 
         if index >= .count
         {
-            #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+            #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
             {
                 Swag.init(&.buffer[.count], oldCount - .count)
             }
@@ -518,7 +518,7 @@ impl StaticArray
             return
         }
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             var idx = index
             for .count - index
@@ -532,7 +532,7 @@ impl StaticArray
             Memory.copyOverlapping(&.buffer[index], &.buffer[index + numValues], #sizeof(T) * (.count - index))
         }
 
-        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             Swag.init(&.buffer[.count], oldCount - .count)
         }
@@ -617,7 +617,7 @@ impl StaticArray
         var result: retval
         let backIndex = .count - 1
         result = #relocate .buffer[backIndex]
-        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             Swag.init(&.buffer[backIndex], 1)
         }
@@ -633,7 +633,7 @@ impl StaticArray
         Swag.assert(.count > 0, "array is empty")
         let backIndex = .count - 1
         Swag.drop(&.buffer[backIndex])
-        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             Swag.init(&.buffer[backIndex], 1)
         }

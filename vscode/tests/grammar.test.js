@@ -77,6 +77,18 @@ test('compiler token prefixes do not color unknown directives as builtins', () =
     }
 });
 
+test('dynamic casts share modifiers and retired type tests are ordinary identifiers', () => {
+    for (const modifier of ['#try', '#assume']) {
+        const line = `cast ${modifier}(*Widget) value`;
+        assert.ok(scopesAt(line, line.indexOf(modifier)).includes('entity.name.function.intrinsic'), line);
+    }
+    assert.ok(!scopesAt('value is Widget', 6).includes('keyword.control'));
+    for (const name of ['typeIs', 'typeAs']) {
+        assert.ok(!scopesAt(`Swag.${name}(target, source)`, 5).includes('entity.name.function.intrinsic'), name);
+    }
+    assert.ok(scopesAt('catch err as context', 10).includes('keyword.control'));
+});
+
 test('intrinsic member names require an accessor and a complete identifier', () => {
     for (const line of ['value.countExtra', 'value.bufferExtra', 'item0', 'myitem0']) {
         assert.ok(!scopesAt(line, line.length - 1).includes('constant.character.escape'), line);

@@ -227,7 +227,7 @@ using Swag, Core
 
     Swag.assert(forms.count == 1)
     Swag.assert(Swag.kindOf(forms[0]) == FormCallout)
-    let c2 = cast(*FormCallout) forms[0].buffer
+    let c2 = cast #assume (*FormCallout) forms[0]
     Swag.assert(c2.text == "hello")
     Swag.assert(c2.roundSize == 18)
     Swag.assert(c2.tailX == 4)

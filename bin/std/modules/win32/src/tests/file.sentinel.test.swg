@@ -35,7 +35,7 @@ using Swag
     Swag.assert(sizeLow == INVALID_FILE_SIZE and sizeHigh == 0)
 
     discard catch SetFilePointer(INVALID_HANDLE_VALUE, 0, &high, FILE_BEGIN) as seekError
-    Swag.assert(seekError is SystemError)
+    Swag.assert((cast #try (*SystemError) seekError != null))
     discard catch GetFileSize(INVALID_HANDLE_VALUE, &sizeHigh) as sizeError
-    Swag.assert(sizeError is SystemError)
+    Swag.assert((cast #try (*SystemError) sizeError != null))
 }

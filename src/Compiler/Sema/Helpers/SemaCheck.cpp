@@ -360,12 +360,6 @@ namespace
             return isDerefConstSource(sema, node.cast<AstUnaryExpr>());
         if (node.is(AstNodeId::ParenExpr))
             return isConstAssignmentTargetImpl(sema, node.cast<AstParenExpr>().nodeExprRef);
-        // 'expr[as T]' writes through the source pointer like a plain dereference.
-        if (node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
-        {
-            const SemaNodeView sourceView = sema.viewTypeSymbol(node.cast<AstCastExpr>().nodeExprRef);
-            return isConstSourceViewImpl(sema, sourceView);
-        }
         return false;
     }
 
@@ -374,6 +368,8 @@ namespace
         switch (flag)
         {
             case AstModifierFlagsE::Bit: return TokenId::ModifierBit;
+            case AstModifierFlagsE::Try: return TokenId::ModifierTry;
+            case AstModifierFlagsE::Assume: return TokenId::ModifierAssume;
             case AstModifierFlagsE::UnConst: return TokenId::ModifierUnConst;
             case AstModifierFlagsE::Fail: return TokenId::ModifierFail;
             case AstModifierFlagsE::NoFail: return TokenId::ModifierNoFail;
@@ -674,6 +670,40 @@ Result SemaCheck::castToBool(Sema& sema, SemaNodeView& view)
     }
 
     return Result::Continue;
+}
+
+Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef varDeclRef)
+{
+    AstNodeRef     declRef = varDeclRef;
+    const AstNode& varNode = sema.node(varDeclRef);
+    if (varNode.is(AstNodeId::VarDeclList))
+    {
+        const auto&             list = varNode.cast<AstVarDeclList>();
+        SmallVector<AstNodeRef> decls;
+        sema.ast().appendNodes(decls, list.spanChildrenRef);
+        if (decls.size() != 1)
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, varDeclRef);
+        declRef = decls.front();
+    }
+
+    const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
+    const Symbol*      sym      = declView.singleSymbol();
+    if (!sym)
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, declRef);
+
+    const TypeRef typeRef = sym->typeRef();
+    if (typeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    if (type.isConvertibleToBoolAliasAware(sema.ctx()))
+        return Result::Continue;
+
+    auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_cast, sym->codeRef());
+    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeBool());
+    diag.report(sema.ctx());
+    return Result::Error;
 }
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)

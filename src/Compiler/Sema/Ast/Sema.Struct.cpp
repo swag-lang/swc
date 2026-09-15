@@ -12,6 +12,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result checkDynamicFieldLayout(Sema& sema, const SymbolStruct& sym)
+    {
+        if (!sym.hasDynamicStorage())
+            return Result::Continue;
+        for (const SymbolVariable* field : sym.fields())
+        {
+            if (!SymbolStruct::typeHasDynamicStorage(sema.ctx(), field->typeRef()))
+                continue;
+            const uint64_t start = field->offset();
+            const uint64_t end   = start + field->typeInfo(sema.ctx()).sizeOf(sema.ctx());
+            for (const SymbolVariable* other : sym.fields())
+            {
+                if (other == field)
+                    continue;
+                const uint64_t otherStart = other->offset();
+                const uint64_t otherEnd   = otherStart + other->typeInfo(sema.ctx()).sizeOf(sema.ctx());
+                if (start < otherEnd && otherStart < end)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_dynamic_layout, *field);
+            }
+        }
+        return Result::Continue;
+    }
+
     void bindSpecializedStructInitializerTarget(Sema& sema, AstNodeRef nodeWhatRef, SymbolStruct& instance, TypeRef specializedTypeRef)
     {
         sema.setSymbol(nodeWhatRef, &instance);
@@ -132,6 +155,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     sym.removeIgnoredFields();
     SWC_RESULT(sym.canBeCompleted(sema));
     SWC_RESULT(sym.computeLayout(sema.ctx()));
+    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -195,6 +219,7 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
     sym.removeIgnoredFields();
     SWC_RESULT(sym.canBeCompleted(sema));
     SWC_RESULT(sym.computeLayout(sema.ctx()));
+    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
 
     if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
@@ -235,6 +260,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
     sym.removeIgnoredFields();
     SWC_RESULT(sym.canBeCompleted(sema));
     SWC_RESULT(sym.computeLayout(sema.ctx()));
+    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -273,6 +299,7 @@ Result AstAnonymousUnionDecl::semaPostNode(Sema& sema)
     sym.removeIgnoredFields();
     SWC_RESULT(sym.canBeCompleted(sema));
     SWC_RESULT(sym.computeLayout(sema.ctx()));
+    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
     sym.setSemaCompleted(sema.ctx());
     sema.setType(sema.curNodeRef(), sym.typeRef());
     return Result::Continue;

@@ -36,7 +36,7 @@ impl Image
 
             let pixSrc = srcImage.pixels.storage() + cast(u64) nx * srcImage.bytesPerPixel + cast(u64) ny * srcImage.rowStride
             if srcImage.bytesPerPixel == 4 do
-                pix[as u32] = pixSrc[as u32]
+                (cast(*u32) pix)[] = (cast(const *u32) pixSrc)[]
             elif srcImage.bytesPerPixel == 3
             {
                 pix[0] = pixSrc[0]

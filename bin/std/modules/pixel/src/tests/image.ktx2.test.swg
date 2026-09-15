@@ -33,13 +33,13 @@ func ktx2Roundtrip(source: Image)->Image
     var encoded = expect source.encode("plain.ktx2")
     encoded.makeLinear()
     var plain      = encoded.toSlice()!
-    let dataOffset = (plain.buffer + 80)[as u64]
-    let rawLength  = (plain.buffer + 96)[as u64]
+    let dataOffset = (cast(const *u64) (plain.buffer + 80))[]
+    let rawLength  = (cast(const *u64) (plain.buffer + 96))[]
     var zlib: Compress.ZLib
     let compressed = expect zlib.compress(plain[dataOffset until dataOffset + rawLength])
 
     plain[44] = 3
-    (plain.buffer + 88)[as u64] = compressed.count
+    (cast(*u64) (plain.buffer + 88))[] = compressed.count
     var rebuilt: ConcatBuffer
     rebuilt.addBytes(plain[until dataOffset])
     rebuilt.addBytes(compressed.toSlice())

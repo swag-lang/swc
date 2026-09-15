@@ -39,7 +39,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.assert(result.commands == null and result.info != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
     Swag.assert(result.isLoading(result.view))
     Swag.assert(Utf8.contains(result.details.toString(), "HTML"))
-    let view = cast(*HtmlViewer) result.view
+    let view = cast #assume (*HtmlViewer) result.view
     finishHtmlViewer(&host, &result)
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
@@ -87,7 +87,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     var result = openTestViewer(htmlViewerPlugin(), &host.root, htmlViewerFixturePath().toString(), infoParent: infoBar)
     Swag.assert(result.view != null and result.info != null)
     infoBar.centerGroup = result.info
-    let view = cast(*HtmlViewer) result.view
+    let view = cast #assume (*HtmlViewer) result.view
     assertViewerInfoButton(view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == ViewerZoomSlotWidth)
     finishHtmlViewer(&host, &result)

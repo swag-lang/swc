@@ -43,7 +43,7 @@ using Swag, Core
     webp.add("EXIF")
     webp.add([26'u8, 0, 0, 0])
     webp.add(ExifBytes)
-    (webp.storage() + 4)[as u32] = cast(u32) webp.count - 8
+    (cast(*u32) (webp.storage() + 4))[] = cast(u32) webp.count - 8
     for enabled in [false, true]
     {
         var reader = expect ImageReader.decode("metadata.webp", webp.toSlice(), {decodeMetadata: enabled})
@@ -58,13 +58,13 @@ using Swag, Core
 #test
 {
     var tiff    = expect File.readAllBytes(getTestDataPath("imageset-pages-raw.tiff"))
-    let first   = (tiff.storage() + 4)[as u32]
-    let entries = (tiff.storage() + first)[as u16]
-    (tiff.storage() + first + 2 + cast(u64) entries * 12)[as u32] = first
+    let first   = (cast(const *u32) (tiff.storage() + 4))[]
+    let entries = (cast(const *u16) (tiff.storage() + first))[]
+    (cast(*u32) (tiff.storage() + first + 2 + cast(u64) entries * 12))[] = first
     var reader = catch ImageReader.decode("cycle.tiff", tiff.toSlice()) as cycleError
     Swag.assert(cycleError != null)
     var dds = expect File.readAllBytes(getTestDataPath("imageset-array.dds"))
-    (dds.storage() + 140)[as u32] = Swag.U32.Max
+    (cast(*u32) (dds.storage() + 140))[] = Swag.U32.Max
     reader = catch ImageReader.decode("oversized.dds", dds.toSlice()) as arrayError
     Swag.assert(arrayError != null)
 }

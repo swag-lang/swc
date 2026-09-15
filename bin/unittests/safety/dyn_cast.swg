@@ -44,7 +44,7 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, true)]
     func castAnyToS32(a: any)->s32
     {
-        return cast(s32) a
+        return cast #assume(s32) a
     }
 
     const value = #run castAnyToS32(42)
@@ -56,7 +56,7 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, true)]
     func castAnyToString(a: any)->string
     {
-        return cast(string) a
+        return cast #assume(string) a
     }
 
     const value = #run castAnyToString("hello")
@@ -68,7 +68,7 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, true)]
     func castAnyToBool(a: any)->bool
     {
-        return cast(bool) a
+        return cast #assume(bool) a
     }
 
     const value = #run castAnyToBool(true)
@@ -84,7 +84,7 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, true)]
     func castAnyMismatch(a: any)->s32
     {
-        return cast(s32) a     // swc-expected-error {{safety_err_runtime}}
+        return cast #assume(s32) a     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyMismatch("not an int")
@@ -95,7 +95,7 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, true)]
     func castAnyBoolMismatch(a: any)->bool
     {
-        return cast(bool) a     // swc-expected-error {{safety_err_runtime}}
+        return cast #assume(bool) a     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyBoolMismatch(42)
@@ -110,14 +110,14 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, false)]
     func castAnyNoSafety(a: any)->s32
     {
-        return cast(s32) a
+        return cast #assume(s32) a
     }
 
     const value = #run castAnyNoSafety("not an int")
 }
 
 // =============================================
-// Struct cast from any using Swag.typeAs mechanism
+// Checked struct extraction from any
 // =============================================
 
 struct Base
@@ -143,7 +143,7 @@ struct Derived
     #[Swag.Safety(.DynCast, true)]
     func castAnyToBase(a: any)->Base
     {
-        return cast(Base) a
+        return cast #assume(Base) a
     }
 
     const value = #run castAnyToBase(Base{value: 77})
@@ -156,7 +156,7 @@ struct Derived
     #[Swag.Safety(.DynCast, true)]
     func castAnyToBase2(a: any)->Base
     {
-        return cast(Base) a
+        return cast #assume(Base) a
     }
 
     const value = #run castAnyToBase2(Derived{mid: {base: {value: 99}, midValue: 50}, derivedValue: 60})
@@ -174,7 +174,7 @@ struct Derived
     #[Swag.Safety(.DynCast, true)]
     func castAnyToUnrelated(a: any)->Unrelated
     {
-        return cast(Unrelated) a     // swc-expected-error {{safety_err_runtime}}
+        return cast #assume(Unrelated) a     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyToUnrelated(Base{value: 10})

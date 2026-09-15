@@ -2,9 +2,8 @@
 
 // Swaps the values of two variables.
 // Takes pointers to the two values to be swapped.
-// A pure storage exchange: the values are relocated (`#relocate` applies `opPostMove`, so types with a
-// self-referential fixup like the small-string optimization stay valid). After the final relocation,
-// the scratch slot is no longer a live `T`; its raw storage is zeroed only to suppress a duplicate drop.
+// Relocation applies `opPostMove`, so self-referential values stay valid. The
+// scratch value's lifetime ends at its final relocation.
 #[Swag.Inline]
 func(T) swap(x, y: *T)
 {
@@ -12,7 +11,6 @@ func(T) swap(x, y: *T)
     tmp = #relocate x[]
     x[] = #relocate y[]
     y[] = #relocate tmp
-    Swag.memset(cast([*] void) &tmp, 0, #sizeof(T))
 }
 
 // Ensures that the first value is less than or equal to the second value.

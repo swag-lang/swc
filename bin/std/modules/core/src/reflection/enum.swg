@@ -10,7 +10,7 @@ func enumUnderlyingType(type: typeinfo)->typeinfo
     if not isEnum(type) do
         return type
 
-    let enumType = cast(const *TypeInfoEnum) type
+    let enumType = cast #assume(const *TypeInfoEnum) type
     return enumType.rawType!
 }
 
@@ -21,7 +21,7 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
     if not isEnum(type) do
         return null
 
-    let typeEnum = cast(const *TypeInfoEnum) type!
+    let typeEnum = cast #assume(const *TypeInfoEnum) type!
     for &it in typeEnum.values where it.name == name do
         return it
     return null
@@ -36,7 +36,7 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
         return result
     let safeType  = type!
     let safeValue = valueAddress
-    let typeEnum  = cast(const *TypeInfoEnum) safeType
+    let typeEnum  = cast #assume(const *TypeInfoEnum) safeType
     let rawType   = typeEnum.rawType!
     let isFlags   = hasAttribute(type, EnumFlags)
 
@@ -45,11 +45,11 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     var val1s: string?
     switch rawType.sizeof
     {
-    case 1:  val1 = cast(u64) safeValue[as u8]
-    case 2:  val1 = cast(u64) safeValue[as u16]
-    case 4:  val1 = cast(u64) safeValue[as u32]
-    case 8:  val1 = cast(u64) safeValue[as u64]
-    case 16: val1s = safeValue[as string?]
+    case 1:  val1 = cast(u64) (cast(const *u8) safeValue)[]
+    case 2:  val1 = cast(u64) (cast(const *u16) safeValue)[]
+    case 4:  val1 = cast(u64) (cast(const *u32) safeValue)[]
+    case 8:  val1 = cast(u64) (cast(const *u64) safeValue)[]
+    case 16: val1s = (cast(const *(string?)) safeValue)[]
     default: return result
     }
 
@@ -66,11 +66,11 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
         var val2s: string?
         switch rawType.sizeof
         {
-        case 1:  val2 = cast(u64) safeItValue[as u8]
-        case 2:  val2 = cast(u64) safeItValue[as u16]
-        case 4:  val2 = cast(u64) safeItValue[as u32]
-        case 8:  val2 = cast(u64) safeItValue[as u64]
-        case 16: val2s = safeItValue[as string?]
+        case 1:  val2 = cast(u64) (cast(const *u8) safeItValue)[]
+        case 2:  val2 = cast(u64) (cast(const *u16) safeItValue)[]
+        case 4:  val2 = cast(u64) (cast(const *u32) safeItValue)[]
+        case 8:  val2 = cast(u64) (cast(const *u64) safeItValue)[]
+        case 16: val2s = (cast(const *(string?)) safeItValue)[]
         }
 
         // For a normal enum, stop if this is a match

@@ -7,11 +7,75 @@ internal func concreteRuntimeType(type: typeinfo)->typeinfo
     var result = type
     while result.kind == TypeInfoKind.Alias
     {
-        let typeAlias = cast(const *TypeInfoAlias) result
+        let typeAlias = cast #assume(const *TypeInfoAlias) result
         result = typeAlias.rawType
     }
 
     return result
+}
+
+// Assignments retain the destination's identity, including identities nested in
+// ordinary fields and arrays. Lifecycle hooks surround this storage copy.
+internal func copyValueStorage(dst: *void, src: const *void, type: typeinfo)
+{
+    if not (type.flags & .HasDynamicStorage)
+    {
+        copy(dst, src, type.sizeof)
+        return
+    }
+
+    let concreteType = concreteRuntimeType(type)
+    let target       = cast([*] u8) dst
+    let source       = cast(const [*] u8) src
+    if concreteType.kind == .Array
+    {
+        let info = cast #assume(const *TypeInfoArray) concreteType
+        for i in info.count
+        {
+            let offset = i * info.pointedType.sizeof
+            copyValueStorage(target + offset, source + offset, info.pointedType)
+        }
+
+        return
+    }
+
+    let info = cast #assume(const *TypeInfoStruct) concreteType
+    for field in info.fields do
+        copyValueStorage(target + field.offset, source + field.offset, field.pointedType!)
+}
+
+private func resetDynamicSlots(dst: *void, type: const *TypeInfoStruct, index: u64)
+{
+    if index == type.dynamicSlots.count
+    {
+        dropType(dst, type)
+        defaultInit(dst, type)
+        return
+    }
+
+    // Keep each descriptor in the call frame; resetting needs no allocation.
+    let address  = cast([*] u8) dst + type.dynamicSlots![index].offset
+    let slot     = cast(*const *DynamicStructInfo) cast(*void) address
+    let identity = slot[]
+    resetDynamicSlots(dst, type, index + 1)
+    slot[] = identity
+}
+
+internal func resetValueStorage(dst: *void, type: typeinfo)
+{
+    let concreteType = concreteRuntimeType(type)
+    if concreteType.kind == .Struct
+    {
+        let info = cast #assume(const *TypeInfoStruct) concreteType
+        if info.dynamicSlots.count
+        {
+            resetDynamicSlots(dst, info, 0)
+            return
+        }
+    }
+
+    dropType(dst, type)
+    defaultInit(dst, type)
 }
 
 internal func canDefaultInit(type: typeinfo)->bool
@@ -19,7 +83,7 @@ internal func canDefaultInit(type: typeinfo)->bool
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(const *TypeInfoArray) concreteType
+        let typeArray = cast #assume(const *TypeInfoArray) concreteType
         if not typeArray.count do
             return true
         if type.flags & TypeInfoFlags.RequiresExplicitInit do
@@ -32,7 +96,7 @@ internal func canDefaultInit(type: typeinfo)->bool
     if concreteType.kind != TypeInfoKind.Struct do
         return true
 
-    let typeStruct = cast(const *TypeInfoStruct) concreteType
+    let typeStruct = cast #assume(const *TypeInfoStruct) concreteType
     if typeStruct.opInit do
         return true
     if not (concreteType.flags & TypeInfoFlags.Tuple) do
@@ -59,7 +123,7 @@ internal func defaultInit(dst: *void?, type: typeinfo)
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(const *TypeInfoArray) concreteType
+        let typeArray = cast #assume(const *TypeInfoArray) concreteType
         let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
@@ -73,7 +137,7 @@ internal func defaultInit(dst: *void?, type: typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(const *TypeInfoStruct) concreteType
+        let typeStruct = cast #assume(const *TypeInfoStruct) concreteType
         if typeStruct.opInit
         {
             typeStruct.opInit(data)
@@ -112,7 +176,7 @@ internal func dropType(dst: *void?, type: typeinfo)
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(const *TypeInfoArray) concreteType
+        let typeArray = cast #assume(const *TypeInfoArray) concreteType
         let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
@@ -126,7 +190,7 @@ internal func dropType(dst: *void?, type: typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(const *TypeInfoStruct) concreteType
+        let typeStruct = cast #assume(const *TypeInfoStruct) concreteType
         if typeStruct.opDrop
         {
             typeStruct.opDrop(data)
@@ -158,7 +222,7 @@ internal func postCopyType(dst: *void?, type: typeinfo)
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(const *TypeInfoArray) concreteType
+        let typeArray = cast #assume(const *TypeInfoArray) concreteType
         let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
@@ -172,7 +236,7 @@ internal func postCopyType(dst: *void?, type: typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(const *TypeInfoStruct) concreteType
+        let typeStruct = cast #assume(const *TypeInfoStruct) concreteType
         if typeStruct.opPostCopy
         {
             typeStruct.opPostCopy(data)
@@ -204,7 +268,7 @@ internal func postMoveType(dst: *void?, type: typeinfo)
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(const *TypeInfoArray) concreteType
+        let typeArray = cast #assume(const *TypeInfoArray) concreteType
         let valueType = typeArray.pointedType
         var scan      = cast([*] u8) data
         for typeArray.count
@@ -218,7 +282,7 @@ internal func postMoveType(dst: *void?, type: typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(const *TypeInfoStruct) concreteType
+        let typeStruct = cast #assume(const *TypeInfoStruct) concreteType
         if typeStruct.opPostMove
         {
             typeStruct.opPostMove(data)

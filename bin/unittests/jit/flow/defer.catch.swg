@@ -35,7 +35,7 @@ func readWithBoundCleanup(shouldFail: bool)->s32 fail
     {
         catch cleanup() as err
         Swag.assert(err != null)
-        Swag.assert((cast(CleanupError) err).code == 7)
+        Swag.assert((cast #assume(CleanupError) err).code == 7)
     }
     let value = try readValue(shouldFail)
     return value
@@ -52,7 +52,7 @@ func readWithBoundCleanup(shouldFail: bool)->s32 fail
 {
     discard catch readWithCleanup(true) as err
     Swag.assert(err != null)
-    Swag.assert((cast(CleanupError) err).code == 9)
+    Swag.assert((cast #assume(CleanupError) err).code == 9)
 }
 
 #test
@@ -66,5 +66,5 @@ func readWithBoundCleanup(shouldFail: bool)->s32 fail
 {
     discard catch readWithBoundCleanup(true) as err
     Swag.assert(err != null)
-    Swag.assert((cast(CleanupError) err).code == 9)
+    Swag.assert((cast #assume(CleanupError) err).code == 9)
 }

@@ -446,7 +446,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1718</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1719</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1504,6 +1504,7 @@
 <li><a href="#Core_Reflection_findMethod">Reflection.findMethod</a></li>
 <li><a href="#Core_Reflection_hasAttribute">Reflection.hasAttribute</a></li>
 <li><a href="#Core_Reflection_hasDrop">Reflection.hasDrop</a></li>
+<li><a href="#Core_Reflection_hasDynamicStorage">Reflection.hasDynamicStorage</a></li>
 <li><a href="#Core_Reflection_hasInterface">Reflection.hasInterface</a></li>
 <li><a href="#Core_Reflection_hasMethod">Reflection.hasMethod</a></li>
 <li><a href="#Core_Reflection_hasPostCopy">Reflection.hasPostCopy</a></li>
@@ -5293,6 +5294,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_hasDrop">Reflection.hasDrop</a></td><td><p>Returns whether this value has drop.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Reflection_hasDynamicStorage">Reflection.hasDynamicStorage</a></td><td><p>Returns whether values contain identity slots managed by <a href="swag.runtime.html#Swag_DynCast">Swag.DynCast</a>, including</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_hasInterface">Reflection.hasInterface</a></td><td><p>Returns true if the interface <span class="code-inline">itf</span> is implemented in the given structure type.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_hasMethod">Reflection.hasMethod</a></td><td><p>Helper function to know if a struct has a special method</p>
@@ -8227,6 +8230,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Reflection_hasAttribute">Reflection.hasAttribute</a></td><td><p>Returns true if the given <span class="code-inline">value</span> has the associated <span class="code-inline">attribute</span></p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_hasDrop">Reflection.hasDrop</a></td><td><p>Returns whether this value has drop.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Reflection_hasDynamicStorage">Reflection.hasDynamicStorage</a></td><td><p>Returns whether values contain identity slots managed by <a href="swag.runtime.html#Swag_DynCast">Swag.DynCast</a>, including</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_hasInterface">Reflection.hasInterface</a></td><td><p>Returns true if the interface <span class="code-inline">itf</span> is implemented in the given structure type.</p>
 </td></tr>
@@ -11811,7 +11816,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-interface"><span id="Core_Hash_IHash64" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Hash.IHash64</span> <a class="api-item-permalink" href="#Core_Hash_IHash64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hash64.swg#L7">src</a></div>
+<div class="api-item api-item-interface"><span id="Core_Hash_IHash64" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Hash.IHash64</span> <a class="api-item-permalink" href="#Core_Hash_IHash64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hash64.swg#L40">src</a></div>
 <p>Defines the operations supported by i hash64.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Core_Hash_IHash64">IHash64</a></span></span></div>
 </section>
@@ -18551,13 +18556,13 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">isEnum</span>(<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_orderMaxMin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.orderMaxMin</span> <a class="api-item-permalink" href="#Core_orderMaxMin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L31">src</a></div>
+<div class="api-item api-item-func"><span id="Core_orderMaxMin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.orderMaxMin</span> <a class="api-item-permalink" href="#Core_orderMaxMin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L29">src</a></div>
 <p>Ensures that the first value is greater than or equal to the second value. If the first value is less than the second, their contents are swapped.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">orderMaxMin</span>(x, y: *<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_orderMinMax" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.orderMinMax</span> <a class="api-item-permalink" href="#Core_orderMinMax" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L22">src</a></div>
+<div class="api-item api-item-func"><span id="Core_orderMinMax" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.orderMinMax</span> <a class="api-item-permalink" href="#Core_orderMinMax" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L20">src</a></div>
 <p>Ensures that the first value is less than or equal to the second value. If the first value is greater than the second, their contents are swapped.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">orderMinMax</span>(x, y: *<span class="SCst">T</span>)</span></div>
@@ -18577,8 +18582,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">isEnum</span>(<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_swap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.swap</span> <a class="api-item-permalink" href="#Core_swap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L10">src</a></div>
-<p>Swaps the values of two variables. Takes pointers to the two values to be swapped. A pure storage exchange: the values are relocated (<span class="code-inline">#relocate</span> applies <span class="code-inline">opPostMove</span>, so types with a self-referential fixup like the small-string optimization stay valid). After the final relocation, the scratch slot is no longer a live <span class="code-inline">T</span>; its raw storage is zeroed only to suppress a duplicate drop.</p>
+<div class="api-item api-item-func"><span id="Core_swap" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Core.swap</span> <a class="api-item-permalink" href="#Core_swap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/algorithms/generic.swg#L9">src</a></div>
+<p>Swaps the values of two variables. Takes pointers to the two values to be swapped. Relocation applies <span class="code-inline">opPostMove</span>, so self-referential values stay valid. The scratch value's lifetime ends at its final relocation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">swap</span>(x, y: *<span class="SCst">T</span>)</span></div>
 </section>
@@ -20183,7 +20188,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">hash32</span>(value: <span class="SCst">T</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Hash_hash64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Hash.hash64</span> <a class="api-item-permalink" href="#Core_Hash_hash64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hash64.swg#L15">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Hash_hash64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Hash.hash64</span> <a class="api-item-permalink" href="#Core_Hash_hash64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hash64.swg#L48">src</a></div>
 <p>Hash the given value and returns the corresponding u64</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr, Safety(.All, false)]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">hash64</span>(value: <span class="SCst">T</span>)-&gt;<span class="STpe">u64</span></span></div>
@@ -20218,23 +20223,23 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">murmur3</span>(key: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>, len: <span class="STpe">u64</span>, seed: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.add</span> <a class="api-item-permalink" href="#Core_HashSet_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L348">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.add</span> <a class="api-item-permalink" href="#Core_HashSet_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L354">src</a></div>
 <p>Adds a new key to the set. The key is copied; pass it with <span class="code-inline">#move</span> to move it instead. If the key already exists, does nothing. Returns a pointer to the entry.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">add</span>(key: <span class="SItr">#fwd</span> <span class="SCst">K</span>)-&gt;*<span class="SCst"><a href="#Core_HashSetEntry">HashSetEntry</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.clear</span> <a class="api-item-permalink" href="#Core_HashSet_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L507">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.clear</span> <a class="api-item-permalink" href="#Core_HashSet_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L513">src</a></div>
 <p>Removes all elements from the set without deallocating the me.table memory. All slots are marked as <span class="code-inline">FREE</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.contains</span> <a class="api-item-permalink" href="#Core_HashSet_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L485">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.contains</span> <a class="api-item-permalink" href="#Core_HashSet_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L491">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the set contains the given key.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(key: <span class="SCst">K</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.free</span> <a class="api-item-permalink" href="#Core_HashSet_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L220">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.free</span> <a class="api-item-permalink" href="#Core_HashSet_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L223">src</a></div>
 <p>Frees the hash set's memory and resets its state. If keys have destructors, they are called.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
@@ -20260,69 +20265,69 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opSet</span>(slice: <span class="SKwd">const</span> [..] <span class="SCst">K</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opVisit</span> <a class="api-item-permalink" href="#Core_HashSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L170">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opVisit</span> <a class="api-item-permalink" href="#Core_HashSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L173">src</a></div>
 <p>Provides a way to iterate over each key in the set. This is a macro that accepts a code block to execute for each key. Block parameter: <span class="code-inline">key</span> is the key (or a pointer to it).</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.remove</span> <a class="api-item-permalink" href="#Core_HashSet_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L460">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.remove</span> <a class="api-item-permalink" href="#Core_HashSet_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L466">src</a></div>
 <p>Removes a key from the set. If the key exists, its slot is marked as <span class="code-inline">DELETED</span>. Does nothing if the key is not found.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(key: <span class="SCst">K</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reserve</span> <a class="api-item-permalink" href="#Core_HashSet_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L256">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reserve</span> <a class="api-item-permalink" href="#Core_HashSet_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L259">src</a></div>
 <p>Resizes the hash me.table to a new me.capacity, rehashing all existing elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reversed</span> <a class="api-item-permalink" href="#Core_HashSet_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L200">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reversed</span> <a class="api-item-permalink" href="#Core_HashSet_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L203">src</a></div>
 <p>Returns an immutable zero-allocation view that scans occupied slots in reverse order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ReversedHashSet</span>'<span class="SCst">K</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_toggle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.toggle</span> <a class="api-item-permalink" href="#Core_HashSet_toggle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L411">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_toggle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.toggle</span> <a class="api-item-permalink" href="#Core_HashSet_toggle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L417">src</a></div>
 <p>Toggles the presence of a key in the set. The key is copied when inserted; pass it with <span class="code-inline">#move</span> to move it instead. Returns <span class="code-inline">true</span> if the key is present after the operation, or <span class="code-inline">false</span> if it was removed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">toggle</span>(key: <span class="SItr">#fwd</span> <span class="SCst">K</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.add</span> <a class="api-item-permalink" href="#Core_HashTable_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L393">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.add</span> <a class="api-item-permalink" href="#Core_HashTable_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L399">src</a></div>
 <p>Adds a new key-value pair to the me.table. The key is always copied. The value is copied; pass it with <span class="code-inline">#move</span> to move it instead. If the key already exists, the value is updated if <span class="code-inline">updateValue</span> is true.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">add</span>(key: <span class="SCst">K</span>, value: <span class="SItr">#fwd</span> <span class="SCst">V</span>, updateValue = <span class="SKwd">true</span>)-&gt;*<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span>
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SItr">#typeof</span>(<span class="SCst">K</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.clear</span> <a class="api-item-permalink" href="#Core_HashTable_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L631">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.clear</span> <a class="api-item-permalink" href="#Core_HashTable_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L637">src</a></div>
 <p>Removes all elements from the me.table without deallocating the me.table memory. All slots are marked as <span class="code-inline">FREE</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.contains</span> <a class="api-item-permalink" href="#Core_HashTable_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L495">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.contains</span> <a class="api-item-permalink" href="#Core_HashTable_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L501">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the me.table contains the given key.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(key: <span class="SCst">K</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_find" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.find</span> <a class="api-item-permalink" href="#Core_HashTable_find" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L568">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_find" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.find</span> <a class="api-item-permalink" href="#Core_HashTable_find" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L574">src</a></div>
 <p>Finds the entry for a given key. Asserts and will likely crash if the key is not found. Use <a href="#Core_HashTable_tryFind">Core.HashTable.tryFind</a> for safe searching.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">find</span>(key: <span class="SCst">K</span>)-&gt;*<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span></span></div>
 <p>Finds the entry for a given key. Asserts and will likely crash if the key is not found. Use <a href="#Core_HashTable_tryFind">Core.HashTable.tryFind</a> for safe searching.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">find</span>(key: <span class="SCst">K</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_findOrAdd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.findOrAdd</span> <a class="api-item-permalink" href="#Core_HashTable_findOrAdd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L598">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_findOrAdd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.findOrAdd</span> <a class="api-item-permalink" href="#Core_HashTable_findOrAdd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L604">src</a></div>
 <p>Finds the entry for a key, or adds a new entry with a default-initialized value if not found. Returns a pointer to the existing or new entry. The key is hashed and probed once, whether it is found or inserted, instead of paying a full lookup and then a full insert on every miss.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findOrAdd</span>(key: <span class="SCst">K</span>)-&gt;*<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span>
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SItr">#typeof</span>(<span class="SCst">K</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.free</span> <a class="api-item-permalink" href="#Core_HashTable_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L263">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.free</span> <a class="api-item-permalink" href="#Core_HashTable_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L266">src</a></div>
 <p>Frees the hash me.table's memory and resets its state. If keys or values have destructors, they are called.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_getOrDefault" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.getOrDefault</span> <a class="api-item-permalink" href="#Core_HashTable_getOrDefault" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L586">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_getOrDefault" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.getOrDefault</span> <a class="api-item-permalink" href="#Core_HashTable_getOrDefault" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L592">src</a></div>
 <p>Gets the value associated with a key. If the key does not exist, returns the provided default value <span class="code-inline">val</span> instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">getOrDefault</span>(key: <span class="SCst">K</span>, defaultValue: <span class="SCst">V</span>)-&gt;<span class="SCst">V</span></span></div>
 </section>
@@ -20338,14 +20343,14 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexPtr</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L183">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexPtr</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L186">src</a></div>
 <p>Provides read-only access to the value associated with a key. Asserts if the key is not found.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opIndexPtr</span>(key: <span class="SCst">K</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst">V</span></span></div>
 <p>Provides mutable access to the value associated with a key. Asserts if the key is not found. See <a href="#Core_HashTable_opIndexSet">Core.HashTable.opIndexSet</a> for insertion or update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexPtr</span>(key: <span class="SCst">K</span>)-&gt;*<span class="SCst">V</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexSet</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L199">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexSet</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L202">src</a></div>
 <p>Assigns a value to a key, updating it if it exists or adding it if it doesn't. The value is copied in, so this only exists when it can be copied.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexSet</span>(key: <span class="SCst">K</span>, val: <span class="SCst">V</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SItr">#typeof</span>(<span class="SCst">V</span>))</span></div>
@@ -20363,28 +20368,28 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SItr">#typeof</span>(<span class="SCst">K</span>)) <span class="SLgc">and</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SItr">#typeof</span>(<span class="SCst">V</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opVisit</span> <a class="api-item-permalink" href="#Core_HashTable_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L209">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opVisit</span> <a class="api-item-permalink" href="#Core_HashTable_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L212">src</a></div>
 <p>Provides a way to iterate over each key-value pair in the me.table. This is a macro that accepts a code block to execute for each pair. Block parameters: <span class="code-inline">key</span> and <span class="code-inline">value</span> (values, or pointers when visiting by pointer).</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key, value))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.remove</span> <a class="api-item-permalink" href="#Core_HashTable_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L470">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.remove</span> <a class="api-item-permalink" href="#Core_HashTable_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L476">src</a></div>
 <p>Removes a key-value pair from the me.table by key. If the key exists, its slot is marked as <span class="code-inline">DELETED</span>. Does nothing if the key is not found.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(key: <span class="SCst">K</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reserve</span> <a class="api-item-permalink" href="#Core_HashTable_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L298">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reserve</span> <a class="api-item-permalink" href="#Core_HashTable_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L301">src</a></div>
 <p>Resizes the hash me.table to a new me.capacity, rehashing all existing elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reversed</span> <a class="api-item-permalink" href="#Core_HashTable_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L243">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reversed</span> <a class="api-item-permalink" href="#Core_HashTable_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L246">src</a></div>
 <p>Returns an immutable zero-allocation view that scans occupied slots in reverse order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ReversedHashTable</span>'(<span class="SCst">K</span>, <span class="SCst">V</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_tryFind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.tryFind</span> <a class="api-item-permalink" href="#Core_HashTable_tryFind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L517">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_tryFind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.tryFind</span> <a class="api-item-permalink" href="#Core_HashTable_tryFind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L523">src</a></div>
 <p>Tries to find the entry for a given key. Returns a pointer to the <span class="code-inline">HashTableEntry</span> if found, otherwise returns <span class="code-inline">null</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryFind</span>(key: <span class="SCst">K</span>)-&gt;*<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span>?</span></div>
 <p>Tries to find the entry for a given key. Returns a pointer to the <span class="code-inline">HashTableEntry</span> if found, otherwise returns <span class="code-inline">null</span>.</p>
@@ -20666,7 +20671,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">compute</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Hash_IHash64_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IHash64.compute</span> <a class="api-item-permalink" href="#Core_Hash_IHash64_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hash64.swg#L10">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Hash_IHash64_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IHash64.compute</span> <a class="api-item-permalink" href="#Core_Hash_IHash64_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hash64.swg#L43">src</a></div>
 <p>Defines compute.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">compute</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -23262,7 +23267,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">canCompare</span>(type: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_canCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.canCopy</span> <a class="api-item-permalink" href="#Core_Reflection_canCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L135">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_canCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.canCopy</span> <a class="api-item-permalink" href="#Core_Reflection_canCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L140">src</a></div>
 <p>Returns whether this value can copy.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canCopy</span>(type: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -23332,7 +23337,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasDrop</span>(type: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_hasInterface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.hasInterface</span> <a class="api-item-permalink" href="#Core_Reflection_hasInterface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L148">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_hasDynamicStorage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.hasDynamicStorage</span> <a class="api-item-permalink" href="#Core_Reflection_hasDynamicStorage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L137">src</a></div>
+<p>Returns whether values contain identity slots managed by <a href="swag.runtime.html#Swag_DynCast">Swag.DynCast</a>, including embedded fields and array elements. Initialize new storage and use typed assignments when copying a view of such a value into a new complete object.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasDynamicStorage</span>(type: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Reflection_hasInterface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.hasInterface</span> <a class="api-item-permalink" href="#Core_Reflection_hasInterface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L153">src</a></div>
 <p>Returns true if the interface <span class="code-inline">itf</span> is implemented in the given structure type.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">hasInterface</span>(type: <span class="STpe">typeinfo</span>?, itf: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -23410,7 +23420,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isNative</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isPod" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPod</span> <a class="api-item-permalink" href="#Core_Reflection_isPod" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L138">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isPod" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPod</span> <a class="api-item-permalink" href="#Core_Reflection_isPod" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/struct.swg#L143">src</a></div>
 <p>Returns whether pod.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPod</span>(type: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -23486,7 +23496,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">readFieldValue</span>(destination: *<span class="STpe">void</span>?, field: <span class="SKwd">const</span> *<span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>?, source: *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_registerType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.registerType</span> <a class="api-item-permalink" href="#Core_Reflection_registerType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L312">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_registerType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.registerType</span> <a class="api-item-permalink" href="#Core_Reflection_registerType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L311">src</a></div>
 <p>Registers a type and every type reachable from its reflected graph.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerType</span>(type: <span class="STpe">typeinfo</span>)</span></div>
 </section>
@@ -23511,12 +23521,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">swapRuntimeValues</span>(basePointer: *<span class="STpe">void</span>?, valueType: <span class="STpe">typeinfo</span>?, indexA, indexB: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_typeFromCrc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromCrc</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromCrc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L347">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_typeFromCrc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromCrc</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromCrc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L346">src</a></div>
 <p>Returns the registered type associated with a CRC, or null.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">typeFromCrc</span>(crc: <span class="STpe">u32</span>)-&gt;<span class="STpe">typeinfo</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_typeFromName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromName</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L357">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_typeFromName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromName</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L356">src</a></div>
 <p>Returns the registered type associated with a name, or null.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">typeFromName</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">typeinfo</span>?</span></div>
 </section>
@@ -27144,7 +27154,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.520</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.666</div>
 </footer>
 </section>
 </main>
@@ -29641,6 +29651,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Reflection.findMethod|Core_Reflection_findMethod|Get information about a specific method in a given struct.",
 "f|Core.Reflection.hasAttribute|Core_Reflection_hasAttribute|Returns true if the given 'value' has the associated 'attribute'",
 "f|Core.Reflection.hasDrop|Core_Reflection_hasDrop|Returns whether this value has drop.",
+"f|Core.Reflection.hasDynamicStorage|Core_Reflection_hasDynamicStorage|Returns whether values contain identity slots managed by Swag.DynCast, including",
 "f|Core.Reflection.hasInterface|Core_Reflection_hasInterface|Returns true if the interface 'itf' is implemented in the given structure type.",
 "f|Core.Reflection.hasMethod|Core_Reflection_hasMethod|Helper function to know if a struct has a special method",
 "f|Core.Reflection.hasPostCopy|Core_Reflection_hasPostCopy|Returns whether this value has post copy.",

@@ -148,9 +148,9 @@ using Swag, Core
     Swag.assert(loaded.forms.count == 3)
     Swag.assert(loaded.nextGroupId == nextId)
 
-    let la = cast(*BaseForm) loaded.forms[0].buffer
-    let lb = cast(*BaseForm) loaded.forms[1].buffer
-    let lc = cast(*BaseForm) loaded.forms[2].buffer
+    let la = cast #assume (*BaseForm) loaded.forms[0]
+    let lb = cast #assume (*BaseForm) loaded.forms[1]
+    let lc = cast #assume (*BaseForm) loaded.forms[2]
     Swag.assert(la.groups.count == 1)
     Swag.assert(la.groups[0] == gid)
     Swag.assert(lb.groups.count == 1)
@@ -181,8 +181,8 @@ using Swag, Core
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
     Swag.assert(f.capture.forms.count == 4)
-    let pa = cast(*BaseForm) f.capture.forms[2].buffer
-    let pb = cast(*BaseForm) f.capture.forms[3].buffer
+    let pa = cast #assume (*BaseForm) f.capture.forms[2]
+    let pb = cast #assume (*BaseForm) f.capture.forms[3]
     Swag.assert(pa.groups.count == 1)
     Swag.assert(pb.groups.count == 1)
     Swag.assert(pa.groups[0] == pb.groups[0])

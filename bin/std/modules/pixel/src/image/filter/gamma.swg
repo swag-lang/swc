@@ -14,7 +14,7 @@ public impl Image
             var context = g
             .transformLogicalPixels(&context)
             {
-                let exponent = userData![as f32]
+                let exponent = (cast(const *f32) userData!)[]
                 value.r = Math.pow(Math.max(value.r, 0.0), exponent)
                 value.g = Math.pow(Math.max(value.g, 0.0), exponent)
                 value.b = Math.pow(Math.max(value.b, 0.0), exponent)

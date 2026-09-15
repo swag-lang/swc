@@ -115,7 +115,6 @@ SWC_TOKEN_DEF(KwdTo, "to", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdUntil, "until", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdIn, "in", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdAs, "as", TokenIdKindE::Keyword | TokenIdKindE::Logic)
-SWC_TOKEN_DEF(KwdIs, "is", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdDo, "do", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 
 // MODULE / ERROR HANDLING
@@ -191,6 +190,8 @@ SWC_TOKEN_DEF(CompilerType, "#type", TokenIdKindE::Compiler | TokenIdKindE::Intr
 
 SWC_TOKEN_DEF(ModifierPromote, "#prom", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierWrap, "#wrap", TokenIdKindE::Modifier)
+SWC_TOKEN_DEF(ModifierTry, "#try", TokenIdKindE::Modifier)
+SWC_TOKEN_DEF(ModifierAssume, "#assume", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierNoDrop, "#nodrop", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierMove, "#move", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierRelocate, "#relocate", TokenIdKindE::Modifier)
@@ -258,8 +259,6 @@ SWC_TOKEN_DEF(CompilerSanity, "#sanity", TokenIdKindE::Compiler | TokenIdKindE::
 
 SWC_TOKEN_DEF(IntrinsicStringCmp, "Swag.stringCmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicTypeCmp, "Swag.typeCmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
-SWC_TOKEN_DEF(IntrinsicIs, "Swag.typeIs", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicAs, "Swag.typeAs", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicGetContext, "Swag.getContext", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicCompiler, "Swag.compiler", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 

@@ -158,7 +158,7 @@ private func linkedIdmlFixturePath()->String
     defer host.shutdown()
 
     var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: &host.root)
-    let viewer = cast(*IndesignViewer) result.view!
+    let viewer = cast #assume (*IndesignViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null)
     let firstPageImages = Testing.htmlImageSources(viewer.htmlView)
@@ -221,7 +221,7 @@ private func linkedIdmlFixturePath()->String
     var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: commandBar, infoParent: infoBar)
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
-    let viewer = cast(*IndesignViewer) result.view!
+    let viewer = cast #assume (*IndesignViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
@@ -292,7 +292,7 @@ private func linkedIdmlFixturePath()->String
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast(*IndesignViewer) result.view
+    let viewer = cast #assume (*IndesignViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(viewer.isMarkup() and viewer.htmlView != null and not viewer.imageView.isVisible())
     Swag.assert(viewer.zoomLabel.isVisible() and viewer.zoomLabel.text() == indesignStrings().ui_Fit)
@@ -359,7 +359,7 @@ private func linkedIdmlFixturePath()->String
     commandBar.centerGroup = result.commands
     infoBar.centerGroup    = result.info
 
-    let viewer = cast(*IndesignViewer) result.view
+    let viewer = cast #assume (*IndesignViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     completeViewerBackgroundLoad(&host, &viewer.previewLoad, viewer.previewLoadTimer)
     viewer.dockStyle          = .Center
@@ -424,7 +424,7 @@ private func linkedIdmlFixturePath()->String
     defer host.shutdown()
     var result = openTestViewer(indesignViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
-    let viewer = cast(*IndesignViewer) result.view
+    let viewer = cast #assume (*IndesignViewer) result.view
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
     Swag.assert(not viewer.failureReason.isEmpty())
 }

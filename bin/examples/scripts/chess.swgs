@@ -505,9 +505,9 @@ func pickCell(pos: Math.Point)->s8
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         Res.font      = wnd.theme().createDefaultFont(20)
         Res.smallfont = wnd.theme().createDefaultFont(12)
         initGame()
@@ -521,7 +521,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             wnd.invalidate()
         }
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
+    case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Pressed:
         if mouseEvt.button == .Left
         {
             let pos  = wnd.surfaceToLocal(mouseEvt.surfacePos)
@@ -557,7 +557,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         wnd.invalidate()
         return true
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         paintBoard(paintEvt)
         paintStates(paintEvt)
     }

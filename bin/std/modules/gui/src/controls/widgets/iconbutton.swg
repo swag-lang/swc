@@ -188,7 +188,7 @@ impl IWnd for IconButton
         if not .popup do
             return
 
-        if let ptr = evt as MouseEvent where ptr.kind == .Pressed
+        if let ptr = cast #try (*MouseEvent) evt where ptr.kind == .Pressed
         {
             if ptr.target == me or ptr.target == .popup do
                 return

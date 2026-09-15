@@ -2,7 +2,7 @@
 
 // 'expr[]' is the postfix spelling of the dereference: it opens the pointed storage as
 // a read/write place and composes left-to-right with member and index access.
-// 'expr[as T]' reinterprets the pointed storage as a T.
+// '(cast(*T) expr)[]' reinterprets the pointed storage as a T.
 
 func semaTest001()
 {
@@ -46,8 +46,8 @@ func semaTest005()
 {
     var value = 0'u32
     var p     = &value
-    #assert(#typeof(p[as s32]) == s32)
-    #assert(#typeof(p[as u8]) == u8)
+    #assert(#typeof((cast(const *s32) p)[]) == s32)
+    #assert(#typeof((cast(const *u8) p)[]) == u8)
 }
 
 func semaTest006()

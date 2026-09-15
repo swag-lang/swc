@@ -270,7 +270,7 @@ impl MarkdownZoomButton
         result.toolTip    = markdownStrings().ui_ZoomMenu
         result.sigPressed += func(button)
         {
-            (cast(*MarkdownZoomButton) button).showZoomMenu()
+            (cast #assume (*MarkdownZoomButton) button).showZoomMenu()
         }
 
         return result
@@ -317,9 +317,9 @@ func createMarkdownViewer(host: Viewer.Host)
     view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(wnd, evt)
     {
         discard wnd
-        switch evt
+        switch
         {
-        case KeyEvent as key where key.kind == .Pressed and key.modifiers.has(.Control):
+        case let key = cast #try (*KeyEvent) evt where key.kind == .Pressed and key.modifiers.has(.Control):
             switch key.key
             {
             case .Add, .OemPlus:       zoomButton.applyZoom(zoomButton.zoomPercent + 25)
@@ -330,14 +330,14 @@ func createMarkdownViewer(host: Viewer.Host)
 
             return true
 
-        case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
+        case let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
             if mouse.delta.y > 0 do
                 zoomButton.applyZoom(zoomButton.zoomPercent + 25)
             elif mouse.delta.y < 0 do
                 zoomButton.applyZoom(zoomButton.zoomPercent > 50 ? zoomButton.zoomPercent - 25 : 50)
             return true
 
-        case NotifyEvent as notification where notification.kind == .LanguageChanged:
+        case let notification = cast #try (*NotifyEvent) evt where notification.kind == .LanguageChanged:
             let widthIndex = widthCombo.selectedIndex
             let themeIndex = themeCombo.selectedIndex
             widthCombo.clear()
@@ -374,18 +374,18 @@ func createMarkdownViewer(host: Viewer.Host)
     host.attachView(view)
     host.setDetails(markdownStrings().ui_Details)
     host.setSearch({
-        revealMatch: func(wnd, match, text)->bool { return (cast(*Markdown.View) wnd).revealFileOffset(match.offset, text) },
+        revealMatch: func(wnd, match, text)->bool { return (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text) },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*Markdown.View) wnd).searchMatchRect(bounds)
+        return (cast #assume (*Markdown.View) wnd).searchMatchRect(bounds)
     },
-        clear: func(wnd) { (cast(*Markdown.View) wnd).clearSearchHighlight() }})
+        clear: func(wnd) { (cast #assume (*Markdown.View) wnd).clearSearchHighlight() }})
     view.userData = zoomButton
     zoomButton.reportDetails = services.reportDetails
     zoomButton.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8)
     zoomButton.statisticsTimer = zoomButton.addTimer(Viewer.BackgroundPollInterval)
-    host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }, retire: func(wnd)->bool { return (cast(*MarkdownZoomButton) wnd.userData!).retire() }})
+    host.setLifecycle({isLoading: func(wnd)->bool { return (cast #assume (*Markdown.View) wnd).isLoading() }, retire: func(wnd)->bool { return (cast(*MarkdownZoomButton) wnd.userData!).retire() }})
     themeCombo.sigChanged += func|view, widthCombo, zoomButton|(combo, index)
     {
         discard combo

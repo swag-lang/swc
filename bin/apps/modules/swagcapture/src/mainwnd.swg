@@ -531,7 +531,7 @@ impl MainWnd
 
             for it in capture.forms
             {
-                let p = cast(*BaseForm) it.buffer
+                let p = cast #assume (*BaseForm) it
                 p.freeze = true
             }
         }
@@ -949,7 +949,7 @@ impl MainWnd
                 menu.updateFlags(.HideShortcuts)
                 menu.addItem(ActionZoom.Zoom1)
                 menu.addItem(ActionZoom.ZoomFit)
-                discard menu.doModal(cast(*IconButton) btn, autoDestroy: true)
+                discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
             }
         }
 
@@ -1007,9 +1007,9 @@ impl MainWnd
 
         for c in .toolRail.children
         {
-            if c.type != IconButton do
+            let btn = cast #try (*IconButton) c
+            if not btn do
                 continue
-            let btn = cast(*IconButton) c
             if showLabels
             {
                 btn.updateFlags(remove: .IconOnly)

@@ -35,10 +35,10 @@ enum UndoKind
 // treats both uniformly through these helpers instead of special-casing each type.
 func formEditableText(f: IForm)->*String?
 {
-    switch f
+    switch
     {
-    case FormText as b:    return &b.text
-    case FormCallout as b: return &b.text
+    case let b = cast #try (*FormText) f:    return &b.text
+    case let b = cast #try (*FormCallout) f: return &b.text
     }
 
     return null
@@ -48,7 +48,7 @@ func formEditableTextDirty(f: IForm)
 {
     if Swag.kindOf(f) == FormText
     {
-        let b = cast(*FormText) f.buffer
+        let b = cast #assume (*FormText) f
         b.isDirty = true
     }
 }
@@ -57,10 +57,10 @@ func formEditableTextDirty(f: IForm)
 // undos operate on either through these helpers.
 func formFontNamePtr(f: IForm)->*String?
 {
-    switch f
+    switch
     {
-    case FormText as b:    return &b.fontName
-    case FormCallout as b: return &b.fontName
+    case let b = cast #try (*FormText) f:    return &b.fontName
+    case let b = cast #try (*FormCallout) f: return &b.fontName
     }
 
     return null
@@ -68,10 +68,10 @@ func formFontNamePtr(f: IForm)->*String?
 
 func formFontStylePtr(f: IForm)->*FontFamilyStyle?
 {
-    switch f
+    switch
     {
-    case FormText as b:    return &b.fontStyle
-    case FormCallout as b: return &b.fontStyle
+    case let b = cast #try (*FormText) f:    return &b.fontStyle
+    case let b = cast #try (*FormCallout) f: return &b.fontStyle
     }
 
     return null
@@ -83,7 +83,7 @@ func formFontDirty(f: IForm)
 {
     if Swag.kindOf(f) == FormText
     {
-        let b = cast(*FormText) f.buffer
+        let b = cast #assume (*FormText) f
         b.isDirtyFont = true
     }
 }
@@ -184,10 +184,17 @@ impl Undo
 
         if .kind == .SetFormFromModel
         {
-            let mdlType = .mdlType orelse #typeof(FormShape)
-            Memory.delete(.mdlValue, mdlType)
-            for f in .oldForm do
-                Memory.delete(f, mdlType)
+            if let value = .mdlValue
+            {
+                let view = cast #assume (IForm) value
+                Memory.delete(view.buffer, Swag.kindOf(view))
+            }
+
+            for f in .oldForm
+            {
+                let view = cast #assume (IForm) f
+                Memory.delete(view.buffer, Swag.kindOf(view))
+            }
         }
     }
 
@@ -289,7 +296,9 @@ impl Undo
                 if not .acceptsType(Swag.kindOf(itf)) do
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
-                let save    = cast(*BaseForm) Memory.new(mdlType)!
+                let storage = Memory.new(mdlType)!
+                let view    = Swag.makeInterface(storage, mdlType, IForm)!
+                let save    = cast #assume (*BaseForm) view
                 itf.copy(save, form)
                 .oldForm.add(save)
             }

@@ -37,40 +37,40 @@ alias CounterAlias = Counter
 alias ValueAlias   = IValue
 
 func(T) readValue(value: *T)->s32
-    where T is IValue
+    where (cast #try (IValue) T != null)
 {
-    let view = value as IValue
+    let view = cast(IValue) value
     return view.value()
 }
 
 func(T) readAndReset(value: *T)->s32
-    where T is IValue and T is IReset
+    where (cast #try (IValue) T != null) and (cast #try (IReset) T != null)
 {
-    let view     = value as IValue
+    let view     = cast(IValue) value
     let result   = view.value()
-    let resetter = value as IReset
+    let resetter = cast(IReset) value
     resetter.reset()
     return result
 }
 
-func(T) classify(value: T)->s32 where T is IValue       => 1
-func(T) classify(value: T)->s32 where not (T is IValue) => 2
+func(T) classify(value: T)->s32 where (cast #try (IValue) T != null)       => 1
+func(T) classify(value: T)->s32 where not ((cast #try (IValue) T != null)) => 2
 
-struct(T) Holder where T is IValue
+struct(T) Holder where (cast #try (IValue) T != null)
 {
     value: T
 }
 
 #test
 {
-    #assert(Counter is IValue)
-    #assert(CounterAlias is ValueAlias)
-    #assert(Wrapper is IValue)
-    #assert(IValue is IValue)
-    #assert(not (IReset is IValue))
-    #assert(not (Missing is IValue))
-    #assert(not (s32 is IValue))
-    #assert(not ((#type *Counter) is IValue))
+    #assert((cast #try (IValue) Counter != null))
+    #assert((cast #try (ValueAlias) CounterAlias != null))
+    #assert((cast #try (IValue) Wrapper != null))
+    #assert((cast #try (IValue) IValue != null))
+    #assert(not ((cast #try (IValue) IReset != null)))
+    #assert(not ((cast #try (IValue) Missing != null)))
+    #assert(not ((cast #try (IValue) s32 != null)))
+    #assert(cast #try (IValue) (#type *Counter) != null)
 
     var value = Counter{42}
     Swag.assert(readValue(&value) == 42)
@@ -78,15 +78,15 @@ struct(T) Holder where T is IValue
     Swag.assert(classify(value) == 1)
     Swag.assert(classify(Missing{}) == 2)
 
-    let direct   = value as IValue
-    let pointer  = (&value) as IValue
+    let direct   = cast(IValue) value
+    let pointer  = cast(IValue) &value
     let explicit = cast(IValue) &value
     Swag.assert(direct.value() == explicit.value())
     Swag.assert(pointer.value() == explicit.value())
     #assert(#typeof(pointer) == IValue)
 
     var wrapper = Wrapper{prefix: 10, counter: {21}}
-    let wrapped = (&wrapper) as ValueAlias
+    let wrapped = cast(ValueAlias) &wrapper
     Swag.assert(wrapped.value() == 21)
     Swag.assert(readValue(&wrapper) == 21)
     Swag.assert(readAndReset(&wrapper) == 21)
@@ -95,9 +95,9 @@ struct(T) Holder where T is IValue
     var holder: Holder'Counter = {value: {12}}
     Swag.assert(readValue(&holder.value) == 12)
 
-    let same = pointer as IValue
+    let same = cast(IValue) pointer
     Swag.assert(same.value() == 42)
-    let concrete = pointer as Counter
+    let concrete = cast #try (*Counter) pointer
     Swag.assert(concrete!.count == 42)
-    Swag.assert(pointer is Counter)
+    Swag.assert((cast #try (*Counter) pointer != null))
 }

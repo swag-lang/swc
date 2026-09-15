@@ -90,7 +90,7 @@ impl RegressionSignal
             {
                 var sb: RegressionAstBuilder
                 let ts = #typeof(T)
-                sb.append("fn(cast(")
+                sb.append("fn(cast #assume(")
                 sb.append(ts.parameters[0].pointedType.fullname!)
                 sb.append(") params[0])\n")
                 return sb.toString()

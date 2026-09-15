@@ -86,7 +86,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == TextViewerKey)
     let previousView = window.currentView!
-    let previous     = cast(*TextView) previousView
+    let previous     = cast #assume (*TextView) previousView
     Swag.assert(previous.loadTimer == null)
 
     // Replace completed statistics with a worker whose lifetime is controlled by this test.

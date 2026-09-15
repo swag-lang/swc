@@ -304,9 +304,9 @@ impl Decoder
             for result.width * result.height
             {
                 let gray = read16(src)
-                dst[as u16] = gray
+                (cast(*u16) dst)[] = gray
                 if .seenTRSN do
-                    (dst + 2)[as u16] = gray == transparent ? 0'u16 : 65535'u16
+                    (cast(*u16) (dst + 2))[] = gray == transparent ? 0'u16 : 65535'u16
                 src += 2
                 dst += result.bytesPerPixel
             }
@@ -326,11 +326,11 @@ impl Decoder
                 let r = read16(src)
                 let g = read16(src + 2)
                 let b = read16(src + 4)
-                dst[as u16]       = r
-                (dst + 2)[as u16] = g
-                (dst + 4)[as u16] = b
+                (cast(*u16) dst)[]       = r
+                (cast(*u16) (dst + 2))[] = g
+                (cast(*u16) (dst + 4))[] = b
                 if .seenTRSN do
-                    (dst + 6)[as u16] = r == transparentR and g == transparentG and b == transparentB ? 0'u16 : 65535'u16
+                    (cast(*u16) (dst + 6))[] = r == transparentR and g == transparentG and b == transparentB ? 0'u16 : 65535'u16
                 src += 6
                 dst += result.bytesPerPixel
             }
@@ -338,21 +338,21 @@ impl Decoder
         case 4:
             for result.width * result.height
             {
-                dst[as u16]       = read16(src)
-                (dst + 2)[as u16] = read16(src + 2)
-                src               += 4
-                dst               += 4
+                (cast(*u16) dst)[]       = read16(src)
+                (cast(*u16) (dst + 2))[] = read16(src + 2)
+                src                      += 4
+                dst                      += 4
             }
 
         case 6:
             for result.width * result.height
             {
-                dst[as u16]       = read16(src)
-                (dst + 2)[as u16] = read16(src + 2)
-                (dst + 4)[as u16] = read16(src + 4)
-                (dst + 6)[as u16] = read16(src + 6)
-                src               += 8
-                dst               += 8
+                (cast(*u16) dst)[]       = read16(src)
+                (cast(*u16) (dst + 2))[] = read16(src + 2)
+                (cast(*u16) (dst + 4))[] = read16(src + 4)
+                (cast(*u16) (dst + 6))[] = read16(src + 6)
+                src                      += 8
+                dst                      += 8
             }
         }
     }

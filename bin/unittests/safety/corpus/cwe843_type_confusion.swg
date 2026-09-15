@@ -10,12 +10,13 @@ using Corpus
 // and out of bounds for the object that is really there, which is why this class turns a
 // small object into a large one and an integer into a pointer.
 //
-// Swag: the DYNAMIC form is checked - 'any' remembers its concrete type and a mismatched
-// extraction panics under '.DynCast', and an interface knows what it was built from. The
-// direct STATIC cast between unrelated structs is rejected. Deliberate reinterpretation
+// Swag: 'any', interfaces and dynamic structs carry their concrete type. A mismatched
+// '#assume' conversion panics under '.DynCast'; '#try' returns null. An ordinary downcast
+// is rejected, including casts between related structs. Deliberate reinterpretation
 // through '*void', and reading a union member that was not written, remain unchecked.
 // -----------------------------------------------------------------------------
 
+#[Swag.DynCast]
 struct Small
 {
     a: s32
@@ -39,7 +40,7 @@ union Bits
 #[Swag.Safety(.DynCast, true)]
 func extractWrongTypeFromAny(boxed: any)->s32
 {
-    return cast(s32) boxed     // swc-expected-error {{safety_err_runtime}}
+    return cast #assume(s32) boxed     // swc-expected-error {{safety_err_runtime}}
 }
 
 #test
@@ -100,7 +101,7 @@ func relatedPointerRoundTrip()->s32
     var derived: Derived
     derived.extra = 17
     let base      = cast(*Small) &derived
-    let recovered = cast(*Derived) base
+    let recovered = cast #assume(*Derived) base
     return recovered.extra
 }
 
@@ -108,15 +109,15 @@ func relatedPointerRoundTrip()->s32
 #[Swag.Safety(.DynCast, true)]
 func extractRightTypeFromAny(boxed: any)->s32
 {
-    return cast(s32) boxed
+    return cast #assume(s32) boxed
 }
 
-// 'Swag.kindOf' asks the question instead of asserting the answer.
-func inspectAnyKind()->bool
+// The nullable result supports a type test without asserting success.
+func tryAnyType()->bool
 {
     var value      = 42's32
     let boxed: any = Swag.makeAny(&value, s32)
-    return Swag.kindOf(boxed) == s32
+    return cast #try(*s32) boxed != null
 }
 
 // Reading the union member that WAS written is the defined use, and must stay silent.
@@ -130,7 +131,7 @@ func readWrittenUnionMember()->u64
 #test
 {
     Swag.assert(extractRightTypeFromAny(42's32) == 42)
-    Swag.assert(inspectAnyKind())
+    Swag.assert(tryAnyType())
     Swag.assert(readWrittenUnionMember() == 0x4142434445)
     Swag.assert(relatedPointerRoundTrip() == 17)
 }

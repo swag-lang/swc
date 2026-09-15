@@ -73,7 +73,9 @@ impl IForm for FormText
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormText) ptr
+        let other = cast #try (*FormText) ptr
+        if not other do
+            return false
         return .isSameBase(ptr) and
                .fontSize == other.fontSize and
                .boldSize == other.boldSize and
@@ -85,8 +87,8 @@ impl IForm for FormText
     mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormText) dst
-        let srcf = cast(*FormText) src
+        let dstf = cast #assume (*FormText) dst
+        let srcf = cast #assume (*FormText) src
         dstf.fontSize  = srcf.fontSize
         dstf.boldSize  = srcf.boldSize
         dstf.joinStyle = srcf.joinStyle

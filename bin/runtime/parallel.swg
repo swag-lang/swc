@@ -69,7 +69,7 @@ private struct ParallelDispatch
 #[Swag.NoDoc]
 struct ParallelChunk
 {
-    using node: WorkNode               // Scheduler state. Must stay first.
+    using node: WorkNode               // Scheduler state and dynamic identity.
     dispatch:   *ParallelDispatch?     // Borrowed until all runners have joined.
 }
 
@@ -116,13 +116,17 @@ impl ParallelFailure
         if .value != null do
             return
 
-        let type = cast(const *TypeInfoStruct) Swag.kindOf(error)
+        let type = Swag.kindOf(error)
         let data = __bootstrapAlloc(cast(u64) type.sizeof)
         if not data do
             Swag.panic("cannot allocate a parallel loop error", #curlocation)
         Swag.memcpy(data, error.buffer, cast(u64) type.sizeof)
-        if type.opPostCopy do
-            type.opPostCopy(data)
+        if let info = cast #try(const *TypeInfoStruct) type
+        {
+            if info.opPostCopy do
+                info.opPostCopy(data)
+        }
+
         .value = Swag.makeAny(data, type)
     }
 
@@ -258,7 +262,7 @@ private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(
 
 private func parallelChunkEntry(node: *WorkNode)
 {
-    discard runParallelChunk(cast(*ParallelChunk) node)
+    discard runParallelChunk(cast #assume (*ParallelChunk) node)
 }
 
 private func runParallelChunk(chunk: *ParallelChunk)->u64

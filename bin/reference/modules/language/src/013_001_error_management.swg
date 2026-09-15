@@ -34,7 +34,7 @@ capture in a given scope needs its own name.
     Swag.assert(value == 0)
     Swag.assert(err != null)
 
-    let e = cast(MyError) err
+    let e = cast #assume(MyError) err
     Swag.assert(e.code == 7)
     Swag.assert(e.message == "name cannot be null")
 }
@@ -107,7 +107,7 @@ func propagateCount(name: string?)->u64 fail
     let value = catch propagateCount(null) as err
     Swag.assert(value == 0)
     Swag.assert(err != null)
-    Swag.assert((cast(MyError) err).code == 7)
+    Swag.assert((cast #assume(MyError) err).code == 7)
 }
 
 /**
@@ -126,7 +126,7 @@ func explicitTryCount(name: string?)->u64 fail
     let value = catch explicitTryCount(null) as err
     Swag.assert(value == 0)
     Swag.assert(err != null)
-    Swag.assert((cast(MyError) err).code == 7)
+    Swag.assert((cast #assume(MyError) err).code == 7)
 }
 
 /**
@@ -158,7 +158,7 @@ func blockCatchCode()->s32
     if err == null do
         return -1
 
-    return (cast(MyError) err).code
+    return (cast #assume(MyError) err).code
 }
 
 func blockCatchElse(name: string?)->u64
@@ -177,7 +177,7 @@ func blockCatchElse(name: string?)->u64
     let value = catch blockTry("ab", null) as err
     Swag.assert(value == 0)
     Swag.assert(err != null)
-    Swag.assert((cast(MyError) err).code == 7)
+    Swag.assert((cast #assume(MyError) err).code == 7)
 }
 
 #test

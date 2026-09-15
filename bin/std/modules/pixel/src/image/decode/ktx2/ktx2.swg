@@ -18,10 +18,10 @@ internal struct Decoder
 }
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => source[as u32]
+func readU32(source: const [*] u8)->u32 => (cast(const *u32) source)[]
 
 #[Swag.Inline]
-func readU64(source: const [*] u8)->u64 => source[as u64]
+func readU64(source: const [*] u8)->u64 => (cast(const *u64) source)[]
 
 func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)->bool
 {

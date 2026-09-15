@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -348,6 +349,16 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
                 if (shouldWaitReflectedLifecycleSema(sema.ctx(), *method))
                     SWC_RESULT(sema.waitSemaCompleted(method, node.codeRef()));
             }
+            if (!symStruct.isGenericRoot() || symStruct.isGenericInstance())
+            {
+                for (const SymbolImpl* impl : symStruct.interfaces())
+                {
+                    CastFailure  failure;
+                    const Result constraints = impl->validateInterfaceConstraints(sema, failure);
+                    if (constraints == Result::Pause || (constraints == Result::Error && failure.diagId == DiagnosticId::None))
+                        return constraints;
+                }
+            }
         }
 
         auto it = cache.entries.find(key);
@@ -374,7 +385,13 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
 
             // Compute direct dependencies required to wire this payload.
             entry.deps = computeDeps(tm, sema, type, kind);
-            it         = cache.entries.emplace(key, std::move(entry)).first;
+            // The payload is itself a DynCast instance of its concrete metadata struct.
+            entry.deps.push_back(entry.rtTypeRef);
+            TypeInfo unqualified = type;
+            unqualified.removeFlag(TypeInfoFlagsE::Const);
+            unqualified.removeFlag(TypeInfoFlagsE::Nullable);
+            entry.deps.push_back(sema.typeMgr().addType(unqualified));
+            it = cache.entries.emplace(key, std::move(entry)).first;
         }
 
         auto& entry = it->second;

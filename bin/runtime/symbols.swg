@@ -16,7 +16,7 @@ var __dbgCacheDecoded: [*] u8? = null
 var __dbgCacheCount:   u32     = 0
 var __dbgCacheValid:   bool    = false
 
-func __dbgU32(p: [*] u8, off: u64)->u32 => (&p[off])[as u32]
+func __dbgU32(p: [*] u8, off: u64)->u32 => (cast(const *u32) (&p[off]))[]
 
 func __dbgFindSection(base: *void?)
 {

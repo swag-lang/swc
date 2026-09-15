@@ -48,9 +48,9 @@ func compute(render: IRenderer)
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         let btn = PushButton.create(wnd, "Load Image", {10, 10, 100})
         btn.sigPressed += func|wnd|(btn)
         {
@@ -61,7 +61,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         g_Font = wnd.theme().createDefaultFont(10)
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         if not g_Img.isValid() do
             break
 

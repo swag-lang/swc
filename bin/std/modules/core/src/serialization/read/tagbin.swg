@@ -240,7 +240,7 @@ private impl TagBin
         if dstType == srcType
         {
             if Reflection.isSimpleNative(dstType) do
-                .convertNextNative = cast(const *Swag.TypeInfoNative?) srcType
+                .convertNextNative = cast #assume(const *Swag.TypeInfoNative?) srcType
             return true
         }
 
@@ -248,25 +248,25 @@ private impl TagBin
         var toStruct:   const *Swag.TypeInfoStruct?
 
         if Reflection.isStruct(srcType) do
-            fromStruct = cast(const *Swag.TypeInfoStruct?) srcType
+            fromStruct = cast #assume(const *Swag.TypeInfoStruct?) srcType
         if Reflection.isStruct(dstType) do
-            toStruct = cast(const *Swag.TypeInfoStruct?) dstType
+            toStruct = cast #assume(const *Swag.TypeInfoStruct?) dstType
 
         // s64/float/bool/rune to s64/float/bool/rune
         if Reflection.isSimpleNative(dstType) and Reflection.isSimpleNative(srcType)
         {
-            .convertNextNative = cast(const *Swag.TypeInfoNative?) srcType
+            .convertNextNative = cast #assume(const *Swag.TypeInfoNative?) srcType
             return true
         }
 
         if Reflection.isStaticArray(srcType)
         {
-            let fromArr = cast(const *Swag.TypeInfoArray) srcType
+            let fromArr = cast #assume(const *Swag.TypeInfoArray) srcType
 
             // Array to array, this is fine, we will deal with size change
             if Reflection.isStaticArray(dstType)
             {
-                let toArr = cast(const *Swag.TypeInfoArray) dstType
+                let toArr = cast #assume(const *Swag.TypeInfoArray) dstType
                 if .canConvertType(toArr.pointedType, fromArr.pointedType) do
                     return true
             }
@@ -303,7 +303,7 @@ private impl TagBin
                 // Dynamic array to Static array
                 if Reflection.isStaticArray(dstType)
                 {
-                    let toArr = cast(const *Swag.TypeInfoArray) dstType
+                    let toArr = cast #assume(const *Swag.TypeInfoArray) dstType
                     if .canConvertType(toArr.pointedType, Reflection.dynamicArrayElementType(fromStruct)) do
                         return true
                 }
@@ -326,7 +326,7 @@ private impl TagBin
 
         if Reflection.isStaticArray(dstType)
         {
-            let toArr = cast(const *Swag.TypeInfoArray) dstType
+            let toArr = cast #assume(const *Swag.TypeInfoArray) dstType
 
             // Conversion from simple value to array
             if .canConvertType(toArr.pointedType, srcType)
@@ -847,7 +847,7 @@ impl TagBin
 
         var plan: const *Plan?
         if structType and Reflection.isStruct(structType) do
-            plan = try planFor(cast(const *Swag.TypeInfoStruct) structType)
+            plan = try planFor(cast #assume(const *Swag.TypeInfoStruct) structType)
 
         // Deal with version
         if plan and plan.hasVersion

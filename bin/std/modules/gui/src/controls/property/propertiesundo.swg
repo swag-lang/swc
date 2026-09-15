@@ -80,7 +80,7 @@ internal impl PropFieldValue
             .isString = true
             .strings.reserve(.n)
             for k in .n do
-                .strings.add(.addrs[k]![as String])
+                .strings.add((cast(const *String) .addrs[k]!)[])
         }
         else
         {
@@ -106,7 +106,7 @@ internal impl PropFieldValue
         if .isString
         {
             for k in .n do
-                .addrs[k]![as String] = .strings[k]
+                (cast(*String) .addrs[k]!)[] = .strings[k]
         }
         else
         {

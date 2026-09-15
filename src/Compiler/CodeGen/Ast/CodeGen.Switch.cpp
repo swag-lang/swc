@@ -212,13 +212,15 @@ namespace
         return Result::Continue;
     }
 
-    bool isDynamicStructSwitchCaseTarget(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
+    bool switchCaseNeedsTestBeforeEntry(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
     {
+        const auto& caseNode = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
+        if (caseNode.conditionBindingRef(codeGen.ast()).isValid())
+            return true;
         const SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
         if (!switchState || !switchState->dynamicStructSwitch)
             return false;
 
-        const auto& caseNode = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
         return caseNode.spanExprRef.isValid();
     }
 
@@ -715,7 +717,7 @@ namespace
     // its own value is the best split there is; one they all share is no split at all.
     size_t countDistinctChunkValues(std::span<const SwitchStringCase> cases, const StringCompareChunk& chunk)
     {
-        constexpr size_t K_LINEAR_DISTINCT_LIMIT = 16;
+        constexpr size_t                               K_LINEAR_DISTINCT_LIMIT = 16;
         SmallVector<uint64_t, K_LINEAR_DISTINCT_LIMIT> values;
         values.reserve(cases.size());
         size_t index = 0;
@@ -1363,7 +1365,8 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
         const auto&          switchNode    = codeGen.node(codeGen.curNodeRef()).cast<AstSwitchStmt>();
         const AstNodeRef     switchExprRef = codeGen.resolvedNodeRef(switchNode.nodeExprRef);
         const SwitchPayload* semaPayload   = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
-        const Result         result        = CodeGenSafety::emitSwitchCheck(codeGen, codeGen.node(switchExprRef), semaPayload ? semaPayload->runtimePanicSymbol : nullptr);
+        const AstNode&       errorNode     = codeGen.node(switchExprRef.isValid() ? switchExprRef : codeGen.curNodeRef());
+        const Result         result        = CodeGenSafety::emitSwitchCheck(codeGen, errorNode, semaPayload ? semaPayload->runtimePanicSymbol : nullptr);
         if (result != Result::Continue)
             return result;
     }
@@ -1403,6 +1406,24 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
 
         builder.placeLabel(caseState.bodyLabel);
         codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
+        return Result::Continue;
+    }
+
+    const AstNodeRef bindingRef = conditionBindingRef(codeGen.ast());
+    if (bindingRef.isValid())
+    {
+        if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
+        {
+            TypeRef     conditionTypeRef = TypeRef::invalid();
+            const auto& conditionPayload = codeGen.conditionBindingPayload(conditionTypeRef, bindingRef);
+            CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, failLabel);
+        }
+        if (childRef == nodeBodyRef)
+        {
+            emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
+            builder.placeLabel(caseState.bodyLabel);
+            codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
+        }
         return Result::Continue;
     }
 
@@ -1576,7 +1597,7 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
     SWC_RESULT(codeGen.emitDeferredActionsUntilSwitchCase(caseRef));
     MicroBuilder&       builder = codeGen.builder();
     const MicroLabelRef targetLabel =
-        isDynamicStructSwitchCaseTarget(codeGen, switchRef, itCase->second.nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
+        switchCaseNeedsTestBeforeEntry(codeGen, switchRef, itCase->second.nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, targetLabel);
     return Result::Continue;
 }

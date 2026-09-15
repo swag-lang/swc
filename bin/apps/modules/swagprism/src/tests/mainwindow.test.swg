@@ -14,7 +14,7 @@ func testSetupInspectionWindow(host: *Testing.HeadlessHost, width = cast(f32) Ma
     return window
 }
 
-func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast(*MicrocodeViewer) window.panels[panel].viewer!.window()
+func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast #assume(*MicrocodeViewer) window.panels[panel].viewer!.window()
 
 // One viewer is visible by default; the optional comparison has independent defaults.
 #test

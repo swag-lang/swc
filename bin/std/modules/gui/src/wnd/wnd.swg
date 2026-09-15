@@ -250,16 +250,16 @@ enum WndFlags
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
+#[Swag.DynCast]
 struct Wnd
 {
     public
     {
-        late itf:  IWnd                      // Dynamic event receiver implemented by the concrete window type.
-        late type: typeinfo                  // Runtime type of the concrete window allocation.
-        surface:   *Surface?                 // Surface containing this window, or `null` while detached.
-        style:     ThemeStyle                // Local style and inherited theme reference.
+        late itf: IWnd                       // Dynamic event receiver implemented by the concrete window type.
+        surface:  *Surface?                  // Surface containing this window, or `null` while detached.
+        style:    ThemeStyle                 // Local style and inherited theme reference.
         wndFlags = WndFlags.ClipChildren     // Active state, clipping, and paint-order flags.
-        userData:  *void?                    // Opaque application-owned payload; never dereferenced by GUI.
+        userData: *void?                     // Opaque application-owned payload; never dereferenced by GUI.
 
         position:      Math.Rectangle     // Logical rectangle relative to the parent client origin.
         preferredSize: Math.Point         // Natural layout size; non-positive components fall back to `position`.
@@ -364,71 +364,71 @@ impl IWnd for Wnd
     // Routes each concrete event to the corresponding typed callback.
     mtd impl onEvent(evt: IEvent)
     {
-        switch evt
+        switch
         {
-        case CreateEvent as ptr:
+        case let ptr = cast #try (*CreateEvent) evt:
             .itf.onCreateEvent(ptr)
 
-        case DestroyEvent as ptr:
+        case let ptr = cast #try (*DestroyEvent) evt:
             .itf.onDestroyEvent(ptr)
 
-        case StateEvent as ptr:
+        case let ptr = cast #try (*StateEvent) evt:
             .itf.onStateEvent(ptr)
 
-        case ResizeEvent as ptr:
+        case let ptr = cast #try (*ResizeEvent) evt:
             .itf.onResizeEvent(ptr)
 
-        case PaintEvent as ptr where ptr.kind == .Before:
+        case let ptr = cast #try (*PaintEvent) evt where ptr.kind == .Before:
             .itf.onBeforePaint(ptr)
 
-        case PaintEvent as ptr where ptr.kind == .Content:
+        case let ptr = cast #try (*PaintEvent) evt where ptr.kind == .Content:
             .itf.onPaint(ptr)
 
-        case PaintEvent as ptr where ptr.kind == .After:
+        case let ptr = cast #try (*PaintEvent) evt where ptr.kind == .After:
             .itf.onAfterPaint(ptr)
 
-        case SysCommandEvent as ptr:
+        case let ptr = cast #try (*SysCommandEvent) evt:
             .itf.onSysCommandEvent(ptr)
 
-        case SysUserEvent as ptr:
+        case let ptr = cast #try (*SysUserEvent) evt:
             .itf.onSysUserEvent(ptr)
 
-        case KeyEvent as ptr:
+        case let ptr = cast #try (*KeyEvent) evt:
             .itf.onKeyEvent(ptr)
 
-        case MouseEvent as ptr where ptr.kind != .Accept:
+        case let ptr = cast #try (*MouseEvent) evt where ptr.kind != .Accept:
             .itf.onMouseEvent(ptr)
 
-        case DragDropEvent as ptr:
+        case let ptr = cast #try (*DragDropEvent) evt:
             .itf.onDragDropEvent(ptr)
 
-        case ThemeEvent as ptr:
+        case let ptr = cast #try (*ThemeEvent) evt:
             .itf.onThemeEvent(ptr)
 
-        case TimerEvent as ptr:
+        case let ptr = cast #try (*TimerEvent) evt:
             .itf.onTimerEvent(ptr)
 
-        case FocusEvent as ptr:
+        case let ptr = cast #try (*FocusEvent) evt:
             .itf.onFocusEvent(ptr)
 
-        case CommandEvent as ptr:
+        case let ptr = cast #try (*CommandEvent) evt:
             if not .executeAction(ptr) do
                 .itf.onCommandEvent(ptr)
 
-        case CommandStateEvent as ptr where ptr.kind == .Compute:
+        case let ptr = cast #try (*CommandStateEvent) evt where ptr.kind == .Compute:
             if not .updateAction(ptr) do
                 .itf.onComputeStateEvent(ptr)
 
-        case CommandStateEvent as ptr where ptr.kind == .Apply:
-            .itf.onApplyStateEvent(cast(*CommandStateEvent) evt)
+        case let ptr = cast #try (*CommandStateEvent) evt where ptr.kind == .Apply:
+            .itf.onApplyStateEvent(ptr)
 
-        case FrameEvent as ptr:
+        case let ptr = cast #try (*FrameEvent) evt:
             .itf.onFrameEvent(ptr)
 
-        case SerializeStateEvent as ptr:
+        case let ptr = cast #try (*SerializeStateEvent) evt:
             .itf.onSerializeStateEvent(ptr)
 
-        case NotifyEvent as ptr:
+        case let ptr = cast #try (*NotifyEvent) evt:
             .itf.onNotifyEvent(ptr)
         }
     }
@@ -603,7 +603,6 @@ impl Wnd
         let res = Memory.new'T()
         res.isAllocated = true
         res.itf         = res[]
-        res.type        = T
         res.name.set(name)
         res.id            = id
         res.position      = position
@@ -1348,7 +1347,7 @@ impl Wnd
         for depth do
             Console.print("  ")
 
-        Console.println(.type.name,
+        Console.println(Swag.kindOf(.itf).name,
                         " name=",
                         .name.raw,
                         " rect=",
@@ -1953,6 +1952,24 @@ impl Wnd
         return null
     }
 
+    // Borrows the nearest structural ancestor compatible with window type 'T', or returns null.
+    //
+    // Starts at the parent, so the result never denotes this window. The borrow remains valid
+    // until that ancestor is destroyed; reparenting changes which ancestor a later lookup finds.
+    mtd(T) ancestorByType()->*T?
+        where cast #try(*Wnd) #type *T != null
+    {
+        var ancestor = .parent
+        while ancestor
+        {
+            if let found = cast #try(*T) ancestor do
+                return found
+            ancestor = ancestor.parent
+        }
+
+        return null
+    }
+
     //////////////////////////////////////////////
     // Mouse
     //////////////////////////////////////////////
@@ -2007,11 +2024,8 @@ impl Wnd
             if child.wndFlags.has(.NoScroll) do
                 return
 
-            // An ancestor is a scrolling viewport whenever its runtime type CONTAINS a
-            // ScrollWnd, which every viewport built by composition does. Comparing the
-            // type for equality would skip all of them, and 'typeAs' adjusts the pointer
-            // to the embedded base instead of assuming it starts the derived window.
-            let scroll = cast(*ScrollWnd?) Swag.typeAs(ScrollWnd, parent.type, parent)
+            // A composed viewport exposes its ScrollWnd subobject through the checked cast.
+            let scroll = cast #try (*ScrollWnd) parent
             if scroll and scroll.view == child
             {
                 let visible  = child.surfaceRect()
@@ -2353,7 +2367,7 @@ impl Wnd
     mtd postEvent(evt: IEvent)
     {
         let srfn = .surface!
-        let ptr  = (evt as Event)!
+        let ptr  = cast #assume (*Event) evt
         ptr.target = me
         srfn.app.postEvent(evt)
     }
@@ -2369,7 +2383,7 @@ impl Wnd
     mtd sendEvent(evt: IEvent)
     {
         let srfn = .surface!
-        let ptr  = (evt as Event)!
+        let ptr  = cast #assume (*Event) evt
         ptr.target = me
         srfn.app.sendEvent(evt)
     }

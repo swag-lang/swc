@@ -622,7 +622,7 @@ func createImageViewer(host: Viewer.Host)
     let view = ImageViewer.create(host)
     host.attachView(view)
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*ImageViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { return (cast #assume (*ImageViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*ImageViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*ImageViewer) wnd).retire() }})
 }

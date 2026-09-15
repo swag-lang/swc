@@ -7,9 +7,9 @@ using Core, Gui, Pixel
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
 
         let centerX = wnd.position.width * 0.5

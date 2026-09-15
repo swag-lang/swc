@@ -36,7 +36,7 @@ func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value
     let attribVal = attributeValue(attrib, value)
     if attribVal == null do
         return defaultValue
-    return cast(T) attribVal
+    return cast #assume (T) attribVal
 }
 
 // Returns the given attribute value, or null
@@ -102,17 +102,17 @@ func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attri
     switch safeType.kind
     {
     case .Func:
-        let typeFunc = cast(const *TypeInfoFunc) safeType
+        let typeFunc = cast #assume(const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case .Struct:
-        let typeStruct = cast(const *TypeInfoStruct) safeType
+        let typeStruct = cast #assume(const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case .Enum:
-        let typeEnum = cast(const *TypeInfoEnum) safeType
+        let typeEnum = cast #assume(const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
     }
@@ -131,17 +131,17 @@ func attribute(type: typeinfo?, attribute: typeinfo?)->const *Swag.Attribute?
     switch safeType.kind
     {
     case .Func:
-        let typeFunc = cast(const *TypeInfoFunc) safeType
+        let typeFunc = cast #assume(const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case .Struct:
-        let typeStruct = cast(const *TypeInfoStruct) safeType
+        let typeStruct = cast #assume(const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case .Enum:
-        let typeEnum = cast(const *TypeInfoEnum) safeType
+        let typeEnum = cast #assume(const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it
     }

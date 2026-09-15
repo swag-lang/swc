@@ -29,10 +29,9 @@ namespace WinFsp
 
     func statusFromError(err: any?, fallback = StatusIoDeviceError)->s32
     {
-        switch err
+        if let error = cast #try(*Error) err
         {
-        case Error:
-            switch (cast(Error) err).kind
+            switch error.kind
             {
             case .InvalidInput,
                  .PasswordRequired,

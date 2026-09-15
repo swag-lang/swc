@@ -35,6 +35,8 @@ enum class SymbolStructFlagsE : uint16_t
     DefaultAllZero      = 1 << 5,
     DefaultRequiresInit = 1 << 8,
     Anonymous           = 1 << 9, // declared without a name, so its members are reached through the enclosing type
+    OwnDynamicSlot      = 1 << 10,
+    DynamicStorage      = 1 << 11,
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
@@ -74,22 +76,30 @@ public:
     Result                   addInterface(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*> interfaces() const;
     const SymbolImpl*        findInterfaceImpl(IdentifierRef interfaceIdRef) const;
+    const SymbolImpl*        findInterfaceImplOrUsingFields(const TaskContext& ctx, const SymbolInterface& itf) const;
     bool                     implementsInterface(const SymbolInterface& itf) const;
     bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
     bool                     resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const;
 
-    Result        computeLayout(TaskContext& ctx);
-    ConstantRef   computeDefaultValue(Sema& sema, TypeRef typeRef);
-    void          computeImplicitDefaultFlags(Sema& sema) const;
-    bool          hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
-    bool          requiresExplicitInitialization() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRequiresInit); }
-    static Result waitTypeImplicitDefaultReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
-    static bool   typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);
-    static bool   typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef);
-    static bool   fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field);
-    static Result lowerTypeImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef);
-    ConstantRef   resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const;
-    ConstantRef   resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const;
+    Result                    computeLayout(TaskContext& ctx);
+    bool                      isDynamic() const noexcept { return !dynamicSlotOffsets_.empty(); }
+    bool                      hasOwnDynamicSlot() const noexcept { return hasExtraFlag(SymbolStructFlagsE::OwnDynamicSlot); }
+    bool                      hasDynamicStorage() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DynamicStorage); }
+    std::span<const uint32_t> dynamicSlotOffsets() const noexcept { return dynamicSlotOffsets_; }
+    Result                    computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRef& outRef);
+    static Result             prepareDynamicMetadata(Sema& sema, TypeRef typeRef);
+    static bool               typeHasDynamicStorage(const TaskContext& ctx, TypeRef typeRef);
+    static Result             initializeDynamicIdentityBytes(Sema& sema, std::span<std::byte> bytes, TypeRef typeRef);
+    void                      computeImplicitDefaultFlags(Sema& sema) const;
+    bool                      hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
+    bool                      requiresExplicitInitialization() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRequiresInit); }
+    static Result             waitTypeImplicitDefaultReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
+    static bool               typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);
+    static bool               typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef);
+    static bool               fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field);
+    static Result             lowerTypeImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef);
+    Result                    resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const;
+    Result                    resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const;
 
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;
     Result                       registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind);
@@ -153,6 +163,7 @@ private:
     void         rebuildFieldIndexMap() noexcept;
 
     std::vector<SymbolVariable*>                      fields_;
+    std::vector<uint32_t>                             dynamicSlotOffsets_;
     std::unordered_map<const SymbolVariable*, size_t> fieldIndexMap_;
     mutable std::shared_mutex                         mutexImpls_;
     std::vector<SymbolImpl*>                          impls_;

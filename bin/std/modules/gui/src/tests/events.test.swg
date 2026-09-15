@@ -3,10 +3,51 @@
 
 using Swag, Core
 
+struct OffsetOwnedEvent
+{
+    prefix:     u64 = 42
+    using base: Event
+    drops:      *u32?
+}
+
+impl IEvent for OffsetOwnedEvent {}
+
+impl OffsetOwnedEvent
+{
+    mtd opDrop()
+    {
+        if let count = .drops
+        {
+            Swag.assert(.prefix == 42)
+            count[] += 1
+        }
+    }
+}
+
+// Queue ownership uses the complete allocation even when Event is not its first field.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    var drops: u32
+    let evt = Event.create'OffsetOwnedEvent()
+    evt.drops = &drops
+    let base: *Event = evt
+    Swag.assert(cast(*void) base != cast(*void) evt)
+    Swag.assert(cast #try (*OffsetOwnedEvent) base == evt)
+    host.root.postEvent(evt)
+    host.pumpPostedEvents()
+    Swag.assert(drops == 1)
+}
+
 #test
 {
     let evt = Event.create'CommandStateEvent()
-    Swag.assert(evt.type == #typeof(CommandStateEvent))
+    let view: IEvent = evt
+    Swag.assert(Swag.kindOf(view) == #typeof(CommandStateEvent))
+    Swag.assert(cast #try (*CommandStateEvent) view == evt)
     Swag.assert(not evt.accepted)
 
     evt.kind          = CommandStateEvent.Kind.Apply
@@ -46,20 +87,20 @@ using Swag, Core
 {
     let cmd = Event.create'CommandEvent()
     cmd.id = Dialog.BtnCancel
-    Swag.assert(cmd.type == #typeof(CommandEvent))
+    Swag.assert(Swag.kindOf(cast(IEvent) cmd) == #typeof(CommandEvent))
     Swag.assert(cmd.id == "Dialog.BtnCancel")
     Swag.assert(cmd.source == null)
     Memory.delete(cmd)
 
     let resize = Event.create'ResizeEvent()
     resize.oldSize = {640, 480}
-    Swag.assert(resize.type == #typeof(ResizeEvent))
+    Swag.assert(Swag.kindOf(cast(IEvent) resize) == #typeof(ResizeEvent))
     Swag.assert(resize.oldSize == Math.Point{640, 480})
     Memory.delete(resize)
 
     let move = Event.create'MoveEvent()
     move.oldPos = {12, 34}
-    Swag.assert(move.type == #typeof(MoveEvent))
+    Swag.assert(Swag.kindOf(cast(IEvent) move) == #typeof(MoveEvent))
     Swag.assert(move.oldPos == Math.Point{12, 34})
     Memory.delete(move)
 }

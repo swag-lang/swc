@@ -169,9 +169,8 @@ namespace
         // module. Crucially, do NOT fold in the per-compilation source location
         // (srcViewRef/tokRef): an imported type is regenerated with different
         // source refs in each importing module, which would make the same logical
-        // type hash differently per module and break cross-module identity used by
-        // `Swag.typeIs`, `Swag.typeCmp` and `Swag.makeInterface`. The structural hash (field/generic
-        // types) still distinguishes types that share a name.
+        // type hash differently per module. The structural hash (field/generic
+        // types) also contributes to the reflection fingerprint.
         if (symbol.idRef().isValid())
         {
             h = Math::hashCombine(h, canonicalScopedNameHash(ctx, symbol));

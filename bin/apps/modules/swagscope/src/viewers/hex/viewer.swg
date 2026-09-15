@@ -709,20 +709,20 @@ func createHexViewer(host: Viewer.Host)
         revealMatch: func(wnd, match, text)->bool
     {
         discard text
-        return (cast(*HexViewer) wnd).revealOffset(match.offset, match.length)
+        return (cast #assume (*HexViewer) wnd).revealOffset(match.offset, match.length)
     },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*HexViewer) wnd).grid.matchBounds(bounds)
+        return (cast #assume (*HexViewer) wnd).grid.matchBounds(bounds)
     },
-        clear: func(wnd) { (cast(*HexViewer) wnd).grid.clearSearchMatch() },
-        describe: func(wnd, presentation) { (cast(*HexViewer) wnd).describeSearch(presentation) },
-        prepare: func(wnd, query, plan)->EditBoxCheckResult { return (cast(*HexViewer) wnd).prepareSearch(query, plan) },
-        collectFileMatches: func(wnd, source, baseOffset, matches) { (cast(*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) },
-        useMatches: func(wnd, matches) { (cast(*HexViewer) wnd).grid.setSearchMatches(matches) }})
+        clear: func(wnd) { (cast #assume (*HexViewer) wnd).grid.clearSearchMatch() },
+        describe: func(wnd, presentation) { (cast #assume (*HexViewer) wnd).describeSearch(presentation) },
+        prepare: func(wnd, query, plan)->EditBoxCheckResult { return (cast #assume (*HexViewer) wnd).prepareSearch(query, plan) },
+        collectFileMatches: func(wnd, source, baseOffset, matches) { (cast #assume (*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) },
+        useMatches: func(wnd, matches) { (cast #assume (*HexViewer) wnd).grid.setSearchMatches(matches) }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*HexViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { return (cast #assume (*HexViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*HexViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*HexViewer) wnd).retire() }})
 }

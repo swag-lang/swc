@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -278,6 +279,7 @@ namespace
         HasDrop,
         HasPostMove,
         HasPostCopy,
+        HasDynamicStorage,
         CanCopy,
         IsPod,
     };
@@ -302,6 +304,7 @@ namespace
         if (name != "hasDrop" &&
             name != "hasPostMove" &&
             name != "hasPostCopy" &&
+            name != "hasDynamicStorage" &&
             name != "canCopy" &&
             name != "isPod")
             return ReflectionLifecycleOp::None;
@@ -317,12 +320,14 @@ namespace
             return ReflectionLifecycleOp::HasPostMove;
         if (name == "hasPostCopy")
             return ReflectionLifecycleOp::HasPostCopy;
+        if (name == "hasDynamicStorage")
+            return ReflectionLifecycleOp::HasDynamicStorage;
         if (name == "canCopy")
             return ReflectionLifecycleOp::CanCopy;
         return ReflectionLifecycleOp::IsPod;
     }
 
-    bool lifecycleFoldResult(const TypeGen::LifecycleFlags& flags, const ReflectionLifecycleOp op)
+    bool lifecycleFoldResult(const TaskContext& ctx, TypeRef typeRef, const TypeGen::LifecycleFlags& flags, const ReflectionLifecycleOp op)
     {
         switch (op)
         {
@@ -334,8 +339,10 @@ namespace
                 return flags.hasPostCopy;
             case ReflectionLifecycleOp::CanCopy:
                 return flags.canCopy;
+            case ReflectionLifecycleOp::HasDynamicStorage:
+                return SymbolStruct::typeHasDynamicStorage(ctx, typeRef);
             case ReflectionLifecycleOp::IsPod:
-                return !flags.hasDrop && !flags.hasPostMove && !flags.hasPostCopy;
+                return !flags.hasDrop && !flags.hasPostMove && !flags.hasPostCopy && !SymbolStruct::typeHasDynamicStorage(ctx, typeRef);
             default:
                 SWC_UNREACHABLE();
         }
@@ -453,7 +460,7 @@ Result ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(Sema& sema, co
     SWC_RESULT(sema.waitSemaCompleted(&type, args[0]));
 
     const TypeGen::LifecycleFlags flags = TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef);
-    setBoolCallConstant(sema, lifecycleFoldResult(flags, op));
+    setBoolCallConstant(sema, lifecycleFoldResult(sema.ctx(), typeRef, flags, op));
     return Result::Continue;
 }
 

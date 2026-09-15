@@ -65,7 +65,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     // A patch cannot reach past what was written, and an empty one changes nothing.
     const Overrun: [3] u8 = [0, 0, 0]
     discard catch sink.patch(expected.count - 2, Overrun) as pastEnd
-    Swag.assert(pastEnd is BadParameterError)
+    Swag.assert((cast #try (*BadParameterError) pastEnd != null))
     var none: Array'u8
     expect sink.patch(expected.count, none.toSlice())
     return expected

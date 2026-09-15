@@ -27,7 +27,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     if runtimeItf == null or runtimeItf.itable == null do
         return false
 
-    let kind      = cast(const *Swag.TypeInfoStruct) Swag.kindOf(itf)
+    let kind      = cast #assume(const *Swag.TypeInfoStruct) Swag.kindOf(itf)
     let tableType = cast(const *Swag.TypeInfoStruct?) runtimeItf.itable[]
     if kind != expectedType or tableType != expectedType do
         return false
@@ -72,7 +72,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     Swag.assert(rawFromRef == constPtr)
 
     let boxedConstAction   = Swag.makeAny(&constAction, const IAction)
-    let unboxedConstAction = cast(const IAction) boxedConstAction
+    let unboxedConstAction = cast #assume(const IAction) boxedConstAction
     let rawUnboxedConst    = cast(const *UndoAction) unboxedConstAction.buffer
     #assert(#typeof(unboxedConstAction) == const IAction)
     Swag.assert(rawUnboxedConst == constPtr)

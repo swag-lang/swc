@@ -44,7 +44,7 @@ impl Image
             var context = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
             .visitPixels(&context)
             {
-                let params       = userData![as #decltype(context)]
+                let params       = (cast(const *#decltype(context)) userData!)[]
                 let radius       = params.kernel[0] / 2
                 var coefficients = params.kernel.buffer + 2
                 var sum          = PixelValue{0, 0, 0, 0}

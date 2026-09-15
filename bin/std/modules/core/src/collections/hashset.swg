@@ -141,7 +141,10 @@ impl HashSet
 
         let oldTable = .tablePtr()
         let newTable = cast([*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
-        Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
+        #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
+            Swag.init(newTable, .capacity)
+        else do
+            Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
         #static if Reflection.hasPostCopy(K)
         {
             for i in .capacity
@@ -268,7 +271,10 @@ impl HashSet
         let table = .tablePtr()
 
         // Be sure hash entry is 0
-        Memory.clear(table, newCapacityBytes)
+        #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
+            Swag.init(table, reqCapacity)
+        else do
+            Memory.clear(table, newCapacityBytes)
 
         // Copy the last me.table to the new me.table, removing me.deleted entries
         let oldCapacity = .capacity

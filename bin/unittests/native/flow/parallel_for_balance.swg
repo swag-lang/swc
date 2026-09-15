@@ -63,8 +63,8 @@ struct BalanceFailure { index: u64 }
         if index == 1796 do
             fail BalanceFailure{value}
     } as error
-    Swag.assert(error != null and error is BalanceFailure)
-    Swag.assert((cast(const *BalanceFailure) error).index == expectedValue(1796, 4096))
+    Swag.assert(error != null and (cast #try (*BalanceFailure) error != null))
+    Swag.assert((cast #assume(const *BalanceFailure) error).index == expectedValue(1796, 4096))
     Swag.assert(entered.load() == left.load())
     Swag.assert(visits[1796].load() == 1)
     for visit in visits do

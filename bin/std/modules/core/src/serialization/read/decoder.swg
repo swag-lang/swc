@@ -128,20 +128,20 @@ impl Decoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast(const *TypeInfoNative) type
+            let typeNative = cast #assume(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case .Bool:       data[as bool] = try .serializer.readNative'bool()
-            case .U8:         data[as u8] = try .serializer.readNative'u8()
-            case .U16:        data[as u16] = try .serializer.readNative'u16()
-            case .U32, .Rune: data[as u32] = try .serializer.readNative'u32()
-            case .U64:        data[as u64] = try .serializer.readNative'u64()
-            case .S8:         data[as s8] = try .serializer.readNative's8()
-            case .S16:        data[as s16] = try .serializer.readNative's16()
-            case .S32:        data[as s32] = try .serializer.readNative's32()
-            case .S64:        data[as s64] = try .serializer.readNative's64()
-            case .F32:        data[as f32] = try .serializer.readNative'f32()
-            case .F64:        data[as f64] = try .serializer.readNative'f64()
+            case .Bool:       (cast(*bool) data)[] = try .serializer.readNative'bool()
+            case .U8:         (cast(*u8) data)[] = try .serializer.readNative'u8()
+            case .U16:        (cast(*u16) data)[] = try .serializer.readNative'u16()
+            case .U32, .Rune: (cast(*u32) data)[] = try .serializer.readNative'u32()
+            case .U64:        (cast(*u64) data)[] = try .serializer.readNative'u64()
+            case .S8:         (cast(*s8) data)[] = try .serializer.readNative's8()
+            case .S16:        (cast(*s16) data)[] = try .serializer.readNative's16()
+            case .S32:        (cast(*s32) data)[] = try .serializer.readNative's32()
+            case .S64:        (cast(*s64) data)[] = try .serializer.readNative's64()
+            case .F32:        (cast(*f32) data)[] = try .serializer.readNative'f32()
+            case .F64:        (cast(*f64) data)[] = try .serializer.readNative'f64()
             }
 
             return
@@ -151,7 +151,7 @@ impl Decoder
         {
             let crc      = try .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
-            data[as typeinfo?] = typeType
+            (cast(*(typeinfo?)) data)[] = typeType
             return
         }
 
@@ -182,7 +182,7 @@ impl Decoder
 
             if objType
             {
-                itf.itable = Swag.tableOf(cast(const *Swag.TypeInfoStruct?) objType, cast(const *Swag.TypeInfoStruct?) itfType)
+                itf.itable = Swag.tableOf(objType, itfType)
 
                 typeVal.pointedType = objType
                 itf.obj = Memory.new(objType)
@@ -237,7 +237,7 @@ impl Decoder
             }
 
             // Generic struct load, driven by the shared per-type plan.
-            let structType = cast(const *TypeInfoStruct) type
+            let structType = cast #assume(const *TypeInfoStruct) type
             let treated    = try .serializer.beginStruct(structType, data)
             defer #nofail try .serializer.endStruct()
             if treated do
@@ -291,7 +291,7 @@ impl Decoder
         // Static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr  = cast(const *TypeInfoArray) type
+            let typeArr  = cast #assume(const *TypeInfoArray) type
             let elemType = typeArr.pointedType
             var count    = typeArr.count
             let treated  = try .serializer.beginSequence(elemType, data, &count)

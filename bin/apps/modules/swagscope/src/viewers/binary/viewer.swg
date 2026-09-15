@@ -745,7 +745,7 @@ internal impl IActionUI for ActionBinary
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let view  = cast(*BinaryViewer) cxt.wnd!
+        let view  = cast #assume (*BinaryViewer) cxt.wnd!
         let s     = binStrings()
         let theme = view.theme()
 
@@ -801,7 +801,7 @@ internal impl IActionUI for ActionBinary
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let view = cast(*BinaryViewer) cxt.wnd!
+        let view = cast #assume (*BinaryViewer) cxt.wnd!
         switch cxt.id
         {
         case ActionBinary.CopyAll:     view.copyReport()
@@ -1164,25 +1164,25 @@ func createBinaryViewer(host: Viewer.Host)
         presentation.filterPlaceholder = binStrings().ui_Filter
         presentation.filterToolTip     = binStrings().ui_FilterTip
     },
-        filter: func(wnd, text, options) { (cast(*BinaryViewer) wnd).applyFilter(text, options) },
+        filter: func(wnd, text, options) { (cast #assume (*BinaryViewer) wnd).applyFilter(text, options) },
         collectMatches: func(wnd, text, options, progress, matches)->bool
     {
         discard progress
-        (cast(*BinaryViewer) wnd).collectMatches(text, options, matches)
+        (cast #assume (*BinaryViewer) wnd).collectMatches(text, options, matches)
         return true
     },
         revealMatch: func(wnd, match, text)->bool
     {
         discard text
-        return (cast(*BinaryViewer) wnd).revealMatch(match)
+        return (cast #assume (*BinaryViewer) wnd).revealMatch(match)
     },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*BinaryViewer) wnd).searchBounds(bounds)
+        return (cast #assume (*BinaryViewer) wnd).searchBounds(bounds)
     },
-        clear: func(wnd) { (cast(*BinaryViewer) wnd).clearSearch() }})
+        clear: func(wnd) { (cast #assume (*BinaryViewer) wnd).clearSearch() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast(*BinaryViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*BinaryViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { return (cast #assume (*BinaryViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*BinaryViewer) wnd).retire() }})
 }

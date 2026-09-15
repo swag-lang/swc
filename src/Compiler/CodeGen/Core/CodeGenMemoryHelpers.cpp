@@ -4,8 +4,10 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
@@ -14,6 +16,59 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result emitDynamicIdentityRec(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, bool initializeUsingSlots)
+    {
+        if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), typeRef))
+            return Result::Continue;
+        typeRef                 = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef);
+        const TypeInfo& type    = codeGen.typeMgr().get(typeRef);
+        MicroBuilder&   builder = codeGen.builder();
+        if (type.isArray())
+        {
+            const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
+            const uint64_t elementSize    = codeGen.typeMgr().get(elementTypeRef).sizeOf(codeGen.ctx());
+            const uint64_t count          = type.sizeOf(codeGen.ctx()) / elementSize;
+            if (!count)
+                return Result::Continue;
+            const MicroReg elementReg = codeGen.nextVirtualIntRegister();
+            const MicroReg countReg   = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(elementReg, dstReg, MicroOpBits::B64);
+            builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
+            const MicroLabelRef loop = builder.createLabel();
+            builder.placeLabel(loop);
+            SWC_RESULT(emitDynamicIdentityRec(codeGen, elementTypeRef, elementReg, true));
+            builder.emitOpBinaryRegImm(elementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loop);
+            return Result::Continue;
+        }
+
+        const SymbolStruct& symStruct = type.payloadSymStruct();
+        if (initializeUsingSlots && symStruct.isDynamic())
+        {
+            MicroReg typeReg = MicroReg::invalid();
+            SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(typeReg, codeGen, typeRef));
+            const MicroReg descriptorReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(descriptorReg, typeReg, offsetof(Runtime::TypeInfoStruct, dynamicSlots.ptr), MicroOpBits::B64);
+            for (const uint32_t offset : symStruct.dynamicSlotOffsets())
+            {
+                builder.emitLoadMemReg(dstReg, offset, descriptorReg, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(descriptorReg, ApInt(sizeof(Runtime::DynamicStructInfo), 64), MicroOp::Add, MicroOpBits::B64);
+            }
+        }
+        for (const SymbolVariable* field : symStruct.fields())
+        {
+            if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), field->typeRef()))
+                continue;
+            const MicroReg fieldReg = codeGen.offsetAddressReg(dstReg, field->offset());
+            // A by-value 'using' subobject keeps the enclosing identity. Ordinary
+            // members and array elements start independent complete objects.
+            SWC_RESULT(emitDynamicIdentityRec(codeGen, field->typeRef(), fieldReg, !field->isUsingField()));
+        }
+        return Result::Continue;
+    }
+
     constexpr uint32_t K_DEFAULT_UNROLL_MEM_LIMIT = 256;
 
     uint32_t getUnrollMemLimit(const Runtime::BuildCfgBackend& buildCfg)
@@ -779,6 +834,78 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
     return operandReg;
 }
 
+Result CodeGenMemoryHelpers::emitDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg)
+{
+    return emitDynamicIdentityRec(codeGen, typeRef, dstReg, true);
+}
+
+void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg srcReg)
+{
+    typeRef              = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef);
+    const TypeInfo& type = codeGen.typeMgr().get(typeRef);
+    const uint64_t  size = type.sizeOf(codeGen.ctx());
+    SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
+    if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), typeRef))
+    {
+        emitMemCopy(codeGen, dstReg, srcReg, static_cast<uint32_t>(size));
+        return;
+    }
+
+    if (type.isArray())
+    {
+        const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
+        const uint64_t elementSize    = codeGen.typeMgr().get(elementTypeRef).sizeOf(codeGen.ctx());
+        const uint64_t count          = size / elementSize;
+        if (!count)
+            return;
+        MicroBuilder&  builder       = codeGen.builder();
+        const MicroReg dstElementReg = codeGen.nextVirtualIntRegister();
+        const MicroReg srcElementReg = codeGen.nextVirtualIntRegister();
+        const MicroReg countReg      = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(dstElementReg, dstReg, MicroOpBits::B64);
+        builder.emitLoadRegReg(srcElementReg, srcReg, MicroOpBits::B64);
+        builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
+        const MicroLabelRef loop = builder.createLabel();
+        builder.placeLabel(loop);
+        emitCopyPreservingDynamicIdentity(codeGen, elementTypeRef, dstElementReg, srcElementReg);
+        builder.emitOpBinaryRegImm(dstElementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(srcElementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loop);
+        return;
+    }
+
+    struct DynamicRange
+    {
+        uint32_t offset;
+        uint32_t size;
+        TypeRef  typeRef;
+    };
+    SmallVector<DynamicRange> ranges;
+    const SymbolStruct&       symStruct = type.payloadSymStruct();
+    if (symStruct.hasOwnDynamicSlot())
+        ranges.push_back({symStruct.dynamicSlotOffsets().front(), sizeof(void*), TypeRef::invalid()});
+    for (const SymbolVariable* field : symStruct.fields())
+    {
+        if (SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), field->typeRef()))
+            ranges.push_back({field->offset(), static_cast<uint32_t>(field->typeInfo(codeGen.ctx()).sizeOf(codeGen.ctx())), field->typeRef()});
+    }
+    std::ranges::sort(ranges, {}, &DynamicRange::offset);
+    uint32_t copiedEnd = 0;
+    for (const auto& range : ranges)
+    {
+        SWC_ASSERT(range.offset >= copiedEnd);
+        if (range.offset > copiedEnd)
+            emitMemCopy(codeGen, codeGen.offsetAddressReg(dstReg, copiedEnd), codeGen.offsetAddressReg(srcReg, copiedEnd), range.offset - copiedEnd);
+        if (range.typeRef.isValid())
+            emitCopyPreservingDynamicIdentity(codeGen, range.typeRef, codeGen.offsetAddressReg(dstReg, range.offset), codeGen.offsetAddressReg(srcReg, range.offset));
+        copiedEnd = range.offset + range.size;
+    }
+    if (size > copiedEnd)
+        emitMemCopy(codeGen, codeGen.offsetAddressReg(dstReg, copiedEnd), codeGen.offsetAddressReg(srcReg, copiedEnd), static_cast<uint32_t>(size - copiedEnd));
+}
+
 void CodeGenMemoryHelpers::storePayloadToAddress(CodeGen& codeGen, MicroReg dstReg, const CodeGenNodePayload& srcPayload, uint32_t copySize)
 {
     MicroBuilder& builder = codeGen.builder();
@@ -1059,7 +1186,7 @@ bool CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroR
     if (rawBytes.size() >= sparseChunkSize * 2ull && (rawBytes.size() % sparseChunkSize) == 0)
     {
         std::array<uint32_t, sparseStoreLimit> nonZeroOffsets{};
-        uint32_t                              nonZeroChunks = 0;
+        uint32_t                               nonZeroChunks = 0;
         for (uint32_t off = 0; off < rawBytes.size(); off += sparseChunkSize)
         {
             for (uint32_t i = 0; i < sparseChunkSize; ++i)

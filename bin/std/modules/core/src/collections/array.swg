@@ -60,7 +60,7 @@ impl Array
             if not .count do
                 return
 
-            #static if Reflection.hasPostCopy(T)
+            #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
             {
                 .initNewSlots(0, .count)
                 let buffer = .buffer!
@@ -159,7 +159,7 @@ impl Array
         var dataof = arr.buffer
 
         .grow(countof)
-        #static if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             .initNewSlots(0, countof)
             let buffer = .buffer!
@@ -260,7 +260,7 @@ impl Array
 
         // Need to call opPostMove on every existing element if the me.buffer has not been reallocated
         // in place
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             if .buffer and newBuffer != .buffer
             {
@@ -330,7 +330,7 @@ impl Array
         if not num do
             return
 
-        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             Swag.init(.buffer + index, num)
         }
@@ -480,7 +480,7 @@ impl Array
         .initNewSlots(.count - 1, 1)
         let buffer = .buffer!
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = .count - 1; idx > index; idx -= 1 do
                 buffer[idx] = #relocate buffer[idx - 1]
@@ -520,7 +520,7 @@ impl Array
         .initNewSlots(.count - sliceCount, sliceCount)
         let buffer = .buffer!
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 buffer[idx] = #relocate buffer[idx - sliceCount]
@@ -530,7 +530,7 @@ impl Array
             Memory.copyOverlapping(buffer + index + sliceCount, buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #static if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
                 buffer[index + idx] = #nodrop values[idx]
@@ -568,7 +568,7 @@ impl Array
         .initNewSlots(.count - sliceCount, sliceCount)
         let buffer = .buffer!
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 buffer[idx] = #relocate buffer[idx - sliceCount]
@@ -578,7 +578,7 @@ impl Array
             Memory.copyOverlapping(buffer + index + values.count, buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
                 buffer[index + idx] = #nodrop #move values[idx]
@@ -613,7 +613,7 @@ impl Array
         .initNewSlots(oldCount, sliceCount)
         let buffer = .buffer!
 
-        #static if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             let vals    = values!
             var destPtr = buffer + oldCount
@@ -648,7 +648,7 @@ impl Array
         Debug.safetyBoundCheck(index + num <= .count, "index out of range")
         let shiftCount = .count - (index + num)
 
-        #static if not Reflection.hasPostMove(T) and not Reflection.hasDrop(T)
+        #static if not (Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)) and not Reflection.hasDrop(T)
         {
             Memory.copyOverlapping(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
@@ -716,7 +716,7 @@ impl Array
         if index >= .count do
             return
 
-        #static if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
             let buffer = .buffer!
             var idx    = index

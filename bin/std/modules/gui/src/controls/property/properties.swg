@@ -363,19 +363,18 @@ internal impl Properties
                 .refreshNative(item)
             elif Reflection.isString(pointed) and (item.editBox != null)
             {
-                item.editBox.setText(item.data![as string])
+                item.editBox.setText((cast(const *string) item.data!)[])
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and (item.editBox != null)
             {
-                item.editBox.setText(item.data![as String])
+                item.editBox.setText((cast(const *String) item.data!)[])
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and (item.comboBox != null) do
                 .refreshFontName(item)
-            elif Reflection.isStruct(pointed)
+            elif let typeStruct = cast #try(const *Swag.TypeInfoStruct) pointed
             {
-                let typeStruct = cast(const *Swag.TypeInfoStruct?) pointed
                 if typeStruct.fromGeneric == Array do
                     .refreshArray(item)
             }
@@ -585,7 +584,7 @@ impl Properties
             item.line.margin.y, item.line.margin.w = 0
         }
 
-        let typeStruct = cast(const *Swag.TypeInfoStruct) typeof
+        let typeStruct = cast #assume(const *Swag.TypeInfoStruct) typeof
         .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
 
         let itemn = item

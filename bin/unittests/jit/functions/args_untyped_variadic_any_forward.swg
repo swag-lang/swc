@@ -16,17 +16,17 @@ struct VariadicAnyPair
 
 func anyIsS32(value: any)->bool
 {
-    return Swag.kindOf(value) == s32 and cast(s32) value == 42
+    return Swag.kindOf(value) == s32 and cast #assume(s32) value == 42
 }
 
 func anyIsBool(value: any)->bool
 {
-    return Swag.kindOf(value) == bool and cast(bool) value
+    return Swag.kindOf(value) == bool and cast #assume(bool) value
 }
 
 func anyIsString(value: any)->bool
 {
-    return Swag.kindOf(value) == string and cast(string) value == "variadic-any"
+    return Swag.kindOf(value) == string and cast #assume(string) value == "variadic-any"
 }
 
 func anyIsBox(value: any)->bool
@@ -34,7 +34,7 @@ func anyIsBox(value: any)->bool
     if Swag.kindOf(value) != VariadicAnyBox do
         return false
 
-    let box = cast(VariadicAnyBox) value
+    let box = cast #assume(VariadicAnyBox) value
     return box.value == 314
 }
 
@@ -43,7 +43,7 @@ func anyIsPair(value: any)->bool
     if Swag.kindOf(value) != VariadicAnyPair do
         return false
 
-    let pair = cast(VariadicAnyPair) value
+    let pair = cast #assume(VariadicAnyPair) value
     return pair.left == 0x1122334455667788'u64 and pair.right == 0x99AABBCCDDEEFF00'u64
 }
 
@@ -103,11 +103,11 @@ func variadicFirstAnyDataS32(values: ...)->s32
         let v1 = relayAny(values[1])
         let v2 = relayAny(values[2])
         return Swag.kindOf(v0) == s32 and
-               cast(s32) v0 == 42 and
+               cast #assume(s32) v0 == 42 and
                Swag.kindOf(v1) == string and
-               cast(string) v1 == "relay" and
+               cast #assume(string) v1 == "relay" and
                Swag.kindOf(v2) == VariadicAnyBox and
-               (cast(VariadicAnyBox) v2).value == 314
+               (cast #assume(VariadicAnyBox) v2).value == 314
     }
 
     const box: VariadicAnyBox = {value: 314}
@@ -280,7 +280,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func strictAnyViewThroughVariadic()->bool
     {
         var raw: any = 42's32
-        let boxed    = (&raw)[as VariadicStrictAny]
+        let boxed    = (cast(const *VariadicStrictAny) (&raw))[]
         return variadicFirstAnyIsS32(boxed)
     }
 
@@ -306,7 +306,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     {
         var value: s32 = 1234
         var raw:   any = Swag.makeAny(&value, s32)
-        let boxed      = (&raw)[as VariadicStrictAny]
+        let boxed      = (cast(const *VariadicStrictAny) (&raw))[]
         return variadicFirstAnyDataS32(boxed)
     }
 

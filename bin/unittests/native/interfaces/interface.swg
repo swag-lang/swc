@@ -167,7 +167,7 @@ impl IReset for Point3
 {
     var pt2: Point2
     var raw = cast(IReset) pt2
-    let itf = (&raw)[as StrictIReset]
+    let itf = (cast(const *StrictIReset) (&raw))[]
     Swag.assert(Swag.kindOf(itf) == Point2)
 }
 

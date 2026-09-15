@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -949,7 +950,7 @@ namespace
         return borrowInfoFromStorageExpression(sema, children.front(), expressionTypeRef(sema, intrinsicRef), budget);
     }
 
-    SemaEscapeInfo opCastEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, TypeRef resultTypeRef, uint32_t& budget)
+    SemaEscapeInfo opCastEscapeInfo(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef, TypeRef resultTypeRef, uint32_t& budget)
     {
         const auto* payload = sema.semaPayload<CastSpecOpPayload>(castRef);
         if (!payload || payload->kind != CastSpecialOpPayloadKind::OpCast || !payload->calledFn)
@@ -957,13 +958,13 @@ namespace
 
         // An implicit conversion substitutes its source node with this wrapper: the resolved
         // 'self' argument loops back here, so analyze the stored operand instead.
-        if (castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef))
+        if (castOperandSelfSubstituted(sema, castRef, operandRef))
         {
-            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, cast.nodeExprRef));
+            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, operandRef));
             if (!operandTypeRef.isValid() || isDirectBorrowCarrier(sema, operandTypeRef) || !typeHasBorrowableStorage(sema, operandTypeRef))
                 return {};
 
-            return storageBorrowInfo(sema, cast.nodeExprRef, resultTypeRef, true);
+            return storageBorrowInfo(sema, operandRef, resultTypeRef, true);
         }
 
         SmallVector<ResolvedCallArgument> args;
@@ -971,13 +972,13 @@ namespace
         if (!args.empty() && args.front().argRef.isValid())
             return borrowInfoFromCallArgument(sema, args.front(), resultTypeRef, budget);
 
-        if (expressionMayExposeStorageBorrow(sema, cast.nodeExprRef))
-            return storageBorrowInfo(sema, cast.nodeExprRef, resultTypeRef);
+        if (expressionMayExposeStorageBorrow(sema, operandRef))
+            return storageBorrowInfo(sema, operandRef, resultTypeRef);
 
         return {};
     }
 
-    SemaEscapeInfo anyBoxEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, TypeRef resultTypeRef)
+    SemaEscapeInfo anyBoxEscapeInfo(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef, TypeRef resultTypeRef)
     {
         // A constant box is lowered into the compiler data segment. Every runtime box
         // instead points either at the lvalue being boxed or at hidden cast storage in
@@ -986,7 +987,7 @@ namespace
         if (sema.viewConstant(castRef).hasConstant())
             return {};
 
-        const AstNodeRef      sourceRef     = cast.nodeExprRef;
+        const AstNodeRef      sourceRef     = operandRef;
         bool                  wholeVariable = false;
         const SymbolVariable* sourceVar     = storageRootVariable(sema, sourceRef, false, wholeVariable);
 
@@ -1020,21 +1021,32 @@ namespace
         return info;
     }
 
-    SemaEscapeInfo castEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, uint32_t& budget)
+    SemaEscapeInfo castEscapeInfo(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef, uint32_t& budget)
     {
         const TypeRef resultTypeRef    = expressionTypeRef(sema, castRef);
-        const bool    operandSelfSubst = castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef);
+        const bool    operandSelfSubst = castOperandSelfSubstituted(sema, castRef, operandRef);
 
-        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, cast.nodeExprRef));
+        if (const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(castRef); lowering && lowering->runtimeValueCast)
+        {
+            // A target chosen at runtime can produce an interface view in this cast's storage.
+            SemaEscapeInfo info;
+            info.kind      = SemaEscapeKind::Local;
+            info.sourceRef = castRef;
+            info.sourceVar = lowering->runtimeStorageSym;
+            info.typeRef   = resultTypeRef;
+            return info;
+        }
+
+        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, operandRef));
         if (resultTypeRef.isValid() &&
             sourceTypeRef.isValid() &&
             sema.typeMgr().get(unwrapAliasEnum(sema, resultTypeRef)).isAny() &&
             !sema.typeMgr().get(unwrapAliasEnum(sema, sourceTypeRef)).isAny())
-            return anyBoxEscapeInfo(sema, castRef, cast, resultTypeRef);
+            return anyBoxEscapeInfo(sema, castRef, operandRef, resultTypeRef);
 
         SemaEscapeInfo info = operandSelfSubst
-                                  ? expressionEscapeInfoAt(sema, cast.nodeExprRef, budget)
-                                  : expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
+                                  ? expressionEscapeInfoAt(sema, operandRef, budget)
+                                  : expressionEscapeInfoRec(sema, operandRef, budget);
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
@@ -1044,7 +1056,7 @@ namespace
         if (!typeCanCarryBorrowImpl(sema, resultTypeRef))
             return {};
 
-        info = opCastEscapeInfo(sema, castRef, cast, resultTypeRef, budget);
+        info = opCastEscapeInfo(sema, castRef, operandRef, resultTypeRef, budget);
         if (info.hasBorrow())
             return info;
 
@@ -1055,16 +1067,16 @@ namespace
             !isDirectBorrowCarrier(sema, sourceTypeRef) &&
             typeHasBorrowableStorage(sema, sourceTypeRef))
         {
-            info = storageBorrowInfo(sema, cast.nodeExprRef, resultTypeRef, operandSelfSubst);
+            info = storageBorrowInfo(sema, operandRef, resultTypeRef, operandSelfSubst);
             if (info.hasBorrow())
                 return info;
 
             // No variable roots the storage: an rvalue produced by a call or materialized
             // from a literal is a temporary destroyed at the end of the statement.
-            const AstNodeRef operandRef = operandSelfSubst ? cast.nodeExprRef : sema.viewZero(cast.nodeExprRef).nodeRef();
-            if (operandRef.isValid())
+            const AstNodeRef resolvedOperandRef = operandSelfSubst ? operandRef : sema.viewZero(operandRef).nodeRef();
+            if (resolvedOperandRef.isValid())
             {
-                const AstNode& operandNode = sema.node(operandRef);
+                const AstNode& operandNode = sema.node(resolvedOperandRef);
                 if (operandNode.is(AstNodeId::CallExpr) ||
                     operandNode.is(AstNodeId::IntrinsicCallExpr) ||
                     operandNode.is(AstNodeId::StructLiteral) ||
@@ -1080,7 +1092,7 @@ namespace
                     const bool  isOpCast = specOp && specOp->kind == CastSpecialOpPayloadKind::OpCast && specOp->calledFn;
 
                     info.kind      = isOpCast ? SemaEscapeKind::Temporary : SemaEscapeKind::Materialized;
-                    info.sourceRef = operandRef;
+                    info.sourceRef = resolvedOperandRef;
                     info.typeRef   = resultTypeRef;
                     // The runtime storage behaves like an anonymous local of the
                     // CURRENT scope: a shallower destination outlives it.
@@ -1185,11 +1197,28 @@ namespace
         {
             const AstNodeRef operandRef = sema.viewZero(unary.nodeExprRef).nodeRef();
             const auto*      index      = operandRef.isValid() ? sema.node(operandRef).safeCast<AstIndexExpr>() : nullptr;
-            if (index && isDirectBorrowCarrier(sema, expressionTypeRef(sema, index->nodeExprRef)))
+            AstNodeRef       carrierRef = index ? index->nodeExprRef : AstNodeRef::invalid();
+            AstNodeRef       memberRef  = operandRef;
+            for (uint32_t depth = 0; memberRef.isValid() && depth < K_STORAGE_WALK_BUDGET; ++depth)
             {
-                // Taking an element address preserves the base pointer's borrow;
-                // reading the element by value may instead copy an unrelated pointer.
-                SemaEscapeInfo info = expressionEscapeInfoRec(sema, index->nodeExprRef, budget);
+                const auto* member = sema.node(memberRef).safeCast<AstMemberAccessExpr>();
+                if (!member)
+                    break;
+                const TypeRef leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, member->nodeLeftRef));
+                if (leftTypeRef.isValid() && sema.typeMgr().get(leftTypeRef).isAnyPointer())
+                {
+                    carrierRef = member->nodeLeftRef;
+                    break;
+                }
+                if (isDirectBorrowCarrier(sema, leftTypeRef))
+                    break;
+                memberRef = sema.viewZero(member->nodeLeftRef).nodeRef();
+            }
+            if (carrierRef.isValid() && isDirectBorrowCarrier(sema, expressionTypeRef(sema, carrierRef)))
+            {
+                // An element or field address preserves the pointer's borrow, including
+                // its parameter origin; the parameter's own slot is different storage.
+                SemaEscapeInfo info = expressionEscapeInfoRec(sema, carrierRef, budget);
                 if (info.hasBorrow())
                 {
                     info.typeRef = expressionTypeRef(sema, unaryRef);
@@ -2317,7 +2346,12 @@ namespace
 
             case AstNodeId::AutoCastExpr:
             {
-                SemaEscapeInfo info = expressionEscapeInfoRec(sema, node.cast<AstAutoCastExpr>().nodeExprRef, budget);
+                const auto& castNode = node.cast<AstAutoCastExpr>();
+                // Ordinary contextual conversions have a separate CastExpr wrapper.
+                // Dynamic conversions lower on this node and can borrow its operand's storage.
+                if (castNode.modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+                    return castEscapeInfo(sema, resolvedRef, castNode.nodeExprRef, budget);
+                SemaEscapeInfo info = expressionEscapeInfoRec(sema, castNode.nodeExprRef, budget);
                 if (info.hasBorrow())
                     info.typeRef = expressionTypeRef(sema, resolvedRef);
                 return info;
@@ -2332,7 +2366,7 @@ namespace
             }
 
             case AstNodeId::CastExpr:
-                return castEscapeInfo(sema, resolvedRef, node.cast<AstCastExpr>(), budget);
+                return castEscapeInfo(sema, resolvedRef, node.cast<AstCastExpr>().nodeExprRef, budget);
 
             case AstNodeId::IntrinsicCall:
                 return intrinsicCallEscapeInfo(sema, resolvedRef, node.cast<AstIntrinsicCall>(), budget);
@@ -2492,7 +2526,7 @@ namespace
             case AstNodeId::CastExpr:
             {
                 const auto&    castNode = node.cast<AstCastExpr>();
-                SemaEscapeInfo info     = castEscapeInfo(sema, resolvedRef, castNode, budget);
+                SemaEscapeInfo info     = castEscapeInfo(sema, resolvedRef, castNode.nodeExprRef, budget);
                 if (info.hasBorrow())
                 {
                     info.typeRef = targetTypeRef;
@@ -4062,8 +4096,8 @@ namespace SemaEscape
 
         if (dstVar)
         {
-            bool aggregateHandled = false;
-            const SemaEscapeProjection destination = hasProjection ? projection : SemaEscapeProjection{.root = dstVar};
+            bool                       aggregateHandled = false;
+            const SemaEscapeProjection destination      = hasProjection ? projection : SemaEscapeProjection{.root = dstVar};
             SWC_RESULT(bindAggregateProjections(sema, aggregateHandled, destination, rightRef, targetTypeRef, "an assignment"));
             if (aggregateHandled)
                 return Result::Continue;
@@ -4530,8 +4564,8 @@ namespace SemaEscape
         // Both JIT callers wait for this whole call graph before entering here, so
         // its return masks and edges are already published before either snapshot.
         std::vector<SemaEscapeSummaryEdge> edges                = ctx.compiler().copyEscapeSummaryEdges();
-        bool                              hasFreeForwarding    = false;
-        bool                              needsReturnSummaries = false;
+        bool                               hasFreeForwarding    = false;
+        bool                               needsReturnSummaries = false;
         for (const SemaEscapeSummaryEdge& edge : edges)
         {
             if (!isFreeForwardingEdge(edge))

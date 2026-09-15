@@ -1,4 +1,4 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 //! Format: H.264/AVC decoder component.
@@ -724,7 +724,7 @@ private func storeWeightedRow(dst: [*] u8, width: s32, value: Simd.U8x16)
     case 16: Simd.store(dst, value)
     case 8:  Simd.storeLow8(dst, value)
     case 4:  Simd.storeLow4(dst, value)
-    case 2:  dst[as u16] = (cast #bit(Simd.U16x8) value)[0]
+    case 2:  (cast(*u16) dst)[] = (cast #bit(Simd.U16x8) value)[0]
     default: Swag.assert(false)
     }
 }

@@ -282,8 +282,8 @@ impl ConcatBuffer
                 return
             }
 
-            currentSP[as T] = val
-            .currentSP      += #sizeof(T)
+            (cast(*T) currentSP)[] = val
+            .currentSP += #sizeof(T)
             .setIsAtEnd()
         }
         else
@@ -291,9 +291,9 @@ impl ConcatBuffer
             .grow(#sizeof(T))
             let curBucket = .curBucket!
             let currentSP = .currentSP!
-            currentSP[as T] = val
-            .currentSP      += #sizeof(T)
-            curBucket.count += #sizeof(T)
+            (cast(*T) currentSP)[] = val
+            .currentSP             += #sizeof(T)
+            curBucket.count        += #sizeof(T)
         }
     }
 

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -896,13 +897,91 @@ const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) co
     return nullptr;
 }
 
-ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
+bool SymbolStruct::typeHasDynamicStorage(const TaskContext& ctx, TypeRef typeRef)
 {
+    typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
+    while (ctx.typeMgr().get(typeRef).isArray())
+        typeRef = ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, ctx.typeMgr().get(typeRef).payloadArrayElemTypeRef());
+    const TypeInfo& type = ctx.typeMgr().get(typeRef);
+    return type.isStruct() && type.payloadSymStruct().hasDynamicStorage();
+}
+
+Result SymbolStruct::prepareDynamicMetadata(Sema& sema, TypeRef typeRef)
+{
+    if (!typeHasDynamicStorage(sema.ctx(), typeRef))
+        return Result::Continue;
+    typeRef              = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    if (type.isArray())
+        return prepareDynamicMetadata(sema, type.payloadArrayElemTypeRef());
+    if (!type.isStruct() || !type.payloadSymStruct().hasDynamicStorage())
+        return Result::Continue;
+
+    const SymbolStruct& symStruct = type.payloadSymStruct();
+    if (symStruct.isDynamic())
+    {
+        ConstantRef typeInfoRef = ConstantRef::invalid();
+        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoRef, typeRef, sema.curNodeRef()));
+    }
+    for (const SymbolVariable* field : symStruct.fields())
+        SWC_RESULT(prepareDynamicMetadata(sema, field->typeRef()));
+    return Result::Continue;
+}
+
+Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::byte> bytes, TypeRef typeRef)
+{
+    if (!typeHasDynamicStorage(sema.ctx(), typeRef))
+        return Result::Continue;
+    typeRef              = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    if (type.isArray())
+    {
+        const TypeRef  elementTypeRef = type.payloadArrayElemTypeRef();
+        const uint64_t elementSize    = sema.typeMgr().get(elementTypeRef).sizeOf(sema.ctx());
+        for (size_t offset = 0; elementSize && offset < bytes.size(); offset += elementSize)
+            SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(offset, elementSize), elementTypeRef));
+        return Result::Continue;
+    }
+    if (!type.isStruct() || !type.payloadSymStruct().hasDynamicStorage())
+        return Result::Continue;
+
+    const SymbolStruct& symStruct = type.payloadSymStruct();
+    for (const SymbolVariable* field : symStruct.fields())
+    {
+        const uint64_t fieldSize = field->typeInfo(sema.ctx()).sizeOf(sema.ctx());
+        SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(field->offset(), fieldSize), field->typeRef()));
+    }
+    if (symStruct.isDynamic())
+    {
+        ConstantRef typeInfoRef = ConstantRef::invalid();
+        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoRef, typeRef, sema.curNodeRef()));
+        const auto* runtimeType = reinterpret_cast<const Runtime::TypeInfoStruct*>(sema.cstMgr().get(typeInfoRef).getValuePointer());
+        const auto  slots       = symStruct.dynamicSlotOffsets();
+        SWC_ASSERT(runtimeType->dynamicSlots.count == slots.size());
+        for (size_t i = 0; i < slots.size(); ++i)
+        {
+            const Runtime::DynamicStructInfo* descriptor = runtimeType->dynamicSlots.ptr + i;
+            std::memcpy(bytes.data() + slots[i], &descriptor, sizeof(descriptor));
+        }
+    }
+    return Result::Continue;
+}
+
+Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRef& outRef)
+{
+    outRef = ConstantRef::invalid();
     computeImplicitDefaultFlags(sema);
     if (requiresExplicitInitialization())
-        return ConstantRef::invalid();
+        return Result::Continue;
     if (hasImplicitAllZeroDefault())
-        return sema.cstMgr().addZeroPayloadConstant(sema.ctx(), typeRef);
+    {
+        outRef = sema.cstMgr().addZeroPayloadConstant(sema.ctx(), typeRef);
+        return Result::Continue;
+    }
+
+    // Type-info generation can park. Complete it before entering the once-only
+    // default publisher, whose callback must never retain a partially built value.
+    SWC_RESULT(prepareDynamicMetadata(sema, typeRef));
 
     std::call_once(defaultStructOnce_, [&] {
         auto            ctx = sema.ctx();
@@ -919,11 +998,13 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         std::vector     buffer(structSize, std::byte{0});
         const std::span bytes{buffer.data(), buffer.size()};
         SWC_INTERNAL_CHECK(lowerTypeImplicitDefaultBytesRec(sema, bytes, typeRef) == Result::Continue);
+        SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, typeRef) == Result::Continue);
         defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span{bytes.data(), bytes.size()});
         SWC_ASSERT(defaultStructCst_.isValid());
     });
 
-    return defaultStructCst_;
+    outRef = defaultStructCst_;
+    return Result::Continue;
 }
 
 void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
@@ -932,13 +1013,13 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
         auto* self = const_cast<SymbolStruct*>(this);
         self->addExtraFlag(SymbolStructFlagsE::DefaultClassified);
 
-        if (fields_.empty())
+        if (fields_.empty() && !isDynamic())
         {
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
             return;
         }
 
-        bool allZero      = true;
+        bool allZero      = !isDynamic();
         bool requiresInit = false;
         for (const SymbolVariable* field : fields_)
         {
@@ -982,23 +1063,18 @@ bool SymbolStruct::fieldRequiresExplicitInitialization(Sema& sema, const SymbolV
 
 Result SymbolStruct::lowerTypeImplicitDefaultBytes(Sema& sema, const std::span<std::byte> dstBytes, const TypeRef typeRef)
 {
-    return lowerTypeImplicitDefaultBytesRec(sema, dstBytes, typeRef);
+    SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes, typeRef));
+    return initializeDynamicIdentityBytes(sema, dstBytes, typeRef);
 }
 
-ConstantRef SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const
+Result SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const
 {
-    computeImplicitDefaultFlags(sema);
-    if (requiresExplicitInitialization())
-        return ConstantRef::invalid();
-    return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
+    return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef, outRef);
 }
 
-ConstantRef SymbolStruct::resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const
+Result SymbolStruct::resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const
 {
-    computeImplicitDefaultFlags(sema);
-    if (requiresExplicitInitialization())
-        return ConstantRef::invalid();
-    return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
+    return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef, outRef);
 }
 
 namespace
@@ -1040,8 +1116,13 @@ bool SymbolStruct::implementsInterface(const SymbolInterface& itf) const
 
 bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const
 {
-    if (implementsInterface(itf))
-        return true;
+    return findInterfaceImplOrUsingFields(sema.ctx(), itf) != nullptr;
+}
+
+const SymbolImpl* SymbolStruct::findInterfaceImplOrUsingFields(const TaskContext& ctx, const SymbolInterface& itf) const
+{
+    if (const SymbolImpl* impl = findInterfaceImpl(itf.idRef()))
+        return impl;
 
     for (const Symbol* field : fields_)
     {
@@ -1052,12 +1133,15 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
         if (!symVar.isUsingField())
             continue;
 
-        const SymbolStruct* targetStruct = symVar.usingTargetStruct(sema.ctx());
-        if (targetStruct && targetStruct->implementsInterface(itf))
-            return true;
+        const SymbolStruct* targetStruct = symVar.usingTargetStruct(ctx);
+        if (targetStruct)
+        {
+            if (const SymbolImpl* impl = targetStruct->findInterfaceImpl(itf.idRef()))
+                return impl;
+        }
     }
 
-    return false;
+    return nullptr;
 }
 
 uint64_t SymbolStruct::sizeOf() const
@@ -1185,6 +1269,9 @@ void SymbolStruct::rebuildFieldIndexMap() noexcept
 
 Result SymbolStruct::computeLayout(TaskContext& ctx)
 {
+    if (hasConcreteLayout())
+        return Result::Continue;
+
     // A struct's post-node sema can park after this ran (impl registrations) and re-runs it on
     // resume, while other jobs already read the published numbers through field walks. Compute
     // into locals and publish once at the end: a reader must never observe a transient zero or
@@ -1198,6 +1285,7 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
 
     SmallVector<uint64_t> fieldOffsets;
     fieldOffsets.reserve(fields_.size());
+    std::vector<uint32_t> dynamicSlotOffsets;
 
     for (SymbolVariable* field : fields_)
     {
@@ -1242,6 +1330,29 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         }
     }
 
+    for (size_t i = 0; i < fields_.size(); ++i)
+    {
+        const SymbolVariable& field = *fields_[i];
+        if (!field.isUsingField())
+            continue;
+        const TypeRef   fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, field.typeRef());
+        const TypeInfo& fieldType    = ctx.typeMgr().get(fieldTypeRef);
+        if (!fieldType.isStruct())
+            continue;
+        for (const uint32_t slotOffset : fieldType.payloadSymStruct().dynamicSlotOffsets())
+            dynamicSlotOffsets.push_back(static_cast<uint32_t>(fieldOffsets[i]) + slotOffset);
+    }
+
+    if (dynamicSlotOffsets.empty() && attributes().hasRtFlag(RtAttributeFlagsE::DynCast))
+    {
+        addExtraFlag(SymbolStructFlagsE::OwnDynamicSlot);
+        const uint32_t slotAlignment = structPack ? std::min(structPack, static_cast<uint32_t>(alignof(void*))) : alignof(void*);
+        alignment                    = std::max(alignment, slotAlignment);
+        sizeInBytes += (slotAlignment - sizeInBytes % slotAlignment) % slotAlignment;
+        dynamicSlotOffsets.push_back(static_cast<uint32_t>(sizeInBytes));
+        sizeInBytes += sizeof(void*);
+    }
+
     if (structAlign != 0)
         alignment = std::max(alignment, structAlign);
 
@@ -1252,6 +1363,18 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         fields_[i]->setOffset(static_cast<uint32_t>(fieldOffsets[i]));
 
     // Size is what hasConcreteLayout() gates on, so it goes last.
+    dynamicSlotOffsets_ = std::move(dynamicSlotOffsets);
+    if (isDynamic())
+        addExtraFlag(SymbolStructFlagsE::DynamicStorage);
+    for (const SymbolVariable* field : fields_)
+    {
+        TypeRef fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, field->typeRef());
+        while (ctx.typeMgr().get(fieldTypeRef).isArray())
+            fieldTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, ctx.typeMgr().get(fieldTypeRef).payloadArrayElemTypeRef());
+        const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
+        if (fieldType.isStruct() && fieldType.payloadSymStruct().hasDynamicStorage())
+            addExtraFlag(SymbolStructFlagsE::DynamicStorage);
+    }
     alignment_.store(alignment, std::memory_order_release);
     sizeInBytes_.store(sizeInBytes, std::memory_order_release);
 

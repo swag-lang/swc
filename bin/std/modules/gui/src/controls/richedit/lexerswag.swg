@@ -128,7 +128,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("until", State.Control)
         .mapWords.add("in", State.Control)
         .mapWords.add("as", State.Control)
-        .mapWords.add("is", State.Control)
 
         .mapWords.add("export", State.Keyword)
         .mapWords.add("generated", State.Keyword)
@@ -218,8 +217,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("Swag.makeInterface", State.Intrinsic)
         .mapWords.add("Swag.stringCmp", State.Intrinsic)
         .mapWords.add("Swag.typeCmp", State.Intrinsic)
-        .mapWords.add("Swag.typeIs", State.Intrinsic)
-        .mapWords.add("Swag.typeAs", State.Intrinsic)
         .mapWords.add("Swag.getContext", State.Intrinsic)
         .mapWords.add("Swag.tableOf", State.Intrinsic)
 
@@ -409,6 +406,8 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#fail", State.Modifier)
         .mapWords.add("#nofail", State.Modifier)
         .mapWords.add("#bit", State.Modifier)
+        .mapWords.add("#try", State.Modifier)
+        .mapWords.add("#assume", State.Modifier)
         .mapWords.add("#unconst", State.Modifier)
         .mapWords.add("#raw", State.Modifier)
     }

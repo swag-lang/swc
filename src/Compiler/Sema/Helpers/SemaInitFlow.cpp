@@ -339,14 +339,17 @@ namespace
                         ref = node.cast<AstInitializerExpr>().nodeExprRef;
                         break;
                     case AstNodeId::AutoCastExpr:
+                        if (node.cast<AstAutoCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+                            return ref;
                         ref = node.cast<AstAutoCastExpr>().nodeExprRef;
                         break;
                     case AstNodeId::CastExpr:
+                        if (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+                            return ref;
                         ref = node.cast<AstCastExpr>().nodeExprRef;
                         break;
                     case AstNodeId::AsCastExpr:
-                        ref = node.cast<AstAsCastExpr>().nodeExprRef;
-                        break;
+                        return ref;
                     case AstNodeId::NamedArgument:
                         ref = node.cast<AstNamedArgument>().nodeArgRef;
                         break;

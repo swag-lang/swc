@@ -70,7 +70,7 @@ func catchesAndInspects(present: bool)->s32
 {
     let value = catch load(present) as failure
     if failure != null do
-        return -(cast(LoadError) failure).code
+        return -(cast #assume(LoadError) failure).code
     return value
 }
 

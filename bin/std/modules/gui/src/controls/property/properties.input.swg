@@ -38,7 +38,7 @@ internal impl Properties
 
     func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
     {
-        let prop = cast(*Properties) wnd
+        let prop = cast #assume (*Properties) wnd
         if prop.editPopup
         {
             // While an editor popup (e.g. the color picker) is open the popup is anchored
@@ -47,7 +47,7 @@ internal impl Properties
             // the popup can still close on an outside click and the trigger button's hover
             // state can clear normally. Wheel events inside the popup are left alone so it
             // can scroll its own content.
-            if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .Wheel
+            if let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Wheel
             {
                 let target = mouseEvt.target
                 if not (target and (target == prop.editPopup or prop.editPopup.isAncestorOf(target))) do
@@ -60,7 +60,7 @@ internal impl Properties
         // Mouse wheel anywhere over the list scrolls it, even when the cursor is over an
         // editor (combobox/editbox/slider): those pass the wheel on, but their inner widgets
         // would otherwise swallow the bubble before it reaches the scroll view.
-        if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .Wheel
+        if let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Wheel
         {
             if mouseEvt.target and prop.edView.isAncestorOf(mouseEvt.target)
             {
@@ -70,19 +70,19 @@ internal impl Properties
             }
         }
 
-        switch evt
+        switch
         {
-        case FocusEvent as focusEvt where focusEvt.kind == .CanGain:
+        case let focusEvt = cast #try (*FocusEvent) evt where focusEvt.kind == .CanGain:
             if prop.cursorSet do
                 focusEvt.canChangeFocus = false
 
         // While a row editor has the focus, intercept the navigation/mode keys
         // before the editor sees them so the grid is always keyboard-drivable.
-        case KeyEvent as keyEvt where keyEvt.kind == .Pressed:
+        case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed:
             if prop.editKeyEvent(keyEvt) do
                 return true
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
+        case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Pressed:
 
             // A press outside the row area (on the scroll bar, typically) must not touch the
             // selection: scrolling and selecting are separate gestures.
@@ -121,7 +121,7 @@ internal impl Properties
             if not prop.isEditorWnd(mouseEvt.target) do
                 prop.focusNavigation(fallbackToFirst: false)
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .DoubleClick and mouseEvt.button == .Left:
+        case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .DoubleClick and mouseEvt.button == .Left:
             if not prop.isOverRows(mouseEvt.target) do
                 break
 
@@ -142,15 +142,15 @@ internal impl Properties
                 selItem.checkBox.toggle()
             }
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .Released:
+        case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Released:
             prop.resizingColumn = false
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .Leave:
+        case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Leave:
             if prop.hotItem and prop.isGridLike() do
                 ToolTip.hide(prop.hotItem.line)
             prop.hotItem = null
 
-        case MouseEvent as mouseEvt where (mouseEvt.kind == .Move or mouseEvt.kind == .SetCursor):
+        case let mouseEvt = cast #try (*MouseEvent) evt where (mouseEvt.kind == .Move or mouseEvt.kind == .SetCursor):
             var pt = prop.surfaceToLocal(mouseEvt.surfacePos)
 
             // Resize of the grid column
@@ -206,17 +206,17 @@ internal impl Properties
         if wndItem.children.isEmpty() do
             return false
 
-        switch evt
+        switch
         {
-        case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed and mouseEvt.button == .Right:
+        case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Pressed and mouseEvt.button == .Right:
             .popupMenu(item, mouseEvt.surfacePos)
             return true
 
-        case NotifyEvent as ntfyEvt where ntfyEvt.kind == .ChildFocusChanged:
+        case let ntfyEvt = cast #try (*NotifyEvent) evt where ntfyEvt.kind == .ChildFocusChanged:
             wndItem.invalidate()
             return true
 
-        case PaintEvent as paintEvt where paintEvt.kind == .Before:
+        case let paintEvt = cast #try (*PaintEvent) evt where paintEvt.kind == .Before:
             .paintBackItem(paintEvt.paintContext.painter, item, wndItem)
         }
 

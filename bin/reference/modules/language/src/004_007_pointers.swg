@@ -385,29 +385,27 @@ readable without parentheses.
 /**
 # Reinterpreting the Pointed Storage
 
-`expr[as T]` opens the same place but types it as a `T`: the pointed storage is
-reinterpreted, never converted. The result is a read/write place of type `T`, so both
-reads and writes go through it. The classic use is reaching the bit pattern of a value
-without a chain of pointer casts.
+Cast the pointer, then dereference it: `(cast(*T) expr)[]` reads or writes the
+same storage through a pointer to `T`. This changes the view of the bytes;
+it does not perform a numeric conversion. Use `const *T` for a read-only view.
+The caller is responsible for providing storage large enough for the requested type.
 */
 #test
 {
     var f = 1.0'f32
     let p = &f
-    Swag.assert(p[as u32] == 0x3F80_0000)     // The float's bit pattern, not a conversion
+    Swag.assert((cast(const *u32) p)[] == 0x3F80_0000)     // The float's bit pattern, not a conversion
 
     var value = 0's32
     let vp    = &value
-    vp[as u32] = 0xFFFF_FFFF     // Writes through the reinterpreted place
+    (cast(*u32) vp)[] = 0xFFFF_FFFF     // Writes through the reinterpreted place
     Swag.assert(value == -1)
 }
 
 /**
-`[as T]` opens **one** place, so a following index applies to that `T` and not to a
-buffer of them: `p[as u32][2]` asks a `u32` to be indexed. To walk a buffer under a
-different lane type, reinterpret the pointer instead — `(cast([*] T) p)[i]` is the
-spelling to use. An array shape works too, and keeps the reinterpretation postfix when
-the element count is known: `p[as [4] u32][1]` names the second word of the first four.
+`*T` points to **one** value. To walk a buffer with another element type, cast to
+a block pointer: `(cast([*] T) p)[i]`. When the element count is known, a pointer to
+an array provides a fixed shape: `(cast(*[4] u32) p)[][1]` names its second word.
 */
 #test
 {
@@ -420,9 +418,9 @@ the element count is known: `p[as [4] u32][1]` names the second word of the firs
     Swag.assert(words[0] == 0x0302_0100)
     Swag.assert(words[1] == 0x0706_0504)
 
-    // Or name a fixed shape in one postfix step.
+    // Or name a fixed array shape.
     let p = bytes.buffer
-    Swag.assert(p[as [4] u32][1] == 0x0706_0504)
+    Swag.assert((cast(const *[4] u32) p)[][1] == 0x0706_0504)
 }
 
 /**

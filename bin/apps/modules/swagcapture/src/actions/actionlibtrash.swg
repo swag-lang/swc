@@ -16,7 +16,7 @@ impl IActionUI for ActionLibTrash
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let libWnd = cast(*LibraryWnd) cxt.wnd!
+        let libWnd = cast #assume(*LibraryWnd) cxt.wnd!
         let hasSel = libWnd.view.focusItem != Swag.U32.Max
 
         switch cxt.id
@@ -46,7 +46,7 @@ impl IActionUI for ActionLibTrash
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let libWnd = cast(*LibraryWnd) cxt.wnd!
+        let libWnd = cast #assume(*LibraryWnd) cxt.wnd!
 
         switch cxt.id
         {

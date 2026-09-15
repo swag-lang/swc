@@ -186,7 +186,7 @@ impl Ledger
     ledger.reset()
     catch ledger.deposit(99, 10) as err3
     Swag.assert(err3 != null)
-    let err = cast(BankError) err3
+    let err = cast #assume(BankError) err3
     Swag.assert(err.kind == .UnknownAccount)
     Swag.assert(err.account == 99)
     Swag.assert(err.message == "unknown account")
@@ -198,7 +198,7 @@ impl Ledger
     ledger.reset()
     catch ledger.deposit(0, 0) as err4
     Swag.assert(err4 != null)
-    let err = cast(BankError) err4
+    let err = cast #assume(BankError) err4
     Swag.assert(err.kind == .InvalidAmount)
 }
 
@@ -208,7 +208,7 @@ impl Ledger
     ledger.reset()
     catch ledger.withdraw(0, 50) as err5
     Swag.assert(err5 != null)
-    let err = cast(BankError) err5
+    let err = cast #assume(BankError) err5
     Swag.assert(err.kind == .InsufficientFunds)
     Swag.assert(err.amount == 50)
 }
@@ -220,7 +220,7 @@ impl Ledger
     ledger.accounts[0].frozen = true
     catch ledger.deposit(0, 100) as err6
     Swag.assert(err6 != null)
-    let err = cast(BankError) err6
+    let err = cast #assume(BankError) err6
     Swag.assert(err.kind == .FrozenAccount)
     Swag.assert(err.account == 0)
 }
@@ -248,7 +248,7 @@ impl Ledger
     ledger.accounts[1].frozen = true
     catch ledger.transfer(0, 1, 300) as err8
     Swag.assert(err8 != null)
-    let err = cast(BankError) err8
+    let err = cast #assume(BankError) err8
     Swag.assert(err.kind == .FrozenAccount)
     Swag.assert(err.account == 1)
     Swag.assert(ledger.accounts[0].balance == 1000)
@@ -265,7 +265,7 @@ impl Ledger
     catch ledger.deposit(0, 100)
     catch ledger.transfer(0, 1, 500) as err9
     Swag.assert(err9 != null)
-    let err = cast(BankError) err9
+    let err = cast #assume(BankError) err9
     Swag.assert(err.kind == .InsufficientFunds)
     Swag.assert(ledger.accounts[0].balance == 100)
     Swag.assert(ledger.accounts[1].balance == 0)
@@ -365,7 +365,7 @@ func verifyBlockCatch()
     } as errB
 
     Swag.assert(errB != null)
-    let ev = cast(BankError) errB
+    let ev = cast #assume(BankError) errB
     Swag.assert(ev.kind == .InsufficientFunds)
     Swag.assert(ledger.accounts[0].balance == 250)
     Swag.assert(ledger.accounts[1].balance == 300)

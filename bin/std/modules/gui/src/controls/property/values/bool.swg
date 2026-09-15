@@ -8,7 +8,7 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.checkBox.setState(.Indeterminate)
             else do
-                item.checkBox.setState(item.data![as bool] ? .Checked : .Unchecked)
+                item.checkBox.setState((cast(const *bool) item.data!)[] ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
         elif item.comboBox != null
@@ -17,7 +17,7 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.comboBox.clearSelection(notify: false)
             else do
-                item.comboBox.setSelectedIndex(item.data![as bool] ? 1 : 0, notify: false)
+                item.comboBox.setSelectedIndex((cast(const *bool) item.data!)[] ? 1 : 0, notify: false)
         }
     }
 

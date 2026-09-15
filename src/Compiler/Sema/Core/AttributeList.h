@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Backend/ABI/CallConv.h"
 #include "Backend/RuntimeSafety.h"
 #include "Compiler/Sema/Helpers/SemaSafety.h"
@@ -37,6 +37,7 @@ enum class RtAttributeFlagsE : uint64_t
     NoDuplicate    = 1 << 25,
     NoDoc          = 1 << 26,
     OperatorIgnore = 1 << 27,
+    DynCast        = 1 << 28,
 };
 using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 

@@ -1,9 +1,12 @@
 #include "pch.h"
+#include "Backend/RuntimeTypeInfo.h"
 #include "Support/Report/Assert.h"
 
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Symbol.Function.h"
 #include "Symbol.Interface.h"
@@ -11,6 +14,7 @@
 #include "Symbol.Variable.h"
 
 #include "Support/Core/DataSegment.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -165,8 +169,12 @@ const SymbolFunction* SymbolImpl::findFunctionForInterfaceMethod(const TaskConte
             continue;
 
         const auto& implMethod = symbol->cast<SymbolFunction>();
+        if (implMethod.isGenericRoot() && !implMethod.isGenericInstance())
+            continue;
         if (!firstByName)
             firstByName = &implMethod;
+        if (implMethod.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
+            continue;
         if (implMethodMatchesInterfaceMethod(ctx, implMethod, interfaceMethod))
             return &implMethod;
     }
@@ -185,6 +193,52 @@ std::vector<SymbolFunction*> SymbolImpl::specOps() const
 {
     const std::shared_lock lk(mutex_);
     return specOps_;
+}
+
+Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure) const
+{
+    if (hasExtraFlag(SymbolImplFlagsE::InterfaceConstraintsValid))
+        return Result::Continue;
+    SWC_RESULT(sema.waitSemaCompleted(this, codeRef()));
+    SWC_RESULT(sema.waitSemaCompleted(symInterface(), codeRef()));
+    for (const SymbolFunction* interfaceMethod : symInterface()->functions())
+    {
+        // Resolve conditional overloads only after their availability is known.
+        for (const Symbol* candidate = findFirstSymbol(interfaceMethod->idRef()); candidate; candidate = candidate->nextHomonym())
+        {
+            const auto* method = candidate->safeCast<SymbolFunction>();
+            if (!method || method->isIgnored() || (method->isGenericRoot() && !method->isGenericInstance()))
+                continue;
+            SWC_RESULT(sema.waitTyped(method, method->codeRef()));
+            if (!implMethodMatchesInterfaceMethod(sema.ctx(), *method, *interfaceMethod))
+                continue;
+            const auto* decl = method->decl() ? method->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            if (decl && decl->spanConstraintsRef.isValid() && !method->isEmpty())
+                SWC_RESULT(sema.waitConstraintsResolved(method, method->codeRef()));
+        }
+
+        const SymbolFunction* method = resolveInterfaceMethodTarget(sema.ctx(), *interfaceMethod);
+        if (!method)
+            return Result::Continue;
+        SWC_RESULT(sema.waitTyped(method, method->codeRef()));
+        const auto* decl = method->decl() ? method->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!decl || decl->spanConstraintsRef.isInvalid() || method->isEmpty())
+            continue;
+
+        SWC_RESULT(sema.waitConstraintsResolved(method, method->codeRef()));
+        if (!method->hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
+            continue;
+
+        bool satisfied = false;
+        SWC_RESULT(SemaGeneric::evaluateFunctionWhereConstraints(sema, satisfied, *method, &failure));
+        failure.nodeRef = sema.curNodeRef();
+        failure.noteId  = DiagnosticId::sema_note_generic_where_declared_here;
+        failure.addArgument(Diagnostic::ARG_SYM, method->name(sema.ctx()));
+        failure.addArgument(Diagnostic::ARG_VALUE, failure.valueStr);
+        return Result::Error;
+    }
+    const_cast<SymbolImpl*>(this)->addExtraFlag(SymbolImplFlagsE::InterfaceConstraintsValid);
+    return Result::Continue;
 }
 
 Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const
@@ -249,6 +303,14 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         }
 
         SWC_RESULT(sema.waitSemaCompleted(implMethod, implMethod->codeRef()));
+        if (implMethod->hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
+        {
+            CastFailure  failure;
+            const Result result = validateInterfaceConstraints(sema, failure);
+            if (result == Result::Error)
+                return Cast::emitCastFailure(sema, failure);
+            return result;
+        }
         implMethods.push_back(implMethod);
     }
 
@@ -260,22 +322,41 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         return Result::Continue;
     }
 
-    const uint32_t shardIndex              = typeInfoRef.shardIndex;
-    DataSegment&   segment                 = sema.cstMgr().shardDataSegment(shardIndex);
-    const auto [tableOffset, tableStorage] = segment.reserveSpan<void*>(slotCount);
-    SWC_ASSERT(tableStorage != nullptr);
-    tableStorage[0] = reinterpret_cast<void*>(typeInfoCst.getValuePointer());
-    segment.addRelocation(tableOffset, typeInfoRef.offset);
-
-    for (uint32_t i = 0; i < implMethods.size(); ++i)
+    // Static and dynamic conversions share the table published in reflection.
+    // Besides saving a second allocation, this preserves interface equality.
+    const auto*    objectType    = reinterpret_cast<const Runtime::TypeInfoStruct*>(typeInfoCst.getValuePointer());
+    const Utf8     interfaceName = itfSym->getFullScopedName(ctx);
+    const void*    tableStorage  = nullptr;
+    DataSegmentRef tableRef;
+    for (uint64_t i = 0; i < objectType->interfaces.count; ++i)
     {
-        tableStorage[i + 1] = nullptr;
-        segment.addFunctionRelocation(tableOffset + (i + 1) * sizeof(void*), implMethods[i]);
+        const Runtime::TypeValue& entry = objectType->interfaces.ptr[i];
+        if (std::string_view(entry.name.ptr, entry.name.length) == interfaceName.view() && entry.value)
+        {
+            tableStorage = entry.value;
+            SWC_INTERNAL_CHECK(sema.cstMgr().resolveDataSegmentRef(tableRef, tableStorage));
+            break;
+        }
+    }
+
+    if (!tableStorage)
+    {
+        DataSegment& segment               = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex);
+        const auto [tableOffset, newTable] = segment.reserveSpan<void*>(slotCount);
+        newTable[0]                        = reinterpret_cast<void*>(typeInfoCst.getValuePointer());
+        segment.addRelocation(tableOffset, typeInfoRef.offset);
+        for (uint32_t i = 0; i < implMethods.size(); ++i)
+        {
+            newTable[i + 1] = nullptr;
+            segment.addFunctionRelocation(tableOffset + (i + 1) * sizeof(void*), implMethods[i]);
+        }
+        tableStorage = newTable;
+        tableRef     = {.shardIndex = typeInfoRef.shardIndex, .offset = tableOffset};
     }
 
     const std::span tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
     ConstantValue   tableCst = ConstantValue::makeArrayBorrowed(ctx, tableTypeRef, tableBytes);
-    tableCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = tableOffset});
+    tableCst.setDataSegmentRef(tableRef);
     interfaceMethodTableRef_ = sema.cstMgr().addMaterializedPayloadConstant(tableCst);
     SWC_ASSERT(interfaceMethodTableRef_.isValid());
     interfaceMethodTablePublishedRef_.store(interfaceMethodTableRef_.get(), std::memory_order_release);

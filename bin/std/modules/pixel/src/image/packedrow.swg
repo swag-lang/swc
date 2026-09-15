@@ -10,7 +10,7 @@ private const SwapRedBlue32 = cast(Math.Simd.U8x16) [2'u8, 1, 0, 3, 6, 5, 4, 7, 
 
 func countSame32(pixel, source: const [*] u8, pixelCount: u64)->u64
 {
-    let pattern = Math.Simd.splat(pixel[as u32])
+    let pattern = Math.Simd.splat((cast(const *u32) pixel)[])
     var x       = 0'u64
     while pixelCount - x >= 4
     {
@@ -21,7 +21,7 @@ func countSame32(pixel, source: const [*] u8, pixelCount: u64)->u64
 
     while x < pixelCount
     {
-        if (cast(const [*] u32) source)[x] != pixel[as u32] do
+        if (cast(const [*] u32) source)[x] != (cast(const *u32) pixel)[] do
             break
         x += 1
     }
@@ -93,7 +93,7 @@ func fillBgr24Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
 
 func fillBgra32Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    let pattern = Math.Simd.splat(pixel[as u32])
+    let pattern = Math.Simd.splat((cast(const *u32) pixel)[])
     var x       = 0'u64
     while pixelCount - x >= 4
     {
@@ -103,7 +103,7 @@ func fillBgra32Row(pixel: const [*] u8, destination: [*] u8, pixelCount: u64)
 
     while x < pixelCount
     {
-        (cast([*] u32) destination)[x] = pixel[as u32]
+        (cast([*] u32) destination)[x] = (cast(const *u32) pixel)[]
         x += 1
     }
 }

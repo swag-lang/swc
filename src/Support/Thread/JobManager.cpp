@@ -136,6 +136,7 @@ std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
         // Symbol-flag waits: the producer is Symbol::set*, which wakes {symbol, kind}.
         case TaskStateKind::SemaWaitSymDeclared:
         case TaskStateKind::SemaWaitSymTyped:
+        case TaskStateKind::SemaWaitSymConstraintsResolved:
         case TaskStateKind::SemaWaitSymSemaCompleted:
         case TaskStateKind::SemaWaitSymCodeGenPreSolved:
         case TaskStateKind::SemaWaitSymCodeGenCompleted:

@@ -96,7 +96,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
             let instance = &window.instances[index]
             if instance.view and window.choices[index].key == TextViewerKey
             {
-                let view = cast(*TextView) instance.view
+                let view = cast #assume (*TextView) instance.view
                 if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
                     view.statisticsThread.wait()
             }

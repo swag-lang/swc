@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"
@@ -49,6 +49,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Foreign, .str = "Foreign"},
         {.name = PredefinedName::Discardable, .str = "Discardable"},
         {.name = PredefinedName::NoCopy, .str = "NoCopy"},
+        {.name = PredefinedName::DynCast, .str = "DynCast"},
         {.name = PredefinedName::Opaque, .str = "Opaque"},
         {.name = PredefinedName::NoDoc, .str = "NoDoc"},
         {.name = PredefinedName::Strict, .str = "Strict"},
@@ -125,8 +126,11 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeFailedExpect, .str = "__failedExpect"},
         {.name = PredefinedName::RuntimePanic, .str = "Swag.panic"},
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "Swag.safetyPanic"},
-        {.name = PredefinedName::RuntimeAs, .str = "Swag.typeAs"},
-        {.name = PredefinedName::RuntimeIs, .str = "Swag.typeIs"},
+        {.name = PredefinedName::RuntimeAs, .str = "__borrowAnyValue"},
+        {.name = PredefinedName::RuntimeDynamicCast, .str = "__dynamicCast"},
+        {.name = PredefinedName::RuntimeTypeCast, .str = "__runtimeTypeCast"},
+        {.name = PredefinedName::RuntimeValueCast, .str = "__runtimeValueCast"},
+        {.name = PredefinedName::RuntimeIs, .str = "__typeCompatible"},
         {.name = PredefinedName::RuntimeTypeCmp, .str = "Swag.typeCmp"},
         {.name = PredefinedName::RuntimeStringCmp, .str = "Swag.stringCmp"},
         {.name = PredefinedName::RuntimeSliceCmp, .str = "__sliceCmp"},
@@ -163,6 +167,9 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]                  = predefined(PredefinedName::RuntimePanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]            = predefined(PredefinedName::RuntimeSafetyPanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]                     = predefined(PredefinedName::RuntimeAs);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::DynamicCast)]            = predefined(PredefinedName::RuntimeDynamicCast);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RuntimeTypeCast)]        = predefined(PredefinedName::RuntimeTypeCast);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RuntimeValueCast)]       = predefined(PredefinedName::RuntimeValueCast);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]                     = predefined(PredefinedName::RuntimeIs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]                = predefined(PredefinedName::RuntimeTypeCmp);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]               = predefined(PredefinedName::RuntimeTlsAlloc);

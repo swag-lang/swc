@@ -62,7 +62,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t!
+        let tt = cast #assume(const *TypeInfoNative) t!
         return tt.nativeKind != .Any and tt.nativeKind != .String
     }
 
@@ -72,7 +72,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t!
+        let tt = cast #assume(const *TypeInfoNative) t!
         return tt.nativeKind == .Rune
     }
 
@@ -82,7 +82,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t!
+        let tt = cast #assume(const *TypeInfoNative) t!
         return tt.nativeKind == .Any
     }
 
@@ -92,7 +92,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t!
+        let tt = cast #assume(const *TypeInfoNative) t!
         return tt.nativeKind == .Bool
     }
 
@@ -102,7 +102,7 @@ using Swag
         if not isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t!
+        let tt = cast #assume(const *TypeInfoNative) t!
         return tt.nativeKind == .String
     }
 }
@@ -115,7 +115,7 @@ using Swag
         var result = type
         while isTypeAlias(result)
         {
-            let typeAlias = cast(const *TypeInfoAlias) result
+            let typeAlias = cast #assume(const *TypeInfoAlias) result
             result = typeAlias.rawType
         }
 
@@ -156,7 +156,7 @@ using Swag
         let nnSrc  = source
         let nnType = type
         Memory.dropType(nnDst, nnType)
-        Memory.copy(nnDst, nnSrc, cast(u64) nnType.sizeof)
+        Memory.copyValueStorage(nnDst, nnSrc, nnType)
         Memory.postCopyType(nnDst, nnType)
     }
 
@@ -177,8 +177,7 @@ using Swag
             return
         }
 
-        Memory.dropType(nnDst, nnType)
-        Memory.defaultInit(nnDst, nnType)
+        Memory.resetValueStorage(nnDst, nnType)
     }
 }
 
@@ -213,7 +212,7 @@ private func registerStableTypeKeyNoLock(type: typeinfo)
     if key == null do
         return
 
-    let stableKey = cast(string) key
+    let stableKey = cast #assume (string) key
     let existing  = g_HashKeyToType.tryFind(stableKey)
     if not existing
     {
@@ -279,27 +278,27 @@ private func registerTypeGraphNoLock(type: typeinfo?)
     switch nnType.kind
     {
     case .Alias:
-        let typeAlias = cast(const *TypeInfoAlias) nnType
+        let typeAlias = cast #assume(const *TypeInfoAlias) nnType
         registerTypeGraphNoLock(typeAlias.rawType)
 
     case .Array:
-        let typeArray = cast(const *TypeInfoArray) nnType
+        let typeArray = cast #assume(const *TypeInfoArray) nnType
         registerTypeGraphNoLock(typeArray.pointedType)
 
     case .Enum:
-        let typeEnum = cast(const *TypeInfoEnum) nnType
+        let typeEnum = cast #assume(const *TypeInfoEnum) nnType
         registerTypeGraphNoLock(typeEnum.rawType)
 
     case .Pointer:
-        let typePointer = cast(const *TypeInfoPointer) nnType
+        let typePointer = cast #assume(const *TypeInfoPointer) nnType
         registerTypeGraphNoLock(typePointer.pointedType)
 
     case .Slice:
-        let typeSlice = cast(const *TypeInfoSlice) nnType
+        let typeSlice = cast #assume(const *TypeInfoSlice) nnType
         registerTypeGraphNoLock(typeSlice.pointedType)
 
     case .Struct:
-        let typeStruct = cast(const *TypeInfoStruct) nnType
+        let typeStruct = cast #assume(const *TypeInfoStruct) nnType
         for &field in typeStruct.fields do
             registerTypeGraphNoLock(field.pointedType)
         for &generic in typeStruct.generics do

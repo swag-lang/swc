@@ -864,16 +864,7 @@ namespace
         normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
         normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
-        const TypeRef   compareTypeRef       = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
-        const TypeRef   resolvedLeftTypeRef  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), leftOperandTypeRef);
-        const TypeRef   resolvedRightTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), rightOperandTypeRef);
-        const TypeInfo& resolvedLeftType     = codeGen.typeMgr().get(resolvedLeftTypeRef);
-        const TypeInfo& resolvedRightType    = codeGen.typeMgr().get(resolvedRightTypeRef);
-        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
-            ((resolvedLeftType.isAny() && resolvedRightType.isAnyTypeInfo(codeGen.ctx())) ||
-             (resolvedLeftType.isAnyTypeInfo(codeGen.ctx()) && resolvedRightType.isAny())))
-            return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
-
+        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftOperandTypeRef, rightOperandTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef) &&
             hasPreparedRuntimeContentCompare(codeGen))

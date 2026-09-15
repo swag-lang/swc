@@ -11,7 +11,7 @@ impl Signal
         #ast
         {
             let ts = #typeof(T)
-            return #stringof("fn(cast(", ts.parameters[0].pointedType.fullname, ") params[0])\n")
+            return #stringof("fn(cast #assume(", ts.parameters[0].pointedType.fullname, ") params[0])\n")
         }
     }
 }

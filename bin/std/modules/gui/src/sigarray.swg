@@ -79,7 +79,7 @@ impl SigArray
                     {
                         if i do
                             sb.appendString(",")
-                        sb.appendFormat("cast(%) params[%]", tsParams[i].pointedType!.fullname, i)
+                        sb.appendFormat("cast #assume (%) params[%]", tsParams[i].pointedType!.fullname, i)
                     }
                 }
 

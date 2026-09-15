@@ -137,7 +137,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     Swag.assert((expect stream.readUtf8Chunk(16)) == "a")
     discard catch stream.readUtf8Chunk(16) as err
-    Swag.assert(err is Errors.InvalidFormatError)
+    Swag.assert((cast #try (*Errors.InvalidFormatError) err != null))
     Swag.assert(expect stream.position() == 1)
 }
 

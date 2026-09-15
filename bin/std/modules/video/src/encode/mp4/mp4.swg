@@ -119,7 +119,7 @@ impl IEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .options = options.buffer![as EncodeOptions]
+            .options = (cast(const *EncodeOptions) options.buffer!)[]
         }
 
         try .writeFileType(sink)

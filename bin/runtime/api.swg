@@ -205,6 +205,15 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Struct)]
     attr NoCopy()
 
+    // Enables dynamic type tests and checked downcasts through pointers to this struct.
+    //
+    // Adds one compiler-managed metadata pointer to its storage. Structs that embed a
+    // dynamic parent by value with 'using' inherit this capability and reuse its slot.
+    // Ordinary pointers retain their size. Pointer-valued 'using' fields do not propagate
+    // dynamic identity.
+    #[AttrUsage(AttributeUsage.Struct)]
+    attr DynCast()
+
     // When exporting the following struct,: not export its content
     #[AttrUsage(AttributeUsage.Struct)]
     attr Opaque()
@@ -278,7 +287,7 @@ namespace Swag
         BoundCheck  = 0x0001     // Check out of bound access
         Overflow    = 0x0002     // Check type conversion lost of bits or precision
         Math        = 0x0004     // Check various math operations (like a negative 'Swag.sqrt')
-        DynCast     = 0x0008     // Check if a cast from a 'any' variable does not match the real underlying type
+        DynCast     = 0x0008     // Check the type invariant asserted by 'cast #assume'
         Switch      = 0x0010     // Check if an unexpected case value is encountered
         Bool        = 0x0020     // Check if a 'bool' does not have a valid value ('true' or 'false')
         NaN         = 0x0040     // Check if a 'NaN' is used in a float arithmetic operation
@@ -680,6 +689,7 @@ namespace Swag
         Const                = 0x00010000     // This is const
         Nullable             = 0x00020000     // This is a nullable type
         RequiresExplicitInit = 0x00080000     // This type must be explicitly initialized
+        HasDynamicStorage    = 0x00100000     // This value contains compiler-managed dynamic identity slots
     }
 
     // Runtime representation of an interface value.
@@ -752,18 +762,22 @@ namespace Swag
         }
     }
 
-    // Will be available for all types
+    // Common descriptor for runtime type information. The concrete descriptor can be
+    // borrowed with 'cast #try', or extracted with 'cast #assume' when its type is known.
+    // Changing 'kind' does not change the concrete descriptor's dynamic identity.
+    #[Swag.DynCast]
     struct TypeInfo
     {
         public
         {
-            fullname: string?                // The full scoped name of the type
-            name:     string?                // The unscoped name
-            sizeof:   u32                    // Size in bytes
-            crc:      u32                    // A unique CRC to identify the type
+            fullname:    string?             // The full scoped name of the type
+            name:        string?             // The unscoped name
+            sizeof:      u32                 // Size in bytes
+            crc:         u32                 // Stable type hash; collisions are possible
             flags = TypeInfoFlags.Zero       // Some additional flags
             kind  = TypeInfoKind.Invalid     // The kind of the type
-            padding:  [3] u8
+            padding:     [3] u8
+            unqualified: const *TypeInfo?     // Compiler descriptor without outer const/nullability; null for user descriptions
         }
     }
 
@@ -803,23 +817,35 @@ namespace Swag
         }
     }
 
+    // Describes one compiler-managed dynamic identity slot in a complete object.
+    struct DynamicStructInfo
+    {
+        public
+        {
+            type:        const *TypeInfo      // Type of the complete object
+            offset:      u64                  // Byte offset of the slot from the complete object
+            runtimeType: const *TypeInfo?     // Sealed self reference for a compiler-emitted type descriptor; otherwise null
+        }
+    }
+
     struct TypeInfoStruct
     {
         public
         {
-            using base:  TypeInfo
-            opInit:      (func(*void?))?           // Initialization hook; null when zero-initialization suffices or explicit initialization is required
-            opDrop:      (func(*void?))?           // Pointer to the function to drop an instance of that struct
-            opPostCopy:  (func(*void?))?           // Pointer to the function to call after a copy
-            opPostMove:  (func(*void?))?           // Pointer to the function to call after a move
-            structName:  string?                   // User name of the struct
-            fromGeneric: const *TypeInfo?          // If it comes from a generic instantiation, this is the original generic struct
-            generics:    const [..] TypeValue?     // Generic parameters
-            fields:      const [..] TypeValue?     // All the fields
-            usingFields: const [..] TypeValue?     // All the fields marked with 'using'
-            methods:     const [..] TypeValue?     // All the methods, if exported
-            interfaces:  const [..] TypeValue?     // All the interfaces
-            attributes:  const [..] Attribute?     // All the attributes
+            using base:   TypeInfo
+            opInit:       (func(*void?))?                   // Initialization hook; null when zero-initialization suffices or explicit initialization is required
+            opDrop:       (func(*void?))?                   // Pointer to the function to drop an instance of that struct
+            opPostCopy:   (func(*void?))?                   // Pointer to the function to call after a copy
+            opPostMove:   (func(*void?))?                   // Pointer to the function to call after a move
+            structName:   string?                           // User name of the struct
+            fromGeneric:  const *TypeInfo?                  // If it comes from a generic instantiation, this is the original generic struct
+            generics:     const [..] TypeValue?             // Generic parameters
+            fields:       const [..] TypeValue?             // All the fields
+            usingFields:  const [..] TypeValue?             // All the fields marked with 'using'
+            methods:      const [..] TypeValue?             // All the methods, if exported
+            interfaces:   const [..] TypeValue?             // All the interfaces
+            attributes:   const [..] Attribute?             // All the attributes
+            dynamicSlots: const [..] DynamicStructInfo?     // Dynamic identity slots; empty for ordinary structs
         }
     }
 

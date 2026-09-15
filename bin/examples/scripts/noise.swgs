@@ -84,15 +84,15 @@ func createUI(wnd: *Wnd)
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         g_Image   = Image.create(W, H, .BGR8)
         g_Texture = wnd.app().renderer.addImage(g_Image)
         createUI(wnd)
         compute()
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter  = paintEvt.paintContext.painter
         let renderer = paintEvt.paintContext.renderer
         renderer.updateTexture(g_Texture, g_Image.pixels.storage())

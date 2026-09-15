@@ -220,10 +220,11 @@ impl FrameWnd
         // The view is born at its final laid-out rectangle — the frame minus its
         // caption and border paddings — because a hook may lay out its content from
         // the client rectangle it sees in the create event.
-        .view = Wnd.create'T(me, "", .paddedClientRect(), hook: hook)
+        let view = Wnd.create'T(me, "", .paddedClientRect(), hook: hook)
+        .view = view
         .view.backgroundStyle = .Transparent
         .sendResizeEvent()
-        return cast(*T) .view!
+        return view
     }
 
     // Replaces and destroys the current view, then attaches `what` to this frame.

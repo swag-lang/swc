@@ -110,9 +110,9 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         var succeeded: Swag.AtomicValue'u32
         var failed:    Swag.AtomicValue'u32
         catch dropGroupWhileFailing(&succeeded, &failed) as error
-        valid = error != null and error is ParentFailure
+        valid = error != null and (cast #try (*ParentFailure) error != null)
         if valid do
-            valid = (cast(const *ParentFailure) error!).value == 42
+            valid = (cast #assume(const *ParentFailure) error!).value == 42
         valid = valid and succeeded.load() == 11 and failed.load() == 0
     })
     Swag.assert(ready)
@@ -163,9 +163,9 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         var succeeded: Swag.AtomicValue'u32
         var failed:    Swag.AtomicValue'u32
         catch joinWhileFailing(&succeeded, &failed) as error
-        valid = error != null and error is ParentFailure
+        valid = error != null and (cast #try (*ParentFailure) error != null)
         if valid do
-            valid = (cast(const *ParentFailure) error!).value == 42
+            valid = (cast #assume(const *ParentFailure) error!).value == 42
         valid = valid and succeeded.load() == 1 and failed.load() == 0
     })
     Swag.assert(ready)

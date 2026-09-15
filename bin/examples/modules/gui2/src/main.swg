@@ -223,12 +223,12 @@ func layoutRootView()
 
 func onRootEvent(view: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent
+    if cast #try (*ResizeEvent) evt != null
     {
         layoutRootView()
         buildPage()
     }
-    elif evt is DestroyEvent
+    elif cast #try (*DestroyEvent) evt != null
     {
         app.sigFrame.disable()
         g_Surface     = null

@@ -3,7 +3,7 @@
 func semaTest001()
 {
     var a: any = 12
-    var b: s32 = cast() a
+    var b: s32 = cast #assume() a
     Swag.assert(b == 12)
 }
 
@@ -11,20 +11,20 @@ func semaTest002()
 {
     func takes(v: s32) {}
     var a: any = 12
-    takes(cast() a)
+    takes(cast #assume() a)
 }
 
 func semaTest003()
 {
     var a: any = true
-    if cast(bool) a {}
+    if cast #assume(bool) a {}
 }
 
 func semaTest004()
 {
     var a: any   = 42
-    let refValue = cast(const *s32) a
-    let ptrValue = cast(const *s32) a
+    let refValue = cast #assume(const *s32) a
+    let ptrValue = cast #assume(const *s32) a
     Swag.assert(refValue[] == 42)
     Swag.assert(ptrValue[] == 42)
 }
@@ -45,8 +45,8 @@ struct AnyCompareType {}
 func semaTest005()
 {
     var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
-    let baseRef    = cast(const *AnyCastBase) boxed
-    let basePtr    = cast(const *AnyCastBase) boxed
+    let baseRef    = cast #assume(const *AnyCastBase) boxed
+    let basePtr    = cast #assume(const *AnyCastBase) boxed
     Swag.assert(baseRef.value == 9)
     Swag.assert(basePtr.value == 9)
 }
@@ -54,11 +54,11 @@ func semaTest005()
 func semaTest006()
 {
     var x: any = 6
-    Swag.assert(x == s32)
-    Swag.assert(x != bool)
+    Swag.assert(cast #try(*s32) x != null)
+    Swag.assert(cast #try(*bool) x == null)
 
     x = AnyCompareType{}
-    Swag.assert(x == AnyCompareType)
+    Swag.assert(cast #try(*AnyCompareType) x != null)
 }
 
 func acceptNullableStringFromAny(value: string?)
@@ -69,5 +69,5 @@ func acceptNullableStringFromAny(value: string?)
 func semaTest007()
 {
     var value: any? = "desc"
-    acceptNullableStringFromAny(value)
+    acceptNullableStringFromAny(cast #assume(string?) value)
 }

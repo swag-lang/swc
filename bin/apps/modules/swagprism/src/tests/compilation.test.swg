@@ -96,8 +96,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.setComparisonEnabled(true)
     window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
     window.compile()
-    let preview = cast(*PreviewViewer) window.panels[0].viewer!.window()
-    let micro   = cast(*MicrocodeViewer) window.panels[1].viewer!.window()
+    let preview = cast #assume(*PreviewViewer) window.panels[0].viewer!.window()
+    let micro   = cast #assume(*MicrocodeViewer) window.panels[1].viewer!.window()
     var watch: Time.Stopwatch
     watch.start()
     while (micro.job.running or not preview.frameCount) and watch.elapsedMilliseconds() < 90000
@@ -127,8 +127,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
     window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
     window.panels[1].selectViewer(.Render2D)
     window.compile()
-    let first  = cast(*PreviewViewer) window.panels[0].viewer!.window()
-    let second = cast(*PreviewViewer) window.panels[1].viewer!.window()
+    let first  = cast #assume(*PreviewViewer) window.panels[0].viewer!.window()
+    let second = cast #assume(*PreviewViewer) window.panels[1].viewer!.window()
     var watch: Time.Stopwatch
     watch.start()
     while (not first.frameCount or not second.frameCount) and watch.elapsedMilliseconds() < 90000

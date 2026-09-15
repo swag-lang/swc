@@ -712,7 +712,7 @@ namespace
         SWC_RESULT(sema.waitSemaCompleted(&dstType, sema.curNodeRef()));
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, dstTypeRef))
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.curNode().codeRef(), dstTypeRef);
-        outInitCstRef = dstType.payloadSymStruct().resolveImplicitDefaultValueRef(sema, dstTypeRef);
+        SWC_RESULT(dstType.payloadSymStruct().resolveImplicitDefaultValueRef(sema, dstTypeRef, outInitCstRef));
         return Result::Continue;
     }
 
@@ -1663,7 +1663,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castToFloat(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isTypeValue())
         res = castFromTypeValue(sema, castRequest, srcTypeRef, dstTypeRef);
-    else if (srcType.isAnyTypeInfo(sema.ctx()) && dstType.isAnyTypeInfo(sema.ctx()))
+    else if ((srcType.isAnyTypeInfo(sema.ctx()) || typeMgr.isRuntimeTypeInfoPointer(sema.ctx(), srcTypeRef)) &&
+             (dstType.isAnyTypeInfo(sema.ctx()) || typeMgr.isRuntimeTypeInfoPointer(sema.ctx(), dstTypeRef)))
         res = castToFromTypeInfo(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isFunction())
         res = castToFunction(sema, castRequest, srcTypeRef, dstTypeRef);
@@ -1762,6 +1763,17 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         const auto& autoCast = view.node()->cast<AstAutoCastExpr>();
         effectiveKind        = CastKind::Explicit;
         effectiveFlags.add(autoCastFlags(autoCast.modifierFlags));
+    }
+
+    if (effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::Assume}))
+    {
+        const TypeInfo& sourceType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef));
+        const TypeInfo& targetType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), dstTypeRef));
+        const bool      assumedAnyValue = effectiveFlags.has(CastFlagsE::Assume) &&
+                                     !effectiveFlags.hasAny({CastFlagsE::Try, CastFlagsE::BitCast, CastFlagsE::NoOverflow, CastFlagsE::UnConst}) &&
+                                     sourceType.isAny() && !targetType.isValuePointer() && !targetType.isInterface() && !targetType.isTypeInfo();
+        if (!assumedAnyValue)
+            return castDynamic(sema, view, dstTypeRef, effectiveFlags);
     }
 
     if (view.cstRef().isValid() && sema.isFoldedTypedConst(view.nodeRef()))

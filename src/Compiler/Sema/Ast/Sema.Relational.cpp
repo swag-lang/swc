@@ -74,24 +74,6 @@ namespace
         return leftTypeInfo->crc == rightTypeInfo->crc;
     }
 
-    ConstantRef anyStoredTypeInfoConstant(Sema& sema, ConstantRef anyCstRef)
-    {
-        const ConstantValue& anyCst = sema.cstMgr().get(anyCstRef);
-        if (!anyCst.isStruct())
-            return ConstantRef::invalid();
-
-        const std::span<const std::byte> anyBytes = anyCst.getStruct();
-        if (anyBytes.size() != sizeof(Runtime::Any))
-            return ConstantRef::invalid();
-
-        Runtime::Any runtimeAny{};
-        std::memcpy(&runtimeAny, anyBytes.data(), sizeof(runtimeAny));
-
-        ConstantValue typeCst = ConstantValue::makeValuePointer(sema.ctx(), sema.typeMgr().structTypeInfo(), reinterpret_cast<uint64_t>(runtimeAny.type), TypeInfoFlagsE::Const);
-        typeCst.setTypeRef(sema.typeMgr().typeTypeInfo());
-        return sema.cstMgr().addConstant(sema.ctx(), typeCst);
-    }
-
     bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
     {
         const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
@@ -260,31 +242,6 @@ namespace
         {
             result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, compareLeftView.cstRef(), compareRightView.cstRef()));
             return Result::Continue;
-        }
-
-        const bool leftIsAny       = compareLeftType.isAny();
-        const bool rightIsAny      = compareRightType.isAny();
-        const bool leftIsTypeLike  = compareLeftType.isAnyTypeInfo(sema.ctx()) || compareLeftType.isTypeValue();
-        const bool rightIsTypeLike = compareRightType.isAnyTypeInfo(sema.ctx()) || compareRightType.isTypeValue();
-
-        if (leftIsAny && rightIsTypeLike)
-        {
-            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareLeftView.cstRef());
-            if (anyTypeCstRef.isValid())
-            {
-                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, anyTypeCstRef, compareRightView.cstRef()));
-                return Result::Continue;
-            }
-        }
-
-        if (rightIsAny && leftIsTypeLike)
-        {
-            const ConstantRef anyTypeCstRef = anyStoredTypeInfoConstant(sema, compareRightView.cstRef());
-            if (anyTypeCstRef.isValid())
-            {
-                result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, compareLeftView.cstRef(), anyTypeCstRef));
-                return Result::Continue;
-            }
         }
 
         if (compareLeftType.isString() && compareRightType.isString() && compareLeftView.cst()->isString() && compareRightView.cst()->isString())
@@ -525,10 +482,6 @@ namespace
             return Result::Continue;
         if (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
-        if ((compareLeftType.isAny() && compareRightType.isAnyTypeInfo(sema.ctx())) ||
-            (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAny()))
-            return Result::Continue;
-
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
@@ -592,7 +545,7 @@ namespace
 
             const TypeInfo& otherType                     = SemaHelpers::aliasEnumType(sema, other);
             const bool      otherIsRuntimeTypeInfoPointer = sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), other.typeRef());
-            const bool      otherIsTypeLike               = otherType.isAnyTypeInfo(sema.ctx()) || otherType.isAny() || otherIsRuntimeTypeInfoPointer || other.type()->isTypeValue();
+            const bool      otherIsTypeLike               = otherType.isAnyTypeInfo(sema.ctx()) || otherIsRuntimeTypeInfoPointer || other.type()->isTypeValue();
             if (self.type()->isTypeValue() && otherIsTypeLike)
             {
                 SWC_RESULT(Cast::cast(sema, self, typeInfoTargetRef, CastKind::Implicit));

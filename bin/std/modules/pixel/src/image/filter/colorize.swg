@@ -18,7 +18,7 @@ public impl Image
             var context = {h: h, s: s, strength: st}
             .transformLogicalPixels(&context)
             {
-                let params    = userData![as #decltype(context)]
+                let params    = (cast(const *#decltype(context)) userData!)[]
                 let lightness = (Math.min(value.r, value.g, value.b) + Math.max(value.r, value.g, value.b)) * 0.5
                 let colorized = hslPixelValue(params.h, params.s, lightness)
                 value.r = Math.lerp(value.r, colorized.r, params.strength)

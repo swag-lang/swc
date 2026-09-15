@@ -44,7 +44,7 @@ using Core, Pixel, Gui
 
     var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    let view = cast(*TableViewer) result.view
+    let view = cast #assume (*TableViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
@@ -146,7 +146,7 @@ using Core, Pixel, Gui
 
     var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
-    let view = cast(*TableViewer) result.view
+    let view = cast #assume (*TableViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
 

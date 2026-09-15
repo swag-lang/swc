@@ -3,8 +3,8 @@
 /**
 # Struct and Enum Reflection
 
-Every 'typeinfo' begins with 'Swag.TypeInfo'. Inspect its 'kind' before casting
-to a specialized descriptor. A struct descriptor exposes layout, fields,
+Every 'typeinfo' begins with 'Swag.TypeInfo'. Use 'cast #try' to borrow a
+specialized descriptor, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields,
 interfaces, lifecycle hooks, generic arguments, and any methods requested with
 'Swag.ExportType'.
 */
@@ -33,7 +33,7 @@ enum ReflectedState: u8
     let base = #typeof(ReflectedPoint)
     Swag.assert(base.kind == .Struct)
 
-    let type   = cast(const *Swag.TypeInfoStruct) base
+    let type   = cast #assume(const *Swag.TypeInfoStruct) base
     let fields = type.fields!
 
     Swag.assert(type.structName == "ReflectedPoint")
@@ -62,7 +62,7 @@ typed reflection helper before reading it in general-purpose code.
     let base = #typeof(ReflectedState)
     Swag.assert(base.kind == .Enum)
 
-    let type   = cast(const *Swag.TypeInfoEnum) base
+    let type   = cast #assume(const *Swag.TypeInfoEnum) base
     let values = type.values!
 
     Swag.assert(type.rawType == u8)
@@ -75,7 +75,20 @@ typed reflection helper before reading it in general-purpose code.
 
 /**
 Reflection describes declarations; it does not bypass visibility, constness, or
-ownership. When writing a generic serializer or editor, validate 'kind', check
+ownership. When writing a generic serializer or editor, check the descriptor with 'cast #try', check
 nullable descriptor slices, and derive field addresses from a live instance
 plus 'TypeValue.offset'.
 */
+
+func reflectedFieldCount(type: typeinfo)->u64
+{
+    if let info = cast #try(const *Swag.TypeInfoStruct) type do
+        return info.fields.count
+    return 0
+}
+
+#test
+{
+    Swag.assert(reflectedFieldCount(ReflectedPoint) == 2)
+    Swag.assert(reflectedFieldCount(s32) == 0)
+}

@@ -241,6 +241,12 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierWrap:
                 toSet = AstModifierFlagsE::Wrap;
                 break;
+            case TokenId::ModifierTry:
+                toSet = AstModifierFlagsE::Try;
+                break;
+            case TokenId::ModifierAssume:
+                toSet = AstModifierFlagsE::Assume;
+                break;
             case TokenId::ModifierNoDrop:
                 toSet = AstModifierFlagsE::NoDrop;
                 break;
@@ -361,7 +367,21 @@ AstNodeRef Parser::parseCast()
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>(tknOp);
     nodePtr->addFlag(AstCastExprFlagsE::Explicit);
     nodePtr->modifierFlags = modifierFlags;
-    nodePtr->nodeTypeRef   = parseType();
+    if (modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) &&
+        (is(TokenId::Identifier) || is(TokenId::SymLeftParen)))
+    {
+        // A dynamic target can be a type name or an expression yielding typeinfo.
+        nodePtr->nodeTypeRef = parsePostFixExpression();
+        if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        {
+            auto [qualifiedRef, qualified] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
+            qualified->nodeTypeRef         = nodePtr->nodeTypeRef;
+            qualified->addFlag(AstQualifiedTypeFlagsE::Nullable);
+            nodePtr->nodeTypeRef = qualifiedRef;
+        }
+    }
+    else
+        nodePtr->nodeTypeRef = parseType();
     if (nodePtr->nodeTypeRef.isInvalid())
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
@@ -731,24 +751,6 @@ AstNodeRef Parser::parsePostFixExpression()
         nodeRef                    = nodeParent;
     }
 
-    // 'as'
-    if (is(TokenId::KwdAs))
-    {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::AsCastExpr>(consume());
-        nodePtr->nodeExprRef             = nodeRef;
-        nodePtr->nodeTypeRef             = parseType();
-        return nodeParent;
-    }
-
-    // 'is'
-    if (is(TokenId::KwdIs))
-    {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>(consume());
-        nodePtr->nodeExprRef             = nodeRef;
-        nodePtr->nodeTypeRef             = parseType();
-        return nodeParent;
-    }
-
     return nodeRef;
 }
 
@@ -812,12 +814,10 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicMakeSlice:
         case TokenId::IntrinsicMakeString:
-        case TokenId::IntrinsicIs:
         case TokenId::IntrinsicTableOf:
             return parseIntrinsicCall(2);
 
         case TokenId::IntrinsicMakeInterface:
-        case TokenId::IntrinsicAs:
             return parseIntrinsicCall(3);
 
         case TokenId::IntrinsicCompiler:
@@ -1172,18 +1172,10 @@ AstNodeRef Parser::parseErrorManagementExpr()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementExpr>(opTokRef);
     nodePtr->nodeExprRef    = parseExpression();
 
-    // 'let x = catch f() as err' captures the caught error into a named local (enclosing scope):
-    // 'x' is the result, 'err' the error. Only 'catch' captures. parseExpression() absorbed the
-    // trailing 'as err' into the operand as an 'AsCastExpr'; unwrap it into operand + bound name.
-    // (A trailing 'as T' on try/expect stays an ordinary cast of the operand.)
+    // The result and the optional caught error have separate bindings in the enclosing scope.
     if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch &&
-        nodePtr->nodeExprRef.isValid() &&
-        ast_->node(nodePtr->nodeExprRef).is(AstNodeId::AsCastExpr))
-    {
-        const auto& asCast     = ast_->node(nodePtr->nodeExprRef).cast<AstAsCastExpr>();
-        nodePtr->errNameTokRef = ast_->node(asCast.nodeTypeRef).tokRef();
-        nodePtr->nodeExprRef   = asCast.nodeExprRef;
-    }
+        consumeIf(TokenId::KwdAs).isValid())
+        nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
 
     // 'expect f()!' asserts the RESULT is not null, not the fallible call. These keywords
     // already swallow everything to their right, so parseExpression() folded the '!' onto
@@ -1211,18 +1203,6 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
         consume();
         const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(openRef);
         nodePtr->nodeExprRef             = nodeRef;
-        return nodeParent;
-    }
-
-    // 'expr[as T]' reinterprets the pointed storage as a T and opens it.
-    if (is(TokenId::KwdAs))
-    {
-        const auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>(consume());
-        nodePtr->addFlag(AstCastExprFlagsE::Explicit);
-        nodePtr->addFlag(AstCastExprFlagsE::DerefPlace);
-        nodePtr->nodeTypeRef = parseType();
-        nodePtr->nodeExprRef = nodeRef;
-        expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
         return nodeParent;
     }
 

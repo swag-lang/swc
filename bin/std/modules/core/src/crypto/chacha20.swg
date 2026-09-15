@@ -16,12 +16,12 @@ private func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right)
 // The wire format is little-endian, which is the target's byte order: one
 // unaligned word access replaces the byte-at-a-time assembly.
 #[Swag.Inline]
-private func load32(data: const [*] u8)->u32 => data[as u32]
+private func load32(data: const [*] u8)->u32 => (cast(const *u32) data)[]
 
 #[Swag.Inline]
 private func store32(data: [*] u8, value: u32)
 {
-    data[as u32] = value
+    (cast(*u32) data)[] = value
 }
 
 #[Swag.Inline]
@@ -201,7 +201,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         var i   = 0'u64
         while i + 8 <= count
         {
-            (dst + i)[as u64] = (src + i)[as u64] ^ (&block[i])[as u64]
+            (cast(*u64) (dst + i))[] = (cast(const *u64) (src + i))[] ^ (cast(const *u64) (&block[i]))[]
             i += 8
         }
 

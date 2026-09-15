@@ -108,7 +108,7 @@ func testSetupGlobalMain(main: *MainWnd)
 
     // In icon-only mode the active rule's own margin replaces the leading cell padding.
     // Counting both used to leave the glyph visibly adrift from its selection marker.
-    let firstTool = cast(*IconButton) f.main.toolRail.children[0]
+    let firstTool = cast #assume (*IconButton) f.main.toolRail.children[0]
     let metrics   = f.main.themeMetrics()
     Swag.assert(firstTool.flags.has(.IconOnly))
     Swag.assert(firstTool.padding.x == 0)

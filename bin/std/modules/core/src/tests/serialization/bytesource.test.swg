@@ -58,14 +58,14 @@ func writeSourceFixture(name: string, count: u64)->String
     discard expect peekBytes(&source, 0)
 
     discard catch source.readByte() as pastEnd
-    Swag.assert(pastEnd is InvalidFormatError)
+    Swag.assert((cast #try (*InvalidFormatError) pastEnd != null))
     discard catch source.seek(9) as pastSeek
-    Swag.assert(pastSeek is InvalidFormatError)
+    Swag.assert((cast #try (*InvalidFormatError) pastSeek != null))
     discard catch peekBytes(&source, 1) as pastPeek
-    Swag.assert(pastPeek is InvalidFormatError)
+    Swag.assert((cast #try (*InvalidFormatError) pastPeek != null))
     expect source.seek(6)
     discard catch source.skip(3) as pastSkip
-    Swag.assert(pastSkip is InvalidFormatError)
+    Swag.assert((cast #try (*InvalidFormatError) pastSkip != null))
 
     // An at-most read stops at the end and reports how much it delivered.
     var tail: [8] u8
@@ -107,10 +107,10 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(source.position() == 14)
 
     discard catch source.readLine(4) as tooLong
-    Swag.assert(tooLong is InvalidFormatError)
+    Swag.assert((cast #try (*InvalidFormatError) tooLong != null))
     expect source.seek(14)
     discard catch source.readLine(64) as noTerminator
-    Swag.assert(noTerminator is InvalidFormatError)
+    Swag.assert((cast #try (*InvalidFormatError) noTerminator != null))
 }
 
 // A file source reads through one window: reads that cross its edges, reads that skip it
@@ -206,7 +206,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(tail.count == 3)
     Swag.assert(sourceMatches(tail, Count - 3))
     discard catch peekBytes(&source, 4) as pastEnd
-    Swag.assert(pastEnd is InvalidFormatError)
+    Swag.assert((cast #try (*InvalidFormatError) pastEnd != null))
 
     // A peek consumes nothing, so the read that follows starts where the peek looked.
     var bytes: [3] u8

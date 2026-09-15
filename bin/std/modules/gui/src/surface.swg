@@ -231,7 +231,6 @@ impl Surface
             .wnd             = Memory.new'SurfaceWnd()
             .wnd.isAllocated = true
             .wnd.itf         = .wnd
-            .wnd.type        = SurfaceWnd
             .wnd.surface     = surface
             .wnd.computeStyle()
             .applySurfaceFlags()

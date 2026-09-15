@@ -46,7 +46,7 @@ struct TweakBeta
 
     discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as err2
     Swag.assert(err2 != null)
-    Swag.assert(err2 is Errors.SyntaxError)
+    Swag.assert((cast #try (*Errors.SyntaxError) err2 != null))
 }
 
 namespace TweakDeep

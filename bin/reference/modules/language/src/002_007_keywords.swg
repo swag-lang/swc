@@ -20,7 +20,7 @@ let  mtd  namespace  private  public  readonly  struct  tls  union  using  var  
 
 ```swag
 and  as  break  case  continue  default  defer  do  elif  else
-fallthrough  for  if  in  is  me  not  or  orelse  parallel  return
+fallthrough  for  if  in  me  not  or  orelse  parallel  return
 switch  to  unreachable  until  where  while
 ```
 
@@ -87,8 +87,8 @@ follows them. They annotate what carries no symbol; a declaration takes an
 attribute instead.
 
 ```swag
-#bit  #complete  #fail  #fwd  #move  #nodrop  #nofail
-#prom  #raw  #relocate  #simd  #unconst  #wrap
+#assume  #bit  #complete  #fail  #fwd  #move  #nodrop  #nofail
+#prom  #raw  #relocate  #simd  #try  #unconst  #wrap
 ```
 
 # Runtime and Compiler Intrinsics
@@ -103,8 +103,8 @@ Swag.modules()  Swag.processInfos()  Swag.runtimeFlags()
 Type, value, lifecycle, and control intrinsics:
 
 ```swag
-Swag.typeAs  Swag.assert  Swag.breakpoint  Swag.compilerError  Swag.compilerWarning
-.count  .buffer  Swag.drop  Swag.getContext  Swag.init  Swag.typeIs
+Swag.assert  Swag.breakpoint  Swag.compilerError  Swag.compilerWarning
+.count  .buffer  Swag.drop  Swag.getContext  Swag.init
 Swag.kindOf  Swag.makeAny  Swag.makeInterface  Swag.makeSlice  Swag.makeString  Swag.panic
 Swag.postCopy  Swag.postMove  Swag.print  Swag.safetyPanic  Swag.setContext
 Swag.stringCmp  Swag.tableOf  Swag.typeCmp

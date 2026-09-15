@@ -10,7 +10,7 @@ internal impl Properties
 {
     func attributeString(value: any?)->string
     {
-        return cast(string) value!
+        return cast #assume (string) value!
     }
 
     // The string an attribute declares, as the reader sees it: an attribute value is a
@@ -185,7 +185,7 @@ internal impl Properties
         {
         case Reflection.isStaticArray(value.pointedType):
             let item           = .addItem(value, data, parentItem)
-            let typeArr        = cast(const *Swag.TypeInfoArray) value.pointedType!
+            let typeArr        = cast #assume(const *Swag.TypeInfoArray) value.pointedType!
             let numItemsBefore = .items.count
 
             var newData = data
@@ -201,7 +201,7 @@ internal impl Properties
             item.numChilds += cast(u32) (.items.count - numItemsBefore)
 
         case Reflection.isEnum(value.pointedType):
-            let typeEnum = cast(const *Swag.TypeInfoEnum) value.pointedType!
+            let typeEnum = cast #assume(const *Swag.TypeInfoEnum) value.pointedType!
             .constructEnum(value, typeEnum, data, parentItem)
 
         case value.pointedType == Core.String:
@@ -214,14 +214,14 @@ internal impl Properties
             .constructBool(value, data, parentItem)
 
         case Reflection.isInteger(value.pointedType) or Reflection.isFloat(value.pointedType):
-            let typeNative = cast(const *Swag.TypeInfoNative) value.pointedType!
+            let typeNative = cast #assume(const *Swag.TypeInfoNative) value.pointedType!
             .constructNative(value, typeNative, data, parentItem)
 
         case value.pointedType == Array:
             .constructArray(value, data, parentItem)
 
         case Reflection.isStruct(value.pointedType):
-            let typeSubStruct = cast(const *Swag.TypeInfoStruct) value.pointedType!
+            let typeSubStruct = cast #assume(const *Swag.TypeInfoStruct) value.pointedType!
             if typeSubStruct.fromGeneric == Array
             {
                 .constructArray(value, data, parentItem)
@@ -426,7 +426,7 @@ internal impl Properties
             return
 
         if let space = Reflection.attributeValue(value, .Gap, "size") do
-            .addSpacerRow(parentItem, cast(s32) space)
+            .addSpacerRow(parentItem, cast #assume (s32) space)
         if let header = Reflection.attributeValue(value, .Heading, "text") do
             .addHeaderRow(attributeText(header), parentItem)
         if let help = Reflection.attributeValue(value, .HelpBox, "text") do

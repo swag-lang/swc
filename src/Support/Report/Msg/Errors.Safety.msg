@@ -7,5 +7,5 @@ SWC_DIAG_DEF(safety_err_shift_amount, Error, "shift amount is negative or not be
 SWC_DIAG_DEF(safety_err_invalid_argument, Error, "argument to '{sym}' is outside its accepted domain; [help] {what}")
 SWC_DIAG_DEF(safety_err_invalid_argument, Error, "argument to '{sym}' is outside its accepted domain")
 SWC_DIAG_DEF(safety_err_invalid_argument, Error, "argument is outside the accepted domain")
-SWC_DIAG_DEF(safety_err_dyn_cast, Error, "cast from 'any' does not match the underlying type")
+SWC_DIAG_DEF(safety_err_dyn_cast, Error, "dynamic cast does not match the concrete type")
 SWC_DIAG_DEF(safety_err_runtime, Error, "{because}")

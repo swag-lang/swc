@@ -333,7 +333,7 @@ namespace
     Result emitVariableDefaultValueToAddress(CodeGen& codeGen, const SymbolVariable& symVar, const MicroReg dstReg, uint32_t localSize)
     {
         if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), symVar.typeRef()))
-            return Result::Continue;
+            return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), dstReg);
 
         const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
         TypeRef         storageTypeRef = symVar.typeRef();
@@ -495,6 +495,8 @@ namespace
         if (initPayload.isAddress() && initPayload.reg == symbolPayload.reg)
             return Result::Continue;
 
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), symbolPayload.reg));
+
         // 'var a = #move b' runs 'opPostMove' and resets the moved-from source (so its
         // later drop is a no-op); a plain init from an lvalue runs 'opPostCopy'.
         const AstModifierFlags initModifiers = varInitModifierFlags(codeGen, initRef);
@@ -528,7 +530,7 @@ namespace
                             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
                     }
                     else
-                        SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
+                        SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
                 }
                 else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
                     SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
@@ -548,7 +550,7 @@ namespace
         if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
         {
             if (skipInit)
-                return Result::Continue;
+                return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar).reg);
 
             const uint32_t localSize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(symVar.typeRef()));
             SWC_ASSERT(localSize > 0);
@@ -614,6 +616,8 @@ namespace
                     SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
                 }
             }
+            else
+                SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), symbolPayload.reg));
             return Result::Continue;
         }
 
@@ -946,7 +950,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
             CodeGenStructHelpers::StructLikeFieldLayoutCursor layoutCursor;
-            size_t                                           symbolIndex = 0;
+            size_t                                            symbolIndex = 0;
             for (size_t i = 0; i < tokNames.size(); ++i)
             {
                 if (tokNames[i].isInvalid())
@@ -981,7 +985,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
     CodeGenStructHelpers::StructLikeFieldLayoutCursor layoutCursor;
-    size_t                                           symbolIndex = 0;
+    size_t                                            symbolIndex = 0;
     for (size_t i = 0; i < tokNames.size(); ++i)
     {
         if (tokNames[i].isInvalid())

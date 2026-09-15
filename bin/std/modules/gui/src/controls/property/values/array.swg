@@ -83,7 +83,7 @@ internal impl Properties
             return {arr.buffer, vt, arr.count}
         }
 
-        let typeArr = cast(const *Swag.TypeInfoArray) arrayItem.type!
+        let typeArr = cast #assume(const *Swag.TypeInfoArray) arrayItem.type!
         return {cast([*] u8?) arrayItem.data, typeArr.pointedType, typeArr.count}
     }
 

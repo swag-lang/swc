@@ -27,7 +27,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     if runtimeItf == null or runtimeItf.itable == null do
         return false
 
-    let kind      = cast(const *Swag.TypeInfoStruct) Swag.kindOf(itf)
+    let kind      = cast #assume(const *Swag.TypeInfoStruct) Swag.kindOf(itf)
     let tableType = cast(const *Swag.TypeInfoStruct?) runtimeItf.itable[]
     if kind != expectedType or tableType != expectedType do
         return false

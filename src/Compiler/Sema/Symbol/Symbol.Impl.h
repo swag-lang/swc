@@ -11,6 +11,7 @@ class SymbolEnum;
 class SymbolInterface;
 class Sema;
 class TaskContext;
+struct CastFailure;
 
 enum class SymbolImplFlagsE : uint8_t
 {
@@ -18,6 +19,7 @@ enum class SymbolImplFlagsE : uint8_t
     ForStruct                   = 1 << 0,
     ForEnum                     = 1 << 1,
     ForInterface                = 1 << 2,
+    InterfaceConstraintsValid   = 1 << 3,
     PendingRegistrationResolved = 1 << 7,
 };
 using SymbolImplFlags = EnumFlags<SymbolImplFlagsE>;
@@ -55,6 +57,7 @@ public:
     const SymbolFunction*        resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
     std::vector<SymbolFunction*> specOps() const;
     Result                       ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
+    Result                       validateInterfaceConstraints(Sema& sema, CastFailure& failure) const;
 
 private:
     std::vector<SymbolFunction*>  specOps_;

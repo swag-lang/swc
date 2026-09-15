@@ -363,7 +363,7 @@ private impl View
         // makes it lay out once at zero height and again at its final size.
         block.wnd.setPosition({x, y[], width, block.wnd.position.height})
         if block.kind == .Math do
-            block.wnd.resize(width, (cast(*MathView) block.wnd).preferredHeight())
+            block.wnd.resize(width, (cast #assume (*MathView) block.wnd).preferredHeight())
         elif block.kind == .Table do
             block.wnd.resize(width, block.table!.preferredHeight(width))
         elif block.kind == .Html do
@@ -1181,7 +1181,7 @@ impl View
             discard wnd
 
             // Modified wheel gestures belong to the document host, before the viewport scrolls.
-            if let mouse = evt as MouseEvent where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
+            if let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
             {
                 view.processEvent(evt)
                 if mouse.accepted do
@@ -1189,7 +1189,7 @@ impl View
                 mouse.accepted = true
             }
 
-            if let mouse = evt as MouseEvent where mouse.kind == .Wheel and not mouse.modifiers.has(.Shift)
+            if let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Wheel and not mouse.modifiers.has(.Shift)
             {
                 let position = view.scroll.scrollPosition()
                 var target   = view.scroll.scrollTarget()
@@ -1206,7 +1206,7 @@ impl View
                 return true
             }
 
-            if let resize = evt as ResizeEvent
+            if let resize = cast #try (*ResizeEvent) evt
             {
                 // ScrollWnd also sends this event when its virtual content size changes.
                 // Appending source must not remeasure every resident block, including HTML.

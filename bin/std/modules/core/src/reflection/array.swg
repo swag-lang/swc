@@ -9,8 +9,8 @@ func isDynamicArray(t: typeinfo?)->bool
     if not t or not isStruct(t) do
         return false
 
-    let tt = cast(const *TypeInfoStruct) t
-    let arrayGeneric = (cast(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
+    let tt = cast #assume(const *TypeInfoStruct) t
+    let arrayGeneric = (cast #assume(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
     if not tt.fromGeneric do
         return false
     return tt.fromGeneric.fullname == arrayGeneric.fullname
@@ -22,7 +22,7 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
     if not isDynamicArray(t) do
         return null
 
-    let tt       = cast(const *TypeInfoStruct) t!
+    let tt       = cast #assume(const *TypeInfoStruct) t!
     let generics = tt.generics!
     return generics[0].pointedType
 }

@@ -139,7 +139,7 @@ internal impl Properties
             let d = cast(*String) item.defaultData!
             for k in n
             {
-                if .instanceAddr(item, k)![as String] != d[] do
+                if (cast(const *String) .instanceAddr(item, k)!)[] != d[] do
                     return true
             }
 
@@ -185,7 +185,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for k in n do
-                .instanceAddr(item, k)![as String] = item.defaultData![as String]
+                (cast(*String) .instanceAddr(item, k)!)[] = (cast(const *String) item.defaultData!)[]
         }
         else
         {

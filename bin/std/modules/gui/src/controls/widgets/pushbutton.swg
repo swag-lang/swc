@@ -314,11 +314,13 @@ impl PushButton
 
         var dominant = srf.defaultButton
         let focus    = srf.app.keyboardFocusWnd
-        if focus and focus != dominant and focus.surface == srf and focus.type == PushButton
+        if focus and focus != dominant and focus.surface == srf
         {
-            let other = cast(*PushButton) focus
-            if other.form == .Normal or other.form == .Default do
-                dominant = focus
+            if let other = cast #try (*PushButton) focus
+            {
+                if other.form == .Normal or other.form == .Default do
+                    dominant = focus
+            }
         }
 
         return dominant == cast(*Wnd) me ? PushButtonForm.Default : PushButtonForm.Normal

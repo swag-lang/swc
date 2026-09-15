@@ -117,7 +117,7 @@ internal impl Properties
         {
             if item.label != null do
                 item.label.hide()
-            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as String], flags: .ReleaseFocusOnEnterOrEscape)
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), (cast(const *String) data!)[], flags: .ReleaseFocusOnEnterOrEscape)
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
@@ -126,7 +126,7 @@ internal impl Properties
             ed = ctrl.edit
         }
         else do
-            ed = EditBox.create(item.line, data![as String])
+            ed = EditBox.create(item.line, (cast(const *String) data!)[])
 
         let edit: *EditBox = ed
         with edit
@@ -184,7 +184,7 @@ internal impl Properties
         {
             if item.label != null do
                 item.label.hide()
-            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as string])
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), (cast(const *string) data!)[])
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
@@ -193,7 +193,7 @@ internal impl Properties
             ed = ctrl.edit
         }
         else do
-            ed = EditBox.create(item.line, data![as string])
+            ed = EditBox.create(item.line, (cast(const *string) data!)[])
 
         let edit: *EditBox = ed
         with edit

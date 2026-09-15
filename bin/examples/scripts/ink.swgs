@@ -99,15 +99,15 @@ func addInk(x, y, r: f32, col: Color)
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case CreateEvent:
+    case cast #try (*CreateEvent) evt != null:
         break
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .Move or mouseEvt.kind == .Pressed:
+    case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Move or mouseEvt.kind == .Pressed:
         return true
 
-    case PaintEvent as paintEvt:
+    case let paintEvt = cast #try (*PaintEvent) evt:
         let painter = paintEvt.paintContext.painter
 
         var leftPressed = wnd.app().mouse.isButtonPressed(.Left) or Env.isSmokeRun()

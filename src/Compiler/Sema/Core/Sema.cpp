@@ -1208,6 +1208,13 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
     return parkOnSymbol(TaskStateKind::SemaWaitSymTyped, symbol, curNodeRef(), codeRef);
 }
 
+Result Sema::waitConstraintsResolved(const Symbol* symbol, const SourceCodeRef& codeRef)
+{
+    if (!symbol || symbol->areConstraintsResolved())
+        return Result::Continue;
+    return parkOnSymbol(TaskStateKind::SemaWaitSymConstraintsResolved, symbol, curNodeRef(), codeRef);
+}
+
 Result Sema::waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isSemaCompleted())

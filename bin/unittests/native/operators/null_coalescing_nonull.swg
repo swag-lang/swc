@@ -56,7 +56,7 @@ func nativeOrelseNonNullBranches()->bool
 
     #assert(#typeof(selectedAnyFallback) == any)
     #assert(#typeof(selectedAnyPrimary) == any)
-    if cast(u32) selectedAnyFallback != 61 or cast(u32) selectedAnyPrimary != 51 do
+    if cast #assume(u32) selectedAnyFallback != 61 or cast #assume(u32) selectedAnyPrimary != 51 do
         return false
 
     var nullType:     typeinfo? = null

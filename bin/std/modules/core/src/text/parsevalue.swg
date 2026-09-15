@@ -39,7 +39,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
     // Static array
     if Reflection.isStaticArray(type)
     {
-        let arrayType = cast(const *TypeInfoArray) type
+        let arrayType = cast #assume(const *TypeInfoArray) type
         var addrVal   = cast([*] u8) addr
         var cpt       = 0
         while one.count and one[0] != '#'
@@ -58,7 +58,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
     // Enum
     if Reflection.isEnum(type)
     {
-        let enumType = cast(const *TypeInfoEnum) type
+        let enumType = cast #assume(const *TypeInfoEnum) type
         let rawType  = enumType.rawType!
         if rawType != string and enumType.sizeof > 8 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", rawType.name))}
@@ -75,26 +75,26 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
 
             if enumType.rawType == string
             {
-                patch[as string] = enumValue[as string]
+                (cast(*string) patch)[] = (cast(const *string) enumValue)[]
             }
             elif not enumFlags
             {
                 switch enumType.sizeof
                 {
-                case 1: patch[as u8] = enumValue[as u8]
-                case 2: patch[as u16] = enumValue[as u16]
-                case 4: patch[as u32] = enumValue[as u32]
-                case 8: patch[as u64] = enumValue[as u64]
+                case 1: (cast(*u8) patch)[] = (cast(const *u8) enumValue)[]
+                case 2: (cast(*u16) patch)[] = (cast(const *u16) enumValue)[]
+                case 4: (cast(*u32) patch)[] = (cast(const *u32) enumValue)[]
+                case 8: (cast(*u64) patch)[] = (cast(const *u64) enumValue)[]
                 }
             }
             else
             {
                 switch enumType.sizeof
                 {
-                case 1: patch[as u8] |= enumValue[as u8]
-                case 2: patch[as u16] |= enumValue[as u16]
-                case 4: patch[as u32] |= enumValue[as u32]
-                case 8: patch[as u64] |= enumValue[as u64]
+                case 1: (cast(*u8) patch)[] |= (cast(const *u8) enumValue)[]
+                case 2: (cast(*u16) patch)[] |= (cast(const *u16) enumValue)[]
+                case 4: (cast(*u32) patch)[] |= (cast(const *u32) enumValue)[]
+                case 8: (cast(*u64) patch)[] |= (cast(const *u64) enumValue)[]
                 }
             }
 
@@ -127,7 +127,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
     // was already given the whole text above.
     if Reflection.isStruct(type) and type != String
     {
-        let structType = cast(const *TypeInfoStruct) type
+        let structType = cast #assume(const *TypeInfoStruct) type
         if not one.count or one[0] != '{' do
             fail InvalidFormatError{Errors.mkString(Format.toString("missing [[{]] for struct [[%]]", type.name))}
         one = Tokenize.eatCount(one, 1)
@@ -166,7 +166,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
     if not Reflection.isNative(type) do
         fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}
 
-    let nativeType = cast(const *TypeInfoNative) type
+    let nativeType = cast #assume(const *TypeInfoNative) type
     switch nativeType.nativeKind
     {
     case .S8:
@@ -174,80 +174,80 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
         {val, eat, ovf} = try parseS8(one)
         if ovf do
             fail OverflowError{}
-        patch[as s8] = val
+        (cast(*s8) patch)[] = val
 
     case .S16:
         var val: s16
         {val, eat, ovf} = try parseS16(one)
         if ovf do
             fail OverflowError{}
-        patch[as s16] = val
+        (cast(*s16) patch)[] = val
 
     case .S32:
         var val: s32
         {val, eat, ovf} = try parseS32(one)
         if ovf do
             fail OverflowError{}
-        patch[as s32] = val
+        (cast(*s32) patch)[] = val
 
     case .S64:
         var val: s64
         {val, eat, ovf} = try parseS64(one)
         if ovf do
             fail OverflowError{}
-        patch[as s64] = val
+        (cast(*s64) patch)[] = val
 
     case .U8:
         var val: u8
         {val, eat, ovf} = try parseU8(one)
         if ovf do
             fail OverflowError{}
-        patch[as u8] = val
+        (cast(*u8) patch)[] = val
 
     case .U16:
         var val: u16
         {val, eat, ovf} = try parseU16(one)
         if ovf do
             fail OverflowError{}
-        patch[as u16] = val
+        (cast(*u16) patch)[] = val
 
     case .U32:
         var val: u32
         {val, eat, ovf} = try parseU32(one)
         if ovf do
             fail OverflowError{}
-        patch[as u32] = val
+        (cast(*u32) patch)[] = val
 
     case .U64:
         var val: u64
         {val, eat, ovf} = try parseU64(one)
         if ovf do
             fail OverflowError{}
-        patch[as u64] = val
+        (cast(*u64) patch)[] = val
 
     case .F32:
         var val: f32
         {val, eat, ovf} = try parseF32(one)
         if ovf do
             fail OverflowError{}
-        patch[as f32] = val
+        (cast(*f32) patch)[] = val
 
     case .F64:
         var val: f64
         {val, eat, ovf} = try parseF64(one)
         if ovf do
             fail OverflowError{}
-        patch[as f64] = val
+        (cast(*f64) patch)[] = val
 
     case .Bool:
         var val: bool
-        {val, eat}     = try parseBool(one)
-        patch[as bool] = val
+        {val, eat} = try parseBool(one)
+        (cast(*bool) patch)[] = val
 
     case .Rune:
         var val: rune
-        {val, eat}     = try parseRune(one)
-        patch[as rune] = val
+        {val, eat} = try parseRune(one)
+        (cast(*rune) patch)[] = val
 
     default:
         fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}

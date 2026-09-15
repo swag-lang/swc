@@ -55,7 +55,7 @@ impl ImplicitRefTestFlagBuffer
 func boxStrictTestFlags(value: StrictTestFlags)->bool
 {
     let boxed: any = value
-    return Swag.kindOf(boxed) == StrictTestFlags and cast(StrictTestFlags) boxed == value
+    return Swag.kindOf(boxed) == StrictTestFlags and cast #assume(StrictTestFlags) boxed == value
 }
 
 func makeStrictTestFlag()->StrictTestFlags
@@ -142,7 +142,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
     const boxed: any = cast(StrictTestFlags) TestFlags.B
     Swag.assert(Swag.kindOf(boxed) == StrictTestFlags)
-    Swag.assert(cast(StrictTestFlags) boxed == cast(StrictTestFlags) TestFlags.B)
+    Swag.assert(cast #assume(StrictTestFlags) boxed == cast(StrictTestFlags) TestFlags.B)
     Swag.assert(boxStrictTestFlags(cast(StrictTestFlags) TestFlags.C))
     Swag.assert(runtimeStrictTestFlagArrayFirstRaw() == 1)
     Swag.assert(runtimeStrictTestFlagArraySecondRaw() == 4)

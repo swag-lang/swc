@@ -2073,21 +2073,21 @@ private impl OpenDocumentViewer
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            switch evt
+            switch
             {
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Add or keyEvt.key == .OemPlus):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Add or keyEvt.key == .OemPlus):
                 view.setZoom(view.zoomPercent + 25)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus):
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus):
                 view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and keyEvt.key == .D0:
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and keyEvt.key == .D0:
                 view.setZoom(100)
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
+            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
                 return view.navigatePagedDocument(keyEvt.key)
 
             default:
@@ -2126,18 +2126,18 @@ func createOpenDocumentViewer(host: Viewer.Host)
         collectMatches: func(wnd, text, options, progress, matches)->bool
     {
         discard progress
-        (cast(*OpenDocumentViewer) wnd).collectMatches(text, options, matches)
+        (cast #assume (*OpenDocumentViewer) wnd).collectMatches(text, options, matches)
         return true
     },
-        revealMatch: func(wnd, match, text)->bool { return (cast(*OpenDocumentViewer) wnd).revealMatch(match, text) },
+        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text) },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return (cast(*OpenDocumentViewer) wnd).searchBounds(bounds)
+        return (cast #assume (*OpenDocumentViewer) wnd).searchBounds(bounds)
     },
-        clear: func(wnd) { (cast(*OpenDocumentViewer) wnd).clearSearch() }})
+        clear: func(wnd) { (cast #assume (*OpenDocumentViewer) wnd).clearSearch() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast(*OpenDocumentViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast(*OpenDocumentViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast(*OpenDocumentViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool { return (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast #assume (*OpenDocumentViewer) wnd).retire() }})
 }

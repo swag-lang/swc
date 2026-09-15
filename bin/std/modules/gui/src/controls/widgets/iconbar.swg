@@ -63,7 +63,7 @@ private impl IconBar
         let size = .iconSize + 2 * .itemPadding
         for child in .children
         {
-            let button = cast(*IconButton) child
+            let button = cast #assume (*IconButton) child
             button.setIconSize(.iconSize, .iconSize)
             button.resize(size, size)
         }
@@ -102,7 +102,7 @@ impl IconBar
         if flags.has(.Radio) or flags.has(.Toggle) do
             button.sigCheckedChanged += func|bar = me|(btn) { bar.sigCheckedChanged.call(btn) }
         else do
-            button.sigPressed += func|bar = me|(btn) { bar.sigPressed.call(cast(*IconButton) btn) }
+            button.sigPressed += func|bar = me|(btn) { bar.sigPressed.call(cast #assume (*IconButton) btn) }
 
         .computeLayout()
         return button
@@ -130,7 +130,7 @@ impl IconBar
         .orientation = orientation
         for child in .children
         {
-            let button = cast(*IconButton) child
+            let button = cast #assume (*IconButton) child
             button.setForm(.orientation == .Horizontal ? .RoundedRectangle : .Rectangle)
             button.setCheckIndicator(.orientation == .Horizontal ? .Frame : .Left)
         }
@@ -166,6 +166,6 @@ impl IconBar
         let button = .childById(id)
         if not button do
             return null
-        return cast(*IconButton?) button
+        return cast #try (*IconButton) button
     }
 }

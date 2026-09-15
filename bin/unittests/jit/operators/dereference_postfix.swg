@@ -45,7 +45,7 @@
     {
         var bits = 0xFFFF_FFFF'u32
         let p    = &bits
-        return p[as s32]
+        return (cast(const *s32) p)[]
     }
     const V = #run derefCastRead()
     #assert(V == -1)
@@ -57,7 +57,7 @@
     {
         var value = 0x0102_0304'u32
         let p     = &value
-        p[as u8] = 0xFF
+        (cast(*u8) p)[] = 0xFF
         return value
     }
     const V = #run derefCastWrite()
@@ -83,7 +83,7 @@ impl DerefPlaceReceiver
     {
         var slot: DerefPlaceReceiver
         let p = cast(*void) &slot
-        p[as DerefPlaceReceiver].record(11)
+        (cast(*DerefPlaceReceiver) p)[].record(11)
         return slot.seen
     }
     const V = #run derefCastMethodReceiver()
@@ -96,7 +96,7 @@ impl DerefPlaceReceiver
     {
         var slot: DerefPlaceReceiver
         let p = cast(*void) &slot
-        p[as DerefPlaceReceiver] = "beta"
+        (cast(*DerefPlaceReceiver) p)[] = "beta"
         return slot.seen
     }
     const V = #run derefCastOpSetReceiver()

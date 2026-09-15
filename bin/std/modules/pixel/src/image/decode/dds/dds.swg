@@ -22,7 +22,7 @@ internal struct Decoder
 }
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => source[as u32]
+func readU32(source: const [*] u8)->u32 => (cast(const *u32) source)[]
 
 func blockFormat(fourCc: u32)->TextureBlocks.Format
 {

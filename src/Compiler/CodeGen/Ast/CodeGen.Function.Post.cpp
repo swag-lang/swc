@@ -5,7 +5,6 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
-#include "Main/Command/CommandLine.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -22,6 +21,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -527,18 +527,18 @@ namespace
         if (srcPayload.isAddress())
         {
             CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, sizeOf);
-            return Result::Continue;
+            return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeRef, dstAddressReg);
         }
 
         const MicroOpBits storeBits = scalarStoreBitsForTypeRef(codeGen, typeRef);
         if (storeBits != MicroOpBits::Zero)
         {
             codeGen.builder().emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, storeBits);
-            return Result::Continue;
+            return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeRef, dstAddressReg);
         }
 
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, dstAddressReg, srcPayload, sizeOf);
-        return Result::Continue;
+        return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeRef, dstAddressReg);
     }
 
     // A call result held in a compiler temporary owns its value: the return transfers
@@ -968,6 +968,8 @@ namespace
 
     Result emitLifecycleAfterIndirectReturnCopy(CodeGen& codeGen, TypeRef returnTypeRef, const CodeGenNodePayload& exprPayload, MicroReg outputStorageReg, CodeGen::LifecycleKind lifecycleKind)
     {
+        if (!exprPayload.isAddress() || exprPayload.reg != outputStorageReg)
+            SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, returnTypeRef, outputStorageReg));
         if (!exprPayload.isAddress() || exprPayload.reg == outputStorageReg)
             return Result::Continue;
         if (!codeGen.hasLifecycle(returnTypeRef, lifecycleKind))

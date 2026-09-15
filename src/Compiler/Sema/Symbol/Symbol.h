@@ -100,6 +100,7 @@ enum class SymbolFlagsE : uint16_t
     CodeGenJobScheduled = 1 << 7,
     ExcludedByCondition = 1 << 8,
     Private             = 1 << 9,
+    ConstraintsResolved = 1 << 10,
 };
 
 using SymbolFlags             = AtomicEnumFlags<SymbolFlagsE>;
@@ -138,6 +139,8 @@ public:
 
     bool isTyped() const noexcept { return flags_.has(SymbolFlagsE::Typed); }
     void setTyped(TaskContext& ctx);
+    bool areConstraintsResolved() const noexcept { return flags_.has(SymbolFlagsE::ConstraintsResolved); }
+    void setConstraintsResolved(TaskContext& ctx);
     bool isSemaCompleted() const noexcept { return flags_.has(SymbolFlagsE::SemaCompleted); }
     void setSemaCompleted(TaskContext& ctx);
     bool isCodeGenCompleted() const noexcept { return flags_.has(SymbolFlagsE::CodeGenCompleted); }

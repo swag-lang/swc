@@ -44,7 +44,7 @@ impl IWnd for AppearanceButton
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        (cast(*SurfaceWnd) .parent!).unregisterCaptionButton(me)
+        (cast #assume (*SurfaceWnd) .parent!).unregisterCaptionButton(me)
         .button.IWnd.onDestroyEvent(evt)
     }
 
@@ -63,7 +63,7 @@ impl AppearanceButton
     #[Swag.Discardable]
     func create(surface: *Surface, id: WndId? = null)->*AppearanceButton
     {
-        let parent      = cast(*SurfaceWnd) surface.wnd
+        let parent      = cast #assume (*SurfaceWnd) surface.wnd
         with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
         {
             .button.setIcon(surface.app.theme.icon(.Appearance, surface.app.theme.metrics.wnd_CaptionButtonGlyph))
@@ -72,7 +72,7 @@ impl AppearanceButton
             .toolTip     = strings().appearance_ToolTip
             .sigPressed  += func(button)
             {
-                (cast(*AppearanceButton) button).showAppearanceMenu()
+                (cast #assume (*AppearanceButton) button).showAppearanceMenu()
             }
         }
 

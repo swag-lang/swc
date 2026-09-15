@@ -277,18 +277,18 @@ func createSubtitleViewer(host: Viewer.Host)
         collectMatches: func(wnd, text, options, progress, matches)->bool
     {
         discard progress
-        (cast(*SubtitleViewer) wnd).collectMatches(text, options, matches)
+        (cast #assume (*SubtitleViewer) wnd).collectMatches(text, options, matches)
         return true
     },
         revealMatch: func(wnd, match, text)->bool
     {
         discard text
-        return (cast(*SubtitleViewer) wnd).revealMatch(match)
+        return (cast #assume (*SubtitleViewer) wnd).revealMatch(match)
     },
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return Viewer.richEditMatchBounds((cast(*SubtitleViewer) wnd).editor, bounds)
+        return Viewer.richEditMatchBounds((cast #assume (*SubtitleViewer) wnd).editor, bounds)
     },
-        clear: func(wnd) { Viewer.clearRichEditMatch((cast(*SubtitleViewer) wnd).editor) }})
+        clear: func(wnd) { Viewer.clearRichEditMatch((cast #assume (*SubtitleViewer) wnd).editor) }})
 }

@@ -51,7 +51,7 @@ so like 'Swag.makeSlice' above, it must not outlive the storage it points at.
 
     Swag.assert(Swag.kindOf(view) == s32)
     Swag.assert(view.buffer == &value)
-    Swag.assert(cast(s32) view == 42)
+    Swag.assert(cast #assume(s32) view == 42)
 }
 
 /**

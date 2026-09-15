@@ -102,7 +102,7 @@ impl State
         let current = .current
         if not current or not (current.view != null) do
             return false
-        let label = cast(*Label) current.view
+        let label = cast #assume (*Label) current.view
         return label.name.hasUrl
     }
 

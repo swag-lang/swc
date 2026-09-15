@@ -123,7 +123,7 @@
       "patterns": [
         {
           "name": "keyword.control",
-          "match": "\\b(do|if|else|elif|for|parallel|while|switch|defer|where|break|fallthrough|unreachable|return|case|continue|default|and|or|orelse|not|to|until|in|as|is)\\b"
+          "match": "\\b(do|if|else|elif|for|parallel|while|switch|defer|where|break|fallthrough|unreachable|return|case|continue|default|and|or|orelse|not|to|until|in|as)\\b"
         }
       ]
     },
@@ -146,7 +146,7 @@
     "intrinsics": {
       "patterns": [
         {
-          "match": "\\b(Swag)(\\.)(tableOf|stringCmp|typeCmp|typeIs|typeAs|getContext|setContext|print|compilerError|compilerWarning|breakpoint|assert|panic|safetyPanic|init|drop|makeAny|makeSlice|makeString|makeInterface|kindOf|postCopy|postMove)\\b",
+          "match": "\\b(Swag)(\\.)(tableOf|stringCmp|typeCmp|getContext|setContext|print|compilerError|compilerWarning|breakpoint|assert|panic|safetyPanic|init|drop|makeAny|makeSlice|makeString|makeInterface|kindOf|postCopy|postMove)\\b",
           "captures": {
             "1": { "name": "entity.name.namespace.builtin.swag" },
             "2": { "name": "punctuation.accessor.namespace.swag" },
@@ -256,7 +256,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|complete|fail|nofail|raw|simd)\\b"
+          "match": "\\#(prom|wrap|try|assume|nodrop|move|relocate|fwd|bit|unconst|complete|fail|nofail|raw|simd)\\b"
         }
       ]
     },

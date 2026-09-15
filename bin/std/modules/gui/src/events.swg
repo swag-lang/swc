@@ -6,10 +6,9 @@ using Core
 interface IEvent {}
 
 // Common routing state embedded by every GUI event.
+#[Swag.DynCast]
 struct Event
 {
-    type: typeinfo?     // Concrete allocation type used for owned posted events.
-
     public
     {
         target:   *Wnd?     // Current routing target; changes while an event bubbles.
@@ -22,9 +21,7 @@ impl Event
     // Allocates an owned event for `Wnd.postEvent`; the event queue releases it after dispatch.
     func(T) create()->*T
     {
-        let res = Memory.new'T()
-        res.type = #typeof(T)
-        return res
+        return Memory.new'T()
     }
 }
 

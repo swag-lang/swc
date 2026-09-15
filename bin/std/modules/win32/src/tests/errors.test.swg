@@ -7,14 +7,14 @@ using Swag
 #test
 {
     catch failWinError(0) as missingCode
-    Swag.assert(missingCode is SystemError)
+    Swag.assert((cast #try (*SystemError) missingCode != null))
     let missing = cast(SystemError) missingCode
     Swag.assert(missing.errorID == 0)
     Swag.assert(missing.message == "the Windows operation failed without an error code")
 
     const InvalidHandleError = 6'u32
     catch failWinError(InvalidHandleError) as invalidHandle
-    Swag.assert(invalidHandle is SystemError)
+    Swag.assert((cast #try (*SystemError) invalidHandle != null))
     let invalid = cast(SystemError) invalidHandle
     Swag.assert(invalid.errorID == InvalidHandleError)
     Swag.assert(invalid.message != null and invalid.message.count != 0)

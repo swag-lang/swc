@@ -58,7 +58,7 @@ using Core, Pixel, Gui, Gui.Testing
     window.setFullScreen(true)
     window.resize(1280, 720)
     window.applyLayout()
-    for 64 where (cast(*Markdown.View) window.currentView!).isLoading() do
+    for 64 where (cast #assume(*Markdown.View) window.currentView!).isLoading() do
         host.fireTimers()
     Swag.assert(window.documentHost.padding == Math.Vector4{})
     Swag.assert(window.documentPanel.backgroundStyle == .View)
@@ -90,8 +90,8 @@ using Core, Pixel, Gui, Gui.Testing
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     var result = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString())
-    let view   = cast(*Markdown.View) result.view!
-    let zoom   = cast(*MarkdownZoomButton) result.info!.children[0]
+    let view   = cast #assume(*Markdown.View) result.view!
+    let zoom   = cast #assume (*MarkdownZoomButton) result.info!.children[0]
     view.resize(960, 680)
     view.applyLayout()
     for 64 where view.isLoading() do
@@ -118,9 +118,9 @@ using Core, Pixel, Gui, Gui.Testing
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.zoom")
     var second     = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString())
-    let secondZoom = cast(*MarkdownZoomButton) second.info!.children[0]
+    let secondZoom = cast #assume (*MarkdownZoomButton) second.info!.children[0]
     Swag.assert(secondZoom.zoomPercent == 150)
-    Swag.assert((cast(*Markdown.View) second.view!).documentStyle.bodyFontSize == 24)
+    Swag.assert((cast #assume (*Markdown.View) second.view!).documentStyle.bodyFontSize == 24)
 }
 
 // The information band reports the complete source, independently of progressive layout,
@@ -150,7 +150,7 @@ using Core, Pixel, Gui, Gui.Testing
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName.toString(), remember: false)
     completeQueuedViewerFile(&host, window)
-    let button = cast(*MarkdownZoomButton) window.currentInfo!.children[0]
+    let button = cast #assume (*MarkdownZoomButton) window.currentInfo!.children[0]
     if button.statisticsLoad.started do
         button.statisticsLoad.task.wait()
     if button.statisticsTimer do
@@ -181,7 +181,7 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
     var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString())
     Swag.assert(result.view != null and result.failureReason.isEmpty())
-    let view = cast(*Markdown.View) result.view
+    let view = cast #assume(*Markdown.View) result.view
     applyMarkdownViewerStyle(view, themeIndex, 1)
     view.resize(960, 680)
     view.applyLayout()
@@ -233,9 +233,9 @@ private func markdownWhiteyFixturePath()->String
     }
 
     var first      = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString(), commandParent: &host.root)
-    let firstWidth = cast(*ComboBox) first.commands!.children[0]
-    let firstTheme = cast(*ComboBox) first.commands!.children[1]
-    let firstZoom  = cast(*MarkdownZoomButton) first.info!.children[0]
+    let firstWidth = cast #assume(*ComboBox) first.commands!.children[0]
+    let firstTheme = cast #assume (*ComboBox) first.commands!.children[1]
+    let firstZoom  = cast #assume (*MarkdownZoomButton) first.info!.children[0]
     assertViewerInfoButton(firstZoom)
     Swag.assert(first.info!.preferredSize.x == ViewerZoomSlotWidth)
     Swag.assert(firstWidth.selectedIndex == 2 and firstTheme.selectedIndex == 3)
@@ -244,8 +244,8 @@ private func markdownWhiteyFixturePath()->String
     Swag.assert(g_MarkdownViewerSettings.widthIndex == 0 and g_MarkdownViewerSettings.themeIndex == 5)
 
     var second      = openTestViewer(markdownViewerPlugin(), &host.root, markdownWhiteyFixturePath().toString(), commandParent: &host.root)
-    let secondWidth = cast(*ComboBox) second.commands!.children[0]
-    let secondTheme = cast(*ComboBox) second.commands!.children[1]
+    let secondWidth = cast #assume (*ComboBox) second.commands!.children[0]
+    let secondTheme = cast #assume (*ComboBox) second.commands!.children[1]
     Swag.assert(secondWidth.selectedIndex == 0 and secondTheme.selectedIndex == 5)
 
     let oldWidth = String.from(firstWidth.items[0]!.name.raw)
@@ -308,15 +308,15 @@ private func markdownWhiteyFixturePath()->String
 
     // Pointer use of either document command must return focus to the Markdown canvas after the
     // popup closes, leaving navigation keys attached to the document.
-    let widthCombo = cast(*ComboBox) commands.children[0]
-    let themeCombo = cast(*ComboBox) commands.children[1]
-    Swag.assert((cast(*Markdown.View) wnd).hasFocus())
+    let widthCombo = cast #assume(*ComboBox) commands.children[0]
+    let themeCombo = cast #assume (*ComboBox) commands.children[1]
+    Swag.assert((cast #assume (*Markdown.View) wnd).hasFocus())
     var comboPoint = widthCombo.surfaceRect().center()
     widthCombo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
     Swag.assert(widthCombo.hasFocus() and not widthCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    Swag.assert((cast(*Markdown.View) wnd).hasFocus())
+    Swag.assert((cast #assume (*Markdown.View) wnd).hasFocus())
     host.mouseUp(comboPoint)
 
     comboPoint = themeCombo.surfaceRect().center()
@@ -324,14 +324,14 @@ private func markdownWhiteyFixturePath()->String
     host.mouseDown(comboPoint)
     Swag.assert(themeCombo.hasFocus() and not themeCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    Swag.assert((cast(*Markdown.View) wnd).hasFocus())
+    Swag.assert((cast #assume (*Markdown.View) wnd).hasFocus())
     host.mouseUp(comboPoint)
 
     // The application spinner follows scheduled work, not lazy source left on disk.
     for 64 where result.isLoading(wnd) do
         host.fireTimers()
     Swag.assert(not result.isLoading(wnd))
-    Swag.assert((cast(*Markdown.View) wnd).hasUnloadedSource())
+    Swag.assert((cast #assume (*Markdown.View) wnd).hasUnloadedSource())
 }
 
 // Reveals a marker beyond the initial resident window of a multi-megabyte Markdown document while

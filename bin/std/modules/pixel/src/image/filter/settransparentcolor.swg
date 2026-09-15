@@ -25,7 +25,7 @@ public impl Image
             var context = colorPixelValue(color)
             .transformLogicalPixels(&context)
             {
-                let replacement = userData![as PixelValue]
+                let replacement = (cast(const *PixelValue) userData!)[]
                 if value.a == 0
                 {
                     value.r = replacement.r

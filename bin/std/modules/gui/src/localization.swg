@@ -354,7 +354,7 @@ func validateStrings(type: typeinfo, content: string) fail
     Swag.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
 
     // The probe only receives `string` views, so releasing the raw block is enough.
-    let structType = cast(const *Swag.TypeInfoStruct) type
+    let structType = cast #assume(const *Swag.TypeInfoStruct) type
     let probe      = Memory.alloc(cast(u64) structType.sizeof)
     defer Memory.free(probe, cast(u64) structType.sizeof)
     if structType.opInit != null do
@@ -389,7 +389,7 @@ private func langResourceName(tag: string, file: String)->String
 // released once no field can reference it anymore.
 private func resetTable(table: *StringTable)
 {
-    let structType = cast(const *Swag.TypeInfoStruct) table.type
+    let structType = cast #assume(const *Swag.TypeInfoStruct) table.type
     let data       = table.data!
     if structType.opDrop != null do
         structType.opDrop(data)
@@ -450,7 +450,7 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
         let owned = Memory.new'String()
         owned[] = value
         pool.add(owned)
-        (data + safeField.offset)[as string] = owned.toString()
+        (cast(*string) (data + safeField.offset))[] = owned.toString()
     }
 }
 

@@ -29,7 +29,7 @@ impl IActionUI for ActionLibFilter
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let libWnd = cast(*LibraryWnd) cxt.wnd!
+        let libWnd = cast #assume(*LibraryWnd) cxt.wnd!
 
         switch cxt.id
         {
@@ -124,7 +124,7 @@ impl IActionUI for ActionLibFilter
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let libWnd = cast(*LibraryWnd) cxt.wnd!
+        let libWnd = cast #assume(*LibraryWnd) cxt.wnd!
 
         switch cxt.id
         {

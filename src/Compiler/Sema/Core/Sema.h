@@ -465,14 +465,14 @@ public:
     const SemaEscapeInfo* variableEscapeInfo(const SymbolVariable& symVar) const;
     // Every local currently known to borrow something, for the checks that start from the
     // BORROWED storage instead of the borrowing variable.
-    const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& variableEscapeInfos() const { return variableEscapeInfos_; }
+    const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>&                          variableEscapeInfos() const { return variableEscapeInfos_; }
     const std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash>& projectionEscapeInfos() const { return projectionEscapeInfos_; }
-    void                                                             setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
-    void                                                             clearVariableEscapeInfo(const SymbolVariable& symVar);
-    void                                                             detachVariableOwnedPayload(const SymbolVariable& symVar);
-    void                                                             detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
-    SemaEscapeInfo                                                   variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
-    SemaEscapeInfo                                                   projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
+    void                                                                                      setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
+    void                                                                                      clearVariableEscapeInfo(const SymbolVariable& symVar);
+    void                                                                                      detachVariableOwnedPayload(const SymbolVariable& symVar);
+    void                                                                                      detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
+    SemaEscapeInfo                                                                            variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
+    SemaEscapeInfo                                                                            projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
     // What ONE named field of a variable carries, ignoring its other fields. A structure
     // that transports several borrows at once - an allocator request carries the block to
     // release and the hint the report names - needs the borrow of the field the operation
@@ -578,6 +578,7 @@ public:
     Result waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result waitConstraintsResolved(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     Result waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
     // Records why this job cannot go on and hands the worker back to the scheduler.

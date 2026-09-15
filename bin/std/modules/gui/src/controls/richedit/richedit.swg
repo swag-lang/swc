@@ -74,6 +74,7 @@ struct RichEditCtrl
 
     hasSelRect:              bool     // Whether this value has sel rect.
     modified:                bool     // Modified associated with this value.
+    recomputeWrap:           bool     // Reflow every logical line after flags or font metrics change.
     recomputeScroll:         bool     // Recompute scroll associated with this value.
     dirtyFirstLineView:      bool     // Dirty first line view associated with this value.
     forceCaretVisible:       bool     // Force caret visible associated with this value.
@@ -103,6 +104,7 @@ private impl IWnd for RichEditCtrl
     {
         if evt.kind == .ThemeChanged
         {
+            .recomputeWrap = true
             .setDefaultStyles()
             if .lexer do
                 .lexer.setupTheme(me)
@@ -317,6 +319,7 @@ impl RichEditCtrl
     mtd setFlags(flags: RichEditFlags)
     {
         .flags.set(flags)
+        .recomputeWrap   = true
         .recomputeScroll = true
         .invalidate()
     }
@@ -417,8 +420,12 @@ impl RichEditCtrl
     // precede it. The next layout pass positions lines and the caret in those virtual coordinates.
     mtd setVirtualDocumentRange(offset, height: f32)
     {
-        .residentContentOffset  = Math.max(offset, 0)
-        .estimatedContentHeight = Math.max(height, .residentContentOffset + .loadedContentHeight)
+        let origin = Math.max(offset, 0)
+        let extent = Math.max(height, origin + .loadedContentHeight)
+        if .residentContentOffset == origin and .estimatedContentHeight == extent do
+            return
+        .residentContentOffset  = origin
+        .estimatedContentHeight = extent
         .recomputeScroll        = true
         .dirtyFirstLineView     = true
         .scrollWnd.setScrollSize(.scrollWnd.scrollSize.x, .estimatedContentHeight)

@@ -44,14 +44,14 @@ impl RichEditCtrl
 
         let styleIdx   = line.styles[i]
         let info       = .computeTextDrawInfo(styleIdx)
-        let drawFont   = info.drawFont
+        let drawFont   = info.drawFont.resolveRune(line.chars[i])
         let glyphIndex = drawFont.glyphIndex(line.chars[i])
         let desc       = drawFont.getGlyphDescByIndex(glyphIndex)
 
         let hasPrevRune = i and line.chars[i - 1] != '\t' and line.styles[i - 1] == styleIdx
 
         var offsetX = 0'f32
-        if hasPrevRune
+        if hasPrevRune and info.drawFont.resolveRune(line.chars[i - 1]) == drawFont
         {
             let prevGlyphIndex = drawFont.glyphIndex(line.chars[i - 1])
             offsetX = drawFont.kerning(prevGlyphIndex, glyphIndex)

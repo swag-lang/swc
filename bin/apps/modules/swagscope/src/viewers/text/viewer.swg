@@ -53,7 +53,7 @@ private const TextStreamChunkSize = 16 * 1024'u64
 // Keep five complete viewports ready beyond the visible one.
 private const TextStreamLookAhead    = 6.0
 private const TextResidentWindowSize = 256 * 1024'u64
-private const TextRevealContextSize  = 64 * 1024'u64
+private const TextRevealContextSize  = 16 * 1024'u64
 
 // Head of the file the encoding is decided from. A few kilobytes name every encoding a text file
 // uses; reading more answers no better and delays the first screen.
@@ -89,7 +89,12 @@ struct TextView
         zoomLabel:     *IconButton
     }
 
-    stream:             File.FileStream
+    read:               TextRead
+    residentText:       String
+    pendingMatch:       String
+    pendingNavigation:  Input.Key
+    retiring:           bool
+    readFailed:         bool
     fileName:           String
     fileSize:           u64
     bytesRead:          u64
@@ -109,6 +114,7 @@ struct TextView
     pendingSeekOffset:  u64
     repositioning:      bool
     encoding:           Text.Encoding
+    displayedEncoding:  Text.Encoding
     contentStart:       u64
     wrapping = true
     zoomPercent:        u32 = 100
@@ -161,12 +167,17 @@ func textRevealMatch(wnd: *Wnd, match: Viewer.SearchMatch, text: string)->bool
 func textSearchBounds(wnd: *Wnd, match: Viewer.SearchMatch, result: *Math.Rectangle)->bool
 {
     discard match
-    return Viewer.richEditMatchBounds((cast(*TextView) wnd).editor, result)
+    let view = cast(*TextView) wnd
+    if view.pendingMatch.length do
+        return false
+    return Viewer.richEditMatchBounds(view.editor, result)
 }
 
 func textClearSearch(wnd: *Wnd)
 {
-    Viewer.clearRichEditMatch((cast(*TextView) wnd).editor)
+    let view = cast(*TextView) wnd
+    view.pendingMatch.clear()
+    Viewer.clearRichEditMatch(view.editor)
 }
 
 func textIsLoading(wnd: *Wnd)->bool => (cast(*TextView) wnd).loadTimer != null
@@ -217,6 +228,7 @@ impl TextView
 
     mtd retire()->bool
     {
+        .retiring = true
         .stopLoading()
         if .statisticsTimer
         {
@@ -232,6 +244,13 @@ impl TextView
 
         if .statisticsThread.isValid() do
             .statisticsThread.wait()
+        if .read.started
+        {
+            if not .read.isDone() do
+                return false
+            .read.wait()
+        }
+
         return true
     }
 
@@ -284,7 +303,7 @@ impl TextView
 
     mtd hasMore()->bool
     {
-        return .stream.isOpen() and .bytesRead < .fileSize
+        return not .readFailed and .bytesRead < .fileSize
     }
 
     mtd needsMore()->bool
@@ -329,7 +348,9 @@ impl TextView
 
     mtd scheduleMore()
     {
-        if .loadTimer or (not .pendingSeek and not .needsMore()) do
+        if .retiring do
+            return
+        if .loadTimer or (not .read.started and not .pendingSeek and not .needsMore()) do
             return
         .loadTimer = .addTimer(8'ms)
     }
@@ -342,12 +363,12 @@ impl TextView
             .loadTimer = null
         }
 
-        .stream.close()
+        if .read.started do
+            Atomic.exchange(&.read.cancelled, 1)
     }
 
     mtd finishLoading()
     {
-        .stream.close()
         .bytesRead = .fileSize
         if not .residentStart do
             .editor.setEstimatedDocumentHeight(0)
@@ -356,6 +377,7 @@ impl TextView
     mtd showReadError()
     {
         .stopLoading()
+        .readFailed = true
         let message = textStrings().ui_NotText
         if not .hasText do
             .editor.setText(message)
@@ -364,102 +386,120 @@ impl TextView
         .editor.setEstimatedDocumentHeight(0)
     }
 
+    // Polling never waits for I/O. A newer seek retires the old result before reusing its storage.
     mtd loadNextChunk()
     {
-        if not .hasMore() do
+        if .retiring do
             return
-        if .bytesRead - .residentStart >= TextResidentWindowSize do
-            return
-
-        let oldPosition = .editor.scrollPosition()
-        let chunk       = catch .stream.readTextChunk(TextStreamChunkSize, .encoding) as readError
-        if readError != null
+        if .read.started
         {
-            // An unmarked legacy file can open with an ASCII-only probe and reveal its first
-            // code-page byte much later. UTF-8 is then only the probe's tentative answer: reread
-            // the resident document as the single-byte fallback instead of rejecting the file.
-            if .encoding == .Utf8 and not .contentStart and readError is Errors.InvalidFormatError
+            if not .read.isDone() do
+                return
+            .read.wait()
+            if Atomic.get(&.read.cancelled)
             {
-                .applyEncoding(.Windows1252)
+                .scheduleMore()
                 return
             }
 
-            .showReadError()
+            if .read.failed
+            {
+                if .read.invalidUtf8
+                {
+                    .applyEncoding(.Windows1252)
+                    return
+                }
+
+                .showReadError()
+                return
+            }
+
+            .repositioning = true
+            defer .repositioning = false
+            let oldPosition = .editor.scrollPosition()
+            if .read.replace
+            {
+                .residentStart = .read.start
+                .contentStart  = .read.contentStart
+                if .statisticsStart != .contentStart
+                {
+                    if .statisticsThread.isValid() do
+                        .statisticsThread.safeForceEnd()
+                    if not .statisticsTimer do
+                        .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
+                }
+
+                .residentText = .read.text
+                .editor.setText(.residentText.toString())
+            }
+            else
+            {
+                .residentText += .read.text.toString()
+                .editor.addText(.read.text.toString())
+            }
+
+            .displayedEncoding = .read.encoding
+            .bytesRead         = .read.end
+            .hasText           = .hasText or not .read.text.isEmpty()
+            .updateEstimatedHeight()
+            .editor.setScrollPosition(oldPosition)
+            if .pendingMatch.length
+            {
+                if .encoding == .Utf8 do
+                    Viewer.highlightRichEditMatch(.editor, .read.text.toString(), .pendingSeekOffset - .residentStart, .pendingMatch.length)
+                else do
+                    discard .editor.findText(.pendingMatch.toString())
+                .pendingMatch.clear()
+            }
+
+            if .pendingNavigation == .Home or .pendingNavigation == .End
+            {
+                .editor.keyPressed(.pendingNavigation, .Control)
+                .pendingNavigation = .None
+            }
+
+            if .read.text.isEmpty() or not .hasMore() do
+                .finishLoading()
+            .read.text.clear()
             return
         }
 
-        if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        if .pendingSeek
         {
-            .showReadError()
-            return
+            .pendingSeek = false
+            let requested = Math.min(.pendingSeekOffset, .fileSize)
+            let start     = requested > TextRevealContextSize ? requested - TextRevealContextSize : 0
+            .read.startRead(.fileName.toString(), .encoding, start, 64 * 1024, true)
         }
-
-        if chunk.isEmpty()
+        elif .needsMore()
         {
-            .finishLoading()
-            return
+            .read.contentStart = .contentStart
+            .read.startRead(.fileName.toString(), .encoding, .bytesRead, TextStreamChunkSize, false)
         }
 
-        .editor.addText(chunk.toString())
-        let position = catch .stream.position() as positionError
-        if positionError == null do
-            .bytesRead = position
-        .hasText = true
-        .updateEstimatedHeight()
-        .editor.setScrollPosition(oldPosition)
-        if not .hasMore() do
-            .finishLoading()
+        .scheduleMore()
     }
 
     mtd revealOffset(offset: u64, text: string)->bool
     {
-        .stopLoading()
-        .pendingSeek   = false
-        .repositioning = true
-        defer .repositioning = false
-        let requested = Math.min(offset, .fileSize)
-
-        // The window opens on a character boundary. UTF-8 finds it by stepping forward until the
-        // bytes decode, and a wide encoding by counting whole units from the first byte of text.
-        let unit  = Text.unitSize(.encoding)
-        var start = requested > TextRevealContextSize ? requested - TextRevealContextSize : 0
-        start = Math.max(start, .contentStart)
-        start -= (start - .contentStart) % unit
-        for adjustment in 4
+        if text.count and .displayedEncoding == .encoding and not .pendingSeek and not (.read.started and .read.replace) and offset >= .residentStart and offset + text.count <= .bytesRead
         {
-            .stream = catch File.openReadLive(.fileName.toString()) as openError
-            if openError != null do
-                return false
-            let actual = Math.min(start + adjustment * unit, .fileSize)
-            discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readTextChunk(TextResidentWindowSize, .encoding) as readError
-            if readError != null
-            {
-                .stream.close()
-                continue
-            }
-
-            let previousHeight = Math.max(.virtualHeight, .editor.scrollableClientRect().height)
-            .residentStart = actual
-            .editor.setText(chunk.toString())
-            let position = catch .stream.position() as positionError
-            .bytesRead     = positionError == null ? position : actual + chunk.length
-            .hasText       = not chunk.isEmpty()
-            .virtualHeight = previousHeight
-            .updateEstimatedHeight()
-            if text.count
-            {
-                if .encoding == .Utf8 do
-                    Viewer.highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
-                else do
-                    discard .editor.findText(text)
-            }
-
-            .scheduleMore()
+            if .encoding == .Utf8 do
+                Viewer.highlightRichEditMatch(.editor, .residentText.toString(), offset - .residentStart, text.count)
+            else do
+                discard .editor.findText(text)
             return true
         }
 
-        return false
+        if .read.started do
+            Atomic.exchange(&.read.cancelled, 1)
+        .pendingSeek       = true
+        .pendingSeekOffset = Math.min(offset, .fileSize)
+        .pendingMatch      = text
+        .pendingNavigation = .None
+        .readFailed        = false
+        .scheduleMore()
+        return true
     }
 
     mtd updateWrap()
@@ -480,19 +520,14 @@ impl TextView
             return
         .encoding = encoding
 
-        var head: Array'u8
-        head.resize(Text.bomLength(encoding))
-        var stream = catch File.openReadLive(.fileName.toString()) as openError
-        if openError == null
-        {
-            let count = catch stream.read(head.toSlice()) as readError
-            head.resize(readError == null ? count : 0)
-            stream.close()
-        }
-
-        .contentStart  = Text.hasBom(head.toSlice(), encoding) ? Text.bomLength(encoding) : 0
-        .virtualHeight = 0
-        discard .revealOffset(Math.max(.residentStart, .contentStart), "")
+        .contentStart = 0
+        discard .revealOffset(.residentStart, "")
+        if .statisticsThread.isValid() do
+            .statisticsThread.safeForceEnd()
+        if not .statisticsTimer do
+            .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
+        for candidate, index in TextEncodings where candidate == encoding do
+            .encodingCombo.setSelectedIndex(cast(u32) index, notify: false)
         .reportStatistics()
     }
 
@@ -534,19 +569,11 @@ impl TextView
 
 impl IWnd for TextView
 {
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        discard evt
-
-        // Coalesce thumb movement until paint, then provide the bytes before the editor draws.
-        if .pendingSeek do
-            discard .revealOffset(.pendingSeekOffset, "")
-    }
-
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
         discard .retire()
+        .read.wait()
         if .statisticsThread.isValid() do
             .statisticsThread.wait()
     }
@@ -555,12 +582,14 @@ impl IWnd for TextView
     {
         if evt.timer == .statisticsTimer
         {
-            if not Atomic.get(&.statisticsState) do
+            if .statisticsThread.isValid() and not .statisticsThread.isDone() do
                 return
             .removeTimer(evt.timer)
             .statisticsTimer = null
             if .statisticsThread.isValid() do
                 .statisticsThread.wait()
+            if .statisticsEncoding != .encoding or .statisticsStart != .contentStart or not Atomic.get(&.statisticsState) do
+                .startStatistics()
             .reportStatistics()
             return
         }
@@ -573,17 +602,8 @@ impl IWnd for TextView
 
         .removeTimer(evt.timer)
         .loadTimer = null
-        if .pendingSeek
-        {
-            let offset = .pendingSeekOffset
-            .pendingSeek = false
-            discard .revealOffset(offset, "")
-            return
-        }
-
         .updateEstimatedHeight()
-        if .needsMore() do
-            .loadNextChunk()
+        .loadNextChunk()
         .scheduleMore()
     }
 
@@ -699,24 +719,17 @@ impl TextView
             let before         = view.residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < view.residentOffsetY + viewport.height * TextStreamLookAhead
             let after          = view.hasMore() and view.bytesRead - view.residentStart >= TextResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * TextStreamLookAhead > residentEnd
             let outside        = newPosition.y < view.residentOffsetY or newPosition.y + viewport.height > residentEnd
-            view.pendingSeek = view.virtualHeight > 0 and (before or after or outside)
+            view.pendingSeek = view.displayedEncoding != view.encoding or (view.virtualHeight > 0 and (before or after or outside))
+            view.pendingMatch.clear()
+            view.pendingNavigation = .None
+
+            // Returning to resident text also supersedes an in-flight replacement.
+            if view.read.started and (view.pendingSeek or view.read.replace) do
+                Atomic.exchange(&view.read.cancelled, 1)
             if view.pendingSeek
             {
                 let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
-
-                // A continuous gesture must have its bytes before the next paint, even when
-                // the timer was delayed. Ordinary prefetch still runs on the short timer.
-                if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
-                {
-                    if not before and not after and view.needsMore()
-                    {
-                        view.pendingSeek = false
-                        view.loadNextChunk()
-                    }
-                    else do
-                        discard view.revealOffset(view.pendingSeekOffset, "")
-                }
             }
 
             view.scheduleMore()
@@ -756,17 +769,13 @@ impl TextView
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
                 discard view.revealOffset(view.fileSize, "")
-                view.repositioning = true
-                view.editor.keyPressed(.End, .Control)
-                view.repositioning = false
+                view.pendingNavigation = .End
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = false
                 discard view.revealOffset(0, "")
-                view.repositioning = true
-                view.editor.keyPressed(.Home, .Control)
-                view.repositioning = false
+                view.pendingNavigation = .Home
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
@@ -791,24 +800,22 @@ impl TextView
             return false
         }
 
-        result.stream = catch File.openReadLive(host.fileName()) as openError
+        var stream = catch File.openReadLive(host.fileName()) as openError
+        defer stream.close()
         if openError != null do
             result.showReadError()
         else
         {
-            let size = catch result.stream.size() as sizeError
+            let size = catch stream.size() as sizeError
             if sizeError != null do
                 result.showReadError()
             else
             {
                 result.fileSize = size
-                if not size do
-                    result.stream.close()
-                else
+                if size
                 {
                     // A byte-order mark is part of the file and not part of the text, so reading
                     // starts past it and every offset the view reports stays a file offset.
-                    discard catch result.stream.seek(.Begin, result.contentStart)
                     result.bytesRead     = result.contentStart
                     result.residentStart = result.contentStart
                     result.loadNextChunk()

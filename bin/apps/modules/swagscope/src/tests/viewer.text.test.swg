@@ -10,10 +10,17 @@ func textViewerFixturePath()->String
 
 func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextView)
 {
-    while not Atomic.get(&view.statisticsState) do
-        host.pump()
-    if view.statisticsTimer do
-        host.fireTimer(view.statisticsTimer)
+    for 8
+    {
+        if view.statisticsThread.isValid() do
+            view.statisticsThread.wait()
+        if view.statisticsTimer do
+            host.fireTimer(view.statisticsTimer)
+        if Atomic.get(&view.statisticsState) == 1 and view.statisticsEncoding == view.encoding and view.statisticsStart == view.contentStart do
+            return
+    }
+
+    Swag.assert(false, "text statistics did not settle")
 }
 
 // The viewer-owned controls route their documented shortcuts, update the document, and follow a
@@ -95,4 +102,71 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *TextView)
     Testing.assertContentFits(&host.root)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.text.document")
+}
+
+// Encoding changes are requests, even if an earlier worker already finished. Only the last
+// interpretation reaches the document; neither the selector nor paint publishes stale text.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-encoding-", ".txt")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for 40_000 do
+        source += "Plain text stays responsive while changing its encoding.\n"
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    var session = openTestViewer(textViewerPlugin(), &host.root, fileName, waitForText: false)
+    let view    = cast(*TextView) session.view!
+    view.resize(640, 360)
+    view.applyLayout()
+    Swag.assert(view.read.started and view.editor.text().isEmpty())
+    view.applyEncoding(.Windows1252)
+    view.applyEncoding(.Utf8)
+    completeTextReads(&host, view)
+    finishTextStatistics(&host, view)
+    Swag.assert(view.statistics.lines == 40_000)
+    let previousText = String.from(view.editor.text())
+
+    view.applyEncoding(.Utf16Le)
+    Swag.assert(view.pendingSeek and view.editor.text() == previousText)
+    view.loadNextChunk()
+    Swag.assert(view.read.started)
+    view.read.task.wait()
+    view.applyEncoding(.Utf32Be)
+    view.applyEncoding(.Windows1252)
+    Swag.assert(Atomic.get(&view.read.cancelled))
+    discard host.render(view)
+    Swag.assert(view.editor.text() == previousText)
+    completeTextReads(&host, view)
+    Swag.assert(view.encoding == .Windows1252 and view.read.encoding == .Windows1252)
+    Swag.assert(Utf8.startsWith(view.editor.text(), "Plain text stays responsive"))
+    finishTextStatistics(&host, view)
+    Swag.assert(view.statistics.lines == 40_000)
+    Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024)
+
+    // Retirement cancels a queued read without waiting or publishing its result.
+    discard view.revealOffset(source.length / 2, "")
+    view.loadNextChunk()
+    Swag.assert(view.read.started)
+    discard view.retire()
+    Swag.assert(Atomic.get(&view.read.cancelled))
+    view.read.task.wait()
+}
+
+// Resident search offsets still refer to file bytes, including CRLF discarded by the editor.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-crlf-", ".txt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "first\r\nsecond\r\nneedle")
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    var session = openTestViewer(textViewerPlugin(), &host.root, fileName)
+    let view    = cast(*TextView) session.view!
+    Swag.assert(view.revealOffset(15, "needle"))
+    Swag.assert(not view.read.started and not view.pendingSeek)
+    Swag.assert(view.editor.selectedText() == "needle")
 }

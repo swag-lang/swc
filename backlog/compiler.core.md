@@ -6,6 +6,32 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.044 — Preserve captured errors when a fallible result feeds a struct setter
+
+- Recorded: 2026-09-15 09:20
+- Found while: moving Swag Scope text reads out of GUI events.
+- Evidence: DevMode compiler 0.1.606, program configuration `devmode`, reproduces in both JIT
+  and the native Scope tests. In a method with a `text: Core.String` field, open an existing
+  UTF-8 file with `var stream = try Core.File.openReadLive(fileName)`, then execute
+  `.text = catch stream.readTextChunk(16 * 1024, .Utf8) as readError`. The field contains the
+  correct decoded text, but `readError != null` and `Core.Errors.message(readError)` is empty.
+  The same read into `var chunk = catch ... as readError`, followed by assignment after checking
+  the error, passes JIT and native execution. The text worker uses that staged publication.
+- Generated-code evidence: `#[Swag.PrintMicro]` on the reduced method shows the native
+  `FileStream.readTextChunk` call followed by `String.opCast` and `String.opSet`, but no catch
+  entry or capture-slot initialization around that call. Its failure guard propagates to the
+  containing fallible method instead. The later assertion reads an uninitialized stack slot.
+- Reduction: the reproducer still imports `core`. A standalone value with `opDrop`,
+  `opPostCopy`, an implicit inline `opCast`, an implicit `opSet`, and a fallible producer did
+  not reproduce, including alternating success and failure. There is no retained compiler
+  fix or language-suite regression yet; changing the wrapper owner lookup alone did not fix it.
+- Next: reduce the imported setter/conversion path, trace the contextual cast and inline
+  receiver substitution that bypasses the error-management expression, and preserve the
+  handler around evaluation of its original operand.
+- Complete when: direct field assignment captures actual failures and leaves a null error on
+  success, with a standalone JIT/native regression that fails before the fix; rerun the Scope
+  text-loading tests with that form before removing the entry.
+
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 
 - Recorded: 2026-08-10 12:35

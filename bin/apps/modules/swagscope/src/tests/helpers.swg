@@ -21,7 +21,7 @@ func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 }
 
 // Creates one plugin through the same host API used by the application window.
-func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: *Wnd? = null, actionParent: *Wnd? = null, infoParent: *Wnd? = null, icon: Icon = {}, services: Viewer.HostServices = {})->ViewerSession
+func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: *Wnd? = null, actionParent: *Wnd? = null, infoParent: *Wnd? = null, icon: Icon = {}, services: Viewer.HostServices = {}, waitForText = true)->ViewerSession
 {
     var result: retval
     if plugin.attach do
@@ -39,6 +39,17 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
         hostServices: services}
     let host: Viewer.Host = &pluginHost
     plugin.create(host)
+    if waitForText and plugin.key == TextViewerKey and result.view
+    {
+        let view = cast(*TextView) result.view
+        if view.read.started
+        {
+            view.read.task.wait()
+            Swag.assert(not view.read.failed, view.read.error.toString())
+            view.loadNextChunk()
+        }
+    }
+
     return result
 }
 
@@ -120,11 +131,38 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
         let instance = &window.instances[window.activeChoiceIndex]
         if not instance.view or not instance.isLoading or not instance.isLoading(instance.view) do
             break
-        Threading.Thread.sleep(1'ms)
-        host.fireTimers()
+        if window.choices[window.activeChoiceIndex].key == TextViewerKey
+        {
+            let view = cast(*TextView) instance.view
+            completeTextReads(host, view)
+            host.fireTimer(view.loadTimer)
+        }
+        else
+        {
+            Threading.Thread.sleep(1'ms)
+            host.fireTimers()
+        }
+
         steps += 1
     }
 
     Swag.assert(steps < 4_096)
     expireViewerLoadingLinger(window)
+}
+
+// Completes queued text reads at the GUI publication boundary, including superseded requests.
+func completeTextReads(host: *Testing.HeadlessHost, view: *TextView)
+{
+    for 64
+    {
+        if view.read.started do
+            view.read.task.wait()
+        view.loadNextChunk()
+        discard host.render(view)
+        view.updateEstimatedHeight()
+        if not view.read.started and not view.pendingSeek and not view.needsMore() do
+            return
+    }
+
+    Swag.assert(false, "text loading did not settle")
 }

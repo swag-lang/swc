@@ -3,6 +3,7 @@
 ui_WindowTitle  Swag Scope — Visionneuse universelle
 ui_Open         Ouvrir (Ctrl+O)
 ui_OpenDefault  Ouvrir avec l'application par défaut
+ui_CloseFile    Fermer le fichier
 ui_Viewer       Visionneuse
 ui_Files        Fichiers à côté de celui-ci
 ui_FullScreen   Plein écran (F11)

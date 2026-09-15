@@ -617,6 +617,7 @@ struct ViewerWindow
         commandBar:          *ViewerActionBar
         kindButton:          *IconButton
         openButton:          *IconButton
+        closeButton:         *IconButton
         openDefaultButton:   *IconButton
         filesButton:         *IconButton
         fullScreenButton:    *IconButton
@@ -1350,6 +1351,19 @@ impl ViewerWindow
             }
         }
 
+        with result.closeButton = IconButton.create(result.commandBar, result.theme().icon(.WndClose, themeActionIconSize(result.themeMetrics())), {0, 0, actionSize, actionSize})
+        {
+            .dockStyle = .Left
+            .margin.z  = 8
+            .toolTip   = appStrings().ui_CloseFile
+            .enable(false)
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.closeFile()
+            }
+        }
+
         with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Right
@@ -1839,6 +1853,7 @@ impl ViewerWindow
         .stillView = null
 
         .pendingFile = fileName
+        .closeButton.enable(true)
         .pendingEmpty.clear()
         .pendingRemember = remember
 
@@ -2065,6 +2080,26 @@ impl ViewerWindow
             .queueFile(dialog.selectedPath())
     }
 
+    mtd closeFile()
+    {
+        .pendingFile.clear()
+        .pendingEmpty.clear()
+        .reloading    = false
+        .readingState = {}
+        .stopSlide()
+        .stillView = null
+        if .fileWatchTimer
+        {
+            .removeTimer(.fileWatchTimer)
+            .fileWatchTimer = null
+        }
+
+        .searchBox.setText("", notify: false)
+        .closeButton.enable(false)
+        .showEmpty(appStrings().ui_DropTitle)
+        .openButton.setFocus()
+    }
+
     mtd showEmpty(message: string)
     {
         .stopSearch()
@@ -2073,7 +2108,8 @@ impl ViewerWindow
         .searchIndex    = Swag.U64.Max
         .searchMatch    = Swag.U64.Max
         .searchComplete = false
-        if not .destroyInstances()
+        let retired = .destroyInstances()
+        if not retired or (.choiceLoad.started and not .choiceLoad.isDone())
         {
             .pendingEmpty = message
             if not .startupTimer do
@@ -2081,6 +2117,8 @@ impl ViewerWindow
             return
         }
 
+        if .choiceLoad.started do
+            discard .choiceLoad.finish()
         .stopLoadingIndicator()
 
         .emptyLabel.setText(Format.toString("<b>%</b>", message))
@@ -2092,6 +2130,7 @@ impl ViewerWindow
         .viewerCombo.clear()
         .viewerCombo.hide()
         .openDefaultButton.enable(false)
+        .closeButton.enable(false)
         .activeChoiceIndex = Swag.U32.Max
         .folderFiles.clear()
         .siblings.clear()
@@ -2108,6 +2147,8 @@ impl ViewerWindow
         .updateViewerBar()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .updateSearchAvailability()
+        if .panelVisible do
+            .refreshFileLists()
         .applyLayout()
     }
 
@@ -3450,6 +3491,7 @@ impl ViewerWindow
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
         .openButton.toolTip          = texts.ui_Open
+        .closeButton.toolTip         = texts.ui_CloseFile
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
         .filesButton.toolTip         = texts.ui_Files
         .kindButton.toolTip          = texts.ui_SameKind
@@ -3571,7 +3613,7 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        .folderLabel.setText(Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder)
+        .folderLabel.setText(.currentFile.isEmpty() ? appStrings().ui_Folder : (Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder))
         .filePanel.applyLayout()
     }
 

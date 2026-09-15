@@ -1066,6 +1066,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.surface!.setTitle(appStrings().ui_WindowTitle)
     Swag.assert(window.openButton.toolTip == "Open (Ctrl+O)")
+    Swag.assert(window.closeButton.toolTip == "Close file")
 
     host.openPopupSubMenuWhenShown("Language")
     host.thenClickPopupMenuItem("fr")
@@ -1080,6 +1081,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.notify(.LanguageChanged)
     Swag.assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
     Swag.assert(window.openButton.toolTip == "Ouvrir (Ctrl+O)")
+    Swag.assert(window.closeButton.toolTip == "Fermer le fichier")
     Swag.assert(window.dropHighlight.prompt.text() == "Déposez un fichier pour l'afficher")
     Swag.assert(host.openedSurfaceCount() == 0)
 }
@@ -1879,6 +1881,68 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // A test can keep the timer's address for identity after the host has reclaimed it. Firing
     // that stale address must be a no-op and, in particular, must never dereference its target.
     host.fireTimer(discardedTimer)
+}
+
+// Closing through the global action retires the reader and leaves its history available.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    defer host.shutdown()
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    Swag.assert(window.closeButton.parent == window.commandBar and not window.closeButton.isEnabled())
+
+    window.openFile(viewerFixturePath())
+    completeQueuedViewerFile(&host, window)
+    completeViewerStatistics(&host, window)
+    window.setFilePanelVisible(true)
+    window.searchBox.setText("verification marker")
+    let recentCount = window.recent.count
+    window.closeButton.sigPressed.call(window.closeButton)
+    for 4_096
+    {
+        if window.pendingEmpty.isEmpty() do
+            break
+        Threading.Thread.sleep(1'ms)
+        host.fireTimers()
+    }
+
+    Swag.assert(window.pendingEmpty.isEmpty() and window.currentFile.isEmpty())
+    Swag.assert(window.instances.isEmpty() and window.currentView == null)
+    Swag.assert(window.emptyView.isLocallyVisible() and not window.closeButton.isEnabled())
+    Swag.assert(not window.viewerCombo.isLocallyVisible() and not window.openDefaultButton.isEnabled())
+    Swag.assert(window.searchBox.text().count == 0 and window.searchTimer == null)
+    Swag.assert(window.fileWatchTimer == null and window.slideTimer == null)
+    Swag.assert(window.folderFiles.isEmpty() and window.siblings.isEmpty())
+    Swag.assert(window.recent.count == recentCount)
+
+    window.openFile(viewerFixturePath())
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(not window.currentFile.isEmpty() and window.closeButton.isEnabled())
+}
+
+// Closing a queued opening discards its classification, including a worker already in flight.
+#test
+{
+    for started in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(880, 560)
+        defer host.shutdown()
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        window.openFile(viewerFixturePath(), remember: false)
+        if started do
+            host.fireTimer(window.startupTimer)
+        Swag.assert(window.closeButton.isEnabled())
+        window.closeButton.sigPressed.call(window.closeButton)
+        Swag.drainWork()
+        if window.startupTimer do
+            host.fireTimer(window.startupTimer)
+        Swag.assert(window.pendingFile.isEmpty() and window.pendingEmpty.isEmpty())
+        Swag.assert(not window.choiceLoad.started and window.currentFile.isEmpty())
+        Swag.assert(window.instances.isEmpty() and window.emptyView.isLocallyVisible())
+        Swag.assert(not window.closeButton.isEnabled())
+    }
 }
 
 // Pins the shipped empty surface: one accent line, one compact command row, and no eager

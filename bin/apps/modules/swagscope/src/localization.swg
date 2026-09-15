@@ -11,6 +11,7 @@ struct AppStrings
     ui_WindowTitle:                    string = "Swag Scope — Universal viewer"               // Title of the application window.
     ui_Open:                           string = "Open (Ctrl+O)"                               // Tooltip of the open-file button.
     ui_OpenDefault:                    string = "Open with default application"               // Tooltip of the system-default application button.
+    ui_CloseFile:                      string = "Close file"                                  // Tooltip of the close-file button.
     ui_Viewer:                         string = "Viewer"                                      // Tooltip of the viewer selector.
     ui_Files:                          string = "Files beside this one"                       // Tooltip of the file-panel button.
     ui_FullScreen:                     string = "Full screen (F11)"                           // Tooltip of the enter-full-screen button.

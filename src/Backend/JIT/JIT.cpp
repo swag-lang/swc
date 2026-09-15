@@ -124,25 +124,20 @@ namespace
         if (!runFunction)
             return;
 
-        SmallVector<SymbolFunction*> functions;
-        runFunction->appendJitOrder(functions);
+        std::unordered_set<const SymbolFunction*> seen;
+        const auto                               collect = [&](const SymbolFunction* function) {
+            if (!function || !seen.insert(function).second)
+                return;
+            collectGlobalInitRelocationOffsets(*function, outOffsets);
+        };
+
+        runFunction->visitJitOrder(collect);
 
         if (shouldUseSharedRuntimeSetup(ctx, runFunction))
         {
             const IdentifierRef setupIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
             if (const SymbolFunction* setupFn = ctx.compiler().runtimeFunctionSymbol(setupIdRef))
-                setupFn->appendJitOrder(functions);
-        }
-
-        std::unordered_set<const SymbolFunction*> seen;
-        for (const SymbolFunction* function : functions)
-        {
-            if (!function)
-                continue;
-            if (!seen.insert(function).second)
-                continue;
-
-            collectGlobalInitRelocationOffsets(*function, outOffsets);
+                setupFn->visitJitOrder(collect);
         }
     }
 

@@ -301,7 +301,7 @@ bool SymbolFunction::tryMarkJitPatchJobScheduled() noexcept
     return jitState_.tryAdd(JitStateE::PatchJobScheduled);
 }
 
-void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
+void SymbolFunction::refreshJitOrderCache() const
 {
     // The same order is asked for over and over: once per snapshot of the dependency-closure loop,
     // once per metadata pointer judged against its call graph, twice per compile-time call that
@@ -312,25 +312,24 @@ void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
     {
         const std::shared_lock lock(jitOrderCacheMutex_);
         if (jitOrderCacheVersion_ == version && !jitOrderCache_.empty())
-        {
-            out.reserve(out.size() + jitOrderCache_.size());
-            for (SymbolFunction* function : jitOrderCache_)
-                out.push_back(function);
             return;
-        }
     }
 
     SmallVector<SymbolFunction*> order;
     appendDepOrder(order, *const_cast<SymbolFunction*>(this));
 
-    {
-        const std::unique_lock lock(jitOrderCacheMutex_);
-        jitOrderCache_.assign(order.begin(), order.end());
-        jitOrderCacheVersion_ = version;
-    }
+    const std::unique_lock lock(jitOrderCacheMutex_);
+    jitOrderCache_.assign(order.begin(), order.end());
+    jitOrderCacheVersion_ = version;
+}
 
-    out.reserve(out.size() + order.size());
-    for (SymbolFunction* function : order)
+void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
+{
+    refreshJitOrderCache();
+
+    const std::shared_lock lock(jitOrderCacheMutex_);
+    out.reserve(out.size() + jitOrderCache_.size());
+    for (SymbolFunction* function : jitOrderCache_)
         out.push_back(function);
 }
 

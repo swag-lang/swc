@@ -149,15 +149,20 @@ namespace
 
     bool hasUnpublishedFunctionConstants(Sema& sema, const SymbolFunction& function)
     {
-        SmallVector<SymbolFunction*> functions;
-        function.appendJitOrder(functions);
         SmallVector<DataSegmentRef> roots;
-        for (const SymbolFunction* called : functions)
-        {
+        bool                        unpublished = false;
+
+        function.visitJitOrder([&](const SymbolFunction* called) {
+            if (unpublished)
+                return;
             if (called->isForeign() || called->isEmpty() || called->isAttribute())
-                continue;
+                return;
             if (!called->jitEntryAddress())
-                return true;
+            {
+                unpublished = true;
+                return;
+            }
+
             for (const MicroRelocation& relocation : called->loweredCode().codeRelocations)
             {
                 if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
@@ -173,7 +178,11 @@ namespace
                         roots.push_back(root);
                 }
             }
-        }
+        });
+
+        if (unpublished)
+            return true;
+
         return sema.cstMgr().hasUnpublishedFunctionRelocations(roots.span());
     }
 
@@ -373,18 +382,19 @@ namespace
         // A metadata pointer may remain unpublished while its runtime call graph is
         // still being analyzed. Pulling a completed interface method into #ast can
         // otherwise wait on the enclosing function that needs that #ast to finish.
-        SmallVector<SymbolFunction*> dependencies;
-        root.appendJitOrder(dependencies);
-        for (const SymbolFunction* dependency : dependencies)
-        {
+        bool includable = true;
+        root.visitJitOrder([&includable](const SymbolFunction* dependency) {
+            if (!includable)
+                return;
             if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
-                continue;
+                return;
             if (dependency->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || dependency->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                continue;
+                return;
             if (!isIncludableConstantJitDependency(*dependency))
-                return false;
-        }
-        return true;
+                includable = false;
+        });
+
+        return includable;
     }
 
     // What the constant graph looks like at one offset: which allocation holds it, and which

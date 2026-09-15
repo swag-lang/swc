@@ -278,6 +278,19 @@ public:
     void                    appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
     void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
 
+    // Runs `visit` over the order in place. A caller that only reads it - to judge whether a
+    // metadata pointer may be pulled in, or to collect what a run refers to - would otherwise copy
+    // a few hundred pointers per question, a million times over a module.
+    template<typename Visit>
+    void visitJitOrder(Visit&& visit) const
+    {
+        refreshJitOrderCache();
+
+        const std::shared_lock lock(jitOrderCacheMutex_);
+        for (SymbolFunction* function : jitOrderCache_)
+            visit(function);
+    }
+
     // Everything the JIT order is derived from: a new call dependency, or a function withdrawn
     // from code generation. A cached order is reused only while this has not moved, so the walk
     // is paid once per graph state instead of once per compile-time call.
@@ -369,6 +382,8 @@ private:
     std::vector<SymbolVariable*>                  parameters_;
     std::vector<SymbolVariable*>                  localVariables_;
     std::unordered_set<const SymbolVariable*>     localVariableSet_;
+    void refreshJitOrderCache() const;
+
     static inline std::atomic<uint64_t>           s_freesMaskVersion{0};
     static inline std::atomic<uint64_t>           s_callGraphVersion{0};
     mutable std::vector<SymbolFunction*>          jitOrderCache_;

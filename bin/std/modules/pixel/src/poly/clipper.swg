@@ -2005,7 +2005,7 @@ impl Transform
                 // make sure both edges have a vertex here ...
                 if .strictSimple
                 {
-                    let en    = e!
+                    let en    = e
                     let ePrev = en.prevInAEL
                     if (en.outIdx >= 0) and (en.windDelta != 0) and ePrev and (ePrev.outIdx >= 0) and (ePrev.curr.x == en.curr.x) and (ePrev.windDelta != 0)
                     {

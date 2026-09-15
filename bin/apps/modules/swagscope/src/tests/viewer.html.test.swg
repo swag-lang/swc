@@ -46,7 +46,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.assert(view.hookOnChildEvent!(view.view, &zoomIn))
     Swag.assert(view.zoomPercent == 125 and view.view.documentStyle.bodyFontSize == 20)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent!(view.view, &resetZoom) and view.zoomPercent == 100)
+    Swag.assert(view.hookOnChildEvent(view.view, &resetZoom) and view.zoomPercent == 100)
 
     let source = expect File.readAllText(fileName.toString())
     let offset = source.indexOf("immutable")

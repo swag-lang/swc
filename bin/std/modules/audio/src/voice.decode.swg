@@ -254,7 +254,7 @@ impl Voice
 
         let readStart    = .streamCurSeek
         let streamBuffer = .streamBuffer.storage()
-        let codec        = .codec!
+        let codec        = .codec
         .streamBuffer.count = try .readData(streamBuffer, StreamBufferSize)
         let used = try codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
         .streamCurSeek = readStart + used.bytesRead

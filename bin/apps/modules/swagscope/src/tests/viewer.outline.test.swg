@@ -13,7 +13,7 @@ using Core, Pixel, Gui, Gui.Testing
     defer host.shutdown()
     var session = openTestViewer(htmlViewerPlugin(), &host.root, fileName)
     let view    = cast(*HtmlViewer) session.view!
-    for 128 where session.isLoading!(session.view!) do
+    for 128 where session.isLoading!(session.view) do
         host.fireTimers()
     let outline = cast(*DocumentOutline) session.sidePanel!.children[0]
     Swag.assert(outline.rows.count == 2)
@@ -112,16 +112,16 @@ using Core, Pixel, Gui, Gui.Testing
     host.click(outline.list.listView.localToSurface(cell.center()))
     discard host.render(window)
     Swag.assert(outline.list.selectedLine() == outline.rows[5])
-    Swag.assert((cast(*ScrollWnd) window.currentView!.children[0]).scrollPosition().y > previousScroll)
+    Swag.assert((cast(*ScrollWnd) window.currentView.children[0]).scrollPosition().y > previousScroll)
     outline.list.selectLine(0)
     host.settleAnimations(window, 6)
-    let scroll = cast(*ScrollWnd) window.currentView!.children[0]
+    let scroll = cast(*ScrollWnd) window.currentView.children[0]
     scroll.setScrollPos(0, 150)
     let firstCell = outline.list.cellTextRect(0, 0)
     host.click(outline.list.listView.localToSurface(firstCell.center()))
     host.settleAnimations(window, 6)
     let firstHeading = scroll.view.children[0]
-    let inset        = (cast(*Markdown.View) window.currentView!).documentStyle.topInset
+    let inset        = (cast(*Markdown.View) window.currentView).documentStyle.topInset
     Swag.assert(Math.abs(firstHeading.surfaceRect().y - scroll.surfaceRect().y - inset) < 2)
     var image = host.render(window)
     image.crop(outline.surfaceRect())
@@ -139,7 +139,7 @@ using Core, Pixel, Gui, Gui.Testing
     window.setFullScreen(true)
     Swag.assert(not window.currentSidePanelHost!.isVisible())
     window.setFullScreen(false)
-    Swag.assert(window.currentSidePanelHost!.isVisible())
+    Swag.assert(window.currentSidePanelHost.isVisible())
 }
 
 #test

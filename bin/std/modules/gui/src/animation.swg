@@ -448,7 +448,7 @@ private impl Animator
         for track in run.tracks
         {
             if not track!.finished do
-                .completeTrack(track!, result)
+                .completeTrack(track, result)
         }
 
         if run.completion do
@@ -711,7 +711,7 @@ private impl Animator
 
             var nextStep = Swag.U32.Max
             for track in run.tracks where not track!.finished do
-                nextStep = Math.min(nextStep, track!.step)
+                nextStep = Math.min(nextStep, track.step)
             if nextStep == Swag.U32.Max do
                 return true
 
@@ -759,12 +759,12 @@ impl Animator
         for track in group.tracks
         {
             Swag.assert(track!.target.app() == .app)
-            .startTrack(track!)
+            .startTrack(track)
         }
 
         // Retargeting one channel cancels its old group as one coherent operation.
         for track in group.tracks do
-            .requestCancellation(track!.target, track!.channel)
+            .requestCancellation(track!.target, track.channel)
 
         let run = Memory.new'AnimationRun()
         run.id         = .nextId

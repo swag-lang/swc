@@ -212,7 +212,7 @@ func parseInput(text: string)->Parsed
         pos += 1
         if ch == '^' or ch == 'v' or ch == '<' or ch == '>'
         {
-            let moves = result.moves!
+            let moves = result.moves
             moves[mi] = ch
             mi        += 1
         }

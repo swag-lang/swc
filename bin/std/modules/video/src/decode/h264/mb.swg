@@ -1008,10 +1008,10 @@ impl Slice
         {
             .mbX = 0
             .mbY += 1
-            if .dec!.inlineRecon do
-                .dec!.completeReconstructedRow(.mbY - 1)
+            if .dec.inlineRecon do
+                .dec.completeReconstructedRow(.mbY - 1)
             else do
-                .dec!.scheduleParsedRows(cast(u32) .mbY)
+                .dec.scheduleParsedRows(cast(u32) .mbY)
         }
     }
 
@@ -1754,7 +1754,7 @@ impl Slice
         }
 
         let gw    = dec.sps!.mbWidth * 4
-        let mbIdx = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
+        let mbIdx = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
 
         // The per-block state the next macroblocks' contexts and the filter read. A grid row of
         // four blocks is one 32-bit word, and the macroblock's own arrays are laid out the same
@@ -1774,7 +1774,7 @@ impl Slice
 
         // A 4:4:4 colour plane has one block per luma block, and its counts go out on the
         // luma grid so the entropy contexts of the next macroblock read them there.
-        if dec.sps!.is444()
+        if dec.sps.is444()
         {
             for block in 16's32
             {
@@ -1785,7 +1785,7 @@ impl Slice
         }
         else
         {
-            let cw = dec.sps!.mbWidth * 2
+            let cw = dec.sps.mbWidth * 2
             for block in 4's32
             {
                 let index = cast(u64) ((mb.mbY * 2 + (block >> 1)) * cw + mb.mbX * 2 + (block & 1))
@@ -1930,7 +1930,7 @@ impl Slice
         if not dec.isRefPicture do
             return
         let frame        = dec.current!
-        let compactIndex = cast(u64) (mb.mbY * dec.sps!.mbWidth + mb.mbX)
+        let compactIndex = cast(u64) (mb.mbY * dec.sps.mbWidth + mb.mbX)
         frame.colUniform[compactIndex]      = 1
         frame.colMbMv[compactIndex * 2]     = job.mv[0, 0]
         frame.colMbMv[compactIndex * 2 + 1] = job.mv[0, 1]

@@ -158,8 +158,8 @@ impl PdfPageCache
     {
         for page in .pages where page!.index == index
         {
-            .clock     += 1
-            page!.used = .clock
+            .clock    += 1
+            page.used = .clock
             return page
         }
 
@@ -271,7 +271,7 @@ impl PdfPageCache
                     continue
                 if page!.used < oldest
                 {
-                    oldest = page!.used
+                    oldest = page.used
                     victim = index
                 }
             }

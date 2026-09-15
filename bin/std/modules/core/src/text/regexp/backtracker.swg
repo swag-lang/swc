@@ -142,10 +142,10 @@ impl Backtracker
                         me.growTrail()
 
                     let entry = .trail.storage() + .trailTop
-                    entry.slot   = slot
-                    entry.value  = slots![slot]
-                    .trailTop    += 1
-                    slots![slot] = pos
+                    entry.slot  = slot
+                    entry.value = slots![slot]
+                    .trailTop   += 1
+                    slots[slot] = pos
                 }
 
                 pc = insts[pc].next
@@ -180,7 +180,7 @@ impl Backtracker
                 }
                 else
                 {
-                    let referenced = Swag.makeSlice(data + slots![opening], slots![closing] - slots![opening])
+                    let referenced = Swag.makeSlice(data + slots![opening], slots[closing] - slots[opening])
                     let eaten      = .matchReference(hay, referenced, pos)
                     if eaten == NoSlot do
                         failed = true

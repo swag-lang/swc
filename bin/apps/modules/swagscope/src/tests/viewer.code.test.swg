@@ -75,14 +75,14 @@ struct CodeLanguageSample
 
     view.setZoom(150)
     let editor = view.editor
-    let oldTip = String.from(view.zoomLabel!.toolTip)
+    let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel!.toolTip == codeStrings().ui_ZoomMenu and view.zoomLabel!.toolTip != oldTip)
+    Swag.assert(view.zoomLabel.toolTip == codeStrings().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
     Swag.assert(view.zoomPercent == 150 and view.editor == editor)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel!.toolTip == oldTip)
+    Swag.assert(view.zoomLabel.toolTip == oldTip)
 }
 
 #[Swag.TestTag("golden")]

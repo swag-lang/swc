@@ -50,7 +50,7 @@ func deblockPicture(dec: *Decoder)
         let index  = cast(u32) parIndex
         let state  = &context
         let width  = state.decoder.sps!.mbWidth
-        let height = state.decoder.sps!.mbHeight
+        let height = state.decoder.sps.mbHeight
         var mbY    = cast(s32) index
         while mbY < height
         {
@@ -523,8 +523,8 @@ private func biasedEdge(p1, p0, q0, q1: Simd.U8x16)->Simd.U8x16
     let ones    = Simd.splat(1'u8)
     let allOnes = Simd.splat(0xFF'u8)
     var edge    = Simd.average(q1 ^ allOnes, p1)
-    edge        = Simd.average(edge, Simd.splat(3'u8))
-    edge        = Simd.average(edge, (p0 ^ q0) & ones)
+    edge = Simd.average(edge, Simd.splat(3'u8))
+    edge = Simd.average(edge, (p0 ^ q0) & ones)
     return Simd.addSaturating(edge, Simd.average(p0 ^ allOnes, q0))
 }
 
@@ -618,7 +618,6 @@ func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     Simd.storeLow8(pix - stride, Simd.packUnsigned(Simd.select(active, p0 + delta, p0), zeros))
     Simd.storeLow8(pix, Simd.packUnsigned(Simd.select(active, q0 - delta, q0), zeros))
 }
-
 
 // Filters every strong luma lane of one horizontal edge. Weak lanes are applied first when
 // present; the strong mask then leaves them untouched while sharing the same packed rows.

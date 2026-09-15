@@ -139,7 +139,7 @@ private impl KeyFileField
         discard catch writeRandomKeyFile(path.toString()) as generationError
         if generationError != null
         {
-            MessageDlg.error(.surface!, appStrings().msg_KeyFileCreateFailed, generationError)
+            MessageDlg.error(.surface, appStrings().msg_KeyFileCreateFailed, generationError)
             return
         }
 

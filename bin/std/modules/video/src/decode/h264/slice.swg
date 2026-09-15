@@ -399,7 +399,7 @@ impl Slice
                 entry.frame    = frame
                 entry.poc      = frame.poc
                 entry.isLong   = frame.isLongTerm
-                entry.identity = .dec!.referenceIdentity(frame.poc)
+                entry.identity = .dec.referenceIdentity(frame.poc)
             }
         }
 

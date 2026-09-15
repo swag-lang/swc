@@ -130,7 +130,7 @@ public impl IWnd for MenuCtrl
             if it.separator do
                 continue
 
-            labelPos = .getBarLabelRect(i!)
+            labelPos = .getBarLabelRect(i)
 
             var format: RichStringFormat
             colorText      = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
@@ -1015,7 +1015,7 @@ impl MenuCtrl
             if it.hidden do
                 continue
             if .onPrepareItem do
-                .onPrepareItem(i!)
+                .onPrepareItem(i)
             if it.nameResolver do
                 it.name.set(it.nameResolver())
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
@@ -1055,7 +1055,7 @@ impl MenuCtrl
                 continue
 
             if .onPrepareItem do
-                .onPrepareItem(i!)
+                .onPrepareItem(i)
             if it.nameResolver do
                 it.name.set(it.nameResolver())
             if idx do
@@ -1087,7 +1087,7 @@ impl MenuCtrl
             {
                 it.rightName.compute()
                 Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, rsf, deviceScale)
-                w += it.rightName.boundRect.width + rsf.font.regular!.height * 3
+                w += it.rightName.boundRect.width + rsf.font.regular.height * 3
             }
 
             // A submenu row paints a chevron after the text column. Reserve that band while
@@ -1446,7 +1446,7 @@ public impl MenuCtrl
             elif .popupButtonOpensUp do
                 y = anchor.y - (.position.height - anchor.height - sdw)
 
-            pt = .parent!.surfaceToLocal({anchor.x - sdw, y})
+            pt = .parent.surfaceToLocal({anchor.x - sdw, y})
             .setPosition({pt.x, pt.y, .position.width, .position.height})
         }
 

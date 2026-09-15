@@ -154,12 +154,12 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     Swag.assert(Memory.compare(actual.buffer!, expected.buffer!, actual.size) == 0)
     var firstRead: Array'u8
     firstRead.resize(actual.size)
-    Memory.copy(firstRead.buffer!, actual.buffer!, actual.size)
+    Memory.copy(firstRead.buffer!, actual.buffer, actual.size)
 
     discard expect trimmedVoice.seekSampleFrame(0)
     let rewound = expect trimmedVoice.readBuffer()
     Swag.assert(rewound.size == actual.size)
-    Swag.assert(Memory.compare(rewound.buffer!, firstRead.buffer!, actual.size) == 0)
+    Swag.assert(Memory.compare(rewound.buffer!, firstRead.buffer, actual.size) == 0)
 }
 
 #test

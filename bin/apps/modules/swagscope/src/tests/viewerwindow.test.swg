@@ -1089,7 +1089,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // Headless surfaces stay outside Application.surfaces, so deliver the broadcast they would
     // receive from setLanguage in a native window.
     host.notify(.LanguageChanged)
-    Swag.assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
+    Swag.assert(window.surface.wnd.name.raw == appStrings().ui_WindowTitle)
     Swag.assert(window.openButton.toolTip == "Ouvrir (Ctrl+O)")
     Swag.assert(window.closeButton.toolTip == "Fermer le fichier")
     Swag.assert(window.dropHighlight.prompt.text() == "Déposez un fichier pour l'afficher")
@@ -1257,7 +1257,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchBox.setText(null)
     Swag.assert(not (window.searchBox.text()).count)
     Swag.assert(not (window.searchCountLabel.text()).count and not window.searchOverlay.isLocallyVisible())
-    Swag.assert((cast(*TextView) window.currentView!).editor.isSelectionEmpty())
+    Swag.assert((cast(*TextView) window.currentView).editor.isSelectionEmpty())
 }
 
 // Search navigation over a streamed Markdown file materializes every distant occurrence in both
@@ -1848,7 +1848,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.currentCommands == cachedCommands)
     Swag.assert(window.children.count == childCount)
     Swag.assert(window.viewerBar.children.count == commandCount)
-    Swag.assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
+    Swag.assert(window.surface.wnd.name.raw == appStrings().ui_WindowTitle)
 }
 
 // Replacing a streaming document retires its short-period loader before deferred destruction.
@@ -2336,7 +2336,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.stillView == null and window.slideTimer == null)
-    Swag.assert(reportViewerFinished(window.currentView!) == .Replay and window.pendingFile.isEmpty())
+    Swag.assert(reportViewerFinished(window.currentView) == .Replay and window.pendingFile.isEmpty())
 }
 
 // The image viewer builds its playback control in its own command group and shares the host policy.

@@ -63,11 +63,11 @@ using Core, Pixel, Gui, Gui.Testing
     Swag.assert(window.documentHost.padding == Math.Vector4{})
     Swag.assert(window.documentPanel.backgroundStyle == .View)
     Swag.assert(window.currentView!.surfaceRect().width == window.clientRect().width)
-    let bounds = window.currentView!.surfaceRect()
+    let bounds = window.currentView.surfaceRect()
     window.updateFullScreenChrome({10, 1})
-    Swag.assert(window.currentView!.surfaceRect() == bounds)
+    Swag.assert(window.currentView.surfaceRect() == bounds)
     window.updateFullScreenChrome({10, 719})
-    Swag.assert(window.currentView!.surfaceRect() == bounds)
+    Swag.assert(window.currentView.surfaceRect() == bounds)
     window.updateFullScreenChrome({640, 360})
     host.settleAnimations(window)
     var image = host.render(window)
@@ -234,10 +234,10 @@ private func markdownWhiteyFixturePath()->String
 
     var first      = openTestViewer(markdownViewerPlugin(), &host.root, markdownFixturePath().toString(), commandParent: &host.root)
     let firstWidth = cast(*ComboBox) first.commands!.children[0]
-    let firstTheme = cast(*ComboBox) first.commands!.children[1]
+    let firstTheme = cast(*ComboBox) first.commands.children[1]
     let firstZoom  = cast(*MarkdownZoomButton) first.info!.children[0]
     assertViewerInfoButton(firstZoom)
-    Swag.assert(first.info!.preferredSize.x == ViewerZoomSlotWidth)
+    Swag.assert(first.info.preferredSize.x == ViewerZoomSlotWidth)
     Swag.assert(firstWidth.selectedIndex == 2 and firstTheme.selectedIndex == 3)
     firstWidth.setSelectedIndex(0)
     firstTheme.setSelectedIndex(5)
@@ -245,7 +245,7 @@ private func markdownWhiteyFixturePath()->String
 
     var second      = openTestViewer(markdownViewerPlugin(), &host.root, markdownWhiteyFixturePath().toString(), commandParent: &host.root)
     let secondWidth = cast(*ComboBox) second.commands!.children[0]
-    let secondTheme = cast(*ComboBox) second.commands!.children[1]
+    let secondTheme = cast(*ComboBox) second.commands.children[1]
     Swag.assert(secondWidth.selectedIndex == 0 and secondTheme.selectedIndex == 5)
 
     let oldWidth = String.from(firstWidth.items[0]!.name.raw)

@@ -257,7 +257,7 @@ private impl ArchiveViewer
         {
             let line = .list.lineAt(index)
             if line!.canExpand() do
-                roots.add(line!)
+                roots.add(line)
         }
 
         for line in roots do

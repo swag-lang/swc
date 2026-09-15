@@ -138,7 +138,7 @@ internal impl Properties
             // Toggle checkbox
             elif prop.selItem!.checkBox != null
             {
-                let selItem = prop.selItem!
+                let selItem = prop.selItem
                 selItem.checkBox.toggle()
             }
 

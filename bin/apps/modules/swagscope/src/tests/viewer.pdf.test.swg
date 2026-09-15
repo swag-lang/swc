@@ -215,8 +215,8 @@ private func createPdfFixture()->String
     view.applyLayout()
 
     var matches: Array'Viewer.SearchMatch
-    collectViewerMatches(result.collectMatches, result.view!, "second", &matches)
-    let revealed = matches.count == 1 and result.revealMatch(result.view!, matches[0], "second")
+    collectViewerMatches(result.collectMatches, result.view, "second", &matches)
+    let revealed = matches.count == 1 and result.revealMatch(result.view, matches[0], "second")
     Swag.assert(revealed)
     Swag.assert(view.pdfView.pageIndex == 1)
     Swag.assert(view.pdfView.selectedText() == "Second")
@@ -228,15 +228,15 @@ private func createPdfFixture()->String
     {
         discard host.render()
         host.fireTimers()
-        if result.searchBounds(result.view!, matches[0], &bounds) do
+        if result.searchBounds(result.view, matches[0], &bounds) do
             break
         Threading.Thread.sleep(1'ms)
     }
 
     Swag.assert(not bounds.isEmpty())
-    result.clearSearch(result.view!)
+    result.clearSearch(result.view)
     Swag.assert(view.pdfView.selectedText().isEmpty())
     matches.clear()
-    collectViewerMatches(result.collectMatches, result.view!, "absent", &matches)
+    collectViewerMatches(result.collectMatches, result.view, "absent", &matches)
     Swag.assert(matches.isEmpty())
 }

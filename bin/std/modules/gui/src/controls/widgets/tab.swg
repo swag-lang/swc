@@ -446,7 +446,7 @@ private impl Tab
         let popup = PopupListCtrl.create(me)
         .popup = popup
         for item in .items do
-            popup.addItem(item!.name.raw, item!.id, item!.icon, item!.userData0)
+            popup.addItem(item!.name.raw, item.id, item.icon, item.userData0)
         if .selectedIndex < .items.count do
             popup.setSelectedIndex(.selectedIndex)
 

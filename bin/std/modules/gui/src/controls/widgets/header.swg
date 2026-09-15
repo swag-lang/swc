@@ -384,7 +384,7 @@ impl Header
         for item in .items
         {
             if item!.column == column do
-                return item!
+                return item
         }
 
         unreachable

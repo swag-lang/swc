@@ -35,8 +35,8 @@ using Core, Pixel, Gui
     Swag.assert(movie.frameIndex == 0 and not movie.isPaused)
     view.imageView.setPaused(true)
     view.dockStyle = .Center
-    session.commands!.hide()
-    session.info!.hide()
+    session.commands.hide()
+    session.info.hide()
     host.root.applyLayout()
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "imageset-real-review")

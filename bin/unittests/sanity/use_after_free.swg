@@ -242,7 +242,7 @@ func releaseObjectField()->s32
 func releaseFieldOfParameterObject(n: *UafNode)->s32
 {
     myFree(n.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return n.data![]       // swc-expected-error {{sanity_err_use_after_free}}
+    return n.data[]        // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -264,7 +264,7 @@ impl UafNode
     mtd releaseThenTouch()
     {
         myFree(.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-        .data![] = 0          // swc-expected-error {{sanity_err_use_after_free}}
+        .data[] = 0           // swc-expected-error {{sanity_err_use_after_free}}
     }
 
     // Putting the field back is what a correct one does, whether with null or with a

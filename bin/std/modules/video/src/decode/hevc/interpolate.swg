@@ -279,7 +279,7 @@ impl Decoder
             source1Width      = cast(s32) reference1.width
             source1Height     = cast(s32) reference1.height
             destination       = .current!.lumaAtMutable(destinationX, destinationY)
-            destinationStride = .current!.strideLuma
+            destinationStride = .current.strideLuma
         }
         else
         {
@@ -292,7 +292,7 @@ impl Decoder
             source1Width      = cast(s32) reference1.chromaWidth
             source1Height     = cast(s32) reference1.chromaHeight
             destination       = .current!.chromaAtMutable(component - 1, destinationX, destinationY)
-            destinationStride = .current!.strideChroma
+            destinationStride = .current.strideChroma
         }
 
         // The padding of a completed reference already holds the clamped edge samples, so a
@@ -361,7 +361,7 @@ impl Decoder
             sourceWidth       = cast(s32) reference.width
             sourceHeight      = cast(s32) reference.height
             destination       = .current!.lumaAtMutable(destinationX, destinationY)
-            destinationStride = .current!.strideLuma
+            destinationStride = .current.strideLuma
         }
         else
         {
@@ -370,7 +370,7 @@ impl Decoder
             sourceWidth       = cast(s32) reference.chromaWidth
             sourceHeight      = cast(s32) reference.chromaHeight
             destination       = .current!.chromaAtMutable(component - 1, destinationX, destinationY)
-            destinationStride = .current!.strideChroma
+            destinationStride = .current.strideChroma
         }
 
         // Motion vectors normally keep the whole block inside the picture or inside the padding

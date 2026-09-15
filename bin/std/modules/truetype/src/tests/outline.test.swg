@@ -86,7 +86,7 @@ using Swag, Core
 
     discard expect face.loadChar('A')
     let sampleIdx     = findPointWithNonZeroY(&face.glyph.outline)
-    let samplePts     = face.glyph.outline.points!
+    let samplePts     = face.glyph.outline.points
     let sampleBeforeX = samplePts[sampleIdx].x
     let sampleBeforeY = samplePts[sampleIdx].y
     face.glyph.oblique()

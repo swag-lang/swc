@@ -706,7 +706,7 @@ impl LibraryWnd
             discard catch g_Library.setFolder(folder) as err
             if err != null
             {
-                MessageDlg.error(.main.surface!, appStrings().msg_FailedOpenLibrary, err)
+                MessageDlg.error(.main.surface, appStrings().msg_FailedOpenLibrary, err)
                 return
             }
 
@@ -864,9 +864,9 @@ impl LibraryWnd
         defer .view.mutexLoaded.unlock()
         for item in .view.allItems where item!.capture and item!.fi.fullname == file
         {
-            item!.capture!.tags     = capture.tags
-            item!.capture!.favorite = capture.favorite
-            item!.capture!.rating   = capture.rating
+            item!.capture!.tags    = capture.tags
+            item.capture!.favorite = capture.favorite
+            item.capture.rating    = capture.rating
         }
 
         g_DirtyList = true
@@ -1011,7 +1011,7 @@ impl LibraryWnd
             discard catch .exportCapture(file, dialog.selectedPath()) as err
             if err != null
             {
-                MessageDlg.error(.main.surface!, appStrings().msg_FailedExportCaptures, err)
+                MessageDlg.error(.main.surface, appStrings().msg_FailedExportCaptures, err)
                 return
             }
         }

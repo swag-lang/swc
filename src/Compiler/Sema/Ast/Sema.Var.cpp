@@ -1258,6 +1258,7 @@ Result AstSingleVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
             }
         }
 
+        frame.setBindingScoped();
         sema.pushFramePopOnPostChild(frame, childRef);
     }
     return Result::Continue;
@@ -1297,6 +1298,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
                 bindClosureRuntimeStorage)
                 frame.setCurrentRuntimeStorage(nodeInitRef, &sema.curViewSymbol().sym()->cast<SymbolVariable>());
             SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeInitRef);
+            frame.setBindingScoped();
             sema.pushFramePopOnPostChild(frame, nodeInitRef);
         }
     }
@@ -1379,6 +1381,7 @@ Result AstMultiVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
             frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
         for (const Symbol* sym : sema.curViewSymbolList().symList())
             frame.hideLookupSymbol(sym);
+        frame.setBindingScoped();
         sema.pushFramePopOnPostChild(frame, childRef);
     }
     return Result::Continue;
@@ -1397,6 +1400,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
             SemaFrame          frame        = sema.frame();
             frame.pushBindingType(nodeTypeView.typeRef());
             SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeInitRef);
+            frame.setBindingScoped();
             sema.pushFramePopOnPostChild(frame, nodeInitRef);
         }
     }

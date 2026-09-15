@@ -150,7 +150,7 @@ func appendCommandValidation(buffer: [*] u8, start: u64, contractName: string, t
                 len = appendAst(buffer, len, " >= ")
                 len = appendS32Literal(buffer, len, cast(s32) params[1].value)
                 len = appendAst(buffer, len, " and command.")
-                len = appendAst(buffer, len, parameter.name!)
+                len = appendAst(buffer, len, parameter.name)
                 len = appendAst(buffer, len, " <= ")
                 len = appendS32Literal(buffer, len, cast(s32) params[2].value)
                 len = appendAst(buffer, len, "\n")

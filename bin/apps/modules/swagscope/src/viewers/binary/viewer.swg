@@ -1155,7 +1155,7 @@ func createBinaryViewer(host: Viewer.Host)
     }
 
     host.attachView(view!)
-    host.setDetails(view!.details.toString())
+    host.setDetails(view.details.toString())
     host.setSearch({
         describe: func(wnd, presentation)
     {

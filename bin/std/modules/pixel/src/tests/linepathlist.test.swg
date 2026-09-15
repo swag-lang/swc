@@ -129,7 +129,7 @@ func nestedSquares()->LinePathList
     painter.begin()
     painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
     painter.end()
-    Swag.assert(list.fillCache! == cache)
+    Swag.assert(list.fillCache == cache)
     var again = 0'u64
     for p in cache.paths do
         again += p.triangles.vertices.count
@@ -350,7 +350,7 @@ const TouchingCells: [5] Cell = [
     painter.end()
 
     Swag.assert(list.paths[0].revision == revision)
-    Swag.assert(list.fillCache! == cache)
+    Swag.assert(list.fillCache == cache)
     var again = 0'u64
     for p in cache.paths do
         again += p.triangles.vertices.count
@@ -417,7 +417,7 @@ const TouchingCells: [5] Cell = [
     painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
     painter.end()
 
-    Swag.assert(list.fillCache! == cache)
+    Swag.assert(list.fillCache == cache)
     var again = 0'u64
     for p in cache.paths do
         again += p.triangles.vertices.count

@@ -175,8 +175,8 @@ impl MicrocodeViewer
         if not lease.wait(&.job.cancelled) do
             return
         .job.result     = lease.artifact!.result
-        .job.elapsed    = lease.artifact!.elapsedMs
-        .job.artifactId = lease.artifact!.id
+        .job.elapsed    = lease.artifact.elapsedMs
+        .job.artifactId = lease.artifact.id
         .job.reused     = lease.reused
     }
 

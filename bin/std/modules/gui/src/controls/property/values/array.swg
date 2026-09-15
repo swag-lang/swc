@@ -130,7 +130,7 @@ internal impl Properties
             return
 
         Reflection.swapRuntimeValues(info.base, info.valueType, idx, cast(u64) target)
-        .commitItemChange(arrayItem!)
+        .commitItemChange(arrayItem)
     }
 
     mtd removeArrayValue(item: *PropertiesItem)

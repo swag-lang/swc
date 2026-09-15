@@ -23,6 +23,6 @@ using Core, RuntimeCtxDll
     let artifactDir = Path.directoryName(Env.executablePath())
     Swag.assert(artifactDir != null)
 
-    let libraries = expect Directory.enumerateFiles(artifactDir!, ".dll")
+    let libraries = expect Directory.enumerateFiles(artifactDir, ".dll")
     Swag.assert(libraries.count == 0)
 }

@@ -88,6 +88,6 @@ impl RepairedSelfBorrowMove
     source.cursor = &source.value
     var target = #move source
     Swag.assert(target.cursor![] == 13)
-    target.cursor![] = 17
+    target.cursor[] = 17
     Swag.assert(target.value == 17)
 }

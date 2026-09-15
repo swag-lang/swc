@@ -239,7 +239,7 @@ impl IWnd for RichEditView
             {
                 if not line!.wordWrap do
                     authored = index
-                elif line!.dirtyStyle do
+                elif line.dirtyStyle do
                     edn.lines[authored]!.dirtyStyle = true
             }
         }

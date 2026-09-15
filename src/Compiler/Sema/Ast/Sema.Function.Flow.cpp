@@ -133,6 +133,11 @@ namespace
     {
         bool containsFallible = false;
         bool isFallibleResult = false;
+
+        // A '!' records the proof it makes. Sema re-enters a node after a dependency yield,
+        // and the proof recorded on the first pass is this node's own: reading it back on the
+        // next pass would make the assertion look redundant against itself.
+        bool notNullProofRecorded = false;
     };
 
     ErrorManagementPayload& ensureErrorManagementPayload(Sema& sema, AstNodeRef nodeRef)
@@ -431,13 +436,45 @@ namespace
         return sema.typeMgr().addType(resultType);
     }
 
-    Result setupNotNullUnwrap(Sema& sema, AstNodeRef managedChildRef)
+    // A '!' is an assertion written in operand position: the code after it is reachable only
+    // when the value was present, exactly like the 'Swag.assert(p != null)' it stands for. That
+    // reasoning needs the assertion to have run. The right operand of 'and'/'or', a branch of
+    // '?:', the fallback of 'orelse' and the tail of a '?.' chain all evaluate on a decision
+    // taken to their left, and none of those regions carries a frame of its own here, so a fact
+    // recorded inside one would outlive what justifies it. Record nothing when the walk to the
+    // enclosing block crosses one.
+    bool notNullRunsUnconditionally(Sema& sema)
+    {
+        for (size_t up = 0;; ++up)
+        {
+            const AstNode* parent = sema.visit().parentNode(up);
+            if (!parent)
+                return true;
+            if (parent->is(AstNodeId::EmbeddedBlock) || parent->is(AstNodeId::TopLevelBlock))
+                return true;
+            if (parent->is(AstNodeId::LogicalExpr) || parent->is(AstNodeId::NullCoalescingExpr))
+                return false;
+            if (parent->is(AstNodeId::ConditionalExpr) || parent->is(AstNodeId::OptionalChainExpr))
+                return false;
+        }
+    }
+
+    Result setupNotNullUnwrap(Sema& sema, AstNodeRef managedChildRef, ErrorManagementPayload& payload)
     {
         const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
         SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
 
         auto& codeGenPayload         = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
         codeGenPayload.notNullUnwrap = true;
+
+        // The assertion holds for the rest of the enclosing block, so a later '!' on the same
+        // path has nothing left to prove and is reported instead of costing a second guard.
+        if (notNullRunsUnconditionally(sema))
+        {
+            SemaHelpers::killNarrowPathAfterStatement(sema, managedChildRef, true);
+            payload.notNullProofRecorded = true;
+        }
+
         return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Expect, sema.curNode().codeRef());
     }
 
@@ -511,22 +548,23 @@ namespace
     // clone and a macro expansion have the same property, judged at a call site the body did
     // not choose. This is the distinction 'orelse' already draws, on what the type can be
     // rather than on what the flow proves at one site.
-    void reportNotNullAlreadyProven(Sema& sema, AstNodeRef operandRef, const SemaNodeView& operandView)
+    Result reportNotNullAlreadyProven(Sema& sema, AstNodeRef operandRef, const SemaNodeView& operandView)
     {
         // An argument clone can deliberately restore the caller's non-inline lookup
         // context. It is still a clone, and its original expression was already checked.
         if (sema.frame().currentInlinePayload() || SemaHelpers::effectiveInlinePayload(sema))
-            return;
+            return Result::Continue;
 
         const SymbolFunction* fn = sema.currentFunction();
         if (fn && (fn->isGenericInstance() || fn->isGenericRoot()))
-            return;
+            return Result::Continue;
         if (fn && fn->ownerStruct() && (fn->ownerStruct()->isGenericInstance() || fn->ownerStruct()->isGenericRoot()))
-            return;
+            return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_warn_notnull_already_proven, operandRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_notnull_already_proven, operandRef);
         diag.addArgument(Diagnostic::ARG_TYPE, operandView.typeRef());
         diag.report(sema.ctx());
+        return Result::Error;
     }
 
     Result semaErrorManagementPostNodeCommon(Sema& sema, AstNodeRef managedChildRef)
@@ -549,16 +587,17 @@ namespace
                 // The DECLARED type is nullable, which is what makes the unwrap real. The live
                 // view applies the facts in scope on top of it: when those already relabelled
                 // the value non-null, the assertion adds a guard that cannot fire, on a value
-                // the compiler would let through without it.
-                const AstNodeRef narrowedRef = sema.viewZero(managedChildRef).nodeRef();
+                // the compiler would let through without it. Judge that once: on a re-entered
+                // node the only new fact in scope is the one this very '!' recorded.
+                const AstNodeRef narrowedRef = payload.notNullProofRecorded ? AstNodeRef::invalid() : sema.viewZero(managedChildRef).nodeRef();
                 if (narrowedRef.isValid())
                 {
                     const SemaNodeView liveView = sema.viewType(narrowedRef);
                     const TypeRef      liveRef  = liveView.typeRef().isValid() ? sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), liveView.typeRef()) : TypeRef::invalid();
                     if (liveRef.isValid() && !sema.typeMgr().get(liveRef).isNullable())
-                        reportNotNullAlreadyProven(sema, narrowedRef, liveView);
+                        SWC_RESULT(reportNotNullAlreadyProven(sema, narrowedRef, liveView));
                 }
-                return setupNotNullUnwrap(sema, managedChildRef);
+                return setupNotNullUnwrap(sema, managedChildRef, payload);
             }
 
             const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
@@ -568,7 +607,7 @@ namespace
                 if (childView.typeRef().isValid())
                 {
                     SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
-                    reportNotNullAlreadyProven(sema, resolvedChildRef, childView);
+                    SWC_RESULT(reportNotNullAlreadyProven(sema, resolvedChildRef, childView));
                     SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).notNullUnwrap = true;
                     return Result::Continue;
                 }

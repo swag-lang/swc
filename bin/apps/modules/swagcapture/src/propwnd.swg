@@ -973,7 +973,7 @@ impl PropWnd
         var width = 0'f32
         for item in .grid.items where item!.line.isVisible()
         {
-            let it = item!
+            let it = item
             var label: *Label?
             if it.sliderBox != null do
                 label = it.sliderBox.label
@@ -989,7 +989,7 @@ impl PropWnd
         width = Math.ceil(width)
         for item in .grid.items where item!.line.isVisible()
         {
-            let it = item!
+            let it = item
             if it.sliderBox != null
             {
                 let ctrl = it.sliderBox

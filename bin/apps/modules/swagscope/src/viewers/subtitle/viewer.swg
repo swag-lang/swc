@@ -100,12 +100,12 @@ private impl SubtitleViewer
         {
             if .transcript.length do
                 .transcript += "\n\n"
-            .transcript += subtitleClockText(.track!.cueStartTime(index))
+            .transcript += subtitleClockText(.track.cueStartTime(index))
             .transcript += "  →  "
-            .transcript += subtitleClockText(.track!.cueEndTime(index))
+            .transcript += subtitleClockText(.track.cueEndTime(index))
             .transcript += "\n"
             let offset  = .transcript.length
-            let content = videoSubtitleText(.track!.cueTextData(index), .track!.cueTextLength(index))
+            let content = videoSubtitleText(.track.cueTextData(index), .track.cueTextLength(index))
             .transcript += content
             .cueText.add({offset, content.count})
         }
@@ -115,7 +115,7 @@ private impl SubtitleViewer
     {
         for index in .track!.cueCount()
         {
-            let content = videoSubtitleText(.track!.cueTextData(index), .track!.cueTextLength(index))
+            let content = videoSubtitleText(.track.cueTextData(index), .track.cueTextLength(index))
             Viewer.collectTextMatches(content, text, options, index, 0, 0, result)
         }
     }
@@ -171,7 +171,7 @@ private impl SubtitleViewer
         var seconds: f64
         if not subtitleTimeSeconds(dialog.text().toString(), &seconds) do
             return
-        for index in .track!.cueCount() where .track!.cueEndTime(index) >= seconds
+        for index in .track!.cueCount() where .track.cueEndTime(index) >= seconds
         {
             discard .revealCue(index)
             return
@@ -206,7 +206,7 @@ private impl SubtitleViewer
         with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
         {
             .dockStyle = .Right
-            .setText(subtitleCueCountText(result.track!.cueCount()).toString())
+            .setText(subtitleCueCountText(result.track.cueCount()).toString())
             .setForm(.Rectangle)
             .toolTip    = subtitleStrings().ui_GoToCue
             .sigPressed += func|view = result|(button)
@@ -271,7 +271,7 @@ func createSubtitleViewer(host: Viewer.Host)
     }
 
     let track = view!.track!
-    host.attachView(view!)
+    host.attachView(view)
     host.setDetails(subtitleFormatText(track.sourceFormat()))
     host.setSearch({
         collectMatches: func(wnd, text, options, progress, matches)->bool

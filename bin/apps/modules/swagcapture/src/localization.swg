@@ -438,7 +438,7 @@ private func checkPropertyKeysAreDistinct()
             continue
 
         let value = (data + field.offset)[as string]
-        for g in type.fields!
+        for g in type.fields
         {
             let other = g
             if other.offset >= field.offset do

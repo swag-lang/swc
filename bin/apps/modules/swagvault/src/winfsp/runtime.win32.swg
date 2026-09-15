@@ -33,7 +33,7 @@ namespace WinFsp
         g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn) addDirInfo!
         g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn) setGuard!
         g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn) setSecurity!
-        g_WinFsp.setSecurityAddress       = setSecurity!
+        g_WinFsp.setSecurityAddress       = setSecurity
         g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn) deleteSecurity!
         g_WinFsp.registerServer           = cast(WinFspRegistrationFn) registerServer!
         g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn) unregisterServer!

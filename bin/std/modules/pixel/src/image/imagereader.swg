@@ -239,7 +239,7 @@ public impl ImageReader
         let multiple = Swag.makeInterface(.decoder, .decoderType!, IImageSetDecoder)
         if not multiple
         {
-            let single = Swag.makeInterface(.decoder, .decoderType!, IImageDecoder)!
+            let single = Swag.makeInterface(.decoder, .decoderType, IImageDecoder)!
             return try single.decode(.bytes.toSlice(), .options)
         }
 

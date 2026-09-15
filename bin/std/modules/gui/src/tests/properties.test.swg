@@ -1639,11 +1639,11 @@ impl IPropertyNotify for PropDefaultCustom
     Swag.assert(not prop.canUndo())
 
     // Two real edits.
-    it.data![as s32] = 100
+    it.data[as s32] = 100
     prop.commitItemChange(it)
     Swag.assert(data.count == 100 and prop.canUndo() and not prop.canRedo())
 
-    it.data![as s32] = 7
+    it.data[as s32] = 7
     prop.commitItemChange(it)
     Swag.assert(data.count == 7)
 
@@ -1660,7 +1660,7 @@ impl IPropertyNotify for PropDefaultCustom
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
-    it.data![as s32] = 55
+    it.data[as s32] = 55
     prop.commitItemChange(it)
     Swag.assert(data.count == 55 and not prop.canRedo())
     prop.undo()

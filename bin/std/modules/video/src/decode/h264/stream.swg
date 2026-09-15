@@ -675,7 +675,7 @@ private func runAvcFrameThread(thread: Threading.Thread)
         frame = catch frameThread.decoder!.decodePreparedAccessUnit() as decodeError
         if decodeError != null
         {
-            frameThread.decoder!.failPreparedAccessUnit()
+            frameThread.decoder.failPreparedAccessUnit()
             frameThread.errorText = Errors.message(decodeError)
         }
         else do

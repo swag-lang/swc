@@ -61,7 +61,7 @@ impl ViewerReadingState
         .scrolls.clear()
         var path: Array'u32
         .captureScrolls(session.view!, &path)
-        switch session.view!.itf
+        switch session.view.itf
         {
         case TextView as view:
             .zoom     = view.zoomPercent

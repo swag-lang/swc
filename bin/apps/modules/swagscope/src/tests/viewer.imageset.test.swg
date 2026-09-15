@@ -27,7 +27,7 @@ using Core, Pixel, Gui
         view.imageView.setFrameIndex(0)
         Swag.assert(movie.frameIndex == 0 and movie.failureReason.isEmpty())
         session.sidePanelButton!.setChecked(true)
-        session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
+        session.sidePanelButton.sigCheckedChanged.call(session.sidePanelButton)
         Swag.assert(Utf8.contains(view.information.text(), Format.toString("%", movie.frameCount).toString()))
         view.information.closeButton.sigPressed.call(view.information.closeButton)
         Swag.assert(not session.sidePanelHost!.isLocallyVisible())

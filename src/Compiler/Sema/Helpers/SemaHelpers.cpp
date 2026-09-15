@@ -965,28 +965,33 @@ void SemaHelpers::killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, Sem
 void SemaHelpers::killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull)
 {
     // Adding a positive fact is only useful when narrowing is possible at all; killing is
-    // only needed when something is currently narrowed.
-    if (!nonNull && !sema.frame().hasNarrowFacts())
+    // only needed when something is currently narrowed. A fact can live in a frame below the
+    // top one, so the question is asked of every live frame.
+    if (!nonNull && !sema.anyFrameHasNarrowFacts())
         return;
 
     SmallVector4<const Symbol*> path;
     if (!extractNarrowPath(sema, exprRef, path))
         return;
 
-    // Only nullable-declared paths participate in narrowing.
-    if (!typeRefIsNullable(sema, path.back()->typeRef()))
-        return;
-
     // Mutate live frames in place: pushing a frame with an ancestor-anchored pop from the
     // middle of a statement would break the LIFO discipline of the deferred pops.
     if (nonNull)
     {
-        // A positive fact only holds inside the current region: add it to the top frame.
-        sema.frame().addNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
+        // Only a nullable-declared path can carry a proof; a bare one is never narrowed.
+        if (!typeRefIsNullable(sema, path.back()->typeRef()))
+            return;
+
+        // A positive fact only holds inside the current region, which is the statement's frame:
+        // the binding frames above it are scoped to one operand, not to the flow.
+        sema.addNarrowFactPastBindingFrames({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
     }
     else
     {
-        // A kill must outlive any enclosing region that proved the path non-null.
+        // A kill must outlive any enclosing region that proved the path non-null. It is NOT
+        // restricted to nullable-declared paths: aliasing a plain struct is exactly what lets
+        // a callee rewrite the nullable fields reached through it, and a kill on the prefix is
+        // what drops their proofs.
         sema.addNarrowKillAllFrames({path.data(), path.size()});
     }
 }

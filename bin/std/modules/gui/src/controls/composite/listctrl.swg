@@ -292,7 +292,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(focusLine!)
+                .list.toggleExpand(focusLine)
             }
 
         case .Enter where focusLine:
@@ -315,7 +315,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(focusLine!)
+                .list.toggleExpand(focusLine)
             }
 
         case .A:
@@ -1415,7 +1415,7 @@ impl ListCtrl
 
         let reserveCheckMargin = .isVirtual ? line.canCheck : .hasVisibleCheckBoxes()
         for itemIt, itemIndex in line.items where itemIt!.column == column do
-            return .listView.cellLayout(line, itemIt!, itemIndex, row, reserveCheckMargin).text
+            return .listView.cellLayout(line, itemIt, itemIndex, row, reserveCheckMargin).text
 
         return result
     }
@@ -1839,7 +1839,7 @@ impl ListCtrl
         for l in .lines
         {
             if l!.expanded do
-                .collapse(l!)
+                .collapse(l)
         }
 
         collapseRec(.lines.toSlice())

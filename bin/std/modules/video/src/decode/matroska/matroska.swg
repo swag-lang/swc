@@ -2094,9 +2094,9 @@ private impl Decoder
             return
         .resumeSoundIndexAfterDecode = false
         Sync.scopedLock(&.fileIndex!.soundLock)
-        Atomic.exchange(&.fileIndex!.soundPause, 0)
-        if Atomic.get(&.fileIndex!.soundStage) do
-            Atomic.exchange(&.fileIndex!.currentSeekSound, 0)
+        Atomic.exchange(&.fileIndex.soundPause, 0)
+        if Atomic.get(&.fileIndex.soundStage) do
+            Atomic.exchange(&.fileIndex.currentSeekSound, 0)
     }
 
     mtd opDrop()

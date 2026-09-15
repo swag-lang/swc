@@ -84,7 +84,7 @@ func midiTestFixture()->String
     Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
-    result.info!.dockStyle    = .None
+    result.info.dockStyle     = .None
     Swag.assert(viewer.trackCombo.items.count == 2)
     viewer.trackCombo.setSelectedIndex(1)
     Swag.assert(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)

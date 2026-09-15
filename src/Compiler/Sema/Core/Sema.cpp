@@ -779,9 +779,40 @@ void Sema::pushFrame(const SemaFrame& frame)
 void Sema::addNarrowKillAllFrames(std::span<const Symbol* const> path)
 {
     // A narrowing kill must survive the pop of every enclosing region that had proven the
-    // path, so it is recorded in every live frame.
-    for (auto& frame : frames_)
+    // path, so it is recorded in every live frame -- except past a 'defer' body, whose
+    // statements run at scope exit and cannot invalidate what precedes it.
+    for (size_t index = frames_.size(); index > 0; --index)
+    {
+        auto& frame = frames_[index - 1];
         frame.addNarrowKill(path);
+        if (frame.deferBody())
+            return;
+    }
+}
+
+void Sema::addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, SemaNarrowFactKind kind)
+{
+    // A proof made while a binding frame is on top belongs to the statement, not to the operand
+    // that frame was pushed for: recorded there, it would be dropped when the initializer or the
+    // right side ends. Write it into the innermost frame that really scopes the statement, and
+    // into the binding frames on the way so the rest of that operand sees it too.
+    for (size_t index = frames_.size(); index > 0; --index)
+    {
+        auto& frame = frames_[index - 1];
+        frame.addNarrowFact(path, kind);
+        if (!frame.bindingScoped())
+            return;
+    }
+}
+
+bool Sema::anyFrameHasNarrowFacts() const
+{
+    // A proof recorded in an enclosing region is still live while an inner frame is on top,
+    // so the top frame alone does not answer whether anything is narrowed.
+    for (const auto& frame : frames_)
+        if (frame.hasNarrowFacts())
+            return true;
+    return false;
 }
 
 void Sema::popFrame()

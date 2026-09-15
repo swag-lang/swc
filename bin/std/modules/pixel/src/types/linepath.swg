@@ -86,6 +86,15 @@ private var g_ContourRevision: u64
 
 private func nextContourRevision()->u64 => Swag.atomadd(&g_ContourRevision, 1) + 1
 
+// Returns how much two corner radii sharing one side must shrink to fit inside it.
+private func sideScale(side, first, second: f32)->f32
+{
+    let total = first + second
+    if total <= 0 or side >= total do
+        return 1
+    return Math.max(side, 0) / total
+}
+
 public impl LinePath
 {
     // Returns roughly what this contour holds in memory, in bytes.
@@ -447,6 +456,48 @@ public impl LinePath
         .arcTo(r - rX, b - rY, rX, rY, 90'deg, 180'deg)
         .lineTo(l + rX, b)
         .arcTo(l + rX, b - rY, rX, rY, 180'deg, 270'deg)
+        .close()
+    }
+
+    // Initialize the path with a round rectangle whose corners carry their own radius.
+    //
+    // The radii are given clockwise from the top left, as a style sheet writes them, and each
+    // corner is a quarter circle. Two radii that together exceed the side they share would make
+    // the corners overlap; all four are then scaled by one common factor, so the shape shrinks
+    // evenly instead of one corner swallowing another.
+    //
+    // Nothing is snapped to the pixel grid; see [[Pixel.LinePath.setRoundRectRaw]].
+    mtd setRoundRectRaw(l, t, w, h: f32, topLeft, topRight, bottomRight, bottomLeft: f32)
+    {
+        let r = l + w
+        let b = t + h
+
+        var tl = Math.max(topLeft, 0.0)
+        var tr = Math.max(topRight, 0.0)
+        var br = Math.max(bottomRight, 0.0)
+        var bl = Math.max(bottomLeft, 0.0)
+
+        var scale = 1.0'f32
+        scale = Math.min(scale, sideScale(w, tl, tr))
+        scale = Math.min(scale, sideScale(h, tr, br))
+        scale = Math.min(scale, sideScale(w, bl, br))
+        scale = Math.min(scale, sideScale(h, tl, bl))
+        if scale < 1
+        {
+            tl *= scale
+            tr *= scale
+            br *= scale
+            bl *= scale
+        }
+
+        .start(l, t + tl)
+        .arcTo(l + tl, t + tl, tl, tl, 270'deg, 360'deg)
+        .lineTo(r - tr, t)
+        .arcTo(r - tr, t + tr, tr, tr, 0'deg, 90'deg)
+        .lineTo(r, b - br)
+        .arcTo(r - br, b - br, br, br, 90'deg, 180'deg)
+        .lineTo(l + bl, b)
+        .arcTo(l + bl, b - bl, bl, bl, 180'deg, 270'deg)
         .close()
     }
 

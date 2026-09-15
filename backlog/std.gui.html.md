@@ -66,6 +66,32 @@ mean, and CSS surface that is read and silently dropped.
 
 ## Entries
 
+### std.gui.html.012 — Dashed, dotted and double borders paint solid
+
+- Recorded: 2026-08-18 14:57
+- Updated: 2026-09-15 09:12 — Per-corner radii, mixed side colours and the border's placement inside the box shipped; only the line patterns remain.
+- Shipped: `LinePath.setRoundRectRaw` gained a per-corner form, carrying the proportional scaling
+  CSS applies when two radii sharing a side would overlap, and `Painter` gained the matching
+  `fillRoundRect` and `drawRoundRect`. `paintDecorations` passes the four radii through instead of
+  collapsing them to the largest, so a box that rounds one corner keeps the other three square. A
+  rounded box whose sides agree is drawn as one stroke; one whose sides differ is drawn side by
+  side in each side's own colour — it previously painted the whole ring in the top side's colour
+  and dropped the other three — with square corners as the one documented approximation.
+- Shipped: that stroke is now placed with `BorderPos.Inside`. A pen defaults to `.None`, which
+  centres it on the outline, so a rounded border used to hang half its width outside the element
+  and paint over whatever sat beside it, while the mitred sides of a square box filled inward. The
+  two paths now agree, and a test pins that nothing of the border reaches the row or column just
+  outside the box. Six `linepath.test.swg` cases pin the geometry and three `htmlview.test.swg`
+  cases the rendering.
+- Evidence: `HtmlBorderStyle` distinguishes `Dashed`, `Dotted` and `Double`, but `paintDecorations`
+  only tests for `None`, so every side is filled as a solid rectangle or trapezoid and
+  `border: 1px dashed` draws exactly like `border: 1px solid`.
+- Next: give a side its dash pattern at paint time, deciding where the phase restarts at a corner
+  and how a pattern follows a rounded one, then draw `double` as two strokes sharing the declared
+  width.
+- Complete when: dashed and dotted sides draw their pattern and `double` draws its two lines, on
+  square and rounded boxes alike, with a golden holding each.
+
 ### std.gui.html.006 — A fixed box is placed against the viewport and then scrolls away from it
 
 - Recorded: 2026-08-18 14:57
@@ -136,18 +162,6 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: an outset `box-shadow` with offset, blur and color draws behind the border box
   (inset may be recorded as a limitation), `text-shadow` draws behind the run, and both respect
   border radius.
-
-### std.gui.html.012 — Dashed, dotted and double borders paint solid
-
-- Recorded: 2026-08-18 14:57
-- Updated: 2026-09-12 07:14 — Distinguish the existing absent-border check from missing patterns.
-- Intent: `HtmlBorderStyle` distinguishes the styles but `paintDecorations` only tests for `None` —
-  every side is filled as a solid rectangle or trapezoid, so `border: 1px dashed` draws exactly
-  like `solid`. Corner radii are also collapsed: the largest of the four corners is applied to
-  all of them, drawn with the top side's width and color alone.
-- Complete when: dashed and dotted sides draw their pattern, double draws its two lines, each
-  corner uses its own radius, and mixed side colors on a rounded box either draw correctly or
-  are recorded as the one documented approximation.
 
 ### std.gui.html.013 — `transform` does not exist
 

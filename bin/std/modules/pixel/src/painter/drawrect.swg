@@ -210,6 +210,62 @@ impl Painter
         .fillRoundRect(left, top, width, height, radiusX, radiusY, brush)
     }
 
+    // Fill a round rectangle whose corners carry their own radius.
+    //
+    // The radii are given clockwise from the top left, as a style sheet writes them. Corners that
+    // would overlap are scaled down together; see [[Pixel.LinePath.setRoundRectRaw]].
+    mtd fillRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, brush: Brush)
+    {
+        if rect.width == 0 or rect.height == 0 or .isInvisible(brush) do
+            return
+
+        let l = .snapToDeviceX(rect.x)
+        let t = .snapToDeviceY(rect.y)
+        let w = .snapToDeviceX(rect.right()) - l
+        let h = .snapToDeviceY(rect.bottom()) - t
+        .sharedLinePath.setRoundRectRaw(l, t, w, h, topLeft, topRight, bottomRight, bottomLeft)
+        .fillPath(&.sharedLinePath, brush)
+    }
+
+    // Fill a round rectangle whose corners carry their own radius.
+    mtd fillRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, color: Color)
+    {
+        if rect.width == 0 or rect.height == 0 or .isInvisible(color) do
+            return
+
+        let brush = Brush.createSolid(color)
+        .fillRoundRect(rect, topLeft, topRight, bottomRight, bottomLeft, brush)
+    }
+
+    // Draw the outline of a round rectangle whose corners carry their own radius.
+    //
+    // The pen is centred on the outline, exactly as the uniform form places it.
+    mtd drawRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, pen: Pen)
+    {
+        if rect.width == 0 or rect.height == 0 or .isInvisible(pen.brush) or pen.size == 0 do
+            return
+
+        let l = .snapToDeviceX(rect.x)
+        let t = .snapToDeviceY(rect.y)
+        let w = .snapToDeviceX(rect.right()) - l
+        let h = .snapToDeviceY(rect.bottom()) - t
+
+        // Move every radius with the inset, for the reason the uniform form records.
+        let o = .strokeInset(pen)
+        .sharedLinePath.setRoundRectRaw(l + o, t + o, w - 2 * o, h - 2 * o, Math.max(0, topLeft - o), Math.max(0, topRight - o), Math.max(0, bottomRight - o), Math.max(0, bottomLeft - o))
+        .drawPath(&.sharedLinePath, pen)
+    }
+
+    // Draw the outline of a round rectangle whose corners carry their own radius.
+    mtd drawRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, color: Color, penSize: f32 = 1)
+    {
+        if rect.width == 0 or rect.height == 0 or .isInvisible(color) or penSize == 0 do
+            return
+
+        let pen = Pen.createSolid(color, penSize)
+        .drawRoundRect(rect, topLeft, topRight, bottomRight, bottomLeft, pen)
+    }
+
     mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, color: Color)
     {
         .fillRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, color)

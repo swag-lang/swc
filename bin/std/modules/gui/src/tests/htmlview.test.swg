@@ -1264,6 +1264,106 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(view.hasFocus())
 }
 
+// Reports whether a vertical run of one column holds the exact color.
+func columnHasColor(image: *Pixel.Image, x: s32, y0, y1: s32, argb: u32)->bool
+{
+    for y in y0 until y1 where image.pixelColor(x, y).argb == argb do
+        return true
+    return false
+}
+
+// Reports whether a horizontal run of one row holds the exact color.
+func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
+{
+    for x in x0 until x1 where image.pixelColor(x, y).argb == argb do
+        return true
+    return false
+}
+
+// Each corner rounds by its own radius. A box that rounds one corner keeps the other three
+// square rather than taking the largest radius everywhere.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0; background: #ffffff }"
+    source += ".box { width: 100px; height: 60px; background: #ff0000; border-radius: 0 24px 0 0 }"
+    source += "</style><div class=\"box\"></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(200, 120)
+    view.applyLayout()
+    view.rebuild()
+    var image = host.render(view)
+
+    // Only the top-right corner is cut away.
+    Swag.assert(image.pixelColor(2, 2).argb == 0xFFFF0000)
+    Swag.assert(image.pixelColor(97, 2).argb == 0xFFFFFFFF)
+    Swag.assert(image.pixelColor(2, 57).argb == 0xFFFF0000)
+    Swag.assert(image.pixelColor(97, 57).argb == 0xFFFF0000)
+}
+
+// A rounded box whose sides carry different colours keeps each side's own colour. One stroke
+// cannot do that, so such a box is drawn side by side, with square corners as the documented
+// approximation.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0; background: #ffffff }"
+    source += ".box { width: 100px; height: 60px; background: #ffffff; border-radius: 10px;"
+    source += " border-top: 6px solid #ff0000; border-right: 6px solid #00ff00;"
+    source += " border-bottom: 6px solid #0000ff; border-left: 6px solid #ffff00 }"
+    source += "</style><div class=\"box\"></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(200, 120)
+    view.applyLayout()
+    view.rebuild()
+    var image = host.render(view)
+
+    Swag.assert(image.pixelColor(50, 2).argb == 0xFFFF0000)
+    Swag.assert(image.pixelColor(2, 30).argb == 0xFFFFFF00)
+    Swag.assert(image.pixelColor(109, 30).argb == 0xFF00FF00)
+    Swag.assert(image.pixelColor(50, 69).argb == 0xFF0000FF)
+}
+
+// A box whose four sides agree is still drawn as one rounded ring, on every side.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+
+    var source: String = "<style>body { margin: 0; background: #ffffff }"
+    source += ".box { width: 100px; height: 60px; background: #ffffff;"
+    source += " border: 6px solid #0000ff; border-radius: 12px }"
+    source += "</style><div class=\"box\"></div>"
+
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(200, 120)
+    view.applyLayout()
+    view.rebuild()
+    var image = host.render(view)
+
+    // Every side is painted inside its own band; antialiasing decides the exact edge, so the
+    // band is scanned rather than one pixel of it pinned.
+    Swag.assert(columnHasColor(&image, 56, 0, 6, 0xFF0000FF))
+    Swag.assert(rowHasColor(&image, 36, 0, 6, 0xFF0000FF))
+    Swag.assert(rowHasColor(&image, 36, 106, 112, 0xFF0000FF))
+    Swag.assert(columnHasColor(&image, 56, 66, 72, 0xFF0000FF))
+
+    // A border is drawn inside the box it frames: nothing of it reaches the row or the column
+    // just outside the element, and the rounded corner stays cut away.
+    Swag.assert(not rowHasColor(&image, 36, 112, 130, 0xFF0000FF))
+    Swag.assert(not columnHasColor(&image, 56, 72, 90, 0xFF0000FF))
+    Swag.assert(image.pixelColor(1, 1).argb == 0xFFFFFFFF)
+}
+
 // A percentage height resolves against a parent that has one, down a whole chain of them, and
 // still falls back to content height where nothing definite stands above it.
 #test

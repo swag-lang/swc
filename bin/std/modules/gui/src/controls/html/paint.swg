@@ -181,21 +181,34 @@ impl HtmlPainter
             return
         }
 
-        let radius = Math.max(Math.max(style.radiusTopLeft, style.radiusTopRight), Math.max(style.radiusBottomRight, style.radiusBottomLeft))
+        // Each corner keeps its own radius. A box is rounded as soon as one of them is.
+        let tl      = style.radiusTopLeft
+        let tr      = style.radiusTopRight
+        let br      = style.radiusBottomRight
+        let bl      = style.radiusBottomLeft
+        let rounded = tl > 0 or tr > 0 or br > 0 or bl > 0
+
         if style.background.a and not style.masked and not skipBackground
         {
             let ground = HtmlPainter.withAlpha(style.background, alpha)
             let area   = Math.Rectangle.intersect(rect, .band())
-            if radius > 0 do
-                .painter.fillRoundRect(rect.height < .band().height ? rect : area, radius, radius, ground)
+            if rounded do
+                .painter.fillRoundRect(rect.height < .band().height ? rect : area, tl, tr, br, bl, ground)
             else do
                 .painter.fillRect(area, ground)
         }
 
-        if radius > 0 and style.borderTop.width > 0 and style.borderTop.style != .None
+        // One stroke can trace a rounded ring only while the four sides agree on what to draw.
+        // Where they do not, the box falls back to the mitred sides below: its corners are then
+        // square, which is the one approximation this painter makes.
+        if rounded and .hasUniformBorder(style)
         {
-            let color = HtmlPainter.withAlpha(style.borderTop.color, alpha)
-            .painter.drawRoundRect(rect, radius, radius, color, style.borderTop.width)
+            // A border belongs inside the box it frames. Centred on the outline, half of it would
+            // hang outside the element and paint over whatever sits beside it, which is also what
+            // the mitred sides below never do.
+            var pen = Pen.createSolid(HtmlPainter.withAlpha(style.borderTop.color, alpha), style.borderTop.width)
+            pen.borderPos = .Inside
+            .painter.drawRoundRect(rect, tl, tr, br, bl, pen)
             return
         }
 
@@ -322,6 +335,21 @@ impl HtmlPainter
             path.lineTo(points[index].x, points[index].y)
         path.close()
         .painter.drawPath(&path, HtmlPainter.withAlpha(border.color, alpha), border.width)
+    }
+
+    // Reports whether one stroke can draw the whole border: every side present, and all four
+    // agreeing on width and colour.
+    private func hasUniformBorder(style: const *HtmlComputedStyle)->bool
+    {
+        if style.borderTop.width <= 0 or style.borderTop.style == .None do
+            return false
+        if style.borderRight.width != style.borderTop.width or style.borderRight.style != style.borderTop.style do
+            return false
+        if style.borderBottom.width != style.borderTop.width or style.borderBottom.style != style.borderTop.style do
+            return false
+        if style.borderLeft.width != style.borderTop.width or style.borderLeft.style != style.borderTop.style do
+            return false
+        return not hasDistinctSides(style)
     }
 
     // Reports whether the four sides differ enough for the diagonal between them to be visible.

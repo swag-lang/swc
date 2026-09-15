@@ -33,7 +33,7 @@ func scoreNameRecord(platformID, encodingID, languageID: u16)->s32
     return score
 }
 
-func decodeNameRecord(nameTable: const [..] u8?, stringOffset, recordOffset: u64)->String fail
+func decodeNameRecord(nameTable: const [..] u8, stringOffset, recordOffset: u64)->String fail
 {
     let platformID = try readU16(nameTable, recordOffset + 0)
     let length     = try readU16(nameTable, recordOffset + 8)
@@ -57,7 +57,7 @@ func decodeNameRecord(nameTable: const [..] u8?, stringOffset, recordOffset: u64
 
 // Decodes the best-scoring record a 'name' table holds for 'nameID', or an empty
 // string when it declares none this module can read.
-func decodeBestName(nameTable: const [..] u8?, nameID: u16)->String fail
+func decodeBestName(nameTable: const [..] u8, nameID: u16)->String fail
 {
     var result: retval
 
@@ -318,7 +318,7 @@ func initFaceRecords(faceData: *FaceImpl)
 
 // Rejects an offset table this module cannot read, naming the container it found
 // instead of reporting every one of them as an unknown format.
-func checkSfntVersion(data: const [..] u8?, offset: u64) fail
+func checkSfntVersion(data: const [..] u8, offset: u64) fail
 {
     let tag = try readU32(data, offset)
     if tag == TAG_WOFF or tag == TAG_WOF2 do
@@ -329,7 +329,7 @@ func checkSfntVersion(data: const [..] u8?, offset: u64) fail
 
 // Returns how many faces the font data holds: the face count of a `ttcf`
 // collection, and one for a bare font file.
-func countFacesIn(data: const [..] u8?)->u32 fail
+func countFacesIn(data: const [..] u8)->u32 fail
 {
     if data.count < 12 do
         try fault(0x02)
@@ -345,7 +345,7 @@ func countFacesIn(data: const [..] u8?)->u32 fail
 // A collection stores one such offset per face after a twelve-byte header; every
 // table record inside a member still addresses the whole file, so only the
 // directory moves.
-func findFaceOffset(data: const [..] u8?, faceIndex: u32)->u64 fail
+func findFaceOffset(data: const [..] u8, faceIndex: u32)->u64 fail
 {
     if data.count < 12 do
         try fault(0x02)
@@ -367,7 +367,7 @@ func findFaceOffset(data: const [..] u8?, faceIndex: u32)->u64 fail
 }
 
 // Locates one table of the directory at 'faceOffset', without building a face.
-func findTableAt(data: const [..] u8?, faceOffset: u64, tag: u32)->const [..] u8? fail
+func findTableAt(data: const [..] u8, faceOffset: u64, tag: u32)->const [..] u8? fail
 {
     let numTables = try readU16(data, faceOffset + 4)
     for index in numTables
@@ -385,14 +385,16 @@ func findTableAt(data: const [..] u8?, faceOffset: u64, tag: u32)->const [..] u8
 //
 // Only the offset table and the 'name' table are read, which is what lets a
 // collection be searched for a family without loading each of its faces in turn.
-func familyNameIn(data: const [..] u8?, faceIndex: u32)->String fail
+func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
 {
     let faceOffset = try findFaceOffset(data, faceIndex)
     let nameTable  = try findTableAt(data, faceOffset, TAG_NAME)
     if not nameTable do
         try fault(0x91)
 
-    let familyName = try decodeBestName(nameTable, NAME_ID_FAMILY)
+    // The guard above raises, but "fault" is an ordinary fallible call: nothing marks it as
+    // never returning, so the proof has to be stated here.
+    let familyName = try decodeBestName(nameTable!, NAME_ID_FAMILY)
     if familyName.length == 0 do
         return DEFAULT_FAMILY_NAME
     return familyName

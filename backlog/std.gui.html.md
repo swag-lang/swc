@@ -78,7 +78,7 @@ mean, and CSS surface that is read and silently dropped.
   the card. `flowChildren` queues what it steps over, so a positioned child of a flex, grid or
   table container is placed instead of being left at the rectangle it was born with. An automatic
   inset now keeps the box at the flow position it would have had rather than on the containing
-  block's edge. Four `htmlview.test.swg` cases cover these, and three of them fail without the change.
+  block's edge. Five `htmlview.test.swg` cases cover these.
 - Evidence: `position: fixed` resolves against the viewport, which places it correctly while the
   document sits at scroll zero, but `paintBox` still reaches it through its parent and adds the
   scroll translation, so a fixed header leaves the screen. It is also pruned with an ancestor whose

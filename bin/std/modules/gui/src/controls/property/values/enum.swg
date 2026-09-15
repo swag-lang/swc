@@ -112,7 +112,7 @@ internal impl Properties
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
             let sz   = item.typeValue.pointedType!.sizeof
-            let mask = readEnumBits(cast(*u8?) item.checkBox.userData, sz)
+            let mask = readEnumBits(cast(*u8) item.checkBox.userData!, sz)
             .writeEnumBit(item, mask, item.checkBox.isChecked())
         }
 

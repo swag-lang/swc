@@ -111,17 +111,11 @@ namespace
 
     void collectGlobalInitRelocationOffsets(const SymbolFunction& function, std::unordered_set<uint64_t>& outOffsets)
     {
-        const MachineCode& code = function.loweredCode();
-        if (code.bytes.empty())
+        if (function.loweredCode().bytes.empty())
             return;
 
-        for (const MicroRelocation& relocation : code.codeRelocations)
-        {
-            if (relocation.kind != MicroRelocation::Kind::GlobalInitAddress)
-                continue;
-
-            outOffsets.insert(relocation.targetAddress);
-        }
+        for (const uint64_t offset : function.globalInitRelocationOffsets())
+            outOffsets.insert(offset);
     }
 
     void collectJitGlobalInitRelocationOffsets(TaskContext& ctx, std::unordered_set<uint64_t>& outOffsets)
@@ -152,16 +146,13 @@ namespace
         }
     }
 
-    bool referencesGlobalInitRange(const std::unordered_set<uint64_t>& referencedOffsets, const uint64_t offset, const uint64_t size)
+    bool referencesGlobalInitRange(const std::vector<uint64_t>& sortedReferencedOffsets, const uint64_t offset, const uint64_t size)
     {
+        // One binary search instead of a scan of every referenced slot: this is asked once per
+        // global-init variable, and a module has thousands of both.
         const uint64_t endOffset = offset + std::max<uint64_t>(size, 1);
-        for (const uint64_t referencedOffset : referencedOffsets)
-        {
-            if (referencedOffset >= offset && referencedOffset < endOffset)
-                return true;
-        }
-
-        return false;
+        const auto     it        = std::ranges::lower_bound(sortedReferencedOffsets, offset);
+        return it != sortedReferencedOffsets.end() && *it < endOffset;
     }
 
     Result synchronizeImportedRuntimeContexts(TaskContext& ctx)
@@ -1212,11 +1203,16 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
     JITRelocationPatchContext    patchContext;
     const bool                   patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
     std::unordered_set<uint64_t> referencedGlobalInitOffsets;
+    std::vector<uint64_t>        sortedReferencedGlobalInitOffsets;
 
     // During a #run, patch only global-init slots referenced by the active JIT call graph.
     // Full native/JIT preparation still patches the complete snapshot.
     if (patchReferencedGlobalsOnly)
+    {
         collectJitGlobalInitRelocationOffsets(ctx, referencedGlobalInitOffsets);
+        sortedReferencedGlobalInitOffsets.assign(referencedGlobalInitOffsets.begin(), referencedGlobalInitOffsets.end());
+        std::ranges::sort(sortedReferencedGlobalInitOffsets);
+    }
 
     patchContext.resolvedFunctionAddresses.reserve(globals.size());
 
@@ -1236,7 +1232,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
         const TypeInfo& storageType = ctx.typeMgr().get(symVar->typeRef());
         const uint64_t  storageSize = storageType.sizeOf(ctx);
         if (patchReferencedGlobalsOnly &&
-            !referencesGlobalInitRange(referencedGlobalInitOffsets, symVar->offset(), storageSize))
+            !referencesGlobalInitRange(sortedReferencedGlobalInitOffsets, symVar->offset(), storageSize))
             continue;
 
         SWC_ASSERT(storageSize == sizeof(uint64_t));

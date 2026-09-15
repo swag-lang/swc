@@ -981,6 +981,7 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
     }
 }
 
+
 void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 {
     if (!sym || sym == this)
@@ -995,6 +996,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
     if (!callDependencySet_.insert(mutableSym).second)
         return;
     callDependencies_.push_back(mutableSym);
+    noteCallGraphChanged();
 }
 
 void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const

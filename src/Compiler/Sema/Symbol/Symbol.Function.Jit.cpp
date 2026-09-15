@@ -20,6 +20,7 @@ namespace
         Done,
     };
 
+
     struct DepStackEntry
     {
         SymbolFunction* function = nullptr;
@@ -80,6 +81,7 @@ namespace
                 stack.push_back({.function = dependency, .expanded = false});
             }
         }
+
     }
 
     SourceCodeRef safeCodeRef(const SymbolFunction& function)
@@ -301,7 +303,54 @@ bool SymbolFunction::tryMarkJitPatchJobScheduled() noexcept
 
 void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
 {
-    appendDepOrder(out, *const_cast<SymbolFunction*>(this));
+    // The same order is asked for over and over: once per snapshot of the dependency-closure loop,
+    // once per metadata pointer judged against its call graph, twice per compile-time call that
+    // patches its global slots. It only changes when the call graph does, so it is walked once per
+    // state of that graph instead of once per question.
+    const uint64_t version = callGraphVersion();
+
+    {
+        const std::shared_lock lock(jitOrderCacheMutex_);
+        if (jitOrderCacheVersion_ == version && !jitOrderCache_.empty())
+        {
+            out.reserve(out.size() + jitOrderCache_.size());
+            for (SymbolFunction* function : jitOrderCache_)
+                out.push_back(function);
+            return;
+        }
+    }
+
+    SmallVector<SymbolFunction*> order;
+    appendDepOrder(order, *const_cast<SymbolFunction*>(this));
+
+    {
+        const std::unique_lock lock(jitOrderCacheMutex_);
+        jitOrderCache_.assign(order.begin(), order.end());
+        jitOrderCacheVersion_ = version;
+    }
+
+    out.reserve(out.size() + order.size());
+    for (SymbolFunction* function : order)
+        out.push_back(function);
+}
+
+const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
+{
+    const std::scoped_lock lock(globalInitOffsetsMutex_);
+    if (globalInitOffsetsComputed_)
+        return globalInitOffsetsCache_;
+
+    for (const MicroRelocation& relocation : loweredCode().codeRelocations)
+    {
+        if (relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
+            globalInitOffsetsCache_.push_back(relocation.targetAddress);
+    }
+
+    std::ranges::sort(globalInitOffsetsCache_);
+    const auto duplicates = std::ranges::unique(globalInitOffsetsCache_);
+    globalInitOffsetsCache_.erase(duplicates.begin(), duplicates.end());
+    globalInitOffsetsComputed_ = true;
+    return globalInitOffsetsCache_;
 }
 
 Result SymbolFunction::emit(TaskContext& ctx)

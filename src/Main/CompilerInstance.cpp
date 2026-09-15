@@ -1328,31 +1328,73 @@ bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view mess
 
 void CompilerInstance::addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check)
 {
-    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    const std::unique_lock lock(deferredEscapeChecksMutex_);
     deferredEscapeChecks_.push_back(std::move(check));
 }
 
 std::vector<SemaEscapeDeferredCheck> CompilerInstance::takeDeferredEscapeChecks()
 {
-    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    const std::unique_lock lock(deferredEscapeChecksMutex_);
     return std::exchange(deferredEscapeChecks_, {});
 }
 
 void CompilerInstance::addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
 {
-    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    const std::unique_lock lock(deferredEscapeChecksMutex_);
+    const auto             index = static_cast<uint32_t>(escapeSummaryEdges_.size());
     escapeSummaryEdges_.push_back(edge);
+
+    if (isFreeForwardingEscapeSummaryEdge(edge))
+    {
+        freeForwardingEdgeIndices_.push_back(index);
+        if (!edge.returnGuards.empty())
+            guardedFreeForwardingEdgeCount_.fetch_add(1, std::memory_order_release);
+    }
+    else if (edge.kind == SemaEscapeSummaryEdgeKind::ReturnToReturn)
+    {
+        returnEdgeIndices_.push_back(index);
+        returnEdgesByCaller_[edge.caller].push_back(index);
+    }
+
+    escapeSummaryEdgesVersion_.fetch_add(1, std::memory_order_release);
+}
+
+bool CompilerInstance::freesPropagationAlreadyDone(const uint64_t signature) const
+{
+    const std::scoped_lock lock(freesPropagationMutex_);
+    return std::ranges::find(freesPropagationSignatures_, signature) != freesPropagationSignatures_.end();
+}
+
+void CompilerInstance::noteFreesPropagationDone(const uint64_t signature)
+{
+    const std::scoped_lock lock(freesPropagationMutex_);
+    if (std::ranges::find(freesPropagationSignatures_, signature) != freesPropagationSignatures_.end())
+        return;
+
+    freesPropagationSignatures_[freesPropagationSignatureCursor_] = signature;
+    freesPropagationSignatureCursor_                             = (freesPropagationSignatureCursor_ + 1) % freesPropagationSignatures_.size();
 }
 
 std::vector<SemaEscapeSummaryEdge> CompilerInstance::copyEscapeSummaryEdges() const
 {
-    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    const std::unique_lock lock(deferredEscapeChecksMutex_);
     return escapeSummaryEdges_;
+}
+
+size_t CompilerInstance::freeForwardingEdgeCount() const
+{
+    const std::shared_lock lock(deferredEscapeChecksMutex_);
+    return freeForwardingEdgeIndices_.size();
 }
 
 std::vector<SemaEscapeSummaryEdge> CompilerInstance::takeEscapeSummaryEdges()
 {
-    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    const std::unique_lock lock(deferredEscapeChecksMutex_);
+    freeForwardingEdgeIndices_.clear();
+    returnEdgeIndices_.clear();
+    returnEdgesByCaller_.clear();
+    guardedFreeForwardingEdgeCount_.store(0, std::memory_order_release);
+    escapeSummaryEdgesVersion_.fetch_add(1, std::memory_order_release);
     return std::exchange(escapeSummaryEdges_, {});
 }
 

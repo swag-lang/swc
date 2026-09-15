@@ -262,6 +262,71 @@ public:
     std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
     void                                 addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
     std::vector<SemaEscapeSummaryEdge>   copyEscapeSummaryEdges() const;
+
+    // Runs `visit` over the edges the frees propagation reads, in place and under a shared lock:
+    // the pass only grows release masks, so it never needs a private copy of a list that a module
+    // grows into the tens of thousands.
+    template<typename Visit>
+    void visitFreesPropagationEdges(bool needsReturnSummaries, Visit&& visit) const
+    {
+        const std::shared_lock lock(deferredEscapeChecksMutex_);
+        for (const uint32_t index : freeForwardingEdgeIndices_)
+            visit(escapeSummaryEdges_[index]);
+        if (!needsReturnSummaries)
+            return;
+        for (const uint32_t index : returnEdgeIndices_)
+            visit(escapeSummaryEdges_[index]);
+    }
+
+    size_t                               freeForwardingEdgeCount() const;
+
+    // Runs `fn(edgesOf)` under one shared lock, where `edgesOf(caller, visit)` hands `visit` the
+    // return edges recorded for that caller. The return fixpoint only judges the functions it was
+    // given, and a module records tens of thousands of edges belonging to every other caller.
+    template<typename Fn>
+    void withReturnEdgesByCaller(Fn&& fn) const
+    {
+        const std::shared_lock lock(deferredEscapeChecksMutex_);
+        fn([this](const SymbolFunction* caller, auto&& visit) {
+            const auto found = returnEdgesByCaller_.find(caller);
+            if (found == returnEdgesByCaller_.end())
+                return;
+            for (const uint32_t index : found->second)
+                visit(escapeSummaryEdges_[index]);
+        });
+    }
+
+    // Hands the module's release forwardings to `fn`, rebuilt from the recorded edges only when
+    // new ones have arrived. The closure over them is a module-wide fixpoint that every
+    // compile-time call needs closed, so it is kept, not recomputed from scratch each time.
+    template<typename Fn>
+    void withFreesForwardings(Fn&& fn)
+    {
+        const std::scoped_lock fixpointLock(freesForwardingsMutex_);
+        {
+            const std::shared_lock lock(deferredEscapeChecksMutex_);
+            if (freesForwardingsVersion_ != escapeSummaryEdgesVersion_.load(std::memory_order_acquire))
+            {
+                freesForwardings_.clear();
+                freesForwardings_.reserve(freeForwardingEdgeIndices_.size());
+                for (const uint32_t index : freeForwardingEdgeIndices_)
+                {
+                    const SemaEscapeSummaryEdge& edge = escapeSummaryEdges_[index];
+                    freesForwardings_.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, false});
+                }
+
+                freesForwardingsVersion_ = escapeSummaryEdgesVersion_.load(std::memory_order_acquire);
+            }
+        }
+
+        fn(freesForwardings_);
+    }
+    uint64_t                             escapeSummaryEdgesVersion() const noexcept { return escapeSummaryEdgesVersion_.load(std::memory_order_acquire); }
+    bool                                 freesPropagationNeedsReturnSummaries() const noexcept { return guardedFreeForwardingEdgeCount_.load(std::memory_order_acquire) != 0; }
+    uint64_t                             semaCompletedSymbolCount() const noexcept { return semaCompletedSymbolCount_.load(std::memory_order_acquire); }
+    void                                 noteSymbolSemaCompleted() noexcept { semaCompletedSymbolCount_.fetch_add(1, std::memory_order_release); }
+    bool                                 freesPropagationAlreadyDone(uint64_t signature) const;
+    void                                 noteFreesPropagationDone(uint64_t signature);
     std::vector<SemaEscapeSummaryEdge>   takeEscapeSummaryEdges();
     void                                 registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
     void                                 onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
@@ -576,9 +641,27 @@ private:
     std::mutex                                                                                                   reportedDiagnosticsMutex_;
     std::atomic<bool>                                                                                            hasErrorDiagnostic_ = false;
     std::unordered_set<Utf8>                                                                                     reportedDiagnostics_;
-    mutable std::mutex                                                                                           deferredEscapeChecksMutex_;
+    mutable std::shared_mutex                                                                                    deferredEscapeChecksMutex_;
     std::vector<SemaEscapeDeferredCheck>                                                                         deferredEscapeChecks_;
     std::vector<SemaEscapeSummaryEdge>                                                                           escapeSummaryEdges_;
+    // Positions in `escapeSummaryEdges_` of the only two kinds the frees propagation reads, kept
+    // as the edges arrive: that pass runs once per compile-time call and must not rescan the
+    // module's whole edge list to find the handful it cares about.
+    std::vector<uint32_t>                                                                                        freeForwardingEdgeIndices_;
+    std::vector<uint32_t>                                                                                        returnEdgeIndices_;
+    std::unordered_map<const SymbolFunction*, std::vector<uint32_t>>                                             returnEdgesByCaller_;
+    std::atomic<uint32_t>                                                                                        guardedFreeForwardingEdgeCount_{0};
+    std::atomic<uint64_t>                                                                                        escapeSummaryEdgesVersion_{0};
+    std::atomic<uint64_t>                                                                                        semaCompletedSymbolCount_{0};
+    // The last few input signatures the frees propagation was run for. Its result is a function of
+    // the edges, the release masks and the call graph it was given, so the same signature twice is
+    // the same fixpoint twice.
+    std::vector<SemaEscapeFreesForwarding>                                                                       freesForwardings_;
+    uint64_t                                                                                                     freesForwardingsVersion_ = 0;
+    std::mutex                                                                                                   freesForwardingsMutex_;
+    mutable std::mutex                                                                                           freesPropagationMutex_;
+    std::array<uint64_t, 8>                                                                                      freesPropagationSignatures_{};
+    uint32_t                                                                                                     freesPropagationSignatureCursor_ = 0;
     mutable std::mutex                                                                                           compilerMessageDispatchMutex_;
     std::deque<CompilerMessageListener>                                                                          compilerMessageListeners_;
     std::vector<CompilerMessageEvent>                                                                            compilerMessageLog_;

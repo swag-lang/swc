@@ -193,6 +193,7 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
     }
 #endif
     flags_.add(SymbolFlagsE::SemaCompleted);
+    ctx.compiler().noteSymbolSemaCompleted();
     ctx.compiler().onSymbolSemaCompleted(ctx, *this);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymSemaCompleted});
@@ -230,6 +231,7 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
     if (flags_.has(SymbolFlagsE::Ignored))
         return;
     flags_.add(SymbolFlagsE::Ignored);
+    SymbolFunction::noteCallGraphChanged();
     ctx.compiler().notifyAlive();
 }
 

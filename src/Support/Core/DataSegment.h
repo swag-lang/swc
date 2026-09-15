@@ -100,6 +100,12 @@ public:
     void                                       copyToPreserveOffsets(std::span<std::byte> dst) const;
     void                                       restoreFromPreserveOffsets(std::span<const std::byte> src) const;
     std::vector<DataSegmentRelocation>         copyRelocations() const;
+
+    // Identity of this segment, and how many relocations it has taken. Together they let a reader
+    // remember what a given offset resolved to and know, in one comparison, whether that answer
+    // can still be trusted.
+    uint64_t                                   id() const noexcept { return id_; }
+    uint64_t                                   relocationVersion() const noexcept { return relocationVersion_.load(std::memory_order_acquire); }
     void                                       copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
     bool                                       findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
     bool                                       hasRelocations(uint32_t offset, uint32_t size) const;
@@ -186,12 +192,16 @@ private:
     std::vector<LargeBlock>                                                largeBlocks_;
     std::map<uintptr_t, LargeBlockRange>                                   largeBlockRanges_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>, StringHash, std::equal_to<>> stringMap_;
+    static inline std::atomic<uint64_t>                                    s_nextId{1};
+    const uint64_t                                                         id_ = s_nextId.fetch_add(1, std::memory_order_relaxed);
+    std::atomic<uint64_t>                                                  relocationVersion_{0};
     std::vector<DataSegmentRelocation>                                     relocations_;
     // Sorted-by-offset index over the first `relocationsIndexedCount_` relocations. Relocations beyond
-    // that count form an unsorted tail. Readers query the sorted prefix (binary search) plus the tail
-    // (linear scan) under a shared lock, so they never need to escalate to an exclusive rebuild; the
-    // tail is merged into the index on the writer side once it grows past a threshold.
+    // that count form the tail, which carries its own index sorted the same way. Readers binary-search
+    // both under a shared lock, so they never scan a growing tail and never escalate to an exclusive
+    // rebuild; the tail is merged into the index on the writer side once it grows past a threshold.
     mutable std::vector<uint32_t>                                     relocationsByOffset_;
+    mutable std::vector<uint32_t>                                     relocationsTailByOffset_;
     mutable uint32_t                                                  relocationsIndexedCount_ = 0;
     std::vector<DataSegmentAllocation>                                allocations_;
     std::atomic<bool>                                                 hasLargeBlocks_{false};

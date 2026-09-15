@@ -114,9 +114,17 @@ public:
     uint64_t freesParamsMask() const noexcept;
     void     addFreesParam(size_t paramIndex) noexcept
     {
-        if (paramIndex < 64)
-            freesParamsMask_.fetch_or(1ULL << paramIndex, std::memory_order_release);
+        if (paramIndex >= 64)
+            return;
+        const uint64_t bit = 1ULL << paramIndex;
+        if (!(freesParamsMask_.fetch_or(bit, std::memory_order_release) & bit))
+            s_freesMaskVersion.fetch_add(1, std::memory_order_release);
     }
+
+    // Moves whenever a release summary gains a parameter. The frees propagation reads it to
+    // recognize a call graph whose summaries it has already closed, instead of closing the same
+    // fixpoint again for every compile-time call in the module.
+    static uint64_t freesMaskVersion() noexcept { return s_freesMaskVersion.load(std::memory_order_acquire); }
 
     // Bit i set = the returned value is a view INTO the heap payload parameter #i owns,
     // not merely a value that can reach that parameter. 'String.toString' sets it;
@@ -269,6 +277,17 @@ public:
     void                    addLifecycleDependency(const SymbolFunction* sym);
     void                    appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
     void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
+
+    // Everything the JIT order is derived from: a new call dependency, or a function withdrawn
+    // from code generation. A cached order is reused only while this has not moved, so the walk
+    // is paid once per graph state instead of once per compile-time call.
+    static void     noteCallGraphChanged() noexcept { s_callGraphVersion.fetch_add(1, std::memory_order_release); }
+    static uint64_t callGraphVersion() noexcept { return s_callGraphVersion.load(std::memory_order_acquire); }
+
+    // Offsets of the global-init slots this function's code refers to. Its lowered code no longer
+    // changes once emitted, so the answer is computed once instead of at every compile-time call
+    // that runs through it.
+    const std::vector<uint64_t>& globalInitRelocationOffsets() const;
     void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     void*                   jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
@@ -350,6 +369,14 @@ private:
     std::vector<SymbolVariable*>                  parameters_;
     std::vector<SymbolVariable*>                  localVariables_;
     std::unordered_set<const SymbolVariable*>     localVariableSet_;
+    static inline std::atomic<uint64_t>           s_freesMaskVersion{0};
+    static inline std::atomic<uint64_t>           s_callGraphVersion{0};
+    mutable std::vector<SymbolFunction*>          jitOrderCache_;
+    mutable uint64_t                              jitOrderCacheVersion_ = 0;
+    mutable std::shared_mutex                     jitOrderCacheMutex_;
+    mutable std::vector<uint64_t>                 globalInitOffsetsCache_;
+    mutable bool                                  globalInitOffsetsComputed_ = false;
+    mutable std::mutex                            globalInitOffsetsMutex_;
     std::vector<SymbolFunction*>                  callDependencies_;
     std::unordered_set<SymbolFunction*>           callDependencySet_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;

@@ -159,6 +159,25 @@ struct SemaEscapeSummaryEdge
     std::vector<SemaEscapeDeferredGuard> returnGuards;
 };
 
+// One release forwarding, reduced to what closing the module's frees summaries needs. `applied`
+// records that the caller has already taken the bit: release masks only grow, so an edge that has
+// fired never has to be judged again.
+struct SemaEscapeFreesForwarding
+{
+    SymbolFunction*       caller           = nullptr;
+    const SymbolFunction* callee           = nullptr;
+    uint32_t              callerParamIndex = 0;
+    uint32_t              calleeParamIndex = 0;
+    bool                  applied          = false;
+};
+
+// An edge that forwards a release: what the callee frees through its parameter, the caller frees
+// through the parameter it passed. It is the only kind the frees propagation reads.
+inline bool isFreeForwardingEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
+{
+    return edge.caller && edge.callee && edge.kind == SemaEscapeSummaryEdgeKind::StoresToStores && !edge.viaStoredField && !edge.viaOwnedPayload;
+}
+
 // The captured argument borrows of one opaque call. Checks are templates whose site,
 // wording and judged summary are stamped when the borrow provably escapes; edges are
 // proto-edges whose kind is chosen by the escape flavor. Also stored per-Sema when the

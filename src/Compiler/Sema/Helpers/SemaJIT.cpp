@@ -364,6 +364,10 @@ namespace
         return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     }
 
+    // One verdict per function for the whole walk. The same metadata pointer is reached from many
+    // allocations, and judging it again means walking its entire call graph again.
+    using OptionalRootVerdicts = std::unordered_map<const SymbolFunction*, bool>;
+
     bool isIncludableOptionalConstantJitRoot(const SymbolFunction& root)
     {
         // A metadata pointer may remain unpublished while its runtime call graph is
@@ -383,7 +387,88 @@ namespace
         return true;
     }
 
-    bool appendConstantFunctionJitRootsInAllocation(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, uint32_t shardIndex, uint32_t sourceOffset)
+    // What the constant graph looks like at one offset: which allocation holds it, and which
+    // relocations that allocation carries. Every compile-time call in a module walks this graph over
+    // the same few thousand allocations, and asking the segment again costs a lock, a binary search
+    // and a copy for an answer that has not changed. An entry is used only while the segment's
+    // relocation count is the one it was recorded at, so a patched allocation is never served stale.
+    struct WalkedAllocation
+    {
+        uint64_t                              segmentId         = 0;
+        uint32_t                              queryOffset       = 0;
+        uint64_t                              relocationVersion = 0;
+        DataSegmentAllocation                 allocation;
+        SmallVector<DataSegmentRelocation, 4> relocations;
+    };
+
+    // One entry per offset the walk has resolved, per worker. The table is open-addressed over a
+    // separate key array: the walk asks this question millions of times per module, and following a
+    // node per lookup costs more than the answer it returns.
+    struct WalkedAllocations
+    {
+        std::vector<uint64_t>        keys;
+        std::vector<uint32_t>        entryIndices;
+        // A deque, so an entry handed out stays put when the next one is recorded.
+        std::deque<WalkedAllocation> entries;
+        size_t                       used = 0;
+
+        WalkedAllocations()
+        {
+            keys.resize(1024);
+            entryIndices.resize(1024);
+        }
+
+        WalkedAllocation& slotFor(const uint64_t key)
+        {
+            const size_t mask  = keys.size() - 1;
+            size_t       index = (key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+            while (keys[index] != 0)
+            {
+                if (keys[index] == key)
+                    return entries[entryIndices[index]];
+                index = (index + 1) & mask;
+            }
+
+            keys[index]         = key;
+            entryIndices[index] = static_cast<uint32_t>(entries.size());
+            entries.emplace_back();
+            ++used;
+
+            WalkedAllocation& slot = entries.back();
+            if (used * 4 > keys.size() * 3)
+                grow();
+            return slot;
+        }
+
+        void grow()
+        {
+            std::vector<uint64_t> oldKeys         = std::move(keys);
+            std::vector<uint32_t> oldEntryIndices = std::move(entryIndices);
+            keys.assign(oldKeys.size() * 2, 0);
+            entryIndices.assign(oldKeys.size() * 2, 0);
+
+            const size_t mask = keys.size() - 1;
+            for (size_t i = 0; i < oldKeys.size(); ++i)
+            {
+                if (oldKeys[i] == 0)
+                    continue;
+                size_t index = (oldKeys[i] * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+                while (keys[index] != 0)
+                    index = (index + 1) & mask;
+                keys[index]         = oldKeys[i];
+                entryIndices[index] = oldEntryIndices[i];
+            }
+        }
+    };
+
+    WalkedAllocation& walkedAllocationSlot(const uint64_t segmentId, const uint32_t offset)
+    {
+        static thread_local WalkedAllocations walked;
+        // Zero marks a free slot, so the key never is.
+        return walked.slotFor((segmentId * 1099511628211ULL + offset) | 1ULL);
+    }
+
+    bool appendConstantFunctionJitRootsInAllocation(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, OptionalRootVerdicts& optionalRootVerdicts, uint32_t shardIndex, uint32_t sourceOffset)
     {
         SmallVector<DataSegmentRef>        pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
         bool                               changed = false;
@@ -392,9 +477,15 @@ namespace
         {
             const DataSegmentRef current = pending.back();
             pending.pop_back();
-            const DataSegment&    segment = sema.cstMgr().shardDataSegment(current.shardIndex);
+            const DataSegment& segment         = sema.cstMgr().shardDataSegment(current.shardIndex);
+            const uint64_t     version         = segment.relocationVersion();
+            WalkedAllocation&  walked          = walkedAllocationSlot(segment.id(), current.offset);
+            const bool         walkedIsCurrent = walked.segmentId == segment.id() && walked.queryOffset == current.offset && walked.relocationVersion == version;
+
             DataSegmentAllocation allocation;
-            if (!segment.findAllocation(allocation, current.offset))
+            if (walkedIsCurrent)
+                allocation = walked.allocation;
+            else if (!segment.findAllocation(allocation, current.offset))
                 continue;
 
             // Nested reflection and interface tables can reach functions through any
@@ -403,8 +494,19 @@ namespace
             if (!visitedAllocations.insert(allocationKey).second)
                 continue;
 
-            segment.copyRelocations(relocations, allocation.offset, allocation.size);
-            for (const DataSegmentRelocation& relocation : relocations)
+            if (!walkedIsCurrent)
+            {
+                segment.copyRelocations(relocations, allocation.offset, allocation.size);
+                walked.segmentId         = segment.id();
+                walked.queryOffset       = current.offset;
+                walked.relocationVersion = version;
+                walked.allocation        = allocation;
+                walked.relocations.clear();
+                for (const DataSegmentRelocation& relocation : relocations)
+                    walked.relocations.push_back(relocation);
+            }
+
+            for (const DataSegmentRelocation& relocation : walked.relocations)
             {
                 if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
                 {
@@ -418,8 +520,15 @@ namespace
                         continue;
                     if (seenFunctions.contains(target))
                         continue;
-                    if (relocation.allowUnresolvedFunction && !isIncludableOptionalConstantJitRoot(*target))
-                        continue;
+                    if (relocation.allowUnresolvedFunction)
+                    {
+                        const auto verdict = optionalRootVerdicts.try_emplace(target, false);
+                        if (verdict.second)
+                            verdict.first->second = isIncludableOptionalConstantJitRoot(*target);
+                        if (!verdict.first->second)
+                            continue;
+                    }
+
                     seenFunctions.insert(target);
 
                     roots.push_back(target);
@@ -430,22 +539,22 @@ namespace
         return changed;
     }
 
-    bool appendConstantFunctionJitRootsFromConstant(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const MicroRelocation& relocation)
+    bool appendConstantFunctionJitRootsFromConstant(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, OptionalRootVerdicts& optionalRootVerdicts, const MicroRelocation& relocation)
     {
         if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
             return false;
         if (!relocation.hasConstantSource())
             return false;
 
-        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, relocation.constantShard, relocation.constantOffset);
+        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, optionalRootVerdicts, relocation.constantShard, relocation.constantOffset);
     }
 
-    bool appendConstantFunctionJitRootsFromCode(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const MachineCode& code)
+    bool appendConstantFunctionJitRootsFromCode(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, OptionalRootVerdicts& optionalRootVerdicts, const MachineCode& code)
     {
         bool changed = false;
         for (const MicroRelocation& relocation : code.codeRelocations)
         {
-            changed = appendConstantFunctionJitRootsFromConstant(sema, roots, seenFunctions, visitedAllocations, relocation) || changed;
+            changed = appendConstantFunctionJitRootsFromConstant(sema, roots, seenFunctions, visitedAllocations, optionalRootVerdicts, relocation) || changed;
         }
 
         return changed;
@@ -463,12 +572,13 @@ namespace
 
         bool                         changed = false;
         std::unordered_set<uint64_t> visitedAllocations;
+        OptionalRootVerdicts         optionalRootVerdicts;
         for (const SymbolFunction* function : functions)
         {
             if (!function)
                 continue;
 
-            changed = appendConstantFunctionJitRootsFromCode(sema, roots, seenFunctions, visitedAllocations, function->loweredCode()) || changed;
+            changed = appendConstantFunctionJitRootsFromCode(sema, roots, seenFunctions, visitedAllocations, optionalRootVerdicts, function->loweredCode()) || changed;
         }
 
         return changed;
@@ -478,17 +588,41 @@ namespace
     {
         SmallVector<SymbolFunction*> rawOrder;
         symFn.appendJitOrder(rawOrder);
+
+        // One root's order is already a set: its walk visits every function once. The membership
+        // pass is only needed when several orders are concatenated.
+        bool mayRepeat = false;
         for (const SymbolFunction* root : extraRoots)
         {
-            if (root)
-                root->appendJitOrder(rawOrder);
+            if (!root)
+                continue;
+            root->appendJitOrder(rawOrder);
+            mayRepeat = true;
         }
 
         if (SemaRuntime::isRuntimeArtifactFunction(sema, symFn))
+        {
             appendGlobalFunctionInitJitOrder(sema, rawOrder);
+            mayRepeat = true;
+        }
+
+        out.reserve(rawOrder.size());
+        if (!mayRepeat)
+        {
+            for (SymbolFunction* function : rawOrder)
+            {
+                if (!function)
+                    continue;
+                if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                    continue;
+
+                out.push_back(function);
+            }
+
+            return;
+        }
 
         std::unordered_set<SymbolFunction*> seen;
-        out.reserve(rawOrder.size());
         for (SymbolFunction* function : rawOrder)
         {
             if (!function)
@@ -550,6 +684,7 @@ namespace
             symFn.jitReadyVersion() == initTargetsVersion)
             return Result::Continue;
 
+
         // A codegen job emits its function before reporting completion. Publish the
         // release summaries before scheduling that job, while its sanity pass can
         // still reject a stale read. Waiting only on sema permits recursive calls.
@@ -574,51 +709,40 @@ namespace
         if (ctx.state().jitEmissionError)
             return reportJitEvaluationFailure(sema, symFn);
 
-        // Dependency-closure loop: keep scheduling CodeGen for newly discovered
-        // dependencies until the set stabilises. We capture the last stable
-        // `expandedOrder` (snapshot 2) so we can reuse it directly below - this
-        // avoids a third `buildJitOrderWithNativeRoots` call after the loop that
-        // would race against concurrent jobs registering new native-global-function
-        // init targets between the stability check and the snapshot.
+        // Dependency-closure loop: keep scheduling CodeGen for newly discovered dependencies until
+        // the set stabilises. What the order is built from is the call graph and the registered
+        // native-global-function init targets, and both say when they last moved. Reading that is
+        // how the loop recognizes a stable order, instead of building the order a second time and
+        // comparing membership of a set that holds every function the run can reach.
         SmallVector<SymbolFunction*> constantRoots;
         SmallVector<SymbolFunction*> stableJitOrder;
         while (true)
         {
-            std::unordered_set<SymbolFunction*> knownFunctions;
-            size_t                              knownFunctionCount = 0;
             while (true)
             {
+                const uint64_t orderCallGraphVersion = SymbolFunction::callGraphVersion();
+                const uint64_t orderTargetsVersion   = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
+
                 SmallVector<SymbolFunction*> jitOrder;
                 buildJitOrderWithNativeRoots(sema, symFn, jitOrder, constantRoots.span());
 
                 for (SymbolFunction* function : jitOrder)
-                {
-                    knownFunctions.insert(function);
                     sema.compiler().tryEnqueueCodeGenJob(sema, *function, function->declNodeRef());
-                }
 
                 for (const SymbolFunction* function : jitOrder)
                 {
                     SWC_RESULT(sema.waitCodeGenPreSolved(function, function->codeRef()));
                 }
 
-                SmallVector<SymbolFunction*> expandedOrder;
-                buildJitOrderWithNativeRoots(sema, symFn, expandedOrder, constantRoots.span());
-                for (SymbolFunction* function : expandedOrder)
+                if (SymbolFunction::callGraphVersion() == orderCallGraphVersion &&
+                    sema.compiler().nativeGlobalFunctionInitTargetsVersion() == orderTargetsVersion)
                 {
-                    knownFunctions.insert(function);
-                }
-
-                if (knownFunctions.size() == knownFunctionCount)
-                {
-                    // Stable: save this snapshot as the definitive JIT order. All
-                    // functions it contains have had waitCodeGenPreSolved called in
-                    // a prior (or this) iteration, so it is safe to emit them next.
-                    stableJitOrder = std::move(expandedOrder);
+                    // Stable: nothing the order is derived from moved while its functions were
+                    // waited on, so this snapshot is the definitive order and every function in it
+                    // has had waitCodeGenPreSolved called.
+                    stableJitOrder = std::move(jitOrder);
                     break;
                 }
-
-                knownFunctionCount = knownFunctions.size();
             }
 
             // The module-wide summary fixpoint runs after sema drains, but #run must emit

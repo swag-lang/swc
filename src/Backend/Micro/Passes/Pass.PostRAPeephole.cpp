@@ -113,6 +113,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     ctx.localStackBase   = context.debugStackBasePhysReg;
     ctx.allowForwarding  = context.isFirstOptimizationSweep;
 
+    eraseRedundantUpperHalfClears(ctx);
     runPerInstructionPatterns(ctx);
 
     if (ctx.actions.empty())

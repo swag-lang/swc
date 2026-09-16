@@ -1226,6 +1226,132 @@ SWC_TEST_BEGIN(PostRAPeephole_FlagReuseKeepsItsProducer)
 }
 SWC_TEST_END()
 
+namespace
+{
+    uint32_t countDwordSelfMoves(const MicroBuilder& builder, MicroReg reg)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == reg && ops[1].reg == reg && ops[2].opBits == MicroOpBits::B32)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// Both paths into the join leave r8 a 32-bit result: the upper-half clear is
+// a no-op there.
+SWC_TEST_BEGIN(PostRAPeephole_UpperHalfClearAfterDwordJoin_Erased)
+{
+    const auto&        conv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    MicroBuilder       builder(ctx);
+    const auto         label = builder.createLabel();
+    builder.emitLoadRegImm(r8, ApInt(0x811C9DC5, 64), MicroOpBits::B32);
+    builder.emitCmpRegImm(conv.intRegs[0], ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, label);
+    builder.emitOpBinaryRegImm(r8, ApInt(0x1000193, 64), MicroOp::MultiplySigned, MicroOpBits::B32);
+    builder.placeLabel(label);
+    builder.emitLoadRegReg(r8, r8, MicroOpBits::B32);
+    builder.emitLoadRegReg(conv.intReturn, r8, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countDwordSelfMoves(builder, r8) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// One path widens r8 to a 64-bit sum: the join must still clear the upper half.
+SWC_TEST_BEGIN(PostRAPeephole_UpperHalfClearAfterQwordPath_Kept)
+{
+    const auto&        conv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    MicroBuilder       builder(ctx);
+    const auto         label = builder.createLabel();
+    builder.emitLoadRegImm(r8, ApInt(7, 64), MicroOpBits::B32);
+    builder.emitCmpRegImm(conv.intRegs[0], ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, label);
+    builder.emitOpBinaryRegReg(r8, conv.intRegs[1], MicroOp::Add, MicroOpBits::B64);
+    builder.placeLabel(label);
+    builder.emitLoadRegReg(r8, r8, MicroOpBits::B32);
+    builder.emitLoadRegReg(conv.intReturn, r8, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countDwordSelfMoves(builder, r8) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A call forgets what the register held before it.
+SWC_TEST_BEGIN(PostRAPeephole_UpperHalfClearAfterCall_Kept)
+{
+    const auto&        conv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg r10  = MicroReg::intReg(10);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegImm(conv.intReturn, ApInt(7, 64), MicroOpBits::B32);
+    builder.emitCallReg(r10, CallConvKind::Swag);
+    builder.emitLoadRegReg(conv.intReturn, conv.intReturn, MicroOpBits::B32);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countDwordSelfMoves(builder, conv.intReturn) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// r9 holds a 32-bit result, so the 32-bit copy into rsi copies all of it and
+// the full-width reader can take r9 directly.
+SWC_TEST_BEGIN(PostRAPeephole_DwordCopyOfClearUpperHalf_ForwardsToWideReader)
+{
+    const auto&        conv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg r9   = MicroReg::intReg(9);
+    constexpr MicroReg r10  = MicroReg::intReg(10);
+    constexpr MicroReg rsi  = MicroReg::intReg(6);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegMem(r9, conv.intRegs[0], 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(r9, r10, MicroOp::Add, MicroOpBits::B32);
+    builder.emitLoadRegReg(rsi, r9, MicroOpBits::B32);
+    builder.emitLoadRegReg(conv.intReturn, rsi, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.intRegs[0], 8, r9, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.intRegs[0], 16, rsi, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (!hasLoadRegReg(builder, conv.intReturn, r9))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Without the 32-bit producer the upper half of r9 is unknown: the reader
+// must keep the truncated copy.
+SWC_TEST_BEGIN(PostRAPeephole_DwordCopyOfWideValue_NotForwardedToWideReader)
+{
+    const auto&        conv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg r9   = MicroReg::intReg(9);
+    constexpr MicroReg rsi  = MicroReg::intReg(6);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegMem(r9, conv.intRegs[0], 0, MicroOpBits::B64);
+    builder.emitLoadRegReg(rsi, r9, MicroOpBits::B32);
+    builder.emitLoadRegReg(conv.intReturn, rsi, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.intRegs[0], 8, r9, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.intRegs[0], 16, rsi, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (hasLoadRegReg(builder, conv.intReturn, r9))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

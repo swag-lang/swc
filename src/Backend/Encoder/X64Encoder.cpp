@@ -1201,6 +1201,7 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
 
         case MicroInstrOpcode::OpBinaryRegImm:
         case MicroInstrOpcode::OpBinaryMemImm:
+        case MicroInstrOpcode::TestRegImm:
         case MicroInstrOpcode::CmpRegImm:
         case MicroInstrOpcode::CmpMemImm:
             // An immediate the form cannot take is loaded into a register
@@ -1469,14 +1470,17 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
-    // Both compare-with-immediate forms answer the same two questions; only the operand carrying
-    // the immediate moves, because the memory form spends two operands on its address.
-    if (inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm)
+    if (inst.op == MicroInstrOpcode::TestRegReg && requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
+        return true;
+
+    // Tests and compares share the immediate encoding limits. The memory
+    // compare spends an extra operand on its address.
+    if (inst.op == MicroInstrOpcode::TestRegImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm)
     {
         if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
 
-        const uint32_t immediateIndex = inst.op == MicroInstrOpcode::CmpRegImm ? 2 : 3;
+        const uint32_t immediateIndex = inst.op == MicroInstrOpcode::CmpMemImm ? 3 : 2;
         if (!immediateFitsOperand(ops[immediateIndex], ops[1].opBits))
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
@@ -2664,6 +2668,25 @@ void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCon
 }
 
 // ============================================================================
+
+void X64Encoder::encodeTestRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)
+{
+    SWC_ASSERT(reg0.isInt() && reg1.isInt());
+    emitRex(store_, opBits, reg1, reg0);
+    emitSpecCpuOp(store_, MicroOp::Test, opBits);
+    emitModRm(store_, reg1, reg0);
+}
+
+void X64Encoder::encodeTestRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
+{
+    SWC_ASSERT(reg.isInt());
+    const uint64_t valueU64 = immediateToU64(value);
+    SWC_INTERNAL_CHECK(canEncodeOpImmediate(valueU64, opBits));
+    emitRex(store_, opBits, MicroReg{}, reg);
+    emitSpecCpuOp(store_, 0xF7, opBits);
+    emitModRm(store_, MODRM_REG_0, reg);
+    emitValue(store_, valueU64, std::min(opBits, MicroOpBits::B32));
+}
 
 void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)
 {

@@ -13,6 +13,8 @@ namespace PostRaPeephole
         {
             switch (op)
             {
+                case MicroInstrOpcode::TestRegReg:
+                case MicroInstrOpcode::TestRegImm:
                 case MicroInstrOpcode::CmpRegReg:
                 case MicroInstrOpcode::CmpRegImm:
                 case MicroInstrOpcode::CmpMemReg:
@@ -897,6 +899,33 @@ namespace PostRaPeephole
         ctx.emitRewrite(cmpRef, MicroInstrOpcode::ClearReg, clear);
         ctx.emitRewrite(setRef, cmp->op, std::span{cmpOps, cmp->numOperands}, true);
         ctx.emitRewrite(ref, set->op, std::span{setOps, set->numOperands});
+        return true;
+    }
+
+    bool tryUseTestForDeadMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].microOp != MicroOp::And || !ops[0].reg.isInt() ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+            ops[3].hasWideImmediateValue() || ops[3].valueU64 > 0x7F ||
+            ctx.isPrivateFrameBase(ops[0].reg) || !ctx.isRegDeadAfterCurrent(ops[0].reg))
+            return false;
+
+        // With bit 7 clear, both widths produce SF=0 and the same ZF/PF;
+        // AND and TEST also clear CF/OF. No result value survives the mask.
+        MicroInstrOperand test[3] = {};
+        test[0]                   = ops[0];
+        test[1].opBits            = MicroOpBits::B8;
+        test[2]                   = ops[3];
+        MicroInstr probe          = inst;
+        probe.op                  = MicroInstrOpcode::TestRegImm;
+        probe.numOperands         = 3;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, probe, test)) || !ctx.claimAll({ref}))
+            return false;
+        ctx.emitRewrite(ref, probe.op, test);
         return true;
     }
 

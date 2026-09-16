@@ -488,6 +488,82 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExit)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp a, b; setge t; r = t; jl .join; <rhs>; .join: o = r; cmp r, 0; je .exit
+    void emitNestedShortCircuit(MicroBuilder& builder, MicroLabelRef join, MicroLabelRef exit, bool rhsReadsOuter)
+    {
+        const MicroReg vA = MicroReg::virtualIntReg(10);
+        const MicroReg vB = MicroReg::virtualIntReg(11);
+        const MicroReg vC = MicroReg::virtualIntReg(12);
+        const MicroReg vT = MicroReg::virtualIntReg(13);
+        const MicroReg vR = MicroReg::virtualIntReg(14);
+        const MicroReg vO = MicroReg::virtualIntReg(15);
+        const MicroReg vU = MicroReg::virtualIntReg(16);
+
+        builder.emitCmpRegReg(vA, vB, MicroOpBits::B32);
+        builder.emitSetCondReg(vT, MicroCond::GreaterOrEqual);
+        builder.emitLoadRegReg(vR, vT, MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, join);
+        if (rhsReadsOuter)
+            builder.emitLoadRegReg(vU, vO, MicroOpBits::B8);
+        builder.emitCmpRegImm(vC, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(vT, MicroCond::NotEqual);
+        builder.emitLoadRegReg(vR, vT, MicroOpBits::B8);
+        builder.placeLabel(join);
+        builder.emitLoadRegReg(vO, vR, MicroOpBits::B8);
+        builder.emitCmpRegImm(vR, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+        builder.emitOpBinaryRegImm(vA, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.placeLabel(exit);
+        builder.emitLoadZeroExtendRegReg(CallConv::get(CallConvKind::Swag).intReturn, vO, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+// The join first copies the boolean for an enclosing `and`: both results
+// share one register, and the early exit goes straight to the join's target.
+SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExitThroughJoinCopy)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef join = builder.createLabel();
+    const MicroLabelRef exit = builder.createLabel();
+    emitNestedShortCircuit(builder, join, exit, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (anyJumpTargetsLabel(builder, join))
+        return Result::Error;
+    uint32_t outerCopies = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == MicroReg::virtualIntReg(15))
+            ++outerCopies;
+    }
+    if (outerCopies != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The rhs reads the register the join copy writes: the two results cannot
+// share one register, so the exit keeps going through the join.
+SWC_TEST_BEGIN(BranchSimplify_KeepsShortCircuitExitWhenRhsReadsJoinCopy)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef join = builder.createLabel();
+    const MicroLabelRef exit = builder.createLabel();
+    emitNestedShortCircuit(builder, join, exit, true);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (!anyJumpTargetsLabel(builder, join))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A label some jump still targets is never collected.
 SWC_TEST_BEGIN(BranchSimplify_KeepsReferencedLabel)
 {

@@ -706,19 +706,334 @@ namespace
     //
     // On the taken edge the boolean's value is pinned by the branch condition
     // itself, so the join's test is already decided: the jump goes straight to
-    // the join's own target. Once the threaded edge no longer reaches the
-    // join, the remaining single-definition chain is the shape
-    // fuseMaterializedBoolBranches folds, and the loop condition ends up as
-    // two plain compare-and-branch pairs.
+    // the join's own target, as LLVM's jump threading does. Once the threaded
+    // edge no longer reaches the join, the remaining single-definition chain
+    // is the shape fuseMaterializedBoolBranches folds, and a chain of `and`s
+    // ends up as plain compare-and-branch pairs.
+    // The low bits of each register known to hold the boolean: a setcc
+    // writes eight, a 32-bit move clears the upper half, a narrower one keeps
+    // the destination's own upper bits.
+    using BoolBits = SmallVector<std::pair<MicroReg, uint32_t>, 4>;
+
+    uint32_t boolBitsOf(const BoolBits& bits, const MicroReg reg)
+    {
+        for (const auto& [known, count] : bits)
+        {
+            if (known == reg)
+                return count;
+        }
+        return 0;
+    }
+
+    void setBoolBits(BoolBits& bits, const MicroReg reg, const uint32_t count)
+    {
+        for (auto& entry : bits)
+        {
+            if (entry.first == reg)
+            {
+                entry.second = count;
+                return;
+            }
+        }
+        if (count)
+            bits.push_back({reg, count});
+    }
+
+    bool applyBoolChainStep(BoolBits& bits, const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops || !ops[0].reg.isVirtualInt())
+            return false;
+        if (inst.op == MicroInstrOpcode::LoadRegReg)
+        {
+            const uint32_t width  = getNumBits(ops[2].opBits);
+            uint32_t       source = boolBitsOf(bits, ops[1].reg);
+            source                = std::min(source, width);
+            if (width == 32 && source == 32)
+                source = 64;
+            setBoolBits(bits, ops[0].reg, source);
+            return true;
+        }
+        if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg && ops[0].reg == ops[1].reg)
+        {
+            const uint32_t known = boolBitsOf(bits, ops[0].reg);
+            uint32_t       wide  = getNumBits(ops[2].opBits);
+            if (wide == 32)
+                wide = 64;
+            setBoolBits(bits, ops[0].reg, known >= getNumBits(ops[3].opBits) ? wide : 0);
+            return true;
+        }
+        return false;
+    }
+
+    // How many low bits of `reg` the instruction reads, or 0 when the read is
+    // not one of the plain copies, compares and extensions a boolean meets.
+    uint32_t booleanReadBits(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg reg)
+    {
+        if (!ops)
+            return 0;
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+                return ops[1].reg == reg && ops[0].reg != reg ? getNumBits(ops[2].opBits) : 0;
+            case MicroInstrOpcode::CmpRegImm:
+                return getNumBits(ops[1].opBits);
+            case MicroInstrOpcode::CmpRegReg:
+                return getNumBits(ops[2].opBits);
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+                return ops[1].reg == reg ? getNumBits(ops[3].opBits) : 0;
+            default:
+                return 0;
+        }
+    }
+
+    bool endsBlock(const MicroInstr& inst)
+    {
+        const auto& info = MicroInstr::info(inst.op);
+        return inst.op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+               info.flags.has(MicroInstrFlagsE::TerminatorInstruction);
+    }
+
+    // Gives the results of a chain of `and`s or `or`s one register.
+    //
+    // Each operator merges its result into a register of its own, and the
+    // join of the enclosing operator copies it into the next one:
+    //
+    //     setcc T; D = T; j(~CC) .J          setcc T; D = T; j(~CC) .J
+    //     <rhs, ending with D = T'>          <rhs, ending with D = T'>
+    //     .J:                         ->     .J:
+    //     E = D                              cmp D, 0
+    //     cmp D, 0                           je  .K
+    //     je  .K                             ... every E reads D
+    //
+    // D lives only from the operator to its join, and nothing reads E before
+    // the join writes it, so the two never hold different values at once: one
+    // register serves both, as a coalescing allocator would decide. The join
+    // is left as the bare test threadShortCircuitExits decides, and a chain of
+    // any length settles without a copy per exit. Joins are visited last to
+    // first so each result register takes over the next one's readers.
+    bool coalesceShortCircuitResults(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+        const size_t count = layout.order.size();
+
+        std::unordered_set<uint32_t> relocated;
+        if (context.builder)
+        {
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocated.insert(reloc.instructionRef.get());
+            }
+        }
+
+        struct RegSites
+        {
+            SmallVector<uint32_t, 4> uses;
+            SmallVector<uint32_t, 4> defs;
+        };
+        std::unordered_map<uint32_t, RegSites> sites;
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
+        {
+            const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+
+            const MicroInstrUseDef useDef = inst->collectUseDef(operands, nullptr);
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg.isVirtualInt())
+                    sites[reg.index()].uses.push_back(ordinal);
+            }
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg.isVirtualInt())
+                    sites[reg.index()].defs.push_back(ordinal);
+            }
+        }
+
+        const auto allWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
+            for (const uint32_t ordinal : list)
+            {
+                if (ordinal < lo || ordinal >= hi)
+                    return false;
+            }
+            return true;
+        };
+        const auto noneWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
+            for (const uint32_t ordinal : list)
+            {
+                if (ordinal >= lo && ordinal < hi)
+                    return false;
+            }
+            return true;
+        };
+
+        bool changed = false;
+        for (uint32_t jumpOrdinal = static_cast<uint32_t>(count); jumpOrdinal > 0; --jumpOrdinal)
+        {
+            const uint32_t    p        = jumpOrdinal - 1;
+            const MicroInstr* jumpInst = storage.ptr(layout.order[p]);
+            if (!jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jumpOps = jumpInst->ops(operands);
+            uint32_t                 labelId = 0;
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional || !tryGetJumpTargetLabelId(labelId, *jumpInst, jumpOps))
+                continue;
+            const auto labelIt = layout.labelOrdinalById.find(labelId);
+            if (labelIt == layout.labelOrdinalById.end() || labelIt->second <= p || labelReferences[labelId] != 1 ||
+                relocated.contains(layout.order[labelIt->second].get()))
+                continue;
+            const uint32_t j = labelIt->second;
+
+            // The rhs runs straight into the join.
+            bool straight = true;
+            for (uint32_t mid = p + 1; mid < j && straight; ++mid)
+            {
+                const MicroInstr* midInst = storage.ptr(layout.order[mid]);
+                straight                  = midInst && !endsBlock(*midInst);
+            }
+            if (!straight)
+                continue;
+
+            // The join: copies, `cmp D, 0`, a conditional jump.
+            uint32_t cmpOrdinal = j + 1;
+            while (cmpOrdinal < count)
+            {
+                const MicroInstr* inst = storage.ptr(layout.order[cmpOrdinal]);
+                if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
+                    break;
+                ++cmpOrdinal;
+            }
+            if (cmpOrdinal + 1 >= count)
+                continue;
+            const MicroInstr* cmpInst  = storage.ptr(layout.order[cmpOrdinal]);
+            const MicroInstr* nextJump = storage.ptr(layout.order[cmpOrdinal + 1]);
+            if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegImm || !nextJump || nextJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* cmpOps = cmpInst->ops(operands);
+            if (!cmpOps || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 || !cmpOps[0].reg.isVirtualInt())
+                continue;
+            const MicroReg d = cmpOps[0].reg;
+
+            uint32_t copyOrdinal = 0;
+            MicroReg e;
+            uint32_t width = 0;
+            for (uint32_t ordinal = j + 1; ordinal < cmpOrdinal; ++ordinal)
+            {
+                const MicroInstrOperand* copyOps = storage.ptr(layout.order[ordinal])->ops(operands);
+                if (copyOps && copyOps[1].reg == d && copyOps[0].reg.isVirtualInt() && copyOps[0].reg != d)
+                {
+                    copyOrdinal = ordinal;
+                    e           = copyOps[0].reg;
+                    width       = getNumBits(copyOps[2].opBits);
+                    break;
+                }
+            }
+            if (!copyOrdinal || width < getNumBits(cmpOps[1].opBits))
+                continue;
+
+            uint32_t start = p;
+            while (start > 0)
+            {
+                const MicroInstr* inst = storage.ptr(layout.order[start - 1]);
+                if (!inst || endsBlock(*inst))
+                    break;
+                --start;
+            }
+
+            // D is written in the operator's block or the rhs and read only in
+            // the join; nothing touches E from there up to the copy; every
+            // reader of either takes no more bits than the copy moves.
+            const RegSites& dSites = sites[d.index()];
+            const RegSites& eSites = sites[e.index()];
+            if (!allWithin(dSites.defs, start, j) || !allWithin(dSites.uses, j + 1, cmpOrdinal + 1) ||
+                !noneWithin(eSites.uses, start, copyOrdinal) || !noneWithin(eSites.defs, start, copyOrdinal))
+                continue;
+            bool narrowReaders = true;
+            for (const SmallVector<uint32_t, 4>* list : {&dSites.uses, &eSites.uses})
+            {
+                for (const uint32_t ordinal : *list)
+                {
+                    if (ordinal == copyOrdinal)
+                        continue;
+                    const MicroInstr* reader = storage.ptr(layout.order[ordinal]);
+                    const MicroReg    reg    = list == &dSites.uses ? d : e;
+                    const uint32_t    bits   = reader ? booleanReadBits(*reader, reader->ops(operands), reg) : 0;
+                    if (!bits || bits > width)
+                        narrowReaders = false;
+                }
+            }
+            if (!narrowReaders)
+                continue;
+
+            SmallVector<MicroInstrRegOperandRef> regRefs;
+            for (const uint32_t ordinal : eSites.uses)
+            {
+                regRefs.clear();
+                storage.ptr(layout.order[ordinal])->collectRegOperands(operands, regRefs, nullptr);
+                for (const MicroInstrRegOperandRef& ref : regRefs)
+                {
+                    if (ref.reg && *ref.reg == e)
+                        *ref.reg = d;
+                }
+            }
+            for (const uint32_t ordinal : eSites.defs)
+            {
+                if (ordinal == copyOrdinal)
+                    continue;
+                regRefs.clear();
+                storage.ptr(layout.order[ordinal])->collectRegOperands(operands, regRefs, nullptr);
+                for (const MicroInstrRegOperandRef& ref : regRefs)
+                {
+                    if (ref.reg && *ref.reg == e)
+                        *ref.reg = d;
+                }
+            }
+            storage.erase(layout.order[copyOrdinal]);
+
+            RegSites merged = sites[d.index()];
+            for (const uint32_t ordinal : sites[e.index()].uses)
+                merged.uses.push_back(ordinal);
+            for (const uint32_t ordinal : sites[e.index()].defs)
+            {
+                if (ordinal != copyOrdinal)
+                    merged.defs.push_back(ordinal);
+            }
+            SmallVector<uint32_t, 4> uses;
+            for (const uint32_t ordinal : merged.uses)
+            {
+                if (ordinal != copyOrdinal)
+                    uses.push_back(ordinal);
+            }
+            merged.uses = uses;
+            sites.erase(e.index());
+            sites[d.index()] = merged;
+            changed          = true;
+        }
+
+        return changed;
+    }
+
     bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands)
     {
+        constexpr uint32_t K_MAX_CHAIN = 6;
+
         ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
 
         bool changed = false;
-        for (const MicroInstrRef jumpRef : layout.order)
+        for (size_t ordinal = 0; ordinal < layout.order.size(); ++ordinal)
         {
-            MicroInstr* jumpInst = storage.ptr(jumpRef);
+            const MicroInstrRef jumpRef  = layout.order[ordinal];
+            MicroInstr*         jumpInst = storage.ptr(jumpRef);
             if (!jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
                 continue;
             MicroInstrOperand* jumpOps = jumpInst->ops(operands);
@@ -728,56 +1043,34 @@ namespace
             if (!tryGetJumpTargetLabelId(joinLabelId, *jumpInst, jumpOps))
                 continue;
 
-            // Walk the boolean chain immediately preceding the jump:
-            // an optional plain copy, an optional self zero-extend, then the
-            // setcc that consumed the same flags the jump reads. None of these
-            // touch the flags, so the jump still observes the setcc's compare.
-            MicroInstrRef     curRef  = storage.findPreviousInstructionRef(jumpRef);
-            const MicroInstr* curInst = curRef.isValid() ? storage.ptr(curRef) : nullptr;
-            if (!curInst)
+            // Walk the boolean chain immediately preceding the jump back to
+            // the setcc that consumed the flags the jump reads. Copies and
+            // self-extensions do not touch the flags.
+            SmallVector<MicroInstrRef, K_MAX_CHAIN> chain;
+            MicroInstrRef                            setRef = storage.findPreviousInstructionRef(jumpRef);
+            const MicroInstr*                        setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+            while (setInst && setInst->op != MicroInstrOpcode::SetCondReg && chain.size() < K_MAX_CHAIN &&
+                   (setInst->op == MicroInstrOpcode::LoadRegReg || setInst->op == MicroInstrOpcode::LoadZeroExtRegReg))
+            {
+                chain.push_back(setRef);
+                setRef  = storage.findPreviousInstructionRef(setRef);
+                setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+            }
+            if (!setInst || setInst->op != MicroInstrOpcode::SetCondReg)
+                continue;
+            const MicroInstrOperand* setOps = setInst->ops(operands);
+            if (!setOps || !setOps[0].reg.isVirtualInt())
                 continue;
 
-            MicroReg boolReg = MicroReg::invalid();
-            MicroReg chainReg;
-            if (curInst->op == MicroInstrOpcode::LoadRegReg)
+            BoolBits bits;
+            setBoolBits(bits, setOps[0].reg, 8);
+            bool chainOk = true;
+            for (size_t i = chain.size(); i > 0 && chainOk; --i)
             {
-                const MicroInstrOperand* copyOps = curInst->ops(operands);
-                if (!copyOps || !copyOps[0].reg.isVirtual())
-                    continue;
-                boolReg  = copyOps[0].reg;
-                chainReg = copyOps[1].reg;
-                curRef   = storage.findPreviousInstructionRef(curRef);
-                curInst  = curRef.isValid() ? storage.ptr(curRef) : nullptr;
-                if (!curInst)
-                    continue;
+                const MicroInstr* step = storage.ptr(chain[i - 1]);
+                chainOk                = step && applyBoolChainStep(bits, *step, step->ops(operands));
             }
-            if (curInst->op == MicroInstrOpcode::LoadZeroExtRegReg)
-            {
-                const MicroInstrOperand* extOps = curInst->ops(operands);
-                if (!extOps || extOps[0].reg != extOps[1].reg)
-                    continue;
-                if (boolReg.isValid() && extOps[0].reg != chainReg)
-                    continue;
-                if (!boolReg.isValid())
-                {
-                    boolReg  = extOps[0].reg;
-                    chainReg = extOps[0].reg;
-                }
-                curRef  = storage.findPreviousInstructionRef(curRef);
-                curInst = curRef.isValid() ? storage.ptr(curRef) : nullptr;
-                if (!curInst)
-                    continue;
-            }
-            if (curInst->op != MicroInstrOpcode::SetCondReg)
-                continue;
-            const MicroInstrOperand* setOps = curInst->ops(operands);
-            if (!setOps)
-                continue;
-            if (boolReg.isValid() && setOps[0].reg != chainReg)
-                continue;
-            if (!boolReg.isValid())
-                boolReg = setOps[0].reg;
-            if (!boolReg.isVirtual())
+            if (!chainOk)
                 continue;
 
             // The branch condition pins the boolean's value on the taken edge.
@@ -789,35 +1082,35 @@ namespace
             else if (!MicroPassHelpers::invertCondition(invCond, setCond) || invCond != jumpOps[0].cpuCond)
                 continue;
 
-            // The join must be exactly `cmp boolReg, 0` + a conditional jump.
+            // The join: copies of the boolean, `cmp B, 0`, a conditional jump.
             const auto labelIt = layout.labelOrdinalById.find(joinLabelId);
-            if (labelIt == layout.labelOrdinalById.end() || labelIt->second + 2 >= layout.order.size())
+            if (labelIt == layout.labelOrdinalById.end())
                 continue;
-            const MicroInstr* joinCmp = storage.ptr(layout.order[labelIt->second + 1]);
-            if (!joinCmp || joinCmp->op != MicroInstrOpcode::CmpRegImm)
+            const size_t      joinOrdinal = labelIt->second + 1;
+            const MicroInstr* joinInst    = joinOrdinal < layout.order.size() ? storage.ptr(layout.order[joinOrdinal]) : nullptr;
+            if (!joinInst || joinInst->op != MicroInstrOpcode::CmpRegImm || joinOrdinal + 1 >= layout.order.size())
                 continue;
-            const MicroInstrOperand* joinCmpOps = joinCmp->ops(operands);
-            if (!joinCmpOps || joinCmpOps[0].reg != boolReg || joinCmpOps[2].hasWideImmediateValue() || joinCmpOps[2].valueU64 != 0)
+            const MicroInstrOperand* joinCmpOps = joinInst->ops(operands);
+            if (!joinCmpOps || joinCmpOps[2].hasWideImmediateValue() || joinCmpOps[2].valueU64 != 0 ||
+                boolBitsOf(bits, joinCmpOps[0].reg) < getNumBits(joinCmpOps[1].opBits))
                 continue;
-            const MicroInstr* joinJump = storage.ptr(layout.order[labelIt->second + 2]);
+            const MicroInstrRef joinJumpRef = layout.order[joinOrdinal + 1];
+            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond)
                 continue;
             const MicroInstrOperand* joinJumpOps = joinJump->ops(operands);
             if (!joinJumpOps)
                 continue;
 
-            const MicroCond joinCond = joinJumpOps[0].cpuCond;
-            const bool      joinTakenOnZero =
-                joinCond == MicroCond::Equal || joinCond == MicroCond::Zero;
-            const bool joinTakenOnOne =
-                joinCond == MicroCond::NotEqual || joinCond == MicroCond::NotZero;
+            const MicroCond joinCond        = joinJumpOps[0].cpuCond;
+            const bool      joinTakenOnZero = joinCond == MicroCond::Equal || joinCond == MicroCond::Zero;
+            const bool      joinTakenOnOne  = joinCond == MicroCond::NotEqual || joinCond == MicroCond::NotZero;
             if (!(boolOne ? joinTakenOnOne : joinTakenOnZero))
                 continue;
 
             uint32_t joinTargetId = 0;
             if (!tryGetJumpTargetLabelId(joinTargetId, *joinJump, joinJumpOps) || joinTargetId == joinLabelId)
                 continue;
-
             jumpOps[2].valueU64 = joinTargetId;
             changed             = true;
         }
@@ -2821,9 +3114,22 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
-    changed |= fuseMaterializedBoolBranches(storage, operands, context.builder);
-    changed |= threadShortCircuitExits(storage, operands);
-    changed |= eraseUnreferencedLabels(storage, operands, context);
+    // Threading one exit of an `and` chain exposes the next join to the
+    // fuse, and the fused test to the next threading: a chain settles in
+    // one run instead of one link per optimization sweep.
+    constexpr uint32_t K_MAX_THREAD_ROUNDS = 4096;
+    for (uint32_t round = 0; round < K_MAX_THREAD_ROUNDS; ++round)
+    {
+        bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
+        roundChanged |= coalesceShortCircuitResults(storage, operands, context);
+        roundChanged |= threadShortCircuitExits(storage, operands);
+        roundChanged |= eraseUnreferencedLabels(storage, operands, context);
+        if (!roundChanged)
+            break;
+        changed = true;
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     changed |= foldRangeChecks(storage, operands, context);

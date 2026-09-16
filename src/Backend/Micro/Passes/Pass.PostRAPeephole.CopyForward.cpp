@@ -262,7 +262,11 @@ namespace PostRaPeephole
             const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm;
             const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
-            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::OpBinaryRegReg)
+            // An exchange writes its second operand too: renaming it would
+            // swap a different register (a parallel-move cycle at a loop edge
+            // then leaves a value in the wrong register).
+            const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg && next->ops(*ctx.operands)[3].microOp != MicroOp::Exchange;
+            if (extends || conditional || compareRegs || compareImm || address || binary)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)

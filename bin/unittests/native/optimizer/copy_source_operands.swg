@@ -1,9 +1,9 @@
 #global private
 
-#[Swag.NoInline]
+#[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func combined64(a, b, c: u64)->u64 => ((a ^ b) + (a & c)) ^ (b / (c | 1))
 
-#[Swag.NoInline]
+#[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func combined32(a, b, c: u32)->u32 => ((a ^ b) + (a & c)) ^ (b / (c | 1))
 
 #[Swag.NoInline]

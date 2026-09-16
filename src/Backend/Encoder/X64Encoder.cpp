@@ -1769,16 +1769,20 @@ void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint6
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
+    // A 32-bit destination already clears its upper half on x64.
+    // Keep 16-bit writes narrow, but avoid REX.W for a 64-bit zero-extension.
+    const MicroOpBits encodedBits = numBitsDst == MicroOpBits::B64 ? MicroOpBits::B32 : numBitsDst;
+
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B16 || numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        emitRex(store_, numBitsDst, reg, memReg);
+        emitRex(store_, encodedBits, reg, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB6);
         emitModRm(store_, memOffset, reg, memReg);
     }
     else if (numBitsSrc == MicroOpBits::B16 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        emitRex(store_, numBitsDst, reg, memReg);
+        emitRex(store_, encodedBits, reg, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB7);
         emitModRm(store_, memOffset, reg, memReg);
@@ -1799,16 +1803,20 @@ void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, Mi
     SWC_ASSERT(!regDst.isFloat());
     SWC_ASSERT(!regSrc.isFloat() || (numBitsSrc == MicroOpBits::B32 && numBitsDst == MicroOpBits::B64));
 
+    // A 32-bit destination already clears its upper half on x64.
+    // Keep 16-bit writes narrow, but avoid REX.W for a 64-bit zero-extension.
+    const MicroOpBits encodedBits = numBitsDst == MicroOpBits::B64 ? MicroOpBits::B32 : numBitsDst;
+
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B16 || numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        emitRex(store_, numBitsDst, regDst, regSrc, true);
+        emitRex(store_, encodedBits, regDst, regSrc, true);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB6);
         emitModRm(store_, regDst, regSrc);
     }
     else if (numBitsSrc == MicroOpBits::B16 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        emitRex(store_, MicroOpBits::B64, regDst, regSrc);
+        emitRex(store_, encodedBits, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB7);
         emitModRm(store_, regDst, regSrc);
@@ -2217,7 +2225,7 @@ void X64Encoder::encodeLoadZeroExtendAmcRegMem(MicroReg regDst, MicroReg regBase
     // zero-extend it into a 32- or 64-bit register.
     SWC_ASSERT(numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64);
     SWC_ASSERT(numBitsSrc == MicroOpBits::B8 || numBitsSrc == MicroOpBits::B16);
-    return encodeAmcReg(store_, regDst, numBitsDst, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::Move, false, numBitsSrc);
+    return encodeAmcReg(store_, regDst, MicroOpBits::B32, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::Move, false, numBitsSrc);
 }
 
 void X64Encoder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)

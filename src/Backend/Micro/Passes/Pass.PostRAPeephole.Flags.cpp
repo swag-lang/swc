@@ -248,6 +248,51 @@ namespace PostRaPeephole
         return true;
     }
 
+    // When only SUB's flags reach a widened boolean, replace its copied
+    // result with CMP and clear the boolean destination before that compare.
+    bool tryFoldSubtractBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* result = inst.ops(*ctx.operands);
+        if (!result || !result[0].reg.isInt() || result[0].reg != result[1].reg || result[3].opBits != MicroOpBits::B8 ||
+            (result[2].opBits != MicroOpBits::B32 && result[2].opBits != MicroOpBits::B64) || ctx.isPrivateFrameBase(result[0].reg))
+            return false;
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const auto* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[0].reg != result[0].reg)
+            return false;
+        const MicroInstrRef subRef = ctx.previousRef(setRef);
+        const MicroInstr*   sub    = ctx.instruction(subRef);
+        if (!sub || sub->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* subOps = sub->ops(*ctx.operands);
+        if (!subOps || subOps[0].reg != result[0].reg || !subOps[1].reg.isInt() || subOps[3].microOp != MicroOp::Subtract ||
+            (subOps[2].opBits != MicroOpBits::B32 && subOps[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef copyRef = ctx.previousRef(subRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copyOps = copy->ops(*ctx.operands);
+        if (!copyOps || copyOps[0].reg != result[0].reg || !copyOps[1].reg.isInt() || copyOps[1].reg == result[0].reg ||
+            copyOps[2].opBits != subOps[2].opBits || !ctx.claimAll({copyRef, subRef, setRef, ref}))
+            return false;
+        MicroInstrOperand clear[2]   = {};
+        clear[0].reg                 = result[0].reg;
+        clear[1].opBits              = MicroOpBits::B32;
+        MicroInstrOperand compare[3] = {copyOps[1], subOps[1], subOps[2]};
+        if (compare[1].reg == result[0].reg)
+            compare[1].reg = copyOps[1].reg;
+        ctx.emitRewrite(copyRef, MicroInstrOpcode::ClearReg, clear);
+        ctx.emitRewrite(subRef, MicroInstrOpcode::CmpRegReg, compare);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // Fold zero-extend; compare; SETcc; zero-extend into a narrow compare
     // with a pre-cleared boolean destination. Unsigned/equality conditions
     // survive narrowing when the immediate fits the source width.

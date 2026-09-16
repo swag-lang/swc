@@ -1200,8 +1200,7 @@ namespace InstructionCombine
             const MicroOp     outer = ops[3].microOp;
             const MicroOpBits bits  = ops[2].opBits;
             if (!ctx.ssa || (outer != MicroOp::Add && outer != MicroOp::Subtract) || !ops[1].reg.isVirtualInt() ||
-                bits != MicroOpBits::B64 ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                bits != MicroOpBits::B64)
                 return false;
             for (uint32_t side = 0; side < (outer == MicroOp::Add ? 2u : 1u); ++side)
             {
@@ -1219,8 +1218,7 @@ namespace InstructionCombine
                     product     = ctx.ssa->reachingDef(productReg, productCopy);
                 }
                 if (!product.valid() || product.isPhi || !product.inst || product.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
-                    ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1 ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
+                    ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1)
                     continue;
                 const auto* multiply = product.inst->ops(*ctx.operands);
                 if (!multiply || multiply[3].microOp != MicroOp::MultiplySigned || multiply[2].opBits != bits || !multiply[1].reg.isVirtualInt())
@@ -1260,6 +1258,9 @@ namespace InstructionCombine
                         ctx.ssa->reachingDef(other, ref).valueId != commonValue.valueId ||
                         ctx.ssa->reachingDef(factor, ref).valueId != factorValue.valueId)
                         continue;
+                    if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                        !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
+                        continue;
                     if (!ctx.nextVirtualFloatRegIndex)
                         MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
                     if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
@@ -1269,8 +1270,8 @@ namespace InstructionCombine
                     MicroInstrOperand adjusted[4] = {};
                     adjusted[0].reg               = temporary;
                     adjusted[1].reg               = factor;
-                    adjusted[2].opBits   = MicroOpBits::B64;
-                    adjusted[3].valueU64 = outer == MicroOp::Add ? 1 : UINT64_MAX;
+                    adjusted[2].opBits            = MicroOpBits::B64;
+                    adjusted[3].valueU64          = outer == MicroOp::Add ? 1 : UINT64_MAX;
                     ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadAddrRegMem, adjusted);
                     MicroInstrOperand result[4] = {};
                     result[0].reg               = temporary;

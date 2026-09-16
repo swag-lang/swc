@@ -51,6 +51,7 @@ namespace
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldComplementedSum);
         r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFuseInPlaceUpdate);
+        r.add(MicroInstrOpcode::OpBinaryRegMem, tryFactorReloadedProduct);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoWiden);

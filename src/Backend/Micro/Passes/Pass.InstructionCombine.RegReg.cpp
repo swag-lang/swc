@@ -1203,25 +1203,28 @@ namespace InstructionCombine
                 return false;
             for (uint32_t side = 0; side < 2; ++side)
             {
-                MicroReg      maskReg  = ops[side].reg;
-                auto          mask     = ctx.ssa->reachingDef(maskReg, ref);
-                MicroInstrRef maskCopy = MicroInstrRef::invalid();
+                MicroReg      maskReg       = ops[side].reg;
+                auto          mask          = ctx.ssa->reachingDef(maskReg, ref);
+                MicroInstrRef maskCopy      = MicroInstrRef::invalid();
+                uint32_t      maskCopyValue = 0;
                 if (mask.valid() && !mask.isPhi && mask.inst && mask.inst->op == MicroInstrOpcode::LoadRegReg)
                 {
                     const auto* copy = mask.inst->ops(*ctx.operands);
-                    if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
-                        ctx.ssa->transitiveInstructionUseCount(mask.valueId, 2) != 1)
+                    if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits))
                         continue;
-                    maskCopy = mask.instRef;
-                    maskReg  = copy[1].reg;
-                    mask     = ctx.ssa->reachingDef(maskReg, maskCopy);
+                    maskCopyValue = mask.valueId;
+                    maskCopy      = mask.instRef;
+                    maskReg       = copy[1].reg;
+                    mask          = ctx.ssa->reachingDef(maskReg, maskCopy);
                 }
-                if (!mask.valid() || mask.isPhi || !mask.inst || mask.inst->op != MicroInstrOpcode::OpBinaryRegImm ||
-                    ctx.ssa->transitiveInstructionUseCount(mask.valueId, 2) != 1)
+                if (!mask.valid() || mask.isPhi || !mask.inst || mask.inst->op != MicroInstrOpcode::OpBinaryRegImm)
                     continue;
                 const auto* masked = mask.inst->ops(*ctx.operands);
                 if (!masked || masked[2].microOp != MicroOp::And || masked[3].hasWideImmediateValue() || masked[3].valueU64 != 1 ||
                     (masked[1].opBits != MicroOpBits::B32 && masked[1].opBits != MicroOpBits::B64))
+                    continue;
+                if (ctx.ssa->transitiveInstructionUseCount(mask.valueId, 2) != 1 ||
+                    (maskCopy.isValid() && ctx.ssa->transitiveInstructionUseCount(maskCopyValue, 2) != 1))
                     continue;
                 const auto initial = ctx.ssa->reachingDef(maskReg, mask.instRef);
                 if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)

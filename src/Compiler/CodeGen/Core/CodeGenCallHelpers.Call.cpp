@@ -893,9 +893,6 @@ namespace
         if (!storageType.isStruct() && !storageType.isArray())
             return Result::Continue;
 
-        const uint64_t rawSize = storageType.sizeOf(ctx);
-        SWC_ASSERT(rawSize > 0 && rawSize <= std::numeric_limits<uint32_t>::max());
-
         // The argument is the freshly formed move reference: resolve the source address
         // (an address-backed moveref payload holds the address of the reference cell).
         MicroBuilder&      builder       = codeGen.builder();
@@ -911,20 +908,9 @@ namespace
         sourcePayload.setIsAddress();
 
         const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
-        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, sourcePayload, static_cast<uint32_t>(rawSize));
-        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, storageTypeRef, storageReg));
-        if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::PostMove))
-            SWC_RESULT(codeGen.emitLifecycle(storageTypeRef, CodeGenLifecycleKind::PostMove, storageReg));
-
+        SWC_RESULT(CodeGenFunctionHelpers::emitMoveValue(codeGen, storageTypeRef, storageReg, sourcePayload.reg, argRef));
         if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::Drop))
-        {
-            SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, storageTypeRef, sourcePayload.reg));
             outPostCallDrops.push_back({storageTypeRef, storageReg});
-        }
-        else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
-        {
-            SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, sourcePayload.reg, storageTypeRef, resolvePreparedArgSourceRef(codeGen, argRef)));
-        }
 
         argPayload.reg     = storageReg;
         argPayload.typeRef = normalizedTypeRef;

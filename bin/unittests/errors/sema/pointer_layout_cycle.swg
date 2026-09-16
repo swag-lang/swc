@@ -15,5 +15,5 @@ func initialValue(value: [*] Item?)->s64
 struct Item
 {
     value: s64 = #run initialValue(null)
-    tail: [5] u32
+    tail:  [5] u32
 }

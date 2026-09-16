@@ -3,9 +3,11 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -341,6 +343,78 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
     auto& payload = ensureCodeGenLoweringPayload(sema, nodeRef);
     payload.addRuntimeSafety(safetyKind);
     payload.runtimeFunctionSymbol = panicFn;
+    return Result::Continue;
+}
+
+bool SemaHelpers::ownsExpressionValue(Sema& sema, AstNodeRef nodeRef)
+{
+    nodeRef = sema.viewZero(nodeRef).nodeRef();
+    while (nodeRef.isValid())
+    {
+        const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
+        if (lowering && lowering->ownsValue)
+            return true;
+        const AstNode& node = sema.node(nodeRef);
+        AstNodeRef     childRef;
+        if (node.is(AstNodeId::CastExpr))
+            childRef = node.cast<AstCastExpr>().nodeExprRef;
+        else if (node.is(AstNodeId::ParenExpr))
+            childRef = node.cast<AstParenExpr>().nodeExprRef;
+        else if (node.is(AstNodeId::InitializerExpr))
+            childRef = node.cast<AstInitializerExpr>().nodeExprRef;
+        else if (node.is(AstNodeId::NamedArgument))
+            childRef = node.cast<AstNamedArgument>().nodeArgRef;
+        else
+            return false;
+        nodeRef = node.is(AstNodeId::CastExpr) ? childRef : sema.viewZero(childRef).nodeRef();
+    }
+    return false;
+}
+
+bool SemaHelpers::expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef)
+{
+    nodeRef                   = sema.viewZero(nodeRef).nodeRef();
+    const auto* inlinePayload = sema.inlinePayload(nodeRef);
+    if (inlinePayload && inlinePayload->inlineRootRef == nodeRef && inlinePayload->returnTypeRef.isValid())
+        return sema.typeMgr().get(inlinePayload->returnTypeRef).isReference();
+    if (ownsExpressionValue(sema, nodeRef))
+        return false;
+    const AstNode& node = sema.node(nodeRef);
+    if (node.is(AstNodeId::CallExpr))
+        return sema.viewType(nodeRef).type()->isReference();
+    if (node.is(AstNodeId::ParenExpr))
+        return expressionBorrowsStorage(sema, node.cast<AstParenExpr>().nodeExprRef);
+    if (node.is(AstNodeId::InitializerExpr))
+        return expressionBorrowsStorage(sema, node.cast<AstInitializerExpr>().nodeExprRef);
+    if (node.is(AstNodeId::NamedArgument))
+        return expressionBorrowsStorage(sema, node.cast<AstNamedArgument>().nodeArgRef);
+    return sema.isLValueStored(nodeRef) || node.is(AstNodeId::ConditionalExpr) || node.is(AstNodeId::NullCoalescingExpr);
+}
+
+Result SemaHelpers::materializeMovedValue(Sema& sema, SemaNodeView& view)
+{
+    if (!view.type() || !view.type()->isMoveReference())
+        return Result::Continue;
+
+    AstNodeRef sourceRef = view.nodeRef();
+    while (sema.node(sourceRef).is(AstNodeId::ParenExpr))
+        sourceRef = sema.node(sourceRef).cast<AstParenExpr>().nodeExprRef;
+    if (sema.node(sourceRef).isNot(AstNodeId::UnaryExpr) || sema.token(sema.node(sourceRef).codeRef()).id != TokenId::ModifierMove)
+        return SemaCheck::noMoveRefType(sema, view.typeRef(), sema.node(sourceRef).codeRef());
+
+    const TypeRef valueTypeRef = view.type()->payloadTypeRef();
+    if (view.type()->isConst())
+        return SemaError::raiseCannotCast(sema, view.nodeRef(), view.typeRef(), valueTypeRef);
+    SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, view.nodeRef(), valueTypeRef, AstModifierFlagsE::Move));
+
+    const AstNodeRef castRef   = Cast::createCast(sema, valueTypeRef, view.nodeRef());
+    auto&            lowering  = ensureCodeGenLoweringPayload(sema, castRef);
+    lowering.moveValue         = true;
+    lowering.ownsValue         = true;
+    auto& storage              = registerUniqueRuntimeStorageSymbol(sema, sema.node(castRef), "__moved_value");
+    lowering.runtimeStorageSym = &storage;
+    SWC_RESULT(ensureRuntimeStorageDeclaredAndCompleted(sema, storage, valueTypeRef));
+    view.recompute(sema);
     return Result::Continue;
 }
 

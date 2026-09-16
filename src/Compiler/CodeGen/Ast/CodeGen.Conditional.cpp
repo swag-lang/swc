@@ -2,9 +2,13 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Report/Assert.h"
 
@@ -109,6 +113,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     // through the resolved view. The selection must produce its own stored type; the
     // wrapping cast then converts the joined value.
     const TypeRef                  resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const auto*                    lowering      = codeGen.loweringPayload(codeGen.curNodeRef());
+    const bool                     ownsValue     = lowering && lowering->ownsValue;
     const bool                     addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
     MicroBuilder&                  builder       = codeGen.builder();
     ConditionalExprCodeGenPayload* state         = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
@@ -126,13 +132,48 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         SWC_ASSERT(condBits != MicroOpBits::Zero);
 
         const MicroReg condReg = materializeTruthyOperand(codeGen, condPayload, condTypeRef);
+        SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
 
         ConditionalExprCodeGenPayload& newState = ensureConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
         newState.falseLabel                     = builder.createLabel();
         newState.doneLabel                      = builder.createLabel();
+        if (ownsValue)
+        {
+            newState.reg     = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            newState.typeRef = resultTypeRef;
+            newState.setIsAddress();
+            newState.ownsValue = true;
+        }
 
         CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, condType, condBits);
         CodeGenCompareHelpers::emitConditionJump(codeGen, condType, CodeGenCompareHelpers::falseyCondition(condType), newState.falseLabel);
+        return Result::Continue;
+    }
+
+    if (ownsValue)
+    {
+        const CodeGenNodePayload& branch = codeGen.payload(resolvedChildRef);
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, state->reg, branch,
+                                                    CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(resultTypeRef)));
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, resultTypeRef, state->reg));
+        const bool copiesBranch = !branch.ownsValue && SemaHelpers::expressionBorrowsStorage(codeGen.sema(), resolvedChildRef);
+        const auto postKind     = copiesBranch ? CodeGen::LifecycleKind::PostCopy : CodeGen::LifecycleKind::PostMove;
+        if (codeGen.hasLifecycle(resultTypeRef, postKind))
+            SWC_RESULT(codeGen.emitLifecycle(resultTypeRef, postKind, state->reg));
+        if (branch.ownsValue && branch.runtimeStorageSym)
+            codeGen.cancelTemporaryDrop(*branch.runtimeStorageSym);
+        SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
+        if (state->stage == ConditionalExprStage::TrueBranch)
+        {
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state->doneLabel);
+            builder.placeLabel(state->falseLabel);
+            state->stage = ConditionalExprStage::FalseBranch;
+        }
+        else
+        {
+            builder.placeLabel(state->doneLabel);
+            eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        }
         return Result::Continue;
     }
 
@@ -189,6 +230,11 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
 Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen)
 {
     eraseConditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const auto*   lowering = codeGen.loweringPayload(codeGen.curNodeRef());
+    const TypeRef typeRef  = codeGen.transparentPayloadTypeRef();
+    if (lowering && lowering->ownsValue && lowering->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) &&
+        codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
+        codeGen.registerTemporaryDrop(codeGen.curNodeRef(), typeRef, *lowering->runtimeStorageSym);
     return Result::Continue;
 }
 

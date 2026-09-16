@@ -8,7 +8,7 @@ func identity(value: u32)->u32 => value
 #test
 {
     var values: [Row] u32
-    values[.First] = 42
+    values[.First]  = 42
     values[.Second] = 7
     Swag.assert(values[.First] == 42)
     Swag.assert(identity(values[.Second]) == 7)

@@ -26,6 +26,31 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result CodeGenFunctionHelpers::emitMoveValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg sourceReg, AstNodeRef sourceRef)
+{
+    CodeGenNodePayload source;
+    source.reg     = sourceReg;
+    source.typeRef = typeRef;
+    source.setIsAddress();
+    CodeGenMemoryHelpers::storePayloadToAddress(codeGen, dstReg, source, checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(typeRef)));
+    SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeRef, dstReg));
+    if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::PostMove))
+        SWC_RESULT(codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::PostMove, dstReg));
+    if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
+        SWC_RESULT(emitMovedFromDefaultValue(codeGen, typeRef, sourceReg));
+    else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
+    {
+        sourceRef = SemaHelpers::resolveTransparentExprSourceRef(codeGen.sema(), sourceRef);
+        while (sourceRef.isValid() && codeGen.node(sourceRef).is(AstNodeId::ParenExpr))
+            sourceRef = codeGen.node(sourceRef).cast<AstParenExpr>().nodeExprRef;
+        if (sourceRef.isValid() && codeGen.node(sourceRef).is(AstNodeId::UnaryExpr) &&
+            codeGen.token(codeGen.node(sourceRef).codeRef()).id == TokenId::ModifierMove)
+            sourceRef = codeGen.node(sourceRef).cast<AstUnaryExpr>().nodeExprRef;
+        SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, sourceReg, typeRef, sourceRef));
+    }
+    return Result::Continue;
+}
+
 namespace
 {
     constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;

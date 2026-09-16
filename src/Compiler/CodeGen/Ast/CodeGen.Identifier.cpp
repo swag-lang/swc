@@ -497,6 +497,15 @@ namespace
 
         SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), symbolPayload.reg));
 
+        if (initPayload.ownsValue)
+        {
+            if (codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove))
+                SWC_RESULT(codeGen.emitLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove, symbolPayload.reg));
+            if (initPayload.runtimeStorageSym)
+                codeGen.cancelTemporaryDrop(*initPayload.runtimeStorageSym);
+            return Result::Continue;
+        }
+
         // 'var a = #move b' runs 'opPostMove' and resets the moved-from source (so its
         // later drop is a no-op); a plain init from an lvalue runs 'opPostCopy'.
         const AstModifierFlags initModifiers = varInitModifierFlags(codeGen, initRef);

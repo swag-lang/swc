@@ -21,6 +21,9 @@ struct CodeGenLoweringPayload;
 
 namespace SemaHelpers
 {
+    Result materializeMovedValue(Sema& sema, SemaNodeView& view);
+    bool   ownsExpressionValue(Sema& sema, AstNodeRef nodeRef);
+    bool   expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef);
     struct CountOfResultInfo
     {
         TypeRef         typeRef  = TypeRef::invalid();

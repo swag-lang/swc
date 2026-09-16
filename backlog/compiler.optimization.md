@@ -15,6 +15,24 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.040 — Returning a fresh aggregate invokes its copy hook
+
+- Recorded: 2026-09-16 14:37
+- Area: compiler/lowering, aggregate return ownership
+- Found while: implementing explicit moves in aggregate fields and conditional arms
+  (`language.design.028`).
+- Evidence: on the unchanged DevMode compiler 0.1.687, a non-inlined factory
+  `func makeOwner(value: s64)->Owner => Owner{value}` invokes `Owner.opPostCopy` once
+  for a fresh 16-byte value with drop, copy, and move hooks. Returning a named local
+  instead adopts its storage. A runtime input and a copy counter reproduce the difference;
+  constant folding can hide the factory's copy from runtime counters.
+- Next: review `returnSourceIsOwnedTemporary` in `CodeGen.Function.Post.cpp` and the
+  destination binding for fresh aggregate literals. Establish which literals can transfer
+  ownership into the caller's result without a copy hook or a second destruction.
+- Complete when: fresh aggregate returns have a documented ownership rule and JIT/native
+  regressions cover their copy/move hooks, source cleanup, and optimized inlining.
+- Related: compiler.optimization.027.
+
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 
 - Recorded: 2026-09-16 12:12

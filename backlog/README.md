@@ -35,8 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-16 13:09 |
-| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-16 13:02 |
+| [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-16 14:37 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-16 09:28 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-16 07:54 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
@@ -62,6 +61,7 @@ the latest entry was removed. The removal itself lives in Git.
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-11 22:14 |
 | [app.scope.midi.md](app.scope.midi.md) | The Swag Scope MIDI viewer | 2026-09-11 22:08 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-11 21:18 |
+| [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-10 21:00 |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-09-10 20:42 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-09-10 19:12 |
 | [app.scope.binary.md](app.scope.binary.md) | The Swag Scope structured-binary and container viewer | 2026-09-10 19:10 |

@@ -545,17 +545,7 @@ func loadIndesignDocument(fileName: string)->IndesignDocument fail
     if previews.isEmpty() do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
-    with var result: retval
-    {
-        .header           = header
-        .fileName         = fileName
-        .fileSize         = fileSize
-        .declaredBytes    = declaredBytes
-        .xmpObjectStreams = xmpObjectStreams
-        .previews         = #move previews
-    }
-
-    return #move result
+    return {header, fileName, fileSize, declaredBytes, xmpObjectStreams, #move previews}
 }
 
 private func loadIndesignViewerDocument(fileName: string)->IndesignViewerDocument fail

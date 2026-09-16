@@ -45,7 +45,7 @@ func zeroOddByteRange(values: [*] u8)
 
 #test
 {
-    var value: s32 = 17
+    var value:    s32 = 17
     var pointers: [4] MaybePointer = [&value, &value, &value, &value]
     Swag.init(cast([*] MaybePointer) &pointers[1], 2)
     Swag.assert(pointers[0] == &value and pointers[3] == &value)

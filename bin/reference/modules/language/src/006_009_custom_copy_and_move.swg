@@ -76,12 +76,49 @@ the return then deep-copies through 'opPostCopy' and the local drops normally.
 /**
 # Move Expression Positions
 
-An explicit '#move' can transfer into a variable declaration or assignment, or into a
-call parameter. It cannot currently appear as a struct-literal field, an array-literal
-element, or a branch of the conditional operator. Initialize the destination through
-ordinary statements and assign its owning fields with '#move' instead. This restriction
-does not prevent moving the completed aggregate as a whole.
+An explicit '#move' can transfer into a variable declaration, assignment, call parameter,
+struct-literal field, array-literal element, or conditional branch. The result has the value's
+type; it does not store a move reference. The '#move T' type itself remains restricted to
+function parameters.
+
+Literal operands are evaluated in source order, including named fields written out of
+declaration order. Evaluating '#move source' constructs an owned value, runs 'opPostMove',
+and resets a source with 'opDrop' to its defaults. Without 'opDrop', the source is abandoned
+under the ordinary lifecycle-safety rules. A source that cannot be reset to defaults cannot
+be moved this way. Later operands therefore observe the reset source. If a later operand
+fails, completed owned temporaries are destroyed in reverse order; the literal is not
+completed, and the earlier sources remain moved-from.
+
+A conditional evaluates only its selected branch. A '#move' branch transfers its source;
+an unmarked lvalue branch copies and must support copying. A newly constructed branch gives
+its value to the result. Neither an unselected move nor its cleanup runs. A conditional
+containing a transfer produces an owned result, which a surrounding declaration, assignment,
+return, or literal can adopt. 'opPostMove' also repairs values relocated from temporary storage
+to their final destination; a program must not rely on a fixed number of these repairs.
 */
+
+struct MovedField { value: Vector3 }
+
+#test
+{
+    var source = Vector3{1, 2, 3}
+    let field = MovedField{#move source}
+    Swag.assert(source.x == 666)
+    Swag.assert(field.value.x > 1)
+
+    var first = Vector3{10, 20, 30}
+    var second = Vector3{40, 50, 60}
+    let values = [#move first, #move second]
+    Swag.assert(first.x == 666 and second.x == 666)
+    Swag.assert(values[0].x > 10 and values[1].x > 40)
+
+    var left = Vector3{100, 200, 300}
+    var right = Vector3{400, 500, 600}
+    let selected = left.x < right.x ? #move left : #move right
+    Swag.assert(left.x == 666)
+    Swag.assert(right.x == 400)
+    Swag.assert(selected.x > 100)
+}
 
 /**
 # Ownership And The Copy

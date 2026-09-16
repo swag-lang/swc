@@ -302,6 +302,11 @@ else, judge whether naming the receiver once makes the operation easier to follo
 - Choose by coherence and repetition, not a fixed statement count. Two meaningful settings can
   belong together; one ordinary assignment usually reads better without a block. Prefer a small
   aggregate literal when it states the complete value more clearly than incremental setup.
+- Move owning fields directly in that literal: `Block{kind, #move text}` or
+  `{header, #move previews}`. A conditional can mix a newly constructed value, a copyable
+  lvalue, and an explicit transfer: `flag ? String.from("rule") : #move block.text`.
+  Only the selected branch transfers; an unmarked lvalue still copies and must be copyable.
+  Do not introduce a temporary or a sequence of field assignments just to place `#move`.
 - Inside the block, `.` names its subject. A method can use `with` safely: spell accesses to the
   enclosing receiver as `me.field` or `me.method()` inside it. Audit every existing leading dot
   when introducing a block, including arguments, address expressions, and nested callbacks.

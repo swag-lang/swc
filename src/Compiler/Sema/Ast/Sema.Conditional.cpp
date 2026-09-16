@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -301,13 +302,10 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeFalseView));
     sema.setIsValue(*this);
 
-    // A branch is a value the join produces, so it cannot transfer ownership: only a '#move'
-    // parameter receives a move reference, and a conditional is not one. Both branches are
-    // checked here so the two spellings report the same thing — a '#move' in the true branch
-    // used to be caught later, by the deduced storage type, and one in the false branch not
-    // at all.
-    SWC_RESULT(SemaCheck::noMoveRefType(sema, nodeTrueView.typeRef(), sema.node(nodeTrueRef).codeRef()));
-    SWC_RESULT(SemaCheck::noMoveRefType(sema, nodeFalseView.typeRef(), sema.node(nodeFalseRef).codeRef()));
+    SWC_RESULT(SemaHelpers::materializeMovedValue(sema, nodeTrueView));
+    SWC_RESULT(SemaHelpers::materializeMovedValue(sema, nodeFalseView));
+    const bool ownsValue = SemaHelpers::ownsExpressionValue(sema, nodeTrueView.nodeRef()) ||
+                           SemaHelpers::ownsExpressionValue(sema, nodeFalseView.nodeRef());
 
     // Condition must be bool
     SWC_RESULT(SemaCheck::castToBool(sema, nodeCondView));
@@ -320,9 +318,16 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeFalseRef, nodeTrueView.typeRef(), nodeFalseView.typeRef());
 
     sema.setType(sema.curNodeRef(), typeRef);
+    if (ownsValue)
+    {
+        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeTrueView.nodeRef(), nodeTrueView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
+        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeFalseView.nodeRef(), nodeFalseView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
+        SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, typeRef, "__conditional_value"));
+    }
 
     // Constant folding
-    if (nodeCondView.cstRef().isValid())
+    if (nodeCondView.cstRef().isValid() && !ownsValue)
     {
         const AstNodeRef selectedBranchRef  = nodeCondView.cst()->getBool() ? nodeTrueRef : nodeFalseRef;
         SemaNodeView     selectedBranchView = sema.viewNodeTypeConstant(selectedBranchRef);

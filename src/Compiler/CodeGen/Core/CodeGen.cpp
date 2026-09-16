@@ -154,6 +154,7 @@ namespace
         if (!dst.runtimeArrayFillCstRef.isValid() && src.runtimeArrayFillCstRef.isValid())
             dst.runtimeArrayFillCstRef = src.runtimeArrayFillCstRef;
         dst.runtimeSafetyMask |= src.runtimeSafetyMask;
+        dst.ownsValue |= src.ownsValue;
         if (!dst.fallibleWrapperConsumed && !dst.hasFallibleWrapper() && src.hasFallibleWrapper())
         {
             dst.fallibleWrapperOwnerRef = src.fallibleWrapperOwnerRef;
@@ -1064,6 +1065,8 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
 {
     if (hasTemporaryDrop(storage))
         return;
+    const auto* valuePayload = safePayload(valueRef);
+    const bool  ownsValue    = valuePayload && valuePayload->ownsValue;
 
     const auto isAncestorRef = [this](const AstNodeRef candidateRef) {
         for (size_t up = 0;; ++up)
@@ -1122,7 +1125,13 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         }
 
         if (isLazyEvaluationNode(parent.id()))
-            return;
+        {
+            if (!ownsValue)
+                return;
+            if (parent.is(AstNodeId::ConditionalExpr))
+                flushRootRef = parentRef;
+            break;
+        }
 
         // Caller argument bindings are materialized inside the callee's inline clone. Their
         // temporaries still belong to the caller expression, so cross the clone root before
@@ -1144,7 +1153,34 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         flushRootRef = parentRef;
     }
 
-    temporaryDrops_.push_back({flushRootRef, &storage, typeRef});
+    temporaryDrops_.push_back({flushRootRef, &storage, typeRef, ownsValue});
+}
+
+Result CodeGen::emitTemporaryDropsForFailure(AstNodeRef scopeRef)
+{
+    // Emit the exceptional edge without retiring the successful edge's cleanups.
+    // A handler nested in a later operand does not unwind earlier sibling operands.
+    for (size_t i = temporaryDrops_.size(); i != 0; --i)
+    {
+        const CodeGenTemporaryDrop drop = temporaryDrops_[i - 1];
+        if (!drop.storageSym || !drop.ownsValue)
+            continue;
+        for (size_t up = 0;; ++up)
+        {
+            const AstNodeRef parentRef = visit_.parentNodeRef(up);
+            if (parentRef.isInvalid())
+                break;
+            if (parentRef == drop.flushRootRef)
+            {
+                const CodeGenNodePayload storage = resolveLocalStackPayload(*drop.storageSym, false);
+                SWC_RESULT(emitLifecycle(drop.typeRef, LifecycleKind::Drop, storage.reg));
+                break;
+            }
+            if (parentRef == scopeRef)
+                break;
+        }
+    }
+    return Result::Continue;
 }
 
 bool CodeGen::hasTemporaryDrop(const SymbolVariable& storage) const

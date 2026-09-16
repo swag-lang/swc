@@ -111,15 +111,17 @@ impl DocumentOutline
 
         var label: String
         var space: bool
-        for byte in title
+
+        // A continuation byte can match Latin-1 whitespace inside a valid UTF-8 character.
+        Utf8.visitRunes(title)
         {
-            if Latin1.isSpace(byte) do
+            if Unicode.isSpace(c) do
                 space = not label.isEmpty()
             else
             {
                 if space do
                     label += ' '
-                label += byte
+                label.append(c)
                 space = false
             }
         }

@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -767,9 +768,9 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         // like in a scalar initialization, so it can later cast to a 'typeinfo' element.
         SWC_RESULT(SemaCheck::isValueOrType(sema, view));
 
-        // Same rule as a struct literal: the aggregate is materialized as a value, so an
-        // element cannot hand over storage.
-        SWC_RESULT(SemaCheck::noMoveRefType(sema, view.typeRef(), sema.node(view.nodeRef()).codeRef()));
+        SWC_RESULT(SemaHelpers::materializeMovedValue(sema, view));
+        if (SemaHelpers::ownsExpressionValue(sema, view.nodeRef()))
+            SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
         values.push_back(view.cstRef());
         elemTypes.push_back(view.typeRef());

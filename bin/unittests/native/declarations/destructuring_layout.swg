@@ -31,8 +31,8 @@ func runtimeByte(value: u8)->u8 => value
 #test
 {
     var head, tail: u8
-    var wide: u64
-    var word: u16
+    var wide:       u64
+    var word:       u16
     {head, ?, wide, word, tail} = {
         runtimeByte(7), Empty{}, cast(u64) runtimeByte(17) << 40,
         cast(u16) runtimeByte(31), runtimeByte(37)}

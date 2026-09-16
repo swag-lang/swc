@@ -39,6 +39,7 @@ struct CodeGenTemporaryDrop
     AstNodeRef            flushRootRef = AstNodeRef::invalid();
     const SymbolVariable* storageSym   = nullptr;
     TypeRef               typeRef      = TypeRef::invalid();
+    bool                  ownsValue    = false;
 };
 
 enum class CodeGenLifecycleKind : uint8_t
@@ -425,6 +426,8 @@ public:
     void                      registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const SymbolVariable& storage);
     bool                      hasTemporaryDrop(const SymbolVariable& storage) const;
     void                      cancelTemporaryDrop(const SymbolVariable& storage);
+    Result                    flushTemporaryDrops(AstNodeRef rootRef);
+    Result                    emitTemporaryDropsForFailure(AstNodeRef scopeRef);
     void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
     Result                    popDeferScope();
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
@@ -483,7 +486,6 @@ private:
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result flushTemporaryDrops(AstNodeRef rootRef);
     Result emitConstant(AstNodeRef nodeRef);
     Result emitDeferredAction(const CodeGenDeferredAction& action);
     Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount);

@@ -28,6 +28,8 @@ struct CodeGenLoweringPayload
     bool assumedDynamicCast  = false;
     bool runtimeTypeCast     = false;
     bool runtimeValueCast    = false;
+    bool moveValue           = false;
+    bool ownsValue           = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {

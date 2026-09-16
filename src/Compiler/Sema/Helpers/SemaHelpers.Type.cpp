@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -954,7 +955,8 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         else
             memberNames.push_back(IdentifierRef::invalid());
 
-        SemaNodeView view = sema.viewTypeConstant(child);
+        const AstNodeRef valueRef = childNode.is(AstNodeId::NamedArgument) ? childNode.cast<AstNamedArgument>().nodeArgRef : child;
+        SemaNodeView     view     = sema.viewTypeConstant(valueRef);
 
         // A child can still be untyped here when it is an auto-member (`.value`)
         // nested inside an aggregate literal that is itself a call argument: the
@@ -968,11 +970,9 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         // like in a scalar initialization, so it can later cast to a 'typeinfo' field.
         SWC_RESULT(SemaCheck::isValueOrType(sema, view));
 
-        // A literal is materialized as a value, so a field cannot hand over storage: there is
-        // no slot for the move to land in, and the moved source has nothing left to copy from.
-        // Reported here rather than at the conversion, so the '#move' itself is what the
-        // diagnostic points at.
-        SWC_RESULT(SemaCheck::noMoveRefType(sema, view.typeRef(), sema.node(child).codeRef()));
+        SWC_RESULT(SemaHelpers::materializeMovedValue(sema, view));
+        if (SemaHelpers::ownsExpressionValue(sema, view.nodeRef()))
+            SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
 
         memberTypes.push_back(view.typeRef());

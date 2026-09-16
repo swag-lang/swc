@@ -15,27 +15,26 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.039 — A pre-RA loop that stops short of its fixed point has no diagnostic
+### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 
 - Recorded: 2026-09-16 12:12
+- Updated: 2026-09-16 13:02 — The silent failure is fixed; what remains is the unmeasured budget.
 - Area: compiler/backend, compilation time
-- Evidence: the pre-RA optimization loop sweeps up to sixteen times and treats a sweep budget
-  that runs out as an error, through `MicroVerify::reportError` in
-  `MicroPassManager::runLoopPasses`. Outside a micro-validating build that call returns
-  `Result::Error` and says nothing, so the failure reaches the user as whatever the caller makes
-  of it. Lowering the cap to three with a temporary knob (Release 0.1.684) and building
-  `bin/std/modules/gui` produced eighteen semantic errors - overload resolution rejecting calls
-  that resolve normally - and no message about the backend. The compile-time evaluations that
-  feed those calls are lowered through the same loop, so a budget the loop cannot meet surfaces
-  as a front-end error about the user's own source.
-- Why it matters: the cap is the obvious knob for a cheaper optimization tier, and it cannot be
-  used. It is also unmeasured: nothing records how close a real function comes to sixteen sweeps,
-  so a function that needs a seventeenth today would fail the same silent way.
-- Next: give non-convergence a diagnostic in every configuration, naming the function and the
-  budget, so the failure is attributable. Then measure the sweep counts a full `bin/std` build
-  actually reaches, and decide from that whether the budget is a safety net or a live limit.
-- Complete when: a loop that exhausts its budget reports it as a compiler error naming the
-  function, and the sweep distribution over `bin/std` is recorded.
+- Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
+  changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
+  (Release 0.1.684) and building `bin/std/modules/gui` showed what that costs: eighteen errors,
+  all of them semantic errors about the user's own source, because the compile-time evaluations
+  those calls fold are lowered through the same loop. The loop now reports the defect itself,
+  naming the function and the budget, covered by the C++ test
+  `MicroPassManager_PreRa_ReportsALoopThatNeverSettles`. What it still does not say is how much
+  room is left: no measurement records the sweep counts a real build reaches, so whether sixteen
+  is a distant safety net or a limit some function already approaches is unknown.
+- Next: count the sweeps each function needs over a full `bin/std` build in both configurations
+  and record the distribution. A maximum far below sixteen makes the budget a safety net; a
+  maximum near it makes the budget a live limit and the convergence of individual passes the
+  thing to fix.
+- Complete when: the sweep distribution over `bin/std` is recorded, and the budget is either
+  justified by it or replaced by what the measurement shows is needed.
 - Related: compiler.optimization.029, compiler.core.004.
 
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 
 #if SWC_HAS_UNITTEST
 
@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Main/Stats.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -55,6 +56,51 @@ namespace
         MicroInstrRef            ref_;
         std::span<const Rewrite> rewrites_;
         bool                     laterSweepsOnly_;
+    };
+
+    // Moves the same immediate one step further on every sweep, so the loop keeps seeing a
+    // function it has not seen before and can never settle.
+    class NeverSettlingPass final : public MicroPass
+    {
+    public:
+        explicit NeverSettlingPass(MicroInstrRef ref) :
+            ref_(ref)
+        {
+        }
+
+        std::string_view name() const override { return "test-never-settling"; }
+
+        Result run(MicroPassContext& context) override
+        {
+            ++calls;
+            auto* ops = context.instructions->ptr(ref_)->ops(*context.operands);
+            ops[2].setImmediateValue(ApInt(ops[2].immediateValue().as64() + 1, 64));
+            context.passChanged = true;
+            return Result::Continue;
+        }
+
+        uint32_t calls = 0;
+
+    private:
+        MicroInstrRef ref_;
+    };
+
+    // The reported error belongs to the fixture, not to the run that hosts it.
+    class RestoreErrorCount
+    {
+    public:
+        RestoreErrorCount() :
+            saved_(Stats::get().numErrors.load(std::memory_order_relaxed))
+        {
+        }
+
+        ~RestoreErrorCount()
+        {
+            Stats::get().numErrors.store(saved_, std::memory_order_relaxed);
+        }
+
+    private:
+        size_t saved_;
     };
 }
 
@@ -107,6 +153,41 @@ SWC_TEST_BEGIN(MicroPassManager_PostRa_RechecksSuffixWhenFirstSweepPolicyChanges
     if (builder.instructions().ptr(value)->ops(builder.operands())[2].immediateValue().as64() != 2)
         return Result::Error;
     if (prefix.calls != 3 || suffix.calls != 3)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPassManager_PreRa_ReportsALoopThatNeverSettles)
+{
+    // A loop that runs out of sweeps used to return an error that said nothing outside a
+    // micro-validating build, so the caller reported whatever it made of it - for the compile-time
+    // evaluations lowered through this loop, a semantic error about the user's own source.
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(MicroReg::intReg(0), ApInt(0, 64), MicroOpBits::B64);
+    const auto value = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    NeverSettlingPass never(value);
+    MicroPassManager  manager;
+    manager.addPreRaLoopPass(never);
+
+    MicroPassContext passContext;
+    passContext.callConvKind               = CallConvKind::Swag;
+    passContext.optimizationIterationLimit = 3;
+
+    const RestoreErrorCount restoreErrors;
+    const uint64_t          errorsBefore = Stats::getNumErrors();
+    const bool              savedMute    = ctx.muteOutput();
+    ctx.setMuteOutput(true);
+    const Result result = builder.runPasses(manager, nullptr, passContext);
+    ctx.setMuteOutput(savedMute);
+
+    if (result != Result::Error)
+        return Result::Error;
+    if (never.calls != 3)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore + 1)
         return Result::Error;
     return Result::Continue;
 }

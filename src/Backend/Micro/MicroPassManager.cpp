@@ -4,6 +4,8 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroVerify.h"
+#include "Main/TaskContext.h"
+#include "Support/Report/Diagnostic.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
@@ -286,6 +288,27 @@ namespace
         return Result::Continue;
     }
 
+    // A loop that stops before its fixed point leaves the function in whatever state its last
+    // sweep produced, and everything downstream - the rest of the pipeline, the JIT, the emitted
+    // artifact - reads that state as final. It is a compiler defect, so it is reported as one, in
+    // every configuration: a build that stops without saying why sends the reader looking for the
+    // cause in their own source, where it is not.
+    Result reportUnconvergedLoop(const MicroPassContext& context, std::string_view loopName, uint32_t maxIterations)
+    {
+        if (!context.taskContext)
+            return Result::Error;
+
+        Utf8 functionName = context.builder ? context.builder->printSymbolName() : Utf8{};
+        if (functionName.empty())
+            functionName = "<compiler-generated>";
+
+        auto diagnostic = Diagnostic::get(DiagnosticId::misc_err_internal_codegen_failure);
+        diagnostic.addArgument(Diagnostic::ARG_WHAT, functionName);
+        diagnostic.addArgument(Diagnostic::ARG_BECAUSE, std::format("the {} still rewrites it after {} sweeps", loopName, maxIterations));
+        diagnostic.report(*context.taskContext);
+        return Result::Error;
+    }
+
     Result runLinearPasses(MicroPassContext& context, std::span<MicroPass* const> passes, VerifyStateCache& verifyCache)
     {
         for (MicroPass* pass : passes)
@@ -439,7 +462,7 @@ namespace
         if (!reachedFixedPoint)
         {
             context.ssaState = nullptr;
-            return MicroVerify::reportError(context, settings.name, std::format("fixed point not reached after {} iterations", settings.maxIterations));
+            return reportUnconvergedLoop(context, settings.name, settings.maxIterations);
         }
 
         context.ssaState               = nullptr;

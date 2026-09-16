@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroVerify.h"
 #include "Main/Stats.h"
 #include "Unittest/Unittest.h"
 
@@ -446,6 +447,185 @@ SWC_TEST_BEGIN(MicroDenseRegIndex_ReusesMixedDirectAndSparseRegisters)
     }
 }
 SWC_TEST_END()
+
+#if SWC_HAS_VALIDATE_MICRO
+
+namespace
+{
+    Result verifyMicroFixture(MicroBuilder& builder, bool virtualOnly = false)
+    {
+        MicroPassContext context;
+        context.instructions  = &builder.instructions();
+        context.operands      = &builder.operands();
+        context.validateMicro = true;
+        // Expected rejections must not print diagnostics into the hosting test run.
+        return virtualOnly ? MicroVerify::verifyAllRegistersVirtual(context, "register-fixture") : MicroVerify::verify(context, "register-fixture");
+    }
+}
+
+SWC_TEST_BEGIN(MicroVerify_AmcRegistersFollowTheirOperandRoles)
+{
+    struct Case
+    {
+        MicroInstrOpcode op;
+        uint8_t          baseIndex;
+        uint8_t          indexIndex;
+        uint8_t          valueIndex;
+    };
+    constexpr Case cases[] = {
+        {MicroInstrOpcode::LoadAmcRegMem, 1, 2, 0},
+        {MicroInstrOpcode::LoadSignedExtAmcRegMem, 1, 2, 0},
+        {MicroInstrOpcode::LoadZeroExtAmcRegMem, 1, 2, 0},
+        {MicroInstrOpcode::LoadAddrAmcRegMem, 1, 2, 0},
+        {MicroInstrOpcode::VecUnaryAmcRegMem, 1, 2, 0},
+        {MicroInstrOpcode::LoadAmcMemReg, 0, 1, 2},
+        {MicroInstrOpcode::LoadAmcMemImm, 0, 1, UINT8_MAX},
+        {MicroInstrOpcode::CmpAmcImm, 0, 1, UINT8_MAX},
+    };
+    for (const Case& test : cases)
+        for (const bool physical : {false, true})
+        {
+            const MicroReg base   = physical ? MicroReg::intReg(1) : MicroReg::virtualIntReg(1);
+            const MicroReg index  = physical ? MicroReg::intReg(2) : MicroReg::virtualIntReg(2);
+            const MicroReg value  = physical ? MicroReg::intReg(3) : MicroReg::virtualIntReg(3);
+            const MicroReg vector = physical ? MicroReg::floatReg(3) : MicroReg::virtualFloatReg(3);
+            MicroBuilder   builder(ctx);
+            builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, index, 4, 16, MicroOpBits::B64);
+            MicroInstr*        inst = builder.instructions().ptr(builder.instructions().lastInstructionRef());
+            MicroInstrOperand* ops  = inst->ops(builder.operands());
+            if (inst->numOperands != 8)
+                return Result::Error;
+            inst->op = test.op;
+            if (test.baseIndex == 0)
+            {
+                ops[0].reg = base;
+                ops[1].reg = index;
+                ops[2].reg = value;
+            }
+            if (test.op == MicroInstrOpcode::LoadAmcMemReg)
+            {
+                // The stored value is operand two, not the address index, and may be SIMD.
+                ops[2].reg    = vector;
+                ops[4].opBits = MicroOpBits::B128;
+            }
+            if (test.op == MicroInstrOpcode::LoadAmcMemImm)
+                ops[7].setImmediateValue(ApInt(42, 64));
+            if (test.op == MicroInstrOpcode::LoadSignedExtAmcRegMem || test.op == MicroInstrOpcode::LoadZeroExtAmcRegMem)
+            {
+                ops[4].opBits     = MicroOpBits::B8;
+                inst->numOperands = 7;
+            }
+            if (test.op == MicroInstrOpcode::VecUnaryAmcRegMem)
+            {
+                ops[0].reg     = vector;
+                ops[3].opBits  = MicroOpBits::B128;
+                ops[7].microOp = MicroOp::VecWidenLoU8;
+            }
+            if (test.op == MicroInstrOpcode::CmpAmcImm)
+            {
+                ops[2].opBits   = MicroOpBits::B32;
+                ops[3].opBits   = MicroOpBits::B64;
+                ops[4].valueU64 = 4;
+                ops[5].valueU64 = 16;
+                ops[6].setImmediateValue(ApInt(42, 32));
+                inst->numOperands = 7;
+            }
+            SWC_RESULT(verifyMicroFixture(builder));
+
+            ops[test.baseIndex].reg     = MicroReg::noBase();
+            const Result noBaseExpected = test.op == MicroInstrOpcode::VecUnaryAmcRegMem ? Result::Error : Result::Continue;
+            if (verifyMicroFixture(builder) != noBaseExpected)
+                return Result::Error;
+            ops[test.baseIndex].reg = base;
+
+            for (const MicroReg bad : {MicroReg::invalid(), MicroReg::instructionPointer(), MicroReg::floatReg(1), MicroReg::virtualFloatReg(1)})
+                for (const uint8_t slot : {test.baseIndex, test.indexIndex})
+                {
+                    const MicroReg saved = ops[slot].reg;
+                    ops[slot].reg        = bad;
+                    if (verifyMicroFixture(builder) != Result::Error)
+                        return Result::Error;
+                    ops[slot].reg = saved;
+                }
+            ops[test.indexIndex].reg = MicroReg::noBase();
+            if (verifyMicroFixture(builder) != Result::Error)
+                return Result::Error;
+            ops[test.indexIndex].reg = index;
+
+            if (test.valueIndex != UINT8_MAX)
+                for (const MicroReg special : {MicroReg::noBase(), MicroReg::instructionPointer()})
+                {
+                    const MicroReg saved     = ops[test.valueIndex].reg;
+                    ops[test.valueIndex].reg = special;
+                    if (verifyMicroFixture(builder) != Result::Error)
+                        return Result::Error;
+                    ops[test.valueIndex].reg = saved;
+                }
+
+            // Address scale legalization follows structural verification.
+            if (test.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+            {
+                ops[5].valueU64 = 3;
+                SWC_RESULT(verifyMicroFixture(builder));
+            }
+            for (const uint8_t count : {0, 1, 6})
+            {
+                inst->numOperands = count;
+                if (verifyMicroFixture(builder) != Result::Error)
+                    return Result::Error;
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroVerify_RejectsSpecialScalarRegisters)
+{
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(1), MicroReg::intReg(2), MicroOpBits::B64);
+    MicroInstrOperand* ops = builder.instructions().ptr(builder.instructions().lastInstructionRef())->ops(builder.operands());
+    SWC_RESULT(verifyMicroFixture(builder));
+    for (const uint8_t slot : {0, 1})
+        for (const MicroReg bad : {MicroReg::invalid(), MicroReg::noBase(), MicroReg::instructionPointer(), MicroReg(MicroRegKind::Special, 2)})
+        {
+            const MicroReg saved = ops[slot].reg;
+            ops[slot].reg        = bad;
+            if (verifyMicroFixture(builder) != Result::Error)
+                return Result::Error;
+            ops[slot].reg = saved;
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroVerify_VirtualRegistersIgnoreUnusedAmcStoreSlot)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAmcMemImm(base, index, 4, 16, MicroOpBits::B64, ApInt(42, 32), MicroOpBits::B32);
+    MicroInstrOperand* ops = builder.instructions().ptr(builder.instructions().lastInstructionRef())->ops(builder.operands());
+    // Operand two is unused in an immediate store. Its bits are not a register use.
+    ops[2].reg = MicroReg::intReg(7);
+    SWC_RESULT(verifyMicroFixture(builder));
+    SWC_RESULT(verifyMicroFixture(builder, true));
+    ops[0].reg = MicroReg::noBase();
+    SWC_RESULT(verifyMicroFixture(builder));
+    SWC_RESULT(verifyMicroFixture(builder, true));
+    ops[0].reg = base;
+    for (const uint8_t slot : {0, 1})
+    {
+        const MicroReg saved = ops[slot].reg;
+        ops[slot].reg        = MicroReg::intReg(7);
+        if (verifyMicroFixture(builder, true) != Result::Error)
+            return Result::Error;
+        ops[slot].reg = saved;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+#endif
 
 SWC_END_NAMESPACE();
 

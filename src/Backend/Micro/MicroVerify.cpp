@@ -5,6 +5,7 @@
 
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -146,12 +147,6 @@ namespace
             case MicroInstrOpcode::LoadMemReg:
                 return reg.isAnyInt() || reg.isInstructionPointer();
 
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadAmcMemReg:
-            case MicroInstrOpcode::LoadAmcMemImm:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-                return reg.isAnyInt() || reg.isNoBase();
-
             default:
                 return reg.isAnyInt();
         }
@@ -257,8 +252,11 @@ namespace
                 return 6;
 
             case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::CmpAmcImm:
                 return 7;
 
             case MicroInstrOpcode::LoadAmcMemImm:
@@ -361,8 +359,10 @@ namespace
 
     Result verifyInstructionRegisters(const MicroPassContext& context, std::string_view phase, uint32_t instructionIndex, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        const MicroInstrDef& info  = MicroInstr::info(inst.op);
-        const auto           modes = info.resolvedRegModes(ops);
+        const MicroInstrDef&        info  = MicroInstr::info(inst.op);
+        const auto                  modes = info.resolvedRegModes(ops);
+        MicroPassHelpers::AmcLayout amcLayout;
+        const bool                  hasAmc = MicroPassHelpers::amcLayoutFor(amcLayout, inst.op);
 
         for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
         {
@@ -371,11 +371,24 @@ namespace
 
             if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && operandIndex == info.memBaseOperandIndex)
                 continue;
+            if (hasAmc && (operandIndex == amcLayout.baseIdx || operandIndex == amcLayout.indexIdx))
+                continue;
 
             if (!isValidNonMemoryOperandRegister(ops[operandIndex].reg))
             {
                 return reportError(context, phase, std::format("instruction #{} references unknown register {} at operand {}", instructionIndex, ops[operandIndex].reg.packed, operandIndex));
             }
+        }
+
+        if (hasAmc)
+        {
+            const MicroReg base         = ops[amcLayout.baseIdx].reg;
+            const bool     allowsNoBase = inst.op != MicroInstrOpcode::VecUnaryAmcRegMem;
+            if (!isValidAnyRegister(base) || !(base.isAnyInt() || (allowsNoBase && base.isNoBase())))
+                return reportError(context, phase, std::format("instruction #{} references unknown memory base register {} at operand {}", instructionIndex, base.packed, amcLayout.baseIdx));
+            if (!isValidAmcIndexRegister(ops[amcLayout.indexIdx].reg))
+                return reportError(context, phase, std::format("instruction #{} references unknown AMC index register {} at operand {}", instructionIndex, ops[amcLayout.indexIdx].reg.packed, amcLayout.indexIdx));
+            return Result::Continue;
         }
 
         if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
@@ -389,23 +402,6 @@ namespace
         if (!isValidMemoryBaseRegister(inst.op, ops[info.memBaseOperandIndex].reg))
         {
             return reportError(context, phase, std::format("instruction #{} references unknown memory base register {} at operand {}", instructionIndex, ops[info.memBaseOperandIndex].reg.packed, info.memBaseOperandIndex));
-        }
-
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadAmcMemReg:
-            case MicroInstrOpcode::LoadAmcMemImm:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-            case MicroInstrOpcode::VecUnaryAmcRegMem:
-                if (!isValidAmcIndexRegister(ops[2].reg))
-                {
-                    return reportError(context, phase, std::format("instruction #{} references unknown AMC index register {} at operand 2", instructionIndex, ops[2].reg.packed));
-                }
-                break;
-
-            default:
-                break;
         }
 
         return Result::Continue;
@@ -590,21 +586,6 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
             if (modes[operandIndex] == MicroInstrRegMode::None && !isMemBase)
                 continue;
             SWC_RESULT(verifyVirtualRegisterOperand(context, phase, instructionIdx, operandIndex, ops[operandIndex].reg));
-        }
-
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadAmcMemReg:
-            case MicroInstrOpcode::LoadAmcMemImm:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-            case MicroInstrOpcode::VecUnaryAmcRegMem:
-                if (inst.numOperands > 2)
-                    SWC_RESULT(verifyVirtualRegisterOperand(context, phase, instructionIdx, 2, ops[2].reg));
-                break;
-
-            default:
-                break;
         }
     }
 

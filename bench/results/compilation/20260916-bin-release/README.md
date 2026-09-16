@@ -90,3 +90,8 @@ cycle, ignored subtree and cache invalidation after a new edge. DevMode JIT
 example and its core dependency closure. Both compiler configurations built successfully.
 An initial `--file-filter recursive` selection was invalid because it excluded `testAlloc` and
 `testFree` helpers required by one selected file; it is not counted as passing evidence.
+
+Batch-2 integration with master `81e57b332` used Release build 702. Native
+`--file-filter closure -bc release` passed 83 cases in JIT and in the emitted executable;
+the backlog validator passed. This integration also brings the independent pattern-binding fix
+`69f480e61`, which resolves the earlier `compiler.core.049` baseline failure.

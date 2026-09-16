@@ -1,0 +1,114 @@
+{
+  "pattern-binding-after": {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.dm.exe",
+      "test",
+      "-d",
+      "C:/Perso/swag-lang/swc-memory/bin/unittests/native",
+      "--file-filter",
+      "type_patterns.swg",
+      "-bc",
+      "release",
+      "--num-cores",
+      "6",
+      "--out-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-after-out",
+      "--work-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-after-work"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+    "exit": 0,
+    "seconds": 1.265728799997305
+  },
+  "pattern-binding-release": {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "test",
+      "-d",
+      "C:/Perso/swag-lang/swc-memory/bin/unittests/native",
+      "--file-filter",
+      "type_patterns.swg",
+      "-bc",
+      "release",
+      "--num-cores",
+      "6",
+      "--out-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-release-out",
+      "--work-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-release-work"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+    "exit": 0,
+    "seconds": 0.5588229000059073
+  },
+  "pattern-native-release": {
+    "command": [
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\swc.dm.exe",
+      "--num-cores",
+      "6",
+      "C:\\Perso\\swag-lang\\swc-memory\\tools\\unittests.swgs",
+      "dm",
+      "native",
+      "-bc",
+      "release",
+      "--num-cores",
+      "6"
+    ],
+    "exit": 0,
+    "seconds": 23.992016399999557
+  },
+  "pattern-repository": {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "--num-cores",
+      "6",
+      "tools/tests/repository.swgs",
+      "."
+    ],
+    "cwd": "C:/Perso/swag-lang/swc-memory",
+    "exit": 0,
+    "seconds": 4.709888500001398
+  },
+  "pattern-integrated-dm": {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.dm.exe",
+      "test",
+      "-d",
+      "C:/Perso/swag-lang/swc-memory/bin/unittests/native",
+      "--file-filter",
+      "type_patterns.swg",
+      "-bc",
+      "release",
+      "--num-cores",
+      "6",
+      "--out-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-integrated-dm-out",
+      "--work-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-integrated-dm-work"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+    "exit": 0,
+    "seconds": 0.7019923999978346
+  },
+  "pattern-integrated-release": {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "test",
+      "-d",
+      "C:/Perso/swag-lang/swc-memory/bin/unittests/native",
+      "--file-filter",
+      "type_patterns.swg",
+      "-bc",
+      "release",
+      "--num-cores",
+      "6",
+      "--out-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-integrated-release-out",
+      "--work-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pattern-integrated-release-work"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+    "exit": 0,
+    "seconds": 0.4406907000011415
+  }
+}

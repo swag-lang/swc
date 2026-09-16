@@ -60,5 +60,29 @@ claimed. This change preserves all analysis data, checks and code-generation pas
 regression boundary and rotate additional coverage, rather than rerunning the whole campaign.
 
 Integration with master `e71844062` uses compiler build 695. Both compiler builds and the
-57-test DevMode sanity suite passed again. The isolated release pattern failure persists;
-it is tracked as `compiler.core.049` in [the backlog](../../../../backlog/compiler.core.md).
+57-test DevMode sanity suite passed again. The isolated release pattern failure persisted
+at that point and was then fixed in the corrective batch below.
+
+## Corrective batch: inline dynamic-pattern bindings
+
+The release-native failure above came from AST cloning. A typed switch case declares its
+binding on the `SwitchCaseStmt`, which the clone's local-declaration predicate omitted.
+An automatic inline expansion consequently pinned a read to the original callee's variable
+instead of resolving it to the cloned case binding. Recognizing this declaration kind fixes
+the cause without disabling inlining or adding generated instructions.
+
+The existing `types/type_patterns.swg` is the regression: it fails before the fix with the
+frozen build 695 and passes all ten tests after it, with both DevMode and Release compilers
+(build 697), program configuration release, in JIT and the linked executable. The complete
+DevMode-compiler native release suite now passes all 3,255 tests and its recovery probes.
+The temporary backlog entry was removed after fixing the defect; the repository validator
+passes. No replacement or duplicate regression file was needed.
+
+A three-pair core rebuild comparison against build 695 is retained in
+[pattern-binding-ab.json](pattern-binding-ab.json): paired elapsed ratios are 0.966 in
+devmode and 1.001 in release; paired CPU ratios are 0.937 and 0.970. Peak working set varies
+by +2.1% and +1.7%. This is a correctness fix, not a claimed memory improvement.
+[Validation commands](pattern-validation.json).
+
+After integration with master `1ad9da4a2`, both compiler builds passed at build 699 and
+the ten-test file passed again with both executables in release.

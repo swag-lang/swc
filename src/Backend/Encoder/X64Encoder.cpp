@@ -1058,6 +1058,13 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     const MicroReg stackReg = stackPointerReg();
     switch (inst.op)
     {
+        case MicroInstrOpcode::SetCondReg:
+            // SETcc replaces only the low byte. Physical liveness must keep
+            // the previous upper bits, including a preceding full clear.
+            if (ops[0].reg.isInt())
+                info.addUse(ops[0].reg);
+            return;
+
         case MicroInstrOpcode::Push:
             info.addUseDef(stackReg);
             return;

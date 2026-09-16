@@ -220,6 +220,48 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Zero the full result before the compare instead of extending SETcc's
+    // byte afterward. The compare must not read that result register.
+    bool tryClearBeforeSetCondition(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* ext = inst.ops(*ctx.operands);
+        if (!ext || !ext[0].reg.isInt() || ext[0].reg != ext[1].reg ||
+            ext[3].opBits != MicroOpBits::B8 ||
+            (ext[2].opBits != MicroOpBits::B32 && ext[2].opBits != MicroOpBits::B64) ||
+            ctx.isPrivateFrameBase(ext[0].reg))
+            return false;
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const auto* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[0].reg != ext[0].reg)
+            return false;
+        const MicroInstrRef cmpRef = ctx.previousRef(setRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        // Register compares have no immediate/relocation binding to move.
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const auto* cmpOps = cmp->ops(*ctx.operands);
+        if (!cmpOps || !cmpOps[0].reg.isInt() || !cmpOps[1].reg.isInt())
+            return false;
+        const MicroInstrUseDef useDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
+        for (const MicroReg reg : useDef.uses)
+            if (reg == ext[0].reg)
+                return false;
+        if (!ctx.claimAll({cmpRef, setRef, ref}))
+            return false;
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = ext[0].reg;
+        clear[1].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::ClearReg, clear);
+        ctx.emitRewrite(setRef, cmp->op, std::span{cmpOps, cmp->numOperands}, true);
+        ctx.emitRewrite(ref, set->op, std::span{setOps, set->numOperands});
+        return true;
+    }
+
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (!isCompareInstruction(inst.op))

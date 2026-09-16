@@ -294,6 +294,63 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Zero/nonzero masks can consume CF directly. For nonzero, NEG establishes
+    // CF while destroying a source only when that physical value is dead.
+    bool tryFoldZeroComparisonMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic() || !ops ||
+            ops[2].microOp != MicroOp::Negate || !ops[0].reg.isInt() || ctx.isPrivateFrameBase(ops[0].reg) ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const auto* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[0].reg != ops[0].reg ||
+            (setOps[1].cpuCond != MicroCond::Equal && setOps[1].cpuCond != MicroCond::NotEqual))
+            return false;
+        const MicroInstrRef compareRef = ctx.previousRef(setRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const auto* cmp = compare->ops(*ctx.operands);
+        if (!cmp || !cmp[0].reg.isInt() || cmp[0].reg == ops[0].reg || ctx.isPrivateFrameBase(cmp[0].reg) ||
+            cmp[2].hasWideImmediateValue() || cmp[2].valueU64 != 0)
+            return false;
+        const bool nonzero = setOps[1].cpuCond == MicroCond::NotEqual;
+        if (nonzero && !ctx.isRegDeadAfterCurrent(cmp[0].reg))
+            return false;
+        const MicroInstrRef clearRef = ctx.previousRef(compareRef);
+        const MicroInstr*   clear    = ctx.instruction(clearRef);
+        if (!clear || clear->op != MicroInstrOpcode::ClearReg)
+            return false;
+        const auto* cleared = clear->ops(*ctx.operands);
+        if (!cleared || cleared[0].reg != ops[0].reg ||
+            (cleared[1].opBits != MicroOpBits::B32 && cleared[1].opBits != MicroOpBits::B64) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({clearRef, compareRef, setRef, ref}))
+            return false;
+        MicroInstrOperand producer[3];
+        producer[0] = cmp[0];
+        producer[1] = cmp[1];
+        if (nonzero)
+        {
+            producer[2].microOp = MicroOp::Negate;
+            ctx.emitRewrite(compareRef, MicroInstrOpcode::OpUnaryReg, producer);
+        }
+        else
+        {
+            producer[2].valueU64 = 1;
+            ctx.emitRewrite(compareRef, MicroInstrOpcode::CmpRegImm, producer);
+        }
+        const MicroInstrOperand subtract[3] = {ops[0], ops[0], ops[1]};
+        ctx.emitRewrite(setRef, MicroInstrOpcode::SubtractBorrowRegReg, subtract, true);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     bool tryFoldCarryArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const auto* ops = inst.ops(*ctx.operands);

@@ -35,6 +35,7 @@ namespace
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldCarryMask);
+        r.add(MicroInstrOpcode::OpUnaryReg, tryFoldZeroComparisonMask);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCarryArithmetic);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);

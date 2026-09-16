@@ -10,6 +10,61 @@ namespace InstructionCombine
 {
     namespace
     {
+        // (x << shift) & mask = (x & (mask >> shift)) << shift.
+        // Only move masks that become a byte/word/dword zero-extension. The
+        // original shift reads its input in place; its single-use result and
+        // optional copy then carry that masked input to the final shift.
+        bool tryMaskShiftedValue(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits bits, uint64_t mask)
+        {
+            if (!ctx.ssa || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+                return false;
+            MicroReg      shifted = dst;
+            auto          def     = ctx.ssa->reachingDef(shifted, ref);
+            MicroInstrRef copyRef;
+            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = def.inst->ops(*ctx.operands);
+                if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
+                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                    return false;
+                copyRef = def.instRef;
+                shifted = copy[1].reg;
+                def     = ctx.ssa->reachingDef(shifted, copyRef);
+            }
+            if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpBinaryRegImm ||
+                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                return false;
+            const auto* shiftOps = def.inst->ops(*ctx.operands);
+            if (!shiftOps || shiftOps[1].opBits != bits || shiftOps[3].hasWideImmediateValue() ||
+                (shiftOps[2].microOp != MicroOp::ShiftLeft && shiftOps[2].microOp != MicroOp::ShiftArithmeticLeft))
+                return false;
+            const uint64_t shift = shiftOps[3].valueU64;
+            if (!shift || shift >= getNumBits(bits))
+                return false;
+            const uint64_t    inputMask = (mask & getBitsMask(bits)) >> shift;
+            const MicroOpBits inputBits = inputMask == 0xFF ? MicroOpBits::B8 : inputMask == 0xFFFF                               ? MicroOpBits::B16
+                                                                            : inputMask == 0xFFFFFFFF && bits == MicroOpBits::B64 ? MicroOpBits::B32
+                                                                                                                                  : MicroOpBits::Zero;
+            if (inputBits == MicroOpBits::Zero ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
+                return false;
+            MicroInstrOperand extend[4];
+            extend[0].reg    = shifted;
+            extend[1].reg    = shifted;
+            extend[2].opBits = bits;
+            extend[3].opBits = inputBits;
+            ctx.emitRewrite(def.instRef, MicroInstrOpcode::LoadZeroExtRegReg, extend);
+            MicroInstrOperand shiftResult[4];
+            shiftResult[0].reg      = dst;
+            shiftResult[1].opBits   = getNumBits(inputBits) + shift <= 32 ? MicroOpBits::B32 : bits;
+            shiftResult[2].microOp  = MicroOp::ShiftLeft;
+            shiftResult[3].valueU64 = shift;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, shiftResult);
+            return true;
+        }
+
         bool feedsReassociableImmediate(const Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
         {
             if (!ctx.ssa)
@@ -213,6 +268,62 @@ namespace InstructionCombine
         }
     }
 
+    // Two's-complement negation written as ~x + 1. The intermediate
+    // complement must have no other readers, and neither flag result may
+    // escape: NEG writes flags that NOT preserves, and differs from ADD.
+    bool tryFoldComplementPlusOne(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* ops     = inst.ops(*ctx.operands);
+        const bool  address = inst.op == MicroInstrOpcode::LoadAddrRegMem;
+        if (!ops || ops[3].hasWideImmediateValue() || ops[3].valueU64 != 1 ||
+            (!address && ops[2].microOp != MicroOp::Add))
+            return false;
+        const MicroReg    source = ops[address ? 1 : 0].reg;
+        const MicroOpBits bits   = ops[address ? 2 : 1].opBits;
+        if (!source.isVirtualInt() || !ops[0].reg.isVirtualInt())
+            return false;
+        if (!ctx.ssa || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+            return false;
+        auto          def = ctx.ssa->reachingDef(source, ref);
+        MicroInstrRef copyRef;
+        if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const auto* copy = def.inst->ops(*ctx.operands);
+            if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != bits ||
+                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                return false;
+            copyRef = def.instRef;
+            def     = ctx.ssa->reachingDef(copy[1].reg, copyRef);
+        }
+        if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpUnaryReg ||
+            ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+            return false;
+        const auto* unary = def.inst->ops(*ctx.operands);
+        if (!unary || unary[1].opBits != bits || unary[2].microOp != MicroOp::BitwiseNot ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
+            return false;
+        MicroInstrOperand negate[3];
+        negate[0].reg     = unary[0].reg;
+        negate[1].opBits  = bits;
+        negate[2].microOp = MicroOp::Negate;
+        ctx.emitRewrite(def.instRef, MicroInstrOpcode::OpUnaryReg, negate);
+        if (address)
+        {
+            MicroInstrOperand copy[3];
+            copy[0].reg    = ops[0].reg;
+            copy[1].reg    = source;
+            copy[2].opBits = bits;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
+        }
+        else
+            ctx.emitErase(ref);
+        return true;
+    }
+
     bool tryOpBinaryRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref))
@@ -249,6 +360,9 @@ namespace InstructionCombine
             return emitLoadRegImm(ctx, ref, dst, opBits, absorbed);
         }
 
+        if (op == MicroOp::And && tryMaskShiftedValue(ctx, ref, dst, opBits, imm))
+            return true;
+
         // and dst, 0xFF / 0xFFFF / 0xFFFFFFFF == a zero-extending self move. The
         // move needs no immediate at all (0xFFFFFFFF cannot even encode as a
         // sign-extended imm32, so the AND form costs a 10-byte materialization),
@@ -275,6 +389,23 @@ namespace InstructionCombine
                 ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
                 return true;
             }
+        }
+
+        if (flagsDeadAfter && op == MicroOp::Add && imm == 1 && tryFoldComplementPlusOne(ctx, ref, inst))
+            return true;
+
+        // The low product by all-one bits is -x. Keep checked multiplies:
+        // NEG has different overflow/carry behavior from signed/unsigned MUL.
+        if (flagsDeadAfter && (op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned) &&
+            (opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64) &&
+            (imm & getBitsMask(opBits)) == getBitsMask(opBits) && ctx.claimAll({ref}))
+        {
+            MicroInstrOperand negate[3];
+            negate[0].reg     = dst;
+            negate[1].opBits  = opBits;
+            negate[2].microOp = MicroOp::Negate;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, negate);
+            return true;
         }
 
         // Fold an operation chain before strength-reducing either member. Besides

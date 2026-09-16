@@ -14,7 +14,8 @@ namespace PostRaPeephole
 {
     struct Action
     {
-        static constexpr uint8_t K_MAX_OPS = 5;
+        // Indexed address forms carry eight operands.
+        static constexpr uint8_t K_MAX_OPS = 8;
 
         MicroInstrRef     ref            = MicroInstrRef::invalid();
         MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;
@@ -36,7 +37,11 @@ namespace PostRaPeephole
         // post-RA sweep). See MicroPassContext::isFirstOptimizationSweep.
         bool allowForwarding = true;
 
-        bool claimAll(std::initializer_list<MicroInstrRef> refs);
+        bool claimAll(std::span<const MicroInstrRef> refs);
+        bool claimAll(std::initializer_list<MicroInstrRef> refs)
+        {
+            return claimAll(std::span<const MicroInstrRef>{refs.begin(), refs.size()});
+        }
         bool isPrivateFrameBase(MicroReg reg) const;
     };
 

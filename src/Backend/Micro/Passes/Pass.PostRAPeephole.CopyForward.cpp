@@ -25,8 +25,9 @@ namespace PostRaPeephole
 {
     namespace
     {
-        constexpr int K_MAX_LIVENESS_WINDOW = 32;
-        constexpr int K_MAX_SAME_COPY_WINDOW = 16;
+        constexpr int      K_MAX_LIVENESS_WINDOW    = 32;
+        constexpr int      K_MAX_SAME_COPY_WINDOW   = 16;
+        constexpr uint32_t K_MAX_COPY_SOURCE_WINDOW = 16;
 
         bool regInList(std::span<const MicroReg> list, MicroReg reg)
         {
@@ -120,7 +121,7 @@ namespace PostRaPeephole
         return false;
     }
 
-    // The next operation can read the original register directly. Leave the
+    // A later operation can read the original register directly. Leave the
     // copy in place: its other readers and ABI obligations belong to post-RA
     // dead-code elimination, which removes it only when they are all gone.
     bool tryForwardCopySource(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
@@ -133,45 +134,69 @@ namespace PostRaPeephole
         if (copyOps[2].opBits != MicroOpBits::B32 && copyOps[2].opBits != MicroOpBits::B64)
             return false;
 
-        const MicroInstrRef nextRef = ctx.nextRef(copyRef);
-        const MicroInstr*   next    = ctx.instruction(nextRef);
-        if (!next || ctx.isClaimed(nextRef))
-            return false;
-        const bool extends = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
-        const bool compareRegs = next->op == MicroInstrOpcode::CmpRegReg;
-        const bool compareImm  = next->op == MicroInstrOpcode::CmpRegImm;
-        if (!extends && !compareRegs && !compareImm && next->op != MicroInstrOpcode::OpBinaryRegReg)
-            return false;
-        const MicroInstrOperand* ops = next->ops(*ctx.operands);
-        if (!ops || !ops[0].reg.isInt())
-            return false;
-        const MicroOpBits readBits = ops[extends ? 3 : compareImm ? 1 : 2].opBits;
-        if (getNumBits(readBits) > getNumBits(copyOps[2].opBits))
-            return false;
-
-        MicroInstrOperand rewritten[4];
-        std::ranges::copy(std::span{ops, next->numOperands}, rewritten);
-        bool changed = false;
-        for (uint32_t i = compareRegs || compareImm ? 0 : 1; i <= (compareImm ? 0u : 1u); ++i)
+        // Only the equality established by the copy is propagated. Stop when
+        // either register changes or control leaves the straight line. Claim
+        // every instruction crossed so later queued rewrites preserve that proof.
+        SmallVector<MicroInstrRef, K_MAX_COPY_SOURCE_WINDOW + 1> observed;
+        observed.push_back(copyRef);
+        MicroInstrRef nextRef = ctx.nextRef(copyRef);
+        for (uint32_t step = 0; step < K_MAX_COPY_SOURCE_WINDOW && nextRef.isValid(); ++step, nextRef = ctx.nextRef(nextRef))
         {
-            if (rewritten[i].reg == copyOps[0].reg)
+            const MicroInstr* next = ctx.instruction(nextRef);
+            if (!next || ctx.isClaimed(nextRef))
+                return false;
+            const auto& info = MicroInstr::info(next->op);
+            if (next->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || info.flags.has(MicroInstrFlagsE::JumpInstruction))
+                return false;
+            observed.push_back(nextRef);
+            const bool extends        = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
+            const bool conditional    = next->op == MicroInstrOpcode::LoadCondRegReg;
+            const bool compareRegs    = next->op == MicroInstrOpcode::CmpRegReg;
+            const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm;
+            const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
+            const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
+            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::OpBinaryRegReg)
             {
-                rewritten[i].reg = copyOps[1].reg;
-                changed = true;
+                const MicroInstrOperand* ops = next->ops(*ctx.operands);
+                if (!ops)
+                    return false;
+                const uint32_t widthOperand = extends || conditional ? 3 : compareImm ? 1
+                                                                                      : 2;
+                // Address inputs use the full pointer width even when the
+                // address result is requested in a narrower destination.
+                const MicroOpBits readBits = address ? MicroOpBits::B64 : ops[widthOperand].opBits;
+                if (ops[0].reg.isInt() && getNumBits(readBits) <= getNumBits(copyOps[2].opBits))
+                {
+                    MicroInstrOperand rewritten[Action::K_MAX_OPS];
+                    std::ranges::copy(std::span{ops, next->numOperands}, rewritten);
+                    bool           changed      = false;
+                    const uint32_t firstOperand = compareRegs || compareImm ? 0 : 1;
+                    const uint32_t lastOperand  = indexedAddress ? 2 : compareImm ? 0
+                                                                                  : 1;
+                    for (uint32_t i = firstOperand; i <= lastOperand; ++i)
+                    {
+                        if (rewritten[i].reg == copyOps[0].reg)
+                        {
+                            rewritten[i].reg = copyOps[1].reg;
+                            changed          = true;
+                        }
+                    }
+                    MicroConformanceIssue issue;
+                    if (changed && (!ctx.encoder || !ctx.encoder->queryConformanceIssue(issue, *next, rewritten)))
+                    {
+                        if (!ctx.claimAll(observed.span()))
+                            return false;
+                        ctx.emitRewrite(nextRef, next->op, std::span{rewritten, next->numOperands});
+                        return true;
+                    }
+                }
             }
-        }
-        if (!changed)
-            return false;
-        if (ctx.encoder)
-        {
-            MicroConformanceIssue issue;
-            if (ctx.encoder->queryConformanceIssue(issue, *next, rewritten))
+            const MicroInstrUseDef ud = next->collectUseDef(*ctx.operands, ctx.encoder);
+            if (regInList(ud.defs, copyOps[0].reg) || regInList(ud.defs, copyOps[1].reg))
                 return false;
         }
-        if (!ctx.claimAll({copyRef, nextRef}))
-            return false;
-        ctx.emitRewrite(nextRef, next->op, std::span{rewritten, next->numOperands});
-        return true;
+        return false;
     }
 
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

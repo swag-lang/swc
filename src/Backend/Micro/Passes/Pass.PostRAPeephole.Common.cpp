@@ -88,12 +88,17 @@ namespace PostRaPeephole
 
     bool Context::isRegDeadAfterCurrent(const MicroReg reg)
     {
+        return isRegDeadAfter(reg, instructionIndex);
+    }
+
+    bool Context::isRegDeadAfter(const MicroReg reg, const uint32_t index)
+    {
         if (!physicalLivenessReady)
         {
             physicalLivenessReady = true;
             MicroPassHelpers::computePhysicalLiveness(physicalLiveness, *passContext);
         }
-        return !physicalLiveness.isLiveOut(instructionIndex, reg);
+        return !physicalLiveness.isLiveOut(index, reg);
     }
 
     bool Context::claimAll(std::span<const MicroInstrRef> refs)

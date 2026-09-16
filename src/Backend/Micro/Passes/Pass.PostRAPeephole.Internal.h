@@ -38,12 +38,13 @@ namespace PostRaPeephole
         // post-RA sweep). See MicroPassContext::isFirstOptimizationSweep.
         bool allowForwarding = true;
 
-        const MicroPassContext*            passContext = nullptr;
+        const MicroPassContext*             passContext = nullptr;
         MicroPassHelpers::MicroPhysLiveness physicalLiveness;
         uint32_t                            instructionIndex      = 0;
         bool                                physicalLivenessReady = false;
 
         bool isRegDeadAfterCurrent(MicroReg reg);
+        bool isRegDeadAfter(MicroReg reg, uint32_t index);
 
         bool claimAll(std::span<const MicroInstrRef> refs);
         bool claimAll(std::initializer_list<MicroInstrRef> refs)
@@ -85,6 +86,7 @@ namespace PostRaPeephole
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldCopyIntoIntegerAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopySource(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryCoalesceLocalCopyChain(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryEraseRedundantCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryCanonicalizeZeroToClear(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);

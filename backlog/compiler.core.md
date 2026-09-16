@@ -6,6 +6,26 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.049 — A nullable dynamic pointer pattern crashes with release inlining
+
+- Recorded: 2026-09-16 17:09
+- Found while: validating sanitizer record compaction in a separate worktree.
+- Evidence: `bin/swc.dm.exe test -d bin/unittests/native --file-filter type_patterns.swg
+  -bc release --num-cores 6` passes nine tests and crashes in the test at line 254, with
+  an access violation reading `0x6B` and `rax = 0x63`. The test passes in devmode.
+  The unchanged Release compiler from `2eefc93ce` (build 688) reproduces the same failure.
+  DevMode build 695, including master `e71844062` and the record-layout change, still fails.
+- Reduction: `PatternValue` has a `u64` prefix initialized to 99 and a `using base: PatternBase`;
+  `patternPointerMatch(*PatternBase?)` switches between null and `PatternValue as item`.
+  The existing test calls it with null and `&value`, then checks nullable pointer patterns.
+  The fault's pointer value matches the prefix, but an incorrect base adjustment or inline
+  substitution is only a hypothesis; the lowering or optimizer responsible is not established.
+- Next: isolate the failing assertion in the existing test, compare its microcode with automatic
+  inlining enabled and disabled, and trace the conversion to the nullable base pointer through
+  inline argument materialization and dynamic-cast lowering.
+- Complete when: the existing file and the native release suite pass with both compiler
+  executables, and the root-cause fix preserves the nonzero base offset through inlining.
+
 ### compiler.core.048 — Offer semantic cleanup edits with explicit preservation checks
 
 - Recorded: 2026-09-16 16:06

@@ -346,7 +346,27 @@ namespace
             cacheConstCallResult(sema, std::move(*pendingEntry.payload->constCallCacheKey), cstRef);
     }
 
-    void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out)
+    // Appends a root's order to `out`, skipping what the order already holds. A root's own
+    // order already contains the order of everything it reaches, so a root the walk has
+    // already taken in contributes nothing and is not read at all.
+    void appendJitOrderDeduplicated(const SymbolFunction& root, SmallVector<SymbolFunction*>& out, std::unordered_set<SymbolFunction*>& seen)
+    {
+        if (seen.contains(const_cast<SymbolFunction*>(&root)))
+            return;
+
+        root.visitJitOrder([&out, &seen](SymbolFunction* function) {
+            if (!function)
+                return;
+            if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                return;
+            if (!seen.insert(function).second)
+                return;
+
+            out.push_back(function);
+        });
+    }
+
+    void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out, std::unordered_set<SymbolFunction*>& seen)
     {
         const auto targets = sema.compiler().nativeGlobalFunctionInitTargetsSnapshot();
         for (const SymbolFunction* target : targets)
@@ -356,7 +376,7 @@ namespace
             if (target->isForeign() || target->isEmpty() || target->isAttribute())
                 continue;
 
-            target->appendJitOrder(out);
+            appendJitOrderDeduplicated(*target, out, seen);
         }
     }
 
@@ -382,19 +402,15 @@ namespace
         // A metadata pointer may remain unpublished while its runtime call graph is
         // still being analyzed. Pulling a completed interface method into #ast can
         // otherwise wait on the enclosing function that needs that #ast to finish.
-        bool includable = true;
-        root.visitJitOrder([&includable](const SymbolFunction* dependency) {
-            if (!includable)
-                return;
+        // One dependency that is not includable settles the verdict, so the walk stops
+        // there rather than reading the rest of a closure whose answer cannot change.
+        return root.allInJitOrder([](const SymbolFunction* dependency) {
             if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
-                return;
+                return true;
             if (dependency->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || dependency->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                return;
-            if (!isIncludableConstantJitDependency(*dependency))
-                includable = false;
+                return true;
+            return isIncludableConstantJitDependency(*dependency);
         });
-
-        return includable;
     }
 
     // What the constant graph looks like at one offset: which allocation holds it, and which
@@ -478,10 +494,23 @@ namespace
         return walked.slotFor((segmentId * 1099511628211ULL + offset) | 1ULL);
     }
 
-    bool appendConstantFunctionJitRootsInAllocation(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, OptionalRootVerdicts& optionalRootVerdicts, uint32_t shardIndex, uint32_t sourceOffset)
+    // One walk of the constant graph: what it has found, which shards it read, and what it has
+    // already been through. Kept together so the walk carries one parameter instead of five.
+    struct ConstantJitTargetWalk
+    {
+        SymbolFunction::ConstantJitTargetList         targets;
+        SmallVector<std::pair<uint32_t, uint64_t>, 2> shardVersions;
+        std::unordered_set<uint64_t>                  visitedAllocations;
+        std::unordered_set<uintptr_t>                 seenTargets;
+    };
+
+    // Walks the constant graph from one offset, collecting every function the data can name.
+    // Traversal follows data-to-data relocations transitively; which of the collected functions
+    // a compile-time call may actually pull in is decided by its caller, against the state the
+    // symbols are in at that moment.
+    void collectConstantJitTargets(Sema& sema, ConstantJitTargetWalk& walk, uint32_t shardIndex, uint32_t sourceOffset)
     {
         SmallVector<DataSegmentRef>        pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
-        bool                               changed = false;
         std::vector<DataSegmentRelocation> relocations;
         while (!pending.empty())
         {
@@ -492,6 +521,21 @@ namespace
             WalkedAllocation&  walked          = walkedAllocationSlot(segment.id(), current.offset);
             const bool         walkedIsCurrent = walked.segmentId == segment.id() && walked.queryOffset == current.offset && walked.relocationVersion == version;
 
+            // The answer is reusable only while every shard it read is still at the version it
+            // was read at, so each one is recorded as the walk reaches it.
+            bool knownShard = false;
+            for (const auto& [recordedShard, recordedVersion] : walk.shardVersions)
+            {
+                if (recordedShard == current.shardIndex)
+                {
+                    knownShard = true;
+                    break;
+                }
+            }
+
+            if (!knownShard)
+                walk.shardVersions.push_back({current.shardIndex, version});
+
             DataSegmentAllocation allocation;
             if (walkedIsCurrent)
                 allocation = walked.allocation;
@@ -501,7 +545,7 @@ namespace
             // Nested reflection and interface tables can reach functions through any
             // data relocation. Match the graph used to detect unpublished metadata.
             const uint64_t allocationKey = (static_cast<uint64_t>(current.shardIndex) << 32) | allocation.offset;
-            if (!visitedAllocations.insert(allocationKey).second)
+            if (!walk.visitedAllocations.insert(allocationKey).second)
                 continue;
 
             if (!walkedIsCurrent)
@@ -525,49 +569,73 @@ namespace
                 }
                 else
                 {
-                    auto target = const_cast<SymbolFunction*>(relocation.targetSymbol);
-                    if (!target || !isIncludableConstantJitDependency(*target))
+                    auto* target = const_cast<SymbolFunction*>(relocation.targetSymbol);
+                    if (!target)
                         continue;
-                    if (seenFunctions.contains(target))
+
+                    // A target reached both through a relocation that tolerates an unresolved
+                    // function and through one that does not is two different questions, so both
+                    // spellings are kept; the same spelling twice is not.
+                    const uintptr_t key = reinterpret_cast<uintptr_t>(target) | (relocation.allowUnresolvedFunction ? 1u : 0u);
+                    if (!walk.seenTargets.insert(key).second)
                         continue;
-                    if (relocation.allowUnresolvedFunction)
-                    {
-                        const auto verdict = optionalRootVerdicts.try_emplace(target, false);
-                        if (verdict.second)
-                            verdict.first->second = isIncludableOptionalConstantJitRoot(*target);
-                        if (!verdict.first->second)
-                            continue;
-                    }
 
-                    seenFunctions.insert(target);
-
-                    roots.push_back(target);
-                    changed = true;
+                    walk.targets.emplace_back(target, relocation.allowUnresolvedFunction);
                 }
             }
         }
-        return changed;
     }
 
-    bool appendConstantFunctionJitRootsFromConstant(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, OptionalRootVerdicts& optionalRootVerdicts, const MicroRelocation& relocation)
+    void walkConstantJitTargets(Sema& sema, ConstantJitTargetWalk& walk, const SymbolFunction& function)
     {
-        if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
-            return false;
-        if (!relocation.hasConstantSource())
-            return false;
-
-        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, optionalRootVerdicts, relocation.constantShard, relocation.constantOffset);
-    }
-
-    bool appendConstantFunctionJitRootsFromCode(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, OptionalRootVerdicts& optionalRootVerdicts, const MachineCode& code)
-    {
-        bool changed = false;
-        for (const MicroRelocation& relocation : code.codeRelocations)
+        for (const MicroRelocation& relocation : function.loweredCode().codeRelocations)
         {
-            changed = appendConstantFunctionJitRootsFromConstant(sema, roots, seenFunctions, visitedAllocations, optionalRootVerdicts, relocation) || changed;
+            if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+                continue;
+            if (!relocation.hasConstantSource())
+                continue;
+
+            collectConstantJitTargets(sema, walk, relocation.constantShard, relocation.constantOffset);
+        }
+    }
+
+    bool constantJitTargetsAreCurrent(Sema& sema, const SymbolFunction::ConstantJitTargets& cache)
+    {
+        for (const auto& [shardIndex, version] : cache.shardVersions)
+        {
+            if (sema.cstMgr().shardDataSegment(shardIndex).relocationVersion() != version)
+                return false;
         }
 
-        return changed;
+        return true;
+    }
+
+    // The constant targets of one function, walked once per state of the constant graph. Each
+    // compile-time call scans the whole call graph it is about to run, and without this the same
+    // few thousand functions are walked again for every one of them. A function whose code has
+    // not been lowered yet has nothing to remember: its relocations do not exist.
+    std::shared_ptr<const SymbolFunction::ConstantJitTargetList> constantJitTargetsOf(Sema& sema, const SymbolFunction& function)
+    {
+        const bool remembers = function.hasLoweredCode();
+        if (remembers)
+        {
+            const std::scoped_lock lock(function.constantJitTargetsMutex());
+            const auto&            cache = function.constantJitTargets();
+            if (cache.targets && constantJitTargetsAreCurrent(sema, cache))
+                return cache.targets;
+        }
+
+        ConstantJitTargetWalk walk;
+        walkConstantJitTargets(sema, walk, function);
+        auto targets = std::make_shared<SymbolFunction::ConstantJitTargetList>(std::move(walk.targets));
+        if (!remembers)
+            return targets;
+
+        const std::scoped_lock lock(function.constantJitTargetsMutex());
+        auto&                  cache = function.constantJitTargets();
+        cache.targets                = targets;
+        cache.shardVersions          = walk.shardVersions;
+        return targets;
     }
 
     bool appendConstantFunctionJitRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& roots, std::span<SymbolFunction* const> functions)
@@ -580,70 +648,75 @@ namespace
                 seenFunctions.insert(function);
         }
 
-        bool                         changed = false;
-        std::unordered_set<uint64_t> visitedAllocations;
-        OptionalRootVerdicts         optionalRootVerdicts;
+        bool                 changed = false;
+        OptionalRootVerdicts optionalRootVerdicts;
         for (const SymbolFunction* function : functions)
         {
             if (!function)
                 continue;
 
-            changed = appendConstantFunctionJitRootsFromCode(sema, roots, seenFunctions, visitedAllocations, optionalRootVerdicts, function->loweredCode()) || changed;
+            const auto constantTargets = constantJitTargetsOf(sema, *function);
+            for (const auto& [target, allowUnresolved] : *constantTargets)
+            {
+                if (!isIncludableConstantJitDependency(*target))
+                    continue;
+                if (seenFunctions.contains(target))
+                    continue;
+                if (allowUnresolved)
+                {
+                    const auto verdict = optionalRootVerdicts.try_emplace(target, false);
+                    if (verdict.second)
+                        verdict.first->second = isIncludableOptionalConstantJitRoot(*target);
+                    if (!verdict.first->second)
+                        continue;
+                }
+
+                seenFunctions.insert(target);
+
+                roots.push_back(target);
+                changed = true;
+            }
         }
 
         return changed;
     }
 
+
     void buildJitOrderWithNativeRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& out, std::span<SymbolFunction* const> extraRoots = {})
     {
-        SmallVector<SymbolFunction*> rawOrder;
-        symFn.appendJitOrder(rawOrder);
-
-        // One root's order is already a set: its walk visits every function once. The membership
-        // pass is only needed when several orders are concatenated.
-        bool mayRepeat = false;
-        for (const SymbolFunction* root : extraRoots)
-        {
-            if (!root)
-                continue;
-            root->appendJitOrder(rawOrder);
-            mayRepeat = true;
-        }
-
-        if (SemaRuntime::isRuntimeArtifactFunction(sema, symFn))
-        {
-            appendGlobalFunctionInitJitOrder(sema, rawOrder);
-            mayRepeat = true;
-        }
-
-        out.reserve(rawOrder.size());
+        // One root's order is already a set: its walk visits every function once. Concatenating
+        // several of them and deduplicating afterwards is the same answer reached through every
+        // repeated element, and the metadata roots a compile-time call collects from constant
+        // data reach almost the same closure as one another. The membership set is therefore
+        // built while the order is, and a root the order already holds is never read.
+        const bool mayRepeat = !extraRoots.empty() || SemaRuntime::isRuntimeArtifactFunction(sema, symFn);
         if (!mayRepeat)
         {
-            for (SymbolFunction* function : rawOrder)
-            {
+            symFn.visitJitOrder([&out](SymbolFunction* function) {
                 if (!function)
-                    continue;
+                    return;
                 if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                    continue;
+                    return;
 
                 out.push_back(function);
-            }
+            });
 
             return;
         }
 
         std::unordered_set<SymbolFunction*> seen;
-        for (SymbolFunction* function : rawOrder)
+        appendJitOrderDeduplicated(symFn, out, seen);
+
+        for (const SymbolFunction* root : extraRoots)
         {
-            if (!function)
-                continue;
-            if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                continue;
-            if (!seen.insert(function).second)
+            if (!root)
                 continue;
 
-            out.push_back(function);
+            appendJitOrderDeduplicated(*root, out, seen);
         }
+
+        if (SemaRuntime::isRuntimeArtifactFunction(sema, symFn))
+            appendGlobalFunctionInitJitOrder(sema, out, seen);
     }
 
     bool jitEntryNeedsRuntimeSetup(Sema& sema, const SymbolFunction& symFn)

@@ -323,16 +323,6 @@ void SymbolFunction::refreshJitOrderCache() const
     jitOrderCacheVersion_ = version;
 }
 
-void SymbolFunction::appendJitOrder(SmallVector<SymbolFunction*>& out) const
-{
-    refreshJitOrderCache();
-
-    const std::shared_lock lock(jitOrderCacheMutex_);
-    out.reserve(out.size() + jitOrderCache_.size());
-    for (SymbolFunction* function : jitOrderCache_)
-        out.push_back(function);
-}
-
 const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
 {
     const std::scoped_lock lock(globalInitOffsetsMutex_);

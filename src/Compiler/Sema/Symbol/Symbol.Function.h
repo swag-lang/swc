@@ -277,7 +277,6 @@ public:
     void                    appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     void                    addLifecycleDependency(const SymbolFunction* sym);
     void                    appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
 
     // Runs `visit` over the order in place. A caller that only reads it - to judge whether a
     // metadata pointer may be pulled in, or to collect what a run refers to - would otherwise copy
@@ -292,16 +291,53 @@ public:
             visit(function);
     }
 
+    // Answers a question about the whole order without reading the whole order: a verdict that
+    // one dependency already settles stops there instead of walking the rest of the closure.
+    template<typename Pred>
+    bool allInJitOrder(Pred&& pred) const
+    {
+        refreshJitOrderCache();
+
+        const std::shared_lock lock(jitOrderCacheMutex_);
+        for (SymbolFunction* function : jitOrderCache_)
+        {
+            if (!pred(function))
+                return false;
+        }
+
+        return true;
+    }
+
     // Everything the JIT order is derived from: a new call dependency, or a function withdrawn
     // from code generation. A cached order is reused only while this has not moved, so the walk
     // is paid once per graph state instead of once per compile-time call.
     static void     noteCallGraphChanged() noexcept { s_callGraphVersion.fetch_add(1, std::memory_order_release); }
     static uint64_t callGraphVersion() noexcept { return s_callGraphVersion.load(std::memory_order_acquire); }
 
+    bool hasLoweredCode() const noexcept;
+
     // Offsets of the global-init slots this function's code refers to. Its lowered code no longer
     // changes once emitted, so the answer is computed once instead of at every compile-time call
     // that runs through it.
     const std::vector<uint64_t>& globalInitRelocationOffsets() const;
+
+    // What this function's constant relocations can reach, and the state of the constant graph
+    // the walk read. Every compile-time call in a module asks this of the same few thousand
+    // functions, and the answer only moves when the constants they name do, so it is walked
+    // once per state of that graph instead of once per call. The second member of each entry is
+    // the relocation's own tolerance for an unresolved function, which decides whether the
+    // target still has to be judged. The list is handed out by shared pointer: a reader keeps
+    // the snapshot it was given even when another thread replaces a stale one.
+    using ConstantJitTargetList = std::vector<std::pair<SymbolFunction*, bool>>;
+
+    struct ConstantJitTargets
+    {
+        std::shared_ptr<const ConstantJitTargetList>  targets;
+        SmallVector<std::pair<uint32_t, uint64_t>, 2> shardVersions;
+    };
+
+    ConstantJitTargets& constantJitTargets() const noexcept { return constantJitTargets_; }
+    std::mutex&         constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
     void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     void*                   jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
@@ -365,7 +401,6 @@ private:
                                                             SymbolFunctionFlagsE::Pure |
                                                             SymbolFunctionFlagsE::Variadic;
 
-    bool         hasLoweredCode() const noexcept;
     bool         hasJitPreparedAddress() const noexcept { return jitWorkAddress() != nullptr; }
     bool         hasJitPatchedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool         hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
@@ -393,6 +428,8 @@ private:
     mutable std::vector<uint64_t>                 globalInitOffsetsCache_;
     mutable bool                                  globalInitOffsetsComputed_ = false;
     mutable std::mutex                            globalInitOffsetsMutex_;
+    mutable ConstantJitTargets                    constantJitTargets_;
+    mutable std::mutex                            constantJitTargetsMutex_;
     std::vector<SymbolFunction*>                  callDependencies_;
     PointerSet<SymbolFunction>                    callDependencySet_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;

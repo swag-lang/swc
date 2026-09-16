@@ -1200,7 +1200,7 @@ namespace InstructionCombine
             const MicroOp     outer = ops[3].microOp;
             const MicroOpBits bits  = ops[2].opBits;
             if (!ctx.ssa || (outer != MicroOp::Add && outer != MicroOp::Subtract) || !ops[1].reg.isVirtualInt() ||
-                bits != MicroOpBits::B64)
+                (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
                 return false;
             for (uint32_t side = 0; side < (outer == MicroOp::Add ? 2u : 1u); ++side)
             {
@@ -1270,7 +1270,7 @@ namespace InstructionCombine
                     MicroInstrOperand adjusted[4] = {};
                     adjusted[0].reg               = temporary;
                     adjusted[1].reg               = factor;
-                    adjusted[2].opBits            = MicroOpBits::B64;
+                    adjusted[2].opBits            = bits;
                     adjusted[3].valueU64          = outer == MicroOp::Add ? 1 : UINT64_MAX;
                     ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadAddrRegMem, adjusted);
                     MicroInstrOperand result[4] = {};

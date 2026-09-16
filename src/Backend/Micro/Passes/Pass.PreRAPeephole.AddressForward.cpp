@@ -457,7 +457,9 @@ namespace PreRaPeephole
             return false;
 
         const MicroInstrOperand* defOps = defInst.ops(*ctx.operands);
-        if (!defOps)
+        // Folding a truncated address into a memory operand would restore
+        // discarded high bits and could access a different cell.
+        if (!defOps || defOps[2].opBits != MicroOpBits::B64)
             return false;
 
         const MicroReg addrReg = defOps[0].reg;
@@ -524,7 +526,7 @@ namespace PreRaPeephole
             return false;
 
         const MicroInstrOperand* defOps = defInst.ops(*ctx.operands);
-        if (!defOps)
+        if (!defOps || defOps[3].opBits != MicroOpBits::B64)
             return false;
 
         const MicroReg addrReg = defOps[0].reg;

@@ -781,9 +781,9 @@ namespace PostRaPeephole
                     return false;
                 const uint32_t widthOperand = extends || conditional || three ? 3 : compareImm ? 1
                                                                                                : 2;
-                // Address inputs use the full pointer width even when the
-                // address result is requested in a narrower destination.
-                const MicroOpBits readBits = address ? MicroOpBits::B64 : ops[widthOperand].opBits;
+                // A truncated LEA result depends only on the corresponding low
+                // input bits, even though its addressing mode uses 64-bit registers.
+                const MicroOpBits readBits = address ? ops[indexedAddress ? 3 : 2].opBits : ops[widthOperand].opBits;
                 if (ops[0].reg.isInt() && (getNumBits(readBits) <= getNumBits(copyOps[2].opBits) || getNumBits(readBits) <= getNumBits(effectiveCopyBits())))
                 {
                     MicroInstrOperand rewritten[Action::K_MAX_OPS];

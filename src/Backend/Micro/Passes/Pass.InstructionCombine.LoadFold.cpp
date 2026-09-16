@@ -787,7 +787,7 @@ namespace InstructionCombine
         if (!ctx.ssa || ctx.isClaimed(ref))
             return false;
         const auto* ops = inst.ops(*ctx.operands);
-        if (!ops || !ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64 ||
+        if (!ops || !ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt() || (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
             (ops[3].microOp != MicroOp::Add && ops[3].microOp != MicroOp::Subtract) ||
             keepAccessScalar(ctx, ref, ops[1].reg))
             return false;
@@ -798,7 +798,7 @@ namespace InstructionCombine
         if (product.valid() && !product.isPhi && product.inst && product.inst->op == MicroInstrOpcode::LoadRegReg)
         {
             const auto* copy = product.inst->ops(*ctx.operands);
-            if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != MicroOpBits::B64 ||
+            if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(ops[2].opBits) ||
                 ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1)
                 return false;
             productCopy = product.instRef;
@@ -809,14 +809,14 @@ namespace InstructionCombine
             ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1)
             return false;
         const auto* multiply = product.inst->ops(*ctx.operands);
-        if (!multiply || multiply[3].microOp != MicroOp::MultiplySigned || multiply[2].opBits != MicroOpBits::B64 || !multiply[1].reg.isVirtualInt())
+        if (!multiply || multiply[3].microOp != MicroOp::MultiplySigned || multiply[2].opBits != ops[2].opBits || !multiply[1].reg.isVirtualInt())
             return false;
         const auto initial = ctx.ssa->reachingDef(productReg, product.instRef);
         if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegMem ||
             ctx.ssa->transitiveInstructionUseCount(initial.valueId, 2) != 1)
             return false;
         const auto* load = initial.inst->ops(*ctx.operands);
-        if (!load || load[2].opBits != MicroOpBits::B64 || load[3].valueU64 != ops[4].valueU64 ||
+        if (!load || load[2].opBits != ops[2].opBits || load[3].valueU64 != ops[4].valueU64 ||
             !sameAddressValue(ctx, rootAddressValue(ctx, load[1].reg, initial.instRef), ops[1].reg, ref))
             return false;
         const MicroReg factor      = multiply[1].reg;
@@ -850,7 +850,7 @@ namespace InstructionCombine
         MicroInstrOperand adjusted[4] = {};
         adjusted[0].reg               = temporary;
         adjusted[1].reg               = factor;
-        adjusted[2].opBits            = MicroOpBits::B64;
+        adjusted[2].opBits            = ops[2].opBits;
         adjusted[3].valueU64          = ops[3].microOp == MicroOp::Add ? 1 : UINT64_MAX;
         ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadAddrRegMem, adjusted);
         MicroInstrOperand result[5] = {};

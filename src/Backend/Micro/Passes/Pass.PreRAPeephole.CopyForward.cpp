@@ -39,7 +39,8 @@ namespace PreRaPeephole
                 return false;
             if (addOps[3].hasWideImmediateValue())
                 return false;
-            if (copyOps[2].opBits != MicroOpBits::B64 || addOps[1].opBits != MicroOpBits::B64)
+            const MicroOpBits bits = addOps[1].opBits;
+            if ((bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || getNumBits(copyOps[2].opBits) < getNumBits(bits))
                 return false;
 
             const MicroReg dst = copyOps[0].reg;
@@ -60,7 +61,7 @@ namespace PreRaPeephole
                 out.allocOps      = true;
                 out.ops[0].reg    = dst;
                 out.ops[1].reg    = src;
-                out.ops[2].opBits = MicroOpBits::B64;
+                out.ops[2].opBits = bits;
                 return true;
             }
 
@@ -69,7 +70,7 @@ namespace PreRaPeephole
             out.allocOps        = true;
             out.ops[0].reg      = dst;
             out.ops[1].reg      = src;
-            out.ops[2].opBits   = MicroOpBits::B64;
+            out.ops[2].opBits   = bits;
             out.ops[3].valueU64 = offset;
             return true;
         }

@@ -233,9 +233,10 @@ namespace PostRaPeephole
             MicroInstrRef compareRef;
             MicroInstrRef setRef;
             MicroReg      reg;
+            bool          inverse = false;
         };
 
-        // A cleared register followed by SETB contains exactly the incoming CF.
+        // A cleared register followed by SETB or SETAE contains CF or its inverse.
         // Keep the flag producer explicit so another queued rewrite cannot move it.
         bool findCarryBoolean(const Context& ctx, MicroInstrRef ref, CarryBoolean& out)
         {
@@ -246,9 +247,10 @@ namespace PostRaPeephole
             if (!set || set->op != MicroInstrOpcode::SetCondReg)
                 return false;
             const auto* setOps = set->ops(*ctx.operands);
-            if (!setOps || !setOps[0].reg.isInt() || setOps[1].cpuCond != MicroCond::Below)
+            if (!setOps || !setOps[0].reg.isInt() || (setOps[1].cpuCond != MicroCond::Below && setOps[1].cpuCond != MicroCond::AboveOrEqual))
                 return false;
-            out.reg = setOps[0].reg;
+            out.reg     = setOps[0].reg;
+            out.inverse = setOps[1].cpuCond == MicroCond::AboveOrEqual;
             if (ctx.isPrivateFrameBase(out.reg))
                 return false;
             out.compareRef            = ctx.previousRef(out.setRef);
@@ -284,7 +286,7 @@ namespace PostRaPeephole
             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
             return false;
         CarryBoolean value;
-        if (!findCarryBoolean(ctx, ref, value) || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
+        if (!findCarryBoolean(ctx, ref, value) || value.inverse || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
             return false;
         const MicroInstrOperand subtract[3] = {ops[0], ops[0], ops[1]};
         ctx.emitRewrite(value.setRef, MicroInstrOpcode::SubtractBorrowRegReg, subtract, true);
@@ -292,15 +294,18 @@ namespace PostRaPeephole
         return true;
     }
 
-    bool tryFoldCarryAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    bool tryFoldCarryArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const auto* ops = inst.ops(*ctx.operands);
-        if (!ops || ops[3].microOp != MicroOp::Add || !ops[0].reg.isInt() || !ops[1].reg.isInt() ||
+        if (!ops || (ops[3].microOp != MicroOp::Add && ops[3].microOp != MicroOp::Subtract) || !ops[0].reg.isInt() || !ops[1].reg.isInt() ||
             ops[0].reg == ops[1].reg || ctx.isPrivateFrameBase(ops[0].reg) ||
             (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
             return false;
+        const bool   subtract = ops[3].microOp == MicroOp::Subtract;
         CarryBoolean value;
         if (!findCarryBoolean(ctx, ref, value) || (value.reg != ops[0].reg && value.reg != ops[1].reg))
+            return false;
+        if (subtract && value.reg != ops[1].reg)
             return false;
         if (value.reg != ops[0].reg && !ctx.isRegDeadAfterCurrent(value.reg))
             return false;
@@ -316,8 +321,9 @@ namespace PostRaPeephole
         MicroInstrOperand add[3] = {};
         add[0].reg               = ops[0].reg;
         add[1].opBits            = ops[2].opBits;
-        add[2].valueU64          = 0;
-        ctx.emitRewrite(ref, MicroInstrOpcode::AddCarryRegImm, add);
+        add[2].valueU64          = value.inverse ? getBitsMask(ops[2].opBits) : 0;
+        const auto opcode        = subtract != value.inverse ? MicroInstrOpcode::SubtractBorrowRegImm : MicroInstrOpcode::AddCarryRegImm;
+        ctx.emitRewrite(ref, opcode, add);
         // The copy or existing addend supplies every result bit now. Retain
         // the old clear only if the comparison itself reads that zero value.
         const MicroInstr*      compare       = ctx.instruction(value.compareRef);
@@ -352,7 +358,7 @@ namespace PostRaPeephole
         if ((signedOffset & getBitsMask(bits)) != (offset & getBitsMask(bits)))
             return false;
         CarryBoolean value;
-        if (!findCarryBoolean(ctx, ref, value) || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
+        if (!findCarryBoolean(ctx, ref, value) || value.inverse || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
             return false;
         MicroInstrOperand add[3] = {};
         add[0].reg               = ops[0].reg;

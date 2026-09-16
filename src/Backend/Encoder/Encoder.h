@@ -135,6 +135,7 @@ protected:
     virtual void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                               = 0;
     virtual void encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                = 0;
     virtual void encodeAddCarryRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits) = 0;
+    virtual void encodeSubtractBorrowRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits) = 0;
     virtual void encodeSubtractBorrowRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits bits) = 0;
     virtual void encodeLoadHighByteRegReg(MicroReg regDst, MicroReg regSrc) = 0;
     virtual void encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                                 = 0;

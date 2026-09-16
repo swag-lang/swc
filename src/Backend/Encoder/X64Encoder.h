@@ -70,6 +70,7 @@ protected:
     void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;
     void encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;
     void encodeAddCarryRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits) override;
+    void encodeSubtractBorrowRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits) override;
     void encodeSubtractBorrowRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits bits) override;
     void encodeLoadHighByteRegReg(MicroReg regDst, MicroReg regSrc) override;
     void encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;

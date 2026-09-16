@@ -148,10 +148,15 @@ namespace InstructionCombine
         const bool     zeroMask     = (sourceValue == 0) != (initialValue == 0);
         const uint64_t mask         = sourceValue ? sourceValue : initialValue;
         const bool     negate       = mask == getBitsMask(bits);
-        const bool     affine       = !zeroMask || (!negate && !std::has_single_bit(mask));
-        uint64_t       base         = initialValue;
-        uint64_t       delta        = (sourceValue - initialValue) & getBitsMask(bits);
-        bool           inverse      = sourceValue == 0;
+        const uint64_t byteMask     = static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(mask))) & getBitsMask(bits);
+        const uint64_t magnitude    = (mask & (1ull << (getNumBits(bits) - 1))) ? (0ull - mask) & getBitsMask(bits) : mask;
+        // Keep the existing one-instruction scale/address forms when available.
+        const bool masked = zeroMask && byteMask == mask && !std::has_single_bit(magnitude) &&
+                            magnitude != 3 && magnitude != 5 && magnitude != 9;
+        const bool affine  = !zeroMask || (!negate && !masked && !std::has_single_bit(mask));
+        uint64_t   base    = initialValue;
+        uint64_t   delta   = (sourceValue - initialValue) & getBitsMask(bits);
+        bool       inverse = sourceValue == 0;
         if (affine)
         {
             const auto encodable = [bits](uint64_t candidateBase, uint64_t candidateDelta) {
@@ -220,6 +225,21 @@ namespace InstructionCombine
                 address[6].valueU64 = offset;
                 ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, address, true);
             }
+        }
+        else if (masked)
+        {
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+            MicroInstrOperand negateOps[3];
+            negateOps[0].reg     = dst;
+            negateOps[1].opBits  = bits;
+            negateOps[2].microOp = MicroOp::Negate;
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::OpUnaryReg, negateOps);
+            MicroInstrOperand maskOps[4];
+            maskOps[0].reg      = dst;
+            maskOps[1].opBits   = mask <= 0xFFFFFFFF ? MicroOpBits::B32 : bits;
+            maskOps[2].microOp  = MicroOp::And;
+            maskOps[3].valueU64 = mask;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, maskOps);
         }
         else if (mask == 1)
             ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);

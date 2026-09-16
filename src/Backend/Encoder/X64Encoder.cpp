@@ -1830,6 +1830,17 @@ void X64Encoder::encodeAddCarryRegImm(MicroReg regDst, uint64_t value, MicroOpBi
     emitValue(store_, value, small ? MicroOpBits::B8 : MicroOpBits::B32);
 }
 
+void X64Encoder::encodeSubtractBorrowRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits)
+{
+    SWC_ASSERT(regDst.isInt() && (bits == MicroOpBits::B32 || bits == MicroOpBits::B64));
+    SWC_INTERNAL_CHECK(canEncodeOpImmediate(value, bits));
+    const bool small = canEncode8(value, bits);
+    emitRex(store_, bits, MicroReg{}, regDst);
+    emitCpuOp(store_, small ? 0x83 : 0x81);
+    emitModRm(store_, MODRM_REG_3, regDst);
+    emitValue(store_, value, small ? MicroOpBits::B8 : MicroOpBits::B32);
+}
+
 void X64Encoder::encodeSubtractBorrowRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits bits)
 {
     SWC_ASSERT(regDst.isInt() && regSrc.isInt() && (bits == MicroOpBits::B32 || bits == MicroOpBits::B64));

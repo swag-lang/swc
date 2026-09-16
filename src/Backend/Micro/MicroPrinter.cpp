@@ -881,6 +881,8 @@ namespace
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::AddCarryRegImm:
                 return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("adc"), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+            case MicroInstrOpcode::SubtractBorrowRegImm:
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("sbb"), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::SubtractBorrowRegReg:
                 return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("sbb"), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadHighByteRegReg:
@@ -1855,6 +1857,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::AddCarryRegImm:
+            case MicroInstrOpcode::SubtractBorrowRegImm:
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[1].opBits);

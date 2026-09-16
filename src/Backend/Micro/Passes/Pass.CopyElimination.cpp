@@ -132,7 +132,8 @@ namespace
 
     bool isSelfCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        return isCopyInstruction(inst, ops) && ops[0].reg == ops[1].reg;
+        // A 32-bit self-move clears the upper half: it is a truncation, not a no-op.
+        return isCopyInstruction(inst, ops) && ops[0].reg == ops[1].reg && !(ops[0].reg.isInt() && ops[2].opBits == MicroOpBits::B32);
     }
 
     bool tryGetCanonicalReachingValue(CanonicalValue& outValue, const CanonicalValueContext& context, const std::vector<CanonicalValue>& canonicalValues, const std::vector<uint8_t>& canonicalFlags, MicroReg reg, MicroInstrRef instRef)

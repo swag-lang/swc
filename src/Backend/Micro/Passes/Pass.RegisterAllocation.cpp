@@ -224,6 +224,11 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         if (context_->builder &&
             (context_->builder->shouldPreserveVirtualCopy(dstReg) || context_->builder->shouldPreserveVirtualCopy(srcReg)))
             continue;
+        // A partial integer copy does not make the registers equal: a 32-bit
+        // move clears the upper half of the destination, a narrower one keeps
+        // the destination's own upper bits. Only a full move is a rename.
+        if (dstReg.isVirtualInt() && ops[2].opBits != MicroOpBits::B64)
+            continue;
 
         if (dstReg == srcReg)
         {
@@ -4314,7 +4319,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         if (it->op == MicroInstrOpcode::LoadRegReg)
         {
             const MicroInstrOperand* rewrittenOps = it->ops(*operands_);
-            if (rewrittenOps && rewrittenOps[0].reg == rewrittenOps[1].reg)
+            // A 32-bit self-move still clears the upper half of the register.
+            if (rewrittenOps && rewrittenOps[0].reg == rewrittenOps[1].reg && !(rewrittenOps[0].reg.isInt() && rewrittenOps[2].opBits == MicroOpBits::B32))
             {
                 // mov rX, rX: drop the instruction entirely. We can't erase here
                 // because the iterator would become invalid; queue for end-of-pass.

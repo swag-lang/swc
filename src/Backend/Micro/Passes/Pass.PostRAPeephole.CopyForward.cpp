@@ -346,6 +346,54 @@ namespace PostRaPeephole
         return true;
     }
 
+    // MOV d,s; LEA s,[s+k]; d op= s can compute the address in d instead.
+    // Commutativity preserves the final operation's value and flags; liveness
+    // must prove that the old address result in s has no remaining reader.
+    bool tryFoldCommutativeAddressCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef addressRef = ctx.nextRef(ref);
+        const MicroInstr*   address    = ctx.instruction(addressRef);
+        if (!address || address->op != MicroInstrOpcode::LoadAddrRegMem)
+            return false;
+        const auto* lea = address->ops(*ctx.operands);
+        if (!lea || lea[0].reg != copy[1].reg || (lea[1].reg != copy[0].reg && lea[1].reg != copy[1].reg) ||
+            lea[2].opBits != copy[2].opBits)
+            return false;
+        const MicroInstrRef binaryRef = ctx.nextRef(addressRef);
+        const MicroInstr*   binary    = ctx.instruction(binaryRef);
+        if (!binary || binary->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* ops = binary->ops(*ctx.operands);
+        if (!ops || ops[0].reg != copy[0].reg || ops[1].reg != copy[1].reg || ops[2].opBits != copy[2].opBits)
+            return false;
+        switch (ops[3].microOp)
+        {
+            case MicroOp::Add:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+            case MicroOp::MultiplySigned:
+                break;
+            default:
+                return false;
+        }
+        const MicroInstrUseDef useDef = binary->collectUseDef(*ctx.operands, ctx.encoder);
+        if (useDef.defs.size() != 1 || useDef.defs[0] != copy[0].reg || !ctx.isRegDeadAfter(copy[1].reg, ctx.instructionIndex + 2))
+            return false;
+        MicroInstrOperand     rewritten[4] = {copy[0], copy[1], lea[2], lea[3]};
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *address, rewritten)) || !ctx.claimAll({ref, addressRef, binaryRef}))
+            return false;
+        ctx.emitRewrite(ref, address->op, rewritten, true);
+        ctx.emitErase(addressRef);
+        return true;
+    }
+
     // A commutative result copied over its other input can be produced there
     // directly. The old destination must be dead, including along CFG successors.
     bool tryCommuteBinaryResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

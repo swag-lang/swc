@@ -63,6 +63,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetAddressResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldCommutativeAddressCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryCommuteBinaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowShiftCountCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);

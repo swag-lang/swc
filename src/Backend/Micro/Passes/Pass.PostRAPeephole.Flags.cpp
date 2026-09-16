@@ -25,6 +25,16 @@ namespace PostRaPeephole
                     return false;
             }
         }
+
+        bool canMoveComparisonForSelect(const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            if (!isCompareInstruction(inst.op) || !ops)
+                return false;
+            // A RIP-relative memory comparison can own a relocation tied to
+            // its instruction reference. Keep such comparisons in place.
+            return (inst.op != MicroInstrOpcode::CmpMemReg && inst.op != MicroInstrOpcode::CmpMemImm) ||
+                   !ops[0].reg.isInstructionPointer();
+        }
     }
 
     namespace
@@ -538,13 +548,13 @@ namespace PostRaPeephole
         MicroInstrRef     cmpRef       = ctx.nextRef(ref);
         const MicroInstr* cmp          = ctx.instruction(cmpRef);
         bool              compareFirst = false;
-        if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
+        if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
         {
             cmpRef       = ctx.previousRef(ref);
             cmp          = ctx.instruction(cmpRef);
             compareFirst = true;
         }
-        if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
+        if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
         const MicroInstrUseDef cmpUseDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
         for (const MicroReg reg : cmpUseDef.uses)
@@ -615,7 +625,7 @@ namespace PostRaPeephole
             return false;
         const MicroInstrRef cmpRef = ctx.previousRef(zeroRef);
         const MicroInstr*   cmp    = ctx.instruction(cmpRef);
-        if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
+        if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
         const MicroInstrUseDef useDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
         for (const MicroReg reg : useDef.uses)

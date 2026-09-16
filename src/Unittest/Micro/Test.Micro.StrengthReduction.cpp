@@ -201,8 +201,8 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyByOne)
 }
 SWC_TEST_END()
 
-// mul r, 7 -> unchanged (not a power of two)
-SWC_TEST_BEGIN(StrengthReduction_MultiplyNonPowerOfTwoUnchanged)
+// An unused high product and dead flags permit the unconstrained signed form.
+SWC_TEST_BEGIN(StrengthReduction_MultiplyNonPowerOfTwoUsesSignedForm)
 {
     constexpr MicroReg r8 = MicroReg::intReg(8);
     MicroBuilder       builder(ctx);
@@ -212,7 +212,7 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyNonPowerOfTwoUnchanged)
 
     SWC_RESULT(runStrengthReductionPass(builder));
 
-    if (getFirstBinaryOp(builder) != MicroOp::MultiplyUnsigned)
+    if (getFirstBinaryOp(builder) != MicroOp::MultiplySigned)
         return Result::Error;
     if (getFirstBinaryImm(builder) != 7)
         return Result::Error;
@@ -414,7 +414,7 @@ SWC_TEST_BEGIN(StrengthReduction_RemoveAddZeroDeadAcrossJoin)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(StrengthReduction_UnsignedMultiplyRequiresLocalFlagRedefinition)
+SWC_TEST_BEGIN(StrengthReduction_UnsignedMultiplyRequiresDeadFlags)
 {
     for (const bool regOperand : {false, true})
     {
@@ -437,7 +437,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedMultiplyRequiresLocalFlagRedefinition)
             SWC_RESULT(runStrengthReductionPass(builder));
             const auto* inst = builder.instructions().ptr(multiply);
             if (!inst || inst->ops(builder.operands())[regOperand ? 3 : 2].microOp !=
-                             (boundary == 0 ? MicroOp::MultiplySigned : MicroOp::MultiplyUnsigned))
+                             (boundary == 2 ? MicroOp::MultiplyUnsigned : MicroOp::MultiplySigned))
                 return Result::Error;
         }
     }
@@ -465,8 +465,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedPowerOfTwoKeepsBothFlagPolicies)
         if (!inst)
             return Result::Error;
         const MicroInstrOperand* ops = inst->ops(builder.operands());
-        // Labels and the end of the function reject the signed rewrite, but
-        // still allow the existing relaxed flags check to reduce the multiply.
+        // Neither the signed rewrite nor strength reduction may change live flags.
         if (ops[2].microOp != (boundary == 2 ? MicroOp::MultiplyUnsigned : MicroOp::ShiftLeft) ||
             ops[3].valueU64 != (boundary == 2 ? 8 : 3))
             return Result::Error;

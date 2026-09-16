@@ -13,55 +13,66 @@ SWC_BEGIN_NAMESPACE();
 struct SanitizerLocation
 {
     bool     fromSlot   = false;
-    int64_t  slot       = 0;
     uint32_t basePacked = 0;
+    int64_t  slot       = 0;
     int64_t  offset     = 0;
 
-    auto operator<=>(const SanitizerLocation&) const = default;
+    bool operator==(const SanitizerLocation&) const = default;
+
+    auto operator<=>(const SanitizerLocation& other) const
+    {
+        return std::tie(fromSlot, slot, basePacked, offset) <=> std::tie(other.fromSlot, other.slot, other.basePacked, other.offset);
+    }
 };
+
+static_assert(sizeof(SanitizerLocation) == 24);
 
 // Per-register information carried along the flow.
 struct SanitizerRegInfo
 {
     SanitizerValue value;
 
+    // Keep the presence flags together: these records are copied for every tracked
+    // register at each flow join, so padding multiplies across the whole analysis.
+    bool hasOriginSlot        = false;
+    bool hasZeroTest          = false;
+    bool zeroTestTrueIfZero   = false;
+    bool hasOriginReg         = false;
+    bool hasOriginLocation    = false;
+    bool hasAddressLocation   = false;
+    bool releasedPointer      = false;
+    bool hasPointerOriginSlot = false;
+
     // If the register was loaded from a local stack slot, remember which, so a guard
     // testing this register can narrow the slot it came from (in unoptimized IR the
     // guarded block reloads the value from the same slot).
-    bool    hasOriginSlot = false;
-    int64_t originSlot    = 0;
+    int64_t originSlot = 0;
 
     // If the register is a boolean produced by a zero test (`setcc` after `cmp x,0`),
     // remember which slot was tested and whether the bool is true when that slot is
     // zero. A branch on the bool then narrows the underlying slot.
-    bool    hasZeroTest        = false;
-    int64_t zeroTestSlot       = 0;
-    bool    zeroTestTrueIfZero = false;
+    int64_t zeroTestSlot = 0;
 
     // The nearest VIRTUAL register this value was copied from. A call's arguments are
     // moved into the convention's physical registers, which the call then clobbers, so a
     // release has to name the register the value actually lives in.
-    bool     hasOriginReg = false;
     MicroReg originReg;
 
     // The place this value was loaded FROM when it was not a frame slot. A pointer a heap
     // object owns lives there and nowhere else, so 'object.buffer' released and read again
     // - the commonest shape a real use-after-free has - is nameable exactly here.
-    bool              hasOriginLocation = false;
     SanitizerLocation originLocation;
 
     // The place this register's ADDRESS designates, which is a different question from
     // the one above: the codegen forms a field's address first and reads through it
     // second, so without this the two accesses to one field would name two registers and
     // nothing would connect them.
-    bool              hasAddressLocation = false;
     SanitizerLocation addressLocation;
 
     // The pointer this register holds was handed to a freeing callee. A register is a
     // value: only a redefinition changes it, so the fact travels with the copies the
     // codegen makes and outlives the calls in between. This is what names a released
     // PARAMETER, which has no frame slot of its own to be keyed on.
-    bool          releasedPointer = false;
     SourceCodeRef releasedOrigin;
 
     // Which slot the POINTER in this register came from, which is a different question from
@@ -71,8 +82,7 @@ struct SanitizerRegInfo
     // object, which is what decides whether reading through it touches released memory.
     // Reading a field of a freed object is what a use-after-free almost always looks like,
     // so the two facts have to travel separately.
-    bool    hasPointerOriginSlot = false;
-    int64_t pointerOriginSlot    = 0;
+    int64_t pointerOriginSlot = 0;
 
     bool operator==(const SanitizerRegInfo& o) const
     {
@@ -86,6 +96,8 @@ struct SanitizerRegInfo
                hasAddressLocation == o.hasAddressLocation && addressLocation == o.addressLocation;
     }
 };
+
+static_assert(sizeof(SanitizerRegInfo) == 120 + sizeof(SourceCodeRef));
 
 struct SanitizerMovedRange
 {

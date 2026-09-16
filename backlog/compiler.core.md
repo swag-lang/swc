@@ -6,6 +6,27 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.051 — Isolate a silent CodeGen failure observed in a discarded JIT prototype
+
+- Recorded: 2026-09-16 18:31
+- Found while: comparing Release compilation of `bin/std` with six pinned performance workers.
+- Evidence: an unmerged build-710 prototype based on `277804c1c` returned exit 5 on the third
+  candidate rebuild of `swc.exe build -w bin/std -m gui -bc release --num-cores 6 --rebuild`.
+  Seven dependency modules completed; gui stopped with
+  `internal compiler error: job 'CodeGen' returned an error without a diagnostic`.
+- Scope: the prototype transferred the existing shared JIT-order lock to its reader and reused
+  local dependency/completion vectors. It was discarded. The same gui command passed once in
+  DevMode; three further runs with unchanged Release build 702 passed. Neither a production
+  regression nor a causal connection to either prototype change has been established.
+- Evidence location: `bench/results/compilation/20260916-bin-release/README.md` and its sample
+  CSV retain the command context, compiler hashes and failed run. The session's external
+  `jit-order-lock-buffers-710.patch` and `jit-order-control` compilers retain the exact prototype.
+- Next: capture the function, waited symbol and failing return path at `abortCodeGen`, replay
+  candidate and baseline, and isolate lock transfer from vector reuse before reviving either
+  optimization. Do not classify this as compiler.core.047 without a matching generic-local witness.
+- Complete when: a bounded reproducer identifies the responsible path, or evidence confines the
+  failure to an invalid discarded prototype; remove this entry once that question is settled.
+
 ### compiler.core.050 — LLVM tools reject the long-name table in a generated static library
 
 - Recorded: 2026-09-16 17:37

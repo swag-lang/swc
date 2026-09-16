@@ -825,6 +825,159 @@ namespace
         return changed;
     }
 
+    // A range test lowered as two exits to the same label:
+    //
+    //     cmp  X, LO                      T = X
+    //     jb   .Lout                      T -= LO
+    //     cmp  X, HI              ->      cmp  T, HI - LO
+    //     ja   .Lout                      ja   .Lout            ; unsigned
+    //
+    // `c >= '0' and c <= '9'` in a scanner lowers to this. It is LLVM's
+    // range-check fold (InstCombine's foldAndOrOfICmpsUsingRanges): X lies in
+    // [LO, HI] exactly when X - LO, wrapped, is at most HI - LO. The signed
+    // pair (jl, jg) folds the same way once LO <= HI as signed values. Either
+    // exit may come first. The flags the exits leave differ afterwards, so no
+    // successor may read them.
+    bool isRangeExitPair(bool& outSigned, const MicroCond lowExit, const MicroCond highExit)
+    {
+        if (lowExit == MicroCond::Below && highExit == MicroCond::Above)
+        {
+            outSigned = false;
+            return true;
+        }
+
+        if (lowExit == MicroCond::Less && highExit == MicroCond::Greater)
+        {
+            outSigned = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool foldRangeChecks(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+
+        struct RangeCheck
+        {
+            MicroInstrRef firstCmpRef  = MicroInstrRef::invalid();
+            MicroInstrRef firstJumpRef = MicroInstrRef::invalid();
+            MicroInstrRef lastCmpRef   = MicroInstrRef::invalid();
+            MicroInstrRef lastJumpRef  = MicroInstrRef::invalid();
+            MicroReg      value;
+            MicroOpBits   bits  = MicroOpBits::Zero;
+            uint64_t      low   = 0;
+            uint64_t      range = 0;
+        };
+
+        SmallVector<RangeCheck> checks;
+        std::unordered_set<uint32_t> used;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            RangeCheck check;
+            check.firstCmpRef  = it.current;
+            check.firstJumpRef = storage.findNextInstructionRef(check.firstCmpRef);
+            check.lastCmpRef   = check.firstJumpRef.isValid() ? storage.findNextInstructionRef(check.firstJumpRef) : MicroInstrRef::invalid();
+            check.lastJumpRef  = check.lastCmpRef.isValid() ? storage.findNextInstructionRef(check.lastCmpRef) : MicroInstrRef::invalid();
+            if (!check.lastJumpRef.isValid() || used.contains(check.firstCmpRef.get()))
+                continue;
+
+            const MicroInstr* firstCmp  = storage.ptr(check.firstCmpRef);
+            const MicroInstr* firstJump = storage.ptr(check.firstJumpRef);
+            const MicroInstr* lastCmp   = storage.ptr(check.lastCmpRef);
+            const MicroInstr* lastJump  = storage.ptr(check.lastJumpRef);
+            if (firstCmp->op != MicroInstrOpcode::CmpRegImm || lastCmp->op != MicroInstrOpcode::CmpRegImm ||
+                firstJump->op != MicroInstrOpcode::JumpCond || lastJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+
+            const MicroInstrOperand* firstCmpOps  = firstCmp->ops(operands);
+            const MicroInstrOperand* lastCmpOps   = lastCmp->ops(operands);
+            const MicroInstrOperand* firstJumpOps = firstJump->ops(operands);
+            const MicroInstrOperand* lastJumpOps  = lastJump->ops(operands);
+            uint32_t                 firstTarget  = 0;
+            uint32_t                 lastTarget   = 0;
+            if (!tryGetJumpTargetLabelId(firstTarget, *firstJump, firstJumpOps) || !tryGetJumpTargetLabelId(lastTarget, *lastJump, lastJumpOps) || firstTarget != lastTarget)
+                continue;
+
+            check.value = firstCmpOps[0].reg;
+            check.bits  = firstCmpOps[1].opBits;
+            if (!check.value.isVirtualInt() || lastCmpOps[0].reg != check.value || lastCmpOps[1].opBits != check.bits)
+                continue;
+            if (firstCmpOps[2].hasWideImmediateValue() || lastCmpOps[2].hasWideImmediateValue())
+                continue;
+            if (firstJumpOps[1].opBits != lastJumpOps[1].opBits)
+                continue;
+
+            const uint64_t mask      = getBitsMask(check.bits);
+            uint64_t       low       = firstCmpOps[2].valueU64 & mask;
+            uint64_t       high      = lastCmpOps[2].valueU64 & mask;
+            MicroCond      lowExit   = firstJumpOps[0].cpuCond;
+            MicroCond      highExit  = lastJumpOps[0].cpuCond;
+            bool           isSigned  = false;
+            if (!isRangeExitPair(isSigned, lowExit, highExit))
+            {
+                if (!isRangeExitPair(isSigned, highExit, lowExit))
+                    continue;
+                std::swap(low, high);
+            }
+
+            // An empty range would fold to a test that always passes.
+            if (isSigned)
+            {
+                const uint32_t numBits = getNumBits(check.bits);
+                const int64_t  lowS    = static_cast<int64_t>(low << (64 - numBits)) >> (64 - numBits);
+                const int64_t  highS   = static_cast<int64_t>(high << (64 - numBits)) >> (64 - numBits);
+                if (lowS > highS)
+                    continue;
+            }
+            else if (low > high)
+                continue;
+
+            if (context.builder && !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, check.lastJumpRef))
+                continue;
+
+            check.low   = low;
+            check.range = (high - low) & mask;
+            used.insert(check.lastCmpRef.get());
+            checks.push_back(check);
+        }
+
+        if (checks.empty())
+            return false;
+
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        for (const RangeCheck& check : checks)
+        {
+            const MicroReg offset = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+
+            MicroInstrOperand copyOps[3];
+            copyOps[0].reg    = offset;
+            copyOps[1].reg    = check.value;
+            copyOps[2].opBits = check.bits;
+            storage.insertDerivedBefore(operands, check.firstCmpRef, MicroInstrOpcode::LoadRegReg, copyOps);
+
+            MicroInstrOperand subOps[4];
+            subOps[0].reg     = offset;
+            subOps[1].opBits  = check.bits;
+            subOps[2].microOp = MicroOp::Subtract;
+            subOps[3].setImmediateValue(ApInt(check.low, getNumBits(check.bits)));
+            storage.insertDerivedBefore(operands, check.firstCmpRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+
+            MicroInstrOperand* lastCmpOps = storage.ptr(check.lastCmpRef)->ops(operands);
+            lastCmpOps[0].reg             = offset;
+            lastCmpOps[2].setImmediateValue(ApInt(check.range, getNumBits(check.bits)));
+            storage.ptr(check.lastJumpRef)->ops(operands)[0].cpuCond = MicroCond::Above;
+
+            storage.erase(check.firstCmpRef);
+            storage.erase(check.firstJumpRef);
+        }
+
+        context.builder->invalidateControlFlowGraph();
+        return true;
+    }
+
     // Labels no jump references are pure fall-through markers, but they stop
     // every straight-line pattern walk (the materialized-boolean fusion in
     // particular). The sweep collects the targets of every label-consuming
@@ -2270,6 +2423,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     changed |= fuseMaterializedBoolBranches(storage, operands, context.builder);
     changed |= threadShortCircuitExits(storage, operands);
     changed |= eraseUnreferencedLabels(storage, operands, context);
+    if (changed && context.builder)
+        context.builder->invalidateControlFlowGraph();
+    changed |= foldRangeChecks(storage, operands, context);
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

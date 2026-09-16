@@ -41,7 +41,7 @@ namespace InstructionCombine
         }
     }
 
-    bool tryCommuteConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst)
+    bool tryFoldConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst)
     {
         if (ctx.isClaimed(binRef) || !ctx.ssa)
             return false;
@@ -57,7 +57,8 @@ namespace InstructionCombine
 
         if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src)
             return false;
-        if (!isCommutativeIntOp(microOp))
+        const bool negate = microOp == MicroOp::Subtract;
+        if (!negate && !isCommutativeIntOp(microOp))
             return false;
 
         // The destination must arrive holding a constant this instruction is
@@ -72,6 +73,8 @@ namespace InstructionCombine
 
         const MicroInstrOperand* immOps = immInst->ops(*ctx.operands);
         if (!immOps || immOps[0].reg != dst || immOps[2].hasWideImmediateValue())
+            return false;
+        if (negate && (immOps[2].valueU64 & getBitsMask(opBits)) != 0)
             return false;
         if (immOps[1].opBits != opBits)
             return false;
@@ -93,6 +96,17 @@ namespace InstructionCombine
         copyOps[1].reg    = src;
         copyOps[2].opBits = opBits;
         ctx.emitRewrite(dstReach.instRef, MicroInstrOpcode::LoadRegReg, copyOps);
+
+        // NEG computes the same value and arithmetic flags as zero minus src.
+        if (negate)
+        {
+            MicroInstrOperand unary[3];
+            unary[0].reg     = dst;
+            unary[1].opBits  = opBits;
+            unary[2].microOp = MicroOp::Negate;
+            ctx.emitRewrite(binRef, MicroInstrOpcode::OpUnaryReg, unary);
+            return true;
+        }
 
         MicroInstrOperand newOps[4];
         newOps[0].reg     = dst;

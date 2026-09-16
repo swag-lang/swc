@@ -175,7 +175,7 @@ namespace InstructionCombine
     bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldBooleanSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropFloatOrderedGuard(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryCommuteConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
+    bool tryFoldConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
 
     //===-- Whole-IR scans --------------------------------------------------===//
 

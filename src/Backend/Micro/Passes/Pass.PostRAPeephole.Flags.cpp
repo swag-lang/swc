@@ -220,6 +220,34 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A zero-extended byte/word shifted entirely within the low dword needs
+    // no 64-bit shift. Keep flags out of the rewrite: SF/OF may differ.
+    bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isInt() || ops[1].opBits != MicroOpBits::B64 ||
+            ops[2].microOp != MicroOp::ShiftLeft || ops[3].hasWideImmediateValue() || ops[3].valueU64 >= 32)
+            return false;
+        const MicroInstrRef extRef = ctx.previousRef(ref);
+        const MicroInstr*   ext    = ctx.instruction(extRef);
+        if (!ext || ext->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* extOps = ext->ops(*ctx.operands);
+        if (!extOps || extOps[0].reg != ops[0].reg ||
+            (extOps[2].opBits != MicroOpBits::B32 && extOps[2].opBits != MicroOpBits::B64) ||
+            (extOps[3].opBits != MicroOpBits::B8 && extOps[3].opBits != MicroOpBits::B16) ||
+            getNumBits(extOps[3].opBits) + ops[3].valueU64 > 32 ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({extRef, ref}))
+            return false;
+        MicroInstrOperand rewritten[4] = {ops[0], ops[1], ops[2], ops[3]};
+        rewritten[1].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, rewritten);
+        return true;
+    }
+
     // Zero the full result before the compare instead of extending SETcc's
     // byte afterward. The compare must not read that result register.
     bool tryClearBeforeSetCondition(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

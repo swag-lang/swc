@@ -586,3 +586,30 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     let end = Utf8.byteIndex(mixed, 16)
     Swag.assert(end.index == mixed.count and not end.success)
 }
+
+// Latin-1 case folding must not reinterpret another character's continuation bytes.
+#test
+{
+    for prefixSize in 33
+    {
+        var prefix: String
+        for prefixSize do
+            prefix += "a"
+        let first = Format.toString("%\u0100abcdefghijklmnopqrstuvwxyz", prefix.toString())
+        let other = Format.toString("%\u0120abcdefghijklmnopqrstuvwxyz", prefix.toString())
+        Swag.assert(Utf8.compare(first.toString(), other.toString(), .Latin1NoCase) == -1)
+        Swag.assert(Utf8.compare(other.toString(), first.toString(), .Latin1NoCase) == 1)
+        Swag.assert(Utf8.compare(first.toString(), first.toString(), .Latin1NoCase) == 0)
+        Swag.assert(Utf8.indexOf(first.toString(), "\u0120", comparisonType: .Latin1NoCase) == Swag.U64.Max)
+        Swag.assert(Utf8.lastIndexOf(first.toString(), "\u0120", .Latin1NoCase) == Swag.U64.Max)
+    }
+
+    Swag.assert(Utf8.compare("\u00C9", "\u00E9", .Latin1NoCase) == 0)
+    Swag.assert(Utf8.compare("\u0100", "\u0101", .Latin1NoCase) == -1)
+    Swag.assert(Utf8.compare("\u0100", "\u0101", .UnicodeNoCase) == 0)
+    Swag.assert(Utf8.compare("\u0080", "\u00A0", .Latin1NoCase) == -1)
+    Swag.assert(Utf8.compare("\U0001F600", "\U0001F620", .Latin1NoCase) == -1)
+    Swag.assert(Utf8.compare("\u00E9", "e\u0301", .Latin1NoCase) != 0)
+    Swag.assert(not Utf8.startsWith("\u0100xyz", "\u0120", .Latin1NoCase))
+    Swag.assert(not Utf8.endsWith("xyz\u0100", "\u0120", .Latin1NoCase))
+}

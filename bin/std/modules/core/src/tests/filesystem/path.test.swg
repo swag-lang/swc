@@ -3,6 +3,52 @@
 
 using Swag
 
+// Lexical case-insensitive paths include case pairs outside Latin-1.
+#test
+{
+    if WINDOWS
+    {
+        Swag.assert(Path.equals("C:/\u0100/\u03A3/\u0410.swg", "c:/\u0101/\u03C3/\u0430.SWG"))
+        Swag.assert(Path.hasExtension("file.\u03A3", ".\u03C3"))
+        Swag.assert(Path.equals("src/\u03A3.swg", "src/\u03C2.swg"))
+        Swag.assert(Path.equals("src/\u03C3.swg", "src/\u03C2.swg"))
+        Swag.assert(Path.equals("src/\u0131.swg", "src/I.swg"))
+        Swag.assert(Path.hasExtension("file.\u03C2", ".\u03A3"))
+        Swag.assert(Path.hasExtension("file.\u0131", ".I"))
+        Swag.assert(Path.equals("src/\u00FF.swg", "src/\u0178.swg"))
+        Swag.assert(Path.equals("src/\u00B5.swg", "src/\u039C.swg"))
+    }
+    else
+    {
+        Swag.assert(not Path.equals("/\u0100/\u03A3/\u0410.swg", "/\u0101/\u03C3/\u0430.SWG"))
+        Swag.assert(not Path.hasExtension("file.\u03A3", ".\u03C3"))
+        Swag.assert(not Path.equals("src/\u03A3.swg", "src/\u03C2.swg"))
+        Swag.assert(not Path.equals("src/\u0131.swg", "src/I.swg"))
+    }
+
+    Swag.assert(not Path.equals("src/\u0130.swg", "src/i.swg"))
+    Swag.assert(not Path.equals("src/\u00FF.swg", "src/\u00DF.swg"))
+    Swag.assert(not Path.equals("src/\u00B5.swg", "src/\u0095.swg"))
+    Swag.assert(not Path.hasExtension("file.\u0130", ".i"))
+    Swag.assert(Path.lowercaseExtension("file.\u0130") == ".i")
+
+    // String escapes encode code points; construct malformed UTF-8 from raw bytes.
+    let invalidBytes: [5] u8 = ['s', 'r', 'c', '/', 0x80]
+    let otherBytes:   [5] u8 = ['s', 'r', 'c', '/', 0x81]
+    let upperBytes:   [5] u8 = ['S', 'R', 'C', '/', 0x80]
+    let invalid              = Swag.makeString(invalidBytes.buffer, invalidBytes.count)
+    let other                = Swag.makeString(otherBytes.buffer, otherBytes.count)
+    let upper                = Swag.makeString(upperBytes.buffer, upperBytes.count)
+    Swag.assert(not Path.equals(invalid, other))
+    Swag.assert(not Path.equals(invalid, "src/\uFFFD"))
+    Swag.assert(not Path.equals(upper, invalid))
+    Swag.assert(Path.equals(invalid, invalid))
+    Swag.assert(Path.equals("src/\uFFFD.swg", "src/\uFFFD.swg"))
+    Swag.assert(Path.lowercaseExtension("file.\u03A3\u0410") == ".\u03C3\u0430")
+    Swag.assert(not Path.equals("src/\u00E9.swg", "src/e\u0301.swg"))
+    Swag.assert(not Path.hasExtension("file.\u03A3", ".\u03B4"))
+}
+
 #test
 {
     Swag.assert(Path.isDirectorySeparator('/'u8))
@@ -117,4 +163,11 @@ using Swag
     normalized = #raw "C:\src\tests\core.swg"
     Path.normalize(&normalized)
     Swag.assert(normalized == "C:/src/tests/core.swg")
+}
+
+// Distinct UTF-8 directory names must remain distinct under every target case policy.
+#test
+{
+    Swag.assert(not Path.equals("C:/\u0100/bin", "C:/\u0120/bin"))
+    Swag.assert(not Path.equals("C:/\U0001F600/bin", "C:/\U0001F620/bin"))
 }

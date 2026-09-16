@@ -221,6 +221,144 @@ namespace PostRaPeephole
         return true;
     }
 
+    namespace
+    {
+        struct CarryBoolean
+        {
+            MicroInstrRef clearRef;
+            MicroInstrRef compareRef;
+            MicroInstrRef setRef;
+            MicroReg      reg;
+        };
+
+        // A cleared register followed by SETB contains exactly the incoming CF.
+        // Keep the flag producer explicit so another queued rewrite cannot move it.
+        bool findCarryBoolean(const Context& ctx, MicroInstrRef ref, CarryBoolean& out)
+        {
+            if (!ctx.encoder || !ctx.encoder->supportsCarryArithmetic())
+                return false;
+            out.setRef            = ctx.previousRef(ref);
+            const MicroInstr* set = ctx.instruction(out.setRef);
+            if (!set || set->op != MicroInstrOpcode::SetCondReg)
+                return false;
+            const auto* setOps = set->ops(*ctx.operands);
+            if (!setOps || !setOps[0].reg.isInt() || setOps[1].cpuCond != MicroCond::Below)
+                return false;
+            out.reg = setOps[0].reg;
+            if (ctx.isPrivateFrameBase(out.reg))
+                return false;
+            out.compareRef            = ctx.previousRef(out.setRef);
+            const MicroInstr* compare = ctx.instruction(out.compareRef);
+            if (!compare || (compare->op != MicroInstrOpcode::CmpRegReg && compare->op != MicroInstrOpcode::CmpRegImm))
+                return false;
+            const auto* compareOps = compare->ops(*ctx.operands);
+            if (!compareOps || !compareOps[0].reg.isInt() ||
+                (compare->op == MicroInstrOpcode::CmpRegReg && !compareOps[1].reg.isInt()))
+                return false;
+            out.clearRef            = ctx.previousRef(out.compareRef);
+            const MicroInstr* clear = ctx.instruction(out.clearRef);
+            if (!clear || clear->op != MicroInstrOpcode::ClearReg)
+                return false;
+            const auto* clearOps = clear->ops(*ctx.operands);
+            return clearOps && clearOps[0].reg == out.reg &&
+                   (clearOps[1].opBits == MicroOpBits::B32 || clearOps[1].opBits == MicroOpBits::B64);
+        }
+
+        bool claimCarryBoolean(Context& ctx, MicroInstrRef ref, const CarryBoolean& value)
+        {
+            return MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) &&
+                   ctx.claimAll({value.clearRef, value.compareRef, value.setRef, ref});
+        }
+    }
+
+    // SBB computes the same all-zero/all-one mask while consuming CF directly.
+    // Its use/def destination keeps the preceding clear to break the dependency.
+    bool tryFoldCarryMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].microOp != MicroOp::Negate ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
+            return false;
+        CarryBoolean value;
+        if (!findCarryBoolean(ctx, ref, value) || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
+            return false;
+        const MicroInstrOperand subtract[3] = {ops[0], ops[0], ops[1]};
+        ctx.emitRewrite(value.setRef, MicroInstrOpcode::SubtractBorrowRegReg, subtract, true);
+        ctx.emitErase(ref);
+        return true;
+    }
+
+    bool tryFoldCarryAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].microOp != MicroOp::Add || !ops[0].reg.isInt() || !ops[1].reg.isInt() ||
+            ops[0].reg == ops[1].reg || ctx.isPrivateFrameBase(ops[0].reg) ||
+            (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+            return false;
+        CarryBoolean value;
+        if (!findCarryBoolean(ctx, ref, value) || (value.reg != ops[0].reg && value.reg != ops[1].reg))
+            return false;
+        if (value.reg != ops[0].reg && !ctx.isRegDeadAfterCurrent(value.reg))
+            return false;
+        if (!claimCarryBoolean(ctx, ref, value))
+            return false;
+        if (value.reg == ops[0].reg)
+        {
+            const MicroInstrOperand copy[3] = {ops[0], ops[1], ops[2]};
+            ctx.emitRewrite(value.setRef, MicroInstrOpcode::LoadRegReg, copy, true);
+        }
+        else
+            ctx.emitErase(value.setRef);
+        MicroInstrOperand add[3] = {};
+        add[0].reg               = ops[0].reg;
+        add[1].opBits            = ops[2].opBits;
+        add[2].valueU64          = 0;
+        ctx.emitRewrite(ref, MicroInstrOpcode::AddCarryRegImm, add);
+        // The copy or existing addend supplies every result bit now. Retain
+        // the old clear only if the comparison itself reads that zero value.
+        const MicroInstr*      compare       = ctx.instruction(value.compareRef);
+        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
+        if (!microRegSpanContains(compareUseDef.uses.span(), value.reg))
+            ctx.emitErase(value.clearRef);
+        return true;
+    }
+
+    bool tryFoldCarryOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+        MicroOpBits bits;
+        if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
+        {
+            if (ops[0].reg != ops[1].reg)
+                return false;
+            bits = ops[2].opBits;
+        }
+        else
+        {
+            if (ops[2].microOp != MicroOp::Add || ops[3].hasWideImmediateValue())
+                return false;
+            bits = ops[1].opBits;
+        }
+        if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            return false;
+        const uint64_t offset       = ops[3].valueU64;
+        const uint64_t signedOffset = static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(offset)));
+        if ((signedOffset & getBitsMask(bits)) != (offset & getBitsMask(bits)))
+            return false;
+        CarryBoolean value;
+        if (!findCarryBoolean(ctx, ref, value) || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
+            return false;
+        MicroInstrOperand add[3] = {};
+        add[0].reg               = ops[0].reg;
+        add[1].opBits            = bits;
+        add[2].valueU64          = signedOffset;
+        ctx.emitRewrite(ref, MicroInstrOpcode::AddCarryRegImm, add);
+        ctx.emitErase(value.setRef);
+        return true;
+    }
+
     // With one input already in the result register, ADD is one byte shorter
     // than an unscaled LEA. The newly written flags must be unobserved.
     bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

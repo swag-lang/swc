@@ -31,6 +31,7 @@ public:
             return false;
         return reg == MicroReg::intReg(0) || reg == MicroReg::intReg(2) || reg == MicroReg::intReg(3);
     }
+    bool supportsCarryArithmetic() const override { return true; }
     bool supportsHighByteExtract(MicroReg regDst, MicroReg regSrc) const override;
     bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
     bool mayNeedLegalizeScratchRegister(const MicroInstr& inst, const MicroInstrOperand* ops) const override;
@@ -68,6 +69,8 @@ protected:
     void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;
     void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;
     void encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;
+    void encodeAddCarryRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits) override;
+    void encodeSubtractBorrowRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits bits) override;
     void encodeLoadHighByteRegReg(MicroReg regDst, MicroReg regSrc) override;
     void encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;
     void encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits) override;

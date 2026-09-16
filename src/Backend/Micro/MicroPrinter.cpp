@@ -879,6 +879,10 @@ namespace
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), false, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::LoadSignedExtRegReg:
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
+            case MicroInstrOpcode::AddCarryRegImm:
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("adc"), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+            case MicroInstrOpcode::SubtractBorrowRegReg:
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("sbb"), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadHighByteRegReg:
                 return std::format("{} = {}({})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("high8"), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadZeroExtRegReg:
@@ -1850,6 +1854,14 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendImmediate(out, ctx, std::format("{}", ops[2].valueU64), false);
                 break;
 
+            case MicroInstrOpcode::AddCarryRegImm:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[1].opBits);
+                appendSep(out);
+                appendImmediate(out, ctx, hexU64(ops[2].valueU64), false);
+                break;
+            case MicroInstrOpcode::SubtractBorrowRegReg:
             case MicroInstrOpcode::LoadHighByteRegReg:
             case MicroInstrOpcode::LoadRegReg:
                 appendRegRegBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);

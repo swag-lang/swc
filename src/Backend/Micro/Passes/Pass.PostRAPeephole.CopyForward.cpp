@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Post-RA copy coalescing: when a value is produced into a scratch register
@@ -119,6 +120,45 @@ namespace PostRaPeephole
         }
 
         return false;
+    }
+
+    // Keep value additions intact through SSA/loop optimization, then merge
+    // the physical input copy with a flag-dead add. A 32-bit LEA needs only
+    // the low input bits even though its addressing operands are 64-bit.
+    bool tryFoldCopyIntoIntegerAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef addRef = ctx.nextRef(copyRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg || ctx.isClaimed(addRef))
+            return false;
+        const auto* ops = add->ops(*ctx.operands);
+        if (!ops || ops[3].microOp != MicroOp::Add || ops[0].reg != copy[0].reg || !ops[1].reg.isInt() ||
+            (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+            getNumBits(copy[2].opBits) < getNumBits(ops[2].opBits) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+        MicroInstrOperand address[8] = {};
+        address[0].reg               = copy[0].reg;
+        address[1].reg               = copy[1].reg;
+        address[2].reg               = ops[1].reg == copy[0].reg ? copy[1].reg : ops[1].reg;
+        address[3].opBits            = ops[2].opBits;
+        address[4].opBits            = MicroOpBits::B64;
+        address[5].valueU64          = 1;
+        MicroInstr probe;
+        probe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        probe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, probe, address)) || !ctx.claimAll({copyRef, addRef}))
+            return false;
+        ctx.emitRewrite(addRef, probe.op, address, true);
+        // Other readers, including implicit ABI uses, remain the DCE's job.
+        return true;
     }
 
     // A later operation can read the original register directly. Leave the

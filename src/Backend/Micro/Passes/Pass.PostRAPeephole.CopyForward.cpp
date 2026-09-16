@@ -122,6 +122,64 @@ namespace PostRaPeephole
         return false;
     }
 
+    // Coalesce mov D,S; op D; mov S,D without requiring D to be dead:
+    // perform op S and finish with mov D,S, preserving both final values.
+    bool tryFoldCopyRoundTrip(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef opRef = ctx.nextRef(copyRef);
+        const MicroInstr*   op    = ctx.instruction(opRef);
+        if (!op || (op->op != MicroInstrOpcode::OpBinaryRegImm && op->op != MicroInstrOpcode::OpUnaryReg))
+            return false;
+        const auto* ops = op->ops(*ctx.operands);
+        if (!ops || ops[0].reg != copy[0].reg || ops[1].opBits != copy[2].opBits)
+            return false;
+        switch (ops[2].microOp)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
+                if (op->op != MicroInstrOpcode::OpBinaryRegImm || ops[3].hasWideImmediateValue() ||
+                    (ops[3].valueU64 & (getNumBits(ops[1].opBits) - 1)) == 0)
+                    return false;
+                break;
+            case MicroOp::Negate:
+            case MicroOp::BitwiseNot:
+                if (op->op != MicroInstrOpcode::OpUnaryReg)
+                    return false;
+                break;
+            default:
+                return false;
+        }
+        const MicroInstrRef backRef = ctx.nextRef(opRef);
+        const MicroInstr*   back    = ctx.instruction(backRef);
+        if (!back || back->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* backOps = back->ops(*ctx.operands);
+        if (!backOps || backOps[0].reg != copy[1].reg || backOps[1].reg != copy[0].reg || backOps[2].opBits != copy[2].opBits)
+            return false;
+        MicroInstrOperand rewritten[4] = {};
+        for (uint8_t i = 0; i < op->numOperands; ++i)
+            rewritten[i] = ops[i];
+        rewritten[0].reg = copy[1].reg;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *op, rewritten)) || !ctx.claimAll({copyRef, opRef, backRef}))
+            return false;
+        ctx.emitErase(copyRef);
+        ctx.emitRewrite(opRef, op->op, std::span{rewritten, op->numOperands});
+        ctx.emitRewrite(backRef, copyInst.op, std::span{copy, copyInst.numOperands});
+        return true;
+    }
+
     // Keep value additions intact through SSA/loop optimization, then merge
     // the physical input copy with a flag-dead add. A 32-bit LEA needs only
     // the low input bits even though its addressing operands are 64-bit.

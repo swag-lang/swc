@@ -44,6 +44,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopySource);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);

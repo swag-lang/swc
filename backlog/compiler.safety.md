@@ -43,10 +43,26 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.024 — A mutable cast can write through an any that borrows a literal
+
+- Recorded: 2026-09-16 07:54
+- Evidence: the DevMode compiler at the parent revision `e3e20baae` accepts
+  `var boxed: any = 42's32; if let number = cast #try (*s32) boxed do number[] += 1`.
+  Its JIT test passes, but the generated native executable raises `0xC0000005` while writing
+  the literal in read-only storage. The same issue is observable through the new type patterns;
+  their casts preserve the existing conversion contract. A variable holding an `any` does not
+  itself own mutable storage for the borrowed value.
+- Next: decide and enforce the constness of literal-backed and constant-backed `any` views.
+  Inspect constant boxing, runtime type qualifiers, and dynamic cast destinations together;
+  choose rejection of mutable views or deliberate writable materialization without turning
+  `any` into an owning variant. Audit existing casts of literal-backed views before migration.
+- Complete when: JIT and native execution agree, a mutable cast cannot expose read-only
+  literal storage, and tests cover literal, constant, mutable-local, and const-local sources.
+
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Recorded: 2026-09-04 17:05
-- Updated: 2026-09-15 15:47 — Narrow the unsafe-boundary work to the operations left after checked downcasts.
+- Updated: 2026-09-16 07:54 — Type patterns share the checked dynamic-cast rules.
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
@@ -110,8 +126,9 @@ is the current scorecard.
 - Downcasts now have explicit language forms: `#[Swag.DynCast]` attaches allocation identity to
   struct storage while ordinary pointers remain one word. `cast #try` returns a nullable view;
   `cast #assume` checks the invariant when `.DynCast` safety is enabled. The same modifiers cover
-  `any`, interfaces and runtime type descriptors. Expression `as`/`is` and `Swag.typeAs`/`typeIs`
-  have been removed, and `Wnd` uses the language-managed identity.
+  `any`, interfaces and runtime type descriptors. Boolean `is` and conditional type bindings
+  share those checked conversions. Expression `as` and `Swag.typeAs`/`typeIs` remain removed,
+  and `Wnd` uses the language-managed identity.
 - The census above predates that migration. Its cast total cannot be used as the size of the
   remaining unsafe surface: distinguish checked views from deliberate reinterpretation and
   from assumptions whose runtime check is disabled.

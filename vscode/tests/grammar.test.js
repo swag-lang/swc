@@ -77,12 +77,14 @@ test('compiler token prefixes do not color unknown directives as builtins', () =
     }
 });
 
-test('dynamic casts share modifiers and retired type tests are ordinary identifiers', () => {
+test('dynamic casts and type patterns share the language vocabulary', () => {
     for (const modifier of ['#try', '#assume']) {
         const line = `cast ${modifier}(*Widget) value`;
         assert.ok(scopesAt(line, line.indexOf(modifier)).includes('entity.name.function.intrinsic'), line);
     }
-    assert.ok(!scopesAt('value is Widget', 6).includes('keyword.control'));
+    assert.ok(scopesAt('value is Widget', 6).includes('keyword.control'));
+    assert.ok(scopesAt('case Widget as item:', 12).includes('keyword.control'));
+    assert.ok(scopesAt('where T is IValue', 8).includes('keyword.control'));
     for (const name of ['typeIs', 'typeAs']) {
         assert.ok(!scopesAt(`Swag.${name}(target, source)`, 5).includes('entity.name.function.intrinsic'), name);
     }

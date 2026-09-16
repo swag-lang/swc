@@ -244,48 +244,51 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
 
 Result AstIsTypeExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
-    const SemaNodeView exprTypeView = sema.viewTypeConstant(nodeExprRef);
-    const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
+    const SemaNodeView source            = sema.viewType(nodeExprRef);
+    const SemaNodeView target            = sema.viewType(nodeTypeRef);
+    const TypeRef      targetRef         = sema.typeMgr().unwrapAlias(sema.ctx(), target.typeRef());
+    const TypeInfo&    targetType        = sema.typeMgr().get(targetRef);
+    const TypeRef      borrowedTargetRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(target.typeRef(), TypeInfoFlagsE::Const));
+    const bool         typeQuery         = !sema.isValue(nodeExprRef) ||
+                           (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), source.typeRef()) && !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), borrowedTargetRef));
 
-    TypeRef representedTypeRef = TypeRef::invalid();
-    if (!sema.isValue(nodeExprView.nodeRef()))
-        representedTypeRef = exprTypeView.typeRef();
-    else if (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), exprTypeView.typeRef()))
-        representedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, exprTypeView);
-
-    if (representedTypeRef.isValid())
+    // A pattern names the object type. Reuse the explicit dynamic cast after deriving
+    // its borrowed destination, so checks, pointer adjustment, and lifetime rules agree.
+    AstNodeRef castTypeRef = nodeTypeRef;
+    if (!typeQuery && !sema.isValue(nodeTypeRef))
     {
-        const TypeRef   interfaceTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), nodeTypeView.typeRef());
-        const TypeInfo& interfaceType    = sema.typeMgr().get(interfaceTypeRef);
-        if (!interfaceType.isInterface())
-            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_is_needs_interface, nodeTypeRef, interfaceTypeRef);
-
-        const TypeRef   sourceTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), representedTypeRef);
-        const TypeInfo& sourceType    = sema.typeMgr().get(sourceTypeRef);
-        SWC_RESULT(sema.waitSemaCompleted(&sourceType, nodeExprRef));
-        SWC_RESULT(sema.waitSemaCompleted(&interfaceType, nodeTypeRef));
-        bool satisfies = false;
-        if (sourceType.isStruct())
-            satisfies = sourceType.payloadSymStruct().implementsInterfaceOrUsingFields(sema, interfaceType.payloadSymInterface());
-        else if (sourceType.isInterface())
-            satisfies = &sourceType.payloadSymInterface() == &interfaceType.payloadSymInterface();
-
-        sema.setConstant(sema.curNodeRef(), satisfies ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
-        sema.setIsValue(*this);
-        return Result::Continue;
+        DynamicStructCastSourceInfo sourceInfo;
+        if (!resolveDynamicStructCastSourceInfo(sema, nodeExprRef, source.typeRef(), sourceInfo))
+            return SemaError::raiseCannotCast(sema, nodeExprRef, source.typeRef(), target.typeRef());
+        TypeInfoFlags flags       = sourceInfo.sourceIsConst ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero;
+        TypeInfo      destination = targetType.isInterface() ? targetType : TypeInfo::makeValuePointer(target.typeRef(), flags);
+        if (sourceInfo.sourceIsConst)
+            destination.addFlag(TypeInfoFlagsE::Const);
+        auto [typeRef, typeNode] = sema.ast().makeNode<AstNodeId::Identifier>(sema.node(nodeTypeRef).tokRef());
+        typeNode->addFlag(AstIdentifierFlagsE::GenericTypeBinding);
+        sema.setType(typeRef, sema.typeMgr().addType(destination));
+        castTypeRef = typeRef;
     }
 
-    SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
-
-    DynamicStructCastSourceInfo castInfo;
-    if (!resolveDynamicStructCastSourceInfo(sema, nodeExprView.nodeRef(), exprTypeView.typeRef(), castInfo))
-        return SemaError::raiseCannotCast(sema, sema.curNodeRef(), exprTypeView.typeRef(), nodeTypeView.typeRef());
-
-    sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
-    sema.setIsValue(*this);
-
-    return SemaHelpers::attachRuntimeIsFunctionToNode(sema, sema.curNodeRef(), codeRef());
+    auto [castRef, castNode] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
+    castNode->addFlag(AstCastExprFlagsE::Explicit);
+    castNode->modifierFlags = AstModifierFlagsE::Try;
+    castNode->nodeExprRef   = nodeExprRef;
+    castNode->nodeTypeRef   = castTypeRef;
+    AstNodeRef resultRef    = castRef;
+    if (!hasFlag(AstIsTypeExprFlagsE::Binding))
+    {
+        auto [boolRef, boolNode] = sema.ast().makeNode<AstNodeId::BuiltinType>(tokRef());
+        boolNode->typeTokenId    = TokenId::TypeBool;
+        auto [testRef, testNode] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
+        testNode->addFlag(AstCastExprFlagsE::Explicit);
+        testNode->nodeTypeRef = boolRef;
+        testNode->nodeExprRef = castRef;
+        resultRef             = testRef;
+    }
+    sema.setSubstitute(sema.curNodeRef(), resultRef);
+    sema.restartCurrentNode(resultRef);
+    return Result::Continue;
 }
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)

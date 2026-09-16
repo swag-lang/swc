@@ -66,8 +66,10 @@ to the object retain their ordinary size. A pointer-valued `using` field does no
 make its pointee part of the enclosing object's storage.
 
 Converting towards a known embedded parent remains a static conversion. A plain
-`cast` cannot perform a downcast. The former expression operators `as` and `is`
-are replaced by `cast #try` and a null comparison when only a test is needed.
+`cast` cannot perform a downcast. Use `value is T` for a boolean compatibility
+test, or `if value is T as name` to test and borrow the matching value.
+Expression `as` is not a conversion operator; it introduces a binding in a type
+pattern or a caught error.
 */
 
 #[Swag.DynCast]
@@ -93,20 +95,25 @@ struct CastButton
 /**
 ## Testing and Using the Same Result
 
-A conditional binding tests presence and gives the branch a non-null view. The
-same binding works in an expressionless `switch`; a `where` clause can inspect
-the converted value before the case is selected.
+A type pattern tests compatibility and gives the branch a non-null borrowed view.
+`if value is T as name` borrows a `*T`, or an interface view when `T` is an interface.
+Constness follows the source. The source is evaluated once; the name belongs only
+to the successful branch and its optional `where` guard. A false guard continues
+to `elif` or `else`. No pattern copies the object or extends its lifetime.
+
+An ordinary conditional binding with `cast #try` remains available when the nullable
+conversion result itself is useful. The same patterns work in a typed `switch`.
 */
 #test
 {
     var counter = Counter{42}
     let view    = cast(ICount) &counter
-    if let found = cast #try (*Counter) view do
+    if view is Counter as found do
         Swag.assert(found.value == 42)
 
-    switch
+    switch view
     {
-    case let found = cast #try (*Counter) view where found.value > 0: Swag.assert(found == &counter)
+    case Counter as found where found.value > 0: Swag.assert(found == &counter)
     default: Swag.assert(false)
     }
 }
@@ -134,21 +141,24 @@ Neither mode extends the lifetime of the boxed value or its pointee.
 /**
 ## Compile-Time Compatibility
 
-When the operand names a type, `cast #try (Target) Source` tests whether `Source`
-exposes a view of type `Target`. It produces the source type information on
-success and `null` otherwise. This also works in a generic `where` clause.
+`Source is Target` tests whether `Source` exposes a view of type `Target` and
+returns a boolean. This relation also works in generic `where` constraints.
+Exact type equality remains `Source == Target`.
+
+The explicit form `cast #try (Target) Source` expresses the same compatibility test.
+It produces the source type information on success and `null` otherwise. This also works in a generic `where` clause.
 The same rule applies when the source is a `typeinfo` value evaluated at runtime.
 Numeric widening does not establish type compatibility: `s32` and `s64` are
 different dynamic types. Non-strict aliases are transparent; strict aliases and
 enumerations retain their identity.
 */
-#assert(cast #try (ICount) Counter != null)
-#assert(cast #try (ICount) s32 == null)
-#assert(cast #try (s64) s32 == null)
+#assert(Counter is ICount)
+#assert(not (s32 is ICount))
+#assert(not (s32 is s64))
 
 func supportsCounterType(source: typeinfo)->bool
 {
-    return cast #try(ICount) source != null
+    return source is ICount
 }
 
 /**

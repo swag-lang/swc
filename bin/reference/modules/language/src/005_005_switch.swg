@@ -280,70 +280,47 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
 /**
 # Switching on Type with 'any' or 'interface'
 
-Use the same `cast #try` as in an ordinary expression. A switch without a subject
-tests its cases in order; the first successful cast selects the branch.
-*/
+A switch over an `any`, an interface, or a pointer to a dynamic struct can match
+concrete types. Write `case T` to test compatibility, or `case T as name` to borrow
+the matching object. An interface type can also be the target of a case.
 
+The subject is evaluated once. Matching uses the same compatibility and pointer
+adjustments as `cast #try`. A null source does not match a type. The first matching
+case whose `where` guard succeeds is selected. Pointer subjects also retain ordinary
+pointer cases, including `case null`; these can appear alongside type cases.
+
+A concrete binding has type `*T`; an interface binding is an interface view. Both
+are non-null, preserve source constness, and borrow without extending the source's
+lifetime. The name is visible in its case's guard and body only.
+*/
 #test
 {
-    let x: any = "value"
+    let value: any = "value"
+    switch value
+    {
+    case s32: Swag.assert(false)
+    case string as text where text[] == "other": Swag.assert(false)
+    case string as text: Swag.assert(text[] == "value")
+    default:  Swag.assert(false)
+    }
+}
+
+/**
+A `fallthrough` into a typed case checks its type and `where` guard before entering
+its body; an unsuccessful match continues to the next case. `switch #complete`
+asserts that some case matches, with a panic on a miss when `.Switch` safety is enabled.
+
+An expressionless switch also accepts `case let name = expression`. It evaluates
+the expression once and enters the case if its result is present. This general
+binding remains useful for nullable results that are not dynamic type casts.
+*/
+#test
+{
+    let value: any = "value"
     switch
     {
-    case cast #try (*string) x != null: break
+    case let text = cast #try (*string) value where text[] == "value": Swag.assert(text[] == "value")
     default: Swag.assert(false)
-    }
-}
-
-/**
-# Switch Statement with Type Guard and Variable Binding
-
-`case let name = expression` evaluates the expression once, binds its result, and
-enters the branch when that result is present. The binding belongs to that case.
-A `where` clause runs only after the binding succeeds and sees a non-null view.
-There is no separate type-testing or type-conversion operation in a case label.
-
-`switch #complete` also accepts these conditional cases. It asserts that one case
-matches; a miss panics while `.Switch` safety is enabled. A `fallthrough` into a
-case binding evaluates that binding and its `where` clause before entering its body.
-*/
-
-/**
-Example 1: Simple Type Binding
-*/
-
-#test
-{
-    let x: any = "value"
-    switch
-    {
-    case let str = cast #try (*string) x:
-        Swag.assert(str[] == "value")
-        break
-
-    default:
-        Swag.assert(false)
-    }
-}
-
-/**
-Example 2: Type Binding with 'where' Clause
-*/
-
-#test
-{
-    let x: any = "value"
-    switch
-    {
-    case let str = cast #try (*string) x where str[] == "value":
-        Swag.assert(str[] == "value")
-        break
-
-    case let str = cast #try (*string) x where str[] == "not_a_value":
-        Swag.assert(str[] == "not_a_value")
-        break
-
-    default:
-        Swag.assert(false)
     }
 }
 

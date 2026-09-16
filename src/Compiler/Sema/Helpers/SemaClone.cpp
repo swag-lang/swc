@@ -2678,6 +2678,7 @@ AstNodeRef AstAsCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext
 AstNodeRef AstIsTypeExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::IsTypeExpr>(tokRef());
+    newPtr->flags()       = flags();
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     newPtr->nodeTypeRef   = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
     return newRef;

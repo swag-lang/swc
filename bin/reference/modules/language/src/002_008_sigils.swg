@@ -283,17 +283,18 @@ clearly than disabling overflow checks for a file.
 view for a dynamic conversion; testing that view against 'null' tests compatibility.
 Its '#assume' modifier asserts compatibility and checks that assertion when dynamic
 cast safety is enabled. A compile-time expression such as
-`cast #try(IFoo) T != null` can constrain a generic declaration with 'where'.
-The contextual 'as' in a 'catch' clause names the caught error.
+`T is IFoo` can constrain a generic declaration with 'where'.
+The contextual 'as' names the caught error in a 'catch' clause, or the borrowed
+view in an 'if value is T as name' or 'case T as name' pattern.
 */
 
 #test
 {
     let value: any = "text"
 
-    switch
+    switch value
     {
-    case let text = cast #try (*string) value: Swag.assert(text[] == "text")
+    case string as text: Swag.assert(text[] == "text")
     default: Swag.assert(false)
     }
 }

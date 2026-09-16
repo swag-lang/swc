@@ -900,7 +900,13 @@ struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr>
+enum class AstIsTypeExprFlagsE : uint8_t
+{
+    Zero = 0,
+    Binding = 1 << 0,
+};
+
+struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr, AstIsTypeExprFlagsE>
 {
     AstNodeRef nodeExprRef;
     AstNodeRef nodeTypeRef;

@@ -439,7 +439,13 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 
 Result AstIfVarDecl::semaPreNode(Sema& sema)
 {
-    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    const auto& node = sema.node(sema.curNodeRef()).cast<AstIfVarDecl>();
+    // A type-pattern name exists only after the match. Ordinary 'if let' keeps
+    // its existing nullable binding in the else branch.
+    if (sema.token(sema.node(node.nodeVarRef).codeRef()).is(TokenId::KwdIs))
+        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, node.nodeIfBlockRef);
+    else
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     return Result::Continue;
 }
 

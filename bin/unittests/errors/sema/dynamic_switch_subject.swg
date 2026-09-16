@@ -11,12 +11,3 @@
         break
     }
 }
-
-#test
-{
-    let value: any = 42's32
-    switch value     // swc-expected-error {{sema_err_switch_invalid_type}}
-    {
-    case s32: break
-    }
-}

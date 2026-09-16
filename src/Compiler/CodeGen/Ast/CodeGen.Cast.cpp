@@ -962,7 +962,15 @@ namespace
         MicroReg      sourcePtrReg  = codeGen.nextVirtualIntRegister();
         MicroReg      sourceTypeReg = MicroReg::invalid();
 
-        if (sourceInfo.structTypeRef.isValid())
+        const SemaNodeView sourceConstant = codeGen.viewConstant(sourceRef);
+        if (sourceConstant.hasConstant() && codeGen.cstMgr().get(sourceConstant.cstRef()).isNullValue(codeGen.ctx()))
+        {
+            // Folded null interfaces and boxes have no addressable two-word payload.
+            sourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(sourcePtrReg, ApInt(0, 64), MicroOpBits::B64);
+        }
+        else if (sourceInfo.structTypeRef.isValid())
         {
             if (sourceInfo.kind == DynamicStructCastSourceKind::StructPointerLike && sourcePayload.isAddress())
                 builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, 0, MicroOpBits::B64);

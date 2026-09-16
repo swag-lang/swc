@@ -20,7 +20,7 @@ let  mtd  namespace  private  public  readonly  struct  tls  union  using  var  
 
 ```swag
 and  as  break  case  continue  default  defer  do  elif  else
-fallthrough  for  if  in  me  not  or  orelse  parallel  return
+fallthrough  for  if  in  is  me  not  or  orelse  parallel  return
 switch  to  unreachable  until  where  while
 ```
 

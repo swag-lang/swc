@@ -7,17 +7,19 @@ using Swag
 // with more than four parameters. Writes through either spelling must survive
 // promotion of the frame's scalars.
 
+#[Swag.Strict]
+alias StrictAny = any
+
 #[Swag.NoInline]
-func firstIsS32(values: ...)->bool
-{
-    let value = values[0]
-    return Swag.kindOf(value) == s32 and cast #assume(s32) value == 42
-}
+func isS32(value: any)->bool => Swag.kindOf(value) == s32 and cast #assume(s32) value == 42
+
+#[Swag.NoInline]
+func firstIsS32(values: ...)->bool => isS32(values[0])
 
 #[Swag.Optimize(true), Swag.NoInline]
 func throughVariadic()->bool
 {
-    var boxed: any = 42's32
+    let boxed = cast(StrictAny) 42's32
     return firstIsS32(boxed)
 }
 

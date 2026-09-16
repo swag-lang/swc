@@ -163,6 +163,20 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     // uniformly with per-instruction patterns.
     runStoreToLoadForwarding(ctx);
 
+    // Widening a 32-bit copy changes a fact other rules read (its upper half
+    // being zero) and claims the copy's readers. It runs only once no other
+    // rule has anything left to do, so it neither races them in a sweep nor
+    // takes their operands away.
+    if (ctx.actions.empty())
+    {
+        const auto view = ctx.storage->view();
+        for (auto it = view.begin(); it != view.end(); ++it)
+        {
+            if (it->op == MicroInstrOpcode::LoadRegReg && (ctx.relocated.empty() || !ctx.isRelocated(it.current)))
+                tryWidenCopyWithNarrowReaders(ctx, it.current, *it);
+        }
+    }
+
     if (ctx.actions.empty())
         return Result::Continue;
 

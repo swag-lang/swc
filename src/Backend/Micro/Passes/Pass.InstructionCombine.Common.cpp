@@ -123,19 +123,34 @@ namespace InstructionCombine
         if (!useOps)
             return MicroOpBits::Zero;
 
+        // A byte or word operation on a register keeps the rest of it: the
+        // result carries the upper bits through, so they are read too.
+        const auto partialDestination = [&](const MicroOpBits bits) {
+            return useOps[0].reg == reg && getNumBits(bits) < 32 ? MicroOpBits::B64 : bits;
+        };
+
         switch (useInst.op)
         {
             case MicroInstrOpcode::LoadRegReg:
-            case MicroInstrOpcode::LoadMemReg:
             case MicroInstrOpcode::CmpRegReg:
                 return useOps[2].opBits;
 
+            // The base of the store is a whole address.
+            case MicroInstrOpcode::LoadMemReg:
+                return useOps[0].reg == reg ? MicroOpBits::B64 : useOps[2].opBits;
+
             case MicroInstrOpcode::CmpRegImm:
-            case MicroInstrOpcode::OpBinaryRegImm:
                 return useOps[1].opBits;
 
+            case MicroInstrOpcode::OpBinaryRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
+                return partialDestination(useOps[1].opBits);
+
             case MicroInstrOpcode::OpBinaryRegReg:
-                return useOps[2].opBits;
+                return partialDestination(useOps[2].opBits);
+
+            case MicroInstrOpcode::LoadCondRegReg:
+                return partialDestination(useOps[3].opBits);
 
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:

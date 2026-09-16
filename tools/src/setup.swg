@@ -1,6 +1,5 @@
-#import("win32", location: "swag@std")
-
 #global namespace Tool.Setup
+#import("win32", location: "swag@std")
 
 using Core, Win32
 

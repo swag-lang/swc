@@ -60,6 +60,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoWiden);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildVectorFromStores);
+        r.add(MicroInstrOpcode::LoadRegMem, tryBuildScalarFromStores);
         r.add(MicroInstrOpcode::VecUnaryAmcRegMem, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::VecUnaryAmcRegMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::VecUnaryRegMem, tryFoldLeaConstIntoMemBase);

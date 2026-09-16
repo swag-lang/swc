@@ -142,7 +142,18 @@ namespace InstructionCombine
             case MicroInstrOpcode::CmpRegImm:
                 return useOps[1].opBits;
 
+            // A left shift by a constant pushes the top bits out: only the
+            // bits that stay are read.
             case MicroInstrOpcode::OpBinaryRegImm:
+                if (useOps[0].reg == reg && (useOps[2].microOp == MicroOp::ShiftLeft || useOps[2].microOp == MicroOp::ShiftArithmeticLeft) &&
+                    !useOps[3].hasWideImmediateValue() && getNumBits(useOps[1].opBits) >= 32 && useOps[3].valueU64 > 0 &&
+                    useOps[3].valueU64 < getNumBits(useOps[1].opBits))
+                {
+                    const uint64_t kept = getNumBits(useOps[1].opBits) - useOps[3].valueU64;
+                    return kept <= 8 ? MicroOpBits::B8 : kept <= 16 ? MicroOpBits::B16 : kept <= 32 ? MicroOpBits::B32 : MicroOpBits::B64;
+                }
+                return partialDestination(useOps[1].opBits);
+
             case MicroInstrOpcode::OpUnaryReg:
                 return partialDestination(useOps[1].opBits);
 

@@ -632,6 +632,63 @@ namespace InstructionCombine
             return false;
         }
 
+        // An address and its unchanged base differ by the encoded displacement.
+        // Replacing only the subtraction also preserves other address users.
+        bool tryFoldAddressDifference(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Subtract || !ops[1].reg.isVirtualInt() ||
+                (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            for (uint32_t side = 0; side < 2; ++side)
+            {
+                auto          address = ctx.ssa->reachingDef(ops[side].reg, ref);
+                MicroInstrRef addressCopy;
+                if (address.valid() && !address.isPhi && address.inst && address.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = address.inst->ops(*ctx.operands);
+                    if (!copy || copy[2].opBits != bits || !copy[1].reg.isVirtualInt())
+                        continue;
+                    addressCopy = address.instRef;
+                    address     = ctx.ssa->reachingDef(copy[1].reg, addressCopy);
+                }
+                if (!address.valid() || address.isPhi || !address.inst || address.inst->op != MicroInstrOpcode::LoadAddrRegMem)
+                    continue;
+                const auto* lea = address.inst->ops(*ctx.operands);
+                if (!lea || lea[2].opBits != bits || !lea[1].reg.isVirtualInt() || lea[3].hasWideImmediateValue())
+                    continue;
+                MicroReg      other    = ops[1 - side].reg;
+                MicroInstrRef otherRef = ref;
+                MicroInstrRef otherCopy;
+                if (other != lea[1].reg)
+                {
+                    const auto value = ctx.ssa->reachingDef(other, ref);
+                    if (!value.valid() || value.isPhi || !value.inst || value.inst->op != MicroInstrOpcode::LoadRegReg)
+                        continue;
+                    const auto* copy = value.inst->ops(*ctx.operands);
+                    if (!copy || copy[2].opBits != bits)
+                        continue;
+                    other     = copy[1].reg;
+                    otherRef  = value.instRef;
+                    otherCopy = value.instRef;
+                }
+                if (other != lea[1].reg)
+                    continue;
+                const auto base = ctx.ssa->reachingDef(other, address.instRef);
+                if (!base.valid() || ctx.ssa->reachingDef(other, otherRef).valueId != base.valueId ||
+                    !ctx.claimAll({ref, address.instRef, addressCopy.isValid() ? addressCopy : ref, otherCopy.isValid() ? otherCopy : ref}))
+                    continue;
+                MicroInstrOperand result[3];
+                result[0].reg      = ops[0].reg;
+                result[1].opBits   = bits;
+                result[2].valueU64 = (side == 0 ? lea[3].valueU64 : 0ull - lea[3].valueU64) & getBitsMask(bits);
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegImm, result);
+                return true;
+            }
+            return false;
+        }
+
         // Repeated bitwise inputs absorb or cancel; addition and subtraction
         // cancel as (a + b) - a = b and (a - b) + b = a.
         // The inner value must belong to this expression alone. Keep the reads
@@ -967,7 +1024,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

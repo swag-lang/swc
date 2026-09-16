@@ -735,7 +735,8 @@ namespace PostRaPeephole
         const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);
         if (!copyOps || !copyOps[0].reg.isInt() || !copyOps[1].reg.isInt() || copyOps[0].reg == copyOps[1].reg)
             return false;
-        if (copyOps[2].opBits != MicroOpBits::B32 && copyOps[2].opBits != MicroOpBits::B64)
+        // A byte or word copy forwards too, to readers of no more than its bits.
+        if (copyOps[2].opBits == MicroOpBits::Zero || copyOps[2].opBits == MicroOpBits::B128)
             return false;
 
         // A 32-bit copy of a register whose upper half is already clear

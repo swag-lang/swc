@@ -180,7 +180,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         const auto view = ctx.storage->view();
         for (auto it = view.begin(); it != view.end(); ++it)
         {
-            if (it->op == MicroInstrOpcode::LoadRegReg && (ctx.relocated.empty() || !ctx.isRelocated(it.current)))
+            const bool widenable = it->op == MicroInstrOpcode::LoadRegReg || it->op == MicroInstrOpcode::LoadRegImm;
+            if (widenable && (ctx.relocated.empty() || !ctx.isRelocated(it.current)))
                 tryWidenCopyWithNarrowReaders(ctx, it.current, *it);
         }
     }

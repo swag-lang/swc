@@ -191,6 +191,37 @@ namespace PreRaPeephole
         return true;
     }
 
+    // Whether `consumer` reads `reg` only as a value no wider than `bits`. A
+    // partial integer copy leaves the destination's upper bits different from
+    // the source's - zero for a 32-bit move, untouched below that - so the
+    // source may replace it only where those bits are never looked at.
+    bool readsRegisterWithin(const MicroInstr& consumer, const MicroInstrOperand* ops, const MicroReg reg, const MicroOpBits bits)
+    {
+        if (!ops)
+            return false;
+        const auto fits = [bits](const MicroOpBits readBits) { return getNumBits(readBits) <= getNumBits(bits); };
+        switch (consumer.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+                return ops[0].reg != reg && fits(ops[2].opBits);
+            case MicroInstrOpcode::LoadMemReg:
+                return ops[0].reg != reg && fits(ops[2].opBits);
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+                return ops[0].reg != reg && fits(ops[3].opBits);
+            case MicroInstrOpcode::LoadCondRegReg:
+                return ops[0].reg != reg && fits(ops[3].opBits);
+            case MicroInstrOpcode::CmpRegReg:
+                return fits(ops[2].opBits);
+            case MicroInstrOpcode::CmpRegImm:
+                return fits(ops[1].opBits);
+            case MicroInstrOpcode::OpBinaryRegReg:
+                return ops[0].reg != reg && fits(ops[2].opBits);
+            default:
+                return false;
+        }
+    }
+
     bool tryForwardCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         if (copyInst.op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(copyRef))
@@ -214,6 +245,9 @@ namespace PreRaPeephole
 
         const MicroInstr* consumer = ctx.instruction(consumerRef);
         if (!consumer)
+            return false;
+        if (copyDst.isVirtualInt() && copyOps[2].opBits != MicroOpBits::B64 &&
+            !readsRegisterWithin(*consumer, ctx.operandsFor(consumerRef), copyDst, copyOps[2].opBits))
             return false;
 
         Action rewrite;

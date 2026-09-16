@@ -2044,15 +2044,16 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         }
 
         // A copy both sides of which took the same register is a no-op and
-        // goes, at every width: the existing scan transfers a copy's register
-        // to its destination without keeping the instruction, so no consumer
-        // relies on a 32-bit copy for its zero extension (the lowering spells
-        // that out with an extending move). A definition every read of which
-        // is remade is dead as well.
+        // goes, except a 32-bit integer one: `mov eax, eax` clears the upper
+        // half, and the combiner does rely on a 32-bit copy for that (it drops
+        // an explicit extension of such a copy, and a field read out of a
+        // spilled word is exactly such a copy). The combiner widens the 32-bit
+        // copies nothing reads above bit 31, so those still go here. A
+        // definition every read of which is remade is dead as well.
         if (it->op == MicroInstrOpcode::LoadRegReg)
         {
             const MicroInstrOperand* copyOps = it->ops(*operands_);
-            if (copyOps && copyOps[0].reg == copyOps[1].reg)
+            if (copyOps && copyOps[0].reg == copyOps[1].reg && !(copyOps[0].reg.isInt() && copyOps[2].opBits == MicroOpBits::B32))
                 queueErase(instructionRef);
         }
         for (const uint32_t denseIndex : defVirtualIndices_[idx])

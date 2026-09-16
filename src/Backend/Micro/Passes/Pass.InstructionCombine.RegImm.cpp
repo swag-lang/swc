@@ -356,7 +356,18 @@ namespace InstructionCombine
         // overflow guard still reads the flags of the now value-dead add.
         const bool flagsDeadAfter = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder);
 
-        if (isRightIdentity(op, opBits, imm) && flagsDeadAfter && ctx.ssa && !ctx.ssa->isRegUsedAfter(dst, ref))
+        // An identity operation leaves a byte, word or full register as it
+        // was; at 32 bits it also clears the upper half, which only matters
+        // when that half may be set.
+        const auto identityKeepsValue = [&] {
+            if (!ctx.ssa)
+                return false;
+            if (!ctx.ssa->isRegUsedAfter(dst, ref) || opBits != MicroOpBits::B32)
+                return true;
+            const MicroSsaState::ReachingDef input = ctx.ssa->reachingDef(dst, ref);
+            return input.valid() && isValueZeroExtended32(ctx, input.valueId);
+        };
+        if (isRightIdentity(op, opBits, imm) && flagsDeadAfter && identityKeepsValue())
         {
             if (!ctx.claimAll({ref}))
                 return false;

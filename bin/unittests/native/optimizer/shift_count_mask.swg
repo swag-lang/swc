@@ -1,4 +1,8 @@
 #global private
+#global #[Swag.Safety(.Overflow, false)]
+
+// Counts at or above the width are left to the shift instruction, which
+// masks them; the overflow safety would reject them first.
 
 #[Swag.NoInline]
 func left(a, b: u64)->u64 => a << (b & 63)

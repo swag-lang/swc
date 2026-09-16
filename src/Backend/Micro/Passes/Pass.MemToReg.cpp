@@ -255,6 +255,118 @@ namespace
         bool        isFloat;
     };
 
+    // The reads a field of a split word can serve: each has a register form
+    // that reads the field's width from the low bits of a register.
+    bool isFieldReadOp(MicroInstrOpcode op)
+    {
+        return op == MicroInstrOpcode::LoadRegMem ||
+               op == MicroInstrOpcode::LoadSignedExtRegMem ||
+               op == MicroInstrOpcode::LoadZeroExtRegMem ||
+               op == MicroInstrOpcode::OpBinaryRegMem ||
+               op == MicroInstrOpcode::CmpMemReg ||
+               op == MicroInstrOpcode::CmpMemImm;
+    }
+
+    // Turns one slot access into the register form of the same operation on
+    // `vreg`, at the width the access used.
+    void rewriteSlotAccess(MicroStorage& storage, MicroOperandStorage& operands, const SlotAccess& acc, const MicroReg vreg)
+    {
+        const MicroOpBits bits = acc.bits;
+
+        MicroInstr* inst = storage.ptr(acc.ref);
+        if (!inst)
+            return;
+        MicroInstrOperand* ops = inst->ops(operands);
+        if (!ops)
+            return;
+
+        if (inst->op == MicroInstrOpcode::LoadRegMem || inst->op == MicroInstrOpcode::LoadVecRegMem)
+        {
+            const MicroReg dst = ops[0].reg;
+            ops[0].reg         = dst;
+            ops[1].reg         = vreg;
+            ops[2].opBits      = bits;
+            inst->op           = MicroInstrOpcode::LoadRegReg;
+            inst->numOperands  = 3;
+        }
+        else if (inst->op == MicroInstrOpcode::LoadMemReg || inst->op == MicroInstrOpcode::StoreVecMemReg)
+        {
+            const MicroReg src = ops[1].reg;
+            ops[0].reg         = vreg;
+            ops[1].reg         = src;
+            ops[2].opBits      = bits;
+            inst->op           = MicroInstrOpcode::LoadRegReg;
+            inst->numOperands  = 3;
+        }
+        else if (inst->op == MicroInstrOpcode::LoadMemImm)
+        {
+            const MicroInstrOperand imm = ops[3];
+            ops[0].reg                  = vreg;
+            ops[1].opBits               = bits;
+            ops[2]                      = imm;
+            inst->op                    = MicroInstrOpcode::LoadRegImm;
+            inst->numOperands           = 3;
+        }
+        else if (inst->op == MicroInstrOpcode::LoadSignedExtRegMem ||
+                 inst->op == MicroInstrOpcode::LoadZeroExtRegMem)
+        {
+            // Widening load of the slot becomes a widening register move from
+            // the promoted (source-width) register. Destination width
+            // (ops[2]) and source width (ops[3]) are preserved; the memory
+            // base in ops[1] is replaced by the slot register and the offset
+            // operand (ops[4]) is dropped.
+            ops[1].reg        = vreg;
+            inst->op          = (inst->op == MicroInstrOpcode::LoadSignedExtRegMem)
+                                    ? MicroInstrOpcode::LoadSignedExtRegReg
+                                    : MicroInstrOpcode::LoadZeroExtRegReg;
+            inst->numOperands = 4;
+        }
+        // The memory-operand ALU and compare forms lose their memory
+        // operand and become the register form of the same operation. Only
+        // the base and, where the operand order shifts, the immediate move;
+        // the operation and its width are already the slot's.
+        else if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
+        {
+            ops[1].reg        = vreg;
+            inst->op          = MicroInstrOpcode::OpBinaryRegReg;
+            inst->numOperands = 4;
+        }
+        else if (inst->op == MicroInstrOpcode::OpBinaryMemReg)
+        {
+            ops[0].reg        = vreg;
+            inst->op          = MicroInstrOpcode::OpBinaryRegReg;
+            inst->numOperands = 4;
+        }
+        else if (inst->op == MicroInstrOpcode::OpBinaryMemImm)
+        {
+            const MicroInstrOperand imm = ops[4];
+            ops[0].reg                  = vreg;
+            ops[3]                      = imm;
+            inst->op                    = MicroInstrOpcode::OpBinaryRegImm;
+            inst->numOperands           = 4;
+        }
+        else if (inst->op == MicroInstrOpcode::OpUnaryMem)
+        {
+            ops[0].reg        = vreg;
+            inst->op          = MicroInstrOpcode::OpUnaryReg;
+            inst->numOperands = 3;
+        }
+        else if (inst->op == MicroInstrOpcode::CmpMemReg)
+        {
+            ops[0].reg        = vreg;
+            inst->op          = MicroInstrOpcode::CmpRegReg;
+            inst->numOperands = 3;
+        }
+        else if (inst->op == MicroInstrOpcode::CmpMemImm)
+        {
+            const MicroInstrOperand imm = ops[3];
+            ops[0].reg                  = vreg;
+            ops[2]                      = imm;
+            inst->op                    = MicroInstrOpcode::CmpRegImm;
+            inst->numOperands           = 3;
+        }
+    }
+
 }
 
 Result MicroMemToRegPass::run(MicroPassContext& context)
@@ -981,9 +1093,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         promotions.push_back({offset, bits, isFloat});
     }
 
-    if (promotions.empty())
-        return Result::Continue;
-
     SmallVector<Promotion> filtered;
     for (const Promotion& p : promotions)
     {
@@ -1006,7 +1115,106 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             filtered.push_back(p);
     }
     promotions = std::move(filtered);
-    if (promotions.empty())
+
+    // ---- A word-sized object written once and read field by field. ----
+    // A small aggregate passed by value arrives in one register and is spilled
+    // to its home at entry, then its fields are read at their own widths, so no
+    // single-width promotion applies. LLVM splits such an object into its fields
+    // (SROA) and reads each as a shift and a truncation of the incoming value.
+    // The same happens here: the store becomes a register copy, each field
+    // offset gets one shifted copy right after it, and every read takes its
+    // field from there. The store must sit on the entry straight line, so it
+    // dominates every read, and nothing else may write the word.
+    struct FieldSplit
+    {
+        uint64_t                offset   = 0;
+        MicroInstrRef           writeRef = MicroInstrRef::invalid();
+        SmallVector<SlotAccess> reads;
+    };
+    SmallVector<FieldSplit> splits;
+    {
+        std::unordered_map<uint32_t, uint32_t> position;
+        uint32_t                               entryEnd = std::numeric_limits<uint32_t>::max();
+        uint32_t                               index    = 0;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it, ++index)
+        {
+            position[it.current.get()] = index;
+            const MicroInstrDef& info  = MicroInstr::info(it->op);
+            if (entryEnd == std::numeric_limits<uint32_t>::max() &&
+                (it->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                 info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction)))
+                entryEnd = index;
+        }
+
+        for (const auto& [offset, slot] : slots)
+        {
+            if (stackPointerSlots.contains(offset))
+                continue;
+
+            const SlotAccess* write  = nullptr;
+            bool              usable = true;
+            for (const SlotAccess& acc : slot.accesses)
+            {
+                if (!acc.isWrite)
+                    continue;
+                usable = write == nullptr;
+                write  = &acc;
+            }
+            if (!usable || !write || write->bits != MicroOpBits::B64)
+                continue;
+            const MicroInstr* writeInst = storage.ptr(write->ref);
+            if (!writeInst || writeInst->op != MicroInstrOpcode::LoadMemReg || !writeInst->ops(operands)[1].reg.isAnyInt())
+                continue;
+            const uint32_t writePos = position[write->ref.get()];
+            const uint64_t end      = offset + 8;
+            if (writePos >= entryEnd || overlapsPoisonedVariable(offset, end) || (unknownSpaceEscaped && !insideKnownVariable(offset, end)))
+                continue;
+
+            FieldSplit split;
+            split.offset   = offset;
+            split.writeRef = write->ref;
+            bool narrow    = false;
+            for (const auto& [other, otherSlot] : slots)
+            {
+                if (otherSlot.maxAccessEnd <= offset || other >= end)
+                    continue;
+                if (other < offset || otherSlot.maxAccessEnd > end || (other != offset && otherSlot.hasWrite) || stackPointerSlots.contains(other))
+                {
+                    usable = false;
+                    break;
+                }
+                for (const SlotAccess& acc : otherSlot.accesses)
+                {
+                    if (acc.ref == write->ref)
+                        continue;
+                    const MicroInstr* read = storage.ptr(acc.ref);
+                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || position[acc.ref.get()] <= writePos)
+                    {
+                        usable = false;
+                        break;
+                    }
+                    const MicroReg valueReg = slotValueRegister(read->op, read->ops(operands));
+                    if (valueReg.isValid() && !valueReg.isAnyInt())
+                    {
+                        usable = false;
+                        break;
+                    }
+                    narrow |= other != offset || acc.bits != MicroOpBits::B64;
+                    split.reads.push_back(acc);
+                }
+                if (!usable)
+                    break;
+            }
+
+            // A word read whole is the plain promotion's; the shifted copies go
+            // right after the store, where the flags must be dead.
+            if (!usable || !narrow || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, write->ref, context.builder))
+                continue;
+            splits.push_back(std::move(split));
+        }
+    }
+
+    if (promotions.empty() && splits.empty())
         return Result::Continue;
 
     // Loop-carried slots (values live across a back-edge) are promoted too: the
@@ -1016,8 +1224,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // the back-edge instead of corrupting silently. See
     // MicroRegisterAllocationPass::preallocateLoopCarriedSlots and the
     // loop-carried store in flushAllMappedVirtuals.
-    if (promotions.empty())
-        return Result::Continue;
 
     // ---- Allocate a fresh virtual register per promoted offset (int or float). ----
     uint32_t nextVirtualIntRegIndex   = std::max<uint32_t>(1, context.builder->nextVirtualIntRegIndexHint());
@@ -1044,103 +1250,48 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                                         : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
 
         for (const SlotAccess& acc : slots[p.offset].accesses)
+            rewriteSlotAccess(storage, operands, acc, vreg);
+    }
+
+    // ---- Split the word-sized objects read field by field. ----
+    for (const FieldSplit& split : splits)
+    {
+        const MicroReg word = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+
+        // The store becomes the copy of the incoming word.
+        MicroInstr*        writeInst = storage.ptr(split.writeRef);
+        MicroInstrOperand* writeOps  = writeInst->ops(operands);
+        const MicroReg     source    = writeOps[1].reg;
+        writeOps[0].reg              = word;
+        writeOps[1].reg              = source;
+        writeOps[2].opBits           = MicroOpBits::B64;
+        writeInst->op                = MicroInstrOpcode::LoadRegReg;
+        writeInst->numOperands       = 3;
+
+        const MicroInstrRef                    afterWrite = storage.findNextInstructionRef(split.writeRef);
+        std::unordered_map<uint64_t, MicroReg> fields;
+        fields[0] = word;
+        for (const SlotAccess& acc : split.reads)
         {
-            // Each access keeps the width it read or wrote: they all agree except for the
-            // narrow read of a vector slot, whose register form is a move of that width.
-            const MicroOpBits bits = acc.bits;
-
-            MicroInstr* inst = storage.ptr(acc.ref);
-            if (!inst)
-                continue;
-            MicroInstrOperand* ops = inst->ops(operands);
-            if (!ops)
-                continue;
-
-            if (inst->op == MicroInstrOpcode::LoadRegMem || inst->op == MicroInstrOpcode::LoadVecRegMem)
+            const uint64_t shift = (acc.offset - split.offset) * 8;
+            auto           found = fields.find(shift);
+            if (found == fields.end())
             {
-                const MicroReg dst = ops[0].reg;
-                ops[0].reg         = dst;
-                ops[1].reg         = vreg;
-                ops[2].opBits      = bits;
-                inst->op           = MicroInstrOpcode::LoadRegReg;
-                inst->numOperands  = 3;
+                const MicroReg    field = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                MicroInstrOperand copyOps[3];
+                copyOps[0].reg    = field;
+                copyOps[1].reg    = word;
+                copyOps[2].opBits = MicroOpBits::B64;
+                storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::LoadRegReg, copyOps);
+                MicroInstrOperand shiftOps[4];
+                shiftOps[0].reg     = field;
+                shiftOps[1].opBits  = MicroOpBits::B64;
+                shiftOps[2].microOp = MicroOp::ShiftRight;
+                shiftOps[3].setImmediateValue(ApInt(shift, 64));
+                storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+                found = fields.emplace(shift, field).first;
             }
-            else if (inst->op == MicroInstrOpcode::LoadMemReg || inst->op == MicroInstrOpcode::StoreVecMemReg)
-            {
-                const MicroReg src = ops[1].reg;
-                ops[0].reg         = vreg;
-                ops[1].reg         = src;
-                ops[2].opBits      = bits;
-                inst->op           = MicroInstrOpcode::LoadRegReg;
-                inst->numOperands  = 3;
-            }
-            else if (inst->op == MicroInstrOpcode::LoadMemImm)
-            {
-                const MicroInstrOperand imm = ops[3];
-                ops[0].reg                  = vreg;
-                ops[1].opBits               = bits;
-                ops[2]                      = imm;
-                inst->op                    = MicroInstrOpcode::LoadRegImm;
-                inst->numOperands           = 3;
-            }
-            else if (inst->op == MicroInstrOpcode::LoadSignedExtRegMem ||
-                     inst->op == MicroInstrOpcode::LoadZeroExtRegMem)
-            {
-                // Widening load of the slot becomes a widening register move from
-                // the promoted (source-width) register. Destination width
-                // (ops[2]) and source width (ops[3]) are preserved; the memory
-                // base in ops[1] is replaced by the slot register and the offset
-                // operand (ops[4]) is dropped.
-                ops[1].reg        = vreg;
-                inst->op          = (inst->op == MicroInstrOpcode::LoadSignedExtRegMem)
-                                        ? MicroInstrOpcode::LoadSignedExtRegReg
-                                        : MicroInstrOpcode::LoadZeroExtRegReg;
-                inst->numOperands = 4;
-            }
-            // The memory-operand ALU and compare forms lose their memory
-            // operand and become the register form of the same operation. Only
-            // the base and, where the operand order shifts, the immediate move;
-            // the operation and its width are already the slot's.
-            else if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
-            {
-                ops[1].reg        = vreg;
-                inst->op          = MicroInstrOpcode::OpBinaryRegReg;
-                inst->numOperands = 4;
-            }
-            else if (inst->op == MicroInstrOpcode::OpBinaryMemReg)
-            {
-                ops[0].reg        = vreg;
-                inst->op          = MicroInstrOpcode::OpBinaryRegReg;
-                inst->numOperands = 4;
-            }
-            else if (inst->op == MicroInstrOpcode::OpBinaryMemImm)
-            {
-                const MicroInstrOperand imm = ops[4];
-                ops[0].reg                  = vreg;
-                ops[3]                      = imm;
-                inst->op                    = MicroInstrOpcode::OpBinaryRegImm;
-                inst->numOperands           = 4;
-            }
-            else if (inst->op == MicroInstrOpcode::OpUnaryMem)
-            {
-                ops[0].reg        = vreg;
-                inst->op          = MicroInstrOpcode::OpUnaryReg;
-                inst->numOperands = 3;
-            }
-            else if (inst->op == MicroInstrOpcode::CmpMemReg)
-            {
-                ops[0].reg        = vreg;
-                inst->op          = MicroInstrOpcode::CmpRegReg;
-                inst->numOperands = 3;
-            }
-            else if (inst->op == MicroInstrOpcode::CmpMemImm)
-            {
-                const MicroInstrOperand imm = ops[3];
-                ops[0].reg                  = vreg;
-                ops[2]                      = imm;
-                inst->op                    = MicroInstrOpcode::CmpRegImm;
-                inst->numOperands           = 3;
-            }
+            rewriteSlotAccess(storage, operands, acc, found->second);
         }
     }
 

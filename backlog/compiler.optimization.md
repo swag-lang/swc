@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-16 15:49 — Counted the rebuilds, attributed them, and bounded what removing them can buy.
+- Updated: 2026-09-16 17:02 — Tested two local-liveness replacements; neither resolved a compilation-time gain.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
   `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
@@ -41,13 +41,20 @@ block, and the hot path keeps the register.
   rewrite - an isolated virtual-integer `OpBinaryRegImm` folded into `LoadRegImm`, which keeps the
   instruction reference, the definition and the CFG and only drops a read - is still the clearest
   shape for a mutation contract, but it is not where the rebuilds are.
-- Next: make copy elimination answer its own liveness question from the redirects it just made,
-  and measure it. That is the one piece whose correctness argument is local to a single pass. Only
-  generalize to a declared mutation contract across passes if that measurement, on a quiet machine,
-  resolves against a floor of about 3%.
-- Complete when: copy elimination no longer rebuilds SSA inside itself, generated code is
-  unchanged, the SSA and native suites pass, and the measured gain is recorded - including a
-  recorded verdict of "below the floor" if that is what it is.
+- Experiment (2026-09-16): two local liveness replacements removed the internal rebuild: a
+  scan of reaching uses, then instruction-use counts adjusted for each redirected operand with
+  backward phi propagation. Both passed 825 C++ tests, including three new loop, dead-phi and
+  physical-source cases. The first also preserved all 16 final Micro functions in the Levenshtein
+  and ChaCha probes and passed the 29 optimizer-native cases. A broader native run found the
+  unchanged baseline failure now tracked in compiler.core.049.
+- Measurement: three alternating, six-worker Release gui rebuild pairs, pinned to six P cores,
+  gave baseline/candidate total process CPU of 232.938/233.938 seconds for the count variant.
+  Median wall time was 18.571/18.046 seconds, with individual runs spanning 16.114-21.722 seconds;
+  that spread does not establish a gain. Both implementations were discarded from the branch.
+- Next: revisit only with a cheaper representation or evidence that this cost has grown. Avoid
+  generalizing a mutation contract across passes on the strength of this below-floor result.
+- Complete when: a replacement preserves emitted code and focused SSA/native behavior and
+  resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 ### compiler.optimization.040 — Returning a fresh aggregate invokes its copy hook
 

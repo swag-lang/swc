@@ -120,6 +120,42 @@ namespace PostRaPeephole
         return false;
     }
 
+    // The next operation can read the original register directly. Leave the
+    // copy in place: its other readers and ABI obligations belong to post-RA
+    // dead-code elimination, which removes it only when they are all gone.
+    bool tryForwardCopySource(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);
+        if (!copyOps || !copyOps[0].reg.isInt() || !copyOps[1].reg.isInt() || copyOps[0].reg == copyOps[1].reg)
+            return false;
+        if (copyOps[2].opBits != MicroOpBits::B32 && copyOps[2].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroInstrRef nextRef = ctx.nextRef(copyRef);
+        const MicroInstr*   next    = ctx.instruction(nextRef);
+        if (!next || next->op != MicroInstrOpcode::OpBinaryRegReg || ctx.isClaimed(nextRef))
+            return false;
+        const MicroInstrOperand* ops = next->ops(*ctx.operands);
+        if (!ops || ops[1].reg != copyOps[0].reg || ops[2].opBits != copyOps[2].opBits || !ops[0].reg.isInt())
+            return false;
+
+        MicroInstrOperand rewritten[4];
+        std::ranges::copy(std::span{ops, 4}, rewritten);
+        rewritten[1].reg = copyOps[1].reg;
+        if (ctx.encoder)
+        {
+            MicroConformanceIssue issue;
+            if (ctx.encoder->queryConformanceIssue(issue, *next, rewritten))
+                return false;
+        }
+        if (!ctx.claimAll({copyRef, nextRef}))
+            return false;
+        ctx.emitRewrite(nextRef, next->op, rewritten);
+        return true;
+    }
+
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         // Liveness here is a linear forward scan, sound only on the pristine

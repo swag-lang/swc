@@ -11,16 +11,19 @@ private func pdfPluginProbe(content: Viewer.ProbeContent)->bool
 // Describes the PDF viewer to the host.
 func pdfViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "pdf"
-    result.staticName   = "PDF"
-    result.attach       = &registerPdfStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Pdf
-    result.create       = &createPdfViewer
-    result.probe        = &pdfPluginProbe
-    result.smokeFixture = "viewer.pdf"
-    result.addSelectors(".pdf")
+    with var result: retval
+    {
+        .key          = "pdf"
+        .staticName   = "PDF"
+        .attach       = &registerPdfStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Pdf
+        .create       = &createPdfViewer
+        .probe        = &pdfPluginProbe
+        .smokeFixture = "viewer.pdf"
+        .addSelectors(".pdf")
+    }
+
     return result
 }
 
@@ -189,10 +192,13 @@ private impl PdfViewer
     // whether the whole document has been searched.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, progress: *u64, result: *Array'Viewer.SearchMatch)->bool
     {
-        var pdfOptions: PdfTextSearchOptions
-        pdfOptions.comparison        = options.matchCase ? .Latin1 : .Latin1NoCase
-        pdfOptions.wholeWord         = options.wholeWord
-        pdfOptions.regularExpression = options.regularExpression
+        with var pdfOptions: PdfTextSearchOptions
+        {
+            .comparison        = options.matchCase ? .Latin1 : .Latin1NoCase
+            .wholeWord         = options.wholeWord
+            .regularExpression = options.regularExpression
+        }
+
         var matches: Array'PdfTextMatch
         let complete = .pdfView.collectTextMatches(text, pdfOptions, progress, &matches)
         for match in matches do

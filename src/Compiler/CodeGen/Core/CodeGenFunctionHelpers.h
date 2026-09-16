@@ -17,6 +17,7 @@ struct CodeGenNodePayload;
 
 namespace CodeGenFunctionHelpers
 {
+    Result emitMoveValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg sourceReg, AstNodeRef sourceRef);
     struct FunctionParameterInfo
     {
         uint32_t    slotIndex         = 0;

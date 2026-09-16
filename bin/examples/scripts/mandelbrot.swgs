@@ -75,9 +75,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         return true
 
     case PaintEvent as paintEvt:
-        let painter  = paintEvt.paintContext.painter
-        let renderer = paintEvt.paintContext.renderer
-        renderer.updateTexture(g_Texture, g_Image.pixels.storage())
+        let painter = paintEvt.paintContext.painter
+        paintEvt.paintContext.renderer.updateTexture(g_Texture, g_Image.pixels.storage())
         painter.drawTexture(0, 0, cast(f32) w, cast(f32) h, g_Texture)
         return true
     }

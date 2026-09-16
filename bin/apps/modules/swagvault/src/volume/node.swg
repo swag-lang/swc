@@ -92,16 +92,18 @@ impl Node
     // before it is used.
     func deserialize(reader: *ByteStream, blockCount: u64)->Node fail
     {
-        var result: retval
-        result.id             = try reader.readLittleEndian'u64()
-        result.parentId       = try reader.readLittleEndian'u64()
-        result.name           = try reader.readSizedString(MaximumNameSize)
-        result.attributes     = try reader.readLittleEndian'u32()
-        result.size           = try reader.readLittleEndian'u64()
-        result.creationTime   = try reader.readLittleEndian'u64()
-        result.lastAccessTime = try reader.readLittleEndian'u64()
-        result.lastWriteTime  = try reader.readLittleEndian'u64()
-        result.changeTime     = try reader.readLittleEndian'u64()
+        with var result: retval
+        {
+            .id             = try reader.readLittleEndian'u64()
+            .parentId       = try reader.readLittleEndian'u64()
+            .name           = try reader.readSizedString(MaximumNameSize)
+            .attributes     = try reader.readLittleEndian'u32()
+            .size           = try reader.readLittleEndian'u64()
+            .creationTime   = try reader.readLittleEndian'u64()
+            .lastAccessTime = try reader.readLittleEndian'u64()
+            .lastWriteTime  = try reader.readLittleEndian'u64()
+            .changeTime     = try reader.readLittleEndian'u64()
+        }
 
         let securitySize = try reader.readLittleEndian'u32()
         if securitySize > MaximumSecuritySize do

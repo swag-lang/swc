@@ -9,8 +9,8 @@ using Swag
 #[Swag.Optimize(true)]
 func roundRows(dst: [*] s16, src: const [*] s16, rows: u64)
 {
-    let twos  = cast(#simd [8] s16) Swag.vecsplat(2's16)
-    let mask  = cast(#simd [8] s16) [0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0]
+    let twos = cast(#simd [8] s16) Swag.vecsplat(2's16)
+    let mask = cast(#simd [8] s16) [0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0]
     for row in rows
     {
         let values = (cast(const [*] #simd [8] s16) (src + row * 8))[0]

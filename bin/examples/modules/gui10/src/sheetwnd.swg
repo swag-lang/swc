@@ -327,12 +327,15 @@ impl SheetWnd
 {
     func create(parent: *Wnd)->*SheetWnd
     {
-        let result = Wnd.create'SheetWnd(parent, {})
-        result.setFrameForm(.Square)
-        result.setFrameFlags(.Borders)
-        result.view      = result.createView'SheetView()
-        result.view.host = result
-        result.view.rebuild()
+        with let result = Wnd.create'SheetWnd(parent, {})
+        {
+            .setFrameForm(.Square)
+            .setFrameFlags(.Borders)
+            .view      = .createView'SheetView()
+            .view.host = result
+            .view.rebuild()
+        }
+
         return result
     }
 }

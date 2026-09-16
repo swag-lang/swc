@@ -187,10 +187,7 @@ private impl StackLayoutCtrl
         return .isHorizontal() ? wnd.layoutSpec.policyY : wnd.layoutSpec.policyX
     }
 
-    mtd mainWeight(wnd: *Wnd)->f32
-    {
-        return Math.max(.isHorizontal() ? wnd.layoutSpec.weightX : wnd.layoutSpec.weightY, 0)
-    }
+    mtd mainWeight(wnd: *Wnd)->f32 => Math.max(.isHorizontal() ? wnd.layoutSpec.weightX : wnd.layoutSpec.weightY, 0)
 
     mtd canShrinkMain(wnd: *Wnd)->bool
     {

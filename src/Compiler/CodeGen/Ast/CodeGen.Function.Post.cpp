@@ -548,6 +548,8 @@ namespace
     // call: its address is a borrowed referee, not a temp.
     bool returnSourceIsOwnedTemporary(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
+        if (exprPayload.ownsValue)
+            return true;
         if (exprRef.isInvalid() || !exprPayload.isAddress())
             return false;
         if (exprPayload.runtimeStorageOverridden && exprPayload.runtimeStorageSym == nullptr)
@@ -1351,6 +1353,7 @@ namespace
 
     Result emitFallibleDeferredActions(CodeGen& codeGen, const FallibleTarget& target)
     {
+        SWC_RESULT(codeGen.emitTemporaryDropsForFailure(target.scopeRef));
         if (target.kind == FallibleTarget::Kind::Handler)
             return codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef);
         return codeGen.emitDeferredActionsForReturn();

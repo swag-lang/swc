@@ -934,11 +934,14 @@ private impl MathParser
         else do
             return matrix
 
-        let delimited = .newNode(.Delimited)
-        delimited.text  = left
-        delimited.text2 = right
-        delimited.children.add(matrix)
-        delimited.atomClass = .Inner
+        with let delimited = .newNode(.Delimited)
+        {
+            .text  = left
+            .text2 = right
+            .children.add(matrix)
+            .atomClass = .Inner
+        }
+
         return delimited
     }
 

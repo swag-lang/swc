@@ -404,8 +404,7 @@ public impl IWnd for MenuCtrl
             {
                 if not .timer do
                     .timer = .surface!.app.addTimer(300'ms, me)
-                let timer = .timer
-                timer.restart()
+                .timer.restart()
             }
 
             .hotIdx = hit
@@ -814,8 +813,7 @@ impl MenuCtrl
     {
         if not .timer do
             return
-        let srf = .surface!
-        srf.app.removeTimer(.timer)
+        .surface!.app.removeTimer(.timer)
         .timer = null
     }
 
@@ -1259,10 +1257,7 @@ public impl MenuCtrl
 
     // Adds a command whose label, icon, and state come from its command identifier.
     #[Swag.Discardable]
-    mtd addItem(id: WndId)->*PopupMenuItem
-    {
-        return .addItem(null, id)
-    }
+    mtd addItem(id: WndId)->*PopupMenuItem => .addItem(null, id)
 
     // Adds commands whose labels, icons, and states come from their identifiers.
     mtd addItems(ids: const [..] WndId)
@@ -1313,10 +1308,7 @@ public impl MenuCtrl
 
     // Adds a submenu whose presentation comes from a command identifier.
     #[Swag.Discardable]
-    mtd addPopup(popup: *MenuCtrl, id: WndId)->*PopupMenuItem
-    {
-        return .addPopup(name: null, popup: popup, id: id)
-    }
+    mtd addPopup(popup: *MenuCtrl, id: WndId)->*PopupMenuItem => .addPopup(name: null, popup: popup, id: id)
 
     // Adds a command whose label is re-read on every layout.
     //
@@ -1393,10 +1385,7 @@ public impl MenuCtrl
 
     // Runs a popup menu modally and returns its selected command, or null when dismissed.
     // When `autoDestroy` is true, the menu destroys itself after the modal loop ends.
-    mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->WndId?
-    {
-        return .doModalImpl(surfacePos, pos, autoDestroy, null)
-    }
+    mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->WndId? => .doModalImpl(surfacePos, pos, autoDestroy, null)
 
     private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: *IconButton?)->WndId?
     {

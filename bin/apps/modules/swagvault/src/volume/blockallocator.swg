@@ -220,8 +220,5 @@ impl BlockAllocator
         .deferredFree.clear()
     }
 
-    mtd freeBlockCount()->u64
-    {
-        return .freeBlocksCount
-    }
+    mtd freeBlockCount()->u64 => .freeBlocksCount
 }

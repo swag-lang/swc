@@ -16,34 +16,40 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawTextCardSurface(painter, left, Color.fromArgb(255, 247, 249, 251))
     drawTextCardSurface(painter, right, Color.fromArgb(255, 244, 247, 252))
 
-    var story:    RichString = "<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <p1>justified</p> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable."
-    var storyFmt: RichStringFormat
-    storyFmt.flags         = .WordWrap | .Clip
-    storyFmt.horzAlignment = .Justify
-    storyFmt.lineGap       = 3
-    storyFmt.paragraphGap  = 5
-    storyFmt.minLineHeight = 17
-    storyFmt.maxLines      = 6
-    storyFmt.font.regular  = g_HelpFont
-    storyFmt.font.bold     = g_LabelFont
-    storyFmt.palette[0]    = Argb.DarkSlateGray
-    storyFmt.palette[1]    = Argb.Crimson
+    var story:         RichString = "<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <p1>justified</p> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable."
+    with var storyFmt: RichStringFormat
+    {
+        .flags         = .WordWrap | .Clip
+        .horzAlignment = .Justify
+        .lineGap       = 3
+        .paragraphGap  = 5
+        .minLineHeight = 17
+        .maxLines      = 6
+        .font.regular  = g_HelpFont
+        .font.bold     = g_LabelFont
+        .palette[0]    = Argb.DarkSlateGray
+        .palette[1]    = Argb.Crimson
+    }
+
     painter.drawRichString(insetRect(left, 16, 14, 16, 14), &story, storyFmt)
 
-    var labels:   RichString = "<u>Centered panel</u>\n<p1>palette run</p>\n<url><b>styled URL</b></url>\ntab\tstop"
-    var labelFmt: RichStringFormat
-    labelFmt.flags         = .WordWrap | .Clip
-    labelFmt.horzAlignment = .Center
-    labelFmt.vertAlignment = .Center
-    labelFmt.lineGap       = 3
-    labelFmt.font.regular  = g_HelpFont
-    labelFmt.font.bold     = g_LabelFont
-    labelFmt.palette[0]    = Argb.MidnightBlue
-    labelFmt.palette[1]    = Argb.SeaGreen
-    labelFmt.colorUrl      = Argb.DeepSkyBlue
-    labelFmt.colorHotUrl   = Argb.Crimson
-    labelFmt.tabSize       = 6
-    labelFmt.letterSpacing = 0.4
+    var labels:        RichString = "<u>Centered panel</u>\n<p1>palette run</p>\n<url><b>styled URL</b></url>\ntab\tstop"
+    with var labelFmt: RichStringFormat
+    {
+        .flags         = .WordWrap | .Clip
+        .horzAlignment = .Center
+        .vertAlignment = .Center
+        .lineGap       = 3
+        .font.regular  = g_HelpFont
+        .font.bold     = g_LabelFont
+        .palette[0]    = Argb.MidnightBlue
+        .palette[1]    = Argb.SeaGreen
+        .colorUrl      = Argb.DeepSkyBlue
+        .colorHotUrl   = Argb.Crimson
+        .tabSize       = 6
+        .letterSpacing = 0.4
+    }
+
     painter.drawRichString(insetRect(right, 12, 12, 12, 12), &labels, labelFmt)
 }
 

@@ -2,13 +2,16 @@ using Core, Gui, Pixel
 
 func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons)->*Label
 {
-    let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
-    label.backgroundStyle = .Window
-    label.setIcon(app.theme.icon(icon, 16))
-    label.setIconHorizontalAlignment(.Left)
-    label.setTextHorizontalAlignment(.Left)
-    label.setIconPadding({10, 0, 0, 0})
-    label.setTextPadding({34, 0, 10, 0})
+    with let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
+    {
+        .backgroundStyle = .Window
+        .setIcon(app.theme.icon(icon, 16))
+        .setIconHorizontalAlignment(.Left)
+        .setTextHorizontalAlignment(.Left)
+        .setIconPadding({10, 0, 0, 0})
+        .setTextPadding({34, 0, 10, 0})
+    }
+
     return label
 }
 

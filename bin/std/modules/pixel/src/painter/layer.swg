@@ -111,8 +111,7 @@ impl Layer
     mtd end()
     {
         Swag.assert(.active)
-        let painter = .painter!
-        painter.unbindRenderTarget()
+        .painter!.unbindRenderTarget()
         .active = false
     }
 
@@ -346,8 +345,7 @@ impl Layer
     mtd texture()->Texture
     {
         .resolve()
-        let contentTarget = .contentTarget!
-        return contentTarget.colorBuffer
+        return .contentTarget!.colorBuffer
     }
 
     // Returns the logical layer rectangle with origin `(0, 0)`.

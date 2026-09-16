@@ -825,6 +825,7 @@ namespace
         if (storageType.isArray() || storageType.isStruct())
             SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
 
+        bool ownsValue = false;
         for (const AggregateElementLayout& entry : layout)
         {
             CodeGenNodePayload elementPayload;
@@ -838,6 +839,16 @@ namespace
             const TypeRef  sourceTypeRef = elementPayload.effectiveTypeRef(entry.typeRef);
             emitAggregateElementStore(codeGen, dstElementReg, elementPayload, sourceTypeRef, entry.typeRef, static_cast<uint32_t>(elementSize));
 
+            if (elementPayload.ownsValue)
+            {
+                ownsValue = true;
+                if (codeGen.hasLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostMove))
+                    SWC_RESULT(codeGen.emitLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostMove, dstElementReg));
+                if (elementPayload.runtimeStorageSym)
+                    codeGen.cancelTemporaryDrop(*elementPayload.runtimeStorageSym);
+                continue;
+            }
+
             const AstNodeRef sourceRef = codeGen.viewZero(entry.valueRef).nodeRef();
             if (sourceRef.isValid() &&
                 codeGen.sema().isLValueStored(sourceRef) &&
@@ -848,7 +859,10 @@ namespace
         }
 
         SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, aggregateTypeRef, dstBaseReg));
-        codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);
+        codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef).ownsValue = ownsValue;
+        if (ownsValue && codeGen.runtimeStorageSymbol(nodeRef)->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) &&
+            codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop))
+            codeGen.registerTemporaryDrop(nodeRef, aggregateTypeRef, *codeGen.runtimeStorageSymbol(nodeRef));
         return Result::Continue;
     }
 

@@ -224,6 +224,10 @@ place and keep its identifier.
 2. Read [../write-swag-compiler-messages/SKILL.md](../write-swag-compiler-messages/SKILL.md) before changing any English text emitted to users.
 3. Inspect nearby code and tests before deciding where the change belongs.
 4. Preserve unrelated working-tree changes.
+5. Before finishing Swag changes, review the edited code for needless ceremony using
+   [write-idiomatic-swag-code](../write-idiomatic-swag-code/SKILL.md): direct receivers and returns,
+   optional calls, declaration-bound `with`, expression bodies, and flat modifier groups. Keep
+   names and scopes that carry meaning or preserve evaluation, ownership, or the tested syntax.
 
 ## Add Tests At The Correct Boundary
 

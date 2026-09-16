@@ -108,10 +108,7 @@ impl IForm for FormPolygon
         return boundOfPoints(&.points)
     }
 
-    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
-    {
-        return .gizmo.mouse(view, pos, evt)
-    }
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool => .gizmo.mouse(view, pos, evt)
 
     mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
@@ -130,10 +127,7 @@ impl IForm for FormPolygon
         return Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
     }
 
-    mtd impl hitTest(pt: Math.Point, z: f32)->bool
-    {
-        return BaseForm.drawHitTest(me, pt, z)
-    }
+    mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {

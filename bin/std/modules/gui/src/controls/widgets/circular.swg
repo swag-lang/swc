@@ -534,15 +534,9 @@ private impl Circular
         return result
     }
 
-    mtd firstThumbRect()->Math.Rectangle
-    {
-        return .thumbRectAt(.lowerRatio, .themeMetrics().circular_MarkerSize)
-    }
+    mtd firstThumbRect()->Math.Rectangle => .thumbRectAt(.lowerRatio, .themeMetrics().circular_MarkerSize)
 
-    mtd secondThumbRect()->Math.Rectangle
-    {
-        return .thumbRectAt(.upperRatio, .themeMetrics().circular_MarkerSize)
-    }
+    mtd secondThumbRect()->Math.Rectangle => .thumbRectAt(.upperRatio, .themeMetrics().circular_MarkerSize)
 
     mtd startChange()
     {

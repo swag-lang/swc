@@ -60,7 +60,7 @@ func manyChunks(value: string)->s32
 #test
 {
     var buffer: [32] u8
-    let names: [40] string = [
+    let names:  [40] string = [
         "group-00suffix-a", "group-00suffix-b", "group-01suffix-a", "group-01suffix-b",
         "group-02suffix-a", "group-02suffix-b", "group-03suffix-a", "group-03suffix-b",
         "group-04suffix-a", "group-04suffix-b", "group-05suffix-a", "group-05suffix-b",

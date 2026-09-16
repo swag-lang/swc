@@ -46,21 +46,27 @@ internal impl IImageEncoder for Encoder
 
         if userOptions.fileHeader
         {
-            var fileHeader: FileHeader
-            fileHeader.bfType    = 0x4D42
-            fileHeader.bfSize    = cast(u32) fileSize
-            fileHeader.bfOffBits = #sizeof(FileHeader) + #sizeof(Header)
+            with var fileHeader: FileHeader
+            {
+                .bfType    = 0x4D42
+                .bfSize    = cast(u32) fileSize
+                .bfOffBits = #sizeof(FileHeader) + #sizeof(Header)
+            }
+
             result.addStruct(fileHeader)
         }
 
-        var header: Header
-        header.biSize        = #sizeof(Header)
-        header.biWidth       = image.width
-        header.biHeight      = image.height
-        header.biPlanes      = 1
-        header.biBitCount    = image.bitsPerPixel
-        header.biCompression = BI_RGB
-        header.biSizeImage   = cast(u32) imageSize
+        with var header: Header
+        {
+            .biSize        = #sizeof(Header)
+            .biWidth       = image.width
+            .biHeight      = image.height
+            .biPlanes      = 1
+            .biBitCount    = image.bitsPerPixel
+            .biCompression = BI_RGB
+            .biSizeImage   = cast(u32) imageSize
+        }
+
         result.addStruct(header)
 
         if image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8

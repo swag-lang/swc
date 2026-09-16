@@ -130,25 +130,17 @@ struct ListCtrl
     checkModel:       SelModel                 // Checked stable row identities.
     nextLineIndex:    u32                      // Identity assigned to the next created row.
 
-    public
+    public readonly
     {
         // Where the keyboard and the mouse currently are in the list. The list moves them as it
         // handles events; move the focus with 'setFocusIndex'.
-
-        readonly
-        {
-            focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
-            hotIndex   = Swag.U32.Max     // Row under the mouse.
-        }
+        focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
+        hotIndex   = Swag.U32.Max     // Row under the mouse.
 
         // Where a drop hovering the list would land. The list never sets these itself: a window
         // showing a drag decides what it accepts, and says so with 'setDropMark'.
-
-        readonly
-        {
-            dropMarkIndex = Swag.U32.Max          // Row the mark is drawn against.
-            dropMark      = ListDropMark.None     // What the mark says about that row.
-        }
+        dropMarkIndex = Swag.U32.Max          // Row the mark is drawn against.
+        dropMark      = ListDropMark.None     // What the mark says about that row.
     }
 }
 

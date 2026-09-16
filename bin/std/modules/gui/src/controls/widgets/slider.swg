@@ -524,15 +524,9 @@ private impl Slider
         return result
     }
 
-    mtd firstThumbRect()->Math.Rectangle
-    {
-        return .thumbRectAt(.lowerRatio, .themeMetrics().slider_BoxSize)
-    }
+    mtd firstThumbRect()->Math.Rectangle => .thumbRectAt(.lowerRatio, .themeMetrics().slider_BoxSize)
 
-    mtd secondThumbRect()->Math.Rectangle
-    {
-        return .thumbRectAt(.upperRatio, .themeMetrics().slider_BoxSize)
-    }
+    mtd secondThumbRect()->Math.Rectangle => .thumbRectAt(.upperRatio, .themeMetrics().slider_BoxSize)
 
     mtd startChange()
     {

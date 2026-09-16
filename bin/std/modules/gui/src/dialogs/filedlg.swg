@@ -262,14 +262,8 @@ impl FileDlg
     }
 
     // Returns the first selected full path, or an empty string when no valid selection exists.
-    mtd selectedPath()->String
-    {
-        return .browser.selectedPath()
-    }
+    mtd selectedPath()->String => .browser.selectedPath()
 
     // Returns all selected full paths in display order.
-    mtd selectedPaths()->Array'String
-    {
-        return .browser.selectedPaths()
-    }
+    mtd selectedPaths()->Array'String => .browser.selectedPaths()
 }

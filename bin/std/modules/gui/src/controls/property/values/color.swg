@@ -125,10 +125,7 @@ internal impl IPropertyEditor for ColorEditor
         return type == Color
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
-    {
-        return list.constructColor(value, data, parent!)
-    }
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem => list.constructColor(value, data, parent!)
 }
 
 #init

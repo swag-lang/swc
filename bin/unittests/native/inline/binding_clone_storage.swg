@@ -9,7 +9,7 @@ func invokeWithValue(callback: func||(value: s32)->s32, value: s32)->s32 => call
 #[Swag.NoInline]
 func clonedLocals(seed: s32)->s32
 {
-    var total = 1000
+    var total  = 1000
     let result = invokeTwice(func|seed|()->s32
     {
         func double(value: s32)->s32 => value * 2

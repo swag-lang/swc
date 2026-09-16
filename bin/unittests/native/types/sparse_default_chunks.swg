@@ -2,12 +2,12 @@
 
 struct FourChunks
 {
-    head:    u64 = 0xFEDCBA9876543210
-    zerosA:  [1023] u64
-    middle:  u64 = 0x0102030405060708
-    zerosB:  [1023] u64
-    tail:    u64 = 0x8877665544332211
-    last:    u64 = 0x123456789ABCDEF0
+    head:   u64 = 0xFEDCBA9876543210
+    zerosA: [1023] u64
+    middle: u64 = 0x0102030405060708
+    zerosB: [1023] u64
+    tail:   u64 = 0x8877665544332211
+    last:   u64 = 0x123456789ABCDEF0
 }
 
 struct FiveChunks

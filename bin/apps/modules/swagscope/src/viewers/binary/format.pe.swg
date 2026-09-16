@@ -511,13 +511,15 @@ private func reportPeRichHeader(image: *BinaryImage, report: *BinaryReport, peOf
 
 private func reportPeFileHeader(image: *BinaryImage, report: *BinaryReport, at: u64)->PeFileHeaderInfo
 {
-    var result: retval
-    result.machine         = image.u16At(at)
-    result.sectionCount    = image.u16At(at + 2)
-    result.symbolTable     = cast(u64) image.u32At(at + 8)
-    result.symbolCount     = cast(u64) image.u32At(at + 12)
-    result.optionalSize    = cast(u64) image.u16At(at + 16)
-    result.characteristics = cast(u32) image.u16At(at + 18)
+    with var result: retval
+    {
+        .machine         = image.u16At(at)
+        .sectionCount    = image.u16At(at + 2)
+        .symbolTable     = cast(u64) image.u32At(at + 8)
+        .symbolCount     = cast(u64) image.u32At(at + 12)
+        .optionalSize    = cast(u64) image.u16At(at + 16)
+        .characteristics = cast(u32) image.u16At(at + 18)
+    }
 
     let s     = binStrings()
     let stamp = epochText(cast(u64) image.u32At(at + 4))
@@ -646,12 +648,14 @@ private func reportPeSections(image: *BinaryImage, report: *BinaryReport, at: u6
     {
         let entryAt = at + index * PeSectionHeaderSize
 
-        var section: PeSection
-        section.name        = image.fixedTextAt(entryAt, 8)
-        section.virtualSize = image.u32At(entryAt + 8)
-        section.virtualAddr = image.u32At(entryAt + 12)
-        section.rawSize     = image.u32At(entryAt + 16)
-        section.rawOffset   = image.u32At(entryAt + 20)
+        with var section: PeSection
+        {
+            .name        = image.fixedTextAt(entryAt, 8)
+            .virtualSize = image.u32At(entryAt + 8)
+            .virtualAddr = image.u32At(entryAt + 12)
+            .rawSize     = image.u32At(entryAt + 16)
+            .rawOffset   = image.u32At(entryAt + 20)
+        }
 
         let flags   = image.u32At(entryAt + 36)
         let names   = peSectionFlagsText(flags)

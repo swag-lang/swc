@@ -53,37 +53,22 @@ impl String
 {
     // Returns the number of elements.
     #[Inline]
-    mtd const opCount()->u64
-    {
-        return .length
-    }
+    mtd const opCount()->u64 => .length
 
     // Returns the underlying data address.
     #[Inline]
-    mtd const opData()->const [*] u8?
-    {
-        return .buffer
-    }
+    mtd const opData()->const [*] u8? => .buffer
 
     // Converts this value to another representation.
     // Converts this value to another representation.
     #[Implicit, Inline]
-    mtd const opCast()->cstring?
-    {
-        return .buffer
-    }
+    mtd const opCast()->cstring? => .buffer
 
     #[Implicit, Inline]
-    mtd const opCast()->string
-    {
-        return Swag.makeString(.buffer, .length)
-    }
+    mtd const opCast()->string => Swag.makeString(.buffer, .length)
 
     #[Implicit, Inline]
-    mtd const opCast()->const [..] u8
-    {
-        return Swag.makeSlice(.buffer, .length)
-    }
+    mtd const opCast()->const [..] u8 => Swag.makeSlice(.buffer, .length)
 
     // Returns the byte storage as a pointer the caller walks itself.
     //
@@ -144,10 +129,7 @@ impl String
     }
 
     // Compares this value with another value.
-    mtd const opCompare(other: string)->s32
-    {
-        return Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
-    }
+    mtd const opCompare(other: string)->s32 => Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
 
     // Applies an assignment operator to the byte at the requested index.
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: u8)
@@ -256,17 +238,11 @@ impl String
 
     // Returns a mutable borrowed view of the UTF-8 bytes.
     #[Inline]
-    mtd bytes()->[..] u8
-    {
-        return .toSlice()
-    }
+    mtd bytes()->[..] u8 => .toSlice()
 
     // Returns an immutable borrowed view of the UTF-8 bytes.
     #[Inline]
-    mtd const bytes()->const [..] u8
-    {
-        return .toSlice()
-    }
+    mtd const bytes()->const [..] u8 => .toSlice()
 
     // Returns a zero-allocation view that decodes Unicode scalar values lazily.
     #[Inline]
@@ -276,16 +252,10 @@ impl String
     }
 
     // Returns a zero-allocation view that traverses the UTF-8 bytes from last to first.
-    mtd reversed()->ReversedSlice'u8
-    {
-        return reverseSlice(.toSlice())
-    }
+    mtd reversed()->ReversedSlice'u8 => reverseSlice(.toSlice())
 
     // Returns an immutable zero-allocation view that traverses the UTF-8 bytes from last to first.
-    mtd const reversed()->ConstReversedSlice'u8
-    {
-        return reverseSlice(.toSlice())
-    }
+    mtd const reversed()->ConstReversedSlice'u8 => reverseSlice(.toSlice())
 
     // Default element iteration visits UTF-8 bytes in storage order.
     #[Macro]
@@ -696,10 +666,7 @@ impl String
     }
 
     // Convert string to a 32 bits character array
-    mtd const toRuneArray()->Array'rune
-    {
-        return Unicode.fromUtf8(Swag.makeSlice(.buffer, .length))
-    }
+    mtd const toRuneArray()->Array'rune => Unicode.fromUtf8(Swag.makeSlice(.buffer, .length))
 
     // Convert a literal string to a String
     func from(value: string?)->String
@@ -710,24 +677,15 @@ impl String
 
     // Returns a string type
     #[Inline]
-    mtd const toString()->string
-    {
-        return Swag.makeString(.buffer, .length)
-    }
+    mtd const toString()->string => Swag.makeString(.buffer, .length)
 
     // Returns a slice type
     #[Inline]
-    mtd toSlice()->[..] u8
-    {
-        return Swag.makeSlice(.buffer, .length)
-    }
+    mtd toSlice()->[..] u8 => Swag.makeSlice(.buffer, .length)
 
     // Returns a slice type
     #[Inline]
-    mtd const toSlice()->const [..] u8
-    {
-        return Swag.makeSlice(.buffer, .length)
-    }
+    mtd const toSlice()->const [..] u8 => Swag.makeSlice(.buffer, .length)
 
     // Convert the string inplace to upper case.
     mtd makeUpper(set = CharacterSet.Latin1)

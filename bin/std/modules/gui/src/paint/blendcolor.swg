@@ -117,8 +117,5 @@ impl BlendColor
     }
 
     // Returns the current interpolated color.
-    mtd cur()->Color
-    {
-        return Color.fromVector4(.curVec4)
-    }
+    mtd cur()->Color => Color.fromVector4(.curVec4)
 }

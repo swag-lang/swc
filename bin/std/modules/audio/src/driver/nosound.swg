@@ -39,10 +39,7 @@ impl NoSoundDriverNative
         .outputVolume = volume
     }
 
-    mtd outputVolumeNoSound()->f32
-    {
-        return .outputVolume
-    }
+    mtd outputVolumeNoSound()->f32 => .outputVolume
 }
 
 impl Voice

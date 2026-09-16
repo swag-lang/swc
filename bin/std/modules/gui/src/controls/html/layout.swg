@@ -180,10 +180,7 @@ impl HtmlLayout
         return result
     }
 
-    mtd const resolveLength(length: HtmlLength, styleIndex: u32, basis: f32, fallback = 0.0'f32)->f32
-    {
-        return length.resolve(.pool, .lengthContext(styleIndex, basis, true), fallback)
-    }
+    mtd const resolveLength(length: HtmlLength, styleIndex: u32, basis: f32, fallback = 0.0'f32)->f32 => length.resolve(.pool, .lengthContext(styleIndex, basis, true), fallback)
 }
 
 // Box tree construction.

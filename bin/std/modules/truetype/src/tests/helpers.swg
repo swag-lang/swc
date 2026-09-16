@@ -21,8 +21,7 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
 
 func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
 {
-    let bytes = expect File.readAllBytes(getTestDataPath(fileName))
-    return bytes
+    return expect File.readAllBytes(getTestDataPath(fileName))
 }
 
 // 'expect' needs a valid fallback, so it cannot produce a non-null slice directly. This hands

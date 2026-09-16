@@ -107,10 +107,13 @@ impl PdfParser
             {
                 if cast(u64) first > Swag.U32.Max do
                     fail UnsupportedFormatError{"PDF object number exceeds 32 bits"}
-                var reference: Node
-                reference.kind      = .Reference
-                reference.reference = cast(u32) first
-                reference.referenceGeneration = generation <= Swag.U16.Max ? cast(u16) generation : 0
+                with var reference: Node
+                {
+                    .kind      = .Reference
+                    .reference = cast(u32) first
+                    .referenceGeneration = generation <= Swag.U16.Max ? cast(u16) generation : 0
+                }
+
                 return .addNode(#move reference)
             }
 

@@ -3,6 +3,31 @@
 
 using Core, Pixel, Gui, Gui.Testing
 
+// Heading whitespace is normalized as Unicode, without consuming UTF-8 continuation bytes.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-outline-unicode-", ".md")
+    let title    = "Guide \u00E0 \u00C5ngstr\u00F6m \u0120 \u0145 \u4E20 \U0001F680"
+    discard expect File.writeAllBytes(fileName, Format.toString("# %\n", title))
+    defer discard catch File.delete(fileName)
+    var host: HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    var session = openTestViewer(markdownViewerPlugin(), &host.root, fileName)
+    let zoom    = cast #assume (*MarkdownZoomButton) session.info!.children[0]
+    let outline = zoom.outline!
+    outline.startMarkdown()
+    completeViewerBackgroundLoad(&host, &outline.load, outline.loadTimer)
+    Swag.assert(outline.rows.count == 1)
+    Swag.assert(outline.headings[0].title == title)
+    Swag.assert(outline.rows[0].items[0]!.name == title)
+
+    outline.add(" \t\r\n\u00A0\u2003First\t\r\n\u00A0\u2003second \t\u00A0", 2, 1)
+    Swag.assert(outline.rows[1].items[0]!.name == "First second")
+    outline.add(" \t\r\n\u00A0\u2003", 2, 2)
+    Swag.assert(outline.rows[2].items[0]!.name == "")
+}
+
 #test
 {
     let fileName = Testing.tempFilePath("scope-outline-", ".html")

@@ -68,8 +68,5 @@ impl ImageMetadata
     // Borrows the metadata value as a read-only slice.
     //
     // The slice remains valid until this record is mutated or released.
-    mtd const toSlice()->const [..] u8
-    {
-        return .value.toSlice()
-    }
+    mtd const toSlice()->const [..] u8 => .value.toSlice()
 }

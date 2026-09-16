@@ -175,10 +175,7 @@ impl Surface
     //
     // Pass it to [[Pixel.IRenderer.begin]] to draw into this surface with an own painter,
     // as a capture or an export pass does.
-    mtd const renderingContext()->Pixel.RenderContext
-    {
-        return .rc
-    }
+    mtd const renderingContext()->Pixel.RenderContext => .rc
 
     // Adds and removes runtime-changeable surface flags.
     //
@@ -283,10 +280,7 @@ impl Surface
     }
 
     // Returns the root user view displayed by the surface.
-    mtd const view()->*Wnd
-    {
-        return .wnd.view
-    }
+    mtd const view()->*Wnd => .wnd.view
 
     // Changes the icon displayed in the surface title bar.
     mtd setIcon(icon: Icon)

@@ -75,8 +75,7 @@ impl XAudio2DriverNative
         debug.traceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS
 
         // debug.breakMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS
-        let setDebugConfiguration = safeXAudio2.vtbl.setDebugConfiguration
-        setDebugConfiguration(safeXAudio2, &debug, null)
+        safeXAudio2.vtbl.setDebugConfiguration(safeXAudio2, &debug, null)
 
         let getChannelMask = safeMasteringVoice.vtbl.getChannelMask
         result = getChannelMask(safeMasteringVoice, &.speakerMask)
@@ -108,8 +107,7 @@ impl XAudio2DriverNative
         if .masteringVoice
         {
             let safeMasteringVoice = .masteringVoice
-            let destroyVoice       = safeMasteringVoice.vtbl.destroyVoice
-            destroyVoice(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice)
+            safeMasteringVoice.vtbl.destroyVoice(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice)
             .masteringVoice = null
         }
 
@@ -148,8 +146,7 @@ impl XAudio2DriverNative
             return 0
         var volume: f32
         let safeMasteringVoice = .masteringVoice
-        let getVolume = safeMasteringVoice.vtbl.getVolume
-        getVolume(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice, &volume)
+        safeMasteringVoice.vtbl.getVolume(cast(*IXAudio2Voice) cast(*void) safeMasteringVoice, &volume)
         return volume
     }
 }
@@ -263,10 +260,9 @@ impl Voice
     {
         if not .handle do
             return
-        let safeHandle   = .handle
-        let handle       = cast(*IXAudio2SourceVoice) safeHandle
-        let destroyVoice = handle.vtbl.destroyVoice
-        destroyVoice(cast(*IXAudio2Voice) cast(*void) handle)
+        let safeHandle = .handle
+        let handle     = cast(*IXAudio2SourceVoice) safeHandle
+        handle.vtbl.destroyVoice(cast(*IXAudio2Voice) cast(*void) handle)
         .handle = null
     }
 
@@ -367,8 +363,7 @@ internal impl Voice
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
         var volume: f32
-        let getVolume  = handle.vtbl.getVolume
-        getVolume(cast(*IXAudio2Voice) cast(*void) handle, &volume)
+        handle.vtbl.getVolume(cast(*IXAudio2Voice) cast(*void) handle, &volume)
         return volume
     }
 
@@ -475,10 +470,9 @@ impl Bus
     {
         if not .handle do
             return
-        let safeHandle   = .handle
-        let handle       = cast(*IXAudio2SubmixVoice) safeHandle
-        let destroyVoice = handle.vtbl.destroyVoice
-        destroyVoice(cast(*IXAudio2Voice) cast(*void) handle)
+        let safeHandle = .handle
+        let handle     = cast(*IXAudio2SubmixVoice) safeHandle
+        handle.vtbl.destroyVoice(cast(*IXAudio2Voice) cast(*void) handle)
         .handle = null
     }
 }
@@ -507,8 +501,7 @@ internal impl Bus
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SubmixVoice) safeHandle
         var volume: f32
-        let getVolume  = handle.vtbl.getVolume
-        getVolume(cast(*IXAudio2Voice) cast(*void) handle, &volume)
+        handle.vtbl.getVolume(cast(*IXAudio2Voice) cast(*void) handle, &volume)
         return volume
     }
 }

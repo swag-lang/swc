@@ -397,10 +397,7 @@ private impl RenderCpu
         return result
     }
 
-    func readPixel(image: *Image, x, y: s32)->Color
-    {
-        return image.pixelColor(x, y)
-    }
+    func readPixel(image: *Image, x, y: s32)->Color => image.pixelColor(x, y)
 
     // Reads one clamped BGRA8 pixel: the exact bytes [[readPixel]] returns for that format,
     // without the per-pixel format dispatch. The sampling helpers call this on every fetch of
@@ -522,10 +519,7 @@ private impl RenderCpu
         return result
     }
 
-    func setBlendLuminosity(color: Math.Vector3, luminosity: f32)->Math.Vector3
-    {
-        return clipBlendColor(color + luminosity - blendLuminosity(color))
-    }
+    func setBlendLuminosity(color: Math.Vector3, luminosity: f32)->Math.Vector3 => clipBlendColor(color + luminosity - blendLuminosity(color))
 
     func setBlendSaturation(color: Math.Vector3, saturation: f32)->Math.Vector3
     {
@@ -1065,10 +1059,7 @@ private impl RenderCpu
         return t * t * (3.0 - 2.0 * t)
     }
 
-    func median(a, b, c: f32)->f32
-    {
-        return Math.max(Math.min(a, b), Math.min(Math.max(a, b), c))
-    }
+    func median(a, b, c: f32)->f32 => Math.max(Math.min(a, b), Math.min(Math.max(a, b), c))
 
     mtd fontAtlas()->*GlyphAtlas?
     {

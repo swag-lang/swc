@@ -377,15 +377,18 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     if not bytesPerSample do
         fail InvalidFormatError{"invalid wav"}
 
-    var result: retval
-    result.path               = path
-    result.encoding           = format.encoding
-    result.sampleRate         = format.sampleRate
-    result.channelCount       = format.channels
-    result.bitsPerSample      = format.bitsPerSample
-    result.validBitsPerSample = format.validBits
-    result.waveSpeakerMask    = format.speakerMask
-    result.availableFields    = .Format | .SampleRate | .ChannelCount
+    with var result: retval
+    {
+        .path               = path
+        .encoding           = format.encoding
+        .sampleRate         = format.sampleRate
+        .channelCount       = format.channels
+        .bitsPerSample      = format.bitsPerSample
+        .validBitsPerSample = format.validBits
+        .waveSpeakerMask    = format.speakerMask
+        .availableFields    = .Format | .SampleRate | .ChannelCount
+    }
+
     if format.hasBitsField do
         result.availableFields |= .BitsPerSample
     if format.hasExtensible do

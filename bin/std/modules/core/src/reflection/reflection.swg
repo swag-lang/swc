@@ -51,10 +51,7 @@ using Swag
     func isPointerArithmetic(t: typeinfo?) => t and t.flags & .PointerArithmetic
 
     // Returns whether the type is an enum marked with #[Swag.EnumFlags].
-    func isFlagsEnum(t: typeinfo?)->bool
-    {
-        return isEnum(t) and hasAttribute(t, EnumFlags)
-    }
+    func isFlagsEnum(t: typeinfo?)->bool => isEnum(t) and hasAttribute(t, EnumFlags)
 
     // Returns whether simple native.
     func isSimpleNative(t: typeinfo?)->bool

@@ -130,17 +130,11 @@ impl Point
 
     // Returns true if this point is at the origin within an epsilon tolerance.
     // Uses 'eps' parameter to handle floating-point precision issues.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
-    {
-        return isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps)
-    }
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps)
 
     // Returns true if this point is equal to 'other' within an epsilon tolerance.
     // Compares each coordinate separately using the specified 'eps' tolerance.
-    mtd const isEqualEpsilon(other: Point, eps = ConstF32.Epsilon)->bool
-    {
-        return Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
-    }
+    mtd const isEqualEpsilon(other: Point, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
 
     // Offset both coordinates by the same scalar value.
     // Adds 'value' to both x and y coordinates of this point.

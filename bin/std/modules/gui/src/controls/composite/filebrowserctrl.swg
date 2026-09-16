@@ -610,11 +610,13 @@ impl FileBrowserCtrl
 
         // Bottom
         ////////////////////////
-        var formOptions: FormLayoutOptions
-        formOptions.labelPlacement = .Left
-        formOptions.labelWidth     = 95
-        formOptions.fieldHeight    = 30
-        formOptions.rowSpacing     = 5
+        with var formOptions: FormLayoutOptions
+        {
+            .labelPlacement = .Left
+            .labelWidth     = 95
+            .fieldHeight    = 30
+            .rowSpacing     = 5
+        }
 
         // No authored height: the rows and the spacing between them are what the band is worth,
         // and a number beside them is a number to re-tune the day a row changes.

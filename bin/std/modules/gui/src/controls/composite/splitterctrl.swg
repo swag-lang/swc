@@ -97,8 +97,7 @@ impl IWnd for SplitterCtrl
             {
                 let rect = .barRectAt(.hotIdx)
                 .moving = true
-                let srf = .surface!
-                srf.app.captureMouse(me)
+                .surface!.app.captureMouse(me)
                 if .isVertical() do
                     .correctMoving = local.y - rect.y
                 else do
@@ -109,8 +108,7 @@ impl IWnd for SplitterCtrl
             if .moving
             {
                 .moving = false
-                let srf = .surface!
-                srf.app.releaseMouse()
+                .surface!.app.releaseMouse()
             }
         }
 
@@ -539,8 +537,7 @@ impl SplitterCtrl
         pane.visible     = visible
         if pane.view != null do
             pane.view.show(visible)
-        if pane.label do
-            pane.label.show(visible)
+        pane.label?.show(visible)
 
         if visible
         {

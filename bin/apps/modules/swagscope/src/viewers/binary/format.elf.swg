@@ -310,14 +310,17 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
     {
         let entryAt = at + index * entrySize
 
-        var section: ElfSection
-        section.kind      = image.u32At(entryAt + 4)
-        section.flags     = image.scalarAt(entryAt + 8, wide)
-        section.address   = image.scalarAt(entryAt + 8 + wide, wide)
-        section.offset    = image.scalarAt(entryAt + 8 + wide * 2, wide)
-        section.size      = image.scalarAt(entryAt + 8 + wide * 3, wide)
-        section.link      = image.u32At(entryAt + 8 + wide * 4)
-        section.entrySize = image.scalarAt(entryAt + 16 + wide * 5, wide)
+        with var section: ElfSection
+        {
+            .kind      = image.u32At(entryAt + 4)
+            .flags     = image.scalarAt(entryAt + 8, wide)
+            .address   = image.scalarAt(entryAt + 8 + wide, wide)
+            .offset    = image.scalarAt(entryAt + 8 + wide * 2, wide)
+            .size      = image.scalarAt(entryAt + 8 + wide * 3, wide)
+            .link      = image.u32At(entryAt + 8 + wide * 4)
+            .entrySize = image.scalarAt(entryAt + 16 + wide * 5, wide)
+        }
+
         if stringsAt do
             section.name = image.cstringAt(stringsAt + cast(u64) image.u32At(entryAt), 128)
         result.add(#move section)

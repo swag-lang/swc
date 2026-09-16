@@ -50,12 +50,15 @@ public impl Outline
 {
     internal func borrowed(points: [*] Vector?, tags: [*] u8?, contours: [*] s16?, pointCount, contourCount: s16)->Outline
     {
-        var result: retval
-        result.points       = points
-        result.tags         = tags
-        result.contours     = contours
-        result.pointCount   = pointCount
-        result.contourCount = contourCount
+        with var result: retval
+        {
+            .points       = points
+            .tags         = tags
+            .contours     = contours
+            .pointCount   = pointCount
+            .contourCount = contourCount
+        }
+
         return result
     }
 

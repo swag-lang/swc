@@ -55,11 +55,13 @@ impl CurveWall
     // instead of leaving nine animations running behind a preference that asked for none.
     mtd startClock()
     {
-        var options: AnimationOptions
-        options.duration    = 1500'ms
-        options.easing      = .Linear
-        options.repeatCount = 0
-        options.autoReverse = true
+        with var options: AnimationOptions
+        {
+            .duration    = 1500'ms
+            .easing      = .Linear
+            .repeatCount = 0
+            .autoReverse = true
+        }
 
         discard .app().animator.animateF32(me,
                                            AnimationChannel.from("Gui11.Curves.Clock"),

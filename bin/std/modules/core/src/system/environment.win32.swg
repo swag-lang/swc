@@ -556,10 +556,7 @@ public impl Window
     //
     // Every successful call must be paired with [[Core.Env.Window.releaseWin32DeviceContext]]
     // on the same window.
-    mtd acquireWin32DeviceContext()->HDC
-    {
-        return GetDC(.win32Handle())
-    }
+    mtd acquireWin32DeviceContext()->HDC => GetDC(.win32Handle())
 
     // Releases a device context returned by [[Core.Env.Window.acquireWin32DeviceContext]].
     mtd releaseWin32DeviceContext(deviceContext: HDC)

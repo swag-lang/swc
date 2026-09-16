@@ -21,10 +21,7 @@ impl FormDraw
         .points.add({0, 48})
     }
 
-    mtd paintOutlineSize(cxt: FormPaintContext)->f32
-    {
-        return BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)
-    }
+    mtd paintOutlineSize(cxt: FormPaintContext)->f32 => BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)
 }
 
 impl IForm for FormDraw
@@ -113,10 +110,7 @@ impl IForm for FormDraw
         return boundOfPoints(&.points, .borderSize * 0.5 + .outlineSize)
     }
 
-    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
-    {
-        return false
-    }
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool => false
 
     mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
@@ -140,10 +134,7 @@ impl IForm for FormDraw
         return Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
     }
 
-    mtd impl hitTest(pt: Math.Point, z: f32)->bool
-    {
-        return BaseForm.drawHitTest(me, pt, z)
-    }
+    mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {

@@ -532,10 +532,7 @@ private impl Ac3Codec
             .imdct[bsi.nfchans].process(&.coefficients[bsi.nfchans, 0], false, &.pcm[bsi.nfchans, 0])
     }
 
-    mtd sourceChannel(destination: u32, bsi: const *Ac3Bsi)->u32
-    {
-        return dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
-    }
+    mtd sourceChannel(destination: u32, bsi: const *Ac3Bsi)->u32 => dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
 
     mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
     {

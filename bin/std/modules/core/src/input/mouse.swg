@@ -126,16 +126,10 @@ impl Mouse
     }
 
     // Returns the cursor position before the latest update.
-    mtd previousPosition()->Point
-    {
-        return .previousState.position
-    }
+    mtd previousPosition()->Point => .previousState.position
 
     // Returns the current cursor position.
-    mtd position()->Point
-    {
-        return .currentState.position
-    }
+    mtd position()->Point => .currentState.position
 
     // Returns the cursor movement since the previous update.
     mtd movement()->Point

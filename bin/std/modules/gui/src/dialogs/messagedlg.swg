@@ -75,8 +75,7 @@ public impl MessageDlg
     mtd doModal()->WndId
     {
         .adaptSizeToMessage()
-        let srf = .surface!
-        srf.center(.parentSurface!)
+        .surface!.center(.parentSurface!)
         return Dialog.doModal(me)
     }
 
@@ -153,12 +152,15 @@ public impl MessageDlg
         {
             if not .messageScroll
             {
-                let scroll = Wnd.create'ScrollWnd(.label.parent!)
-                scroll.dockStyle   = .Center
-                scroll.padding     = 0
-                scroll.focusPolicy = .Tab
-                scroll.updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
-                scroll.createView'Wnd()
+                with let scroll = Wnd.create'ScrollWnd(.label.parent!)
+                {
+                    .dockStyle   = .Center
+                    .padding     = 0
+                    .focusPolicy = .Tab
+                    .updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
+                    .createView'Wnd()
+                }
+
                 .label.setParent(scroll.view)
                 .label.dockStyle   = .Top
                 .messageScroll     = scroll

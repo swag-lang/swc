@@ -443,8 +443,7 @@ impl SurfaceWnd
 
     func onMinimize(btn: *Button)
     {
-        let srfn = btn.surface!
-        srfn.requestMinimize()
+        btn.surface!.requestMinimize()
     }
 
     func onMaximize(btn: *Button)
@@ -458,8 +457,7 @@ impl SurfaceWnd
 
     func onClose(btn: *Button)
     {
-        let srfn = btn.surface!
-        srfn.requestClose()
+        btn.surface!.requestClose()
     }
 
     private mtd applySurfaceFlags()

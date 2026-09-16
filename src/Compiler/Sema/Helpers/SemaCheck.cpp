@@ -550,14 +550,14 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
 
     const TypeRef unwrappedDestTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), destPayloadTypeRef);
     const TypeRef checkTypeRef         = unwrappedDestTypeRef.isValid() ? unwrappedDestTypeRef : destPayloadTypeRef;
-    if (!typeMgr.get(checkTypeRef).isStruct())
+    if (!typeMgr.get(checkTypeRef).isStruct() && !typeMgr.get(checkTypeRef).isArray())
         return Result::Continue;
 
     // Rvalue sources (call results, literals, constants) construct or move; a copy only
     // happens when reading an existing storage location, directly (lvalue) or through a
     // reference (including a '#move' parameter used without '#move').
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-    if (!srcType.isReference() && !sema.isLValueStored(srcRef))
+    if (!srcType.isReference() && !SemaHelpers::expressionBorrowsStorage(sema, srcRef))
         return Result::Continue;
 
     // The copy variant generated from a '#fwd' parameter is discarded by overload

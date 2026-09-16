@@ -128,8 +128,7 @@ internal impl Properties
         else do
             ed = EditBox.create(item.line, (cast(const *String) data!)[])
 
-        let edit: *EditBox = ed
-        with edit
+        with let edit: *EditBox = ed
         {
             if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
@@ -195,8 +194,7 @@ internal impl Properties
         else do
             ed = EditBox.create(item.line, (cast(const *string) data!)[])
 
-        let edit: *EditBox = ed
-        with edit
+        with let edit: *EditBox = ed
         {
             if me.kind != .Panel do
                 .maxSize.x = editWidth

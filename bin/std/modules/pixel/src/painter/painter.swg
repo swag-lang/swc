@@ -303,16 +303,13 @@ struct Painter
     // remain unset when the painter is used only to inspect recorded commands.
     private rendererItf: IRenderer?
 
-    public
-    {
-        // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
-        // drawing methods append to it.
+    // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
+    // drawing methods append to it.
 
-        readonly
-        {
-            commandBuffer: Array'Command          // Deferred renderer command stream.
-            vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
-        }
+    public readonly
+    {
+        commandBuffer: Array'Command          // Deferred renderer command stream.
+        vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
     }
 
     // Gradient stops referenced by command ranges. Keeping them beside the command stream

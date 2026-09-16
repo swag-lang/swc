@@ -134,8 +134,7 @@ impl IWnd for EditBox
         case .Lost:
             .sigCommitted.call(me)
             .sigFocusLost.call(me)
-            let srf = .surface!
-            srf.app.removeTimer(.timerCaret!)
+            .surface!.app.removeTimer(.timerCaret!)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -1234,10 +1233,7 @@ impl EditBox
     }
 
     // Returns the current text.
-    mtd const text()->string
-    {
-        return .textStorage.toString()
-    }
+    mtd const text()->string => .textStorage.toString()
 
     // Restores the text captured when focus was gained.
     mtd restoreOriginalText()

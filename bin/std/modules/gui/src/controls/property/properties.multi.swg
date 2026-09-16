@@ -21,10 +21,7 @@ const PropMixedText = "—"
 internal impl Properties
 {
     // Number of edited instances (always >= 1).
-    mtd instanceCount(item: *PropertiesItem)->u64
-    {
-        return Math.max(item.dataInstances.count, 1)
-    }
+    mtd instanceCount(item: *PropertiesItem)->u64 => Math.max(item.dataInstances.count, 1)
 
     // Field address in instance 'k'. Falls back to the single 'data' pointer.
     mtd instanceAddr(item: *PropertiesItem, k: u64)->*u8?

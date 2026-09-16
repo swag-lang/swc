@@ -611,10 +611,7 @@ private impl Eac3Codec
         }
     }
 
-    mtd sourceChannel(destination: u32, bsi: const *Eac3Bsi)->u32
-    {
-        return dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
-    }
+    mtd sourceChannel(destination: u32, bsi: const *Eac3Bsi)->u32 => dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
 
     mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
     {

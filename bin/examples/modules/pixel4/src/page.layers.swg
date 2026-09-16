@@ -48,13 +48,15 @@ func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitl
     painter.popTransform()
     layer.end()
 
-    var drawInfo: LayerDrawInfo
-    drawInfo.dstRect           = dstRect
-    drawInfo.interpolationMode = .Linear
-    drawInfo.shadow.enabled    = shadow
-    drawInfo.shadow.offsetX    = 12
-    drawInfo.shadow.offsetY    = 16
-    drawInfo.shadow.radius     = 8
+    with var drawInfo: LayerDrawInfo
+    {
+        .dstRect           = dstRect
+        .interpolationMode = .Linear
+        .shadow.enabled    = shadow
+        .shadow.offsetX    = 12
+        .shadow.offsetY    = 16
+        .shadow.radius     = 8
+    }
 
     painter.pushTransform()
     painter.rotateTransform(angle, dstRect.horzCenter(), dstRect.vertCenter())

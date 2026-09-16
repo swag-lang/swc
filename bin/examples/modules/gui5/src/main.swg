@@ -165,9 +165,7 @@ func setSelectedColor(color: Color, source: string)
 {
     g_Color = color
     updateHeader()
-    let pageView = g_PageView
-    if pageView do
-        pageView.invalidate()
+    g_PageView?.invalidate()
     app.invalidate()
 }
 
@@ -464,8 +462,7 @@ func clearPage()
     let pageView = g_PageView!
     for child in pageView.children
     {
-        let c = child
-        c.destroy()
+        child.destroy()
     }
 }
 
@@ -484,8 +481,7 @@ func buildPage()
     default: unreachable
     }
 
-    let pv = g_PageView!
-    pv.invalidate()
+    g_PageView!.invalidate()
 }
 
 func layoutRootView()

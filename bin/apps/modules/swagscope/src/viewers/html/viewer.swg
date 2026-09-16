@@ -14,17 +14,20 @@ private func htmlPluginProbe(content: Viewer.ProbeContent)->bool
 // Describes the HTML viewer to the host.
 func htmlViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "html"
-    result.staticName   = "HTML"
-    result.attach       = &registerHtmlStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Html
-    result.create       = &createHtmlViewer
-    result.probe        = &htmlPluginProbe
-    result.textual      = true
-    result.smokeFixture = "viewer.html"
-    result.addSelectors(".htm;.html;.shtml;.xht;.xhtml")
+    with var result: retval
+    {
+        .key          = "html"
+        .staticName   = "HTML"
+        .attach       = &registerHtmlStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Html
+        .create       = &createHtmlViewer
+        .probe        = &htmlPluginProbe
+        .textual      = true
+        .smokeFixture = "viewer.html"
+        .addSelectors(".htm;.html;.shtml;.xht;.xhtml")
+    }
+
     return result
 }
 

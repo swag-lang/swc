@@ -716,10 +716,7 @@ private impl IconButton
     //
     // The margin is a ceiling, not a promise: a cell too short to spare it keeps a rule
     // covering a third of the edge rather than none at all.
-    mtd railInset(length: f32)->f32
-    {
-        return Math.min(.themeMetrics().activeRail_Margin, length / 3)
-    }
+    mtd railInset(length: f32)->f32 => Math.min(.themeMetrics().activeRail_Margin, length / 3)
 
     // Y of the top edge of `size` placed on the content line, `centerY` being the middle of
     // the box it stands in.

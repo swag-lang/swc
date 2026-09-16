@@ -159,8 +159,5 @@ public impl DateTimeFormatInfo
     }
 
     // Formats a date and time separated by one space.
-    mtd const formatDateTime(value: Time.DateTime, longDate = false, withSeconds = true)->String
-    {
-        return Format.toString("% %", .formatDate(value, longDate), .formatTime(value, withSeconds))
-    }
+    mtd const formatDateTime(value: Time.DateTime, longDate = false, withSeconds = true)->String => Format.toString("% %", .formatDate(value, longDate), .formatTime(value, withSeconds))
 }

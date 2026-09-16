@@ -8,6 +8,11 @@ description: Write, review, and modernize idiomatic Swag source in `.swg` and `.
 Make every edited Swag fragment a concise, current example of the language. Fix an API that
 forces awkward callers instead of standardizing the workaround in tests and examples.
 
+Prefer the shortest clear expression of the operation. A local, a block, or a helper earns its
+place by naming meaning, preserving an evaluation or lifetime boundary, or grouping a coherent
+action. Do not add one merely to give the next statement something to refer to. Concision is
+about removing ceremony, not hiding ownership, failure, or effects.
+
 Use every Swag programming task as a probe of the whole platform. When clean Swag code is blocked
 or made needlessly awkward, investigate whether `bin/std`, the compiler, an optimization, or the
 language design should change. Fix the underlying issue when it belongs in the current task;
@@ -124,6 +129,10 @@ inside that scope.
   means that. `private readonly` is invalid because `private` already restricts writes to the type.
   Bare `readonly` is the only modifier that can be nested in a member access block: it adds the write
   restriction without restating visibility. `public readonly` inside a `public` block is rejected.
+- When an entire access block contains only a `readonly` block, combine their headers:
+  `public readonly { ... }`. Put any group comment above it. Keep a nested `readonly` group only
+  when the surrounding access block also contains writable members; never change field order or
+  effective access just to flatten the source.
 
 ```swag
 #global public
@@ -266,20 +275,48 @@ through it directly, and only a whole-value read or write opens the place with t
   `opIndexPtr`. Reach for `frontPtr`/`backPtr`/`peekPtr` when a borrowed element must outlive
   the expression, and the value forms (`front`, `back`, `peek`) otherwise.
 
-## Use `with` for Construction, Not for Shorthand
+## Remove Relay Locals
+
+- Call through a short receiver directly: `.parent!.invalidate()`, not
+  `let parent = .parent!` followed by `parent.invalidate()`. Likewise, return a direct result
+  instead of declaring `let result = operation()` only to return it on the next line.
+- A single use is a review cue, not proof that a local is redundant. Keep names that explain a
+  unit, condition, or algorithmic step; keep owners, snapshots, addresses, and intentional copies.
+  Preserve `retval`, contextual types, overload selection, evaluation order, and drop timing.
+- For one optional call, use `.surface?.invalidateRect(.paintExtent(.surfaceRect()))` instead of
+  copying `.surface` to a local and guarding the call with `if`. The receiver is evaluated once;
+  arguments and the rest of the chain run only when it is present. Keep `!` for a required value:
+  replacing an asserted receiver with `?.` would silently change the contract.
+- Keep a guard and a named binding when several operations share the non-null value or absence
+  needs its own behavior. Keep required side effects outside assertions, even if inlining an
+  action into the assertion would remove a temporary.
+
+## Bind Construction and Configuration with `with`
 
 `with` earns its braces when it turns a declaration and its configuration into one unit. Anywhere
-else it costs a reader more than it saves.
+else, judge whether naming the receiver once makes the operation easier to follow.
 
-- Open a `with` when populating one value is the block's whole purpose: a value introduced in the
-  header (`with let x = ...`, `with var x: T`, `with owner.field = ...`), or an output parameter
-  the function exists to fill. Use it from three consecutive member statements upward; below that,
-  plain assignments read better than braces.
-- Do not open a `with` on a receiver that merely appears often, and do not wrap a block that mixes
-  configuration with unrelated logic. A `with` that contains control flow over other values has
-  stopped being a construction block.
-- Never open a `with` inside a method whose body also uses `.` for `me`. Both spell a member
-  access the same way, and `with` outranks `me`, so the reader has no way to tell them apart.
+- Prefer `with let x = ...`, `with var x: T`, `with var result: retval`, or
+  `with owner.field = ...` when the next statements configure that value. Fold a declaration
+  immediately followed by `with x` into the header. End the block when configuration ends.
+- Choose by coherence and repetition, not a fixed statement count. Two meaningful settings can
+  belong together; one ordinary assignment usually reads better without a block. Prefer a small
+  aggregate literal when it states the complete value more clearly than incremental setup.
+- Move owning fields directly in that literal: `Block{kind, #move text}` or
+  `{header, #move previews}`. A conditional can mix a newly constructed value, a copyable
+  lvalue, and an explicit transfer: `flag ? String.from("rule") : #move block.text`.
+  Only the selected branch transfers; an unmarked lvalue still copies and must be copyable.
+  Do not introduce a temporary or a sequence of field assignments just to place `#move`.
+- Inside the block, `.` names its subject. A method can use `with` safely: spell accesses to the
+  enclosing receiver as `me.field` or `me.method()` inside it. Audit every existing leading dot
+  when introducing a block, including arguments, address expressions, and nested callbacks.
+  Do not change an outer receiver into the subject accidentally; enum shorthand remains contextual.
+- Keep the subject's name when passing the whole value or capturing it. Do not nest `with`
+  blocks or pull unrelated control flow inside merely to save repeated prefixes. Preserve the
+  lifetime of owning locals and the order of fallible or effectful configuration calls.
+- Keep conditional configuration in that same block when it still builds the subject, such as
+  attaching a new window only when `parent` exists. A branch is not by itself a reason to split
+  construction. Remove duplicate field writes only after checking intervening calls and reads.
 
 ```swag
 with let rail = Wnd.create'Wnd(view, {0, 0, 4})
@@ -375,6 +412,9 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 ## Finish the Pass
 
 1. Search again for the obsolete spelling or pattern across the entire repository.
+   For a broad cleanup, review relay locals, guarded one-call receivers, separate declaration /
+   `with` pairs, repeated configuration prefixes, trivial return bodies, and redundant modifier
+   nesting throughout `bin/`. Search identifies candidates; it does not authorize a blind rewrite.
 2. Compile early after representative migrations; do not assume a conversion or lifetime rule.
 3. Run the smallest sufficient validation selected by
    [validate-swag-changes](../validate-swag-changes/SKILL.md) for the final

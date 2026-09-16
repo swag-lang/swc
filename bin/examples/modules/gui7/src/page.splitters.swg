@@ -29,11 +29,13 @@ func createSplitterPage(parent: *Wnd)
     let workItem = rootSplit.addPane(work, 520)
     workItem.minimumSize = 320
 
-    let inspector     = createSplitterPane(rootSplit, "Inspector", "Right pane tries to preserve its width.")
-    let inspectorItem = rootSplit.addPane(inspector, 250)
-    inspectorItem.minimumSize  = 190
-    inspectorItem.maximumSize  = 340
-    inspectorItem.preserveSize = true
+    let inspector = createSplitterPane(rootSplit, "Inspector", "Right pane tries to preserve its width.")
+    with let inspectorItem = rootSplit.addPane(inspector, 250)
+    {
+        .minimumSize  = 190
+        .maximumSize  = 340
+        .preserveSize = true
+    }
 
     let vertical = SplitterCtrl.create(work, {}, vertical: true)
     vertical.dockStyle = .Center

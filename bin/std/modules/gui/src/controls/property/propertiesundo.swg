@@ -261,8 +261,7 @@ internal impl Properties
         // Item-agnostic notification: the restored command may span rows that no longer exist,
         // so the signal and the host notify are called without a row.
         .sigValueChanged.call(me, null)
-        if .hostNtfy do
-            .hostNtfy.itemHasChanged(me, null)
+        .hostNtfy?.itemHasChanged(me, null)
 
         .applyingUndo = false
         .invalidate()
@@ -295,16 +294,10 @@ impl Properties
     }
 
     // Returns whether this value can undo.
-    mtd canUndo()->bool
-    {
-        return .activeUndoMgr().canUndo()
-    }
+    mtd canUndo()->bool => .activeUndoMgr().canUndo()
 
     // Returns whether this value can redo.
-    mtd canRedo()->bool
-    {
-        return .activeUndoMgr().canRedo()
-    }
+    mtd canRedo()->bool => .activeUndoMgr().canRedo()
 
     // Reverts the latest recorded property edit when possible.
     mtd undo()

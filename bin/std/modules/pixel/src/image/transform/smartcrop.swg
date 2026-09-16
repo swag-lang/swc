@@ -408,20 +408,23 @@ impl Image
         let cy   = h * 0.5
         let d2Mx = cx * cx + cy * cy     // correct normalization
 
-        var ctx: retval
-        ctx.iiS     = &pack.iiS
-        ctx.iiT     = &pack.iiT
-        ctx.iiE     = &pack.iiE
-        ctx.w       = w
-        ctx.h       = h
-        ctx.imgArea = imgArea
-        ctx.thirdsW = opts.thirdsWeight
-        ctx.centerW = opts.centerWeight
-        ctx.shrinkW = shrinkW
-        ctx.edgePen = opts.edgePenalty
-        ctx.cx      = cx
-        ctx.cy      = cy
-        ctx.d2Max   = d2Mx
+        with var ctx: retval
+        {
+            .iiS     = &pack.iiS
+            .iiT     = &pack.iiT
+            .iiE     = &pack.iiE
+            .w       = w
+            .h       = h
+            .imgArea = imgArea
+            .thirdsW = opts.thirdsWeight
+            .centerW = opts.centerWeight
+            .shrinkW = shrinkW
+            .edgePen = opts.edgePenalty
+            .cx      = cx
+            .cy      = cy
+            .d2Max   = d2Mx
+        }
+
         return ctx
     }
 

@@ -43,10 +43,7 @@ impl FormLine
     }
 
     // The contour keeps this logical thickness at every zoom, like the contour of a text path.
-    mtd paintOutlineSize(cxt: FormPaintContext)->f32
-    {
-        return BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)
-    }
+    mtd paintOutlineSize(cxt: FormPaintContext)->f32 => BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)
 
     // The pen one paint of this line uses, contour included.
     //
@@ -117,10 +114,9 @@ impl IForm for FormLine
         .xb = cast(s32) (localPos.x / zoom)
         .yb = cast(s32) (localPos.y / zoom)
 
-        var xbu     = 0
-        var ybu     = 0
-        let capture = .capture!
-        capture.snap(&xbu, &ybu, true, true, 1, me)
+        var xbu = 0
+        var ybu = 0
+        .capture!.snap(&xbu, &ybu, true, true, 1, me)
         .xb += xbu
         .yb += ybu
 
@@ -197,10 +193,7 @@ impl IForm for FormLine
         return .cacheBv
     }
 
-    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
-    {
-        return .gizmo.mouse(view, pos, evt)
-    }
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool => .gizmo.mouse(view, pos, evt)
 
     mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
@@ -219,15 +212,9 @@ impl IForm for FormLine
         }
     }
 
-    mtd impl isInside(pt: Math.Point)->bool
-    {
-        return false
-    }
+    mtd impl isInside(pt: Math.Point)->bool => false
 
-    mtd impl hitTest(pt: Math.Point, z: f32)->bool
-    {
-        return BaseForm.drawHitTest(me, pt, z)
-    }
+    mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {

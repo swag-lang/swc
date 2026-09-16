@@ -4,6 +4,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -2089,6 +2090,24 @@ Result AstCastExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef
 
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
+    if (lowering && lowering->moveValue)
+    {
+        const TypeRef             typeRef   = codeGen.transparentPayloadTypeRef();
+        const CodeGenNodePayload& source    = codeGen.payload(nodeExprRef);
+        MicroReg                  sourceReg = source.reg;
+        if (source.isAddress())
+        {
+            sourceReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(sourceReg, source.reg, 0, MicroOpBits::B64);
+        }
+        const MicroReg dstReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        SWC_RESULT(CodeGenFunctionHelpers::emitMoveValue(codeGen, typeRef, dstReg, sourceReg, nodeExprRef));
+        codeGen.setPayloadAddressReg(codeGen.curNodeRef(), dstReg, typeRef).ownsValue = true;
+        if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
+            codeGen.registerTemporaryDrop(codeGen.curNodeRef(), typeRef, *lowering->runtimeStorageSym);
+        return Result::Continue;
+    }
     if (const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef()); lowering && (lowering->runtimeTypeCast || lowering->runtimeValueCast))
         return emitRuntimeTargetCast(codeGen, *this, *lowering);
     return emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef());

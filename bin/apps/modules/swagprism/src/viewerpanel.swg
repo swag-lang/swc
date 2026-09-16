@@ -39,18 +39,20 @@ impl ViewerPanel
 
     func create(parent: *Wnd, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel, cache: *Pipeline.CompilationCache)->*ViewerPanel
     {
-        let result = Wnd.create'ViewerPanel(parent, "prism.viewerPanel")
-        result.backgroundStyle        = .Panel
-        result.padding                = 8
-        result.sourceEditor           = sourceEditor
-        result.cache                  = cache
-        result.defaultLevel           = level
-        result.header                 = Wnd.create'Wnd(result, {0, 0, 0, 36})
-        result.header.dockStyle       = .Top
-        result.header.backgroundStyle = .Transparent
-        result.header.margin          = {0, 0, 0, 8}
-        result.kindCombo              = ComboBox.create(result.header, {}, "prism.viewer.kind")
-        result.kindCombo.dockStyle    = .Center
+        with let result = Wnd.create'ViewerPanel(parent, "prism.viewerPanel")
+        {
+            .backgroundStyle        = .Panel
+            .padding                = 8
+            .sourceEditor           = sourceEditor
+            .cache                  = cache
+            .defaultLevel           = level
+            .header                 = Wnd.create'Wnd(result, {0, 0, 0, 36})
+            .header.dockStyle       = .Top
+            .header.backgroundStyle = .Transparent
+            .header.margin          = {0, 0, 0, 8}
+            .kindCombo              = ComboBox.create(.header, {}, "prism.viewer.kind")
+            .kindCombo.dockStyle    = .Center
+        }
 
         // Header fields follow their short entries instead of the default form-field width.
         result.kindCombo.style.setStyleSheetMetrics("comboBox_Width 0")

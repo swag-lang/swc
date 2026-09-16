@@ -1,7 +1,7 @@
 #global private
 
 func(T, N: s32) arrayIdentity(values: [N] T)->[N] T => values
-func(T) matrixIdentity(values: [2, 4] T)->[2, 4] T => values
+func(T) matrixIdentity(values: [2, 4] T)->[2, 4] T  => values
 
 #test
 {

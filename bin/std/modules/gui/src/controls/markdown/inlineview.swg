@@ -373,15 +373,18 @@ impl InlineView
 
     mtd appendImage(alt, source: string, state: InlineState)
     {
-        var atom: InlineAtom
-        atom.text = alt
-        atom.text.replace("<<", "<")
-        atom.imageSource = source
-        atom.imageSource.replace("<<", "<")
-        atom.target     = atom.imageSource
-        atom.flags      = state.flags() | .Link
-        atom.colorIndex = state.colorIndex
-        atom.isImage    = true
+        with var atom: InlineAtom
+        {
+            .text = alt
+            .text.replace("<<", "<")
+            .imageSource = source
+            .imageSource.replace("<<", "<")
+            .target     = .imageSource
+            .flags      = state.flags() | .Link
+            .colorIndex = state.colorIndex
+            .isImage    = true
+        }
+
         .atoms.add(#move atom)
     }
 

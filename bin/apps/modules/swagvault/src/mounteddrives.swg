@@ -123,12 +123,15 @@ impl MountedDrives
         card.body.mode = .Top
         card.actions.bringToFront()
 
-        var result: retval
-        result.card          = card
-        result.list          = list
-        result.empty         = empty
-        result.unmountButton = unmount
-        result.refresh()
+        with var result: retval
+        {
+            .card          = card
+            .list          = list
+            .empty         = empty
+            .unmountButton = unmount
+            .refresh()
+        }
+
         return result
     }
 

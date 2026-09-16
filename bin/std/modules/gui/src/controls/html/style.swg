@@ -362,31 +362,34 @@ impl HtmlComputedStyle
     // Copies the properties a child receives without asking for them.
     func inherited(parent: HtmlComputedStyle)->HtmlComputedStyle
     {
-        var result: retval
-        result.color                   = parent.color
-        result.fontSize                = parent.fontSize
-        result.fontWeight              = parent.fontWeight
-        result.italic                  = parent.italic
-        result.fontFamily              = parent.fontFamily
-        result.lineHeight              = parent.lineHeight
-        result.letterSpacing           = parent.letterSpacing
-        result.wordSpacing             = parent.wordSpacing
-        result.textAlign               = parent.textAlign
-        result.textTransform           = parent.textTransform
-        result.textIndent              = parent.textIndent
-        result.whiteSpace              = parent.whiteSpace
-        result.overflowWrap            = parent.overflowWrap
-        result.wordBreak               = parent.wordBreak
-        result.listStyleType           = parent.listStyleType
-        result.listStyleInside         = parent.listStyleInside
-        result.visible                 = parent.visible
-        result.cursorPointer           = parent.cursorPointer
-        result.textDecoration          = parent.textDecoration
-        result.textDecorationColor     = parent.textDecorationColor
-        result.hasDecorationColor      = parent.hasDecorationColor
-        result.textDecorationStyle     = parent.textDecorationStyle
-        result.textDecorationThickness = parent.textDecorationThickness
-        result.textUnderlineOffset     = parent.textUnderlineOffset
+        with var result: retval
+        {
+            .color                   = parent.color
+            .fontSize                = parent.fontSize
+            .fontWeight              = parent.fontWeight
+            .italic                  = parent.italic
+            .fontFamily              = parent.fontFamily
+            .lineHeight              = parent.lineHeight
+            .letterSpacing           = parent.letterSpacing
+            .wordSpacing             = parent.wordSpacing
+            .textAlign               = parent.textAlign
+            .textTransform           = parent.textTransform
+            .textIndent              = parent.textIndent
+            .whiteSpace              = parent.whiteSpace
+            .overflowWrap            = parent.overflowWrap
+            .wordBreak               = parent.wordBreak
+            .listStyleType           = parent.listStyleType
+            .listStyleInside         = parent.listStyleInside
+            .visible                 = parent.visible
+            .cursorPointer           = parent.cursorPointer
+            .textDecoration          = parent.textDecoration
+            .textDecorationColor     = parent.textDecorationColor
+            .hasDecorationColor      = parent.hasDecorationColor
+            .textDecorationStyle     = parent.textDecorationStyle
+            .textDecorationThickness = parent.textDecorationThickness
+            .textUnderlineOffset     = parent.textUnderlineOffset
+        }
+
         return result
     }
 

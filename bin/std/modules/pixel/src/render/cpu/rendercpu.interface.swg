@@ -43,10 +43,7 @@ impl IRenderer for RenderCpu
         .clearImpl()
     }
 
-    mtd impl targetSize()->{ width, height: s32 }
-    {
-        return .targetSizeImpl()
-    }
+    mtd impl targetSize()->{ width, height: s32 } => .targetSizeImpl()
 
     mtd impl setScissorRect(rect: Math.Rectangle)
     {
@@ -68,35 +65,23 @@ impl IRenderer for RenderCpu
         .bindRenderTargetImpl(target)
     }
 
-    mtd impl readRenderTarget(target: const *RenderTarget, x, y, width, height: s32)->Image
-    {
-        return .readRenderTargetImpl(target, x, y, width, height)
-    }
+    mtd impl readRenderTarget(target: const *RenderTarget, x, y, width, height: s32)->Image => .readRenderTargetImpl(target, x, y, width, height)
 
-    mtd impl unbindRenderTargetToImage(x, y, width, height: s32)->Image
-    {
-        return .unbindRenderTargetToImageImpl(x, y, width, height)
-    }
+    mtd impl unbindRenderTargetToImage(x, y, width, height: s32)->Image => .unbindRenderTargetToImageImpl(x, y, width, height)
 
     mtd impl unbindRenderTarget()
     {
         .unbindRenderTargetImpl()
     }
 
-    mtd impl createRenderTarget(width, height: s32)->RenderTarget
-    {
-        return .createRenderTargetImpl(width, height)
-    }
+    mtd impl createRenderTarget(width, height: s32)->RenderTarget => .createRenderTargetImpl(width, height)
 
     mtd impl deleteRenderTarget(target: *RenderTarget)
     {
         .deleteRenderTargetImpl(target)
     }
 
-    mtd impl addImage(view: const *YuvPlanarView)->Texture
-    {
-        return .addImageImpl(view)
-    }
+    mtd impl addImage(view: const *YuvPlanarView)->Texture => .addImageImpl(view)
 
     mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView)
     {
@@ -108,20 +93,14 @@ impl IRenderer for RenderCpu
         return try .addImageImpl(fullName)
     }
 
-    mtd impl addImage(image: Image)->Texture
-    {
-        return .addImageImpl(&image)
-    }
+    mtd impl addImage(image: Image)->Texture => .addImageImpl(&image)
 
     mtd impl updateTexture(texture: Texture, pixels: const *u8)
     {
         .updateTextureImpl(texture, pixels)
     }
 
-    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
-    {
-        return .readTexturePixelsImpl(texture, pixelFormat)
-    }
+    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8 => .readTexturePixelsImpl(texture, pixelFormat)
 
     mtd impl removeTexture(texture: *Texture)
     {
@@ -158,10 +137,7 @@ impl IRenderer for RenderCpu
         .resetTransformImpl()
     }
 
-    mtd impl acquireRenderTarget(width, height: s32)->*RenderTarget
-    {
-        return .acquireRenderTargetImpl(width, height)
-    }
+    mtd impl acquireRenderTarget(width, height: s32)->*RenderTarget => .acquireRenderTargetImpl(width, height)
 
     mtd impl releaseRenderTarget(target: *RenderTarget?)
     {

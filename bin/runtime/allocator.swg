@@ -419,8 +419,7 @@ impl Allocator
         {
             setCurrentAllocatorThreadHeap(null)
             let oldAllocator = cast(*Allocator?) heap.allocator
-            if oldAllocator do
-                oldAllocator.retireThreadHeap(heap)
+            oldAllocator?.retireThreadHeap(heap)
         }
 
         let newHeap = .allocateThreadHeap()
@@ -672,20 +671,11 @@ impl Allocator
     // Header path
     // ###################################################################################
 
-    mtd headerOf(address: u64)->*AllocatorHeader
-    {
-        return cast(*AllocatorHeader) (address - #sizeof(AllocatorHeader))
-    }
+    mtd headerOf(address: u64)->*AllocatorHeader => cast(*AllocatorHeader) (address - #sizeof(AllocatorHeader))
 
-    mtd userAddress(header: *AllocatorHeader)->[*] u8
-    {
-        return cast([*] u8) header + #sizeof(AllocatorHeader)
-    }
+    mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8) header + #sizeof(AllocatorHeader)
 
-    mtd footer(header: *AllocatorHeader)->*AllocatorFooter
-    {
-        return cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
-    }
+    mtd footer(header: *AllocatorHeader)->*AllocatorFooter => cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
 
     // An electric block has no footer: only alignment slack separates its payload from the guard.
     mtd footerMagic(header: *AllocatorHeader)->u32
@@ -1563,8 +1553,7 @@ func releaseAllocatorThreadCache()
     setCurrentAllocatorThreadHeap(null)
 
     let alloc = cast(*Allocator?) heap.allocator
-    if alloc do
-        alloc.retireThreadHeap(heap)
+    alloc?.retireThreadHeap(heap)
 }
 
 func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->*Allocator

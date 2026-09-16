@@ -35,8 +35,7 @@ impl WrapLayoutCtrl
     // Creates an empty wrapping layout.
     func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl
     {
-        let res = Wnd.create'WrapLayoutCtrl(parent, position)
-        return res
+        return Wnd.create'WrapLayoutCtrl(parent, position)
     }
 
     // Recomputes the flow of all visible children.

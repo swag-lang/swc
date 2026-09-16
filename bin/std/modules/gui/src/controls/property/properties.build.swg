@@ -16,10 +16,7 @@ internal impl Properties
     // The string an attribute declares, as the reader sees it: an attribute value is a
     // compile-time constant, so the installed resolver is what can turn it into a
     // translation. See Properties.setTextResolver.
-    func attributeText(value: any?)->string
-    {
-        return resolveText(attributeString(value))
-    }
+    func attributeText(value: any?)->string => resolveText(attributeString(value))
 
     // Display name of a field: its Properties.Name attribute, or its beautified raw name.
     //
@@ -240,8 +237,7 @@ internal impl Properties
             // A plain (non-registered) struct expands inline into one row per field. Custom
             // struct editors (Color, the vector family, ...) are handled by the editor registry
             // at the top of this method and never reach here.
-            let pItem = parentItem!
-            pItem.flags.add(.NoSeparator | .NoFocus)
+            parentItem!.flags.add(.NoSeparator | .NoFocus)
             let item = .addItem(value, data, parentItem)
             let numItemsBefore = .items.count
             .addStructInternal(typeSubStruct, data, item)
@@ -367,8 +363,7 @@ internal impl Properties
             let added = cast(u32) (.items.count - numItemsBefore)
             for &c in categPath
             {
-                let categItem = c.item!
-                categItem.numChilds += added
+                c.item!.numChilds += added
             }
         }
     }

@@ -197,17 +197,11 @@ impl Vector4
 
     // Returns true if this vector is zero within an epsilon tolerance.
     // Uses 'eps' parameter to handle floating-point precision issues.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
-    {
-        return Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps) and Math.isZeroEpsilon(.z, eps) and Math.isZeroEpsilon(.w, eps)
-    }
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps) and Math.isZeroEpsilon(.z, eps) and Math.isZeroEpsilon(.w, eps)
 
     // Returns true if this vector is equal to 'other' within an epsilon tolerance.
     // Compares each component separately using the specified 'eps' tolerance.
-    mtd const isEqualEpsilon(other: Vector4, eps = ConstF32.Epsilon)->bool
-    {
-        return Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps) and Math.isEqualEpsilon(.z, other.z, eps) and Math.isEqualEpsilon(.w, other.w, eps)
-    }
+    mtd const isEqualEpsilon(other: Vector4, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps) and Math.isEqualEpsilon(.z, other.z, eps) and Math.isEqualEpsilon(.w, other.w, eps)
 
     // Returns the Euclidean distance between this vector and 'dest'.
     // Calculated as the length of the difference vector between the two positions.
@@ -361,17 +355,11 @@ impl Vector4
 
     // Returns the cosine of the angle between this vector and 'other'.
     // Calculated using the dot product formula: dot(a,b) / (|a| * |b|).
-    mtd const angleCosineTo(other: Vector4)->f32
-    {
-        return .dot(other) / (.length() * other.length())
-    }
+    mtd const angleCosineTo(other: Vector4)->f32 => .dot(other) / (.length() * other.length())
 
     // Returns the angle between this vector and 'other' in radians.
     // The result is in the range [0, π] using the arc cosine of the normalized dot product.
-    mtd const angleTo(other: Vector4)->f32
-    {
-        return Math.acos(.angleCosineTo(other))
-    }
+    mtd const angleTo(other: Vector4)->f32 => Math.acos(.angleCosineTo(other))
 
     // Perform linear interpolation between two vectors.
     // Interpolates each component separately using the given 'factor' (0.0 to 1.0).
@@ -471,17 +459,11 @@ impl Vector4
 
     // Returns true if all components are finite (not infinite or NaN).
     // Useful for validating vector values after calculations.
-    mtd const isFinite()->bool
-    {
-        return Math.isFinite(.x) and Math.isFinite(.y) and Math.isFinite(.z) and Math.isFinite(.w)
-    }
+    mtd const isFinite()->bool => Math.isFinite(.x) and Math.isFinite(.y) and Math.isFinite(.z) and Math.isFinite(.w)
 
     // Returns true if any component is NaN (Not a Number).
     // Useful for detecting invalid vector values after calculations.
-    mtd const isNaN()->bool
-    {
-        return Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) or Math.isNaN(.w)
-    }
+    mtd const isNaN()->bool => Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) or Math.isNaN(.w)
 
     // Move this vector towards 'target' by a maximum distance of 'maxDistance'.
     // If the distance to 'target' is less than 'maxDistance', moves directly to target.

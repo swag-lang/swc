@@ -34,16 +34,10 @@ public impl ByteStream
     }
 
     // Returns the unread bytes from the current position to the end.
-    mtd remainingBytes()->const [..] u8
-    {
-        return Swag.makeSlice(.data() + .seek, .length() - .seek)
-    }
+    mtd remainingBytes()->const [..] u8 => Swag.makeSlice(.data() + .seek, .length() - .seek)
 
     // Returns the unread bytes as a borrowed string.
-    mtd remainingString()->string
-    {
-        return Swag.makeString(.data() + .seek, .length() - .seek)
-    }
+    mtd remainingString()->string => Swag.makeString(.data() + .seek, .length() - .seek)
 
     // Returns the total length of the buffer (read or write)
     mtd const length()->u64
@@ -60,10 +54,7 @@ public impl ByteStream
     }
 
     // Returns true if the end of the buffer was reached during reading
-    mtd const isEof()->bool
-    {
-        return .eof
-    }
+    mtd const isEof()->bool => .eof
 
     // Writes a native value of type 'T' to the stream
     mtd(T) writeNative(val: T)

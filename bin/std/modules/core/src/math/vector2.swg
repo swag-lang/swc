@@ -188,17 +188,11 @@ impl Vector2
 
     // Returns true if this vector is zero within an epsilon tolerance.
     // Uses 'eps' parameter to handle floating-point precision issues.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
-    {
-        return Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps)
-    }
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps)
 
     // Returns true if this vector is equal to 'other' within an epsilon tolerance.
     // Compares each component separately using the specified 'eps' tolerance.
-    mtd const isEqualEpsilon(other: Vector2, eps = ConstF32.Epsilon)->bool
-    {
-        return Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
-    }
+    mtd const isEqualEpsilon(other: Vector2, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
 
     // Returns the Euclidean distance between this vector and 'dest'.
     // Calculated as the length of the difference vector between the two positions.
@@ -342,17 +336,11 @@ impl Vector2
 
     // Returns the cosine of the angle between this vector and 'other'.
     // Calculated using the dot product formula: dot(a,b) / (|a| * |b|).
-    mtd const angleCosineTo(other: Vector2)->f32
-    {
-        return .dot(other) / (.length() * other.length())
-    }
+    mtd const angleCosineTo(other: Vector2)->f32 => .dot(other) / (.length() * other.length())
 
     // Returns the angle between this vector and 'other' in radians.
     // The result is in the range [0, π] using the arc cosine of the normalized dot product.
-    mtd const angleTo(other: Vector2)->f32
-    {
-        return Math.acos(.angleCosineTo(other))
-    }
+    mtd const angleTo(other: Vector2)->f32 => Math.acos(.angleCosineTo(other))
 
     // Returns the angle between this vector and 'other' in the range [0, 2π].
     // Uses the cross product to determine the sign and adjust the angle accordingly.
@@ -471,17 +459,11 @@ impl Vector2
 
     // Returns true if all components are finite (not infinite or NaN).
     // Useful for validating vector values after calculations.
-    mtd const isFinite()->bool
-    {
-        return Math.isFinite(.x) and Math.isFinite(.y)
-    }
+    mtd const isFinite()->bool => Math.isFinite(.x) and Math.isFinite(.y)
 
     // Returns true if any component is NaN (Not a Number).
     // Useful for detecting invalid vector values after calculations.
-    mtd const isNaN()->bool
-    {
-        return Math.isNaN(.x) or Math.isNaN(.y)
-    }
+    mtd const isNaN()->bool => Math.isNaN(.x) or Math.isNaN(.y)
 
     // Move this vector towards 'target' by a maximum distance of 'maxDistance'.
     // If the distance to 'target' is less than 'maxDistance', moves directly to target.
@@ -533,10 +515,7 @@ impl Vector2
 
     // Returns the angle of this vector in radians.
     // The angle is measured from the positive X-axis, counter-clockwise.
-    mtd const toAngle()->f32
-    {
-        return Math.atan2(.y, .x)
-    }
+    mtd const toAngle()->f32 => Math.atan2(.y, .x)
 
     // Rotate this vector to face the specified 'angle' in radians.
     // Preserves the vector's magnitude while changing its direction.

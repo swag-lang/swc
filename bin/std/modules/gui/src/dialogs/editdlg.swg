@@ -110,8 +110,7 @@ public impl EditDlg
         }
 
         .fitContent()
-        let surface = .surface!
-        surface.center(.parentSurface!)
+        .surface!.center(.parentSurface!)
     }
 
     // Fits the shared dialog layers around the editor and its optional explanation.
@@ -155,8 +154,7 @@ public impl EditDlg
             edit.setText(text)
         else
         {
-            let richEdit = .richEdit!
-            richEdit.setText(text)
+            .richEdit!.setText(text)
         }
     }
 

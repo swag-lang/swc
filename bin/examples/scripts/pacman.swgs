@@ -1013,8 +1013,7 @@ impl Pacman
             let chomp = g_VoiceChomp
             if not chomp or not chomp.isPlaying()
             {
-                if chomp do
-                    chomp.destroy()
+                chomp?.destroy()
                 g_VoiceChomp = expect Audio.Voice.play(&g_SoundChomp)
             }
 

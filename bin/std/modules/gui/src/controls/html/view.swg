@@ -1332,14 +1332,16 @@ internal impl HtmlView
 
     func createBase(contentParent: *Wnd, documentStyle: HtmlStyle)->*HtmlView
     {
-        let result = Wnd.create'HtmlView(contentParent, "gui.html")
-        result.backgroundStyle = .View
-        result.focusPolicy     = .Tab
-        result.wndFlags        |= .NoFocusRing
-        result.documentStyle   = documentStyle
-        result.nextRefresh     = HtmlFirstRefreshSize
-        result.document        = HtmlDocument.create()
-        result.parser.start(&result.document)
+        with let result = Wnd.create'HtmlView(contentParent, "gui.html")
+        {
+            .backgroundStyle = .View
+            .focusPolicy     = .Tab
+            .wndFlags        |= .NoFocusRing
+            .documentStyle   = documentStyle
+            .nextRefresh     = HtmlFirstRefreshSize
+            .document        = HtmlDocument.create()
+            .parser.start(&.document)
+        }
 
         result.scroll = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center

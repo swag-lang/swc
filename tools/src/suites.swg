@@ -1014,6 +1014,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         if not Directory.exists(stagedOutput.toString()) do
             try Directory.create(stagedOutput.toString())
     }
+
     let stagedArtifact = Path.combine(stagedOutput.toString(), "consumer_exe.exe.123.1.swctmp")
     try File.writeAllBytes(stagedArtifact.toString(), cast(const [..] u8) "incomplete competing publication")
     defer discard catch File.delete(stagedArtifact.toString())
@@ -1059,6 +1060,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Removing a competing publication's temporary file invalidated the workspace executable.")
         return 1
     }
+
     for dependency in ["core", "win32", "xinput"] where moduleReportCount(warmBuildOutput.toString(), dependency) != 0
     {
         Console.println("Reusable workspace dependency added noise to the build report: ", dependency)

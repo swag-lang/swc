@@ -1054,8 +1054,7 @@ private impl View
                     cell.view.layoutWidth = 0
             }
 
-            if block.html do
-                block.html.setDocumentStyle(htmlStyle(.documentStyle))
+            block.html?.setDocumentStyle(htmlStyle(.documentStyle))
         }
 
         .layoutDocument(preservePosition: true)
@@ -1095,12 +1094,14 @@ impl View
     #[Swag.Discardable]
     func create(contentParent: *Wnd, documentStyle: Style = {})->*View
     {
-        let result = Wnd.create'View(contentParent, "gui.markdown")
-        result.backgroundStyle = .View
-        result.focusPolicy     = .Tab
-        result.wndFlags        |= .NoFocusRing
-        result.documentStyle   = documentStyle
-        result.contentHeight   = documentStyle.topInset
+        with let result = Wnd.create'View(contentParent, "gui.markdown")
+        {
+            .backgroundStyle = .View
+            .focusPolicy     = .Tab
+            .wndFlags        |= .NoFocusRing
+            .documentStyle   = documentStyle
+            .contentHeight   = documentStyle.topInset
+        }
 
         result.scroll = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
@@ -1436,12 +1437,9 @@ impl View
 
         for &block in .blocks
         {
-            if block.inline do
-                block.inline.clearSearchHighlight()
-            if block.table do
-                block.table.clearSearchHighlight()
-            if block.html do
-                block.html.clearSearchHighlight()
+            block.inline?.clearSearchHighlight()
+            block.table?.clearSearchHighlight()
+            block.html?.clearSearchHighlight()
         }
 
         let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
@@ -1480,12 +1478,9 @@ impl View
 
         for &block in .blocks
         {
-            if block.inline do
-                block.inline.clearSearchHighlight()
-            if block.table do
-                block.table.clearSearchHighlight()
-            if block.html do
-                block.html.clearSearchHighlight()
+            block.inline?.clearSearchHighlight()
+            block.table?.clearSearchHighlight()
+            block.html?.clearSearchHighlight()
         }
 
         var remaining = occurrence
@@ -1522,10 +1517,7 @@ impl View
 
     // Repositions the streamed document at a byte offset and reveals `text` as soon as its block
     // is materialized, without parsing the preceding bytes.
-    mtd revealFileOffset(offset: u64, text: string)->bool
-    {
-        return .beginReveal(offset, text)
-    }
+    mtd revealFileOffset(offset: u64, text: string)->bool => .beginReveal(offset, text)
 
     // Brings the heading at a source byte offset to the top reading inset without a search mark.
     //
@@ -1738,12 +1730,9 @@ impl View
         .searchBlockIndex        = Swag.U64.Max
         for &block in .blocks
         {
-            if block.inline do
-                block.inline.clearSearchHighlight()
-            if block.table do
-                block.table.clearSearchHighlight()
-            if block.html do
-                block.html.clearSearchHighlight()
+            block.inline?.clearSearchHighlight()
+            block.table?.clearSearchHighlight()
+            block.html?.clearSearchHighlight()
         }
     }
 

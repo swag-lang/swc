@@ -70,15 +70,18 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
     {
         let dibBytes = dibSizeOf(image)
 
-        var entry: IconDirEntry
-        entry.width       = cast(u8) (image.width == 256 ? 0 : image.width)
-        entry.height      = cast(u8) (image.height == 256 ? 0 : image.height)
-        entry.colorCount  = 0
-        entry.reserved    = 0
-        entry.planes      = 1
-        entry.bitCount    = 32
-        entry.bytesInRes  = cast(u32) dibBytes
-        entry.imageOffset = offset
+        with var entry: IconDirEntry
+        {
+            .width       = cast(u8) (image.width == 256 ? 0 : image.width)
+            .height      = cast(u8) (image.height == 256 ? 0 : image.height)
+            .colorCount  = 0
+            .reserved    = 0
+            .planes      = 1
+            .bitCount    = 32
+            .bytesInRes  = cast(u32) dibBytes
+            .imageOffset = offset
+        }
+
         result.addStruct(entry)
 
         offset += cast(u32) dibBytes

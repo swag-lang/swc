@@ -22,12 +22,15 @@ var g_FileState: FileDlgState
 
 func onAbout(_b: *Button)
 {
-    var params: AboutDlgParams
-    params.surfaceTitle = "About GUI9"
-    params.contentTitle = "Swag GUI dialogs"
-    params.message      = "One shared composition for every predefined dialog: an inset body, a quiet action bar, and palette-owned color."
-    params.surfaceIcon  = app.theme.icon(.About, 18)
-    params.contentIcon  = app.theme.icon(.About, 64)
+    with var params: AboutDlgParams
+    {
+        .surfaceTitle = "About GUI9"
+        .contentTitle = "Swag GUI dialogs"
+        .message      = "One shared composition for every predefined dialog: an inset body, a quiet action bar, and palette-owned color."
+        .surfaceIcon  = app.theme.icon(.About, 18)
+        .contentIcon  = app.theme.icon(.About, 64)
+    }
+
     discard AboutDlg.create(g_Surface!, params).doModal()
 }
 
@@ -220,8 +223,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
     surface.setTitle("GUI9 dialogs showcase")
 
     createRootView()
-    let view = g_View!
-    view.hookOnEvent = &onRootEvent
+    g_View!.hookOnEvent = &onRootEvent
 
     // In automated test mode we just exercise the composite/build and exit;
     // the modal dialogs require interaction so they are not auto-opened.

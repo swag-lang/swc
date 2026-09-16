@@ -18,16 +18,19 @@ private func fontPluginProbe(content: Viewer.ProbeContent)->bool
 // Describes the font viewer to the host.
 func fontViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "font"
-    result.staticName   = "Font"
-    result.attach       = &registerFontStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Font
-    result.create       = &createFontViewer
-    result.probe        = &fontPluginProbe
-    result.smokeFixture = "segoeui.ttf"
-    result.addSelectors(".ttf;.ttc")
+    with var result: retval
+    {
+        .key          = "font"
+        .staticName   = "Font"
+        .attach       = &registerFontStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Font
+        .create       = &createFontViewer
+        .probe        = &fontPluginProbe
+        .smokeFixture = "segoeui.ttf"
+        .addSelectors(".ttf;.ttc")
+    }
+
     return result
 }
 
@@ -46,8 +49,7 @@ impl FontViewerContent
 {
     mtd opDrop()
     {
-        if .face do
-            .face.destroy()
+        .face?.destroy()
     }
 }
 

@@ -493,8 +493,7 @@ private impl Application
 
             if it is InvalidateEvent
             {
-                let target = evt.target!
-                target.invalidate()
+                evt.target!.invalidate()
             }
             else do
                 .sendEvent(it)
@@ -815,8 +814,7 @@ private impl Application
         if mustRestore and restoreSurface do
             discard restoreSurface.restoreFocus()
 
-        if surface do
-            surface.destroy()
+        surface?.destroy()
 
         let result = .endModalExit orelse ""
         .endModal     = false
@@ -1344,10 +1342,7 @@ impl Application
     }
 
     // Returns the window currently holding mouse capture.
-    mtd const mouseCapture()->*Wnd?
-    {
-        return .mouseCaptureWnd
-    }
+    mtd const mouseCapture()->*Wnd? => .mouseCaptureWnd
 
     // Sets the captured window without asking the platform for a real capture.
     //

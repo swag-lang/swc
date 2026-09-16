@@ -711,9 +711,8 @@ impl HeadlessHost
     {
         Swag.assert(wnd != null)
 
-        var pt  = wnd.surfaceRect().center()
-        let srf = wnd.surface!
-        srf.surfaceToScreen(&pt)
+        var pt = wnd.surfaceRect().center()
+        wnd.surface!.surfaceToScreen(&pt)
         .click(pt, button, modifiers)
     }
 
@@ -847,8 +846,7 @@ impl HeadlessHost
             let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
-            let srf = menu.surface!
-            srf.surfaceToScreen(&pt)
+            menu.surface!.surfaceToScreen(&pt)
             .click(pt)
             return true
         }
@@ -874,8 +872,7 @@ impl HeadlessHost
             let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
-            let srf = menu.surface!
-            srf.surfaceToScreen(&pt)
+            menu.surface!.surfaceToScreen(&pt)
             .moveMouse(pt)
             return true
         }
@@ -911,8 +908,7 @@ impl HeadlessHost
 
         let rect = menu.surfaceRect()
         var pt   = Math.Point{rect.right() + 4, rect.bottom() + 4}
-        let srf  = menu.surface!
-        srf.surfaceToScreen(&pt)
+        menu.surface!.surfaceToScreen(&pt)
         .click(pt)
         return true
     }
@@ -1136,9 +1132,7 @@ impl HeadlessHost
             let evt = cast #assume (*Event) it
             if it is InvalidateEvent
             {
-                let target = evt.target
-                if target do
-                    target.invalidate()
+                evt.target?.invalidate()
             }
             else do
                 .app.sendEvent(it)

@@ -527,7 +527,7 @@ namespace
         const bool                   isRelocate        = modifierFlags.has(AstModifierFlagsE::Relocate);
         const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::FirstInit) || isRelocate;
         const SymbolVariable*        sourceStorage     = codeGen.runtimeStorageSymbol(rightRef);
-        const bool                   movesTemporary    = sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage);
+        const bool                   movesTemporary    = originalRightPayload.ownsValue || (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage));
         const CodeGen::LifecycleKind postKind          = isMove || movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
         const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
@@ -554,7 +554,7 @@ namespace
             SWC_RESULT(emitAssignEncoded(codeGen, encodeCtx, assignOp));
             if (modifierFlags.has(AstModifierFlagsE::FirstInit))
                 SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, encodeCtx.target.opTypeRef, encodeCtx.target.payload.reg));
-            if (movesTemporary)
+            if (movesTemporary && sourceStorage)
                 codeGen.cancelTemporaryDrop(*sourceStorage);
             return Result::Continue;
         }
@@ -623,7 +623,7 @@ namespace
 
         // A call-result temporary is an owned rvalue. Its bits now belong to the
         // destination, after any post-move repair, so its statement cleanup stands down.
-        if (movesTemporary)
+        if (movesTemporary && sourceStorage)
             codeGen.cancelTemporaryDrop(*sourceStorage);
 
         return Result::Continue;

@@ -7,15 +7,18 @@ using Core, Pixel, Gui
 // It answers for every file, so a format nothing else reads is still openable.
 func hexViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "hex"
-    result.staticName   = "Hexadecimal"
-    result.attach       = &registerHexStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Hex
-    result.create       = &createHexViewer
-    result.smokeFixture = "viewer.hex"
-    result.addSelectors("*")
+    with var result: retval
+    {
+        .key          = "hex"
+        .staticName   = "Hexadecimal"
+        .attach       = &registerHexStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Hex
+        .create       = &createHexViewer
+        .smokeFixture = "viewer.hex"
+        .addSelectors("*")
+    }
+
     return result
 }
 
@@ -524,13 +527,15 @@ internal impl HexViewer
 {
     func create(host: Viewer.Host)->*HexViewer
     {
-        let services = host.services()
-        let result   = Wnd.create'HexViewer(host.contentParent(), "scope.hex")
-        result.backgroundStyle      = .View
-        result.reportFailure        = services.reportFailure
-        result.reportDetails        = services.reportDetails
-        result.reportLoadingChanged = services.reportLoadingChanged
-        result.fileName             = host.fileName()
+        let services    = host.services()
+        with let result = Wnd.create'HexViewer(host.contentParent(), "scope.hex")
+        {
+            .backgroundStyle      = .View
+            .reportFailure        = services.reportFailure
+            .reportDetails        = services.reportDetails
+            .reportLoadingChanged = services.reportLoadingChanged
+            .fileName             = host.fileName()
+        }
 
         result.commands = host.createCommandGroup(HexCommandWidth)
 

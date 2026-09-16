@@ -49,8 +49,7 @@ impl IWnd for DropCatcher
 
 internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
 {
-    let res = Wnd.create'DropCatcher(parent, rect)
-    return res
+    return Wnd.create'DropCatcher(parent, rect)
 }
 
 // A drop reaches the window under the pointer, with the payload it carries.

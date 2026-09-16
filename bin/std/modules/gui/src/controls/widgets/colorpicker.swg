@@ -559,10 +559,7 @@ impl ColorPicker
     }
 
     // Returns the selected color.
-    mtd const color()->Color
-    {
-        return Color.fromArgbF32(.alpha, .red, .green, .blue)
-    }
+    mtd const color()->Color => Color.fromArgbF32(.alpha, .red, .green, .blue)
 
     // Changes the component mapping without changing the selected color.
     mtd setMode(mode: ColorPickerMode)

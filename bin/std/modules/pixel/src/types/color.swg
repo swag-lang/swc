@@ -418,17 +418,11 @@ impl Color
 
     // Returns a darker version of the color by blending with black.
     #[ConstExpr]
-    func darker(color: Color, factor: f32)->Color
-    {
-        return color.lerpRgb(Color.fromArgb(Argb.Black), factor)
-    }
+    func darker(color: Color, factor: f32)->Color => color.lerpRgb(Color.fromArgb(Argb.Black), factor)
 
     // Returns a lighter version of the color by blending with white.
     #[ConstExpr]
-    func lighter(color: Color, factor: f32)->Color
-    {
-        return color.lerpRgb(Color.fromArgb(Argb.White), factor)
-    }
+    func lighter(color: Color, factor: f32)->Color => color.lerpRgb(Color.fromArgb(Argb.White), factor)
 
     // Calculate the RGB distance between this color and another (normalized to [0, 1]).
     mtd const rgbDistanceTo(other: Color)->f32
@@ -457,10 +451,7 @@ impl Color
 
     // Get a contrasting color (black or white) for text readability.
     #[Inline, ConstExpr]
-    mtd const contrasting()->Color
-    {
-        return .isDark() ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Black)
-    }
+    mtd const contrasting()->Color => .isDark() ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Black)
 
     // Calculate the perceived brightness using luminance formula.
     #[Inline, ConstExpr]
@@ -570,24 +561,15 @@ impl Color
 
     // Create a color with modified alpha.
     #[Inline, ConstExpr]
-    mtd const withAlpha(alpha: u8)->Color
-    {
-        return fromArgb(alpha, .r, .g, .b)
-    }
+    mtd const withAlpha(alpha: u8)->Color => fromArgb(alpha, .r, .g, .b)
 
     // Create a color with modified alpha (float version).
     #[Inline, ConstExpr]
-    mtd const withAlphaF32(alpha: f32)->Color
-    {
-        return fromArgb(cast(u8) (Math.clamp(alpha, 0.0, 1.0) * 255), .r, .g, .b)
-    }
+    mtd const withAlphaF32(alpha: f32)->Color => fromArgb(cast(u8) (Math.clamp(alpha, 0.0, 1.0) * 255), .r, .g, .b)
 
     // Get complementary color (opposite on color wheel).
     #[ConstExpr]
-    mtd const complementary()->Color
-    {
-        return .rotateHue(180.0)
-    }
+    mtd const complementary()->Color => .rotateHue(180.0)
 
     // Multiply color by another color (component-wise).
     #[ConstExpr]

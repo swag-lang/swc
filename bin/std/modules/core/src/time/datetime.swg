@@ -356,15 +356,9 @@ impl Serialization.ISerialize for DateTime
         return false
     }
 
-    mtd impl readElement(type: Swag.TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail
-    {
-        return false
-    }
+    mtd impl readElement(type: Swag.TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail => false
 
-    mtd impl writeElement(type: Swag.TypeValue, data: const *void?, decoder: Serialization.IEncoder)->bool fail
-    {
-        return false
-    }
+    mtd impl writeElement(type: Swag.TypeValue, data: const *void?, decoder: Serialization.IEncoder)->bool fail => false
 
     mtd impl postRead(data: *void?, decoder: Serialization.IDecoder) fail {}
 }

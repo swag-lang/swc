@@ -180,8 +180,5 @@ impl SliderCtrl
     }
 
     // Returns the current value.
-    mtd const value()->f32
-    {
-        return .slider.value()
-    }
+    mtd const value()->f32 => .slider.value()
 }

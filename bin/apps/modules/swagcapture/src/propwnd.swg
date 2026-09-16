@@ -594,8 +594,7 @@ impl PropWnd
             {
                 picker.sigColorChanged += func|btn|(pk)
                 {
-                    let mainWnd = g_Main!
-                    mainWnd.pixSelFillCol = pk.color()
+                    g_Main!.pixSelFillCol = pk.color()
                     btn.invalidate()
                 }
             }
@@ -1014,8 +1013,7 @@ impl PropWnd
 
     mtd selectionHasChanged()
     {
-        if .stylePopup do
-            .stylePopup.cancel()
+        .stylePopup?.cancel()
 
         for it in .topLayout.children do
             it.destroy()

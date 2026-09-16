@@ -57,10 +57,9 @@ impl IForm for FormShape
         var yb = cast(s32) (localPos.y / zoom)
         .setBaseForm(xa, ya, xb - xa, yb - ya)
 
-        var xbu     = 0
-        var ybu     = 0
-        let capture = .capture!
-        capture.snap(&xbu, &ybu, true, true, 0, me)
+        var xbu = 0
+        var ybu = 0
+        .capture!.snap(&xbu, &ybu, true, true, 0, me)
         xb += xbu
         yb += ybu
 
@@ -109,15 +108,9 @@ impl IForm for FormShape
 
     mtd impl movePoint(pt: u32, newPosX, newPosY: s32) {}
 
-    mtd impl boundRect()->Math.Rectangle
-    {
-        return .rectFormBound()
-    }
+    mtd impl boundRect()->Math.Rectangle => .rectFormBound()
 
-    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
-    {
-        return .gizmo.mouse(view, pos, evt)
-    }
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool => .gizmo.mouse(view, pos, evt)
 
     mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
@@ -146,10 +139,7 @@ impl IForm for FormShape
         }
     }
 
-    mtd impl hitTest(pt: Math.Point, z: f32)->bool
-    {
-        return BaseForm.drawHitTest(me, pt, z)
-    }
+    mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {

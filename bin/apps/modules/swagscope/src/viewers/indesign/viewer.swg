@@ -545,14 +545,7 @@ func loadIndesignDocument(fileName: string)->IndesignDocument fail
     if previews.isEmpty() do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
-    var result: retval
-    result.header           = header
-    result.fileName         = fileName
-    result.fileSize         = fileSize
-    result.declaredBytes    = declaredBytes
-    result.xmpObjectStreams = xmpObjectStreams
-    result.previews         = #move previews
-    return #move result
+    return {header, fileName, fileSize, declaredBytes, xmpObjectStreams, #move previews}
 }
 
 private func loadIndesignViewerDocument(fileName: string)->IndesignViewerDocument fail
@@ -576,15 +569,18 @@ private func loadIndesignViewerDocument(fileName: string)->IndesignViewerDocumen
 // Describes the visual InDesign preview reader to the host.
 func indesignViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "indesign"
-    result.resolveName  = &indesignViewerName
-    result.attach       = &registerIndesignStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Indesign
-    result.create       = &createIndesignViewer
-    result.smokeFixture = "uni-halle-52a.idml"
-    result.addSelectors(".indd;.idml")
+    with var result: retval
+    {
+        .key          = "indesign"
+        .resolveName  = &indesignViewerName
+        .attach       = &registerIndesignStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Indesign
+        .create       = &createIndesignViewer
+        .smokeFixture = "uni-halle-52a.idml"
+        .addSelectors(".indd;.idml")
+    }
+
     return result
 }
 
@@ -1009,10 +1005,7 @@ private impl IndesignViewer
         return .htmlView!.revealFileOffset(match.offset, text)
     }
 
-    mtd searchBounds(result: *Math.Rectangle)->bool
-    {
-        return .isMarkup() and .htmlView and .htmlView.searchMatchRect(result)
-    }
+    mtd searchBounds(result: *Math.Rectangle)->bool => .isMarkup() and .htmlView and .htmlView.searchMatchRect(result)
 
     mtd clearSearch()
     {
@@ -1196,13 +1189,15 @@ internal impl IndesignViewer
 {
     func create(host: Viewer.Host)->*IndesignViewer
     {
-        let services = host.services()
-        let result   = Wnd.create'IndesignViewer(host.contentParent(), "scope.indesign")
-        result.backgroundStyle      = .View
-        result.reportFailure        = services.reportFailure
-        result.reportDetails        = services.reportDetails
-        result.reportChromeChanged  = services.reportChromeChanged
-        result.reportLoadingChanged = services.reportLoadingChanged
+        let services    = host.services()
+        with let result = Wnd.create'IndesignViewer(host.contentParent(), "scope.indesign")
+        {
+            .backgroundStyle      = .View
+            .reportFailure        = services.reportFailure
+            .reportDetails        = services.reportDetails
+            .reportChromeChanged  = services.reportChromeChanged
+            .reportLoadingChanged = services.reportLoadingChanged
+        }
 
         result.commands = host.createCommandGroup(indesignCommandWidth(result.themeMetrics()))
         result.info     = host.createInfoGroup(ViewerZoomSlotWidth)

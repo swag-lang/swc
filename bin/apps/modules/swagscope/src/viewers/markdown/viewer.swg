@@ -14,16 +14,19 @@ internal var g_MarkdownViewerSettings: MarkdownViewerSettings
 // Describes the Markdown viewer to the host.
 func markdownViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "markdown"
-    result.staticName   = "Markdown"
-    result.attach       = &registerMarkdownStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Markdown
-    result.create       = &createMarkdownViewer
-    result.textual      = true
-    result.smokeFixture = "comprehensive.md"
-    result.addSelectors(".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
+    with var result: retval
+    {
+        .key          = "markdown"
+        .staticName   = "Markdown"
+        .attach       = &registerMarkdownStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Markdown
+        .create       = &createMarkdownViewer
+        .textual      = true
+        .smokeFixture = "comprehensive.md"
+        .addSelectors(".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
+    }
+
     return result
 }
 

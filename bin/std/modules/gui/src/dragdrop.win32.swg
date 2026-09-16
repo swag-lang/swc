@@ -1063,8 +1063,7 @@ private func dropSrcGiveFeedback(itf: *IDropSource, effect: DWORD)->HRESULT
     discard effect
 
     let app = dropSourceOf(itf).app
-    if app do
-        app.paintSurfaces()
+    app?.paintSurfaces()
 
     return DRAGDROP_S_USEDEFAULTCURSORS
 }

@@ -74,10 +74,7 @@ impl UndoManager
     }
 
     // Returns the number of commands on the timeline, including the redo tail.
-    mtd const count()->u64
-    {
-        return .steps.count
-    }
+    mtd const count()->u64 => .steps.count
 
     // Returns the number of commands currently applied.
     mtd const appliedCount()->u64 => .next

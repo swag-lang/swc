@@ -47,10 +47,7 @@ internal impl Properties
         return .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().editBox_Height
     }
 
-    mtd revertIconSize(buttonSize: f32)->f32
-    {
-        return Math.max(Math.min(PropRevertIconSize, buttonSize - 4), 8.0)
-    }
+    mtd revertIconSize(buttonSize: f32)->f32 => Math.max(Math.min(PropRevertIconSize, buttonSize - 4), 8.0)
 
     // Build the default-constructed instance for the struct whose rows start at 'fromIdx', and
     // point every such row's defaultData into it. Called right after assignInstances, so it uses

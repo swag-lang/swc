@@ -125,10 +125,7 @@ private impl FontDocumentView
     // A font cache hands out views of shared glyph storage and walks a handful of entries to do it,
     // so resolving one on the draw path costs a lookup and no allocation. Caching four of them in
     // the view would only duplicate `FontSampleSizes` in a second place.
-    mtd sampleFont(size: u32)->*Font
-    {
-        return .app().renderer.fontCache().createFont(.typeFace, size)
-    }
+    mtd sampleFont(size: u32)->*Font => .app().renderer.fontCache().createFont(.typeFace, size)
 
     mtd paintSpecimen(painter: *Painter)
     {
@@ -280,15 +277,17 @@ internal impl FontDocumentView
         scroll.dockStyle = .Center
         scroll.updateFlags(.CompactBars | .TransparentBars | .DisableHorizontal)
 
-        let result = scroll.createView'FontDocumentView()
-        result.scroll          = scroll
-        result.fontBytes       = #move fontBytes
-        result.face            = face
-        result.typeFace        = typeFace
-        result.sampleEdit      = sampleEdit
-        result.backgroundStyle = .View
-        result.focusPolicy     = .Tab
-        result.wndFlags        |= WndFlags.NoFocusRing | WndFlags.ClipChildren
+        with let result = scroll.createView'FontDocumentView()
+        {
+            .scroll          = scroll
+            .fontBytes       = #move fontBytes
+            .face            = face
+            .typeFace        = typeFace
+            .sampleEdit      = sampleEdit
+            .backgroundStyle = .View
+            .focusPolicy     = .Tab
+            .wndFlags        |= WndFlags.NoFocusRing | WndFlags.ClipChildren
+        }
 
         let cache = result.app().renderer.fontCache()
         result.fontName  = cache.createFont(typeFace, FontNameSize)

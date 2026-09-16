@@ -564,8 +564,7 @@ impl Undo
             baseForm.movePoint(.pointIdx, .newPosX, .newPosY)
 
         case .MoveBaseForm:
-            let baseForm = .baseForm!
-            baseForm.moveBaseForm(.newPosX, .newPosY, .newSizeX, .newSizeY)
+            .baseForm!.moveBaseForm(.newPosX, .newPosY, .newSizeX, .newSizeY)
 
         case .MoveCapture:
 
@@ -785,8 +784,7 @@ impl Undo
             baseForm.movePoint(.pointIdx, -.newPosX, -.newPosY)
 
         case .MoveBaseForm:
-            let baseForm = .baseForm!
-            baseForm.moveBaseForm(-.newPosX, -.newPosY, -.newSizeX, -.newSizeY)
+            .baseForm!.moveBaseForm(-.newPosX, -.newPosY, -.newSizeX, -.newSizeY)
 
         case .MoveCapture:
             capture.backImagePos.x -= .newPosX

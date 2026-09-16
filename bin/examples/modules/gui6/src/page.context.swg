@@ -9,10 +9,13 @@ func createContextMenuModel(parent: *Wnd)
     ctxMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.icon(.Link, 18))
     ctxMenu.addSeparator()
 
-    let alignMenu = createTrackedPopup(parent)
-    alignMenu.addItem("Align left", MenuCmd.AlignLeft)
-    alignMenu.addItem("Align center", MenuCmd.AlignCenter)
-    alignMenu.addItem("Align right", MenuCmd.AlignRight)
+    with let alignMenu = createTrackedPopup(parent)
+    {
+        .addItem("Align left", MenuCmd.AlignLeft)
+        .addItem("Align center", MenuCmd.AlignCenter)
+        .addItem("Align right", MenuCmd.AlignRight)
+    }
+
     ctxMenu.addPopup("Align", alignMenu)
 
     ctxMenu.addSeparator()

@@ -22,10 +22,10 @@ func acceptCallback(callback: func()->s32)->s32 => callback()
 #test
 {
     // A function declaration needs '&' to supply a callback value.
-    discard acceptCallback(callback: callbackTarget) // swc-expected-error {{sema_err_not_value_expr}}
+    discard acceptCallback(callback: callbackTarget)     // swc-expected-error {{sema_err_not_value_expr}}
 }
 
 #test
 {
-    discard acceptCallback(callbackTarget) // swc-expected-error {{sema_err_not_value_expr}}
+    discard acceptCallback(callbackTarget)     // swc-expected-error {{sema_err_not_value_expr}}
 }

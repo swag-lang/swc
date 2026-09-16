@@ -73,8 +73,5 @@ public impl Bus
     }
 
     // Returns the current bus gain in decibels.
-    mtd volumeDb()->f32 fail
-    {
-        return linearGainToDecibels(try .volume())
-    }
+    mtd volumeDb()->f32 fail => linearGainToDecibels(try .volume())
 }

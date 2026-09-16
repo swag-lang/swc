@@ -30,16 +30,19 @@ func createColumnsPage(parent: *Wnd)
 
     files.computeLayout()
 
-    let right = createPanel(parent, "Sorted work queue", "Clicking headers changes sort order; the example opens on the priority column.", layout.right)
-    let queue = ListCtrl.createMultiColumns(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
-    queue.setFrameForm(.Round)
-    queue.setSelectionMode(.Single)
-    queue.setIconSize(16)
-    queue.updateFlags(.AlternateLines)
-    queue.addColumn("Task", 180, app.theme.icon(.Edit, 16))
-    queue.addColumn("State", 110)
-    queue.addColumn("Priority", 90, app.theme.icon(.ChevronDown, 16))
-    queue.addColumn("Assignee", 120)
+    let right      = createPanel(parent, "Sorted work queue", "Clicking headers changes sort order; the example opens on the priority column.", layout.right)
+    with let queue = ListCtrl.createMultiColumns(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
+    {
+        .setFrameForm(.Round)
+        .setSelectionMode(.Single)
+        .setIconSize(16)
+        .updateFlags(.AlternateLines)
+        .addColumn("Task", 180, app.theme.icon(.Edit, 16))
+        .addColumn("State", 110)
+        .addColumn("Priority", 90, app.theme.icon(.ChevronDown, 16))
+        .addColumn("Assignee", 120)
+    }
+
     for i in 16
     {
         let prio = 9 - (i % 9)
@@ -53,18 +56,21 @@ func createColumnsPage(parent: *Wnd)
     queue.sort(2, false, true)
     queue.computeLayout()
 
-    let bottom = createPanel(parent, "Wide columns", "Horizontal scrolling keeps the header and list content aligned.", layout.bottom)
-    let wide   = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
-    wide.setFrameForm(.Square)
-    wide.setSelectionMode(.Multi)
-    wide.setIconSize(16)
-    wide.addColumn("Package", 180)
-    wide.addColumn("Version", 120)
-    wide.addColumn("Platform", 140)
-    wide.addColumn("Artifacts", 220)
-    wide.addColumn("Notes", 360)
-    wide.setHorizontalExtent(1020)
-    wide.updateFlags(.HorizontalLines)
+    let bottom    = createPanel(parent, "Wide columns", "Horizontal scrolling keeps the header and list content aligned.", layout.bottom)
+    with let wide = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    {
+        .setFrameForm(.Square)
+        .setSelectionMode(.Multi)
+        .setIconSize(16)
+        .addColumn("Package", 180)
+        .addColumn("Version", 120)
+        .addColumn("Platform", 140)
+        .addColumn("Artifacts", 220)
+        .addColumn("Notes", 360)
+        .setHorizontalExtent(1020)
+        .updateFlags(.HorizontalLines)
+    }
+
     for i in 12
     {
         let line = wide.createLine(Format.toString("module.%", i + 1), sampleIcon(i + 5))

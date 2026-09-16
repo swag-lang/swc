@@ -11,8 +11,7 @@ late var g_Font: *Font
 
 func openImage(surface: *Surface?)
 {
-    var opt: FileDlgOptions
-    with opt
+    with var opt: FileDlgOptions
     {
         .mode  = .SelectFile
         .title = "Load Image"

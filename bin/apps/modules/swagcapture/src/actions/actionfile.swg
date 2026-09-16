@@ -322,8 +322,7 @@ impl MainWnd
 {
     mtd openImage()
     {
-        var opt: FileDlgOptions
-        with opt
+        with var opt: FileDlgOptions
         {
             .state = &me.fileDlgState
             .mode  = .SelectFile
@@ -498,8 +497,7 @@ impl MainWnd
     {
         let capture = .getCapture()!
 
-        var opt: FileDlgOptions
-        with opt
+        with var opt: FileDlgOptions
         {
             .state = &me.fileDlgState
             .mode  = .CreateFile

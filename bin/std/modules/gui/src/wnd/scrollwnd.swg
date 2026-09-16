@@ -199,8 +199,7 @@ public impl IWnd for ScrollWnd
             if .isGrabbing and evt.button == .Middle
             {
                 .releaseMouse()
-                if .oldMouseCapture do
-                    .oldMouseCapture.captureMouse()
+                .oldMouseCapture?.captureMouse()
                 .hitTest(evt.surfacePos)
                 .invalidate()
                 .isGrabbing = false
@@ -208,8 +207,7 @@ public impl IWnd for ScrollWnd
             elif .isMoving and evt.button == .Left
             {
                 .releaseMouse()
-                if .oldMouseCapture do
-                    .oldMouseCapture.captureMouse()
+                .oldMouseCapture?.captureMouse()
                 .isPressedV, .isPressedH, .isMoving = false
                 .hitTest(evt.surfacePos)
                 .invalidate()
@@ -475,17 +473,11 @@ impl ScrollWnd
 public impl ScrollWnd
 {
     // Returns the current viewport origin in content coordinates.
-    mtd const scrollPosition()->Math.Point
-    {
-        return .view.scrollPos
-    }
+    mtd const scrollPosition()->Math.Point => .view.scrollPos
 
     // Returns where a running smooth scroll is heading, which is the current position when none
     // is running.
-    mtd const scrollTarget()->Math.Point
-    {
-        return .scrollRequestPos
-    }
+    mtd const scrollTarget()->Math.Point => .scrollRequestPos
 
     // Glides to `pt` over the surface's panel motion instead of jumping there.
     //

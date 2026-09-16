@@ -72,7 +72,7 @@ func notNullReassigned(a: *NotNullProvenNode?, b: *NotNullProvenNode?)->s32
 {
     var cur   = a
     let first = cur!.value
-    cur       = b
+    cur = b
     return first + cur!.value
 }
 

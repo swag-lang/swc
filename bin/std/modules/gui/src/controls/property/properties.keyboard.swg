@@ -408,8 +408,7 @@ private impl Properties
         // Custom/composite editors (color, vector, ...) don't register a named
         // editor: focus their first inner control so they can be edited too.
         let w = .firstEditorIn(item.line)
-        if w do
-            w.setFocus()
+        w?.setFocus()
     }
 
     // Commit the current edition and return to navigation mode. Moving the focus

@@ -207,9 +207,7 @@ func updateHeader()
 
 func updateStatusLabel()
 {
-    let statusLabel = g_StatusLabel
-    if statusLabel do
-        statusLabel.setText(g_StatusText)
+    g_StatusLabel?.setText(g_StatusText)
 }
 
 func setStatus(text: string)
@@ -218,12 +216,8 @@ func setStatus(text: string)
     updateStatusLabel()
     updateHeader()
 
-    let preview = g_Preview
-    if preview do
-        preview.invalidate()
-    let pageView3 = g_PageView
-    if pageView3 do
-        pageView3.updateCommandState()
+    g_Preview?.invalidate()
+    g_PageView?.updateCommandState()
     app.invalidate()
 }
 
@@ -480,9 +474,7 @@ func processMenuCommand(id: WndId)->bool
         setStatus("Export command selected from a grouped menu section.")
 
     case MenuCmd.Quit:
-        let srf = g_Surface
-        if srf do
-            srf.destroy()
+        g_Surface?.destroy()
 
     case MenuCmd.Undo:
         g_DocumentDirty = false
@@ -710,8 +702,7 @@ func clearPage()
     let pageView0 = g_PageView!
     for child in pageView0.children
     {
-        let c = child
-        c.destroy()
+        child.destroy()
     }
 }
 

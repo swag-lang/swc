@@ -182,8 +182,7 @@ private impl FormLayoutCtrl
         if place
         {
             row.field.arrange({client.x, cursor, fieldWidth, height})
-            if row.action do
-                row.action.arrange({client.x + fieldWidth + actionGap, cursor, actionWidth, height})
+            row.action?.arrange({client.x + fieldWidth + actionGap, cursor, actionWidth, height})
         }
 
         cursor += height
@@ -221,8 +220,7 @@ private impl FormLayoutCtrl
         if place
         {
             row.field.arrange({fieldX, y, fieldWidth, height})
-            if row.action do
-                row.action.arrange({fieldX + fieldWidth + actionGap, y, actionWidth, height})
+            row.action?.arrange({fieldX + fieldWidth + actionGap, y, actionWidth, height})
         }
 
         var cursor = y + height

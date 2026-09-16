@@ -65,10 +65,7 @@ impl Decoder
         return (cast(u16) src[0] << 8) | src[1]
     }
 
-    func reduce16(value: u16)->u8
-    {
-        return cast(u8) ((cast(u32) value + 128) / 257)
-    }
+    func reduce16(value: u16)->u8 => cast(u8) ((cast(u32) value + 128) / 257)
 
     mtd convertPaletteRgb(result: *Image)
     {

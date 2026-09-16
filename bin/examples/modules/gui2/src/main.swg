@@ -168,8 +168,7 @@ func clearPage()
     let pageView = g_PageView!
     for child in pageView.children
     {
-        let c = child
-        c.destroy()
+        child.destroy()
     }
 }
 
@@ -191,8 +190,7 @@ func buildPage()
     default: unreachable
     }
 
-    let pv = g_PageView!
-    pv.invalidate()
+    g_PageView!.invalidate()
 }
 
 func layoutRootView()

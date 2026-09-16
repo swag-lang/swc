@@ -228,17 +228,11 @@ impl Rectangle
 
     // Returns true if all rectangle components are zero within epsilon tolerance.
     // Uses 'eps' parameter to handle floating-point precision issues.
-    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
-    {
-        return isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps) and isZeroEpsilon(.width, eps) and isZeroEpsilon(.height, eps)
-    }
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps) and isZeroEpsilon(.width, eps) and isZeroEpsilon(.height, eps)
 
     // Returns true if the rectangle has zero area within epsilon tolerance.
     // Checks if either width or height is zero within the specified tolerance.
-    mtd const isEmptyEpsilon(eps = ConstF32.Epsilon)->bool
-    {
-        return isZeroEpsilon(.width, eps) or isZeroEpsilon(.height, eps)
-    }
+    mtd const isEmptyEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.width, eps) or isZeroEpsilon(.height, eps)
 
     // Returns true if this rectangle equals 'other' within epsilon tolerance.
     // Compares all four components separately using the specified 'eps' tolerance.
@@ -289,10 +283,7 @@ impl Rectangle
 
     // Test if the specified point is contained within the rectangle.
     // Delegates to the coordinate-based 'contains' method.
-    mtd const contains(pt: Point)->bool
-    {
-        return .contains(pt.x, pt.y)
-    }
+    mtd const contains(pt: Point)->bool => .contains(pt.x, pt.y)
 
     // Test if the specified rectangle is entirely contained within this rectangle.
     // Returns true only if 'rect' is completely inside the bounds of this rectangle.

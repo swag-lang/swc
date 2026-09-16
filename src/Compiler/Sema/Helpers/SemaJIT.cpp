@@ -350,9 +350,9 @@ namespace
     // Appends a root's order to `out`, skipping what the order already holds. A root's own
     // order already contains the order of everything it reaches, so a root the walk has
     // already taken in contributes nothing and is not read at all.
-    void appendJitOrderDeduplicated(const SymbolFunction& root, SmallVector<SymbolFunction*>& out, std::unordered_set<SymbolFunction*>& seen)
+    void appendJitOrderDeduplicated(const SymbolFunction& root, SmallVector<SymbolFunction*>& out, PointerSet<SymbolFunction>& seen)
     {
-        if (seen.contains(const_cast<SymbolFunction*>(&root)))
+        if (seen.contains(&root))
             return;
 
         root.visitJitOrder([&out, &seen](SymbolFunction* function) {
@@ -360,14 +360,14 @@ namespace
                 return;
             if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
                 return;
-            if (!seen.insert(function).second)
+            if (!seen.insert(function))
                 return;
 
             out.push_back(function);
         });
     }
 
-    void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out, std::unordered_set<SymbolFunction*>& seen)
+    void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out, PointerSet<SymbolFunction>& seen)
     {
         const auto targets = sema.compiler().nativeGlobalFunctionInitTargetsSnapshot();
         for (const SymbolFunction* target : targets)
@@ -762,9 +762,9 @@ namespace
             const auto constantTargets = constantJitTargetsOf(sema, *function);
             for (const auto& [target, allowUnresolved] : *constantTargets)
             {
-                if (!isIncludableConstantJitDependency(*target))
-                    continue;
                 if (seenFunctions.contains(target))
+                    continue;
+                if (!isIncludableConstantJitDependency(*target))
                     continue;
                 if (allowUnresolved)
                 {
@@ -808,7 +808,7 @@ namespace
             return;
         }
 
-        std::unordered_set<SymbolFunction*> seen;
+        PointerSet<SymbolFunction> seen;
         appendJitOrderDeduplicated(symFn, out, seen);
 
         for (const SymbolFunction* root : extraRoots)

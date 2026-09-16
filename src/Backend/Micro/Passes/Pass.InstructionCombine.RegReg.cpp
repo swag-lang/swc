@@ -1193,6 +1193,99 @@ namespace InstructionCombine
             return false;
         }
 
+        // A low-bit mask is a zero/one multiplier. Select the other input
+        // directly and leave the original mask input available to other users.
+        bool trySelectLowBitProduct(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            const MicroOpBits bits = ops[2].opBits;
+            if (!ctx.ssa || ops[3].microOp != MicroOp::MultiplySigned || !ops[1].reg.isVirtualInt() ||
+                (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+                return false;
+            for (uint32_t side = 0; side < 2; ++side)
+            {
+                MicroReg      maskReg       = ops[side].reg;
+                auto          mask          = ctx.ssa->reachingDef(maskReg, ref);
+                MicroInstrRef maskCopy      = MicroInstrRef::invalid();
+                uint32_t      maskCopyValue = 0;
+                if (mask.valid() && !mask.isPhi && mask.inst && mask.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = mask.inst->ops(*ctx.operands);
+                    if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits))
+                        continue;
+                    maskCopyValue = mask.valueId;
+                    maskCopy      = mask.instRef;
+                    maskReg       = copy[1].reg;
+                    mask          = ctx.ssa->reachingDef(maskReg, maskCopy);
+                }
+                if (!mask.valid() || mask.isPhi || !mask.inst || mask.inst->op != MicroInstrOpcode::OpBinaryRegImm)
+                    continue;
+                const auto* masked = mask.inst->ops(*ctx.operands);
+                if (!masked || masked[2].microOp != MicroOp::And || masked[3].hasWideImmediateValue() || masked[3].valueU64 != 1 ||
+                    (masked[1].opBits != MicroOpBits::B32 && masked[1].opBits != MicroOpBits::B64))
+                    continue;
+                if (ctx.ssa->transitiveInstructionUseCount(mask.valueId, 2) != 1 ||
+                    (maskCopy.isValid() && ctx.ssa->transitiveInstructionUseCount(maskCopyValue, 2) != 1))
+                    continue;
+                const auto initial = ctx.ssa->reachingDef(maskReg, mask.instRef);
+                if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)
+                    continue;
+                const auto* copied = initial.inst->ops(*ctx.operands);
+                if (!copied || !copied[1].reg.isVirtualInt())
+                    continue;
+                // A single-use computed factor can already carry the product
+                // in its own result register. A zero plus CMOV then adds work.
+                auto factor = ctx.ssa->reachingDef(ops[1 - side].reg, ref);
+                for (uint32_t depth = 0; depth < 8 && factor.valid() && !factor.isPhi && factor.inst && factor.inst->op == MicroInstrOpcode::LoadRegReg; ++depth)
+                {
+                    const auto* copy = factor.inst->ops(*ctx.operands);
+                    if (!copy || !copy[1].reg.isVirtualInt())
+                        break;
+                    factor = ctx.ssa->reachingDef(copy[1].reg, factor.instRef);
+                }
+                if (factor.valid() && !factor.isPhi && factor.inst && factor.inst->op != MicroInstrOpcode::LoadRegReg &&
+                    ctx.ssa->transitiveInstructionUseCount(factor.valueId, 2) == 1)
+                    continue;
+                const MicroReg input      = copied[1].reg;
+                const auto     inputValue = ctx.ssa->reachingDef(input, initial.instRef);
+                if (!inputValue.valid() || ctx.ssa->reachingDef(input, ref).valueId != inputValue.valueId ||
+                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, mask.instRef, ctx.builder) ||
+                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                    continue;
+                if (!ctx.nextVirtualFloatRegIndex)
+                    MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+                if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
+                    !ctx.claimAll({ref, mask.instRef, initial.instRef, maskCopy.isValid() ? maskCopy : ref}))
+                    continue;
+
+                const MicroReg    temporary = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+                MicroInstrOperand clear[2]  = {};
+                clear[0].reg                = temporary;
+                clear[1].opBits             = MicroOpBits::B32;
+                ctx.emitInsertBefore(ref, MicroInstrOpcode::ClearReg, clear);
+                MicroInstrOperand test[3] = {};
+                test[0].reg               = input;
+                test[1].opBits            = MicroOpBits::B8;
+                test[2].valueU64          = 1;
+                ctx.emitInsertBefore(ref, MicroInstrOpcode::TestRegImm, test);
+                MicroInstrOperand select[4] = {};
+                select[0].reg               = temporary;
+                select[1]                   = ops[1 - side];
+                select[2].cpuCond           = MicroCond::NotZero;
+                select[3].opBits            = bits;
+                ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadCondRegReg, select);
+                MicroInstrOperand copy[3] = {};
+                copy[0]                   = ops[0];
+                copy[1].reg               = temporary;
+                copy[2]                   = ops[2];
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
+                ctx.emitErase(mask.instRef);
+                if (maskCopy.isValid())
+                    ctx.emitErase(maskCopy);
+                return true;
+            }
+            return false;
+        }
+
         // The unmultiplied input is a product with an implicit factor of one.
         // Rebuild at the final operation only after both input values survive.
         bool tryFactorSingleProduct(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
@@ -1537,7 +1630,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldNegatedLhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldBitwiseDifference(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorSingleProduct(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldNegatedLhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldBitwiseDifference(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || trySelectLowBitProduct(ctx, ref, ops) || tryFactorSingleProduct(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

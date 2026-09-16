@@ -188,3 +188,7 @@ Both compiler configurations built successfully. Validation rotated to these bou
 - DevMode compiler/program `devmode`, JIT `--file-filter dynamic_recursive_constraints.swg`:
   one passed.
 - All six measured standard-workspace builds completed successfully.
+
+Batch-3 integration with master `bc0ec576c` used Release build 715. Native
+`--file-filter typeinfo_generic_method_where.swg -bc release` passed its case in JIT and in
+the emitted executable, exercising reflected generic methods excluded by a `where` condition.

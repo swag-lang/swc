@@ -86,3 +86,23 @@ by +2.1% and +1.7%. This is a correctness fix, not a claimed memory improvement.
 
 After integration with master `1ad9da4a2`, both compiler builds passed at build 699 and
 the ten-test file passed again with both executables in release.
+
+## Corrective batch: relocatable reflected method pointers
+
+Constant extraction read the current bytes of a reflected method pointer as a permanent
+constant. Before publication those bytes are zero. In release, this rejected a valid cast to
+a non-null function and made an already compiled reflection reader keep returning null even
+after the method was ready. Preserve loads from function-relocated pointer slots, including
+indexed slots; aggregate materialization still preserves its embedded relocations.
+
+Both existing regressions (`typeinfo_optional_call_graph.swg` and
+`deferred_method_pointer.swg`) fail with frozen builds 695 and 700, and pass with build 703.
+The DevMode compiler's complete JIT release suite passes all 1,487 tests. Both compiler builds
+passed. [Commands and outcomes](method-reloc-validation.json).
+
+Seven alternating core rebuild pairs compare build 700 with the isolated fix at build 703,
+using the same admission, affinity and six-worker controls as batch 1. Paired median elapsed
+ratios are 1.010 (devmode) and 0.970 (release); CPU ratios are 1.024 and 0.990. Peak working-set
+ratios are 0.996 and 1.011, committed-memory ratios 0.985 and 0.998. Concurrent activity still
+causes large outliers. This fixes correctness; it is not a claimed performance improvement.
+[Every sample, including the outliers](method-reloc-ab.json).

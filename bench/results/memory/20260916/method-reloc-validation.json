@@ -1,0 +1,102 @@
+﻿[
+    {
+        "command":  [
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-move/swc.exe",
+                        "test",
+                        "-d",
+                        "C:/Perso/swag-lang/swc-memory/bin/unittests/jit",
+                        "--file-filter",
+                        "typeinfo_optional_call_graph.swg",
+                        "-bc",
+                        "release",
+                        "--num-cores",
+                        "6",
+                        "--out-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/metadata-baseline-out",
+                        "--work-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/metadata-baseline-work"
+                    ],
+        "cwd":  "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+        "exit":  5,
+        "seconds":  0.31587540000327863
+    },
+    {
+        "command":  [
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-move/swc.exe",
+                        "test",
+                        "-d",
+                        "C:/Perso/swag-lang/swc-memory/bin/unittests/jit",
+                        "--file-filter",
+                        "deferred_method_pointer.swg",
+                        "-bc",
+                        "release",
+                        "--num-cores",
+                        "6",
+                        "--out-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/deferred-baseline-out",
+                        "--work-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/deferred-baseline-work"
+                    ],
+        "cwd":  "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+        "exit":  5,
+        "seconds":  0.13025650000054156
+    },
+    {
+        "command":  [
+                        "C:/Perso/swag-lang/swc-memory/bin/swc.dm.exe",
+                        "test",
+                        "-d",
+                        "C:/Perso/swag-lang/swc-memory/bin/unittests/jit",
+                        "--file-filter",
+                        "typeinfo_optional_call_graph.swg",
+                        "-bc",
+                        "release",
+                        "--num-cores",
+                        "6",
+                        "--out-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/method-reloc-metadata-out",
+                        "--work-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/method-reloc-metadata-work"
+                    ],
+        "cwd":  "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+        "exit":  0,
+        "seconds":  0.7086267000049702
+    },
+    {
+        "command":  [
+                        "C:/Perso/swag-lang/swc-memory/bin/swc.dm.exe",
+                        "test",
+                        "-d",
+                        "C:/Perso/swag-lang/swc-memory/bin/unittests/jit",
+                        "--file-filter",
+                        "deferred_method_pointer.swg",
+                        "-bc",
+                        "release",
+                        "--num-cores",
+                        "6",
+                        "--out-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/method-reloc-deferred-out",
+                        "--work-dir",
+                        "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/method-reloc-deferred-work"
+                    ],
+        "cwd":  "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+        "exit":  0,
+        "seconds":  0.5127947000000859
+    },
+    {
+        "command":  [
+                        "C:\\Perso\\swag-lang\\swc-memory\\bin\\swc.dm.exe",
+                        "--num-cores",
+                        "6",
+                        "C:\\Perso\\swag-lang\\swc-memory\\tools\\unittests.swgs",
+                        "dm",
+                        "jit",
+                        "-bc",
+                        "release",
+                        "--num-cores",
+                        "6"
+                    ],
+        "exit":  0,
+        "seconds":  9.273524399999587
+    }
+]

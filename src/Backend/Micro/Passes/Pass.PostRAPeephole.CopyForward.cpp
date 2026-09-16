@@ -150,24 +150,29 @@ namespace PostRaPeephole
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || info.flags.has(MicroInstrFlagsE::JumpInstruction))
                 return false;
             observed.push_back(nextRef);
-            const bool extends     = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
-            const bool compareRegs = next->op == MicroInstrOpcode::CmpRegReg;
-            const bool compareImm  = next->op == MicroInstrOpcode::CmpRegImm;
-            if (extends || compareRegs || compareImm || next->op == MicroInstrOpcode::OpBinaryRegReg)
+            const bool extends        = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
+            const bool compareRegs    = next->op == MicroInstrOpcode::CmpRegReg;
+            const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm;
+            const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
+            const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
+            if (extends || compareRegs || compareImm || address || next->op == MicroInstrOpcode::OpBinaryRegReg)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)
                     return false;
-                const uint32_t    widthOperand = extends ? 3 : compareImm ? 1
-                                                                          : 2;
-                const MicroOpBits readBits     = ops[widthOperand].opBits;
+                const uint32_t widthOperand = extends ? 3 : compareImm ? 1
+                                                                       : 2;
+                // Address inputs use the full pointer width even when the
+                // address result is requested in a narrower destination.
+                const MicroOpBits readBits = address ? MicroOpBits::B64 : ops[widthOperand].opBits;
                 if (ops[0].reg.isInt() && getNumBits(readBits) <= getNumBits(copyOps[2].opBits))
                 {
-                    MicroInstrOperand rewritten[4];
+                    MicroInstrOperand rewritten[Action::K_MAX_OPS];
                     std::ranges::copy(std::span{ops, next->numOperands}, rewritten);
                     bool           changed      = false;
                     const uint32_t firstOperand = compareRegs || compareImm ? 0 : 1;
-                    const uint32_t lastOperand  = compareImm ? 0 : 1;
+                    const uint32_t lastOperand  = indexedAddress ? 2 : compareImm ? 0
+                                                                                  : 1;
                     for (uint32_t i = firstOperand; i <= lastOperand; ++i)
                     {
                         if (rewritten[i].reg == copyOps[0].reg)

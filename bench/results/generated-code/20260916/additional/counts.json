@@ -299,16 +299,16 @@
       "instructions": 4,
       "code": [
         [
-          2,
-          "xor\teax, eax"
-        ],
-        [
-          4,
-          "and\trcx, 0x8"
+          3,
+          "test\tcl, 0x8"
         ],
         [
           3,
           "setne\tal"
+        ],
+        [
+          3,
+          "movzx\teax, al"
         ],
         [
           1,

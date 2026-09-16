@@ -379,16 +379,12 @@
       ]
     },
     "final": {
-      "bytes": 11,
-      "instructions": 4,
+      "bytes": 8,
+      "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, rcx"
-        ],
-        [
           4,
-          "lea\trcx, [rcx - 0x1]"
+          "lea\trax, [rcx - 0x1]"
         ],
         [
           3,
@@ -447,24 +443,20 @@
       ]
     },
     "final": {
-      "bytes": 13,
-      "instructions": 5,
+      "bytes": 10,
+      "instructions": 4,
       "code": [
         [
           3,
-          "xor\trax, rax"
-        ],
-        [
-          3,
-          "sub\trax, rcx"
-        ],
-        [
-          3,
-          "and\trcx, rax"
-        ],
-        [
-          3,
           "mov\trax, rcx"
+        ],
+        [
+          3,
+          "neg\trax"
+        ],
+        [
+          3,
+          "and\trax, rcx"
         ],
         [
           1,
@@ -595,28 +587,16 @@
       ]
     },
     "final": {
-      "bytes": 16,
-      "instructions": 6,
+      "bytes": 8,
+      "instructions": 3,
       "code": [
         [
-          3,
-          "xor\trax, rax"
+          4,
+          "lea\trax, [rcx + rdx]"
         ],
         [
           3,
-          "sub\trax, rcx"
-        ],
-        [
-          3,
-          "xor\trcx, rcx"
-        ],
-        [
-          3,
-          "sub\trcx, rdx"
-        ],
-        [
-          3,
-          "add\trax, rcx"
+          "neg\trax"
         ],
         [
           1,
@@ -667,20 +647,16 @@
       ]
     },
     "final": {
-      "bytes": 11,
-      "instructions": 4,
+      "bytes": 7,
+      "instructions": 3,
       "code": [
         [
           3,
-          "not\trcx"
-        ],
-        [
-          4,
-          "lea\trax, [rcx + rdx]"
+          "sub\trcx, rdx"
         ],
         [
           3,
-          "not\trax"
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -1451,24 +1427,16 @@
       ]
     },
     "final": {
-      "bytes": 10,
-      "instructions": 5,
+      "bytes": 5,
+      "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, rcx"
+          2,
+          "xor\tecx, edx"
         ],
         [
           2,
-          "or\teax, edx"
-        ],
-        [
-          2,
-          "and\tecx, edx"
-        ],
-        [
-          2,
-          "sub\teax, ecx"
+          "mov\teax, ecx"
         ],
         [
           1,
@@ -1519,20 +1487,12 @@
       ]
     },
     "final": {
-      "bytes": 11,
-      "instructions": 4,
+      "bytes": 6,
+      "instructions": 2,
       "code": [
         [
-          2,
-          "mov\teax, edx"
-        ],
-        [
-          3,
-          "mov\tr9d, ecx"
-        ],
-        [
           5,
-          "shlx\teax, r9d, eax"
+          "shlx\teax, ecx, edx"
         ],
         [
           1,

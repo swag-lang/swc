@@ -2,43 +2,49 @@
 
 This ongoing session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
-is merged into local `master`. This checkpoint records build 800 at
-`3a7f0d57b`; iteration continues after it.
+is merged into local `master`. This checkpoint records build 815 at
+`7a1cf7cf7`; iteration continues after it.
 
 ## Machine-code measurements
 
-Matching Swag and C++ scalar functions retain the same three-argument ABI.
+Matching Swag and C++ functions retain the same three-argument layout. Swag
+canonicalizes narrow signed returns to 64 bits, so some signed 32-bit results
+retain an extension that the C++ return convention does not require.
 The reference compiler is clang 21.1.6 with
-`-O2 -target x86_64-pc-windows-msvc`. Counts include RET and exclude alignment
-and runtime functions. Ten-byte MOVABS instructions are counted in full.
+`-O2 -target x86_64-pc-windows-msvc`. Counts include RET and exclude trailing alignment
+and runtime functions. Internal padding before the last RET is retained. Ten-byte MOVABS instructions are counted in full.
 
-The four corpora were introduced at different times. Each has its own baseline;
+The five corpora were introduced at different times. Each has its own baseline;
 percentage reductions must be calculated within that corpus.
 
-| Corpus | Functions | Baseline build | Baseline bytes | Build 800 bytes | LLVM bytes |
+| Corpus | Functions | Baseline build | Baseline bytes | Build 815 bytes | LLVM bytes |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | [Initial](counts.csv) | 51 | 688 | 994 | 540 | 559 |
 | [Additional](additional/counts.csv) | 25 | 740 | 412 | 335 | 346 |
-| [Third](round3/counts.csv) | 32 | 759 | 516 | 424 | 416 |
-| [Fourth](round4/counts.csv) | 32 | 794 | 440 | 392 | 385 |
+| [Third](round3/counts.csv) | 32 | 759 | 516 | 412 | 416 |
+| [Fourth](round4/counts.csv) | 32 | 794 | 440 | 364 | 385 |
+| [Memory and loops](round5/counts.csv) | 16 | 809 | 195 | 172 | 259 |
 
 The initial corpus reduces bytes by 45.7% and instructions from 319 to 191
 (LLVM: 192). Forty-nine functions shrink, two retain their size, and none grows.
 Forty-four now match LLVM's size and seven are smaller. The additional corpus
 also has no remaining larger function: nineteen match and six are smaller.
-The third and fourth corpora retain five and ten larger functions respectively.
+The third, fourth and fifth corpora retain two, four and two larger functions
+respectively.
 No function grows against its own baseline in any of these corpora.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
 IDIV sequence, for example, need not execute faster than a longer multiplication
-sequence. Checkpoint comparisons include concurrent changes integrated from
+sequence. LLVM vectorizes `loadSum4` and `accumulate` in the fifth corpus;
+Swag emits smaller scalar bodies, which does not establish a throughput advantage.
+Checkpoint comparisons include concurrent changes integrated from
 `master`, not only changes authored in this worktree.
 
 Each directory contains matching Swag/C++ inputs, per-instruction assembly,
 CSV/JSON counts, and compiler/artifact hashes in `identity.json`.
 
-| Example | Corpus baseline bytes | Build 800 bytes | LLVM bytes |
+| Example | Corpus baseline bytes | Build 815 bytes | LLVM bytes |
 | --- | ---: | ---: | ---: |
 | `(a & b) | (a & c)` | 25 | 10 | 10 |
 | `a | (a & b)` | 16 | 4 | 4 |
@@ -51,6 +57,14 @@ CSV/JSON counts, and compiler/artifact hashes in `identity.json`.
 | `a != 0 ? ~0 : 0` | 12 | 9 | 9 |
 | 32-bit `(a + b) * (a + b)` | 9 | 7 | 7 |
 | Variable 64-bit rotate | 31 | 9 | 9 |
+| `(a | b) - (a & b)` | 13 | 7 | 7 |
+| Signed absolute-value selection | 14 | 11 | 11 |
+| `a & (a - 1)` | 11 | 8 | 8 |
+| 32-bit `a << (b & 31)` | 11 | 6 | 7 |
+| Indexed signed 16-bit load plus a value | 12 | 9 | 9 |
+| Extract byte 2 from a loaded 64-bit word | 10 | 5 | 5 |
+| Memory comparison selecting a value or zero | 16 | 10 | 10 |
+| Memory bit test selecting one of two values | 14 | 11 | 11 |
 
 ## Changes
 
@@ -58,8 +72,11 @@ The validated batches cover bitwise factoring and cancellation; constant masks
 and selections; integer multiplication and division; direct signed power-of-two
 remainders; address/base differences; width and sign-bit handling; high-byte
 extraction; carry arithmetic; physical copy coalescing; and constant/variable
-rotations. The latest batches remove redundant shift-count masks and narrow
-physical copies when upper bits are proven unnecessary.
+rotations. Later batches simplify negation and complementary sums, forward
+copies into three-operand shifts, fuse signed indexed loads, read narrow memory
+extracts directly, select values after memory comparisons, and emit register or
+memory TEST for dead masked results. Zero initialization uses CFG liveness and
+shorter x64 encodings.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -78,10 +95,11 @@ between arithmetic, widths, flags, calls, branches, loops and register pressure,
 plus selected core, pixel, UTF-8, hashing and crypto consumers. Native regression
 files accompany optimization families under `bin/unittests/native/optimizer`.
 
-Recent broader checks passed all 1,487 JIT tests at build 794, all 742 core tests
-at build 796, and all 3,311 native tests plus the three expected-failure recovery
-probes at build 799. Build 800 then passed three focused files covering shift
-counts, variable rotations and copied 32-bit results.
+Recent broader checks passed all 1,487 JIT tests at build 812, all 742 core tests
+at build 796, and all 3,328 native tests plus the three expected-failure recovery
+probes at build 815. The intervening batches rotated focused files and selected
+consumers, including thirteen core hashtable tests at build 813. Each batch was
+validated before its merge into local master.
 
 The full repository campaign, DevMode compiler and C++ unit tests were not run
 by this worktree during this session. Concurrent contributors performed separate

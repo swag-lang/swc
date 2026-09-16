@@ -15,30 +15,34 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.041 — Close the remaining small scalar code-generation gaps
+### compiler.optimization.041 — Close the remaining small scalar and memory code-generation gaps
 
 - Recorded: 2026-09-16 19:54
-- Updated: 2026-09-16 23:30 — Replaced the remaining leads with the build-800 scalar measurements.
+- Updated: 2026-09-17 00:55 — Replaced resolved scalar leads with the build-815 measurements and added memory examples.
 - Area: compiler/backend, register allocation and instruction selection
-- Evidence: Release Swag 800 and clang 21.1.6 at `-O2` compile matching scalar
+- Evidence: Release Swag 815 and clang 21.1.6 at `-O2` compile matching small
   functions. The [third corpus](../bench/results/generated-code/20260916/round3/counts.csv)
-  retains `absSigned` 14/11 bytes, `bitSelect` 12/11, `bitTimesValue` 12/10,
-  `orMinusAnd` 13/7 and `divideAndRemainder` 31/27 (Swag/LLVM).
+  retains `bitTimesValue` 12/10 bytes and `divideAndRemainder` 31/27 (Swag/LLVM).
   The [fourth corpus](../bench/results/generated-code/20260916/round4/counts.csv)
-  retains `negativeModuloTwo` 19/18, `clearLowestBit` 11/8,
-  `isolateLowestBit` 13/10, `negatedSum` 16/8, `complementSum` 11/7,
-  `orMinusAnd32` 10/5, `shiftMasked32` 11/7, `signedModulo32` 20/16,
+  retains `negativeModuloTwo` 19/18, `signedModulo32` 20/16,
   `signedDivide32` 33/27 and `unsignedModulo32` 37/36.
-- Leads: zero-minus remains a clear/subtract pair; complementary boolean
-  arithmetic and common quotient/remainder terms remain unfactored. Several
-  32-bit forms retain physical copies or missed width reductions. Removing a
-  count mask exposes two copies before 32-bit SHLX; narrowing alone cannot
-  remove them. The absolute-value and bit-selection forms retain extra work.
+  The [memory corpus](../bench/results/generated-code/20260916/round5/counts.csv)
+  retains `loadRepeated` 11/9 and `selectLoad` 15/13.
+- Leads: common quotient/remainder terms remain unfactored. An implicit unit
+  factor in `a*b+a` is not recognized, and folding a repeated memory load into
+  ADD hides its register form. Selecting between adjacent memory elements still
+  uses branches. Investigate both without moving reads across stores or
+  speculating a read from an unselected address.
+- ABI constraint: `ABICall::materializeValueToReturnRegs` canonicalizes signed
+  32-bit results to 64 bits. The three-byte MOVSXD on those returns is required
+  by the current Swag contract; it is not an ordinary dead-copy opportunity.
+  Remaining copies and arithmetic around that extension still need measurement.
 - Next: compare one small rewrite at a time, with varied contextual tests and
   periodic larger regression checks. Inspect source-value, width, flags and ABI
   liveness proofs; never infer physical-register death merely from RET.
-  Distinguish static size from throughput when comparing hardware division
-  against expanded arithmetic. These selected examples are not a workload average.
+  Distinguish static size from throughput for hardware division and for LLVM's
+  vectorized `loadSum4` and `accumulate`. These selected examples are not a
+  workload average, and smaller scalar loops do not establish faster execution.
 - Complete when: each retained gap has a validated reduction or a measured reason
   to keep the existing form, with reproducible inputs and counted machine code.
 

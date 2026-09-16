@@ -93,9 +93,8 @@ clearLowestBit
     lea	rcx, [rcx - 0x1]
     and	rax, rcx
     ret
-  final: 4 instructions, 11 bytes
-    mov	rax, rcx
-    lea	rcx, [rcx - 0x1]
+  final: 3 instructions, 8 bytes
+    lea	rax, [rcx - 0x1]
     and	rax, rcx
     ret
   llvm: 3 instructions, 8 bytes
@@ -110,11 +109,10 @@ isolateLowestBit
     and	rcx, rax
     mov	rax, rcx
     ret
-  final: 5 instructions, 13 bytes
-    xor	rax, rax
-    sub	rax, rcx
-    and	rcx, rax
+  final: 4 instructions, 10 bytes
     mov	rax, rcx
+    neg	rax
+    and	rax, rcx
     ret
   llvm: 4 instructions, 10 bytes
     mov	rax, rcx
@@ -147,12 +145,9 @@ negatedSum
     sub	rcx, rdx
     add	rax, rcx
     ret
-  final: 6 instructions, 16 bytes
-    xor	rax, rax
-    sub	rax, rcx
-    xor	rcx, rcx
-    sub	rcx, rdx
-    add	rax, rcx
+  final: 3 instructions, 8 bytes
+    lea	rax, [rcx + rdx]
+    neg	rax
     ret
   llvm: 3 instructions, 8 bytes
     lea	rax, [rcx + rdx]
@@ -165,10 +160,9 @@ complementSum
     lea	rax, [rcx + rdx]
     not	rax
     ret
-  final: 4 instructions, 11 bytes
-    not	rcx
-    lea	rax, [rcx + rdx]
-    not	rax
+  final: 3 instructions, 7 bytes
+    sub	rcx, rdx
+    mov	rax, rcx
     ret
   llvm: 3 instructions, 7 bytes
     mov	rax, rcx
@@ -361,11 +355,9 @@ orMinusAnd32
     and	ecx, edx
     sub	eax, ecx
     ret
-  final: 5 instructions, 10 bytes
-    mov	rax, rcx
-    or	eax, edx
-    and	ecx, edx
-    sub	eax, ecx
+  final: 3 instructions, 5 bytes
+    xor	ecx, edx
+    mov	eax, ecx
     ret
   llvm: 3 instructions, 5 bytes
     mov	eax, ecx
@@ -378,10 +370,8 @@ shiftMasked32
     mov	eax, ecx
     shlx	eax, eax, edx
     ret
-  final: 4 instructions, 11 bytes
-    mov	eax, edx
-    mov	r9d, ecx
-    shlx	eax, r9d, eax
+  final: 2 instructions, 6 bytes
+    shlx	eax, ecx, edx
     ret
   llvm: 4 instructions, 7 bytes
     mov	eax, ecx

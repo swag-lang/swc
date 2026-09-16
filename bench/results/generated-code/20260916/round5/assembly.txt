@@ -1,0 +1,296 @@
+loadPair
+  baseline: 3 instructions, 8 bytes
+    mov	rax, qword ptr [rcx]
+    add	rax, qword ptr [rcx + 0x8]
+    ret
+  final: 3 instructions, 8 bytes
+    mov	rax, qword ptr [rcx]
+    add	rax, qword ptr [rcx + 0x8]
+    ret
+  llvm: 3 instructions, 8 bytes
+    mov	rax, qword ptr [rcx + 0x8]
+    add	rax, qword ptr [rcx]
+    ret
+
+loadRepeated
+  baseline: 4 instructions, 11 bytes
+    mov	rax, qword ptr [rcx]
+    imul	rax, rdx
+    add	rax, qword ptr [rcx]
+    ret
+  final: 4 instructions, 11 bytes
+    mov	rax, qword ptr [rcx]
+    imul	rax, rdx
+    add	rax, qword ptr [rcx]
+    ret
+  llvm: 3 instructions, 9 bytes
+    lea	rax, [rdx + 0x1]
+    imul	rax, qword ptr [rcx]
+    ret
+
+loadScaled
+  baseline: 3 instructions, 8 bytes
+    mov	rax, qword ptr [rcx + 8*rdx]
+    add	rax, r8
+    ret
+  final: 3 instructions, 8 bytes
+    mov	rax, qword ptr [rcx + 8*rdx]
+    add	rax, r8
+    ret
+  llvm: 3 instructions, 8 bytes
+    mov	rax, r8
+    add	rax, qword ptr [rcx + 8*rdx]
+    ret
+
+loadScaledOffset
+  baseline: 3 instructions, 9 bytes
+    mov	rax, qword ptr [rcx + 8*rdx + 0x18]
+    add	rax, r8
+    ret
+  final: 3 instructions, 9 bytes
+    mov	rax, qword ptr [rcx + 8*rdx + 0x18]
+    add	rax, r8
+    ret
+  llvm: 3 instructions, 9 bytes
+    mov	rax, r8
+    add	rax, qword ptr [rcx + 8*rdx + 0x18]
+    ret
+
+loadNarrow
+  baseline: 3 instructions, 8 bytes
+    movzx	eax, byte ptr [rcx + rdx]
+    add	rax, r8
+    ret
+  final: 3 instructions, 8 bytes
+    movzx	eax, byte ptr [rcx + rdx]
+    add	rax, r8
+    ret
+  llvm: 3 instructions, 8 bytes
+    movzx	eax, byte ptr [rcx + rdx]
+    add	rax, r8
+    ret
+
+loadSigned
+  baseline: 4 instructions, 12 bytes
+    mov	ax, word ptr [rcx + 2*rdx]
+    movsx	rax, ax
+    add	rax, r8
+    ret
+  final: 3 instructions, 9 bytes
+    movsx	rax, word ptr [rcx + 2*rdx]
+    add	rax, r8
+    ret
+  llvm: 3 instructions, 9 bytes
+    movsx	rax, word ptr [rcx + 2*rdx]
+    add	rax, r8
+    ret
+
+maskedLoad
+  baseline: 3 instructions, 7 bytes
+    mov	rax, qword ptr [rcx]
+    movzx	eax, al
+    ret
+  final: 2 instructions, 4 bytes
+    movzx	eax, byte ptr [rcx]
+    ret
+  llvm: 2 instructions, 4 bytes
+    movzx	eax, byte ptr [rcx]
+    ret
+
+shiftedLoad
+  baseline: 4 instructions, 10 bytes
+    mov	rax, qword ptr [rcx]
+    shr	eax, 0x10
+    movzx	eax, al
+    ret
+  final: 2 instructions, 5 bytes
+    movzx	eax, byte ptr [rcx + 0x2]
+    ret
+  llvm: 2 instructions, 5 bytes
+    movzx	eax, byte ptr [rcx + 0x2]
+    ret
+
+selectLoad
+  baseline: 6 instructions, 15 bytes
+    test	rdx, rdx
+    je	0x27ca <select_load+0xa>
+    mov	rax, qword ptr [rcx]
+    jmp	0x27ce <select_load+0xe>
+    mov	rax, qword ptr [rcx + 0x8]
+    ret
+  final: 6 instructions, 15 bytes
+    test	rdx, rdx
+    je	0x262a <select_load+0xa>
+    mov	rax, qword ptr [rcx]
+    jmp	0x262e <select_load+0xe>
+    mov	rax, qword ptr [rcx + 0x8]
+    ret
+  llvm: 5 instructions, 13 bytes
+    xor	eax, eax
+    test	rdx, rdx
+    sete	al
+    mov	rax, qword ptr [rcx + 8*rax]
+    ret
+
+loadCompare
+  baseline: 5 instructions, 16 bytes
+    cmp	qword ptr [rcx], rdx
+    mov	eax, 0x0
+    cmovae	r8, rax
+    mov	rax, r8
+    ret
+  final: 4 instructions, 10 bytes
+    xor	eax, eax
+    cmp	qword ptr [rcx], rdx
+    cmovb	rax, r8
+    ret
+  llvm: 4 instructions, 10 bytes
+    xor	eax, eax
+    cmp	qword ptr [rcx], rdx
+    cmovb	rax, r8
+    ret
+
+loadBit
+  baseline: 5 instructions, 14 bytes
+    mov	rax, qword ptr [rcx]
+    test	al, 0x1
+    cmove	rdx, r8
+    mov	rax, rdx
+    ret
+  final: 4 instructions, 11 bytes
+    test	byte ptr [rcx], 0x1
+    cmove	rdx, r8
+    mov	rax, rdx
+    ret
+  llvm: 4 instructions, 11 bytes
+    test	byte ptr [rcx], 0x1
+    mov	rax, rdx
+    cmove	rax, r8
+    ret
+
+loadSum4
+  baseline: 5 instructions, 16 bytes
+    mov	rax, qword ptr [rcx]
+    add	rax, qword ptr [rcx + 0x8]
+    add	rax, qword ptr [rcx + 0x10]
+    add	rax, qword ptr [rcx + 0x18]
+    ret
+  final: 5 instructions, 16 bytes
+    mov	rax, qword ptr [rcx]
+    add	rax, qword ptr [rcx + 0x8]
+    add	rax, qword ptr [rcx + 0x10]
+    add	rax, qword ptr [rcx + 0x18]
+    ret
+  llvm: 7 instructions, 28 bytes
+    movdqu	xmm0, xmmword ptr [rcx]
+    movdqu	xmm1, xmmword ptr [rcx + 0x10]
+    paddq	xmm1, xmm0
+    pshufd	xmm0, xmm1, 0xee        # xmm0 = xmm1[2,3,2,3]
+    paddq	xmm0, xmm1
+    movq	rax, xmm0
+    ret
+
+storeReload
+  baseline: 3 instructions, 8 bytes
+    mov	qword ptr [rcx], rdx
+    lea	rax, [rdx + r8]
+    ret
+  final: 3 instructions, 8 bytes
+    mov	qword ptr [rcx], rdx
+    lea	rax, [rdx + r8]
+    ret
+  llvm: 3 instructions, 8 bytes
+    mov	qword ptr [rcx], rdx
+    lea	rax, [r8 + rdx]
+    ret
+
+storeNarrow
+  baseline: 4 instructions, 9 bytes
+    mov	byte ptr [rcx], dl
+    movzx	eax, dl
+    add	rax, r8
+    ret
+  final: 4 instructions, 9 bytes
+    mov	byte ptr [rcx], dl
+    movzx	eax, dl
+    add	rax, r8
+    ret
+  llvm: 4 instructions, 9 bytes
+    mov	byte ptr [rcx], dl
+    movzx	eax, dl
+    add	rax, r8
+    ret
+
+updateMemory
+  baseline: 4 instructions, 10 bytes
+    add	qword ptr [rcx], rdx
+    mov	rax, qword ptr [rcx]
+    add	rax, r8
+    ret
+  final: 4 instructions, 10 bytes
+    add	qword ptr [rcx], rdx
+    mov	rax, qword ptr [rcx]
+    add	rax, r8
+    ret
+  llvm: 4 instructions, 11 bytes
+    add	rdx, qword ptr [rcx]
+    mov	qword ptr [rcx], rdx
+    lea	rax, [rdx + r8]
+    ret
+
+accumulate
+  baseline: 11 instructions, 34 bytes
+    mov	rax, rdx
+    mov	r9d, 0x0
+    test	rdx, rdx
+    jbe	0x228e <accumulate+0x1e>
+    mov	rdx, qword ptr [rcx + 8*r9]
+    add	r8, rdx
+    add	r9, 0x1
+    cmp	r9, rax
+    jb	0x227e <accumulate+0xe>
+    mov	rax, r8
+    ret
+  final: 11 instructions, 31 bytes
+    mov	rax, rdx
+    xor	r9d, r9d
+    test	rdx, rdx
+    jbe	0x238b <accumulate+0x1b>
+    mov	rdx, qword ptr [rcx + 8*r9]
+    add	r8, rdx
+    add	r9, 0x1
+    cmp	r9, rax
+    jb	0x237b <accumulate+0xb>
+    mov	rax, r8
+    ret
+  llvm: 30 instructions, 109 bytes
+    mov	rax, r8
+    test	rdx, rdx
+    je	0x16c <accumulate+0x6c>
+    cmp	rdx, 0x4
+    jae	0x113 <accumulate+0x13>
+    xor	r8d, r8d
+    jmp	0x160 <accumulate+0x60>
+    mov	r8, rdx
+    and	r8, -0x4
+    movq	xmm1, rax
+    pxor	xmm0, xmm0
+    xor	eax, eax
+    nop	word ptr cs:[rax + rax]
+    movdqu	xmm2, xmmword ptr [rcx + 8*rax]
+    paddq	xmm1, xmm2
+    movdqu	xmm2, xmmword ptr [rcx + 8*rax + 0x10]
+    paddq	xmm0, xmm2
+    add	rax, 0x4
+    cmp	r8, rax
+    jne	0x130 <accumulate+0x30>
+    paddq	xmm0, xmm1
+    pshufd	xmm1, xmm0, 0xee        # xmm1 = xmm0[2,3,2,3]
+    paddq	xmm1, xmm0
+    movq	rax, xmm1
+    jmp	0x167 <accumulate+0x67>
+    add	rax, qword ptr [rcx + 8*r8]
+    inc	r8
+    cmp	rdx, r8
+    jne	0x160 <accumulate+0x60>
+    ret

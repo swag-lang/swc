@@ -728,15 +728,19 @@ namespace InstructionCombine
             return false;
         }
 
-        // Factor AND over OR/XOR, and OR over AND. Keep the two non-common
+        // Factor bitwise operations and low products over addition/subtraction. Keep the two non-common
         // inputs at their original read positions and move only the common
         // input, after proving that its value survives to the final operation.
-        bool tryFactorBitwiseInputs(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        bool tryFactorCommonInputs(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
         {
-            const MicroOp outer = ops[3].microOp;
-            if (!ctx.ssa || (outer != MicroOp::Xor && outer != MicroOp::Or && outer != MicroOp::And) || !ops[1].reg.isVirtualInt())
+            const MicroOp outer      = ops[3].microOp;
+            const bool    arithmetic = outer == MicroOp::Add || outer == MicroOp::Subtract;
+            if (!ctx.ssa || (!arithmetic && outer != MicroOp::Xor && outer != MicroOp::Or && outer != MicroOp::And) || !ops[1].reg.isVirtualInt())
                 return false;
-            const MicroOp inner = outer == MicroOp::And ? MicroOp::Or : MicroOp::And;
+            const MicroOp inner = arithmetic ? MicroOp::MultiplySigned : outer == MicroOp::And ? MicroOp::Or
+                                                                                               : MicroOp::And;
+            if (arithmetic && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                return false;
             const MicroOpBits bits = ops[2].opBits;
             if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
                 return false;
@@ -963,7 +967,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

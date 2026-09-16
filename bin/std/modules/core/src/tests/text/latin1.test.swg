@@ -108,65 +108,120 @@ using Swag
     Swag.assert(Latin1.trim("") == "")
 }
 
-// Trimming recognizes every Latin-1 spacing byte across packed blocks and
-// preserves the exact first and last non-space byte.
+// Trim complete encoded Latin-1 spaces without consuming another rune's final byte.
 #test
 {
-    const Spaces: [8] u8 = [9, 10, 11, 12, 13, 32, 0x85, 0xA0]
-    var buffer: [96] u8
     for leading in 33
     {
         for trailing in 33
         {
-            for &value in buffer do
-                value[] = 'x'
-            for index in leading do
-                buffer[index] = Spaces[index % Spaces.count]
-            for index in trailing do
-                buffer[buffer.count - index - 1] = Spaces[index % Spaces.count]
-
-            let text    = Swag.makeString(buffer.buffer, buffer.count)
-            let trimmed = Latin1.trim(text)
-            Swag.assert(trimmed.count == buffer.count - leading - trailing)
-            for value in trimmed do
-                Swag.assert(value == 'x')
+            var text: String
+            for leading do
+                text += " \u0085\u00A0\t"
+            text += "\u0105\u0120"
+            for trailing do
+                text += "\u00A0\u0085 \n"
+            Swag.assert(Latin1.trim(text.toString()) == "\u0105\u0120")
         }
     }
 
-    for index in buffer.count do
-        buffer[index] = Spaces[index % Spaces.count]
-    Swag.assert(Latin1.trim(Swag.makeString(buffer.buffer, buffer.count)) == "")
+    Swag.assert(Latin1.trim("\u0120") == "\u0120")
+    Swag.assert(Latin1.trim("\u2003") == "\u2003")
+    Swag.assert(Latin1.trim(" \u0085\u00A0\t") == "")
 }
 
-// Packed casing stays byte-for-byte identical to the scalar tables for the
-// complete Latin-1 domain, including the multiplication and division signs.
+// Encode every Latin-1 code point and put each one across every packed-block alignment.
 #test
 {
-    var original: [256] u8
-    var upper:    [256] u8
-    var lower:    [256] u8
-    for i in 256
+    for prefixSize in 33
     {
-        original[i] = cast(u8) i
-        upper[i]    = cast(u8) i
-        lower[i]    = cast(u8) i
-        Latin1.makeUpper(upper[i until i + 1])
-        Latin1.makeLower(lower[i until i + 1])
+        for code in 256
+        {
+            var expectedUpperCode = code
+            var expectedLowerCode = code
+            if (code >= 0x61 and code <= 0x7A) or (code >= 0xE0 and code <= 0xFE and code != 0xF7) do
+                expectedUpperCode -= 0x20
+            if (code >= 0x41 and code <= 0x5A) or (code >= 0xC0 and code <= 0xDE and code != 0xD7) do
+                expectedLowerCode += 0x20
+
+            var original, expectedUpper, expectedLower: String
+            for prefixSize
+            {
+                original += "a"
+                expectedUpper += "A"
+                expectedLower += "a"
+            }
+
+            original += cast(rune) code
+            expectedUpper += cast(rune) expectedUpperCode
+            expectedLower += cast(rune) expectedLowerCode
+            original += "zABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            expectedUpper += "ZABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            expectedLower += "zabcdefghijklmnopqrstuvwxyz"
+
+            var upper = original
+            var lower = original
+            Latin1.makeUpper(Swag.makeSlice(upper.storage(), upper.count))
+            Latin1.makeLower(Swag.makeSlice(lower.storage(), lower.count))
+            Swag.assert(upper.toString() == expectedUpper.toString())
+            Swag.assert(lower.toString() == expectedLower.toString())
+            Swag.assert(Latin1.compare(upper.toString(), lower.toString(), ignoreCase: true) == 0)
+        }
+    }
+}
+
+// Non-Latin-1 text remains unchanged even when continuation bytes resemble case/space bytes.
+#test
+{
+    for prefixSize in 33
+    {
+        var prefix: String
+        for prefixSize do
+            prefix += "0"
+        let original = Format.toString("%\u0100\u0101\u0120\u0105\u4E01\U0001F600\U0001F62000000000000000000000000000000000", prefix.toString())
+        var upper = original
+        var lower = original
+        Latin1.makeUpper(Swag.makeSlice(upper.storage(), upper.count))
+        Latin1.makeLower(Swag.makeSlice(lower.storage(), lower.count))
+        Swag.assert(upper.toString() == original.toString())
+        Swag.assert(lower.toString() == original.toString())
+    }
+}
+
+// Comparison preserves encoded characters outside the supported Latin-1 case pairs.
+#test
+{
+    for prefixSize in 33
+    {
+        var prefix: String
+        for prefixSize do
+            prefix += "a"
+        let upper = Format.toString("%ABC\u00C0\u00C9\u00DE\u00D7\u0100\U0001F600suffix", prefix.toString())
+        let lower = Format.toString("%abc\u00E0\u00E9\u00FE\u00D7\u0100\U0001F600suffix", prefix.toString())
+        Swag.assert(Latin1.compare(upper.toString(), lower.toString(), ignoreCase: true) == 0)
+        Swag.assert(Latin1.compare(upper.toString(), lower.toString()) == -1)
+        Swag.assert(Latin1.compare(lower.toString(), upper.toString()) == 1)
     }
 
-    var transformed = original
-    Latin1.makeUpper(transformed)
-    Swag.assert(Slice.equals(transformed, upper))
-    transformed = original
-    Latin1.makeLower(transformed)
-    Swag.assert(Slice.equals(transformed, lower))
+    // U+0080 and NBSP are both in Latin-1, but they are not a case pair.
+    Swag.assert(Latin1.compare("\u0080", "\u00A0", ignoreCase: true) == -1)
+    Swag.assert(Latin1.compare("\u00A0", "\u0080", ignoreCase: true) == 1)
+    Swag.assert(Latin1.compare("\u00D7", "\u00F7", ignoreCase: true) == -1)
+    Swag.assert(Latin1.compare("", "", ignoreCase: true) == 0)
+    Swag.assert(Latin1.compare("a", "AB", ignoreCase: true) == -1)
+    Swag.assert(Latin1.compare("AB", "a", ignoreCase: true) == 1)
+}
 
-    Swag.assert(Latin1.compare(upper, lower, ignoreCase: true) == 0)
-    for position in 64
-    {
-        var other = lower
-        other[position] = position ? 0 : 1
-        if Latin1.toLower(upper[position]) != Latin1.toLower(other[position]) do
-            Swag.assert(Latin1.compare(upper, other, ignoreCase: true) != 0)
-    }
+#test
+{
+    Swag.assert(Latin1.compareNatural("Caf\u00E92", "CAF\u00C910", ignoreCase: true) == -1)
+    Swag.assert(Latin1.compareNatural("Caf\u00E92", "CAF\u00C92", ignoreCase: true) == 0)
+    Swag.assert(Latin1.compareNatural("\u0100file2", "\u0120file2", ignoreCase: true) == -1)
+    Swag.assert(Latin1.compareNatural("\u0105", "\u0120", ignoreCase: true) == -1)
+    Swag.assert(Latin1.compareNatural("\u0080", "\u00A0", ignoreCase: true) == 1)
+    Swag.assert(Latin1.compareNatural("file2\u00A0", "file2", ignoreCase: true) == 0)
+    Swag.assert(Latin1.compareNatural(" \u0085\u00A0", "", ignoreCase: true) == 0)
+    Swag.assert(Latin1.compareNatural(" ", "", ignoreCase: true) == 0)
+    Swag.assert(Latin1.compareNatural("", " ", ignoreCase: true) == 0)
+    Swag.assert(Latin1.compareNatural("\u0100", "\u0101", ignoreCase: true) == -1)
 }

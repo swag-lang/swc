@@ -103,6 +103,76 @@ namespace PostRaPeephole
         }
     }
 
+    bool tryFoldLoadIntoNarrowExtract(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.encoder)
+            return false;
+        const auto* load = inst.ops(*ctx.operands);
+        if (!load || !load[0].reg.isInt() || !load[1].reg.isInt() ||
+            load[1].reg.isInstructionPointer() || ctx.isPrivateFrameBase(load[0].reg) ||
+            (load[2].opBits != MicroOpBits::B32 && load[2].opBits != MicroOpBits::B64))
+            return false;
+
+        MicroInstrRef     extRef    = ctx.nextRef(ref);
+        const MicroInstr* ext       = ctx.instruction(extRef);
+        MicroInstrRef     shiftRef  = MicroInstrRef::invalid();
+        uint64_t          shiftBits = 0;
+        uint32_t          extIndex  = ctx.instructionIndex + 1;
+        if (ext && ext->op == MicroInstrOpcode::OpBinaryRegImm)
+        {
+            const auto* shift = ext->ops(*ctx.operands);
+            if (!shift || shift[0].reg != load[0].reg || shift[2].microOp != MicroOp::ShiftRight ||
+                shift[3].hasWideImmediateValue() || shift[3].valueU64 >= getNumBits(shift[1].opBits) ||
+                (shift[3].valueU64 & 7) != 0)
+                return false;
+            shiftBits = shift[3].valueU64;
+            shiftRef  = extRef;
+            extRef    = ctx.nextRef(extRef);
+            ext       = ctx.instruction(extRef);
+            ++extIndex;
+        }
+        if (!ext || ext->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* narrow = ext->ops(*ctx.operands);
+        if (!narrow || narrow[1].reg != load[0].reg || !narrow[0].reg.isInt() || ctx.isPrivateFrameBase(narrow[0].reg) ||
+            (narrow[2].opBits != MicroOpBits::B32 && narrow[2].opBits != MicroOpBits::B64) ||
+            (narrow[3].opBits != MicroOpBits::B8 && narrow[3].opBits != MicroOpBits::B16 && narrow[3].opBits != MicroOpBits::B32) ||
+            getNumBits(narrow[2].opBits) <= getNumBits(narrow[3].opBits) ||
+            shiftBits + getNumBits(narrow[3].opBits) > getNumBits(load[2].opBits))
+            return false;
+        if (shiftRef.isValid())
+        {
+            const auto* shift = ctx.operandsFor(shiftRef);
+            if (shiftBits + getNumBits(narrow[3].opBits) > getNumBits(shift[1].opBits) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, extRef, ctx.builder))
+                return false;
+        }
+        if (narrow[0].reg != load[0].reg && !ctx.isRegDeadAfter(load[0].reg, extIndex))
+            return false;
+
+        // Read the selected bytes at the original load's position. The x64
+        // byte order turns an aligned right shift into a displacement.
+        MicroInstrOperand rewritten[5] = {};
+        rewritten[0]                   = narrow[0];
+        rewritten[1]                   = load[1];
+        rewritten[2]                   = narrow[2];
+        rewritten[3]                   = narrow[3];
+        rewritten[4].valueU64          = load[3].valueU64 + shiftBits / 8;
+        MicroInstr probe               = inst;
+        probe.op                       = MicroInstrOpcode::LoadZeroExtRegMem;
+        probe.numOperands              = 5;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten))
+            return false;
+        if (shiftRef.isValid() ? !ctx.claimAll({ref, shiftRef, extRef}) : !ctx.claimAll({ref, extRef}))
+            return false;
+        ctx.emitRewrite(ref, probe.op, rewritten, true);
+        if (shiftRef.isValid())
+            ctx.emitErase(shiftRef);
+        ctx.emitErase(extRef);
+        return true;
+    }
+
     // Fold an operand's reload into the operation that consumes it.
     //
     // x86 arithmetic can read one operand straight from memory, but the

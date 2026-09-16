@@ -212,6 +212,8 @@ namespace
             case MicroInstrOpcode::LoadRegImm:
             case MicroInstrOpcode::LoadRegPtrImm:
             case MicroInstrOpcode::LoadRegPtrReloc:
+            case MicroInstrOpcode::TestRegReg:
+            case MicroInstrOpcode::TestRegImm:
             case MicroInstrOpcode::CmpRegReg:
             case MicroInstrOpcode::CmpRegImm:
             case MicroInstrOpcode::OpUnaryReg:

@@ -13,6 +13,8 @@ namespace PostRaPeephole
         {
             switch (op)
             {
+                case MicroInstrOpcode::TestRegReg:
+                case MicroInstrOpcode::TestRegImm:
                 case MicroInstrOpcode::CmpRegReg:
                 case MicroInstrOpcode::CmpRegImm:
                 case MicroInstrOpcode::CmpMemReg:
@@ -449,6 +451,51 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A selection between x and -x can use the flags from NEG itself.
+    // At INT_MIN both choices are identical, so NEG overflow does not change
+    // either absolute-value result, including its wrapped negative form.
+    bool tryReuseNegationForSignSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* select = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !select || !select[0].reg.isInt() || !select[1].reg.isInt() ||
+            select[0].reg == select[1].reg || ctx.isPrivateFrameBase(select[0].reg) ||
+            (select[3].opBits != MicroOpBits::B32 && select[3].opBits != MicroOpBits::B64))
+            return false;
+        const MicroCond condition = select[2].cpuCond;
+        if (condition != MicroCond::GreaterOrEqual && condition != MicroCond::Greater &&
+            condition != MicroCond::Less && condition != MicroCond::LessOrEqual)
+            return false;
+        const MicroInstrRef compareRef = ctx.previousRef(ref);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const auto* cmp = compare->ops(*ctx.operands);
+        if (!cmp || cmp[0].reg != select[1].reg || cmp[1].opBits != select[3].opBits ||
+            cmp[2].hasWideImmediateValue() || cmp[2].valueU64 != 0)
+            return false;
+        const MicroInstrRef negateRef = ctx.previousRef(compareRef);
+        const MicroInstr*   negate    = ctx.instruction(negateRef);
+        if (!negate || negate->op != MicroInstrOpcode::OpUnaryReg)
+            return false;
+        const auto* neg = negate->ops(*ctx.operands);
+        if (!neg || neg[0].reg != select[0].reg || neg[1].opBits != select[3].opBits || neg[2].microOp != MicroOp::Negate)
+            return false;
+        const MicroInstrRef copyRef = ctx.previousRef(negateRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copied = copy->ops(*ctx.operands);
+        if (!copied || copied[0].reg != select[0].reg || copied[1].reg != select[1].reg || copied[2].opBits != select[3].opBits ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({copyRef, negateRef, compareRef, ref}))
+            return false;
+        MicroInstrOperand rewritten[4] = {select[0], select[1], select[2], select[3]};
+        rewritten[2].cpuCond           = condition == MicroCond::GreaterOrEqual || condition == MicroCond::Greater ? MicroCond::Sign : MicroCond::Greater;
+        ctx.emitRewrite(ref, inst.op, rewritten);
+        ctx.emitErase(compareRef);
+        return true;
+    }
+
     // A zero-extended byte/word shifted entirely within the low dword needs
     // no 64-bit shift. Keep flags out of the rewrite: SF/OF may differ.
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
@@ -852,6 +899,33 @@ namespace PostRaPeephole
         ctx.emitRewrite(cmpRef, MicroInstrOpcode::ClearReg, clear);
         ctx.emitRewrite(setRef, cmp->op, std::span{cmpOps, cmp->numOperands}, true);
         ctx.emitRewrite(ref, set->op, std::span{setOps, set->numOperands});
+        return true;
+    }
+
+    bool tryUseTestForDeadMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].microOp != MicroOp::And || !ops[0].reg.isInt() ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+            ops[3].hasWideImmediateValue() || ops[3].valueU64 > 0x7F ||
+            ctx.isPrivateFrameBase(ops[0].reg) || !ctx.isRegDeadAfterCurrent(ops[0].reg))
+            return false;
+
+        // With bit 7 clear, both widths produce SF=0 and the same ZF/PF;
+        // AND and TEST also clear CF/OF. No result value survives the mask.
+        MicroInstrOperand test[3] = {};
+        test[0]                   = ops[0];
+        test[1].opBits            = MicroOpBits::B8;
+        test[2]                   = ops[3];
+        MicroInstr probe          = inst;
+        probe.op                  = MicroInstrOpcode::TestRegImm;
+        probe.numOperands         = 3;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, probe, test)) || !ctx.claimAll({ref}))
+            return false;
+        ctx.emitRewrite(ref, probe.op, test);
         return true;
     }
 

@@ -666,7 +666,7 @@ namespace
     void applyRewriteRegImmToRegReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
-        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm || inst.op == MicroInstrOpcode::TestRegImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm);
 
         const MicroInstrOpcode originalOpcode = inst.op;
         const MicroReg         originalReg    = ops[0].reg;
@@ -682,7 +682,7 @@ namespace
             immOperand = ops[3];
         else if (originalOpcode == MicroInstrOpcode::OpBinaryMemImm)
             immOperand = ops[4];
-        else if (originalOpcode == MicroInstrOpcode::CmpRegImm)
+        else if (originalOpcode == MicroInstrOpcode::CmpRegImm || originalOpcode == MicroInstrOpcode::TestRegImm)
             immOperand = ops[2];
         else
             immOperand = ops[3];
@@ -703,6 +703,14 @@ namespace
         else if (originalOpcode == MicroInstrOpcode::OpBinaryMemImm)
         {
             insertBinaryMemReg(context, instRef, originalReg, originalOffset, scratchReg, originalOp, opBits);
+        }
+        else if (originalOpcode == MicroInstrOpcode::TestRegImm)
+        {
+            MicroInstrOperand test[3] = {};
+            test[0].reg               = originalReg;
+            test[1].reg               = scratchReg;
+            test[2].opBits            = opBits;
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::TestRegReg, test);
         }
         else if (originalOpcode == MicroInstrOpcode::CmpRegImm)
         {

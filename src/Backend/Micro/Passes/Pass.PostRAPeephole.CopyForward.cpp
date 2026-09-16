@@ -348,6 +348,54 @@ namespace PostRaPeephole
         return true;
     }
 
+    // MOV d,s; LEA s,[s+k]; d op= s can compute the address in d instead.
+    // Commutativity preserves the final operation's value and flags; liveness
+    // must prove that the old address result in s has no remaining reader.
+    bool tryFoldCommutativeAddressCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef addressRef = ctx.nextRef(ref);
+        const MicroInstr*   address    = ctx.instruction(addressRef);
+        if (!address || address->op != MicroInstrOpcode::LoadAddrRegMem)
+            return false;
+        const auto* lea = address->ops(*ctx.operands);
+        if (!lea || lea[0].reg != copy[1].reg || (lea[1].reg != copy[0].reg && lea[1].reg != copy[1].reg) ||
+            lea[2].opBits != copy[2].opBits)
+            return false;
+        const MicroInstrRef binaryRef = ctx.nextRef(addressRef);
+        const MicroInstr*   binary    = ctx.instruction(binaryRef);
+        if (!binary || binary->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* ops = binary->ops(*ctx.operands);
+        if (!ops || ops[0].reg != copy[0].reg || ops[1].reg != copy[1].reg || ops[2].opBits != copy[2].opBits)
+            return false;
+        switch (ops[3].microOp)
+        {
+            case MicroOp::Add:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+            case MicroOp::MultiplySigned:
+                break;
+            default:
+                return false;
+        }
+        const MicroInstrUseDef useDef = binary->collectUseDef(*ctx.operands, ctx.encoder);
+        if (useDef.defs.size() != 1 || useDef.defs[0] != copy[0].reg || !ctx.isRegDeadAfter(copy[1].reg, ctx.instructionIndex + 2))
+            return false;
+        MicroInstrOperand     rewritten[4] = {copy[0], copy[1], lea[2], lea[3]};
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *address, rewritten)) || !ctx.claimAll({ref, addressRef, binaryRef}))
+            return false;
+        ctx.emitRewrite(ref, address->op, rewritten, true);
+        ctx.emitErase(addressRef);
+        return true;
+    }
+
     // A commutative result copied over its other input can be produced there
     // directly. The old destination must be dead, including along CFG successors.
     bool tryCommuteBinaryResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
@@ -717,21 +765,22 @@ namespace PostRaPeephole
             observed.push_back(nextRef);
             const bool extends        = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
             const bool conditional    = next->op == MicroInstrOpcode::LoadCondRegReg;
-            const bool compareRegs    = next->op == MicroInstrOpcode::CmpRegReg;
-            const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm;
+            const bool compareRegs    = next->op == MicroInstrOpcode::CmpRegReg || next->op == MicroInstrOpcode::TestRegReg;
+            const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm || next->op == MicroInstrOpcode::TestRegImm;
             const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
             // An exchange writes its second operand too: renaming it would
             // swap a different register (a parallel-move cycle at a loop edge
             // then leaves a value in the wrong register).
             const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg && next->ops(*ctx.operands)[3].microOp != MicroOp::Exchange;
-            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary)
+            const bool three  = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
+            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary || three)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)
                     return false;
-                const uint32_t widthOperand = extends || conditional ? 3 : compareImm ? 1
-                                                                                      : 2;
+                const uint32_t widthOperand = extends || conditional || three ? 3 : compareImm ? 1
+                                                                                               : 2;
                 // Address inputs use the full pointer width even when the
                 // address result is requested in a narrower destination.
                 const MicroOpBits readBits = address ? MicroOpBits::B64 : ops[widthOperand].opBits;
@@ -741,8 +790,8 @@ namespace PostRaPeephole
                     std::ranges::copy(std::span{ops, next->numOperands}, rewritten);
                     bool           changed      = false;
                     const uint32_t firstOperand = compareRegs || compareImm ? 0 : 1;
-                    const uint32_t lastOperand  = indexedAddress ? 2 : compareImm ? 0
-                                                                                  : 1;
+                    const uint32_t lastOperand  = indexedAddress || three ? 2 : compareImm ? 0
+                                                                                           : 1;
                     for (uint32_t i = firstOperand; i <= lastOperand; ++i)
                     {
                         if (rewritten[i].reg == copyOps[0].reg)

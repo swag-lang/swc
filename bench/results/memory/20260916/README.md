@@ -106,3 +106,5 @@ ratios are 1.010 (devmode) and 0.970 (release); CPU ratios are 1.024 and 0.990. 
 ratios are 0.996 and 1.011, committed-memory ratios 0.985 and 0.998. Concurrent activity still
 causes large outliers. This fixes correctness; it is not a claimed performance improvement.
 [Every sample, including the outliers](method-reloc-ab.json).
+Integration with master `ecd10b479` uses build 706. Both compiler builds and the
+1,487-test DevMode-compiler JIT release suite passed again.

@@ -138,18 +138,30 @@ namespace PostRaPeephole
         if (!next || ctx.isClaimed(nextRef))
             return false;
         const bool extends = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
-        if (!extends && next->op != MicroInstrOpcode::OpBinaryRegReg)
+        const bool compareRegs = next->op == MicroInstrOpcode::CmpRegReg;
+        const bool compareImm  = next->op == MicroInstrOpcode::CmpRegImm;
+        if (!extends && !compareRegs && !compareImm && next->op != MicroInstrOpcode::OpBinaryRegReg)
             return false;
         const MicroInstrOperand* ops = next->ops(*ctx.operands);
-        if (!ops || ops[1].reg != copyOps[0].reg || !ops[0].reg.isInt())
+        if (!ops || !ops[0].reg.isInt())
             return false;
-        const MicroOpBits readBits = ops[extends ? 3 : 2].opBits;
+        const MicroOpBits readBits = ops[extends ? 3 : compareImm ? 1 : 2].opBits;
         if (getNumBits(readBits) > getNumBits(copyOps[2].opBits))
             return false;
 
         MicroInstrOperand rewritten[4];
-        std::ranges::copy(std::span{ops, 4}, rewritten);
-        rewritten[1].reg = copyOps[1].reg;
+        std::ranges::copy(std::span{ops, next->numOperands}, rewritten);
+        bool changed = false;
+        for (uint32_t i = compareRegs || compareImm ? 0 : 1; i <= (compareImm ? 0u : 1u); ++i)
+        {
+            if (rewritten[i].reg == copyOps[0].reg)
+            {
+                rewritten[i].reg = copyOps[1].reg;
+                changed = true;
+            }
+        }
+        if (!changed)
+            return false;
         if (ctx.encoder)
         {
             MicroConformanceIssue issue;
@@ -158,7 +170,7 @@ namespace PostRaPeephole
         }
         if (!ctx.claimAll({copyRef, nextRef}))
             return false;
-        ctx.emitRewrite(nextRef, next->op, rewritten);
+        ctx.emitRewrite(nextRef, next->op, std::span{rewritten, next->numOperands});
         return true;
     }
 

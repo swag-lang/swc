@@ -48,8 +48,11 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertZeroSelect);
+        r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetUnaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerAdd);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopySource);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseRedundantCopy);
@@ -67,7 +70,7 @@ namespace
         const PatternRegistry& reg   = registry();
         const auto             view  = ctx.storage->view();
         const auto             endIt = view.end();
-        for (auto it = view.begin(); it != endIt; ++it)
+        for (auto it = view.begin(); it != endIt; ++it, ++ctx.instructionIndex)
         {
             for (const PatternFn fn : reg.patternsFor(it->op))
             {
@@ -85,6 +88,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
 
     Context         ctx;
     const CallConv& conv = CallConv::get(context.callConvKind);
+    ctx.passContext      = &context;
     ctx.storage          = context.instructions;
     ctx.operands         = context.operands;
     ctx.encoder          = context.encoder;

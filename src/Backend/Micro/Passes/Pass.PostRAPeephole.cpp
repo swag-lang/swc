@@ -40,6 +40,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);

@@ -51,7 +51,7 @@ impl TextRead
             }
 
             .error = Errors.message(readError)
-            if cast #try (*Errors.InvalidFormatError) readError == null
+            if not (readError is Errors.InvalidFormatError)
             {
                 .failed = true
                 return

@@ -977,12 +977,12 @@ impl PropWnd
                 label = it.sliderBox.label
             elif it.comboBox != null
             {
-                if let ctrl = cast #try (*ComboCtrl) it.comboBox.parent do
+                if it.comboBox.parent is ComboCtrl as ctrl do
                     label = ctrl.label
             }
             elif it.editBox != null
             {
-                if let ctrl = cast #try (*EditCtrl) it.editBox.parent do
+                if it.editBox.parent is EditCtrl as ctrl do
                     label = ctrl.label
             }
 
@@ -1001,12 +1001,12 @@ impl PropWnd
             }
             elif it.comboBox != null
             {
-                if let ctrl = cast #try (*ComboCtrl) it.comboBox.parent do
+                if it.comboBox.parent is ComboCtrl as ctrl do
                     ctrl.setLayoutMetrics(width, ctrl.comboWidth, ctrl.spacing)
             }
             elif it.editBox != null
             {
-                if let ctrl = cast #try (*EditCtrl) it.editBox.parent do
+                if it.editBox.parent is EditCtrl as ctrl do
                     ctrl.setLayoutMetrics(width, ctrl.editWidth, ctrl.spacing)
             }
         }

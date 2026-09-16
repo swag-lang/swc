@@ -9,16 +9,16 @@ impl IDynamicField for NestedDynamicField {}
 
 func borrowNestedDynamicField(view: IDynamicField)->*s32?
 {
-    if let value = cast #try (*NestedDynamicField) view do
+    if view is NestedDynamicField as value do
         return &value.inner.value
     return null
 }
 
 func borrowDynamicField(view: IDynamicField)->*s32?
 {
-    switch
+    switch view
     {
-    case let value = cast #try (*DynamicField) view:
+    case DynamicField as value:
         return &value.value
     }
     return null

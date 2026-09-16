@@ -697,9 +697,9 @@ private impl EditBox
 
             if res == .Valid
             {
-                if cast #try (*Errors.ParseIncompleteError) parseErr != null do
+                if parseErr is Errors.ParseIncompleteError do
                     res = .Incomplete
-                elif cast #try (*Errors.OverflowError) parseErr != null do
+                elif parseErr is Errors.OverflowError do
                     res = .InvalidVisible
                 elif parseErr != null or eat != (.textStorage).count do
                     res = .InvalidSilent

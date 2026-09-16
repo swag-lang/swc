@@ -71,15 +71,15 @@ struct AnyCompareType {}
 #test
 {
     var x: any = 6
-    Swag.assert(cast #try (*s32) x != null)
-    Swag.assert(cast #try (*bool) x == null)
+    Swag.assert(x is s32)
+    Swag.assert(not (x is bool))
 
     x = "string"
-    Swag.assert(cast #try (*string) x != null)
-    Swag.assert(cast #try (*s32) x == null)
+    Swag.assert(x is string)
+    Swag.assert(not (x is s32))
 
     x = AnyCompareType{}
-    Swag.assert(cast #try (*AnyCompareType) x != null)
+    Swag.assert(x is AnyCompareType)
 }
 
 #test

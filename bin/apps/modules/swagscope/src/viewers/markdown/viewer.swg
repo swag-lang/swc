@@ -317,9 +317,9 @@ func createMarkdownViewer(host: Viewer.Host)
     view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(wnd, evt)
     {
         discard wnd
-        switch
+        switch evt
         {
-        case let key = cast #try (*KeyEvent) evt where key.kind == .Pressed and key.modifiers.has(.Control):
+        case KeyEvent as key where key.kind == .Pressed and key.modifiers.has(.Control):
             switch key.key
             {
             case .Add, .OemPlus:       zoomButton.applyZoom(zoomButton.zoomPercent + 25)
@@ -330,14 +330,14 @@ func createMarkdownViewer(host: Viewer.Host)
 
             return true
 
-        case let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
+        case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
             if mouse.delta.y > 0 do
                 zoomButton.applyZoom(zoomButton.zoomPercent + 25)
             elif mouse.delta.y < 0 do
                 zoomButton.applyZoom(zoomButton.zoomPercent > 50 ? zoomButton.zoomPercent - 25 : 50)
             return true
 
-        case let notification = cast #try (*NotifyEvent) evt where notification.kind == .LanguageChanged:
+        case NotifyEvent as notification where notification.kind == .LanguageChanged:
             let widthIndex = widthCombo.selectedIndex
             let themeIndex = themeCombo.selectedIndex
             widthCombo.clear()

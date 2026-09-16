@@ -200,9 +200,9 @@ single callback keeps this example local.
 */
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch
+    switch evt
     {
-    case cast #try (*CreateEvent) evt != null:
+    case CreateEvent:
         g_Rect = wnd.clientRect()
 
         // 'loadAssets' can fail. 'expect' converts that recoverable error into a
@@ -211,10 +211,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         start()
 
-    case cast #try (*ResizeEvent) evt != null:
+    case ResizeEvent:
         g_Rect = wnd.clientRect()
 
-    case let paintEvt = cast #try (*PaintEvent) evt:
+    case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
 
         // Elapsed time since the previous frame, in seconds.

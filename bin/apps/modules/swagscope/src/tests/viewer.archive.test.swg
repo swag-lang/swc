@@ -191,7 +191,7 @@ private func writeZipFixture()->String
     discard expect File.writeAllBytes(archiveFile, bytes.toSlice())
 
     discard catch loadZipArchive(archiveFile) as archiveError
-    Swag.assert((cast #try (*Errors.UnsupportedFormatError) archiveError != null))
+    Swag.assert((archiveError is Errors.UnsupportedFormatError))
 }
 
 // A changed payload cannot cross the archive boundary under a stale central-directory checksum.
@@ -207,7 +207,7 @@ private func writeZipFixture()->String
     let output  = Gui.Testing.tempFilePath("scope-archive-crc-entry-", ".txt")
     defer discard catch File.delete(output)
     catch extractZipEntry(archiveFile, &archive.entries[1], output) as extractError
-    Swag.assert((cast #try (*Errors.InvalidFormatError) extractError != null))
+    Swag.assert((extractError is Errors.InvalidFormatError))
 }
 
 // The integrated viewer builds synthetic folders and hosts the selected entry with the ordinary

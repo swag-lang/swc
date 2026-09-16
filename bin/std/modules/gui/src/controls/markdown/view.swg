@@ -1181,7 +1181,7 @@ impl View
             discard wnd
 
             // Modified wheel gestures belong to the document host, before the viewport scrolls.
-            if let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
+            if evt is MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
             {
                 view.processEvent(evt)
                 if mouse.accepted do
@@ -1189,7 +1189,7 @@ impl View
                 mouse.accepted = true
             }
 
-            if let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Wheel and not mouse.modifiers.has(.Shift)
+            if evt is MouseEvent as mouse where mouse.kind == .Wheel and not mouse.modifiers.has(.Shift)
             {
                 let position = view.scroll.scrollPosition()
                 var target   = view.scroll.scrollTarget()
@@ -1206,7 +1206,7 @@ impl View
                 return true
             }
 
-            if let resize = cast #try (*ResizeEvent) evt
+            if evt is ResizeEvent as resize
             {
                 // ScrollWnd also sends this event when its virtual content size changes.
                 // Appending source must not remeasure every resident block, including HTML.

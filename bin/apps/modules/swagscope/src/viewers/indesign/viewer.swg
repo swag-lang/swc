@@ -1276,13 +1276,13 @@ internal impl IndesignViewer
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            switch
+            switch evt
             {
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .G and keyEvt.modifiers == .Control:
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .G and keyEvt.modifiers == .Control:
                 view.promptGoToPage()
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where view.isMarkup() and keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
+            case KeyEvent as keyEvt where view.isMarkup() and keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
                 switch keyEvt.key
                 {
                 case .Left, .PageUp:

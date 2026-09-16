@@ -640,6 +640,7 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& view)
 
 Result SemaCheck::prepareBoolExprValue(Sema& sema, SemaNodeView& view)
 {
+    SWC_RESULT(typePattern(sema, view.nodeRef()));
     SWC_RESULT(isValueOrTypeInfo(sema, view));
     SWC_RESULT(normalizeTypeInfoValueIfNeeded(sema, view));
 
@@ -686,6 +687,9 @@ Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef varDeclRef)
         declRef = decls.front();
     }
 
+    if (const auto* decl = sema.node(declRef).safeCast<AstSingleVarDecl>())
+        SWC_RESULT(typePattern(sema, decl->nodeInitRef, true));
+
     const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
     const Symbol*      sym      = declView.singleSymbol();
     if (!sym)
@@ -704,6 +708,27 @@ Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef varDeclRef)
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeBool());
     diag.report(sema.ctx());
     return Result::Error;
+}
+
+Result SemaCheck::typePattern(Sema& sema, AstNodeRef exprRef, bool binding)
+{
+    if (exprRef.isInvalid())
+        return Result::Continue;
+    while (const auto* paren = sema.node(exprRef).safeCast<AstParenExpr>())
+        exprRef = paren->nodeExprRef;
+    const AstNode& node     = sema.node(exprRef);
+    const auto*    cast     = node.safeCast<AstCastExpr>();
+    const auto*    autoCast = node.safeCast<AstAutoCastExpr>();
+    if (!(cast && cast->modifierFlags.has(AstModifierFlagsE::Try)) &&
+        !(autoCast && autoCast->modifierFlags.has(AstModifierFlagsE::Try)))
+        return Result::Continue;
+
+    // Patterns lower to casts too; their source token remains 'is'. Only a
+    // user-written cast used directly as a test needs the canonical spelling.
+    const TokenId token = sema.compiler().srcView(node.srcViewRef()).token(node.tokRef()).id;
+    if (token == TokenId::KwdIs)
+        return Result::Continue;
+    return SemaError::raise(sema, binding ? DiagnosticId::sema_err_dynamic_cast_binding : DiagnosticId::sema_err_dynamic_cast_test, exprRef);
 }
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)

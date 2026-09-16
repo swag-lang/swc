@@ -397,11 +397,11 @@ const SwitchPointerValues = [11, 22, 33]
 {
     func switchAnyString(x: any)->s32
     {
-        switch
+        switch x
         {
-        case cast #try (*string) x != null:
+        case string:
             return 1
-        case cast #try (*s32) x != null:
+        case s32:
             return 2
         default:
             return 0
@@ -420,13 +420,13 @@ const SwitchPointerValues = [11, 22, 33]
 {
     func switchAnyMultiType(x: any)->s32
     {
-        switch
+        switch x
         {
-        case cast #try (*bool) x != null:
+        case bool:
             return 10
-        case cast #try (*f64) x != null:
+        case f64:
             return 20
-        case cast #try (*s32) x != null:
+        case s32:
             return 30
         default:
             return 0
@@ -447,11 +447,11 @@ const SwitchPointerValues = [11, 22, 33]
 {
     func switchAnyUsingBase(x: any)->s32
     {
-        switch
+        switch x
         {
-        case cast #try (*SwitchAnyBase) x != null:
+        case SwitchAnyBase:
             return 1
-        case cast #try (*s32) x != null:
+        case s32:
             return 2
         default:
             return 0
@@ -466,9 +466,9 @@ const SwitchPointerValues = [11, 22, 33]
 {
     func switchAnyUsingBaseBinding(x: any)->s32
     {
-        switch
+        switch x
         {
-        case let ptr = cast #try (*SwitchAnyBase) x:
+        case SwitchAnyBase as ptr:
             return ptr.value
         default:
             return 0
@@ -483,9 +483,9 @@ const SwitchPointerValues = [11, 22, 33]
 {
     func switchAnyStringBinding(x: any)->bool
     {
-        switch
+        switch x
         {
-        case let str = cast #try (*string) x:
+        case string as str:
             return str[] == "value"
         default:
             return false

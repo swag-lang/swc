@@ -38,9 +38,9 @@ impl IConstrainedDynamicValue for RejectedDynamicValue
 #test
 {
     var value: RejectedDynamicValue
-    #assert(cast #try(IConstrainedDynamicValue) RejectedDynamicValue == null)
+    #assert(not (RejectedDynamicValue is IConstrainedDynamicValue))
     let boxed: any = &value
-    Swag.assert(cast #try(IConstrainedDynamicValue) boxed == null)
+    Swag.assert(not (boxed is IConstrainedDynamicValue))
 }
 
 struct(T) GenericConstrainedDynamicValue
@@ -65,9 +65,9 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
     Swag.assert(converted.value() == 42)
 
     var rejected = GenericConstrainedDynamicValue's64{42}
-    #assert(cast #try(IConstrainedDynamicValue) GenericConstrainedDynamicValue's64 == null)
+    #assert(not (GenericConstrainedDynamicValue's64 is IConstrainedDynamicValue))
     let boxedRejected: any = &rejected
-    Swag.assert(cast #try(IConstrainedDynamicValue) boxedRejected == null)
+    Swag.assert(not (boxedRejected is IConstrainedDynamicValue))
 }
 
 #test

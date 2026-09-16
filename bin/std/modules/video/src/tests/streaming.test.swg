@@ -153,7 +153,7 @@ func barsAssertFrame(frame: Image, index: u64)
     barsAssertFrame(frame, 256)
 
     discard catch reader.decodeFrame(BarsFrameCount) as pastEnd
-    Swag.assert((cast #try (*BadParameterError) pastEnd != null))
+    Swag.assert((pastEnd is BadParameterError))
 }
 
 // The same stream read from memory decodes to the same frames as read from the file: only the
@@ -263,5 +263,5 @@ const HoleFrameCount = 600'u64
     videoAssertGray(frame.pixelColor(HoleWidth - 1, HoleHeight - 1), videoLumaToGray(200))
 
     discard catch reader.decodeFrame(HoleFrameCount / 2) as holeError
-    Swag.assert((cast #try (*InvalidFormatError) holeError != null))
+    Swag.assert((holeError is InvalidFormatError))
 }

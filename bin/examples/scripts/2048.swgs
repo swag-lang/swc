@@ -310,15 +310,15 @@ func keyboard(wnd: *Wnd)
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch
+    switch evt
     {
-    case cast #try (*CreateEvent) evt != null:
+    case CreateEvent:
         g_Font      = wnd.theme().createDefaultFont(50)
         g_LabelFont = wnd.theme().createDefaultFont(25)
         randValue()
         randValue()
 
-    case let paintEvt = cast #try (*PaintEvent) evt:
+    case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         let rect    = wnd.clientRect()
 

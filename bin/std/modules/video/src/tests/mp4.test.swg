@@ -128,7 +128,7 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64
 {
     let fixture = expect File.readAllBytes(videoFixturePath("ffmpeg-mjpeg.mp4").toString())
     discard catch Reader.openMemory("short.mp4", fixture.toSlice()[0 until 96]) as truncated
-    Swag.assert((cast #try (*InvalidFormatError) truncated != null))
+    Swag.assert((truncated is InvalidFormatError))
 
     var unsupported = fixture
     let descriptor  = mp4FindTag(unsupported.toSlice(), "esds")
@@ -139,7 +139,7 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64
     unsupported[objectType] = 0x21
 
     discard catch Reader.openMemory("h264.mp4", unsupported.toSlice()) as codec
-    Swag.assert((cast #try (*UnsupportedFormatError) codec != null))
+    Swag.assert((codec is UnsupportedFormatError))
 }
 
 // A file-backed MP4 exposes its AAC-LC access units as a streamed std/audio track and keeps

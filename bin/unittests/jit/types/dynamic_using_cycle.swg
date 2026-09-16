@@ -6,10 +6,10 @@ struct Unrelated { value: s32 }
 struct CycleLeaf { value: s32 = 42 }
 struct CycleHolder { using cycle: *Cycle; using leaf: CycleLeaf }
 
-func query(target, source: typeinfo)->bool => cast #try(target) source != null
+func query(target, source: typeinfo)->bool => source is target
 
-#assert(cast #try(Unrelated) Cycle == null)
-#assert(cast #try(CycleLeaf) CycleHolder != null)
+#assert(not (Cycle is Unrelated))
+#assert(CycleHolder is CycleLeaf)
 
 #test
 {
@@ -18,7 +18,7 @@ func query(target, source: typeinfo)->bool => cast #try(target) source != null
     first.next  = &second
     second.next = &first
     let boxed: any = &first
-    Swag.assert(cast #try(*Unrelated) boxed == null)
+    Swag.assert(not (boxed is Unrelated))
     Swag.assert(cast #try(*Cycle) boxed == &first)
     Swag.assert(not query(Unrelated, Cycle))
 }
@@ -28,7 +28,7 @@ func query(target, source: typeinfo)->bool => cast #try(target) source != null
     var node: Cycle
     node.next = &node
     let boxed: any = &node
-    Swag.assert(cast #try(*Unrelated) boxed == null)
+    Swag.assert(not (boxed is Unrelated))
 }
 
 #test

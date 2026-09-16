@@ -439,9 +439,9 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
 
 func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
-    switch
+    switch evt
     {
-    case let paintEvt = cast #try (*PaintEvent) evt:
+    case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         let rect    = view.clientRect()
         painter.fillRect(rect, view.themeColors().view_Bk)
@@ -589,12 +589,12 @@ func layoutRootView()
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
-    switch
+    switch evt
     {
-    case cast #try (*ResizeEvent) evt != null:
+    case ResizeEvent:
         layoutRootView()
 
-    case cast #try (*DestroyEvent) evt != null:
+    case DestroyEvent:
         app.sigFrame.disable()
         g_Surface      = null
         g_View         = null

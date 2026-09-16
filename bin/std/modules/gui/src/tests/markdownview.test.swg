@@ -181,7 +181,7 @@ using Swag, Core
     view.hookOnEvent = func|count = &commands|(wnd, evt)
     {
         discard wnd
-        if let paint = cast #try (*PaintEvent) evt where paint.kind == .After do
+        if evt is PaintEvent as paint where paint.kind == .After do
             count[] = paint.paintContext.painter.commandBuffer.count
         return false
     }
@@ -1565,7 +1565,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     first.hookOnEvent = func|count = &resizes|(wnd, evt)
     {
         discard wnd
-        if cast #try (*ResizeEvent) evt != null do
+        if evt is ResizeEvent do
             count[] += 1
         return false
     }
@@ -1573,7 +1573,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     html.hookOnEvent = func|count = &resizes|(wnd, evt)
     {
         discard wnd
-        if cast #try (*ResizeEvent) evt != null do
+        if evt is ResizeEvent do
             count[] += 1
         return false
     }

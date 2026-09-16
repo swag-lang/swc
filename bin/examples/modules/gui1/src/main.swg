@@ -19,7 +19,7 @@ func centerButton(view: *Wnd)
 
 func onEvent(view: *Wnd, evt: IEvent)->bool
 {
-    if cast #try (*ResizeEvent) evt != null do
+    if evt is ResizeEvent do
         centerButton(view)
 
     return false

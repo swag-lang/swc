@@ -121,7 +121,7 @@ impl ParallelFailure
         if not data do
             Swag.panic("cannot allocate a parallel loop error", #curlocation)
         Swag.memcpy(data, error.buffer, cast(u64) type.sizeof)
-        if let info = cast #try(const *TypeInfoStruct) type
+        if type is TypeInfoStruct as info
         {
             if info.opPostCopy do
                 info.opPostCopy(data)

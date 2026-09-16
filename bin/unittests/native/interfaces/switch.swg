@@ -32,15 +32,15 @@ impl IEvent for KeyEvent {}
 
 func dispatchEvent(evt: IEvent)->s32
 {
-    switch
+    switch evt
     {
-    case let ptr = cast #try (*MouseWheelEvent) evt where ptr.delta == 3:
+    case MouseWheelEvent as ptr where ptr.delta == 3:
         return ptr.code + ptr.button + ptr.delta
-    case let ptr = cast #try (*MouseEvent) evt where ptr.button == 2:
+    case MouseEvent as ptr where ptr.button == 2:
         return ptr.code + ptr.button
-    case let ptr = cast #try (*KeyEvent) evt:
+    case KeyEvent as ptr:
         return ptr.code + ptr.key
-    case let ptr = cast #try (*EventBase) evt:
+    case EventBase as ptr:
         return ptr.code
     default:
         return -1
@@ -51,9 +51,9 @@ func classifyEvent(evt: IEvent)->s32
 {
     switch
     {
-    case cast #try (*MouseWheelEvent) evt != null or cast #try (*MouseEvent) evt != null:
+    case evt is MouseWheelEvent or evt is MouseEvent:
         return 1
-    case cast #try (*KeyEvent) evt != null or cast #try (*EventBase) evt != null:
+    case evt is KeyEvent or evt is EventBase:
         return 2
     default:
         return -1
@@ -62,11 +62,11 @@ func classifyEvent(evt: IEvent)->s32
 
 func fallbackAfterWhere(evt: IEvent)->s32
 {
-    switch
+    switch evt
     {
-    case let ptr = cast #try (*EventBase) evt where ptr.code == 99:
+    case EventBase as ptr where ptr.code == 99:
         return -99
-    case let ptr = cast #try (*EventBase) evt:
+    case EventBase as ptr:
         return ptr.code
     default:
         return -1
@@ -75,9 +75,9 @@ func fallbackAfterWhere(evt: IEvent)->s32
 
 func explicitCastOriginalAfterDynamicCase(evt: IEvent)->s32
 {
-    switch
+    switch evt
     {
-    case let ptr = cast #try (*MouseEvent) evt where ptr.button == 2:
+    case MouseEvent as ptr where ptr.button == 2:
         let typed = cast #assume (*MouseEvent) evt
         return typed.code + typed.button
     default:
@@ -87,11 +87,11 @@ func explicitCastOriginalAfterDynamicCase(evt: IEvent)->s32
 
 func fallthroughToBase(evt: IEvent)->s32
 {
-    switch
+    switch evt
     {
-    case let ptr = cast #try (*MouseEvent) evt where ptr.button == 2:
+    case MouseEvent as ptr where ptr.button == 2:
         fallthrough
-    case let ptr = cast #try (*EventBase) evt:
+    case EventBase as ptr:
         return ptr.code
     default:
         return -1
@@ -100,9 +100,9 @@ func fallthroughToBase(evt: IEvent)->s32
 
 func classifyNil(evt: IEvent?)->s32
 {
-    switch
+    switch evt
     {
-    case cast #try (*EventBase) evt != null:
+    case EventBase:
         return 1
     default:
         return 0

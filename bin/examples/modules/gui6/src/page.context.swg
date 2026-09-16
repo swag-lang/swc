@@ -31,17 +31,17 @@ func showContextMenuAt(pt: Math.Point)
 
 func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
 {
-    if let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Accept
+    if evt is MouseEvent as mouse where mouse.kind == .Accept
     {
         mouse.accepted = true
         return true
     }
-    elif let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Released and mouse.button == .Right
+    elif evt is MouseEvent as mouse where mouse.kind == .Released and mouse.button == .Right
     {
         showContextMenuAt(mouse.surfacePos)
         return true
     }
-    elif let paintEvt = cast #try (*PaintEvent) evt
+    elif evt is PaintEvent as paintEvt
     {
         let painter   = paintEvt.paintContext.painter
         let rect      = view.clientRect()

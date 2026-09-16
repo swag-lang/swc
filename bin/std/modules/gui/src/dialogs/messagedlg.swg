@@ -365,7 +365,7 @@ public impl MessageDlg
         // unconditionally, the separator left an empty line the box still had to be tall
         // enough to hold.
         var txt: String = String.from(message)
-        if let sysErr = cast #try (const *Swag.SystemError) err
+        if err is Swag.SystemError as sysErr
         {
             if not txt.isEmpty() do
                 txt += "\n\n"

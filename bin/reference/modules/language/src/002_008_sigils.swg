@@ -280,7 +280,7 @@ clearly than disabling overflow checks for a file.
 # Contextual Keywords Are Different
 
 'cast' is the common conversion expression. Its '#try' modifier returns a nullable
-view for a dynamic conversion; testing that view against 'null' tests compatibility.
+view for a dynamic conversion. Use 'value is T' to test compatibility directly.
 Its '#assume' modifier asserts compatibility and checks that assertion when dynamic
 cast safety is enabled. A compile-time expression such as
 `T is IFoo` can constrain a generic declaration with 'where'.

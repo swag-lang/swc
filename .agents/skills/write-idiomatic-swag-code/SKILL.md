@@ -328,6 +328,8 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 - Use `switch value` with `case T` or `case T as name`, optionally guarded by `where`,
   for dynamic dispatch over `any`, interfaces, or pointers to dynamic structs. Concrete
   bindings are pointers; interface bindings are views. Both preserve source constness.
+- Direct `cast #try` conditional bindings, boolean conversions, and comparisons with
+  `null` are rejected. Use `is` or a typed case for those forms.
 - Use `cast #try (*T) value` when the nullable conversion result is itself needed.
   It shares type compatibility, pointer adjustment, and borrowing rules with patterns.
 - Use `cast #assume (T) boxed` or `cast #assume (*T) value` only when the concrete type

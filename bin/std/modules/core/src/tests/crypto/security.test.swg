@@ -66,7 +66,7 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
     }
 
     discard catch Crypto.pbkdf2HmacSha256(password, salt, 0, partial) as err
-    Swag.assert((cast #try (*Errors.BadParameterError) err != null))
+    Swag.assert((err is Errors.BadParameterError))
 }
 
 #test

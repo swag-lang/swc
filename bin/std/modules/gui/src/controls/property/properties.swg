@@ -373,7 +373,7 @@ internal impl Properties
             }
             elif pointed == Core.String and (item.comboBox != null) do
                 .refreshFontName(item)
-            elif let typeStruct = cast #try(const *Swag.TypeInfoStruct) pointed
+            elif pointed is Swag.TypeInfoStruct as typeStruct
             {
                 if typeStruct.fromGeneric == Array do
                     .refreshArray(item)

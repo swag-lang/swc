@@ -1637,6 +1637,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castFromIndirectValue(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isAlias())
         res = castAllowed(sema, castRequest, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
+    else if (srcType.isAny() && dstType.isBool() && castRequest.kind == CastKind::BoolExpr)
+        res = castToBool(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isAny())
         res = castFromAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAlias())

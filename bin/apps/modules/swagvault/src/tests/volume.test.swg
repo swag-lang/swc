@@ -1125,9 +1125,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     {
         if err == null do
             return false
-        switch
+        switch err
         {
-        case let volumeError = cast #try (*Error) err: return volumeError.kind == .WriteProtected
+        case Error as volumeError: return volumeError.kind == .WriteProtected
         }
 
         return false

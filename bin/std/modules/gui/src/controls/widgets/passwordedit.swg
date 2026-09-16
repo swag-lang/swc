@@ -105,7 +105,7 @@ private impl PasswordEdit
 
     mtd handleRevealEvent(wnd: *Wnd, evt: IEvent)->bool
     {
-        if let mouse = cast #try (*MouseEvent) evt
+        if evt is MouseEvent as mouse
         {
             switch mouse.kind
             {
@@ -211,9 +211,9 @@ private impl PasswordEdit
     mtd handleEditEvent(wnd: *Wnd, evt: IEvent)->bool
     {
         discard wnd
-        switch
+        switch evt
         {
-        case let key = cast #try (*KeyEvent) evt:
+        case KeyEvent as key:
             if .isRevealed
             {
                 key.accepted = true
@@ -265,11 +265,11 @@ impl IWnd for PasswordEdit
     // Restores masking if input capture or keyboard focus ends elsewhere.
     mtd impl onHookEvent(evt: IEvent)
     {
-        if let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Released and mouse.button == .Left
+        if evt is MouseEvent as mouse where mouse.kind == .Released and mouse.button == .Left
         {
             .setRevealed(false)
         }
-        elif let focus = cast #try (*FocusEvent) evt where focus.kind == .Lost
+        elif evt is FocusEvent as focus where focus.kind == .Lost
         {
             .setRevealed(false)
         }

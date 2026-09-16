@@ -24,8 +24,8 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
     // No viewport, no editable field, and no stop the keyboard traversal could land on.
     for wnd in tree
     {
-        Swag.assert(cast #try (*ScrollWnd) wnd == null)
-        Swag.assert(cast #try (*RichEditCtrl) wnd == null)
+        Swag.assert(not (wnd is ScrollWnd))
+        Swag.assert(not (wnd is RichEditCtrl))
         Swag.assert(wnd.focusPolicy == FocusPolicy.None)
     }
 

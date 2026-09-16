@@ -28,7 +28,7 @@ func failCopied() fail
 #test
 {
     catch failCopied() as serialError
-    Swag.assert(serialError != null and (cast #try (*CopiedLoopFailure) serialError != null))
+    Swag.assert(serialError != null and (serialError is CopiedLoopFailure))
     let serialGeneration = (cast #assume(const *CopiedLoopFailure) serialError).generation
     for &drops in copiedErrorDrops do
         drops.store(0)
@@ -37,7 +37,7 @@ func failCopied() fail
     {
         try failCopied()
     } as error
-    Swag.assert(error != null and (cast #try (*CopiedLoopFailure) error != null))
+    Swag.assert(error != null and (error is CopiedLoopFailure))
     let generation = (cast #assume(const *CopiedLoopFailure) error).generation
     Swag.assert(generation == serialGeneration + 2)
     Swag.assert(copiedErrorDrops[serialGeneration + 1].load() == 1)
@@ -74,7 +74,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
     Swag.assert(unwound.load() == 0)
 
     catch fillFallible(values, 128, &unwound) as error
-    Swag.assert(error != null and (cast #try (*LoopFailure) error != null))
+    Swag.assert(error != null and (error is LoopFailure))
     let detail = cast #assume(const *LoopFailure) error
     Swag.assert(detail.index == 128)
     for slot in 32 do
@@ -102,7 +102,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         defer #fail finished.add(1)
         try failAt(index)
     } as error
-    Swag.assert(error != null and (cast #try (*LoopFailure) error != null))
+    Swag.assert(error != null and (error is LoopFailure))
     Swag.assert(active.load() == 0 and finished.load() > 0)
     let detail = cast #assume(const *LoopFailure) error
     Swag.assert(detail.index < 1024)
@@ -142,7 +142,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         }
     } as error
     Swag.assert(active.load() == 0)
-    Swag.assert(error != null and (cast #try (*LoopFailure) error != null))
+    Swag.assert(error != null and (error is LoopFailure))
     let detail = cast #assume(const *LoopFailure) error
     Swag.assert(detail.index < 64 and detail.index % 8 == 3)
 }
@@ -162,7 +162,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
                     if index == 128 do
                         try failAt(row * 1000 + index)
                 } as error
-                if error != null and (cast #try (*LoopFailure) error != null) do
+                if error != null and (error is LoopFailure) do
                     results[row] = (cast #assume(const *LoopFailure) error).index
             })
         }

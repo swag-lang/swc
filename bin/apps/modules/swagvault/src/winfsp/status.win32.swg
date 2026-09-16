@@ -29,7 +29,7 @@ namespace WinFsp
 
     func statusFromError(err: any?, fallback = StatusIoDeviceError)->s32
     {
-        if let error = cast #try(*Error) err
+        if err is Error as error
         {
             switch error.kind
             {

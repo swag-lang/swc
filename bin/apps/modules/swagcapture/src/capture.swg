@@ -360,41 +360,41 @@ impl CaptureClipboardForm
 {
     mtd add(itf: IForm)
     {
-        switch
+        switch itf
         {
-        case let form = cast #try (*FormArrow) itf:
+        case FormArrow as form:
             .kind  = .Arrow
             .arrow = form[]
 
-        case let form = cast #try (*FormDraw) itf:
+        case FormDraw as form:
             .kind = .Draw
             .draw = form[]
 
-        case let form = cast #try (*FormImage) itf:
+        case FormImage as form:
             .kind  = .Image
             .image = form[]
 
-        case let form = cast #try (*FormLine) itf:
+        case FormLine as form:
             .kind = .Line
             .line = form[]
 
-        case let form = cast #try (*FormPolygon) itf:
+        case FormPolygon as form:
             .kind    = .Polygon
             .polygon = form[]
 
-        case let form = cast #try (*FormShape) itf:
+        case FormShape as form:
             .kind  = .Shape
             .shape = form[]
 
-        case let form = cast #try (*FormStep) itf:
+        case FormStep as form:
             .kind = .Step
             .step = form[]
 
-        case let form = cast #try (*FormText) itf:
+        case FormText as form:
             .kind = .Text
             .text = form[]
 
-        case let form = cast #try (*FormCallout) itf:
+        case FormCallout as form:
             .kind    = .Callout
             .callout = form[]
 
@@ -1802,9 +1802,9 @@ impl Capture
             let autoSel = .selection.contains(i) or f.buffer == editForm.buffer
             let form    = cast #assume (*BaseForm) f
 
-            switch
+            switch f
             {
-            case let form2 = cast #try (*FormLine) f:
+            case FormLine as form2:
                 if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
                     arrX.add(cast(s32) form2.xa)
                 if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
@@ -1816,7 +1816,7 @@ impl Capture
                     arrY.add(cast(s32) form2.yb)
                 }
 
-            case let form2 = cast #try (*FormPolygon) f:
+            case FormPolygon as form2:
                 for pt, idx in form2.points
                 {
                     if not autoSel or idx != idxPt
@@ -1826,7 +1826,7 @@ impl Capture
                     }
                 }
 
-            case cast #try (*FormDraw) f != null:
+            case FormDraw:
                 if autoSel do
                     continue
                 let boundR = f.boundRect()

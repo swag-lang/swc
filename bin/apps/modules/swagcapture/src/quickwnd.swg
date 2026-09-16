@@ -173,11 +173,11 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     var result: QuickStylePaintForm
     result.itf = paintItf
 
-    switch
+    switch paintItf
     {
-    case let poly = cast #try (*FormPolygon) paintItf: poly.setDefaultShape()
-    case let poly = cast #try (*FormDraw) paintItf:    poly.setDefaultShape()
-    case let txt = cast #try (*FormText) paintItf:     txt.text = "A"
+    case FormPolygon as poly: poly.setDefaultShape()
+    case FormDraw as poly:    poly.setDefaultShape()
+    case FormText as txt:     txt.text = "A"
     }
 
     paintItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)

@@ -15,39 +15,39 @@ impl IRuntimeTarget for RuntimeTargetChild
 
 func compatible(target, source: typeinfo)->bool
 {
-    return cast #try(target) source != null
+    return source is target
 }
 
-func compatibleS32(source: typeinfo)->bool       => cast #try(s32) source != null
-func compatibleInterface(source: typeinfo)->bool => cast #try(IRuntimeTarget) source != null
+func compatibleS32(source: typeinfo)->bool       => source is s32
+func compatibleInterface(source: typeinfo)->bool => source is IRuntimeTarget
 
 alias RuntimeTargetInteger       = s32
 #[Swag.Strict]
 alias RuntimeTargetStrictInteger = s32
 enum RuntimeTargetCode: s32 { Success }
 
-#assert(cast #try(s32) s32 != null)
-#assert(cast #try(s64) s32 == null)
-#assert(cast #try(s32) RuntimeTargetInteger != null)
-#assert(cast #try(s32) RuntimeTargetStrictInteger == null)
-#assert(cast #try(RuntimeTargetStrictInteger) RuntimeTargetStrictInteger != null)
-#assert(cast #try(s32) RuntimeTargetCode == null)
-#assert(cast #try(RuntimeTargetCode) RuntimeTargetCode != null)
-#assert(cast #try(*RuntimeTargetBase) #type *RuntimeTargetChild != null)
-#assert(cast #try(*RuntimeTargetBase) #type *RuntimeTargetWrapper != null)
-#assert(cast #try(*void) #type *RuntimeTargetChild == null)
-#assert(cast #try(IRuntimeTarget) RuntimeTargetGreatGrandchild != null)
-#assert(cast #try(IRuntimeTarget) RuntimeTargetReadOnly == null)
-#assert(cast #try(const IRuntimeTarget) RuntimeTargetReadOnly != null)
-#assert(cast #try(*RuntimeTargetBase) #type *RuntimeTargetReadOnly == null)
-#assert(cast #try(const *RuntimeTargetBase) #type *RuntimeTargetReadOnly != null)
+#assert(s32 is s32)
+#assert(not (s32 is s64))
+#assert(RuntimeTargetInteger is s32)
+#assert(not (RuntimeTargetStrictInteger is s32))
+#assert(RuntimeTargetStrictInteger is RuntimeTargetStrictInteger)
+#assert(not (RuntimeTargetCode is s32))
+#assert(RuntimeTargetCode is RuntimeTargetCode)
+#assert(#type *RuntimeTargetChild is *RuntimeTargetBase)
+#assert(#type *RuntimeTargetWrapper is *RuntimeTargetBase)
+#assert(not (#type *RuntimeTargetChild is *void))
+#assert(RuntimeTargetGreatGrandchild is IRuntimeTarget)
+#assert(not (RuntimeTargetReadOnly is IRuntimeTarget))
+#assert(RuntimeTargetReadOnly is const IRuntimeTarget)
+#assert(not (#type *RuntimeTargetReadOnly is *RuntimeTargetBase))
+#assert(#type *RuntimeTargetReadOnly is const *RuntimeTargetBase)
 
 const RuntimeS32: typeinfo = s32
 const RuntimeS64: typeinfo = s64
-#assert(cast #try(RuntimeS32) s32 != null)
-#assert(cast #try(RuntimeS64) s32 == null)
-#assert(cast #try(RuntimeS32) RuntimeS32 != null)
-#assert(cast #try(RuntimeS64) RuntimeS32 == null)
+#assert(s32 is RuntimeS32)
+#assert(not (s32 is RuntimeS64))
+#assert(RuntimeS32 is RuntimeS32)
+#assert(not (RuntimeS32 is RuntimeS64))
 
 #test
 {
@@ -78,7 +78,7 @@ const RuntimeS64: typeinfo = s64
 func readRuntimeTarget(target: typeinfo, source: any)->s32
 {
     let view = cast #try(target) source
-    if let object = cast #try(*RuntimeTargetBase) view do
+    if view is RuntimeTargetBase as object do
         return object.value
     return -1
 }
@@ -106,8 +106,9 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     fake.name     = "s32"
     fake.sizeof   = 4
     let target: typeinfo = &fake
-    var value = 42's32
-    Swag.assert(cast #try(target) value == null)
+    var value            = 42's32
+    let castResult1      = cast #try(target) value
+    Swag.assert(castResult1 == null)
     Swag.assert(not compatible(target, s32))
 }
 
@@ -116,7 +117,8 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     var copy = (cast #assume(const *Swag.TypeInfoNative) s32)[]
     let target: typeinfo = &copy
     Swag.assert(not compatible(target, s32))
-    Swag.assert(cast #try(target) 42's32 == null)
+    let castResult2 = cast #try(target) 42's32
+    Swag.assert(castResult2 == null)
 }
 
 func runtimeTargetType()->typeinfo => RuntimeTargetBase
@@ -124,6 +126,15 @@ func runtimeTargetType()->typeinfo => RuntimeTargetBase
 #test
 {
     var value: RuntimeTargetChild
+    Swag.assert(&value is runtimeTargetType())
+    Swag.assert(RuntimeTargetChild is runtimeTargetType())
+    var zero = 0's32
+    let integerTarget: typeinfo = s32
+    Swag.assert(&zero is integerTarget)
+    var falseValue = false
+    let boolTarget: typeinfo = bool
+    Swag.assert(&falseValue is boolTarget)
+    Swag.assert(not (cast #assume(bool) (cast #try(boolTarget) &falseValue)))
     let fromCall = cast #try(runtimeTargetType()) &value
     Swag.assert(cast #try(*RuntimeTargetBase) fromCall == &value.base)
 
@@ -131,7 +142,8 @@ func runtimeTargetType()->typeinfo => RuntimeTargetBase
     let view = cast #try(target) &value
     Swag.assert(view != null)
     Swag.assert(cast #try(const *RuntimeTargetChild) view == &value)
-    Swag.assert(cast #try(*RuntimeTargetChild) view == null)
+    let castResult3 = cast #try(*RuntimeTargetChild) view
+    Swag.assert(castResult3 == null)
     let itf = cast #try(const IRuntimeTarget) view
     Swag.assert(itf != null)
     Swag.assert(itf.read() == 42)

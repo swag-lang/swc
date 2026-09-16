@@ -7,7 +7,7 @@ func __dropErr(err: any?)
     if err == null do
         return
     let data = err.buffer
-    if let type = cast #try(const *Swag.TypeInfoStruct) Swag.kindOf(err)
+    if Swag.kindOf(err) is Swag.TypeInfoStruct as type
     {
         if type.opDrop do
             type.opDrop(data)
@@ -16,7 +16,7 @@ func __dropErr(err: any?)
 
 func __setErrRaw(data: *void, type: typeinfo)
 {
-    if let native = cast #try(const *Swag.TypeInfoNative) type where native.nativeKind == .Any
+    if type is Swag.TypeInfoNative as native where native.nativeKind == .Any
     {
         __setErr((cast(const *any) data)[])
         return
@@ -35,7 +35,7 @@ func __setErrRaw(data: *void, type: typeinfo)
 
     let ptr = cxt.errorAllocator.alloc(cast(u64) type.sizeof)
     Swag.memcpy(ptr, data, cast(u64) type.sizeof)
-    if let info = cast #try(const *Swag.TypeInfoStruct) type
+    if type is Swag.TypeInfoStruct as info
     {
         if info.opPostCopy do
             info.opPostCopy(ptr)
@@ -170,7 +170,7 @@ func __failedExpect(loc: SourceCodeLocation)
     str[len] = ']'
     len      += 1
 
-    if let typeStruct = cast #try(const *Swag.TypeInfoStruct) type
+    if type is Swag.TypeInfoStruct as typeStruct
     {
         let fields = typeStruct.fields
         if (fields != null and fields.count > 0 and fields[0].pointedType == Swag.BaseError) or

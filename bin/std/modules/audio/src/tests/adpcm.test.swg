@@ -90,5 +90,5 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
 #test
 {
     discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as err
-    Swag.assert((cast #try (*Errors.InvalidFormatError) err != null))
+    Swag.assert((err is Errors.InvalidFormatError))
 }

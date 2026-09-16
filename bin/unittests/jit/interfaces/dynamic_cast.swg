@@ -35,9 +35,9 @@ func runDynamicStructCast()->bool
     let derivedPtr = &derived
     let asMid      = cast #try (*Mid) derivedPtr
     let asBase     = cast #try (*Base) derivedPtr
-    if not (cast #try (*Derived) derivedPtr != null) or not (cast #try (*Mid) derivedPtr != null) or not (cast #try (*Base) derivedPtr != null) do
+    if not (derivedPtr is Derived) or not (derivedPtr is Mid) or not (derivedPtr is Base) do
         return false
-    if (cast #try (*PointerWrapper) derivedPtr != null) do
+    if (derivedPtr is PointerWrapper) do
         return false
     if asMid == null or asBase == null do
         return false
@@ -48,14 +48,14 @@ func runDynamicStructCast()->bool
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
     let wrappedBase = cast #try (*Base) wrapperPtr
-    if not (cast #try (*Base) wrapperPtr != null) or wrappedBase != &base do
+    if not (wrapperPtr is Base) or wrappedBase != &base do
         return false
 
     let itf: INode = derived
     let itfBase    = cast #try (*Base) itf
-    if not (cast #try (*Derived) itf != null) or not (cast #try (*Mid) itf != null) or not (cast #try (*Base) itf != null) do
+    if not (itf is Derived) or not (itf is Mid) or not (itf is Base) do
         return false
-    if (cast #try (*PointerWrapper) itf != null) do
+    if (itf is PointerWrapper) do
         return false
     if itf.buffer == null do
         return false
@@ -64,17 +64,17 @@ func runDynamicStructCast()->bool
 
     let dyn: any = derived
     let dynBase  = cast #try (*Base) dyn
-    if not (cast #try (*Derived) dyn != null) or not (cast #try (*Base) dyn != null) do
+    if not (dyn is Derived) or not (dyn is Base) do
         return false
-    if (cast #try (*PointerWrapper) dyn != null) do
+    if (dyn is PointerWrapper) do
         return false
     if dynBase == null or dynBase.value != 10 do
         return false
 
     let notStruct: any = 33
-    if (cast #try (*Base) notStruct != null) do
+    if (notStruct is Base) do
         return false
-    if cast #try (*Base) notStruct != null do
+    if notStruct is Base do
         return false
 
     return true
@@ -91,9 +91,9 @@ func runRuntimeTargetCasts()->bool
     var number  = 45
     var derived = Derived{}
 
-    if cast #try(baseType) derivedType == null or cast #try(midType) derivedType == null or cast #try(intType) s32 == null do
+    if not (derivedType is baseType) or not (derivedType is midType) or not (s32 is intType) do
         return false
-    if cast #try(stringType) intType != null do
+    if intType is stringType do
         return false
 
     let intView = cast #try(intType) &number
@@ -109,7 +109,7 @@ func runRuntimeTargetCasts()->bool
     if intPtr == null or intPtr != &number or intPtr[] != 45 do
         return false
     let boolType: typeinfo = bool
-    if cast #try(boolType) &number != null do
+    if &number is boolType do
         return false
     if basePtr != &derived.mid.base do
         return false

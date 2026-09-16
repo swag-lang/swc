@@ -114,9 +114,9 @@ func updateBall(wnd: *Wnd)
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch
+    switch evt
     {
-    case cast #try (*CreateEvent) evt != null:
+    case CreateEvent:
         g_Rect = wnd.clientRect()
         g_Font = wnd.theme().createDefaultFont(30)
         resetBall()
@@ -124,12 +124,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         g_PaddleLeft.pos.y  = g_Rect.vertCenter() - PaddleHeight * 0.5
         g_PaddleRight.pos.y = g_Rect.vertCenter() - PaddleHeight * 0.5
 
-    case cast #try (*ResizeEvent) evt != null:
+    case ResizeEvent:
         g_Rect = wnd.clientRect()
         g_PaddleLeft.pos.x  = BallRadius + PaddleWidth
         g_PaddleRight.pos.x = g_Rect.right() - BallRadius - PaddleWidth
 
-    case let paintEvt = cast #try (*PaintEvent) evt:
+    case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
 
         updatePaddles(wnd)

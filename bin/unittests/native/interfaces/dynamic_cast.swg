@@ -42,9 +42,9 @@ func runRuntimeTargetCasts()->bool
     var number  = 45
     var derived = Derived{}
 
-    if cast #try(baseType) derivedType == null or cast #try(midType) derivedType == null or cast #try(intType) s32 == null do
+    if not (derivedType is baseType) or not (derivedType is midType) or not (s32 is intType) do
         return false
-    if cast #try(stringType) intType != null do
+    if intType is stringType do
         return false
 
     let intView = cast #try(intType) &number
@@ -66,7 +66,7 @@ func runRuntimeTargetCasts()->bool
     if intPtr == null or intPtr != &number or intPtr[] != 45 do
         return false
     let boolType: typeinfo = bool
-    if cast #try(boolType) &number != null do
+    if &number is boolType do
         return false
     if basePtr != &derived.mid.base do
         return false
@@ -83,10 +83,10 @@ func runRuntimeTargetCasts()->bool
     let derivedPtr = &derived
     let asMid      = cast #try (*Mid) derivedPtr
     let asBase     = cast #try (*Base) derivedPtr
-    Swag.assert((cast #try (*Derived) derivedPtr != null))
-    Swag.assert((cast #try (*Mid) derivedPtr != null))
-    Swag.assert((cast #try (*Base) derivedPtr != null))
-    Swag.assert(not (cast #try (*PointerWrapper) derivedPtr != null))
+    Swag.assert((derivedPtr is Derived))
+    Swag.assert((derivedPtr is Mid))
+    Swag.assert((derivedPtr is Base))
+    Swag.assert(not (derivedPtr is PointerWrapper))
     Swag.assert(asMid == &derived.mid)
     Swag.assert(asBase == &derived.mid.base)
 
@@ -94,30 +94,30 @@ func runRuntimeTargetCasts()->bool
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
     let wrappedBase = cast #try (*Base) wrapperPtr
-    Swag.assert((cast #try (*Base) wrapperPtr != null))
+    Swag.assert((wrapperPtr is Base))
     Swag.assert(wrappedBase == &base)
 
     let itf: INode = derived
     let itfBase    = cast #try (*Base) itf
-    Swag.assert((cast #try (*Derived) itf != null))
-    Swag.assert((cast #try (*Mid) itf != null))
-    Swag.assert((cast #try (*Base) itf != null))
-    Swag.assert(not (cast #try (*PointerWrapper) itf != null))
+    Swag.assert((itf is Derived))
+    Swag.assert((itf is Mid))
+    Swag.assert((itf is Base))
+    Swag.assert(not (itf is PointerWrapper))
     Swag.assert(itf.buffer != null)
     Swag.assert(itfBase != null)
     Swag.assert(itfBase.value == 10)
 
     let dyn: any = derived
     let dynBase  = cast #try (*Base) dyn
-    Swag.assert((cast #try (*Derived) dyn != null))
-    Swag.assert((cast #try (*Base) dyn != null))
-    Swag.assert(not (cast #try (*PointerWrapper) dyn != null))
+    Swag.assert((dyn is Derived))
+    Swag.assert((dyn is Base))
+    Swag.assert(not (dyn is PointerWrapper))
     Swag.assert(dynBase != null)
     Swag.assert(dynBase.value == 10)
 
     let notStruct: any = 33
-    Swag.assert(not (cast #try (*Base) notStruct != null))
-    Swag.assert(cast #try (*Base) notStruct == null)
+    Swag.assert(not (notStruct is Base))
+    Swag.assert(not (notStruct is Base))
 }
 
 #test

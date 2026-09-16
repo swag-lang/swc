@@ -54,11 +54,11 @@ func semaTest005()
 func semaTest006()
 {
     var x: any = 6
-    Swag.assert(cast #try(*s32) x != null)
-    Swag.assert(cast #try(*bool) x == null)
+    Swag.assert(x is s32)
+    Swag.assert(not (x is bool))
 
     x = AnyCompareType{}
-    Swag.assert(cast #try(*AnyCompareType) x != null)
+    Swag.assert(x is AnyCompareType)
 }
 
 func acceptNullableStringFromAny(value: string?)

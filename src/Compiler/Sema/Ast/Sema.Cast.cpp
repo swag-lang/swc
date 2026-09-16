@@ -99,6 +99,9 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView srcTypeView  = sema.viewTypeConstant(nodeExprRef);
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
+    if (nodeTypeView.type() && nodeTypeView.type()->isBool() && !modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
+        SWC_RESULT(SemaCheck::typePattern(sema, nodeExprRef));
+
     // Value-check
     if (!modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
         SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
@@ -188,7 +191,9 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         sema.setFoldedTypedConst(sema.curNodeRef());
 
     SemaNodeView view = sema.curViewNodeTypeConstant();
-    SWC_RESULT(Cast::cast(sema, view, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
+    // The generated outer cast of 'is' tests presence, including a runtime target's any?.
+    const CastKind castKind = nodeTypeView.type()->isBool() && sema.token(codeRef()).id == TokenId::KwdIs ? CastKind::BoolExpr : CastKind::Explicit;
+    SWC_RESULT(Cast::cast(sema, view, nodeTypeView.typeRef(), castKind, castFlags));
     sema.setIsValue(*this);
 
     const SemaNodeView dstView                     = sema.curViewNodeTypeConstant();

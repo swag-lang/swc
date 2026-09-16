@@ -312,14 +312,16 @@ asserts that some case matches, with a panic on a miss when `.Switch` safety is 
 
 An expressionless switch also accepts `case let name = expression`. It evaluates
 the expression once and enters the case if its result is present. This general
-binding remains useful for nullable results that are not dynamic type casts.
+binding remains useful for nullable results from ordinary expressions. A direct
+`cast #try` initializer is rejected; use a typed switch for dynamic dispatch.
 */
 #test
 {
-    let value: any = "value"
+    func findText(value: *string?)->*string? => value
+    var value = "value"
     switch
     {
-    case let text = cast #try (*string) value where text[] == "value": Swag.assert(text[] == "value")
+    case let text = findText(&value) where text[] == "value": Swag.assert(text[] == "value")
     default: Swag.assert(false)
     }
 }

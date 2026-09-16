@@ -364,71 +364,71 @@ impl IWnd for Wnd
     // Routes each concrete event to the corresponding typed callback.
     mtd impl onEvent(evt: IEvent)
     {
-        switch
+        switch evt
         {
-        case let ptr = cast #try (*CreateEvent) evt:
+        case CreateEvent as ptr:
             .itf.onCreateEvent(ptr)
 
-        case let ptr = cast #try (*DestroyEvent) evt:
+        case DestroyEvent as ptr:
             .itf.onDestroyEvent(ptr)
 
-        case let ptr = cast #try (*StateEvent) evt:
+        case StateEvent as ptr:
             .itf.onStateEvent(ptr)
 
-        case let ptr = cast #try (*ResizeEvent) evt:
+        case ResizeEvent as ptr:
             .itf.onResizeEvent(ptr)
 
-        case let ptr = cast #try (*PaintEvent) evt where ptr.kind == .Before:
+        case PaintEvent as ptr where ptr.kind == .Before:
             .itf.onBeforePaint(ptr)
 
-        case let ptr = cast #try (*PaintEvent) evt where ptr.kind == .Content:
+        case PaintEvent as ptr where ptr.kind == .Content:
             .itf.onPaint(ptr)
 
-        case let ptr = cast #try (*PaintEvent) evt where ptr.kind == .After:
+        case PaintEvent as ptr where ptr.kind == .After:
             .itf.onAfterPaint(ptr)
 
-        case let ptr = cast #try (*SysCommandEvent) evt:
+        case SysCommandEvent as ptr:
             .itf.onSysCommandEvent(ptr)
 
-        case let ptr = cast #try (*SysUserEvent) evt:
+        case SysUserEvent as ptr:
             .itf.onSysUserEvent(ptr)
 
-        case let ptr = cast #try (*KeyEvent) evt:
+        case KeyEvent as ptr:
             .itf.onKeyEvent(ptr)
 
-        case let ptr = cast #try (*MouseEvent) evt where ptr.kind != .Accept:
+        case MouseEvent as ptr where ptr.kind != .Accept:
             .itf.onMouseEvent(ptr)
 
-        case let ptr = cast #try (*DragDropEvent) evt:
+        case DragDropEvent as ptr:
             .itf.onDragDropEvent(ptr)
 
-        case let ptr = cast #try (*ThemeEvent) evt:
+        case ThemeEvent as ptr:
             .itf.onThemeEvent(ptr)
 
-        case let ptr = cast #try (*TimerEvent) evt:
+        case TimerEvent as ptr:
             .itf.onTimerEvent(ptr)
 
-        case let ptr = cast #try (*FocusEvent) evt:
+        case FocusEvent as ptr:
             .itf.onFocusEvent(ptr)
 
-        case let ptr = cast #try (*CommandEvent) evt:
+        case CommandEvent as ptr:
             if not .executeAction(ptr) do
                 .itf.onCommandEvent(ptr)
 
-        case let ptr = cast #try (*CommandStateEvent) evt where ptr.kind == .Compute:
+        case CommandStateEvent as ptr where ptr.kind == .Compute:
             if not .updateAction(ptr) do
                 .itf.onComputeStateEvent(ptr)
 
-        case let ptr = cast #try (*CommandStateEvent) evt where ptr.kind == .Apply:
+        case CommandStateEvent as ptr where ptr.kind == .Apply:
             .itf.onApplyStateEvent(ptr)
 
-        case let ptr = cast #try (*FrameEvent) evt:
+        case FrameEvent as ptr:
             .itf.onFrameEvent(ptr)
 
-        case let ptr = cast #try (*SerializeStateEvent) evt:
+        case SerializeStateEvent as ptr:
             .itf.onSerializeStateEvent(ptr)
 
-        case let ptr = cast #try (*NotifyEvent) evt:
+        case NotifyEvent as ptr:
             .itf.onNotifyEvent(ptr)
         }
     }
@@ -1957,12 +1957,12 @@ impl Wnd
     // Starts at the parent, so the result never denotes this window. The borrow remains valid
     // until that ancestor is destroyed; reparenting changes which ancestor a later lookup finds.
     mtd(T) ancestorByType()->*T?
-        where cast #try(*Wnd) #type *T != null
+        where #type *T is *Wnd
     {
         var ancestor = .parent
         while ancestor
         {
-            if let found = cast #try(*T) ancestor do
+            if ancestor is T as found do
                 return found
             ancestor = ancestor.parent
         }
@@ -2024,9 +2024,8 @@ impl Wnd
             if child.wndFlags.has(.NoScroll) do
                 return
 
-            // A composed viewport exposes its ScrollWnd subobject through the checked cast.
-            let scroll = cast #try (*ScrollWnd) parent
-            if scroll and scroll.view == child
+            // A composed viewport exposes its ScrollWnd subobject through the type pattern.
+            if parent is ScrollWnd as scroll where scroll.view == child
             {
                 let visible  = child.surfaceRect()
                 let target   = .surfaceRect()

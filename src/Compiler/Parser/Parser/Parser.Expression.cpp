@@ -1075,8 +1075,21 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>(tokOp);
             nodePtr->nodeExprRef    = left;
-            nodePtr->nodeTypeRef    = parseType();
-            left                    = nodeRef;
+            // Match dynamic casts: the target can be a type or a typeinfo expression.
+            if (is(TokenId::Identifier) || is(TokenId::SymLeftParen))
+            {
+                nodePtr->nodeTypeRef = parsePostFixExpression();
+                if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
+                {
+                    auto [qualifiedRef, qualified] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
+                    qualified->nodeTypeRef         = nodePtr->nodeTypeRef;
+                    qualified->addFlag(AstQualifiedTypeFlagsE::Nullable);
+                    nodePtr->nodeTypeRef = qualifiedRef;
+                }
+            }
+            else
+                nodePtr->nodeTypeRef = parseType();
+            left = nodeRef;
             continue;
         }
 

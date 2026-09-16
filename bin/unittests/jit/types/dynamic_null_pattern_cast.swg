@@ -7,8 +7,11 @@ impl INullPatternCast for NullPatternCast {}
 #test
 {
     let missing: INullPatternCast? = null
-    Swag.assert(cast #try (*NullPatternCast) missing == null)
-    Swag.assert(cast #try (INullPatternCast) missing == null)
+    let castResult1 = cast #try (*NullPatternCast) missing
+    Swag.assert(castResult1 == null)
+    let castResult2 = cast #try (INullPatternCast) missing
+    Swag.assert(castResult2 == null)
     let boxed: any? = null
-    Swag.assert(cast #try (*s32) boxed == null)
+    let castResult3 = cast #try (*s32) boxed
+    Swag.assert(castResult3 == null)
 }

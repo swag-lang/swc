@@ -380,7 +380,7 @@ impl SurfaceWnd
         let target = .windowAt(pos.x, pos.y, true)
         if target and target != me
         {
-            if let menu = cast #try (*MenuCtrl) target
+            if target is MenuCtrl as menu
             {
                 if menu.bar and menu.hitTestBar(surfacePos) == Swag.U32.Max do
                     return true

@@ -9,15 +9,15 @@ struct SwitchDynamicOther {}
 
 func readDynamicCase(value: any)->s32
 {
-    switch
+    switch value
     {
-    case let item = cast #try (*SwitchDynamicOther) value:
+    case SwitchDynamicOther as item:
         return -1
-    case let item = cast #try (*SwitchDynamicValue) value where item.value < 0:
+    case SwitchDynamicValue as item where item.value < 0:
         return -2
-    case let item = cast #try (*SwitchDynamicValue) value:
+    case SwitchDynamicValue as item:
         return item.value
-    case let number = cast #try (*s32) value:
+    case s32 as number:
         return number[]
     default:
         return 0
@@ -40,11 +40,11 @@ func inspectCaseCalls(value: any, calls: *s32)->*s32?
 
 func readCompleteDynamicCase(value: any)->s32
 {
-    switch #complete
+    switch #complete value
     {
-    case let number = cast #try (*s64) value where true:
+    case s64 as number where true:
         return cast(s32) number[]
-    case let number = cast #try (*s32) value where true:
+    case s32 as number where true:
         return number[]
     }
 }
@@ -77,14 +77,14 @@ func readCompleteDynamicCase(value: any)->s32
 {
     var result     = 0
     let value: any = 42's32
-    switch
+    switch value
     {
-    case true:
+    default:
         result = 1
         fallthrough
-    case let number = cast #try (*s64) value:
+    case s64 as number:
         result = -1
-    case let number = cast #try (*s32) value:
+    case s32 as number:
         result += number[]
     }
     Swag.assert(result == 43)

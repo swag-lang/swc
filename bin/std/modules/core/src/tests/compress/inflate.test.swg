@@ -40,7 +40,7 @@ using Swag
     var inflater: Compress.Inflate
     var decoded:  Array'u8
     catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as limitError
-    Swag.assert((cast #try (*Errors.UnsupportedFormatError) limitError != null))
+    Swag.assert((limitError is Errors.UnsupportedFormatError))
     Swag.assert(decoded.count <= 128)
 }
 

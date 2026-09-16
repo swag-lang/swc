@@ -36,9 +36,9 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     host.root.hookOnEvent = func|count = &rootNotifications|(wnd, evt)
     {
         discard wnd
-        switch
+        switch evt
         {
-        case let notify = cast #try (*NotifyEvent) evt where notify.kind == .LanguageChanged: count[] += 1
+        case NotifyEvent as notify where notify.kind == .LanguageChanged: count[] += 1
         }
 
         return false
@@ -47,9 +47,9 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     child.hookOnEvent = func|count = &childNotifications|(wnd, evt)
     {
         discard wnd
-        switch
+        switch evt
         {
-        case let notify = cast #try (*NotifyEvent) evt where notify.kind == .LanguageChanged: count[] += 1
+        case NotifyEvent as notify where notify.kind == .LanguageChanged: count[] += 1
         }
 
         return false
@@ -125,7 +125,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
     discard catch applyLanguage(&res, "xx") as err
     Swag.assert(err != null)
-    Swag.assert((cast #try (*Core.Errors.BadParameterError) err != null))
+    Swag.assert((err is Core.Errors.BadParameterError))
     Swag.assert(activeLanguage() == "en")
     Swag.assert(strings().dlg_Ok == "OK")
 }
@@ -139,7 +139,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
     discard catch applyLanguage(&res, "xx") as err
     Swag.assert(err != null)
-    Swag.assert((cast #try (*Core.Errors.FileNotFoundError) err != null))
+    Swag.assert((err is Core.Errors.FileNotFoundError))
     Swag.assert(activeLanguage() == "en")
     Swag.assert(strings().dlg_Ok == "OK")
 }
@@ -173,7 +173,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
     discard catch validateStrings'TestStrings("helo Bonjour\n") as err
     Swag.assert(err != null)
-    Swag.assert((cast #try (*Core.Errors.SyntaxError) err != null))
+    Swag.assert((err is Core.Errors.SyntaxError))
     Swag.assert((cast #assume (const *Core.Errors.SyntaxError) err).line == 1)
 
     discard catch validateStrings'TestStrings("hello ok\n1bad value\n") as err2
@@ -198,7 +198,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     // An unknown key is a sheet error carrying its line.
     discard catch theme.applySheet("/ThemeColors\nnotAColor 0xFF000000\n") as err
     Swag.assert(err != null)
-    Swag.assert((cast #try (*Core.Errors.SyntaxError) err != null))
+    Swag.assert((err is Core.Errors.SyntaxError))
 }
 
 // A sheet resource resolves through a bundle, embedded content included.
@@ -215,5 +215,5 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
     discard catch theme.loadSheet(&res, "themes/missing.tweak") as err
     Swag.assert(err != null)
-    Swag.assert((cast #try (*Core.Errors.FileNotFoundError) err != null))
+    Swag.assert((err is Core.Errors.FileNotFoundError))
 }

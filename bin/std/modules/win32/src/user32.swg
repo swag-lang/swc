@@ -761,6 +761,9 @@ const GWLP_ID         = -12
 
 const GWL_EXSTYLE = -20
 
+const HWND_BROADCAST = cast(HWND) 0xFFFF'u64
+const SMTO_ABORTIFHUNG = 0x0002
+
 const HWND_TOP       = cast(HWND) 0'u64
 const HWND_BOTTOM    = cast(HWND) 1'u64
 const HWND_TOPMOST   = cast(HWND) cast #bit (u64) -1's64
@@ -1070,6 +1073,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func PostQuitMessage(nExitCode: s32)
     func SendMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
     func SendMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
+    func SendMessageTimeoutW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, fuFlags: UINT, uTimeout: UINT, lpdwResult: *DWORD_PTR?)->LRESULT
 
     func GetWindowLongPtrA(hWnd: HWND, nIndex: s32)->LONG_PTR
     func GetWindowLongPtrW(hWnd: HWND, nIndex: s32)->LONG_PTR

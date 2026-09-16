@@ -14,6 +14,7 @@
 #load("suites.swg")
 #load("workspaces.swg")
 #load("campaign.swg")
+#load("setup.swg")
 #load("maintenance.swg")
 #load("usage.swg")
 #load("entry.swg")

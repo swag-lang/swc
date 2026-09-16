@@ -220,6 +220,29 @@ namespace PostRaPeephole
         return true;
     }
 
+    // With one input already in the result register, ADD is one byte shorter
+    // than an unscaled LEA. The newly written flags must be unobserved.
+    bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isInt() || !ops[1].reg.isInt() || !ops[2].reg.isInt() ||
+            (ops[3].opBits != MicroOpBits::B32 && ops[3].opBits != MicroOpBits::B64) ||
+            ops[4].opBits != MicroOpBits::B64 || ops[5].valueU64 != 1 || ops[6].valueU64 != 0 ||
+            ctx.isPrivateFrameBase(ops[0].reg))
+            return false;
+        const MicroReg other = ops[0].reg == ops[1].reg ? ops[2].reg : ops[1].reg;
+        if ((ops[0].reg != ops[1].reg && ops[0].reg != ops[2].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) || !ctx.claimAll({ref}))
+            return false;
+        MicroInstrOperand add[4] = {};
+        add[0].reg               = ops[0].reg;
+        add[1].reg               = other;
+        add[2].opBits            = ops[3].opBits;
+        add[3].microOp           = MicroOp::Add;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegReg, add);
+        return true;
+    }
+
     // A zero-extended byte/word shifted entirely within the low dword needs
     // no 64-bit shift. Keep flags out of the rewrite: SF/OF may differ.
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

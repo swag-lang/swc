@@ -63,6 +63,7 @@ namespace PostRaPeephole
     bool isRedundantFallthroughJumpToNextLabel(const Context& ctx, MicroInstrRef ref, const MicroInstr& inst, const MicroInstrOperand* ops);
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroExtendedBooleanCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldSubtractBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

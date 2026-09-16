@@ -142,11 +142,12 @@ namespace
     // stable base — and (b) actually used as the base of constant-offset scalar
     // loads/stores, preferring the most-used one. The escape analysis then
     // validates the choice and bails the whole function if it is wrong.
-    MicroReg detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred, MicroInstrRef& outDefRef)
+    MicroReg detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred, MicroInstrRef& outDefRef, uint64_t& outSpOffset)
     {
         struct Cand
         {
             MicroInstrRef defRef   = MicroInstrRef::invalid();
+            uint64_t      spOffset = 0;
             uint32_t      baseUses = 0;
             bool          stable   = true;
         };
@@ -167,7 +168,10 @@ namespace
                 if (c.defRef.isValid())
                     c.stable = false; // defined more than once: not a stable base.
                 else
-                    c.defRef = it.current;
+                {
+                    c.defRef   = it.current;
+                    c.spOffset = isLea ? ops[3].valueU64 : 0;
+                }
             }
         }
         if (cands.empty())
@@ -223,7 +227,8 @@ namespace
             const auto found = cands.find(preferred);
             if (found != cands.end() && found->second.stable && found->second.defRef.isValid())
             {
-                outDefRef = found->second.defRef;
+                outDefRef   = found->second.defRef;
+                outSpOffset = found->second.spOffset;
                 return preferred;
             }
         }
@@ -234,9 +239,10 @@ namespace
         {
             if (c.stable && c.defRef.isValid() && c.baseUses > bestUses)
             {
-                best      = reg;
-                bestUses  = c.baseUses;
-                outDefRef = c.defRef;
+                best        = reg;
+                bestUses    = c.baseUses;
+                outDefRef   = c.defRef;
+                outSpOffset = c.spOffset;
             }
         }
         return best;
@@ -266,10 +272,63 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     if (!stackPointer.isValid())
         return Result::Continue;
 
-    MicroInstrRef  frameBaseDefRef = MicroInstrRef::invalid();
-    const MicroReg frameBase       = detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameBaseDefRef);
+    MicroInstrRef  frameBaseDefRef   = MicroInstrRef::invalid();
+    uint64_t       frameBaseSpOffset = 0;
+    const MicroReg frameBase         = detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameBaseDefRef, frameBaseSpOffset);
     if (!frameBase.isValid() || !frameBaseDefRef.isValid())
         return Result::Continue;
+
+    // The stack pointer names the same frame as the base, shifted by where the
+    // base sits: once the peephole folds the code generator's base copy into
+    // its users, `[sp + C]` and `lea r, [sp + C]` are `[fb + C - D]` for a base
+    // `lea fb, [sp + D]`. Reading them as anything else hides both their
+    // writes and the escape of the addresses they make. That holds while the
+    // body never moves the stack pointer - stack-adjust normalization leaves
+    // one subtract at entry and one release in front of each return - so a
+    // function that moves it elsewhere and still names it is left alone.
+    const auto isFrameRegister     = [&](const MicroReg reg) { return reg == frameBase || reg == stackPointer; };
+    const auto frameRegisterOffset = [&](const MicroReg reg) -> uint64_t { return reg == stackPointer ? 0ull - frameBaseSpOffset : 0; };
+    {
+        bool spMoved    = false;
+        bool spNamed    = false;
+        bool inEntryRun = true;
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(operands);
+            if (it->op == MicroInstrOpcode::Nop || it->op == MicroInstrOpcode::Label)
+                continue;
+            const bool isAdjust = it->op == MicroInstrOpcode::OpBinaryRegImm && ops && ops[0].reg == stackPointer;
+            if (!isAdjust)
+                inEntryRun = false;
+            if (it.current == frameBaseDefRef)
+                continue;
+            if (isAdjust)
+            {
+                if (!inEntryRun)
+                {
+                    MicroInstrRef next = storage.findNextInstructionRef(it.current);
+                    while (next.isValid() && storage.ptr(next)->op == MicroInstrOpcode::Nop)
+                        next = storage.findNextInstructionRef(next);
+                    if (!next.isValid() || storage.ptr(next)->op != MicroInstrOpcode::Ret)
+                        spMoved = true;
+                }
+                continue;
+            }
+
+            SmallVector<MicroInstrRegOperandRef> regRefs;
+            it->collectRegOperands(operands, regRefs, context.encoder);
+            for (const auto& rref : regRefs)
+            {
+                if (rref.reg && *rref.reg == stackPointer)
+                {
+                    spNamed = true;
+                    spMoved |= rref.def;
+                }
+            }
+        }
+        if (spMoved && spNamed)
+            return Result::Continue;
+    }
 
     // ---- Pass 1: collect address registers `lea ar, [fb + off]`. ----
     struct AddrRegInfo
@@ -299,12 +358,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // error payload, a first local) as a plain copy of the base, and
         // treating that copy as an untrackable escape used to abandon the
         // whole function.
-        const bool isAddrLea  = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == frameBase;
-        const bool isBaseCopy = inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == frameBase && ops[2].opBits == MicroOpBits::B64;
+        const bool isAddrLea  = inst.op == MicroInstrOpcode::LoadAddrRegMem && isFrameRegister(ops[1].reg);
+        const bool isBaseCopy = inst.op == MicroInstrOpcode::LoadRegReg && isFrameRegister(ops[1].reg) && ops[2].opBits == MicroOpBits::B64;
         if (isAddrLea || isBaseCopy)
         {
-            const MicroReg ar = ops[0].reg;
-            uint64_t       offset = isAddrLea ? ops[3].valueU64 : 0;
+            const MicroReg ar     = ops[0].reg;
+            uint64_t       offset = (isAddrLea ? ops[3].valueU64 : 0) + frameRegisterOffset(ops[1].reg);
             // An adjacent add/sub is an exact address even when its flags are
             // live and prevent folding the pair to LEA. No access can observe
             // the intermediate pointer between these adjacent instructions.
@@ -360,7 +419,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     const MicroInstrOperand* ops = it->ops(operands);
                     const bool knownFrameAddress = (it->op == MicroInstrOpcode::LoadAddrRegMem ||
                                                     (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64)) &&
-                                                   ops[1].reg == frameBase;
+                                                   isFrameRegister(ops[1].reg);
                     if (!knownFrameAddress)
                         return Result::Continue;
                     badAddrReg.insert(*rref.reg);
@@ -475,9 +534,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // over a first local). Every appearance of the base as a value is read
     // the same way: the first local, escaping.
     auto escapedObjectOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
-        if (reg == frameBase)
+        if (isFrameRegister(reg))
         {
-            outOffset = 0;
+            outOffset = frameRegisterOffset(reg);
             return true;
         }
         return trackedEscapeOffset(reg, outOffset);
@@ -488,6 +547,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     //      pinned to one. ----
     std::unordered_map<uint64_t, SlotInfo> slots;
     bool                                   bail = false;
+    // Slots the stack pointer addresses directly. Those include the outgoing
+    // argument area, which a callee reads behind the analysis: they take part
+    // in the overlap checks but are never promoted.
+    std::unordered_set<uint64_t> stackPointerSlots;
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
     {
@@ -501,10 +564,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             continue;
         if (addressAdjustments.contains(ref.get()))
             continue;
-        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == frameBase)
+        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && isFrameRegister(ops[1].reg))
             continue;
         // The `mov ar, fb` address definition recognized by pass 1.
-        if (inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == frameBase && ops[2].opBits == MicroOpBits::B64 && addrRegOffset.contains(ops[0].reg))
+        if (inst.op == MicroInstrOpcode::LoadRegReg && isFrameRegister(ops[1].reg) && ops[2].opBits == MicroOpBits::B64 && addrRegOffset.contains(ops[0].reg))
+            continue;
+        // The entry subtract and the releases, checked above.
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == stackPointer)
             continue;
 
         MicroReg baseReg   = MicroReg::invalid();
@@ -512,10 +578,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         bool     baseValid = false;
 
         auto resolveBase = [&](MicroReg reg, uint64_t extraOffset) {
-            if (reg == frameBase)
+            if (isFrameRegister(reg))
             {
                 baseReg   = reg;
-                baseSlot  = extraOffset;
+                baseSlot  = extraOffset + frameRegisterOffset(reg);
                 baseValid = true;
             }
             else
@@ -661,7 +727,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             default:
                 break;
         }
-        if (amcBase.isValid() && (amcBase == frameBase || isTracked(amcBase)))
+        if (amcBase.isValid() && (isFrameRegister(amcBase) || isTracked(amcBase)))
         {
             // The object is the one at the base's offset plus the access's
             // displacement: a lea of the array's address folded into the
@@ -702,7 +768,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         inst.collectRegOperands(operands, regRefs, context.encoder);
         for (const auto& rref : regRefs)
         {
-            if (!rref.reg || !isTracked(*rref.reg))
+            if (!rref.reg || !(isTracked(*rref.reg) || *rref.reg == stackPointer))
                 continue;
             const bool isExplainedBase    = baseValid && *rref.reg == baseReg && isHandledScalarMemOp(inst.op);
             const bool isExplainedValue   = storesTrackedValue && *rref.reg == valueReg;
@@ -727,6 +793,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         if (hasPending)
         {
+            if (baseReg == stackPointer)
+                stackPointerSlots.insert(pending.offset);
             SlotInfo& slot = slots[pending.offset];
             slot.accesses.push_back(pending);
             // Compare computed ends, not widths: displacement addition can wrap.
@@ -764,7 +832,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
     for (auto& [offset, slot] : slots)
     {
-        if (slot.accesses.empty() || !slot.hasWrite)
+        if (slot.accesses.empty() || !slot.hasWrite || stackPointerSlots.contains(offset))
             continue;
 
         // A slot inside an escaped variable can be written behind the scalar

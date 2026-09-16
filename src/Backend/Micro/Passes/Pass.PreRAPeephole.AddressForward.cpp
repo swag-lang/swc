@@ -14,37 +14,56 @@ namespace PreRaPeephole
 
         constexpr uint32_t K_MAX_ADDR_FORWARD_COPIES = 8;
 
-        // Skip forward over pure register copies (LoadRegReg) that touch none of
-        // the addressing registers, returning the first non-copy instruction —
-        // the candidate consumer for the lea. Folding the lea into that consumer
-        // (rewriting it to base+index, leaving the lea for any other uses) is
-        // sound as long as base/index hold the same value there; a copy whose
-        // destination is not addrReg/base/index cannot change that, and copies are
-        // not control-flow boundaries. Bails (returns invalid) on a copy that does
-        // write one of those registers, or after the copy budget, so the fold
-        // never reasons past an instruction it cannot fully characterise. Inspects
-        // LoadRegReg's two operands directly rather than a generic use/def query.
-        MicroInstrRef skipCopiesToConsumer(const Context& ctx, MicroInstrRef defRef, MicroReg addrReg, MicroReg inputA, MicroReg inputB)
+        // The first reader of the address on the straight line after its
+        // definition - the candidate consumer for the lea. Folding the lea into
+        // that consumer (rewriting it to base+index, leaving the lea for any
+        // other uses) is sound as long as base/index hold the same value there.
+        // Lowering materializes every operand address before the loads
+        // (`lea a; lea b; load [a]; load [b]`), so the walk crosses copies and
+        // any other instruction that neither reads the address nor writes
+        // addrReg/base/index; it bails at a label, a jump, a call or a return,
+        // at an instruction another rule already claimed, and after the budget.
+        // The crossed instructions are returned so the caller can claim them:
+        // a rule rewriting one of them in the same sweep (retargeting a
+        // producer onto an input, say) would break the equality this relies on.
+        MicroInstrRef skipCopiesToConsumer(const Context& ctx, MicroInstrRef defRef, MicroReg addrReg, MicroReg inputA, MicroReg inputB, SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES>& outCrossed)
         {
+            outCrossed.clear();
             MicroInstrRef cur = ctx.nextRef(defRef);
             for (uint32_t step = 0; step < K_MAX_ADDR_FORWARD_COPIES && cur.isValid(); ++step)
             {
                 const MicroInstr* w = ctx.instruction(cur);
-                if (!w)
+                if (!w || ctx.isClaimed(cur))
                     return MicroInstrRef::invalid();
-                if (w->op != MicroInstrOpcode::LoadRegReg)
+
+                const MicroInstrDef& info = MicroInstr::info(w->op);
+                if (w->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    return MicroInstrRef::invalid();
+
+                const MicroInstrUseDef useDef = w->collectUseDef(*ctx.operands, ctx.encoder);
+                if (w->op != MicroInstrOpcode::LoadRegReg && std::ranges::find(useDef.uses, addrReg) != useDef.uses.end())
                     return cur; // candidate consumer.
 
-                const MicroInstrOperand* cops = w->ops(*ctx.operands);
-                if (!cops)
-                    return MicroInstrRef::invalid();
-                const MicroReg copyDst = cops[0].reg;
-                if (copyDst == addrReg || copyDst == inputA || (inputB.isValid() && copyDst == inputB))
-                    return MicroInstrRef::invalid(); // an addressing input changed.
+                for (const MicroReg def : useDef.defs)
+                {
+                    if (def == addrReg || def == inputA || (inputB.isValid() && def == inputB))
+                        return MicroInstrRef::invalid(); // an addressing input changed.
+                }
 
+                outCrossed.push_back(cur);
                 cur = ctx.nextRef(cur);
             }
             return MicroInstrRef::invalid();
+        }
+
+        bool claimConsumerAndCrossed(Context& ctx, MicroInstrRef consumerRef, std::span<const MicroInstrRef> crossed)
+        {
+            if (!ctx.claimAll({consumerRef}))
+                return false;
+            for (const MicroInstrRef ref : crossed)
+                ctx.claimed.insert(ref.get());
+            return true;
         }
 
         struct ConsumerRewrite
@@ -455,7 +474,8 @@ namespace PreRaPeephole
         if (addrReg == baseReg)
             return false;
 
-        const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, baseReg, MicroReg::invalid());
+        SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES> crossed;
+        const MicroInstrRef                                   consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, baseReg, MicroReg::invalid(), crossed);
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
             return false;
 
@@ -467,7 +487,7 @@ namespace PreRaPeephole
         if (!buildAddrRewrite(rewrite, *consumer, ctx.operandsFor(consumerRef), addrReg, baseReg, defOps[3].valueU64))
             return false;
 
-        if (!ctx.claimAll({consumerRef}))
+        if (!claimConsumerAndCrossed(ctx, consumerRef, crossed))
             return false;
 
         const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
@@ -515,7 +535,8 @@ namespace PreRaPeephole
         if (addrReg == defOps[1].reg || addrReg == defOps[2].reg)
             return false;
 
-        const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, defOps[1].reg, defOps[2].reg);
+        SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES> crossed;
+        const MicroInstrRef                                   consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, defOps[1].reg, defOps[2].reg, crossed);
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
             return false;
 
@@ -527,7 +548,7 @@ namespace PreRaPeephole
         if (!buildAddrAmcRewrite(rewrite, ctx, *consumer, ctx.operandsFor(consumerRef), addrReg, defOps[1].reg, defOps[2].reg, defOps[4].opBits, defOps[5].valueU64, defOps[6].valueU64))
             return false;
 
-        if (!ctx.claimAll({consumerRef}))
+        if (!claimConsumerAndCrossed(ctx, consumerRef, crossed))
             return false;
 
         const std::span rewrittenOps(rewrite.ops, rewrite.numOps);

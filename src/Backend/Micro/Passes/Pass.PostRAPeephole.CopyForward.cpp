@@ -135,10 +135,16 @@ namespace PostRaPeephole
 
         const MicroInstrRef nextRef = ctx.nextRef(copyRef);
         const MicroInstr*   next    = ctx.instruction(nextRef);
-        if (!next || next->op != MicroInstrOpcode::OpBinaryRegReg || ctx.isClaimed(nextRef))
+        if (!next || ctx.isClaimed(nextRef))
+            return false;
+        const bool extends = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
+        if (!extends && next->op != MicroInstrOpcode::OpBinaryRegReg)
             return false;
         const MicroInstrOperand* ops = next->ops(*ctx.operands);
-        if (!ops || ops[1].reg != copyOps[0].reg || ops[2].opBits != copyOps[2].opBits || !ops[0].reg.isInt())
+        if (!ops || ops[1].reg != copyOps[0].reg || !ops[0].reg.isInt())
+            return false;
+        const MicroOpBits readBits = ops[extends ? 3 : 2].opBits;
+        if (getNumBits(readBits) > getNumBits(copyOps[2].opBits))
             return false;
 
         MicroInstrOperand rewritten[4];

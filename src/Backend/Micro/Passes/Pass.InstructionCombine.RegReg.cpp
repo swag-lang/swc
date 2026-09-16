@@ -112,13 +112,15 @@ namespace InstructionCombine
             return true;
         }
 
-        // (a & b) ^ (a & c) = a & (b ^ c). Keep the two non-common
+        // Factor AND over OR/XOR, and OR over AND. Keep the two non-common
         // inputs at their original read positions and move only the common
         // input, after proving that its value survives to the final operation.
-        bool tryFactorXorOfAnds(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        bool tryFactorBitwiseInputs(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
         {
-            if (!ctx.ssa || ops[3].microOp != MicroOp::Xor || !ops[1].reg.isVirtualInt())
+            const MicroOp outer = ops[3].microOp;
+            if (!ctx.ssa || (outer != MicroOp::Xor && outer != MicroOp::Or && outer != MicroOp::And) || !ops[1].reg.isVirtualInt())
                 return false;
+            const MicroOp inner = outer == MicroOp::And ? MicroOp::Or : MicroOp::And;
             const MicroOpBits bits = ops[2].opBits;
             if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
                 return false;
@@ -139,14 +141,14 @@ namespace InstructionCombine
             if (regs[0] == regs[1])
                 return false;
             std::array<MicroSsaState::ReachingDef, 2> initial;
-            std::array<const MicroInstrOperand*, 2>   andOps;
+            std::array<const MicroInstrOperand*, 2>   binaryOps;
             std::array<const MicroInstrOperand*, 2>   copyOps;
             for (uint32_t i = 0; i < 2; ++i)
             {
                 if (!defs[i].valid() || defs[i].isPhi || !defs[i].inst || defs[i].inst->op != MicroInstrOpcode::OpBinaryRegReg)
                     return false;
-                andOps[i] = defs[i].inst->ops(*ctx.operands);
-                if (!andOps[i] || andOps[i][2].opBits != bits || andOps[i][3].microOp != MicroOp::And ||
+                binaryOps[i] = defs[i].inst->ops(*ctx.operands);
+                if (!binaryOps[i] || binaryOps[i][2].opBits != bits || binaryOps[i][3].microOp != inner ||
                     ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
                     return false;
                 initial[i] = ctx.ssa->reachingDef(regs[i], defs[i].instRef);
@@ -154,7 +156,7 @@ namespace InstructionCombine
                     return false;
                 copyOps[i] = initial[i].inst->ops(*ctx.operands);
                 if (!copyOps[i] || copyOps[i][2].opBits != bits || !copyOps[i][1].reg.isVirtualInt() ||
-                    andOps[i][1].reg == regs[0] || andOps[i][1].reg == regs[1] || andOps[i][1].reg == ops[0].reg)
+                    binaryOps[i][1].reg == regs[0] || binaryOps[i][1].reg == regs[1] || binaryOps[i][1].reg == ops[0].reg)
                     return false;
                 if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
                     return false;
@@ -185,19 +187,19 @@ namespace InstructionCombine
 
             MicroInstrOperand first[3];
             first[0].reg    = regs[0];
-            first[1].reg    = andOps[0][1].reg;
+            first[1].reg    = binaryOps[0][1].reg;
             first[2].opBits = bits;
             ctx.emitRewrite(defs[0].instRef, MicroInstrOpcode::LoadRegReg, first);
 
             MicroInstrOperand factored[4];
             factored[0].reg     = regs[0];
-            factored[1].reg     = andOps[1][1].reg;
+            factored[1].reg     = binaryOps[1][1].reg;
             factored[2].opBits  = bits;
-            factored[3].microOp = MicroOp::Xor;
+            factored[3].microOp = outer;
             ctx.emitRewrite(defs[1].instRef, MicroInstrOpcode::OpBinaryRegReg, factored);
             factored[0].reg     = ops[0].reg;
             factored[1].reg     = common;
-            factored[3].microOp = MicroOp::And;
+            factored[3].microOp = inner;
             ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegReg, factored);
             return true;
         }
@@ -343,7 +345,7 @@ namespace InstructionCombine
         if (!ops || !ops[0].reg.isVirtualInt())
             return false;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldRotate(ctx, ref, ops) || tryFactorXorOfAnds(ctx, ref, ops);
+            return tryFoldRotate(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

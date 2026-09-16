@@ -547,6 +547,19 @@ bool MicroPassHelpers::tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t f
     if (firstIsAddSub && secondIsAddSub)
         return tryFoldAddSub(firstOp, firstImm, secondOp, secondImm, opBits, outOp, outImm);
 
+    // Equal right/left shifts discard the low bits, including an arithmetic
+    // right shift: its sign fill is shifted back out. Keep 64-bit masks within
+    // a sign-extended immediate so folding cannot introduce a mask register.
+    const bool firstRight = firstOp == MicroOp::ShiftRight || firstOp == MicroOp::ShiftArithmeticRight;
+    const bool secondLeft = secondOp == MicroOp::ShiftLeft || secondOp == MicroOp::ShiftArithmeticLeft;
+    if (firstRight && secondLeft && firstImm == secondImm && firstImm > 0 && firstImm <= 31 &&
+        (opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64))
+    {
+        outOp  = MicroOp::And;
+        outImm = (~0ull << firstImm) & getBitsMask(opBits);
+        return true;
+    }
+
     if (firstOp != secondOp)
         return false;
 

@@ -229,14 +229,26 @@ namespace InstructionCombine
 
         bool tryReassociateWithPrevious(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
         {
-            const auto reaching = ctx.ssa->reachingDef(dst, ref);
+            MicroReg      source   = dst;
+            auto          reaching = ctx.ssa->reachingDef(source, ref);
+            MicroInstrRef copyRef;
+            if (reaching.valid() && !reaching.isPhi && reaching.inst && reaching.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = reaching.inst->ops(*ctx.operands);
+                if (!copy || copy[2].opBits != opBits || !copy[1].reg.isVirtualInt() ||
+                    ctx.ssa->transitiveInstructionUseCount(reaching.valueId, 2) != 1)
+                    return false;
+                copyRef  = reaching.instRef;
+                source   = copy[1].reg;
+                reaching = ctx.ssa->reachingDef(source, copyRef);
+            }
             if (!reaching.valid() || reaching.isPhi || !reaching.inst)
                 return false;
             if (reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm)
                 return false;
 
             const MicroInstrOperand* prevOps = reaching.inst->ops(*ctx.operands);
-            if (!prevOps || prevOps[0].reg != dst || !isSameOpBitsInt(prevOps[1].opBits, opBits))
+            if (!prevOps || prevOps[0].reg != source || !isSameOpBitsInt(prevOps[1].opBits, opBits))
                 return false;
 
             const auto* valueInfo = ctx.ssa->valueInfo(reaching.valueId);
@@ -254,11 +266,11 @@ namespace InstructionCombine
             if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
 
-            if (!ctx.claimAll({ref, reaching.instRef}))
+            if (!ctx.claimAll({ref, reaching.instRef, copyRef.isValid() ? copyRef : ref}))
                 return false;
 
             MicroInstrOperand rewritten[4];
-            rewritten[0].reg      = dst;
+            rewritten[0].reg      = source;
             rewritten[1].opBits   = opBits;
             rewritten[2].microOp  = combinedOp;
             rewritten[3].valueU64 = combinedImm;

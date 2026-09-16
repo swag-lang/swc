@@ -10,6 +10,61 @@ namespace InstructionCombine
 {
     namespace
     {
+        // (x << shift) & mask = (x & (mask >> shift)) << shift.
+        // Only move masks that become a byte/word/dword zero-extension. The
+        // original shift reads its input in place; its single-use result and
+        // optional copy then carry that masked input to the final shift.
+        bool tryMaskShiftedValue(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits bits, uint64_t mask)
+        {
+            if (!ctx.ssa || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+                return false;
+            MicroReg      shifted = dst;
+            auto          def     = ctx.ssa->reachingDef(shifted, ref);
+            MicroInstrRef copyRef;
+            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = def.inst->ops(*ctx.operands);
+                if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
+                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                    return false;
+                copyRef = def.instRef;
+                shifted = copy[1].reg;
+                def     = ctx.ssa->reachingDef(shifted, copyRef);
+            }
+            if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpBinaryRegImm ||
+                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                return false;
+            const auto* shiftOps = def.inst->ops(*ctx.operands);
+            if (!shiftOps || shiftOps[1].opBits != bits || shiftOps[3].hasWideImmediateValue() ||
+                (shiftOps[2].microOp != MicroOp::ShiftLeft && shiftOps[2].microOp != MicroOp::ShiftArithmeticLeft))
+                return false;
+            const uint64_t shift = shiftOps[3].valueU64;
+            if (!shift || shift >= getNumBits(bits))
+                return false;
+            const uint64_t    inputMask = (mask & getBitsMask(bits)) >> shift;
+            const MicroOpBits inputBits = inputMask == 0xFF ? MicroOpBits::B8 : inputMask == 0xFFFF                               ? MicroOpBits::B16
+                                                                            : inputMask == 0xFFFFFFFF && bits == MicroOpBits::B64 ? MicroOpBits::B32
+                                                                                                                                  : MicroOpBits::Zero;
+            if (inputBits == MicroOpBits::Zero ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
+                return false;
+            MicroInstrOperand extend[4];
+            extend[0].reg    = shifted;
+            extend[1].reg    = shifted;
+            extend[2].opBits = bits;
+            extend[3].opBits = inputBits;
+            ctx.emitRewrite(def.instRef, MicroInstrOpcode::LoadZeroExtRegReg, extend);
+            MicroInstrOperand shiftResult[4];
+            shiftResult[0].reg      = dst;
+            shiftResult[1].opBits   = getNumBits(inputBits) + shift <= 32 ? MicroOpBits::B32 : bits;
+            shiftResult[2].microOp  = MicroOp::ShiftLeft;
+            shiftResult[3].valueU64 = shift;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, shiftResult);
+            return true;
+        }
+
         bool feedsReassociableImmediate(const Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
         {
             if (!ctx.ssa)
@@ -248,6 +303,9 @@ namespace InstructionCombine
                 return emitClearReg(ctx, ref, dst, opBits);
             return emitLoadRegImm(ctx, ref, dst, opBits, absorbed);
         }
+
+        if (op == MicroOp::And && tryMaskShiftedValue(ctx, ref, dst, opBits, imm))
+            return true;
 
         // and dst, 0xFF / 0xFFFF / 0xFFFFFFFF == a zero-extending self move. The
         // move needs no immediate at all (0xFFFFFFFF cannot even encode as a

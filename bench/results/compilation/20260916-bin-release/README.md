@@ -151,3 +151,44 @@ with the unchanged Release baseline all passed. This does not establish the fail
 prove that the baseline cannot fail; the prototype was discarded and was never merged. Its
 external patch and both executable copies are retained for isolation of the locking and buffer
 changes. Candidate SHA-256: `9f719153f0c4e5cc5e7c640cb57686de2a20ba8df3c8f5572d58d33c558febac`.
+
+## Batch 3: JIT root verdicts and global-function membership
+
+An accepted optional constant root immediately enters `seenFunctions`, so a second cache only
+needs to remember rejected optional roots. A worker-local `PointerSet`, cleared on every walk,
+replaces the boolean unordered map. Strict relocations still bypass the optional rejection cache.
+Global-init relocation collection also uses a flat pointer set to avoid allocating one node per
+visited function; its traversal order and offset filtering are unchanged.
+
+Baseline: master `75dedcebe`, Release build 712. Candidate: the same compiler plus this batch,
+build 713. Both live under the same external resource root. Command:
+`swc.exe build -w bin/std -bc release --num-cores 6 --rebuild --log-ascii`.
+All twelve standard modules are rebuilt; three pairs alternate A/B, B/A, A/B on six P cores.
+
+| Median paired change | Result |
+| --- | ---: |
+| Elapsed time | -3.69% |
+| Process CPU time | -3.44% |
+| Process cycles | -3.89% |
+| Peak working set | +0.00% |
+
+All three elapsed pairs improved. Absolute elapsed medians were 25.763 / 24.813 seconds.
+The gain is modest and remains subject to shared-machine variation; the report retains every
+sample and its background CPU reading. Baseline/candidate SHA-256:
+
+- `28276d2ef4fac2f6d29a3008c9ede9b04907a66b16e621440a7e173bbcbfc8dc`.
+- `96d8637c76af371481ee36d708ed398f33950eceb6576fdc2d4668d3d10ba6f1`.
+
+Both compiler configurations built successfully. Validation rotated to these boundaries:
+
+- Release compiler/program `release`, native `--file-filter global_function_ptr.swg`:
+  one passed in JIT and native.
+- Release compiler/program `release`, Swag Capture `--test-file serialization.test.swg`:
+  three passed, after compiling the complete application and its eight dependency modules.
+- DevMode compiler/program `devmode`, JIT `--file-filter dynamic_recursive_constraints.swg`:
+  one passed.
+- All six measured standard-workspace builds completed successfully.
+
+Batch-3 integration with master `bc0ec576c` used Release build 715. Native
+`--file-filter typeinfo_generic_method_where.swg -bc release` passed its case in JIT and in
+the emitted executable, exercising reflected generic methods excluded by a `where` condition.

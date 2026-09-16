@@ -394,10 +394,6 @@ namespace
         return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     }
 
-    // One verdict per function for the whole walk. The same metadata pointer is reached from many
-    // allocations, and judging it again means walking its entire call graph again.
-    using OptionalRootVerdicts = std::unordered_map<const SymbolFunction*, bool>;
-
     bool isIncludableOptionalConstantJitRoot(const SymbolFunction& root)
     {
         // A metadata pointer may remain unpublished while its runtime call graph is
@@ -752,8 +748,11 @@ namespace
                 seenFunctions.insert(function);
         }
 
-        bool                 changed = false;
-        OptionalRootVerdicts optionalRootVerdicts;
+        // Accepted roots immediately enter seenFunctions. Only rejected optional roots need
+        // another verdict cache; a strict relocation must still be allowed to include them.
+        static thread_local PointerSet<SymbolFunction> rejectedOptionalRoots;
+        rejectedOptionalRoots.clear();
+        bool changed = false;
         for (const SymbolFunction* function : functions)
         {
             if (!function)
@@ -768,11 +767,13 @@ namespace
                     continue;
                 if (allowUnresolved)
                 {
-                    const auto verdict = optionalRootVerdicts.try_emplace(target, false);
-                    if (verdict.second)
-                        verdict.first->second = isIncludableOptionalConstantJitRoot(*target);
-                    if (!verdict.first->second)
+                    if (rejectedOptionalRoots.contains(target))
                         continue;
+                    if (!isIncludableOptionalConstantJitRoot(*target))
+                    {
+                        rejectedOptionalRoots.insert(target);
+                        continue;
+                    }
                 }
 
                 seenFunctions.insert(target);

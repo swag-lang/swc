@@ -302,6 +302,48 @@ namespace InstructionCombine
             return true;
         }
 
+        // a ^ ~b = ~(a ^ b). Keep both input snapshots, but let the XOR
+        // consume the original value so the complemented temporary can die.
+        bool tryMoveXorComplement(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Xor || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            for (uint32_t side = 0; side < 2; ++side)
+            {
+                auto          def = ctx.ssa->reachingDef(ops[side].reg, ref);
+                MicroInstrRef copyRef;
+                if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = def.inst->ops(*ctx.operands);
+                    if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
+                        ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                        continue;
+                    copyRef = def.instRef;
+                    def     = ctx.ssa->reachingDef(copy[1].reg, copyRef);
+                }
+                if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpUnaryReg ||
+                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                    continue;
+                const auto* unary = def.inst->ops(*ctx.operands);
+                if (!unary || unary[1].opBits != bits || unary[2].microOp != MicroOp::BitwiseNot ||
+                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                    !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
+                    continue;
+                ctx.emitErase(def.instRef);
+                ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, std::span{ops, 4});
+                MicroInstrOperand complement[3];
+                complement[0].reg     = ops[0].reg;
+                complement[1].opBits  = bits;
+                complement[2].microOp = MicroOp::BitwiseNot;
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, complement);
+                return true;
+            }
+            return false;
+        }
+
         // (a & mask) | (b & ~mask) = b ^ ((a ^ b) & mask).
         // Rebuild only the final value, after proving all three inputs survive
         // there. Dead-code elimination then removes the old single-use arms.
@@ -754,7 +796,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldRotate(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
+            return tryFoldRotate(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

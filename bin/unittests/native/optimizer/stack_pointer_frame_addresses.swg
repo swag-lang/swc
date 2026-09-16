@@ -1,0 +1,39 @@
+#global private
+using Swag
+
+// The frame base the optimizer settles on can be an address derived from the
+// stack pointer while other addresses still name the stack pointer directly:
+// the slice built for a variadic call, and the outgoing arguments of a call
+// with more than four parameters. Writes through either spelling must survive
+// promotion of the frame's scalars.
+
+#[Swag.NoInline]
+func firstIsS32(values: ...)->bool
+{
+    let value = values[0]
+    return Swag.kindOf(value) == s32 and cast #assume(s32) value == 42
+}
+
+#[Swag.Optimize(true), Swag.NoInline]
+func throughVariadic()->bool
+{
+    var boxed: any = 42's32
+    return firstIsS32(boxed)
+}
+
+#[Swag.NoInline]
+func weighSix(a, b, c, d, e, f: s64)->s64 => a + b * 2 + c * 3 + d * 4 + e * 5 + f * 6
+
+#[Swag.Optimize(true), Swag.NoInline]
+func passSix(x: s64)->s64
+{
+    let y = x + 1
+    return weighSix(x, y, x, y, x + 10, y + 20)
+}
+
+#test
+{
+    Swag.assert(throughVariadic())
+    Swag.assert(passSix(1) == 1 + 4 + 3 + 8 + 55 + 132)
+    Swag.assert(passSix(-1) == -1 + 0 - 3 + 0 + 45 + 120)
+}

@@ -23,16 +23,50 @@ namespace
 {
     using MicroPassHelpers::MicroPhysLiveness;
 
-    // An instruction we must never erase, regardless of its defs' liveness.
-    // Defining CPU flags is treated conservatively as a side effect: flag
-    // liveness isn't modeled separately, so an arithmetic op whose register
-    // result is dead may still be keeping the flags live for a following
-    // conditional branch.
+    // Preserve control, memory, and stack effects. Integer flag writes may be
+    // discarded only after both register and flag liveness have been checked.
     bool hasObservableSideEffect(const MicroInstr& inst)
     {
         return MicroInstrInfo::hasObservableSideEffect(inst) ||
                inst.op == MicroInstrOpcode::Push ||
                inst.op == MicroInstrOpcode::Pop;
+    }
+
+    // Only non-trapping integer register arithmetic may lose a flag write.
+    // Division, memory operands, and floating-point exception state stay out.
+    bool isDiscardableIntegerArithmetic(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops || !ops[0].reg.isInt())
+            return false;
+        if (inst.op == MicroInstrOpcode::ClearReg)
+            return true;
+        if (inst.op == MicroInstrOpcode::OpUnaryReg)
+            return ops[2].microOp == MicroOp::Negate || ops[2].microOp == MicroOp::BitwiseNot || ops[2].microOp == MicroOp::ByteSwap;
+        const bool immediate = inst.op == MicroInstrOpcode::OpBinaryRegImm;
+        if (!immediate && inst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        if (!immediate && !ops[1].reg.isInt())
+            return false;
+        switch (ops[immediate ? 2 : 3].microOp)
+        {
+            case MicroOp::Add:
+            case MicroOp::Subtract:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
+            case MicroOp::MultiplyWideSigned:
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
+                return true;
+            default:
+                return false;
+        }
     }
 
     bool allDefsAreDead(const MicroPhysLiveness& liveness, uint32_t index)
@@ -79,23 +113,28 @@ Result MicroPostRaDeadCodeElimPass::run(MicroPassContext& context)
     // and which have no observable side effect. Instructions with no defs
     // either have side effects (caught by hasObservableSideEffect) or are
     // truly useless (rare post-RA).
-    bool changed = false;
+    // Flag queries can consult the builder's cached CFG. Keep storage unchanged
+    // until every decision is made: rebuilding that CFG after an erase would
+    // invalidate its instruction span and the physical-liveness index mapping.
+    SmallVector<MicroInstrRef> erased;
     for (uint32_t i = 0; i < instCount; ++i)
     {
         const MicroInstr* inst = storage.ptr(instructionRefs[i]);
         if (!inst)
             continue;
-        if (hasObservableSideEffect(*inst))
-            continue;
-
         if (!allDefsAreDead(liveness, i))
             continue;
+        if (hasObservableSideEffect(*inst) &&
+            (!isDiscardableIntegerArithmetic(*inst, inst->ops(*context.operands)) ||
+             !MicroPassHelpers::areCpuFlagsDeadAfter(storage, *context.operands, instructionRefs[i], context.builder)))
+            continue;
 
-        if (storage.erase(instructionRefs[i]))
-            changed = true;
+        erased.push_back(instructionRefs[i]);
     }
 
-    if (changed)
+    for (const MicroInstrRef ref : erased)
+        storage.erase(ref);
+    if (!erased.empty())
         context.passChanged = true;
     return Result::Continue;
 }

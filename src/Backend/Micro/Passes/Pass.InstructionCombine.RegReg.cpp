@@ -816,6 +816,82 @@ namespace InstructionCombine
             return false;
         }
 
+        // (a | b) - (a & b) = a ^ b: the subtrahend only contains bits
+        // already set in the minuend, so no borrow can cross a bit position.
+        bool tryFoldBitwiseDifference(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Subtract || !ops[1].reg.isVirtualInt() ||
+                (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                return false;
+            const MicroOpBits                           bits = ops[2].opBits;
+            std::array                                  regs{ops[0].reg, ops[1].reg};
+            std::array                                  defs{ctx.ssa->reachingDef(regs[0], ref), ctx.ssa->reachingDef(regs[1], ref)};
+            std::array<MicroInstrRef, 2>                copies;
+            std::array<MicroSsaState::ReachingDef, 2>   initial;
+            std::array<std::array<MicroReg, 2>, 2>      inputs;
+            std::array<std::array<MicroInstrRef, 2>, 2> inputRefs;
+            for (uint32_t side = 0; side < 2; ++side)
+            {
+                auto& def = defs[side];
+                if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = def.inst->ops(*ctx.operands);
+                    if (!copy || copy[2].opBits != bits || !copy[1].reg.isVirtualInt() ||
+                        ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                        return false;
+                    copies[side] = def.instRef;
+                    regs[side]   = copy[1].reg;
+                    def          = ctx.ssa->reachingDef(regs[side], copies[side]);
+                }
+                if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
+                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                    return false;
+                const auto* binary = def.inst->ops(*ctx.operands);
+                if (!binary || binary[2].opBits != bits || binary[3].microOp != (side == 0 ? MicroOp::Or : MicroOp::And) ||
+                    !binary[1].reg.isVirtualInt() ||
+                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                    return false;
+                initial[side] = ctx.ssa->reachingDef(regs[side], def.instRef);
+                if (!initial[side].valid() || initial[side].isPhi || !initial[side].inst || initial[side].inst->op != MicroInstrOpcode::LoadRegReg)
+                    return false;
+                const auto* copy = initial[side].inst->ops(*ctx.operands);
+                if (!copy || copy[2].opBits != bits || !copy[1].reg.isVirtualInt())
+                    return false;
+                inputs[side]    = {copy[1].reg, binary[1].reg};
+                inputRefs[side] = {initial[side].instRef, def.instRef};
+            }
+            for (uint32_t order = 0; order < 2; ++order)
+            {
+                bool equal = true;
+                for (uint32_t input = 0; input < 2; ++input)
+                {
+                    const MicroReg reg   = inputs[0][input];
+                    const auto     value = ctx.ssa->reachingDef(reg, inputRefs[0][input]);
+                    equal &= value.valid() && reg == inputs[1][input ^ order] &&
+                             ctx.ssa->reachingDef(reg, inputRefs[1][input ^ order]).valueId == value.valueId &&
+                             ctx.ssa->reachingDef(reg, ref).valueId == value.valueId;
+                }
+                if (!equal || ops[0].reg == inputs[0][1] ||
+                    !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, initial[0].instRef, initial[1].instRef,
+                                   copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
+                    continue;
+                MicroInstrOperand copy[3];
+                copy[0].reg    = ops[0].reg;
+                copy[1].reg    = inputs[0][0];
+                copy[2].opBits = bits;
+                ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copy);
+                MicroInstrOperand binary[4];
+                binary[0].reg     = ops[0].reg;
+                binary[1].reg     = inputs[0][1];
+                binary[2].opBits  = bits;
+                binary[3].microOp = MicroOp::Xor;
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegReg, binary);
+                return true;
+            }
+            return false;
+        }
+
         // An address and its unchanged base differ by the encoded displacement.
         // Replacing only the subtraction also preserves other address users.
         bool tryFoldAddressDifference(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
@@ -1318,7 +1394,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldBitwiseDifference(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

@@ -118,3 +118,47 @@ by 4.3% in devmode and 0.8% in release; committed memory rose 5.6% and 1.3%. Pai
 changes were -1.0% and +1.7%, CPU changes -1.5% and +1.0%. The 57 sanity tests and 410 native
 control-flow tests passed, including the linked executable. The candidate was reverted and
 was not merged. [All samples](transfer-rejected.json).
+
+## Rejected candidate: move micro builders from symbols into codegen jobs
+
+Owning each builder in its codegen object would avoid retaining the empty builder on
+every function symbol. The five-pair core comparison of builds 708 and 709 instead raised
+devmode paired peak working set by 5.6% and committed memory by 6.1%. Release used 6.1%
+less working set and 7.2% less commit, but paired elapsed time rose 30.8% and CPU 18.8%
+under substantial concurrent load. Devmode elapsed and CPU ratios were 0.920 and 0.904.
+The ownership change was rejected; its devmode memory result alone disqualifies it.
+[All twenty samples](builder-ownership-rejected.json).
+
+Before rejection, both compiler builds passed, as did 864 C++ tests, 1,487 JIT release
+tests, 83 native closure tests in devmode including the linked executable, and four
+14-test reflection runs (twice per compiler). The buffer-release and PagedStore fixes
+discovered during this experiment are retained separately for further validation.
+
+## Intermediate candidate: packed sanitizer values
+
+Build 711 combined 24-byte sanitizer values (previously 32 bytes), consumption of converged
+states during the final checking pass, explicit release of micro-builder container buffers,
+and the PagedStore allocation-policy correction. Build 708 is the same starting compiler
+with the three initial regression tests only. The candidate Release executable SHA-256 is
+`30395E69A1F8A1689FE1574996E1F55F649A0D6E981566AA9F6D6E6715DB67CD`; baseline SHA-256 is
+`F8C258072B6C7A79FC842145E988540601A6C4B520F64E69C33216F14AEA1B40`.
+
+| Workload | Program configuration | Paired peak WS change | Paired commit change | Paired elapsed change | Paired CPU change |
+| --- | --- | ---: | ---: | ---: | ---: |
+| core, five pairs | devmode | -6.1% | -5.8% | +5.9% | -0.5% |
+| core, five pairs | release | -2.9% | -2.3% | +1.4% | -2.4% |
+| gui, three pairs | devmode | -0.04% | -1.4% | +4.2% | +4.3% |
+| gui, three pairs | release | +1.2% | +1.2% | +72.4% | +0.8% |
+
+[Core samples](compact-values-core-intermediate.json) and
+[GUI samples](compact-values-gui-intermediate.json) retain every observation, including
+large scheduling outliers. This bundle was not merged: the larger workload did not
+establish a memory and time improvement. These combined measurements do not isolate the
+cause to value packing. That representation change was nevertheless removed from the next
+candidate, which keeps full-sized values and investigates container padding instead.
+
+Both compiler builds passed. Validation passed 864 C++ tests, 57 sanity tests with each
+compiler executable, 20 release native floating-point tests, and 255 devmode native intrinsic
+tests; both native selections also ran their linked executable. The initial three C++
+regressions failed with build 708 (861 other tests passed).
+[Commands and outcomes](compact-values-validation.json).

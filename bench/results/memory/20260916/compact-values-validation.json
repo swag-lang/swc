@@ -1,0 +1,119 @@
+[
+  {
+    "command": [
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\swc.dm.exe",
+      "--num-cores",
+      "6",
+      "C:\\Perso\\swag-lang\\swc-memory\\tools\\unittests.swgs",
+      "dm",
+      "cpp",
+      "-bc",
+      "devmode",
+      "--num-cores",
+      "6"
+    ],
+    "exit": 4,
+    "seconds": 47.992840400002024,
+    "label": "builder-baseline-cpp",
+    "compiler_build": 708
+  },
+  {
+    "command": [
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\swc.exe",
+      "--num-cores",
+      "6",
+      "C:\\Perso\\swag-lang\\swc-memory\\tools\\unittests.swgs",
+      "sanity",
+      "-bc",
+      "devmode",
+      "--num-cores",
+      "6"
+    ],
+    "exit": 0,
+    "seconds": 18.22277149999718,
+    "label": "compact-values-release-sanity",
+    "compiler_build": 710
+  },
+  {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "test",
+      "-d",
+      "C:/Perso/swag-lang/swc-memory/bin/unittests/native",
+      "--file-filter",
+      "float",
+      "-bc",
+      "release",
+      "--num-cores",
+      "6",
+      "--out-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/compact-values-release-floats-out",
+      "--work-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/compact-values-release-floats-work"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+    "exit": 0,
+    "seconds": 0.6978184999970836,
+    "label": "compact-values-release-floats",
+    "compiler_build": 710
+  },
+  {
+    "command": [
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\swc.dm.exe",
+      "--num-cores",
+      "6",
+      "C:\\Perso\\swag-lang\\swc-memory\\tools\\unittests.swgs",
+      "dm",
+      "cpp",
+      "-bc",
+      "devmode",
+      "--num-cores",
+      "6"
+    ],
+    "exit": 0,
+    "seconds": 53.76833739999711,
+    "label": "compact-values-cpp",
+    "compiler_build": 711
+  },
+  {
+    "command": [
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\swc.dm.exe",
+      "--num-cores",
+      "6",
+      "C:\\Perso\\swag-lang\\swc-memory\\tools\\unittests.swgs",
+      "dm",
+      "sanity",
+      "-bc",
+      "devmode",
+      "--num-cores",
+      "6"
+    ],
+    "exit": 0,
+    "seconds": 4.523543799994513,
+    "label": "compact-values-dm-sanity",
+    "compiler_build": 711
+  },
+  {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.dm.exe",
+      "test",
+      "-d",
+      "C:/Perso/swag-lang/swc-memory/bin/unittests/native",
+      "--file-filter",
+      "\\intrinsics\\",
+      "-bc",
+      "devmode",
+      "--num-cores",
+      "6",
+      "--out-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/compact-values-dm-intrinsics-out",
+      "--work-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/compact-values-dm-intrinsics-work"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+    "exit": 0,
+    "seconds": 1.0288072999974247,
+    "label": "compact-values-dm-intrinsics",
+    "compiler_build": 711
+  }
+]

@@ -220,6 +220,186 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A zero-extended byte/word shifted entirely within the low dword needs
+    // no 64-bit shift. Keep flags out of the rewrite: SF/OF may differ.
+    bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isInt() || ops[1].opBits != MicroOpBits::B64 ||
+            ops[2].microOp != MicroOp::ShiftLeft || ops[3].hasWideImmediateValue() || ops[3].valueU64 >= 32)
+            return false;
+        const MicroInstrRef extRef = ctx.previousRef(ref);
+        const MicroInstr*   ext    = ctx.instruction(extRef);
+        if (!ext || ext->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* extOps = ext->ops(*ctx.operands);
+        if (!extOps || extOps[0].reg != ops[0].reg ||
+            (extOps[2].opBits != MicroOpBits::B32 && extOps[2].opBits != MicroOpBits::B64) ||
+            (extOps[3].opBits != MicroOpBits::B8 && extOps[3].opBits != MicroOpBits::B16) ||
+            getNumBits(extOps[3].opBits) + ops[3].valueU64 > 32 ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({extRef, ref}))
+            return false;
+        MicroInstrOperand rewritten[4] = {ops[0], ops[1], ops[2], ops[3]};
+        rewritten[1].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, rewritten);
+        return true;
+    }
+
+    // When only SUB's flags reach a widened boolean, replace its copied
+    // result with CMP and clear the boolean destination before that compare.
+    bool tryFoldSubtractBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* result = inst.ops(*ctx.operands);
+        if (!result || !result[0].reg.isInt() || result[0].reg != result[1].reg || result[3].opBits != MicroOpBits::B8 ||
+            (result[2].opBits != MicroOpBits::B32 && result[2].opBits != MicroOpBits::B64) || ctx.isPrivateFrameBase(result[0].reg))
+            return false;
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const auto* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[0].reg != result[0].reg)
+            return false;
+        const MicroInstrRef subRef = ctx.previousRef(setRef);
+        const MicroInstr*   sub    = ctx.instruction(subRef);
+        if (!sub || sub->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* subOps = sub->ops(*ctx.operands);
+        if (!subOps || subOps[0].reg != result[0].reg || !subOps[1].reg.isInt() || subOps[3].microOp != MicroOp::Subtract ||
+            (subOps[2].opBits != MicroOpBits::B32 && subOps[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef copyRef = ctx.previousRef(subRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copyOps = copy->ops(*ctx.operands);
+        if (!copyOps || copyOps[0].reg != result[0].reg || !copyOps[1].reg.isInt() || copyOps[1].reg == result[0].reg ||
+            copyOps[2].opBits != subOps[2].opBits || !ctx.claimAll({copyRef, subRef, setRef, ref}))
+            return false;
+        MicroInstrOperand clear[2]   = {};
+        clear[0].reg                 = result[0].reg;
+        clear[1].opBits              = MicroOpBits::B32;
+        MicroInstrOperand compare[3] = {copyOps[1], subOps[1], subOps[2]};
+        if (compare[1].reg == result[0].reg)
+            compare[1].reg = copyOps[1].reg;
+        ctx.emitRewrite(copyRef, MicroInstrOpcode::ClearReg, clear);
+        ctx.emitRewrite(subRef, MicroInstrOpcode::CmpRegReg, compare);
+        ctx.emitErase(ref);
+        return true;
+    }
+
+    // Fold zero-extend; compare; SETcc; zero-extend into a narrow compare
+    // with a pre-cleared boolean destination. Unsigned/equality conditions
+    // survive narrowing when the immediate fits the source width.
+    bool tryFoldZeroExtendedBooleanCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* result = inst.ops(*ctx.operands);
+        if (!result || !result[0].reg.isInt() || result[0].reg != result[1].reg || result[3].opBits != MicroOpBits::B8 ||
+            (result[2].opBits != MicroOpBits::B32 && result[2].opBits != MicroOpBits::B64) || ctx.isPrivateFrameBase(result[0].reg))
+            return false;
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const auto* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[0].reg != result[0].reg)
+            return false;
+        switch (setOps[1].cpuCond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::NotEqual:
+            case MicroCond::Zero:
+            case MicroCond::NotZero:
+            case MicroCond::Above:
+            case MicroCond::AboveOrEqual:
+            case MicroCond::Below:
+            case MicroCond::BelowOrEqual:
+            case MicroCond::NotAbove:
+                break;
+            default:
+                return false;
+        }
+        const MicroInstrRef cmpRef = ctx.previousRef(setRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const auto* cmpOps = cmp->ops(*ctx.operands);
+        if (!cmpOps || cmpOps[0].reg != result[0].reg || cmpOps[2].hasWideImmediateValue())
+            return false;
+        const MicroInstrRef sourceRef = ctx.previousRef(cmpRef);
+        const MicroInstr*   source    = ctx.instruction(sourceRef);
+        if (!source || source->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* sourceOps = source->ops(*ctx.operands);
+        if (!sourceOps || sourceOps[0].reg != result[0].reg || !sourceOps[1].reg.isInt() || sourceOps[1].reg == result[0].reg ||
+            (sourceOps[2].opBits != MicroOpBits::B32 && sourceOps[2].opBits != MicroOpBits::B64) ||
+            (sourceOps[3].opBits != MicroOpBits::B8 && sourceOps[3].opBits != MicroOpBits::B16) ||
+            getNumBits(cmpOps[1].opBits) < getNumBits(sourceOps[3].opBits) ||
+            cmpOps[2].valueU64 > getBitsMask(sourceOps[3].opBits) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({sourceRef, cmpRef, setRef, ref}))
+            return false;
+        MicroInstrOperand clear[2]  = {};
+        clear[0].reg                = result[0].reg;
+        clear[1].opBits             = MicroOpBits::B32;
+        MicroInstrOperand narrow[3] = {cmpOps[0], cmpOps[1], cmpOps[2]};
+        narrow[0].reg               = sourceOps[1].reg;
+        narrow[1].opBits            = sourceOps[3].opBits;
+        ctx.emitRewrite(sourceRef, MicroInstrOpcode::ClearReg, clear);
+        ctx.emitRewrite(cmpRef, cmp->op, narrow);
+        ctx.emitErase(ref);
+        return true;
+    }
+
+    // Zero the full result before the compare instead of extending SETcc's
+    // byte afterward. The compare must not read that result register.
+    bool tryClearBeforeSetCondition(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* ext = inst.ops(*ctx.operands);
+        if (!ext || !ext[0].reg.isInt() || ext[0].reg != ext[1].reg ||
+            ext[3].opBits != MicroOpBits::B8 ||
+            (ext[2].opBits != MicroOpBits::B32 && ext[2].opBits != MicroOpBits::B64) ||
+            ctx.isPrivateFrameBase(ext[0].reg))
+            return false;
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const auto* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[0].reg != ext[0].reg)
+            return false;
+        const MicroInstrRef cmpRef = ctx.previousRef(setRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        // Register compares have no immediate/relocation binding to move.
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const auto* cmpOps = cmp->ops(*ctx.operands);
+        if (!cmpOps || !cmpOps[0].reg.isInt() || !cmpOps[1].reg.isInt())
+            return false;
+        const MicroInstrUseDef useDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
+        for (const MicroReg reg : useDef.uses)
+            if (reg == ext[0].reg)
+                return false;
+        if (!ctx.claimAll({cmpRef, setRef, ref}))
+            return false;
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = ext[0].reg;
+        clear[1].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::ClearReg, clear);
+        ctx.emitRewrite(setRef, cmp->op, std::span{cmpOps, cmp->numOperands}, true);
+        ctx.emitRewrite(ref, set->op, std::span{setOps, set->numOperands});
+        return true;
+    }
+
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (!isCompareInstruction(inst.op))

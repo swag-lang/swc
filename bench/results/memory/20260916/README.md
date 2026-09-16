@@ -83,3 +83,6 @@ A three-pair core rebuild comparison against build 695 is retained in
 devmode and 1.001 in release; paired CPU ratios are 0.937 and 0.970. Peak working set varies
 by +2.1% and +1.7%. This is a correctness fix, not a claimed memory improvement.
 [Validation commands](pattern-validation.json).
+
+After integration with master `1ad9da4a2`, both compiler builds passed at build 699 and
+the ten-test file passed again with both executables in release.

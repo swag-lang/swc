@@ -103,7 +103,8 @@ namespace
             return !multiVar->hasFlag(AstVarDeclFlagsE::Parameter);
         return decl->is(AstNodeId::VarDeclDestructuring) ||
                decl->is(AstNodeId::ForStmt) ||
-               decl->is(AstNodeId::ForeachStmt);
+               decl->is(AstNodeId::ForeachStmt) ||
+               decl->is(AstNodeId::SwitchCaseStmt);
     }
 
     bool containsAutoMemberAccess(Sema& sema, AstNodeRef nodeRef)

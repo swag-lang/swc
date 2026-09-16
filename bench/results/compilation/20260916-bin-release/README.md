@@ -61,8 +61,8 @@ baseline CPU versus 233.938 seconds for the candidate. Both implementations were
 Both passed 825 C++ tests, including three experimental graph/liveness cases. The first also
 preserved 16 normalized final Micro functions across Levenshtein and ChaCha, and passed 29 native
 optimizer tests. A broader native run reached the existing release type-pattern failure after
-3,248 successes; the unchanged build-688 baseline reproduces it in isolation. It is tracked by
-`compiler.core.049`. The remaining SSA opportunity is recorded in `compiler.optimization.029`.
+3,248 successes; the unchanged build-688 baseline reproduces it in isolation. It was tracked by
+`compiler.core.049`, resolved separately by `69f480e61`. The remaining SSA opportunity is recorded in `compiler.optimization.029`.
 
 ## Batch 2: dependency walks
 
@@ -95,3 +95,59 @@ Batch-2 integration with master `81e57b332` used Release build 702. Native
 `--file-filter closure -bc release` passed 83 cases in JIT and in the emitted executable;
 the backlog validator passed. This integration also brings the independent pattern-binding fix
 `69f480e61`, which resolves the earlier `compiler.core.049` baseline failure.
+
+## Discarded: MicroStorage accessor inlining
+
+Release does not use LTO. Two experiments exposed unchanged instruction-storage method bodies
+in the header: build 703 moved 29 iterator/view/accessor methods; build 704 kept only the 22
+iterator/view methods. The comparison baseline was batch-2 integration `277804c1c`, build 702.
+Neither variant was retained.
+
+| Experiment | Pairs / workspace | Median paired elapsed | CPU | Cycles | Peak working set |
+| --- | --- | ---: | ---: | ---: | ---: |
+| All 29 methods | 3 / all standard modules | +10.98% | -6.53% | -6.01% | +0.01% |
+| All 29, common resource root | 7 / core | +4.34% | +1.03% | -2.92% | -0.98% |
+| Iterators/views, common resource root | 5 / core | -2.79% | -3.27% | -3.54% | +1.56% |
+| Iterators/views, common resource root | 3 / gui | +17.18% | +19.14% | +18.93% | -1.97% |
+
+The narrower variant's modest core improvement did not hold on gui: two of three elapsed pairs
+regressed. All builds succeeded. Shared-machine activity remains a material source of variation;
+no favorable samples have been selected out of these series. Both candidate executables were
+slightly smaller than the baseline, but binary size does not justify the elapsed-time result.
+
+For the common-root controls, both compiler copies live in the same external directory and use
+the same runtime/std resource junctions into this worktree. This removes a possible resource-path
+confound in earlier comparisons. The six pinned performance workers and alternating A/B, B/A
+protocol remain unchanged. Exact binary SHA-256 values:
+
+- Baseline 702: `3a7cd18ae95e5dec12e190ad7847084a0ad27dfcab6a1a3e4c00d444eac4758b`.
+- Full variant 703: `bf8428c7411fc20ebf85c35282680c77999913615b35aff0ec2db7cfdad1143e`.
+- Iterator variant 704: `5046b1c59096a48e6c8de59d3d8db0106752183d4adb5d3a0af5e013a8dd4fc5`.
+
+Functional checks on the full 703 variant: Release compiler/program `release`, video
+`--test-file y4m.test.swg`, 13 passed in JIT and native; DevMode compiler/program `release`,
+native `--file-filter simd`, 49 passed in JIT and native. The narrower 704 variant completed its
+paired contextual builds; no additional functional campaign was run after rejecting its timing.
+
+## Discarded: JIT order lock transfer and vector reuse
+
+Build 710 returned the cache's existing shared lock to its visitor instead of taking a second
+read lock on a cache hit. It also reused local vectors in the dependency walk and completion
+loops. The baseline was the same build 702, using the common-root control protocol.
+
+The first two gui pairs completed, but the third candidate failed during gui code generation:
+`internal compiler error: job 'CodeGen' returned an error without a diagnostic` (exit 5).
+That failed sample is retained in the CSV and excluded from timing comparisons. The first
+candidate also overlapped substantially more background CPU (41.69%, versus baseline 17.17%);
+the successful pairs establish no elapsed-time gain.
+
+Functional checks before that failure passed: Release/program `release`, reference
+`--file-filter 014_002_run.swg`, five tests; DevMode `unittest --dev-full`, 861 C++ tests including
+cache hit, early predicate exit and subsequent invalidation; DevMode JIT
+`--file-filter const_eval_pointer`, five tests. Both compilers built successfully.
+
+The exact gui rebuild then passed once in DevMode. Three additional pinned, six-worker rebuilds
+with the unchanged Release baseline all passed. This does not establish the failure's cause or
+prove that the baseline cannot fail; the prototype was discarded and was never merged. Its
+external patch and both executable copies are retained for isolation of the locking and buffer
+changes. Candidate SHA-256: `9f719153f0c4e5cc5e7c640cb57686de2a20ba8df3c8f5572d58d33c558febac`.

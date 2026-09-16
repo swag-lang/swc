@@ -192,3 +192,80 @@ Both compiler configurations built successfully. Validation rotated to these bou
 Batch-3 integration with master `bc0ec576c` used Release build 715. Native
 `--file-filter typeinfo_generic_method_where.swg -bc release` passed its case in JIT and in
 the emitted executable, exercising reflected generic methods excluded by a `where` condition.
+
+## Discarded: JIT global-address cache capacity
+
+Build 716 reserved the global-function address cache from the number of referenced global slots
+instead of every module global, and returned early when a compile-time call referenced none.
+Compared with batch-3 integration / build 715, three common-root gui pairs did not establish a
+repeatable gain: median paired elapsed +24.91%, CPU +2.36%, cycles +2.71%, peak working set +3.33%.
+Two elapsed pairs regressed. Background activity reached 48.87% during the third candidate,
+versus 8.18% during its paired baseline, so those timings cannot isolate the local change's cost.
+All samples are retained; the prototype was discarded.
+
+Both compilers built. Release compiler/program `release`, core `--test-file hashtable.test.swg`,
+passed 13 cases in JIT and native; DevMode JIT `--file-filter global_function_ptr.swg` passed
+one case. All six gui rebuilds completed. Baseline/candidate SHA-256:
+
+- `d0448a56ec886a6ffa274e02af55e53c0076e08f7b7a8ee3fec2a319f443e294`.
+- `5c0403440b8d01a11a0815dc3c860cdca1825f398112015bae2a5a90bd15cf32`.
+
+## Discarded: reuse of the sema-complete JIT snapshot
+
+Build 717 reused the first dependency order after semantic completion when the call-graph and
+native-global-target versions stayed unchanged, avoiding the second root walk. Three common-root
+pairs rebuilt all standard modules against baseline 715. Median paired elapsed was -11.95%, CPU
+-21.10%, cycles -20.92%, and peak working set -0.33%, but the first two baseline runs overlapped
+36.87% and 32.01% background CPU, against 7.67% and 6.74% for the candidates. The third pair had
+comparable background load (6.76% / 8.41%): elapsed was 22.197 / 22.183 seconds, and process CPU
+81.922 / 84.344 seconds. The apparent aggregate gain does not establish an isolated improvement;
+the prototype was discarded. All six builds passed and every sample is retained.
+
+Both compiler configurations built successfully. Release compiler/program `release`, reference
+`--file-filter 014_001_constexpr.swg`, passed one test; DevMode JIT
+`--file-filter static_if_reflect_cycle.swg`, program `devmode`, passed two tests.
+Baseline/candidate SHA-256:
+
+- `d0448a56ec886a6ffa274e02af55e53c0076e08f7b7a8ee3fec2a319f443e294`.
+- `48fdaf1c1913e4a0c81318c50966f86a76da6c7f80ff7e518564036eb0fb2753`.
+
+## Discarded: per-function JIT dependency epochs
+
+Build 718 recorded each function's last call-graph mutation, allowing a cached closure to survive
+changes to unrelated functions. A function's epoch was published before the global epoch; ignored,
+conditionally excluded, and cycle-error functions used the same invalidation path. This prototype
+was independent of the discarded build-717 snapshot change.
+
+Three common-root pairs rebuilt all twelve standard modules against baseline 715. Median paired
+elapsed increased 1.81%, process CPU 3.70%, and cycles 3.11%; peak working set decreased 0.79%.
+Two of three elapsed pairs regressed. Background CPU remained between 7.55% and 13.48%, providing
+a more comparable control than the preceding experiment. All builds passed, but the extra cache
+complexity did not improve compilation time, so the entire prototype was discarded.
+
+Both compiler configurations built. DevMode `unittest --num-cores 6` passed 824 tests, including
+new checks for ignored/excluded nodes and concurrent growth of two dependency branches. Release
+compiler/program `devmode`, sema `--file-filter layout_cycle.swg`, validated the two expected-error
+fixtures (pointer layout and lifecycle layout cycles). DevMode/program `devmode`, core
+`--test-file string.test.swg`, passed 14 tests in JIT and native after compiling the whole module.
+Candidate SHA-256: `89a0ba46965e8e5f38f3f0d1154c0bae899b57b8388e9bab033a7b388048979a`.
+
+## Retained changes and closeout
+
+The owner ended the iteration at 19:32, before the original 20:00 deadline. Three optimization
+batches were retained and integrated into master:
+
+| Batch | Implementation commit | Change |
+| --- | --- | --- |
+| 1 | `5ac6fa73f` | Flat JIT root membership and early duplicate filtering |
+| 2 | `0eb61ebba` | Flat visited set for dependency order and reused root-union storage |
+| 3 | `32d90475f` | Rejected-root membership cache and flat global-function membership |
+
+The strongest controlled whole-standard-workspace result is batch 3: median paired elapsed
+-3.69% and process CPU -3.44%. Batch 1 has no established end-to-end speedup; batch 2's video
+elapsed improvement came with increased CPU time. These percentages are not additive and do not
+establish a total gain across all of bin/. The varied focused validations above passed; the global
+campaign remains deferred as requested. The build-710 CodeGen failure is preserved separately in
+`compiler.core.051`; that prototype was never integrated.
+
+Rejected patches, compiler copies and raw logs remain outside the checkout for reproducibility.
+The temporary worktree and branch are removed after the final report merge.

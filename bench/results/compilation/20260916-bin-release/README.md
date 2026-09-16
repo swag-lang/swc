@@ -228,3 +228,44 @@ Baseline/candidate SHA-256:
 
 - `d0448a56ec886a6ffa274e02af55e53c0076e08f7b7a8ee3fec2a319f443e294`.
 - `48fdaf1c1913e4a0c81318c50966f86a76da6c7f80ff7e518564036eb0fb2753`.
+
+## Discarded: per-function JIT dependency epochs
+
+Build 718 recorded each function's last call-graph mutation, allowing a cached closure to survive
+changes to unrelated functions. A function's epoch was published before the global epoch; ignored,
+conditionally excluded, and cycle-error functions used the same invalidation path. This prototype
+was independent of the discarded build-717 snapshot change.
+
+Three common-root pairs rebuilt all twelve standard modules against baseline 715. Median paired
+elapsed increased 1.81%, process CPU 3.70%, and cycles 3.11%; peak working set decreased 0.79%.
+Two of three elapsed pairs regressed. Background CPU remained between 7.55% and 13.48%, providing
+a more comparable control than the preceding experiment. All builds passed, but the extra cache
+complexity did not improve compilation time, so the entire prototype was discarded.
+
+Both compiler configurations built. DevMode `unittest --num-cores 6` passed 824 tests, including
+new checks for ignored/excluded nodes and concurrent growth of two dependency branches. Release
+compiler/program `devmode`, sema `--file-filter layout_cycle.swg`, validated the two expected-error
+fixtures (pointer layout and lifecycle layout cycles). DevMode/program `devmode`, core
+`--test-file string.test.swg`, passed 14 tests in JIT and native after compiling the whole module.
+Candidate SHA-256: `89a0ba46965e8e5f38f3f0d1154c0bae899b57b8388e9bab033a7b388048979a`.
+
+## Retained changes and closeout
+
+The owner ended the iteration at 19:32, before the original 20:00 deadline. Three optimization
+batches were retained and integrated into master:
+
+| Batch | Implementation commit | Change |
+| --- | --- | --- |
+| 1 | `5ac6fa73f` | Flat JIT root membership and early duplicate filtering |
+| 2 | `0eb61ebba` | Flat visited set for dependency order and reused root-union storage |
+| 3 | `32d90475f` | Rejected-root membership cache and flat global-function membership |
+
+The strongest controlled whole-standard-workspace result is batch 3: median paired elapsed
+-3.69% and process CPU -3.44%. Batch 1 has no established end-to-end speedup; batch 2's video
+elapsed improvement came with increased CPU time. These percentages are not additive and do not
+establish a total gain across all of bin/. The varied focused validations above passed; the global
+campaign remains deferred as requested. The build-710 CodeGen failure is preserved separately in
+`compiler.core.051`; that prototype was never integrated.
+
+Rejected patches, compiler copies and raw logs remain outside the checkout for reproducibility.
+The temporary worktree and branch are removed after the final report merge.

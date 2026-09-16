@@ -248,6 +248,54 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Initialize a value-or-zero selection with XOR before its compare.
+    // Postpone the old zero load until after CMOV so both registers retain
+    // their original final values, even when it overwrites the input.
+    bool tryInvertZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref))
+            return false;
+        const auto* copy = inst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef cmpRef = ctx.nextRef(ref);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
+            return false;
+        const MicroInstrUseDef cmpUseDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
+        for (const MicroReg reg : cmpUseDef.uses)
+            if (reg == copy[0].reg)
+                return false;
+        const MicroInstrRef zeroRef = ctx.nextRef(cmpRef);
+        const MicroInstr*   zero    = ctx.instruction(zeroRef);
+        if (!zero || zero->op != MicroInstrOpcode::LoadRegImm)
+            return false;
+        const auto* zeroOps = zero->ops(*ctx.operands);
+        if (!zeroOps || !zeroOps[0].reg.isInt() || zeroOps[0].reg == copy[0].reg || zeroOps[2].hasWideImmediateValue() ||
+            zeroOps[2].valueU64 != 0 || (zeroOps[1].opBits != MicroOpBits::B32 && zeroOps[1].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef selectRef = ctx.nextRef(zeroRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg)
+            return false;
+        const auto* selectOps = select->ops(*ctx.operands);
+        MicroCond   inverted;
+        if (!selectOps || selectOps[0].reg != copy[0].reg || selectOps[1].reg != zeroOps[0].reg ||
+            selectOps[3].opBits != copy[2].opBits || !MicroPassHelpers::invertCondition(inverted, selectOps[2].cpuCond) ||
+            !ctx.claimAll({ref, cmpRef, zeroRef, selectRef}))
+            return false;
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = copy[0].reg;
+        clear[1].opBits            = MicroOpBits::B32;
+        MicroInstrOperand move[4]  = {selectOps[0], copy[1], selectOps[2], selectOps[3]};
+        move[2].cpuCond            = inverted;
+        ctx.emitRewrite(ref, MicroInstrOpcode::ClearReg, clear);
+        ctx.emitRewrite(zeroRef, select->op, move, true);
+        ctx.emitRewrite(selectRef, zero->op, std::span{zeroOps, zero->numOperands});
+        return true;
+    }
+
     // When only SUB's flags reach a widened boolean, replace its copied
     // result with CMP and clear the boolean destination before that compare.
     bool tryFoldSubtractBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

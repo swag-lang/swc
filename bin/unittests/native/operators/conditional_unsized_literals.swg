@@ -49,8 +49,14 @@ func floatingSelection(flag: bool)->f64
     return value * 2
 }
 
+#[Swag.NoInline]
+func smallFloatingSelection(flag: bool) => flag ? -1.5 : 1.5
+
 #test
 {
+    #assert(#typeof(smallFloatingSelection(true)) == f64)
+    Swag.assert(smallFloatingSelection(true) == -1.5)
+    Swag.assert(smallFloatingSelection(false) == 1.5)
     Swag.assert(floatingSelection(true) == 2.0e100)
     Swag.assert(floatingSelection(false) == 0)
     Swag.assert(wideSelection(0, 0) == 0x8000000000000000)

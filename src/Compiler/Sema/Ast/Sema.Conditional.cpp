@@ -318,9 +318,9 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeFalseRef, nodeTrueView.typeRef(), nodeFalseView.typeRef());
 
     // A runtime select has no single constant to concretize when an inferred
-    // local captures it. Settle both literal widths here, after contextual
+    // local captures it. Settle both integer literal widths here, after contextual
     // bindings have had their chance, so later uses cannot default to s32.
-    if (!nodeCondView.cstRef().isValid() && sema.typeMgr().get(typeRef).isScalarUnsized() &&
+    if (!nodeCondView.cstRef().isValid() && sema.typeMgr().get(typeRef).isIntUnsized() &&
         isUnsizedScalarConstant(nodeTrueView) && isUnsizedScalarConstant(nodeFalseView))
     {
         ConstantRef trueConstant;

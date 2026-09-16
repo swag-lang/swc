@@ -227,7 +227,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
     const Truncated: [5] u8 = [0x1A, 0x45, 0xDF, 0xA3, 0x80]
     discard catch Reader.openMemory("broken.mkv", Truncated) as truncated
-    Swag.assert((cast #try (*InvalidFormatError) truncated != null))
+    Swag.assert((truncated is InvalidFormatError))
 }
 
 // An unsupported picture codec is rejected as soon as the track metadata names it. The damaged
@@ -249,7 +249,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     bytes[clusterOffset] = 0
 
     discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as unsupported
-    Swag.assert((cast #try (*UnsupportedFormatError) unsupported != null))
+    Swag.assert((unsupported is UnsupportedFormatError))
 }
 
 // A file-backed reader returns after metadata even when the first media cluster is malformed.
@@ -269,7 +269,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var reader = expect Reader.open(fileName)
     Swag.assert(reader.frameCount() == 0)
     discard catch reader.decodeFrame(0) as clusterError
-    Swag.assert((cast #try (*InvalidFormatError) clusterError != null))
+    Swag.assert((clusterError is InvalidFormatError))
 }
 
 // Cancellation can come from a viewer thread while a file-backed reader is about to build its
@@ -279,7 +279,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     reader.requestCancel()
     discard catch reader.decodeFrame(0) as cancelled
-    Swag.assert((cast #try (*BadParameterError) cancelled != null))
+    Swag.assert((cancelled is BadParameterError))
 }
 
 // A string element states its length, and a writer that reserved room for a longer value fills the

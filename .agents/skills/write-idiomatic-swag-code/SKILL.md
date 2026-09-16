@@ -321,17 +321,23 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 - Use expression-bodied functions for one direct expression, but keep blocks when validation,
   ownership, or failure behavior deserves to remain visible.
 
-## Use One Dynamic Cast Vocabulary
+## Use Dynamic Type Patterns
 
-- Use `cast #try (*T) value` to borrow a concrete value from `any`, an interface, or a
-  pointer to a `#[Swag.DynCast]` struct. Prefer `if let found = cast #try (*T) value`
-  when the branch uses the result; compare with `null` when it only tests compatibility.
+- Use `value is T` when only compatibility matters, and `if value is T as name`
+  when the branch needs the borrowed result. Add `where` to filter the non-null binding.
+- Use `switch value` with `case T` or `case T as name`, optionally guarded by `where`,
+  for dynamic dispatch over `any`, interfaces, or pointers to dynamic structs. Concrete
+  bindings are pointers; interface bindings are views. Both preserve source constness.
+- Direct `cast #try` conditional bindings, boolean conversions, and comparisons with
+  `null` are rejected. Use `is` or a typed case for those forms.
+- Use `cast #try (*T) value` when the nullable conversion result is itself needed.
+  It shares type compatibility, pointer adjustment, and borrowing rules with patterns.
 - Use `cast #assume (T) boxed` or `cast #assume (*T) value` only when the concrete type
   is an established invariant. `.DynCast` safety checks that assertion; disabling it
   does not make a wrong assumption valid.
-- Query type compatibility with `cast #try (Target) Source`, including in generic
-  constraints. Expression `as`, expression `is`, `Swag.typeAs`, and `Swag.typeIs` are
-  retired; `catch ... as err` still binds an error.
+- Write `where T is IFoo` for a generic compatibility constraint and `T == U` for exact
+  type equality. Expression `as`, `Swag.typeAs`, and `Swag.typeIs` remain retired;
+  `as` binds a successful type pattern or a caught error.
 
 ## Keep APIs Hard to Misuse
 

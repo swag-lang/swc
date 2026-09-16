@@ -90,9 +90,9 @@ var g_Time: f32
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch
+    switch evt
     {
-    case let paintEvt = cast #try (*PaintEvent) evt:
+    case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         painter.clear(Argb.Gray)
         painter.setParams(.Antialiased)

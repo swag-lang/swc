@@ -1260,7 +1260,7 @@ impl PdfView
         let view = result.scroll.createView'Wnd(func|target = result|(wnd, evt)
         {
             discard wnd
-            if cast #try (*ResizeEvent) evt != null do
+            if evt is ResizeEvent do
                 target.placeDocument()
             return false
         })

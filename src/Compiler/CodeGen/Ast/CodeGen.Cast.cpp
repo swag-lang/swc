@@ -962,7 +962,15 @@ namespace
         MicroReg      sourcePtrReg  = codeGen.nextVirtualIntRegister();
         MicroReg      sourceTypeReg = MicroReg::invalid();
 
-        if (sourceInfo.structTypeRef.isValid())
+        const SemaNodeView sourceConstant = codeGen.viewConstant(sourceRef);
+        if (sourceConstant.hasConstant() && codeGen.cstMgr().get(sourceConstant.cstRef()).isNullValue(codeGen.ctx()))
+        {
+            // Folded null interfaces and boxes have no addressable two-word payload.
+            sourceTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(sourcePtrReg, ApInt(0, 64), MicroOpBits::B64);
+        }
+        else if (sourceInfo.structTypeRef.isValid())
         {
             if (sourceInfo.kind == DynamicStructCastSourceKind::StructPointerLike && sourcePayload.isAddress())
                 builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, 0, MicroOpBits::B64);
@@ -1520,7 +1528,14 @@ namespace
         const TypeInfo& resolvedSrcType    = typeMgr.get(resolvedSrcTypeRef);
         const TypeInfo& resolvedDstType    = typeMgr.get(resolvedDstTypeRef);
         if (resolvedSrcType.isAny())
-            return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
+        {
+            // A bool conversion inserted by a condition or an 'is' pattern tests presence.
+            // Only '#assume (bool)' extracts an actual boxed bool.
+            const auto* castNode        = codeGen.node(codeGen.curNodeRef()).safeCast<AstCastExpr>();
+            const bool  anyPresenceTest = resolvedDstType.isBool() && castNode && !castNode->modifierFlags.has(AstModifierFlagsE::Assume);
+            if (!anyPresenceTest)
+                return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
+        }
 
         const TypeInfo& srcType = typeMgr.get(sourceTypeRef);
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);

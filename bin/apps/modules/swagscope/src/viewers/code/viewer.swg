@@ -340,9 +340,9 @@ internal impl CodeViewer
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            switch
+            switch evt
             {
-            case let paintEvt = cast #try (*PaintEvent) evt:
+            case PaintEvent as paintEvt:
 
                 // Caret placement and wrapping publish scroll corrections during paint. They
                 // must not reload the text whose lines the renderer is currently traversing.
@@ -352,19 +352,19 @@ internal impl CodeViewer
                 paintEvt.target!.processEvent(evt)
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
                 view.setZoom(view.zoomPercent + 25)
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
                 view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
                 view.setZoom(100)
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .End and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = true
                 discard view.revealOffset(view.fileSize, "")
                 view.repositioning = true
@@ -372,7 +372,7 @@ internal impl CodeViewer
                 view.repositioning = false
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Home and (keyEvt.modifiers == .None or keyEvt.modifiers == .Control):
                 view.pauseStreaming = false
                 discard view.revealOffset(0, "")
                 view.repositioning = true
@@ -380,7 +380,7 @@ internal impl CodeViewer
                 view.repositioning = false
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
                 view.pauseStreaming = false
                 view.scheduleMore()
                 return false
@@ -393,7 +393,7 @@ internal impl CodeViewer
         result.hookOnEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            if cast #try (*ResizeEvent) evt != null
+            if evt is ResizeEvent
             {
                 view.updateEstimatedHeight()
                 view.scheduleMore()

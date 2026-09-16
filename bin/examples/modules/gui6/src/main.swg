@@ -381,9 +381,9 @@ func drawStatePill(painter: *Painter, rect: Math.Rectangle, text: string, active
 
 func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
-    switch
+    switch evt
     {
-    case let paintEvt = cast #try (*PaintEvent) evt:
+    case PaintEvent as paintEvt:
         let painter   = paintEvt.paintContext.painter
         let rect      = view.clientRect()
         let colors    = view.themeColors()
@@ -660,7 +660,7 @@ func computeMenuCommandState(evt: *CommandStateEvent)->bool
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
-    if let cmd = cast #try (*CommandEvent) evt
+    if evt is CommandEvent as cmd
     {
         if processMenuCommand(cmd.id)
         {
@@ -668,7 +668,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
             return true
         }
     }
-    elif let state = cast #try (*CommandStateEvent) evt where state.kind == .Compute
+    elif evt is CommandStateEvent as state where state.kind == .Compute
     {
         if computeMenuCommandState(state)
         {
@@ -676,13 +676,13 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
             return true
         }
     }
-    elif cast #try (*ResizeEvent) evt != null
+    elif evt is ResizeEvent
     {
         layoutRootView()
         buildPage()
         return true
     }
-    elif cast #try (*DestroyEvent) evt != null
+    elif evt is DestroyEvent
     {
         destroyPageMenus()
         app.sigFrame.disable()

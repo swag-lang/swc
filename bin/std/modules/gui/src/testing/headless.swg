@@ -280,7 +280,7 @@ impl HeadlessHost
             {
                 if not wnd.isVisible() do
                     return
-                if cast #try (*PushButton) wnd != null and wnd.id
+                if wnd is PushButton and wnd.id
                 {
                     let id = String.from(wnd.id)
                     if not ids.contains(id) do
@@ -466,9 +466,9 @@ impl HeadlessHost
     {
         .root.hookOnEvent = func|host = me|(wnd, evt)
         {
-            switch
+            switch evt
             {
-            case let cmd = cast #try (*CommandEvent) evt:
+            case CommandEvent as cmd:
                 host.commandCount += 1
                 host.lastCommand  = cmd.id
                 cmd.accepted      = true
@@ -484,9 +484,9 @@ impl HeadlessHost
     {
         .root.hookOnEvent = func|host = me, cmdId|(wnd, evt)
         {
-            switch
+            switch evt
             {
-            case let cmd = cast #try (*CommandEvent) evt:
+            case CommandEvent as cmd:
                 host.commandCount += 1
                 host.lastCommand  = cmd.id
                 if cmd.id == cmdId
@@ -741,7 +741,7 @@ impl HeadlessHost
     // Finds edit ctrl by label.
     mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->*EditCtrl?
     {
-        if let ctrl = cast #try (*EditCtrl) wnd
+        if wnd is EditCtrl as ctrl
         {
             if (ctrl.label != null) and ctrl.label.name.raw == label do
                 return ctrl
@@ -775,7 +775,7 @@ impl HeadlessHost
     // Finds file browser ctrl.
     mtd findFileBrowserCtrl(wnd: *Wnd)->*FileBrowserCtrl?
     {
-        if let ctrl = cast #try (*FileBrowserCtrl) wnd do
+        if wnd is FileBrowserCtrl as ctrl do
             return ctrl
 
         for child in wnd.children
@@ -1134,7 +1134,7 @@ impl HeadlessHost
         for it in copy
         {
             let evt = cast #assume (*Event) it
-            if cast #try (*InvalidateEvent) it != null
+            if it is InvalidateEvent
             {
                 let target = evt.target
                 if target do
@@ -1143,7 +1143,7 @@ impl HeadlessHost
             else do
                 .app.sendEvent(it)
 
-            if cast #try (*CommandEvent) it != null do
+            if it is CommandEvent do
                 needUpdateState = true
 
             Memory.delete(it.buffer, Swag.kindOf(it))

@@ -117,7 +117,7 @@ func tryAnyType()->bool
 {
     var value      = 42's32
     let boxed: any = Swag.makeAny(&value, s32)
-    return cast #try(*s32) boxed != null
+    return boxed is s32
 }
 
 // Reading the union member that WAS written is the defined use, and must stay silent.

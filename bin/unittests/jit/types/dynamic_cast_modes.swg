@@ -28,7 +28,7 @@ impl ICastLabel for CastValue
 }
 
 func(T) readCastValue(value: *T)->s32
-    where cast #try (ICastValue) T != null
+    where T is ICastValue
 {
     let view = cast(ICastValue) value
     return view.value()
@@ -40,7 +40,8 @@ func(T) readCastValue(value: *T)->s32
     let itf      = cast(ICastValue) &value
     let concrete = cast #try (*CastValue) itf
     Swag.assert(concrete == &value)
-    Swag.assert(cast #try (*OtherCastValue) itf == null)
+    let castResult1 = cast #try (*OtherCastValue) itf
+    Swag.assert(castResult1 == null)
     Swag.assert(cast #assume (*CastValue) itf == &value)
     let label = cast #try (ICastLabel) itf
     if label != null do
@@ -56,7 +57,8 @@ func(T) readCastValue(value: *T)->s32
     var value: CastValue
     var boxed: any = &value
     Swag.assert(cast #try (*CastValue) boxed == &value)
-    Swag.assert(cast #try (*OtherCastValue) boxed == null)
+    let castResult2 = cast #try (*OtherCastValue) boxed
+    Swag.assert(castResult2 == null)
     let view = cast #try (ICastValue) boxed
     if view != null do
         Swag.assert(view.value() == 42)
@@ -70,13 +72,14 @@ func(T) readCastValue(value: *T)->s32
     if value != null do
         Swag.assert(value[] == 17)
     Swag.assert(value != null)
-    Swag.assert(cast #try (*s64) boxed == null)
+    let castResult3 = cast #try (*s64) boxed
+    Swag.assert(castResult3 == null)
     Swag.assert(cast #assume (s32) boxed == 17)
 }
 
-#assert(cast #try (ICastValue) CastValue != null)
-#assert(cast #try (ICastValue) OtherCastValue == null)
-#assert(cast #try (ICastValue) s32 == null)
+#assert(CastValue is ICastValue)
+#assert(not (OtherCastValue is ICastValue))
+#assert(not (s32 is ICastValue))
 
 #test
 {
@@ -85,7 +88,8 @@ func(T) readCastValue(value: *T)->s32
     let boxed:    const any        = readOnly
     Swag.assert(cast #try (const *CastValue) boxed == readOnly)
     let absent: *CastValue? = null
-    Swag.assert(cast #try (*CastValue) absent == null)
+    let castResult4         = cast #try (*CastValue) absent
+    Swag.assert(castResult4 == null)
 }
 
 #test
@@ -105,7 +109,9 @@ func(T) readCastValue(value: *T)->s32
     let target = cast #try (ICastLabel) source
     Swag.assert(target != null)
     Swag.assert(target.label() == "value")
-    Swag.assert(cast #try (*CastValue) source == null)
+    let castResult5 = cast #try (*CastValue) source
+    Swag.assert(castResult5 == null)
     let absent: *CastValue? = null
-    Swag.assert(cast #try (ICastLabel) absent == null)
+    let castResult6         = cast #try (ICastLabel) absent
+    Swag.assert(castResult6 == null)
 }

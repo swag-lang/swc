@@ -35,10 +35,10 @@ enum UndoKind
 // treats both uniformly through these helpers instead of special-casing each type.
 func formEditableText(f: IForm)->*String?
 {
-    switch
+    switch f
     {
-    case let b = cast #try (*FormText) f:    return &b.text
-    case let b = cast #try (*FormCallout) f: return &b.text
+    case FormText as b:    return &b.text
+    case FormCallout as b: return &b.text
     }
 
     return null
@@ -57,10 +57,10 @@ func formEditableTextDirty(f: IForm)
 // undos operate on either through these helpers.
 func formFontNamePtr(f: IForm)->*String?
 {
-    switch
+    switch f
     {
-    case let b = cast #try (*FormText) f:    return &b.fontName
-    case let b = cast #try (*FormCallout) f: return &b.fontName
+    case FormText as b:    return &b.fontName
+    case FormCallout as b: return &b.fontName
     }
 
     return null
@@ -68,10 +68,10 @@ func formFontNamePtr(f: IForm)->*String?
 
 func formFontStylePtr(f: IForm)->*FontFamilyStyle?
 {
-    switch
+    switch f
     {
-    case let b = cast #try (*FormText) f:    return &b.fontStyle
-    case let b = cast #try (*FormCallout) f: return &b.fontStyle
+    case FormText as b:    return &b.fontStyle
+    case FormCallout as b: return &b.fontStyle
     }
 
     return null

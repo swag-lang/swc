@@ -463,7 +463,7 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     for c in w.children
     {
-        if let button = cast #try (*IconButton) c do
+        if c is IconButton as button do
             return button
         let sub = findIconButton(c)
         if sub do
@@ -640,7 +640,7 @@ func findIconButton(w: *Wnd)->*IconButton?
 
     host.keyPress(Input.Key.Return)     // edit -> focus the first inner editbox
     let f = host.app.keyboardFocusWnd!
-    Swag.assert(cast #try (*EditBox) f != null)
+    Swag.assert(f is EditBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to the next row
     Swag.assert(prop.selItem == prop.items[2])
@@ -918,7 +918,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 {
     for c in w.children
     {
-        if let edit = cast #try (*EditBox) c do
+        if c is EditBox as edit do
             out.add(edit)
         collectEditBoxes(c, out)
     }

@@ -249,7 +249,7 @@ private impl Properties
 
     func isDynamicArrayType(t: typeinfo?)->bool
     {
-        if let info = cast #try(const *Swag.TypeInfoStruct) t do
+        if t is Swag.TypeInfoStruct as info do
             return info.fromGeneric == Array
         return false
     }

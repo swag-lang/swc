@@ -6,6 +6,26 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.047 — A script import intermittently defines a generic local twice
+
+- Recorded: 2026-09-16 09:28
+- Found while: validating the dynamic type-pattern migration with DevMode 0.1.675 and six workers.
+- Evidence: `bin/swc.dm.exe --num-cores 6 tools/scripts.swgs dm smoke --num-cores 6`
+  ran `2048.swgs`, then stopped while checking `asciiart.swgs`. The generated core API's
+  `hashtable.swg:521` reported that local `mask` was already defined; the previous-definition
+  note pointed to the same declaration. The specialization was
+  `HashTable(string, ConcatBufferPosition)`, requested by generated `core.swg:5311`.
+  Application tests and example builds were running concurrently in the same checkout.
+- Reduction status: an immediate isolated `tools/scripts.swgs dm smoke asciiart` rerun with
+  the same compiler, sources, cache, and six workers passed. A complete rerun of all 21
+  script smokes also passed. The cause and any relationship
+  to the type-pattern change are unestablished; no concurrency fix is included in that migration.
+- Next: replay the cached script import alongside module builds, capture generic-instance
+  ownership and semantic restarts around the duplicate local, and compare with the parent
+  compiler before attributing the failure to parsing, publication, or scheduling.
+- Complete when: a bounded reproducer identifies the duplicate visitation or publication,
+  the root cause is fixed, and the script passes repeated parallel imports with six workers.
+
 ### compiler.core.045 — A conditionally evaluated `!` cannot record the proof it makes
 
 - Recorded: 2026-09-15 12:47

@@ -1156,7 +1156,7 @@ impl ListCtrl
         // Adapt header to the frame container
         list.hookOnEvent = func(wnd, evt)
         {
-            if not (cast #try (*ResizeEvent) evt != null) do
+            if not (evt is ResizeEvent) do
                 return false
 
             var list = cast #assume (*ListCtrl) wnd

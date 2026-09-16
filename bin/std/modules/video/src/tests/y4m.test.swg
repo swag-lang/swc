@@ -109,8 +109,8 @@ using Core, Core.Errors, Pixel
 
     discard catch FrameRate.create(0, 1) as zeroNumerator
     discard catch FrameRate.create(1, 0) as zeroDenominator
-    Swag.assert((cast #try (*BadParameterError) zeroNumerator != null))
-    Swag.assert((cast #try (*BadParameterError) zeroDenominator != null))
+    Swag.assert((zeroNumerator is BadParameterError))
+    Swag.assert((zeroDenominator is BadParameterError))
 }
 
 #test
@@ -175,8 +175,8 @@ using Core, Core.Errors, Pixel
 
     discard catch reader.decodeFrame(1) as truncated
     discard catch reader.decodeFrame(1) as truncatedAgain
-    Swag.assert((cast #try (*InvalidFormatError) truncated != null))
-    Swag.assert((cast #try (*InvalidFormatError) truncatedAgain != null))
+    Swag.assert((truncated is InvalidFormatError))
+    Swag.assert((truncatedAgain is InvalidFormatError))
 
     let again = expect reader.decodeFrame(0)
     videoAssertColor(again.pixelColor(0, 0), 255, 0, 0)
@@ -260,20 +260,20 @@ using Core, Core.Errors, Pixel
     discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\nFRAME\nab") as truncated
     discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\n") as noFrame
     discard catch Reader.openMemory("bad.mp4", "") as mp4Header
-    Swag.assert((cast #try (*InvalidFormatError) missingHeader != null))
-    Swag.assert((cast #try (*UnsupportedFormatError) chroma != null))
-    Swag.assert((cast #try (*InvalidFormatError) truncated != null))
-    Swag.assert((cast #try (*InvalidFormatError) noFrame != null))
-    Swag.assert((cast #try (*InvalidFormatError) mp4Header != null))
+    Swag.assert((missingHeader is InvalidFormatError))
+    Swag.assert((chroma is UnsupportedFormatError))
+    Swag.assert((truncated is InvalidFormatError))
+    Swag.assert((noFrame is InvalidFormatError))
+    Swag.assert((mp4Header is InvalidFormatError))
 
     let rate = expect FrameRate.create(30, 1)
     var clip = expect Clip.create(2, 2, rate)
     discard catch clip.addFrame(videoTestImage(1, 1, [0'u8, 0, 0])) as dimensions
     discard catch clip.encode("empty.y4m") as empty
     discard catch clip.encode("empty.mp4") as emptyMp4
-    Swag.assert((cast #try (*BadParameterError) dimensions != null))
-    Swag.assert((cast #try (*InvalidFormatError) empty != null))
-    Swag.assert((cast #try (*InvalidFormatError) emptyMp4 != null))
+    Swag.assert((dimensions is BadParameterError))
+    Swag.assert((empty is InvalidFormatError))
+    Swag.assert((emptyMp4 is InvalidFormatError))
 }
 
 // The registry is the only thing that decides which extensions the module reads and writes.

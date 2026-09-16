@@ -13,21 +13,21 @@ func audioStartNoSoundEngine()
 {
     Swag.assert(not isEngineCreated())
     discard catch outputVolume() as errNoEngine
-    Swag.assert((cast #try (*Errors.BadParameterError) errNoEngine != null))
+    Swag.assert((errNoEngine is Errors.BadParameterError))
 
     discard expect createEngine(.NoSound)
     Swag.assert(isEngineCreated())
     Swag.assert(activeDriverKind() == .NoSound)
 
     discard catch createEngine(.NoSound) as errDuplicate
-    Swag.assert((cast #try (*Errors.BadParameterError) errDuplicate != null))
+    Swag.assert((errDuplicate is Errors.BadParameterError))
 
     discard catch Bus.create(0) as errChannels
-    Swag.assert((cast #try (*Errors.BadParameterError) errChannels != null))
+    Swag.assert((errChannels is Errors.BadParameterError))
 
     var emptyFile: SoundFile
     discard catch Voice.create(&emptyFile) as errFile
-    Swag.assert((cast #try (*Errors.BadParameterError) errFile != null))
+    Swag.assert((errFile is Errors.BadParameterError))
 
     destroyEngine()
     Swag.assert(not isEngineCreated())
@@ -81,7 +81,7 @@ func audioStartNoSoundEngine()
     audioAssertFloat(expect child.volumeDb(), -6.0206, 0.0002)
     var invalidParent: Bus
     discard catch Bus.create(1, &invalidParent) as err12
-    Swag.assert((cast #try (*Errors.BadParameterError) err12 != null))
+    Swag.assert((err12 is Errors.BadParameterError))
 
     child.destroy()
     root.destroy()
@@ -111,7 +111,7 @@ func audioStartNoSoundEngine()
     audioAssertFloat(handle.frequencyRatio, 1.75)
     audioAssertFloat(expect voice.frequencyRatio(), 1.75)
     discard catch voice.setFrequencyRatio(0) as errInvalidRatio
-    Swag.assert((cast #try (*Errors.BadParameterError) errInvalidRatio != null))
+    Swag.assert((errInvalidRatio is Errors.BadParameterError))
 
     let bus0Result = expect Bus.create(2)
     let safeBus0   = bus0Result!

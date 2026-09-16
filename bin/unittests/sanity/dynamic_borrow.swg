@@ -8,7 +8,7 @@ func returnDynamicInterfaceLocalField()->*s32?
 {
     var local: DynamicBorrowField
     let view:  IDynamicBorrowField = &local
-    if let value = cast #try (*DynamicBorrowField) view do
+    if view is DynamicBorrowField as value do
         return &value.value     // swc-expected-error {{sanity_err_borrow_escape}}
     return null
 }

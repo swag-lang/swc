@@ -60,6 +60,6 @@ func failArrayScope() fail
     dropped = 0
     sum     = 0
     catch failArrayScope() as error
-    Swag.assert(error != null and (cast #try (*ArrayFailure) error != null))
+    Swag.assert(error != null and (error is ArrayFailure))
     Swag.assert(dropped == 4 and sum == 28)
 }

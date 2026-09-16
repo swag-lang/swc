@@ -110,3 +110,26 @@ with a `where` clause. The `where` condition is only evaluated if the variable t
     else do
         Swag.assert(true)
 }
+
+/**
+# Binding a Dynamic Type
+
+`if value is T as name` tests dynamic compatibility and binds the successful view.
+For a concrete `T`, `name` is a non-null pointer; for an interface, it is an
+interface view. Source constness is preserved. The source is evaluated once, and
+no binding copies the object or extends its lifetime.
+
+An optional `where` guard runs only after a match. The binding is visible in that
+guard and the successful body, but not in `elif`, `else`, or after the statement.
+A false guard continues to the next branch. `elif` accepts the same binding form.
+*/
+#test
+{
+    let value: any = 42's32
+    if value is s32 as number where number[] > 0 do
+        Swag.assert(number[] == 42)
+    elif value is string as text do
+        Swag.assert(text[].count != 0)
+    else do
+        Swag.assert(false)
+}

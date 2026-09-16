@@ -15,7 +15,7 @@ struct CollectionDynamicChild
     var child: CollectionDynamicChild
     var base:  CollectionDynamicBase
     Reflection.assign(&base, &child.base, CollectionDynamicBase)
-    Swag.assert(cast #try (*CollectionDynamicChild) &base == null)
+    Swag.assert(not (&base is CollectionDynamicChild))
     Reflection.assign(&child.base, &base, CollectionDynamicBase)
     Swag.assert(cast #try (*CollectionDynamicChild) &child.base == &child)
 }
@@ -84,11 +84,11 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     var child:  CollectionDynamicChild
     var values: HashTable'(u32, CollectionDynamicBase)
     values.add(1, child.base)
-    Swag.assert(cast #try (*CollectionDynamicChild) &values.find(1).value == null)
+    Swag.assert(not (&values.find(1).value is CollectionDynamicChild))
     values.reserve(64)
-    Swag.assert(cast #try (*CollectionDynamicChild) &values.find(1).value == null)
+    Swag.assert(not (&values.find(1).value is CollectionDynamicChild))
     var copied = values
-    Swag.assert(cast #try (*CollectionDynamicChild) &copied.find(1).value == null)
+    Swag.assert(not (&copied.find(1).value is CollectionDynamicChild))
 }
 
 #test
@@ -108,14 +108,14 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     for &value in values
     {
         Swag.assert(value.value == 17)
-        Swag.assert(cast #try (*CollectionDynamicChild) value == null)
+        Swag.assert(not (value is CollectionDynamicChild))
     }
 
     var copied = values
     values.removeAt(0)
     Swag.assert(copied.count == 2)
-    Swag.assert(cast #try (*CollectionDynamicChild) &values[0] == null)
-    Swag.assert(cast #try (*CollectionDynamicChild) &copied[0] == null)
+    Swag.assert(not (&values[0] is CollectionDynamicChild))
+    Swag.assert(not (&copied[0] is CollectionDynamicChild))
 }
 
 #test
@@ -129,9 +129,9 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     for &value in values
     {
         Swag.assert(value.value == 17)
-        Swag.assert(cast #try (*CollectionDynamicChild) value == null)
+        Swag.assert(not (value is CollectionDynamicChild))
     }
 
     values.removeAt(0)
-    Swag.assert(cast #try (*CollectionDynamicChild) &values[0] == null)
+    Swag.assert(not (&values[0] is CollectionDynamicChild))
 }

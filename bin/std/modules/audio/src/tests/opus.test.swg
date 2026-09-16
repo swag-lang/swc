@@ -137,5 +137,5 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var sound = catch SoundFile.load(path.toString()) as err
     discard sound
-    Swag.assert((cast #try (*Errors.UnsupportedFormatError) err != null))
+    Swag.assert((err is Errors.UnsupportedFormatError))
 }

@@ -188,7 +188,7 @@ internal impl Properties
             return true
 
         case .Escape:
-            if let editor = cast #try (*EditBox) .focusedWindow() do
+            if .focusedWindow() is EditBox as editor do
                 editor.cancelEdit(.edView)
             else do
                 .commitEdit()
@@ -213,10 +213,10 @@ internal impl Properties
         if not w do
             return false
 
-        return cast #try (*EditBox) w != null or
-               cast #try (*ComboBox) w != null or
-               cast #try (*Slider) w != null or
-               cast #try (*CheckButton) w != null
+        return w is EditBox or
+               w is ComboBox or
+               w is Slider or
+               w is CheckButton
     }
 }
 

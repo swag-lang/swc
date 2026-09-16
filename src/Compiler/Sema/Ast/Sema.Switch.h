@@ -17,6 +17,7 @@ using SwitchSeenCases = std::unordered_map<ConstantRef, AstNodeRef>;
 
 namespace SemaSwitch
 {
+    bool    isDynamicType(Sema& sema, TypeRef typeRef);
     TypeRef enumTypeRef(Sema& sema, TypeRef typeRef);
     TypeRef caseCastTypeRef(Sema& sema, TypeRef switchTypeRef);
     Result  normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView);
@@ -46,6 +47,7 @@ struct DynamicStructSwitchCaseExpr
 {
     AstNodeRef caseExprRef = AstNodeRef::invalid();
     AstNodeRef typeExprRef = AstNodeRef::invalid();
+    AstNodeRef castRef     = AstNodeRef::invalid();
 };
 
 struct DynamicStructSwitchCasePayload

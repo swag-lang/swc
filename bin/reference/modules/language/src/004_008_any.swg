@@ -128,8 +128,8 @@ value, just as for pointers and other nullable types.
 /**
 # Type Checking with 'any'
 
-Compare the result of `cast #try (*T)` with `null` to test whether the value can
-be viewed as `T`. Save that result when the branch also needs to access the value.
+Use `value is T` to test whether the stored value can be viewed as `T`.
+Use `if value is T as name` when the branch also needs to access the value.
 */
 
 #test
@@ -138,14 +138,14 @@ be viewed as `T`. Save that result when the branch also needs to access the valu
     Swag.assert(x == null)
 
     x = 6
-    Swag.assert(cast #try (*s32) x != null)
-    Swag.assert(cast #try (*bool) x == null)
+    Swag.assert(x is s32)
+    Swag.assert(not (x is bool))
 
     x = "string"
-    Swag.assert(cast #try (*s32) x == null)
-    Swag.assert(cast #try (*string) x != null)
+    Swag.assert(not (x is s32))
+    Swag.assert(x is string)
 
     struct A {}
     x = A{}
-    Swag.assert(cast #try (*A) x != null)
+    Swag.assert(x is A)
 }

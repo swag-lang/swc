@@ -22,7 +22,7 @@ const EmbeddedOther = [111'u8, 107]
 
     discard catch bundle.load("lang/de/app.tweak") as err
     Swag.assert(err != null)
-    Swag.assert((cast #try (*Errors.FileNotFoundError) err != null))
+    Swag.assert((err is Errors.FileNotFoundError))
 }
 
 // Re-registering an embedded name replaces the previous bytes.

@@ -570,9 +570,9 @@ func errIsAsFailureInfo()->ErrCastInfo
     let baseErr  = cast #try (*Swag.BaseError) err8
     let otherErr = cast #try (*OtherErrValue) err8
 
-    result.exactType     = (cast #try (*ErrValue) err8 != null)
-    result.baseType      = (cast #try (*Swag.BaseError) err8 != null)
-    result.wrongType     = (cast #try (*OtherErrValue) err8 != null)
+    result.exactType     = (err8 is ErrValue)
+    result.baseType      = (err8 is Swag.BaseError)
+    result.wrongType     = (err8 is OtherErrValue)
     result.exactCastOk   = exactErr != null
     result.baseCastOk    = baseErr != null
     result.wrongCastNull = otherErr == null
@@ -588,10 +588,10 @@ func errIsAsNullInfo()->ErrNullCastInfo
     var result: ErrNullCastInfo
     catch mayFailVoid() as err9
 
-    result.exactType     = (cast #try (*ErrValue) err9 != null)
-    result.baseType      = (cast #try (*Swag.BaseError) err9 != null)
-    result.exactCastNull = cast #try (*ErrValue) err9 == null
-    result.baseCastNull  = cast #try (*Swag.BaseError) err9 == null
+    result.exactType     = (err9 is ErrValue)
+    result.baseType      = (err9 is Swag.BaseError)
+    result.exactCastNull = not (err9 is ErrValue)
+    result.baseCastNull  = not (err9 is Swag.BaseError)
     return result
 }
 

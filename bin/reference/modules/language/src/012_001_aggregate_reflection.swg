@@ -3,8 +3,8 @@
 /**
 # Struct and Enum Reflection
 
-Every 'typeinfo' begins with 'Swag.TypeInfo'. Use 'cast #try' to borrow a
-specialized descriptor, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields,
+Every 'typeinfo' begins with 'Swag.TypeInfo'. Use an 'is' pattern to borrow a
+specialized descriptor in a branch, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields,
 interfaces, lifecycle hooks, generic arguments, and any methods requested with
 'Swag.ExportType'.
 */
@@ -75,14 +75,14 @@ typed reflection helper before reading it in general-purpose code.
 
 /**
 Reflection describes declarations; it does not bypass visibility, constness, or
-ownership. When writing a generic serializer or editor, check the descriptor with 'cast #try', check
+ownership. When writing a generic serializer or editor, check the descriptor with an 'is' pattern, check
 nullable descriptor slices, and derive field addresses from a live instance
 plus 'TypeValue.offset'.
 */
 
 func reflectedFieldCount(type: typeinfo)->u64
 {
-    if let info = cast #try(const *Swag.TypeInfoStruct) type do
+    if type is Swag.TypeInfoStruct as info do
         return info.fields.count
     return 0
 }

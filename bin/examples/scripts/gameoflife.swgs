@@ -32,9 +32,9 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     let board        = boardGeometry(wnd)
     let cellSize     = board.cell
 
-    switch
+    switch evt
     {
-    case let mouseEvt = cast #try (*MouseEvent) evt where mouseEvt.kind == .Pressed or mouseEvt.kind == .Move:
+    case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed or mouseEvt.kind == .Move:
         if leftPressed or rightPressed
         {
             let pos = wnd.surfaceToLocal(mouseEvt.surfacePos)
@@ -47,7 +47,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         return true
 
-    case cast #try (*CreateEvent) evt != null:
+    case CreateEvent:
 
         // Initial population
         for i in 1 until GridSize - 1
@@ -58,7 +58,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             }
         }
 
-    case let paintEvt = cast #try (*PaintEvent) evt:
+    case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
         let nextGen = (g_CurGen + 1) % 2
 

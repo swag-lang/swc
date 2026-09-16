@@ -40,11 +40,11 @@ impl IEvt for ResizeEvt {}
 
 func classify(evt: IEvt)->s32
 {
-    if (cast #try (*DestroyEvt) evt != null) do
+    if (evt is DestroyEvt) do
         return 1
-    if (cast #try (*CreateEvt) evt != null) do
+    if (evt is CreateEvt) do
         return 2
-    if (cast #try (*ResizeEvt) evt != null) do
+    if (evt is ResizeEvt) do
         return 3
     return 0
 }

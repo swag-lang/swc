@@ -2073,21 +2073,21 @@ private impl OpenDocumentViewer
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
-            switch
+            switch evt
             {
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Add or keyEvt.key == .OemPlus):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Add or keyEvt.key == .OemPlus):
                 view.setZoom(view.zoomPercent + 25)
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus):
                 view.setZoom(view.zoomPercent > 50 ? view.zoomPercent - 25 : 50)
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and keyEvt.key == .D0:
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers.has(.Control) and view.document.kind != .Spreadsheet and keyEvt.key == .D0:
                 view.setZoom(100)
                 return true
 
-            case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.modifiers == .None:
                 return view.navigatePagedDocument(keyEvt.key)
 
             default:

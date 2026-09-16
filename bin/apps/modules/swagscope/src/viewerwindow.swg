@@ -1751,11 +1751,11 @@ impl ViewerWindow
         result.hookOnChildEvent = func|window = result|(wnd, evt)
         {
             discard wnd
-            switch
+            switch evt
             {
-            case let key = cast #try (*KeyEvent) evt where window.routePlaybackKey(key):         return true
-            case let key = cast #try (*KeyEvent) evt where window.routeSearchNavigationKey(key): return true
-            case let mouse = cast #try (*MouseEvent) evt where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
+            case KeyEvent as key where window.routePlaybackKey(key):         return true
+            case KeyEvent as key where window.routeSearchNavigationKey(key): return true
+            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
             }
 
             return false

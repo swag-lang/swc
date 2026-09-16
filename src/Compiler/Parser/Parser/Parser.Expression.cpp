@@ -151,6 +151,7 @@ namespace
             case TokenId::SymGreater:
             case TokenId::SymGreaterEqual:
             case TokenId::SymLessEqualGreater:
+            case TokenId::KwdIs:
                 return 6;
 
             default:
@@ -1069,6 +1070,28 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
             break;
 
         const TokenRef tokOp = consume();
+
+        if (opId == TokenId::KwdIs)
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>(tokOp);
+            nodePtr->nodeExprRef    = left;
+            // Match dynamic casts: the target can be a type or a typeinfo expression.
+            if (is(TokenId::Identifier) || is(TokenId::SymLeftParen))
+            {
+                nodePtr->nodeTypeRef = parsePostFixExpression();
+                if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
+                {
+                    auto [qualifiedRef, qualified] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
+                    qualified->nodeTypeRef         = nodePtr->nodeTypeRef;
+                    qualified->addFlag(AstQualifiedTypeFlagsE::Nullable);
+                    nodePtr->nodeTypeRef = qualifiedRef;
+                }
+            }
+            else
+                nodePtr->nodeTypeRef = parseType();
+            left = nodeRef;
+            continue;
+        }
 
         const int nextMinPrecedence = precedence + 1;
 

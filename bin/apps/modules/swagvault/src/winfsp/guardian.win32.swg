@@ -12,10 +12,10 @@ namespace WinFsp
 
     func guardianErrorText(err: any?)->string
     {
-        switch
+        switch err
         {
-        case let error = cast #try(*Error) err: return error.message orelse "The portable WinFsp runtime failed."
-        case let error = cast #try(*Swag.SystemError) err: return error.message orelse "Windows rejected the WinFsp helper."
+        case Error as error: return error.message orelse "The portable WinFsp runtime failed."
+        case Swag.SystemError as error: return error.message orelse "Windows rejected the WinFsp helper."
         }
 
         return "The portable WinFsp helper failed."

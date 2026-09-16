@@ -103,5 +103,5 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 
     var unsupported = psdHeader(4, 1, 1, 8, 4)
     discard catch Image.decode("cmyk.psd", nnBytes(unsupported.toSlice())) as cmyk
-    Swag.assert((cast #try (*UnsupportedFormatError) cmyk != null))
+    Swag.assert((cmyk is UnsupportedFormatError))
 }

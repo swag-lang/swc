@@ -293,6 +293,29 @@ AstNodeRef Parser::parseIf()
     if (nodePtr->nodeConditionRef.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
+    if (nodePtr->nodeConditionRef.isValid() && ast_->node(nodePtr->nodeConditionRef).is(AstNodeId::IsTypeExpr) && consumeIf(TokenId::KwdAs).isValid())
+    {
+        auto& pattern = ast_->node(nodePtr->nodeConditionRef).cast<AstIsTypeExpr>();
+        pattern.addFlag(AstIsTypeExprFlagsE::Binding);
+        auto [declRef, decl] = ast_->makeNode<AstNodeId::SingleVarDecl>(pattern.tokRef());
+        decl->addFlag(AstVarDeclFlagsE::Let);
+        decl->tokNameRef  = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        decl->nodeTypeRef = AstNodeRef::invalid();
+        decl->nodeInitRef = nodePtr->nodeConditionRef;
+
+        auto [bindingRef, binding] = ast_->makeNode<AstNodeId::IfVarDecl>(nodePtr->tokRef());
+        binding->nodeVarRef        = declRef;
+        binding->nodeWhereRef      = consumeIf(TokenId::KwdWhere).isValid() ? parseExpression() : AstNodeRef::invalid();
+        binding->nodeIfBlockRef    = parseDoCurlyBlock();
+        if (is(TokenId::KwdElseIf))
+            binding->nodeElseBlockRef = parseIf();
+        else if (consumeIf(TokenId::KwdElse).isValid())
+            binding->nodeElseBlockRef = parseDoCurlyBlock();
+        else
+            binding->nodeElseBlockRef.setInvalid();
+        return bindingRef;
+    }
+
     nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
     // Same chained-conditional shape as 'if var': the else branch either owns a
     // block or another IfStmt node.
@@ -612,6 +635,15 @@ AstNodeRef Parser::parseSwitchCaseDefault()
         SmallVector<AstNodeRef> nodeExpressions;
         const bool              binding  = isAny(TokenId::KwdLet, TokenId::KwdVar, TokenId::KwdConst);
         AstNodeRef              nodeExpr = binding ? parseVarDecl() : parseRangeExpression();
+        if (!binding && consumeIf(TokenId::KwdAs).isValid())
+        {
+            auto [asRef, asNode] = ast_->makeNode<AstNodeId::AsCastExpr>(ref().offset(-1));
+            asNode->nodeExprRef  = nodeExpr;
+            auto [nameRef, name] = ast_->makeNode<AstNodeId::NamedType>(ref());
+            name->nodeIdentRef   = parseIdentifier();
+            asNode->nodeTypeRef  = nameRef;
+            nodeExpr             = asRef;
+        }
         nodeExpressions.push_back(nodeExpr);
         while (!binding && consumeIf(TokenId::SymComma).isValid())
         {

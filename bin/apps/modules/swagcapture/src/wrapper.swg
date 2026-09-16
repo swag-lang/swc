@@ -46,9 +46,9 @@ impl MainWnd
 {
     mtd updateModelValues(f: IForm)
     {
-        switch
+        switch f
         {
-        case let b = cast #try (*FormStep) f:
+        case FormStep as b:
             .mdlFormStep    = b[]
             .mdlFormStep.ws = b.w
             .mdlFormStep.hs = b.h
@@ -81,29 +81,29 @@ impl MainWnd
     // template used to create the next form of that type
     mtd copyFormToModel(f: IForm)
     {
-        switch #complete
+        switch #complete f
         {
-        case let b = cast #try (*FormShape) f:
+        case FormShape as b:
             .mdlFormShape = b[]
 
-        case let b = cast #try (*FormImage) f:
+        case FormImage as b:
             .mdlFormImage = b[]
 
-        case let b = cast #try (*FormStep) f:
+        case FormStep as b:
             .mdlFormStep    = b[]
             .mdlFormStep.ws = b.w
             .mdlFormStep.hs = b.h
 
-        case let b = cast #try (*FormArrow) f:
+        case FormArrow as b:
             .mdlFormArrow = b[]
 
-        case let b = cast #try (*FormLine) f:
+        case FormLine as b:
             .mdlFormLine = b[]
 
-        case let b = cast #try (*FormPolygon) f:
+        case FormPolygon as b:
             .mdlFormPolygon = b[]
 
-        case let b = cast #try (*FormText) f:
+        case FormText as b:
             .mdlFormText = b[]
 
             // The model is the style the next text form starts from, not the geometry of this
@@ -113,10 +113,10 @@ impl MainWnd
             .mdlFormText.borderPaths.clear()
             .mdlFormText.isDirty = true
 
-        case let b = cast #try (*FormDraw) f:
+        case FormDraw as b:
             .mdlFormDraw = b[]
 
-        case let b = cast #try (*FormCallout) f:
+        case FormCallout as b:
             .mdlFormCallout = b[]
         }
     }

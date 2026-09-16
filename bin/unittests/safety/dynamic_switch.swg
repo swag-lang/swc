@@ -4,9 +4,9 @@
 func completeDynamicSwitch(value: any)->s32
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
-    switch #complete
+    switch #complete value
     {
-    case let number = cast #try (*s32) value:
+    case s32 as number:
         return number[]
     }
 }

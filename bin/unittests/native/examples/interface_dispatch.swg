@@ -139,11 +139,11 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 // Checked casts classify the concrete rule.
 func classifyRule(rule: IDiscountRule)->s32
 {
-    switch
+    switch rule
     {
-    case cast #try (*BulkDiscount) rule != null: return 1
-    case cast #try (*BookDiscount) rule != null: return 2
-    case cast #try (*FlatDiscount) rule != null: return 3
+    case BulkDiscount: return 1
+    case BookDiscount: return 2
+    case FlatDiscount: return 3
     default: return 0
     }
 }

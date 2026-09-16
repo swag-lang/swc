@@ -115,6 +115,7 @@ SWC_TOKEN_DEF(KwdTo, "to", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdUntil, "until", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdIn, "in", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdAs, "as", TokenIdKindE::Keyword | TokenIdKindE::Logic)
+SWC_TOKEN_DEF(KwdIs, "is", TokenIdKindE::Keyword | TokenIdKindE::Logic | TokenIdKindE::OpOrdering)
 SWC_TOKEN_DEF(KwdDo, "do", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 
 // MODULE / ERROR HANDLING

@@ -831,6 +831,14 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
     const Token& tok           = sema.token({srcViewRef(), tokRef()});
 
+    if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
+    {
+        if (nodeRightView.type() && nodeRightView.type()->isNull())
+            SWC_RESULT(SemaCheck::typePattern(sema, nodeLeftRef));
+        if (nodeLeftView.type() && nodeLeftView.type()->isNull())
+            SWC_RESULT(SemaCheck::typePattern(sema, nodeRightRef));
+    }
+
     SemaHelpers::normalizeTypeOperandToConstant(sema, nodeLeftView);
     SemaHelpers::normalizeTypeOperandToConstant(sema, nodeRightView);
     SWC_RESULT(SemaCheck::isValueOrType(sema, nodeLeftView));

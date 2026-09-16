@@ -106,5 +106,5 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var sound = catch SoundFile.load(path.toString()) as err
     discard sound
-    Swag.assert((cast #try (*Errors.InvalidFormatError) err != null))
+    Swag.assert((err is Errors.InvalidFormatError))
 }

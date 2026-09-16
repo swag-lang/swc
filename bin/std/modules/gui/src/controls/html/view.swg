@@ -1355,13 +1355,13 @@ internal impl HtmlView
         result.scroll.hookOnEvent = func|target = result|(wnd, evt)
         {
             discard wnd
-            if cast #try (*ResizeEvent) evt != null do
+            if evt is ResizeEvent do
                 target.placeDocument()
 
             // An embedded document contributes its complete height to its parent and therefore
             // has no outer scroll surface of its own. Let an unclaimed wheel continue to that
             // parent; independently scrollable CSS regions already consume it in HtmlCanvas.
-            if let mouseEvt = cast #try (*MouseEvent) evt where target.embedded and mouseEvt.kind == .Wheel
+            if evt is MouseEvent as mouseEvt where target.embedded and mouseEvt.kind == .Wheel
             {
                 mouseEvt.accepted = false
                 return true

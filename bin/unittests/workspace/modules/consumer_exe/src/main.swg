@@ -431,9 +431,9 @@ var gEvtClassified: s32
 
 func onDepEvt(evt: IDepEvt)
 {
-    if (cast #try (*DepDestroyEvt) evt != null) do
+    if (evt is DepDestroyEvt) do
         gEvtClassified = 1
-    elif (cast #try (*DepResizeEvt) evt != null) do
+    elif (evt is DepResizeEvt) do
         gEvtClassified = 3
     else do
         gEvtClassified = -1
@@ -500,12 +500,12 @@ func verifyRuntimeTypeCrossDllIdentity()
     // it here uses this executable's.
     catch ctxSharedRaiseSystemError() as raised
     Swag.assert(raised != null)
-    Swag.assert((cast #try (*Swag.SystemError) raised != null))
-    Swag.assert((cast #try (*Swag.BaseError) raised != null))
+    Swag.assert((raised is Swag.SystemError))
+    Swag.assert((raised is Swag.BaseError))
 
-    switch
+    switch raised
     {
-    case cast #try (*Swag.SystemError) raised != null:
+    case Swag.SystemError:
         hit = 2
     default:
         hit = -2

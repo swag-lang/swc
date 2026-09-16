@@ -87,7 +87,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     defer host.shutdown()
     host.root.hookOnEvent = func|count = &timerCount|(wnd, evt)
     {
-        if cast #try (*TimerEvent) evt != null do
+        if evt is TimerEvent do
             count[] += 1
 
         return false
@@ -118,7 +118,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     view.hookOnEvent = func|count = &timerCount|(wnd, evt)
     {
         discard wnd
-        if cast #try (*TimerEvent) evt != null do
+        if evt is TimerEvent do
             count[] += 1
 
         return false
@@ -147,7 +147,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let view = Wnd.create'Wnd(&host.root)
     view.hookOnEvent = func|retired = &stagedWasRetired|(wnd, evt)
     {
-        if cast #try (*TimerEvent) evt != null
+        if evt is TimerEvent
         {
             let staged = wnd.addTimer(1'ms)
             wnd.destroy()

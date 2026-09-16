@@ -116,17 +116,17 @@ func createHtmlViewer(host: Viewer.Host)
     result.hookOnChildEvent = func|viewer = result|(wnd, evt)
     {
         discard wnd
-        switch
+        switch evt
         {
-        case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
+        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
             viewer.setZoom(viewer.zoomPercent + 25)
             return true
 
-        case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
+        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
             viewer.setZoom(viewer.zoomPercent > 50 ? viewer.zoomPercent - 25 : 50)
             return true
 
-        case let keyEvt = cast #try (*KeyEvent) evt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
+        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
             viewer.setZoom(100)
             return true
 

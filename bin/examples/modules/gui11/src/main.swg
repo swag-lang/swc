@@ -184,7 +184,7 @@ func layoutCurvePage()
 func onCurvePageEvent(page: *Wnd, evt: IEvent)->bool
 {
     discard page
-    if cast #try (*ResizeEvent) evt != null do
+    if evt is ResizeEvent do
         layoutCurvePage()
     return false
 }
@@ -377,7 +377,7 @@ func layoutStagePage()
 func onStagePageEvent(page: *Wnd, evt: IEvent)->bool
 {
     discard page
-    if cast #try (*ResizeEvent) evt != null do
+    if evt is ResizeEvent do
         layoutStagePage()
     return false
 }
@@ -484,7 +484,7 @@ func layoutFieldPage()
 func onFieldPageEvent(page: *Wnd, evt: IEvent)->bool
 {
     discard page
-    if cast #try (*ResizeEvent) evt != null do
+    if evt is ResizeEvent do
         layoutFieldPage()
     return false
 }
@@ -616,7 +616,7 @@ func layoutPrefPage()
 func onPrefPageEvent(page: *Wnd, evt: IEvent)->bool
 {
     discard page
-    if cast #try (*ResizeEvent) evt != null do
+    if evt is ResizeEvent do
         layoutPrefPage()
     return false
 }
@@ -647,11 +647,11 @@ func layoutRootView()
 func onRootEvent(view: *Wnd, evt: IEvent)->bool
 {
     discard view
-    if cast #try (*ResizeEvent) evt != null
+    if evt is ResizeEvent
     {
         layoutRootView()
     }
-    elif cast #try (*DestroyEvent) evt != null
+    elif evt is DestroyEvent
     {
         app.sigFrame.disable()
         g_Surface        = null

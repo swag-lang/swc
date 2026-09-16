@@ -185,7 +185,7 @@ private impl Application
         for hook in .hookOnEvent do
             hook.itf.onHookEvent(evt)
 
-        if let ptr = cast #try (*QuitEvent) evt
+        if evt is QuitEvent as ptr
         {
             .mustQuit = true
             .quitCode = ptr.quitCode
@@ -491,7 +491,7 @@ private impl Application
         {
             let evt = cast #assume (*Event) it
 
-            if cast #try (*InvalidateEvent) it != null
+            if it is InvalidateEvent
             {
                 let target = evt.target!
                 target.invalidate()
@@ -500,7 +500,7 @@ private impl Application
                 .sendEvent(it)
 
             // Special event post process
-            if cast #try (*CommandEvent) it != null do
+            if it is CommandEvent do
                 needUpdateState = true
 
             .toDelete.add({it.buffer, Swag.kindOf(it)})

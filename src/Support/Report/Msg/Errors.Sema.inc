@@ -256,3 +256,6 @@ SWC_DIAG_DEF(sema_err_simd_lane_count)
 SWC_DIAG_DEF(sema_err_simd_operator)
 SWC_DIAG_DEF(sema_err_simd_scalar_cast)
 SWC_DIAG_DEF(sema_err_foreign_simd_type)
+
+SWC_DIAG_DEF(sema_err_dynamic_cast_binding)
+SWC_DIAG_DEF(sema_err_dynamic_cast_test)

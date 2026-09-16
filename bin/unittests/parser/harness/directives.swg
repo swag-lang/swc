@@ -7,7 +7,7 @@
 #assert(#sizeof(MyStruct1) == 9)
 #assert(#sizeof(MyStruct1.A.B.C) == 9)
 #assert(#sizeof(cast #assume (s32) MyStruct1.A.B.C) == 9)
-#assert(#sizeof(cast #try (*s32) MyStruct1.A.B.C != null) == 9)
+#assert(#sizeof(MyStruct1.A.B.C is *s32) == 9)
 
 #static if A { } else { }
 

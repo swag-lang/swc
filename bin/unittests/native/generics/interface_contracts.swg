@@ -37,14 +37,14 @@ alias CounterAlias = Counter
 alias ValueAlias   = IValue
 
 func(T) readValue(value: *T)->s32
-    where (cast #try (IValue) T != null)
+    where (T is IValue)
 {
     let view = cast(IValue) value
     return view.value()
 }
 
 func(T) readAndReset(value: *T)->s32
-    where (cast #try (IValue) T != null) and (cast #try (IReset) T != null)
+    where (T is IValue) and (T is IReset)
 {
     let view     = cast(IValue) value
     let result   = view.value()
@@ -53,24 +53,24 @@ func(T) readAndReset(value: *T)->s32
     return result
 }
 
-func(T) classify(value: T)->s32 where (cast #try (IValue) T != null)       => 1
-func(T) classify(value: T)->s32 where not ((cast #try (IValue) T != null)) => 2
+func(T) classify(value: T)->s32 where (T is IValue)       => 1
+func(T) classify(value: T)->s32 where not ((T is IValue)) => 2
 
-struct(T) Holder where (cast #try (IValue) T != null)
+struct(T) Holder where (T is IValue)
 {
     value: T
 }
 
 #test
 {
-    #assert((cast #try (IValue) Counter != null))
-    #assert((cast #try (ValueAlias) CounterAlias != null))
-    #assert((cast #try (IValue) Wrapper != null))
-    #assert((cast #try (IValue) IValue != null))
-    #assert(not ((cast #try (IValue) IReset != null)))
-    #assert(not ((cast #try (IValue) Missing != null)))
-    #assert(not ((cast #try (IValue) s32 != null)))
-    #assert(cast #try (IValue) (#type *Counter) != null)
+    #assert((Counter is IValue))
+    #assert((CounterAlias is ValueAlias))
+    #assert((Wrapper is IValue))
+    #assert((IValue is IValue))
+    #assert(not ((IReset is IValue)))
+    #assert(not ((Missing is IValue)))
+    #assert(not ((s32 is IValue)))
+    #assert((#type *Counter) is IValue)
 
     var value = Counter{42}
     Swag.assert(readValue(&value) == 42)
@@ -99,5 +99,5 @@ struct(T) Holder where (cast #try (IValue) T != null)
     Swag.assert(same.value() == 42)
     let concrete = cast #try (*Counter) pointer
     Swag.assert(concrete!.count == 42)
-    Swag.assert((cast #try (*Counter) pointer != null))
+    Swag.assert((pointer is Counter))
 }

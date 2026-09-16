@@ -808,7 +808,10 @@ namespace
             return;
         }
 
-        PointerSet<SymbolFunction> seen;
+        // This walk only reads dependency snapshots; it cannot run another semantic job.
+        // Reuse the worker's table, clearing all prior symbol pointers before each walk.
+        static thread_local PointerSet<SymbolFunction> seen;
+        seen.clear();
         appendJitOrderDeduplicated(symFn, out, seen);
 
         for (const SymbolFunction* root : extraRoots)

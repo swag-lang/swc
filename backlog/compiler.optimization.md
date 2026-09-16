@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-16 17:02 — Tested two local-liveness replacements; neither resolved a compilation-time gain.
+- Updated: 2026-09-16 17:33 — Retained the below-floor SSA verdict and noted the separately fixed baseline failure.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
   `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
@@ -46,7 +46,7 @@ block, and the hot path keeps the register.
   backward phi propagation. Both passed 825 C++ tests, including three new loop, dead-phi and
   physical-source cases. The first also preserved all 16 final Micro functions in the Levenshtein
   and ChaCha probes and passed the 29 optimizer-native cases. A broader native run found the
-  unchanged baseline failure now tracked in compiler.core.049.
+  unchanged baseline failure subsequently fixed by `69f480e61`.
 - Measurement: three alternating, six-worker Release gui rebuild pairs, pinned to six P cores,
   gave baseline/candidate total process CPU of 232.938/233.938 seconds for the count variant.
   Median wall time was 18.571/18.046 seconds, with individual runs spanning 16.114-21.722 seconds;

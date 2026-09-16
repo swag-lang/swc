@@ -18,21 +18,29 @@ block, and the hot path keeps the register.
 ### compiler.optimization.041 — Close the remaining small scalar code-generation gaps
 
 - Recorded: 2026-09-16 19:54
+- Updated: 2026-09-16 23:30 — Replaced the remaining leads with the build-800 scalar measurements.
 - Area: compiler/backend, register allocation and instruction selection
-- Evidence: the [51-function native x64 comparison](../bench/results/generated-code/20260916/counts.csv)
-  uses Release Swag 731 and clang 21.1.6 at `-O2` on matching unsigned functions.
-  Eight Swag functions remain larger: `blend` 16/13 bytes, `div7` 39/31,
-  `mod7` 55/47, `moduloThree` 39/30, `moduloTen` 40/35, `boolMask` 12/9,
-  `flagAdd` 12/11, and `highByte` 11/4 (Swag/LLVM).
-- Leads: the first five retain physical copies or weaker constant-division register
-  choices. `buildLiveIntervals` records physical copy-source hints but skips physical
-  copy destinations. LLVM uses SBB/ADC for the next two and high-byte MOVZX for the last.
-  These are measured static shapes, not a runtime speed comparison.
-- Next: try the symmetric physical-destination hint first, compare every scalar
-  body and register-pressure cases, then assess carry arithmetic and high-byte
-  extraction with explicit flag and x64 encoding constraints.
+- Evidence: Release Swag 800 and clang 21.1.6 at `-O2` compile matching scalar
+  functions. The [third corpus](../bench/results/generated-code/20260916/round3/counts.csv)
+  retains `absSigned` 14/11 bytes, `bitSelect` 12/11, `bitTimesValue` 12/10,
+  `orMinusAnd` 13/7 and `divideAndRemainder` 31/27 (Swag/LLVM).
+  The [fourth corpus](../bench/results/generated-code/20260916/round4/counts.csv)
+  retains `negativeModuloTwo` 19/18, `clearLowestBit` 11/8,
+  `isolateLowestBit` 13/10, `negatedSum` 16/8, `complementSum` 11/7,
+  `orMinusAnd32` 10/5, `shiftMasked32` 11/7, `signedModulo32` 20/16,
+  `signedDivide32` 33/27 and `unsignedModulo32` 37/36.
+- Leads: zero-minus remains a clear/subtract pair; complementary boolean
+  arithmetic and common quotient/remainder terms remain unfactored. Several
+  32-bit forms retain physical copies or missed width reductions. Removing a
+  count mask exposes two copies before 32-bit SHLX; narrowing alone cannot
+  remove them. The absolute-value and bit-selection forms retain extra work.
+- Next: compare one small rewrite at a time, with varied contextual tests and
+  periodic larger regression checks. Inspect source-value, width, flags and ABI
+  liveness proofs; never infer physical-register death merely from RET.
+  Distinguish static size from throughput when comparing hardware division
+  against expanded arithmetic. These selected examples are not a workload average.
 - Complete when: each retained gap has a validated reduction or a measured reason
-  to keep the existing form. Never infer physical-register death merely from RET.
+  to keep the existing form, with reproducible inputs and counted machine code.
 
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 

@@ -48,15 +48,15 @@
       "code": [
         [
           3,
+          "or\trdx, r8"
+        ],
+        [
+          3,
+          "and\trdx, rcx"
+        ],
+        [
+          3,
           "mov\trax, rdx"
-        ],
-        [
-          3,
-          "or\trax, r8"
-        ],
-        [
-          3,
-          "and\trax, rcx"
         ],
         [
           1,
@@ -136,15 +136,15 @@
       "code": [
         [
           3,
+          "and\trdx, r8"
+        ],
+        [
+          3,
+          "or\trdx, rcx"
+        ],
+        [
+          3,
           "mov\trax, rdx"
-        ],
-        [
-          3,
-          "and\trax, r8"
-        ],
-        [
-          3,
-          "or\trax, rcx"
         ],
         [
           1,
@@ -644,11 +644,11 @@
       "code": [
         [
           3,
-          "mov\trax, rcx"
+          "xor\trcx, rdx"
         ],
         [
           3,
-          "xor\trax, rdx"
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -779,28 +779,24 @@
       ]
     },
     "final": {
-      "bytes": 16,
-      "instructions": 6,
+      "bytes": 13,
+      "instructions": 5,
       "code": [
         [
           3,
-          "mov\tr9, rcx"
+          "xor\trcx, rdx"
         ],
         [
           3,
-          "xor\tr9, rdx"
+          "and\trcx, r8"
         ],
         [
           3,
-          "and\tr9, r8"
+          "xor\trcx, rdx"
         ],
         [
           3,
-          "xor\tr9, rdx"
-        ],
-        [
-          3,
-          "mov\trax, r9"
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -871,12 +867,12 @@
       "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, rcx"
+          4,
+          "imul\trcx, rcx, 0x7"
         ],
         [
-          4,
-          "imul\trax, rax, 0x7"
+          3,
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -939,12 +935,12 @@
       "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, rcx"
+          4,
+          "imul\trcx, rcx, 0xa"
         ],
         [
-          4,
-          "imul\trax, rax, 0xa"
+          3,
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -1007,12 +1003,12 @@
       "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, rcx"
+          4,
+          "imul\trcx, rcx, 0xc"
         ],
         [
-          4,
-          "imul\trax, rax, 0xc"
+          3,
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -1075,12 +1071,12 @@
       "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, rcx"
+          4,
+          "imul\trcx, rcx, 0xf"
         ],
         [
-          4,
-          "imul\trax, rax, 0xf"
+          3,
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -1143,12 +1139,12 @@
       "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, rcx"
+          4,
+          "imul\trcx, rcx, 0x11"
         ],
         [
-          4,
-          "imul\trax, rax, 0x11"
+          3,
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -1235,48 +1231,36 @@
       ]
     },
     "final": {
-      "bytes": 39,
-      "instructions": 11,
+      "bytes": 31,
+      "instructions": 8,
       "code": [
         [
-          3,
-          "mov\tr9, rcx"
-        ],
-        [
-          3,
-          "mov\trax, r9"
-        ],
-        [
           10,
-          "movabs\tr8, 0x2492492492492493"
+          "movabs\tr9, 0x2492492492492493"
         ],
         [
           3,
-          "mul\tr8"
+          "mov\trax, rcx"
         ],
         [
           3,
-          "mov\trax, rdx"
+          "mul\tr9"
         ],
         [
           3,
-          "sub\tr9, rax"
+          "sub\trcx, rdx"
         ],
         [
           3,
-          "shr\tr9"
-        ],
-        [
-          3,
-          "add\tr9, rax"
+          "shr\trcx"
         ],
         [
           4,
-          "shr\tr9, 0x2"
+          "lea\trax, [rcx + rdx]"
         ],
         [
-          3,
-          "mov\trax, r9"
+          4,
+          "shr\trax, 0x2"
         ],
         [
           1,
@@ -1395,40 +1379,28 @@
       ]
     },
     "final": {
-      "bytes": 55,
-      "instructions": 16,
+      "bytes": 43,
+      "instructions": 12,
       "code": [
         [
-          3,
-          "mov\tr9, rcx"
-        ],
-        [
-          3,
-          "mov\trax, r9"
-        ],
-        [
           10,
-          "movabs\tr8, 0x2492492492492493"
+          "movabs\tr9, 0x2492492492492493"
         ],
         [
           3,
-          "mul\tr8"
+          "mov\trax, rcx"
         ],
         [
           3,
-          "mov\trax, rdx"
+          "mul\tr9"
         ],
         [
           3,
-          "mov\trcx, rax"
+          "mov\trax, rcx"
         ],
         [
           3,
-          "mov\trax, r9"
-        ],
-        [
-          3,
-          "sub\trax, rcx"
+          "sub\trax, rdx"
         ],
         [
           3,
@@ -1436,27 +1408,23 @@
         ],
         [
           3,
-          "add\trax, rcx"
+          "add\trax, rdx"
         ],
         [
           4,
           "shr\trax, 0x2"
         ],
         [
-          3,
-          "mov\trcx, rax"
-        ],
-        [
           4,
-          "imul\trcx, rcx, 0x7"
+          "imul\trax, rax, 0x7"
         ],
         [
           3,
-          "sub\tr9, rcx"
+          "sub\trcx, rax"
         ],
         [
           3,
-          "mov\trax, r9"
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -1555,8 +1523,8 @@
       ]
     },
     "final": {
-      "bytes": 12,
-      "instructions": 5,
+      "bytes": 9,
+      "instructions": 4,
       "code": [
         [
           2,
@@ -1568,11 +1536,7 @@
         ],
         [
           3,
-          "setb\tal"
-        ],
-        [
-          3,
-          "neg\trax"
+          "sbb\trax, rax"
         ],
         [
           1,
@@ -2083,20 +2047,12 @@
       ]
     },
     "final": {
-      "bytes": 11,
-      "instructions": 4,
+      "bytes": 4,
+      "instructions": 2,
       "code": [
         [
           3,
-          "mov\trax, rcx"
-        ],
-        [
-          4,
-          "shr\trax, 0x8"
-        ],
-        [
-          3,
-          "movzx\teax, al"
+          "movzx\teax, ch"
         ],
         [
           1,
@@ -2392,11 +2348,11 @@
       "code": [
         [
           3,
-          "mov\trax, rcx"
+          "or\trcx, rdx"
         ],
         [
           3,
-          "or\trax, rdx"
+          "mov\trax, rcx"
         ],
         [
           3,
@@ -2464,11 +2420,11 @@
       "code": [
         [
           3,
-          "mov\trax, rcx"
+          "and\trcx, rdx"
         ],
         [
           3,
-          "and\trax, rdx"
+          "mov\trax, rcx"
         ],
         [
           3,
@@ -2540,11 +2496,11 @@
       "code": [
         [
           3,
-          "mov\trax, rcx"
+          "xor\trcx, rdx"
         ],
         [
           3,
-          "xor\trax, rdx"
+          "mov\trax, rcx"
         ],
         [
           3,
@@ -2620,11 +2576,11 @@
       "code": [
         [
           3,
-          "mov\trax, rcx"
+          "sub\trcx, rdx"
         ],
         [
           3,
-          "sub\trax, rdx"
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -3075,24 +3031,20 @@
       ]
     },
     "final": {
-      "bytes": 12,
-      "instructions": 5,
+      "bytes": 11,
+      "instructions": 4,
       "code": [
-        [
-          2,
-          "xor\teax, eax"
-        ],
         [
           3,
           "cmp\trcx, rdx"
         ],
         [
           3,
-          "setb\tal"
+          "mov\trax, r8"
         ],
         [
-          3,
-          "add\trax, r8"
+          4,
+          "adc\trax, 0x0"
         ],
         [
           1,
@@ -3156,15 +3108,15 @@
       "code": [
         [
           3,
-          "mov\trax, rcx"
-        ],
-        [
-          3,
           "cmp\trcx, rdx"
         ],
         [
           4,
-          "cmovae\trax, rdx"
+          "cmovae\trcx, rdx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -3228,15 +3180,15 @@
       "code": [
         [
           3,
-          "mov\trax, rcx"
-        ],
-        [
-          3,
           "cmp\trcx, rdx"
         ],
         [
           4,
-          "cmovbe\trax, rdx"
+          "cmovbe\trcx, rdx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -3380,7 +3332,7 @@
         ],
         [
           3,
-          "cmp\trcx, rdx"
+          "sub\trcx, rdx"
         ],
         [
           3,
@@ -3459,16 +3411,16 @@
       "instructions": 6,
       "code": [
         [
+          10,
+          "movabs\tr8, -0x5555555555555555"
+        ],
+        [
           3,
           "mov\trax, rcx"
         ],
         [
-          10,
-          "movabs\trcx, -0x5555555555555555"
-        ],
-        [
           3,
-          "mul\trcx"
+          "mul\tr8"
         ],
         [
           3,
@@ -3567,48 +3519,36 @@
       ]
     },
     "final": {
-      "bytes": 39,
-      "instructions": 11,
+      "bytes": 30,
+      "instructions": 8,
       "code": [
         [
-          3,
-          "mov\tr9, rcx"
-        ],
-        [
-          3,
-          "mov\trax, r9"
-        ],
-        [
           10,
-          "movabs\tr8, -0x5555555555555555"
+          "movabs\tr9, -0x5555555555555555"
         ],
         [
           3,
-          "mul\tr8"
+          "mov\trax, rcx"
         ],
         [
           3,
-          "mov\trax, rdx"
+          "mul\tr9"
         ],
         [
           3,
-          "mov\trcx, rax"
-        ],
-        [
-          3,
-          "shr\trcx"
+          "shr\trdx"
         ],
         [
           4,
-          "lea\trcx, [rcx + 2*rcx]"
+          "lea\trdx, [rdx + 2*rdx]"
         ],
         [
           3,
-          "sub\tr9, rcx"
+          "sub\trcx, rdx"
         ],
         [
           3,
-          "mov\trax, r9"
+          "mov\trax, rcx"
         ],
         [
           1,
@@ -3699,16 +3639,16 @@
       "instructions": 6,
       "code": [
         [
+          10,
+          "movabs\tr8, -0x3333333333333333"
+        ],
+        [
           3,
           "mov\trax, rcx"
         ],
         [
-          10,
-          "movabs\trcx, -0x3333333333333333"
-        ],
-        [
           3,
-          "mul\trcx"
+          "mul\tr8"
         ],
         [
           3,
@@ -3807,48 +3747,36 @@
       ]
     },
     "final": {
-      "bytes": 40,
-      "instructions": 11,
+      "bytes": 31,
+      "instructions": 8,
       "code": [
         [
-          3,
-          "mov\tr9, rcx"
-        ],
-        [
-          3,
-          "mov\trax, r9"
-        ],
-        [
           10,
-          "movabs\tr8, -0x3333333333333333"
+          "movabs\tr9, -0x3333333333333333"
         ],
         [
           3,
-          "mul\tr8"
+          "mov\trax, rcx"
         ],
         [
           3,
-          "mov\trax, rdx"
-        ],
-        [
-          3,
-          "mov\trcx, rax"
+          "mul\tr9"
         ],
         [
           4,
-          "shr\trcx, 0x3"
+          "shr\trdx, 0x3"
         ],
         [
           4,
-          "imul\trcx, rcx, 0xa"
+          "imul\trdx, rdx, 0xa"
         ],
         [
           3,
-          "sub\tr9, rcx"
+          "sub\trcx, rdx"
         ],
         [
           3,
-          "mov\trax, r9"
+          "mov\trax, rcx"
         ],
         [
           1,

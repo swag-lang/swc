@@ -1,0 +1,2486 @@
+{
+  "negativeDivideTwo": {
+    "baseline": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x2"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x2"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 17,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shr\trax, 0x3f"
+        ],
+        [
+          3,
+          "add\trax, rcx"
+        ],
+        [
+          3,
+          "sar\trax"
+        ],
+        [
+          3,
+          "neg\trax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "negativeDivideEight": {
+    "baseline": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x8"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x8"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 19,
+      "instructions": 6,
+      "code": [
+        [
+          4,
+          "lea\trax, [rcx + 0x7]"
+        ],
+        [
+          3,
+          "test\trcx, rcx"
+        ],
+        [
+          4,
+          "cmovns\trax, rcx"
+        ],
+        [
+          4,
+          "sar\trax, 0x3"
+        ],
+        [
+          3,
+          "neg\trax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "negativeDivideThree": {
+    "baseline": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x3"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x3"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 33,
+      "instructions": 9,
+      "code": [
+        [
+          10,
+          "movabs\trdx, 0x5555555555555555"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "imul\trdx"
+        ],
+        [
+          3,
+          "sub\trdx, rcx"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          4,
+          "shr\trax, 0x3f"
+        ],
+        [
+          3,
+          "sar\trdx"
+        ],
+        [
+          3,
+          "add\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "negativeModuloTwo": {
+    "baseline": {
+      "bytes": 19,
+      "instructions": 6,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x2"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 19,
+      "instructions": 6,
+      "code": [
+        [
+          7,
+          "mov\tr8, -0x2"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "cqo"
+        ],
+        [
+          3,
+          "idiv\tr8"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 18,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shr\trcx, 0x3f"
+        ],
+        [
+          3,
+          "add\trcx, rax"
+        ],
+        [
+          4,
+          "and\trcx, -0x2"
+        ],
+        [
+          3,
+          "sub\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "clearLowestBit": {
+    "baseline": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "lea\trcx, [rcx - 0x1]"
+        ],
+        [
+          3,
+          "and\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "lea\trcx, [rcx - 0x1]"
+        ],
+        [
+          3,
+          "and\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "lea\trax, [rcx - 0x1]"
+        ],
+        [
+          3,
+          "and\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "isolateLowestBit": {
+    "baseline": {
+      "bytes": 13,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "xor\trax, rax"
+        ],
+        [
+          3,
+          "sub\trax, rcx"
+        ],
+        [
+          3,
+          "and\trcx, rax"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 13,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "xor\trax, rax"
+        ],
+        [
+          3,
+          "sub\trax, rcx"
+        ],
+        [
+          3,
+          "and\trcx, rax"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "neg\trax"
+        ],
+        [
+          3,
+          "and\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "andNot": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "not\trdx"
+        ],
+        [
+          3,
+          "and\trcx, rdx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "not\trdx"
+        ],
+        [
+          3,
+          "and\trcx, rdx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          3,
+          "not\trax"
+        ],
+        [
+          3,
+          "and\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "negatedSum": {
+    "baseline": {
+      "bytes": 16,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "xor\trax, rax"
+        ],
+        [
+          3,
+          "sub\trax, rcx"
+        ],
+        [
+          3,
+          "xor\trcx, rcx"
+        ],
+        [
+          3,
+          "sub\trcx, rdx"
+        ],
+        [
+          3,
+          "add\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 16,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "xor\trax, rax"
+        ],
+        [
+          3,
+          "sub\trax, rcx"
+        ],
+        [
+          3,
+          "xor\trcx, rcx"
+        ],
+        [
+          3,
+          "sub\trcx, rdx"
+        ],
+        [
+          3,
+          "add\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "lea\trax, [rcx + rdx]"
+        ],
+        [
+          3,
+          "neg\trax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "complementSum": {
+    "baseline": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "not\trcx"
+        ],
+        [
+          4,
+          "lea\trax, [rcx + rdx]"
+        ],
+        [
+          3,
+          "not\trax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "not\trcx"
+        ],
+        [
+          4,
+          "lea\trax, [rcx + rdx]"
+        ],
+        [
+          3,
+          "not\trax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 7,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "sub\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "unsignedAverage": {
+    "baseline": {
+      "bytes": 16,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          3,
+          "xor\trcx, rdx"
+        ],
+        [
+          3,
+          "shr\trcx"
+        ],
+        [
+          3,
+          "add\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 16,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          3,
+          "xor\trcx, rdx"
+        ],
+        [
+          3,
+          "shr\trcx"
+        ],
+        [
+          3,
+          "add\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 16,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          3,
+          "and\trax, rcx"
+        ],
+        [
+          3,
+          "xor\trdx, rcx"
+        ],
+        [
+          3,
+          "shr\trdx"
+        ],
+        [
+          3,
+          "add\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "variableBit": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 4,
+      "code": [
+        [
+          4,
+          "and\trdx, 0x3f"
+        ],
+        [
+          5,
+          "shrx\trax, rcx, rdx"
+        ],
+        [
+          4,
+          "and\trax, 0x1"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 3,
+      "code": [
+        [
+          5,
+          "shrx\trax, rcx, rdx"
+        ],
+        [
+          4,
+          "and\trax, 0x1"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          4,
+          "bt\trcx, rdx"
+        ],
+        [
+          3,
+          "setb\tal"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "maskedShiftRight": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "and\trdx, 0x3f"
+        ],
+        [
+          5,
+          "shrx\trax, rcx, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 6,
+      "instructions": 2,
+      "code": [
+        [
+          5,
+          "shrx\trax, rcx, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "mov\tecx, edx"
+        ],
+        [
+          3,
+          "shr\trax, cl"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "maskedArithmeticRight": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "and\trdx, 0x3f"
+        ],
+        [
+          5,
+          "sarx\trax, rcx, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 6,
+      "instructions": 2,
+      "code": [
+        [
+          5,
+          "sarx\trax, rcx, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "mov\tecx, edx"
+        ],
+        [
+          3,
+          "sar\trax, cl"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "rotateVariable": {
+    "baseline": {
+      "bytes": 31,
+      "instructions": 9,
+      "code": [
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          4,
+          "and\trax, 0x3f"
+        ],
+        [
+          5,
+          "shlx\trax, rcx, rax"
+        ],
+        [
+          3,
+          "xor\tr8, r8"
+        ],
+        [
+          3,
+          "sub\tr8, rdx"
+        ],
+        [
+          4,
+          "and\tr8, 0x3f"
+        ],
+        [
+          5,
+          "shrx\trcx, rcx, r8"
+        ],
+        [
+          3,
+          "or\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "mov\tecx, edx"
+        ],
+        [
+          3,
+          "rol\trax, cl"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "mov\tecx, edx"
+        ],
+        [
+          3,
+          "rol\trax, cl"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "add32": {
+    "baseline": {
+      "bytes": 6,
+      "instructions": 3,
+      "code": [
+        [
+          2,
+          "add\tecx, edx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 4,
+      "instructions": 2,
+      "code": [
+        [
+          3,
+          "lea\teax, [rcx + rdx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 4,
+      "instructions": 2,
+      "code": [
+        [
+          3,
+          "lea\teax, [rcx + rdx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "multiply32": {
+    "baseline": {
+      "bytes": 7,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "imul\tecx, edx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 6,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "imul\tecx, edx"
+        ],
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 6,
+      "instructions": 3,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          3,
+          "imul\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "factor32": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "add\tedx, r8d"
+        ],
+        [
+          3,
+          "imul\tedx, ecx"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "lea\teax, [rdx + r8]"
+        ],
+        [
+          3,
+          "imul\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "lea\teax, [rdx + r8]"
+        ],
+        [
+          3,
+          "imul\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "square32": {
+    "baseline": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "add\tecx, edx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "imul\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 7,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "lea\teax, [rcx + rdx]"
+        ],
+        [
+          3,
+          "imul\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 7,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "lea\teax, [rcx + rdx]"
+        ],
+        [
+          3,
+          "imul\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "xorOr32": {
+    "baseline": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "not\tecx"
+        ],
+        [
+          2,
+          "and\tecx, edx"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "not\tecx"
+        ],
+        [
+          2,
+          "and\tecx, edx"
+        ],
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          2,
+          "not\teax"
+        ],
+        [
+          2,
+          "and\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "andXor32": {
+    "baseline": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "not\tedx"
+        ],
+        [
+          2,
+          "and\tedx, ecx"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "not\tedx"
+        ],
+        [
+          2,
+          "and\tedx, ecx"
+        ],
+        [
+          2,
+          "mov\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\teax, edx"
+        ],
+        [
+          2,
+          "not\teax"
+        ],
+        [
+          2,
+          "and\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "orMinusAnd32": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "or\teax, edx"
+        ],
+        [
+          2,
+          "and\tecx, edx"
+        ],
+        [
+          2,
+          "sub\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "or\teax, edx"
+        ],
+        [
+          2,
+          "and\tecx, edx"
+        ],
+        [
+          2,
+          "sub\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 5,
+      "instructions": 3,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          2,
+          "xor\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "shiftMasked32": {
+    "baseline": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "and\tedx, 0x1f"
+        ],
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          5,
+          "shlx\teax, eax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\teax, edx"
+        ],
+        [
+          3,
+          "mov\tr9d, ecx"
+        ],
+        [
+          5,
+          "shlx\teax, r9d, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          2,
+          "mov\tecx, edx"
+        ],
+        [
+          2,
+          "shl\teax, cl"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "rotate32": {
+    "baseline": {
+      "bytes": 7,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "rol\tecx, 0x7"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 6,
+      "instructions": 3,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          3,
+          "rol\teax, 0x7"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 6,
+      "instructions": 3,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          3,
+          "rol\teax, 0x7"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "extractByte32": {
+    "baseline": {
+      "bytes": 4,
+      "instructions": 2,
+      "code": [
+        [
+          3,
+          "movzx\teax, ch"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 4,
+      "instructions": 2,
+      "code": [
+        [
+          3,
+          "movzx\teax, ch"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 4,
+      "instructions": 2,
+      "code": [
+        [
+          3,
+          "movzx\teax, ch"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "signedModulo32": {
+    "baseline": {
+      "bytes": 20,
+      "instructions": 8,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "sar\tecx, 0x1f"
+        ],
+        [
+          3,
+          "shr\tecx, 0x1d"
+        ],
+        [
+          2,
+          "add\teax, ecx"
+        ],
+        [
+          3,
+          "and\teax, 0x7"
+        ],
+        [
+          2,
+          "sub\teax, ecx"
+        ],
+        [
+          3,
+          "movsxd\trax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 20,
+      "instructions": 8,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "sar\tecx, 0x1f"
+        ],
+        [
+          3,
+          "shr\tecx, 0x1d"
+        ],
+        [
+          2,
+          "add\teax, ecx"
+        ],
+        [
+          3,
+          "and\teax, 0x7"
+        ],
+        [
+          2,
+          "sub\teax, ecx"
+        ],
+        [
+          3,
+          "movsxd\trax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 16,
+      "instructions": 7,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          3,
+          "lea\tecx, [rax + 0x7]"
+        ],
+        [
+          2,
+          "test\teax, eax"
+        ],
+        [
+          3,
+          "cmovns\tecx, eax"
+        ],
+        [
+          3,
+          "and\tecx, -0x8"
+        ],
+        [
+          2,
+          "sub\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "signedDivide32": {
+    "baseline": {
+      "bytes": 33,
+      "instructions": 10,
+      "code": [
+        [
+          6,
+          "mov\tr9d, 0x92492493"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "imul\tr9d"
+        ],
+        [
+          4,
+          "lea\tr8d, [rdx + rcx]"
+        ],
+        [
+          4,
+          "sar\tr8d, 0x2"
+        ],
+        [
+          3,
+          "mov\trax, r8"
+        ],
+        [
+          3,
+          "shr\teax, 0x1f"
+        ],
+        [
+          3,
+          "add\tr8d, eax"
+        ],
+        [
+          3,
+          "movsxd\trax, r8d"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 33,
+      "instructions": 10,
+      "code": [
+        [
+          6,
+          "mov\tr9d, 0x92492493"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "imul\tr9d"
+        ],
+        [
+          4,
+          "lea\tr8d, [rdx + rcx]"
+        ],
+        [
+          4,
+          "sar\tr8d, 0x2"
+        ],
+        [
+          3,
+          "mov\teax, r8d"
+        ],
+        [
+          3,
+          "shr\teax, 0x1f"
+        ],
+        [
+          3,
+          "add\tr8d, eax"
+        ],
+        [
+          3,
+          "movsxd\trax, r8d"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 27,
+      "instructions": 9,
+      "code": [
+        [
+          3,
+          "movsxd\trax, ecx"
+        ],
+        [
+          7,
+          "imul\trcx, rax, -0x6db6db6d"
+        ],
+        [
+          4,
+          "shr\trcx, 0x20"
+        ],
+        [
+          2,
+          "add\teax, ecx"
+        ],
+        [
+          2,
+          "mov\tecx, eax"
+        ],
+        [
+          3,
+          "shr\tecx, 0x1f"
+        ],
+        [
+          3,
+          "sar\teax, 0x2"
+        ],
+        [
+          2,
+          "add\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "unsignedDivide32": {
+    "baseline": {
+      "bytes": 25,
+      "instructions": 9,
+      "code": [
+        [
+          6,
+          "mov\tr9d, 0x24924925"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "mul\tr9d"
+        ],
+        [
+          2,
+          "sub\tecx, edx"
+        ],
+        [
+          2,
+          "shr\tecx"
+        ],
+        [
+          2,
+          "add\tecx, edx"
+        ],
+        [
+          3,
+          "shr\tecx, 0x2"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 23,
+      "instructions": 8,
+      "code": [
+        [
+          6,
+          "mov\tr9d, 0x24924925"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "mul\tr9d"
+        ],
+        [
+          2,
+          "sub\tecx, edx"
+        ],
+        [
+          2,
+          "shr\tecx"
+        ],
+        [
+          3,
+          "lea\teax, [rcx + rdx]"
+        ],
+        [
+          3,
+          "shr\teax, 0x2"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 23,
+      "instructions": 8,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          7,
+          "imul\trax, rax, 0x24924925"
+        ],
+        [
+          4,
+          "shr\trax, 0x20"
+        ],
+        [
+          2,
+          "sub\tecx, eax"
+        ],
+        [
+          2,
+          "shr\tecx"
+        ],
+        [
+          2,
+          "add\teax, ecx"
+        ],
+        [
+          3,
+          "shr\teax, 0x2"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "unsignedModulo32": {
+    "baseline": {
+      "bytes": 38,
+      "instructions": 13,
+      "code": [
+        [
+          6,
+          "mov\tr9d, 0x24924925"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "mul\tr9d"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "sub\teax, edx"
+        ],
+        [
+          2,
+          "shr\teax"
+        ],
+        [
+          2,
+          "add\teax, edx"
+        ],
+        [
+          3,
+          "shr\teax, 0x2"
+        ],
+        [
+          3,
+          "mov\tr8, rax"
+        ],
+        [
+          4,
+          "imul\tr8d, r8d, 0x7"
+        ],
+        [
+          3,
+          "sub\tecx, r8d"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 37,
+      "instructions": 12,
+      "code": [
+        [
+          6,
+          "mov\tr9d, 0x24924925"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          3,
+          "mul\tr9d"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          2,
+          "sub\teax, edx"
+        ],
+        [
+          2,
+          "shr\teax"
+        ],
+        [
+          4,
+          "lea\tr8d, [rax + rdx]"
+        ],
+        [
+          4,
+          "shr\tr8d, 0x2"
+        ],
+        [
+          4,
+          "imul\tr8d, r8d, 0x7"
+        ],
+        [
+          3,
+          "sub\tecx, r8d"
+        ],
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 36,
+      "instructions": 12,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          7,
+          "imul\trdx, rax, 0x24924925"
+        ],
+        [
+          4,
+          "shr\trdx, 0x20"
+        ],
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          2,
+          "sub\teax, edx"
+        ],
+        [
+          2,
+          "shr\teax"
+        ],
+        [
+          2,
+          "add\teax, edx"
+        ],
+        [
+          3,
+          "shr\teax, 0x2"
+        ],
+        [
+          7,
+          "lea\tedx, [8*rax]"
+        ],
+        [
+          2,
+          "sub\teax, edx"
+        ],
+        [
+          2,
+          "add\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "zeroMask32": {
+    "baseline": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "cmp\tecx, 0x1"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "cmp\tecx, 0x1"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "cmp\tecx, 0x1"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "nonzeroMask32": {
+    "baseline": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "neg\tecx"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "neg\tecx"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 7,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "neg\tecx"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "selectSeven32": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 5,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "cmp\tecx, edx"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          3,
+          "and\teax, 0x7"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 5,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "cmp\tecx, edx"
+        ],
+        [
+          2,
+          "sbb\teax, eax"
+        ],
+        [
+          3,
+          "and\teax, 0x7"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 15,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "xor\tr8d, r8d"
+        ],
+        [
+          2,
+          "cmp\tecx, edx"
+        ],
+        [
+          5,
+          "mov\teax, 0x7"
+        ],
+        [
+          4,
+          "cmovae\teax, r8d"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "subtractFlag32": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "cmp\tedx, r8d"
+        ],
+        [
+          3,
+          "sbb\tecx, 0x0"
+        ],
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "cmp\tedx, r8d"
+        ],
+        [
+          3,
+          "sbb\tecx, 0x0"
+        ],
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          3,
+          "cmp\tedx, r8d"
+        ],
+        [
+          3,
+          "sbb\teax, 0x0"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  }
+}

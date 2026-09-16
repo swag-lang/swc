@@ -1,0 +1,620 @@
+negativeDivideTwo
+  baseline: 5 instructions, 16 bytes
+    mov	r8, -0x2
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    ret
+  final: 5 instructions, 16 bytes
+    mov	r8, -0x2
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    ret
+  llvm: 6 instructions, 17 bytes
+    mov	rax, rcx
+    shr	rax, 0x3f
+    add	rax, rcx
+    sar	rax
+    neg	rax
+    ret
+
+negativeDivideEight
+  baseline: 5 instructions, 16 bytes
+    mov	r8, -0x8
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    ret
+  final: 5 instructions, 16 bytes
+    mov	r8, -0x8
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    ret
+  llvm: 6 instructions, 19 bytes
+    lea	rax, [rcx + 0x7]
+    test	rcx, rcx
+    cmovns	rax, rcx
+    sar	rax, 0x3
+    neg	rax
+    ret
+
+negativeDivideThree
+  baseline: 5 instructions, 16 bytes
+    mov	r8, -0x3
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    ret
+  final: 5 instructions, 16 bytes
+    mov	r8, -0x3
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    ret
+  llvm: 9 instructions, 33 bytes
+    movabs	rdx, 0x5555555555555555
+    mov	rax, rcx
+    imul	rdx
+    sub	rdx, rcx
+    mov	rax, rdx
+    shr	rax, 0x3f
+    sar	rdx
+    add	rax, rdx
+    ret
+
+negativeModuloTwo
+  baseline: 6 instructions, 19 bytes
+    mov	r8, -0x2
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    mov	rax, rdx
+    ret
+  final: 6 instructions, 19 bytes
+    mov	r8, -0x2
+    mov	rax, rcx
+    cqo
+    idiv	r8
+    mov	rax, rdx
+    ret
+  llvm: 6 instructions, 18 bytes
+    mov	rax, rcx
+    shr	rcx, 0x3f
+    add	rcx, rax
+    and	rcx, -0x2
+    sub	rax, rcx
+    ret
+
+clearLowestBit
+  baseline: 4 instructions, 11 bytes
+    mov	rax, rcx
+    lea	rcx, [rcx - 0x1]
+    and	rax, rcx
+    ret
+  final: 4 instructions, 11 bytes
+    mov	rax, rcx
+    lea	rcx, [rcx - 0x1]
+    and	rax, rcx
+    ret
+  llvm: 3 instructions, 8 bytes
+    lea	rax, [rcx - 0x1]
+    and	rax, rcx
+    ret
+
+isolateLowestBit
+  baseline: 5 instructions, 13 bytes
+    xor	rax, rax
+    sub	rax, rcx
+    and	rcx, rax
+    mov	rax, rcx
+    ret
+  final: 5 instructions, 13 bytes
+    xor	rax, rax
+    sub	rax, rcx
+    and	rcx, rax
+    mov	rax, rcx
+    ret
+  llvm: 4 instructions, 10 bytes
+    mov	rax, rcx
+    neg	rax
+    and	rax, rcx
+    ret
+
+andNot
+  baseline: 4 instructions, 10 bytes
+    not	rdx
+    and	rcx, rdx
+    mov	rax, rcx
+    ret
+  final: 4 instructions, 10 bytes
+    not	rdx
+    and	rcx, rdx
+    mov	rax, rcx
+    ret
+  llvm: 4 instructions, 10 bytes
+    mov	rax, rdx
+    not	rax
+    and	rax, rcx
+    ret
+
+negatedSum
+  baseline: 6 instructions, 16 bytes
+    xor	rax, rax
+    sub	rax, rcx
+    xor	rcx, rcx
+    sub	rcx, rdx
+    add	rax, rcx
+    ret
+  final: 6 instructions, 16 bytes
+    xor	rax, rax
+    sub	rax, rcx
+    xor	rcx, rcx
+    sub	rcx, rdx
+    add	rax, rcx
+    ret
+  llvm: 3 instructions, 8 bytes
+    lea	rax, [rcx + rdx]
+    neg	rax
+    ret
+
+complementSum
+  baseline: 4 instructions, 11 bytes
+    not	rcx
+    lea	rax, [rcx + rdx]
+    not	rax
+    ret
+  final: 4 instructions, 11 bytes
+    not	rcx
+    lea	rax, [rcx + rdx]
+    not	rax
+    ret
+  llvm: 3 instructions, 7 bytes
+    mov	rax, rcx
+    sub	rax, rdx
+    ret
+
+unsignedAverage
+  baseline: 6 instructions, 16 bytes
+    mov	rax, rcx
+    and	rax, rdx
+    xor	rcx, rdx
+    shr	rcx
+    add	rax, rcx
+    ret
+  final: 6 instructions, 16 bytes
+    mov	rax, rcx
+    and	rax, rdx
+    xor	rcx, rdx
+    shr	rcx
+    add	rax, rcx
+    ret
+  llvm: 6 instructions, 16 bytes
+    mov	rax, rdx
+    and	rax, rcx
+    xor	rdx, rcx
+    shr	rdx
+    add	rax, rdx
+    ret
+
+variableBit
+  baseline: 4 instructions, 14 bytes
+    and	rdx, 0x3f
+    shrx	rax, rcx, rdx
+    and	rax, 0x1
+    ret
+  final: 3 instructions, 10 bytes
+    shrx	rax, rcx, rdx
+    and	rax, 0x1
+    ret
+  llvm: 4 instructions, 10 bytes
+    xor	eax, eax
+    bt	rcx, rdx
+    setb	al
+    ret
+
+maskedShiftRight
+  baseline: 3 instructions, 10 bytes
+    and	rdx, 0x3f
+    shrx	rax, rcx, rdx
+    ret
+  final: 2 instructions, 6 bytes
+    shrx	rax, rcx, rdx
+    ret
+  llvm: 4 instructions, 9 bytes
+    mov	rax, rcx
+    mov	ecx, edx
+    shr	rax, cl
+    ret
+
+maskedArithmeticRight
+  baseline: 3 instructions, 10 bytes
+    and	rdx, 0x3f
+    sarx	rax, rcx, rdx
+    ret
+  final: 2 instructions, 6 bytes
+    sarx	rax, rcx, rdx
+    ret
+  llvm: 4 instructions, 9 bytes
+    mov	rax, rcx
+    mov	ecx, edx
+    sar	rax, cl
+    ret
+
+rotateVariable
+  baseline: 9 instructions, 31 bytes
+    mov	rax, rdx
+    and	rax, 0x3f
+    shlx	rax, rcx, rax
+    xor	r8, r8
+    sub	r8, rdx
+    and	r8, 0x3f
+    shrx	rcx, rcx, r8
+    or	rax, rcx
+    ret
+  final: 4 instructions, 9 bytes
+    mov	rax, rcx
+    mov	ecx, edx
+    rol	rax, cl
+    ret
+  llvm: 4 instructions, 9 bytes
+    mov	rax, rcx
+    mov	ecx, edx
+    rol	rax, cl
+    ret
+
+add32
+  baseline: 3 instructions, 6 bytes
+    add	ecx, edx
+    mov	rax, rcx
+    ret
+  final: 2 instructions, 4 bytes
+    lea	eax, [rcx + rdx]
+    ret
+  llvm: 2 instructions, 4 bytes
+    lea	eax, [rcx + rdx]
+    ret
+
+multiply32
+  baseline: 3 instructions, 7 bytes
+    imul	ecx, edx
+    mov	rax, rcx
+    ret
+  final: 3 instructions, 6 bytes
+    imul	ecx, edx
+    mov	eax, ecx
+    ret
+  llvm: 3 instructions, 6 bytes
+    mov	eax, ecx
+    imul	eax, edx
+    ret
+
+factor32
+  baseline: 4 instructions, 10 bytes
+    add	edx, r8d
+    imul	edx, ecx
+    mov	rax, rdx
+    ret
+  final: 3 instructions, 8 bytes
+    lea	eax, [rdx + r8]
+    imul	eax, ecx
+    ret
+  llvm: 3 instructions, 8 bytes
+    lea	eax, [rdx + r8]
+    imul	eax, ecx
+    ret
+
+square32
+  baseline: 4 instructions, 9 bytes
+    add	ecx, edx
+    mov	rax, rcx
+    imul	eax, ecx
+    ret
+  final: 3 instructions, 7 bytes
+    lea	eax, [rcx + rdx]
+    imul	eax, eax
+    ret
+  llvm: 3 instructions, 7 bytes
+    lea	eax, [rcx + rdx]
+    imul	eax, eax
+    ret
+
+xorOr32
+  baseline: 4 instructions, 8 bytes
+    not	ecx
+    and	ecx, edx
+    mov	rax, rcx
+    ret
+  final: 4 instructions, 7 bytes
+    not	ecx
+    and	ecx, edx
+    mov	eax, ecx
+    ret
+  llvm: 4 instructions, 7 bytes
+    mov	eax, ecx
+    not	eax
+    and	eax, edx
+    ret
+
+andXor32
+  baseline: 4 instructions, 8 bytes
+    not	edx
+    and	edx, ecx
+    mov	rax, rdx
+    ret
+  final: 4 instructions, 7 bytes
+    not	edx
+    and	edx, ecx
+    mov	eax, edx
+    ret
+  llvm: 4 instructions, 7 bytes
+    mov	eax, edx
+    not	eax
+    and	eax, ecx
+    ret
+
+orMinusAnd32
+  baseline: 5 instructions, 10 bytes
+    mov	rax, rcx
+    or	eax, edx
+    and	ecx, edx
+    sub	eax, ecx
+    ret
+  final: 5 instructions, 10 bytes
+    mov	rax, rcx
+    or	eax, edx
+    and	ecx, edx
+    sub	eax, ecx
+    ret
+  llvm: 3 instructions, 5 bytes
+    mov	eax, ecx
+    xor	eax, edx
+    ret
+
+shiftMasked32
+  baseline: 4 instructions, 11 bytes
+    and	edx, 0x1f
+    mov	eax, ecx
+    shlx	eax, eax, edx
+    ret
+  final: 4 instructions, 11 bytes
+    mov	eax, edx
+    mov	r9d, ecx
+    shlx	eax, r9d, eax
+    ret
+  llvm: 4 instructions, 7 bytes
+    mov	eax, ecx
+    mov	ecx, edx
+    shl	eax, cl
+    ret
+
+rotate32
+  baseline: 3 instructions, 7 bytes
+    rol	ecx, 0x7
+    mov	rax, rcx
+    ret
+  final: 3 instructions, 6 bytes
+    mov	eax, ecx
+    rol	eax, 0x7
+    ret
+  llvm: 3 instructions, 6 bytes
+    mov	eax, ecx
+    rol	eax, 0x7
+    ret
+
+extractByte32
+  baseline: 2 instructions, 4 bytes
+    movzx	eax, ch
+    ret
+  final: 2 instructions, 4 bytes
+    movzx	eax, ch
+    ret
+  llvm: 2 instructions, 4 bytes
+    movzx	eax, ch
+    ret
+
+signedModulo32
+  baseline: 8 instructions, 20 bytes
+    mov	rax, rcx
+    sar	ecx, 0x1f
+    shr	ecx, 0x1d
+    add	eax, ecx
+    and	eax, 0x7
+    sub	eax, ecx
+    movsxd	rax, eax
+    ret
+  final: 8 instructions, 20 bytes
+    mov	rax, rcx
+    sar	ecx, 0x1f
+    shr	ecx, 0x1d
+    add	eax, ecx
+    and	eax, 0x7
+    sub	eax, ecx
+    movsxd	rax, eax
+    ret
+  llvm: 7 instructions, 16 bytes
+    mov	eax, ecx
+    lea	ecx, [rax + 0x7]
+    test	eax, eax
+    cmovns	ecx, eax
+    and	ecx, -0x8
+    sub	eax, ecx
+    ret
+
+signedDivide32
+  baseline: 10 instructions, 33 bytes
+    mov	r9d, 0x92492493
+    mov	rax, rcx
+    imul	r9d
+    lea	r8d, [rdx + rcx]
+    sar	r8d, 0x2
+    mov	rax, r8
+    shr	eax, 0x1f
+    add	r8d, eax
+    movsxd	rax, r8d
+    ret
+  final: 10 instructions, 33 bytes
+    mov	r9d, 0x92492493
+    mov	rax, rcx
+    imul	r9d
+    lea	r8d, [rdx + rcx]
+    sar	r8d, 0x2
+    mov	eax, r8d
+    shr	eax, 0x1f
+    add	r8d, eax
+    movsxd	rax, r8d
+    ret
+  llvm: 9 instructions, 27 bytes
+    movsxd	rax, ecx
+    imul	rcx, rax, -0x6db6db6d
+    shr	rcx, 0x20
+    add	eax, ecx
+    mov	ecx, eax
+    shr	ecx, 0x1f
+    sar	eax, 0x2
+    add	eax, ecx
+    ret
+
+unsignedDivide32
+  baseline: 9 instructions, 25 bytes
+    mov	r9d, 0x24924925
+    mov	rax, rcx
+    mul	r9d
+    sub	ecx, edx
+    shr	ecx
+    add	ecx, edx
+    shr	ecx, 0x2
+    mov	rax, rcx
+    ret
+  final: 8 instructions, 23 bytes
+    mov	r9d, 0x24924925
+    mov	rax, rcx
+    mul	r9d
+    sub	ecx, edx
+    shr	ecx
+    lea	eax, [rcx + rdx]
+    shr	eax, 0x2
+    ret
+  llvm: 8 instructions, 23 bytes
+    mov	eax, ecx
+    imul	rax, rax, 0x24924925
+    shr	rax, 0x20
+    sub	ecx, eax
+    shr	ecx
+    add	eax, ecx
+    shr	eax, 0x2
+    ret
+
+unsignedModulo32
+  baseline: 13 instructions, 38 bytes
+    mov	r9d, 0x24924925
+    mov	rax, rcx
+    mul	r9d
+    mov	rax, rcx
+    sub	eax, edx
+    shr	eax
+    add	eax, edx
+    shr	eax, 0x2
+    mov	r8, rax
+    imul	r8d, r8d, 0x7
+    sub	ecx, r8d
+    mov	rax, rcx
+    ret
+  final: 12 instructions, 37 bytes
+    mov	r9d, 0x24924925
+    mov	rax, rcx
+    mul	r9d
+    mov	rax, rcx
+    sub	eax, edx
+    shr	eax
+    lea	r8d, [rax + rdx]
+    shr	r8d, 0x2
+    imul	r8d, r8d, 0x7
+    sub	ecx, r8d
+    mov	eax, ecx
+    ret
+  llvm: 12 instructions, 36 bytes
+    mov	eax, ecx
+    imul	rdx, rax, 0x24924925
+    shr	rdx, 0x20
+    mov	eax, ecx
+    sub	eax, edx
+    shr	eax
+    add	eax, edx
+    shr	eax, 0x2
+    lea	edx, [8*rax]
+    sub	eax, edx
+    add	eax, ecx
+    ret
+
+zeroMask32
+  baseline: 4 instructions, 8 bytes
+    xor	eax, eax
+    cmp	ecx, 0x1
+    sbb	eax, eax
+    ret
+  final: 4 instructions, 8 bytes
+    xor	eax, eax
+    cmp	ecx, 0x1
+    sbb	eax, eax
+    ret
+  llvm: 4 instructions, 8 bytes
+    xor	eax, eax
+    cmp	ecx, 0x1
+    sbb	eax, eax
+    ret
+
+nonzeroMask32
+  baseline: 4 instructions, 7 bytes
+    xor	eax, eax
+    neg	ecx
+    sbb	eax, eax
+    ret
+  final: 4 instructions, 7 bytes
+    xor	eax, eax
+    neg	ecx
+    sbb	eax, eax
+    ret
+  llvm: 4 instructions, 7 bytes
+    xor	eax, eax
+    neg	ecx
+    sbb	eax, eax
+    ret
+
+selectSeven32
+  baseline: 5 instructions, 10 bytes
+    xor	eax, eax
+    cmp	ecx, edx
+    sbb	eax, eax
+    and	eax, 0x7
+    ret
+  final: 5 instructions, 10 bytes
+    xor	eax, eax
+    cmp	ecx, edx
+    sbb	eax, eax
+    and	eax, 0x7
+    ret
+  llvm: 5 instructions, 15 bytes
+    xor	r8d, r8d
+    cmp	ecx, edx
+    mov	eax, 0x7
+    cmovae	eax, r8d
+    ret
+
+subtractFlag32
+  baseline: 4 instructions, 10 bytes
+    cmp	edx, r8d
+    sbb	ecx, 0x0
+    mov	rax, rcx
+    ret
+  final: 4 instructions, 9 bytes
+    cmp	edx, r8d
+    sbb	ecx, 0x0
+    mov	eax, ecx
+    ret
+  llvm: 4 instructions, 9 bytes
+    mov	eax, ecx
+    cmp	edx, r8d
+    sbb	eax, 0x0
+    ret

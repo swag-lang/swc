@@ -1387,6 +1387,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_RuntimeStorageLocalsStayOutOfCodeView)
 {
+    // "visible" escapes so that it keeps its stack home: a local the optimizer promotes to a
+    // register takes the frame base with it once nothing else addresses the frame.
     static constexpr std::string_view SOURCE     = R"(struct DebugInfoRuntimeStoragePair { left: s32; right: s32 }
 
 func debugInfoRuntimeStorageRead(value: DebugInfoRuntimeStoragePair)->s32
@@ -1394,11 +1396,17 @@ func debugInfoRuntimeStorageRead(value: DebugInfoRuntimeStoragePair)->s32
     return value.left + value.right
 }
 
+#[Swag.NoInline]
+func debugInfoRuntimeStorageLeft(value: *DebugInfoRuntimeStoragePair)->s32
+{
+    return value.left
+}
+
 #test
 {
     var visible: DebugInfoRuntimeStoragePair = {left: 1, right: 2}
     Swag.assert(debugInfoRuntimeStorageRead({left: 3, right: 4}) == 7)
-    Swag.assert(visible.left == 1)
+    Swag.assert(debugInfoRuntimeStorageLeft(&visible) == 1)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "RuntimeStorageLocalsStayOutOfCodeView");

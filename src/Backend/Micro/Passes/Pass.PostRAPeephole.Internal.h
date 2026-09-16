@@ -14,7 +14,8 @@ namespace PostRaPeephole
 {
     struct Action
     {
-        static constexpr uint8_t K_MAX_OPS = 5;
+        // Indexed address forms carry eight operands.
+        static constexpr uint8_t K_MAX_OPS = 8;
 
         MicroInstrRef     ref            = MicroInstrRef::invalid();
         MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;

@@ -346,6 +346,79 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A full copy of a value just defined at 32 bits can use a 32-bit MOV.
+    // The IR width contract already guarantees that the source's upper half is zero.
+    bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || copy[2].opBits != MicroOpBits::B64 ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
+            return false;
+        const MicroInstrRef producerRef = ctx.previousRef(ref);
+        const MicroInstr*   producer    = ctx.instruction(producerRef);
+        const auto*         ops         = producer ? producer->ops(*ctx.operands) : nullptr;
+        if (!ops)
+            return false;
+        MicroOpBits bits;
+        switch (producer->op)
+        {
+            case MicroInstrOpcode::ClearReg:
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
+                bits = ops[1].opBits;
+                break;
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::LoadAddrRegMem:
+                bits = ops[2].opBits;
+                break;
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                bits = ops[3].opBits;
+                break;
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegImm:
+            {
+                const bool immediate = producer->op == MicroInstrOpcode::OpBinaryRegImm;
+                bits                 = ops[immediate ? 1 : 2].opBits;
+                const MicroOp op     = ops[immediate ? 2 : 3].microOp;
+                switch (op)
+                {
+                    case MicroOp::Add:
+                    case MicroOp::Subtract:
+                    case MicroOp::And:
+                    case MicroOp::Or:
+                    case MicroOp::Xor:
+                    case MicroOp::MultiplySigned:
+                        break;
+                    case MicroOp::ShiftLeft:
+                    case MicroOp::ShiftArithmeticLeft:
+                    case MicroOp::ShiftRight:
+                    case MicroOp::ShiftArithmeticRight:
+                    case MicroOp::RotateLeft:
+                    case MicroOp::RotateRight:
+                        if (!immediate || ops[3].hasWideImmediateValue() || (ops[3].valueU64 & 31) == 0)
+                            return false;
+                        break;
+                    default:
+                        return false;
+                }
+                break;
+            }
+            default:
+                return false;
+        }
+        const MicroInstrUseDef useDef = producer->collectUseDef(*ctx.operands, ctx.encoder);
+        if (ops[0].reg != copy[1].reg || bits != MicroOpBits::B32 || useDef.defs.size() != 1 || useDef.defs[0] != copy[1].reg ||
+            !ctx.claimAll({producerRef, ref}))
+            return false;
+        MicroInstrOperand narrowed[3] = {copy[0], copy[1], copy[2]};
+        narrowed[2].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, narrowed);
+        return true;
+    }
+
     // Retarget a two-step add/multiply computation as one unit so forwarding
     // cannot reintroduce its removed result copy on the next sweep.
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

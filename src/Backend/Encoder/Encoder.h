@@ -45,6 +45,9 @@ struct MicroConformanceIssue
     MicroReg                  forbiddenReg;
     MicroReg                  helperReg;
     MicroReg                  scratchReg;
+    // A lowered operation can read a fixed operand and return in another register.
+    MicroReg                  resultReg;
+    std::optional<MicroOp>     replacementOp;
 };
 
 class Encoder

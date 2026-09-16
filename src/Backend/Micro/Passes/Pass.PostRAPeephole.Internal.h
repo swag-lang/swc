@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
 
@@ -37,6 +38,13 @@ namespace PostRaPeephole
         // post-RA sweep). See MicroPassContext::isFirstOptimizationSweep.
         bool allowForwarding = true;
 
+        const MicroPassContext*            passContext = nullptr;
+        MicroPassHelpers::MicroPhysLiveness physicalLiveness;
+        uint32_t                            instructionIndex      = 0;
+        bool                                physicalLivenessReady = false;
+
+        bool isRegDeadAfterCurrent(MicroReg reg);
+
         bool claimAll(std::span<const MicroInstrRef> refs);
         bool claimAll(std::initializer_list<MicroInstrRef> refs)
         {
@@ -64,6 +72,9 @@ namespace PostRaPeephole
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyRoundTrip(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryRetargetUnaryResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryInvertResultZeroSelect(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldCopyIntoIntegerAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopySource(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

@@ -1246,6 +1246,18 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             }
         }
 
+        if (op == MicroOp::MultiplyHighUnsigned && (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+        {
+            // Expose MUL's high output to allocation instead of hiding an RDX-to-RAX
+            // copy inside emission. This runs after scalar strength reduction.
+            outIssue.kind          = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+            outIssue.operandIndex  = 0;
+            outIssue.requiredReg   = x64RegToMicroReg(X64Reg::Rax);
+            outIssue.resultReg     = x64RegToMicroReg(X64Reg::Rdx);
+            outIssue.replacementOp = MicroOp::MultiplyUnsigned;
+            return true;
+        }
+
         const bool isB8SignedMul = op == MicroOp::MultiplySigned && ops[2].opBits == MicroOpBits::B8;
         if (op == MicroOp::MultiplyUnsigned ||
             isB8SignedMul ||

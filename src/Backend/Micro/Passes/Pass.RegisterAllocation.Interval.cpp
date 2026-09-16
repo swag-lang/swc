@@ -319,8 +319,32 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
             if (definedOnly && isGuardedCall(idx))
                 continue;
 
+            // A dying physical copy source is needed only at the input slot.
+            // Its virtual destination can occupy that register at the output slot.
+            bool copiedLastUse = false;
+            if (usedHere && !definedHere)
+            {
+                const MicroInstr* inst = instructions_->ptr(controlFlowGraph_->instructionRefs()[idx]);
+                if (inst && inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const MicroInstrOperand* ops = inst->ops(*operands_);
+                    copiedLastUse                = ops[0].reg.isVirtualInt() && ops[1].reg == outPoolRegs[poolIndex] && ops[2].opBits == MicroOpBits::B64;
+                    if (copiedLastUse)
+                    {
+                        for (const uint32_t successor : controlFlowGraph_->successors(idx))
+                        {
+                            if (DenseBits::contains(DenseBits::row(liveInConcreteBits_, successor, concreteWordCount), denseConcrete))
+                            {
+                                copiedLastUse = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
             const uint32_t from = definedOnly ? idx * 2 + 1 : idx * 2;
-            const uint32_t to   = idx * 2 + 2;
+            const uint32_t to   = copiedLastUse ? idx * 2 + 1 : idx * 2 + 2;
             if (!fixed.ranges.empty() && fixed.ranges.back().to >= from)
                 fixed.ranges.back().to = to;
             else

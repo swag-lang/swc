@@ -6,6 +6,29 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
+
+- Recorded: 2026-09-16 19:54
+- Area: compiler/codegen, captured variables, static sanity
+- Evidence: a Release `swc.exe` 728 full native test (`-bc release --num-cores 6`)
+  diagnosed twelve null dereferences at `total += seed` in
+  `bin/unittests/native/inline/binding_visit_growth.swg`. The source is already a
+  permanent regression test and is unchanged during this investigation.
+- Reduction: standalone builds 712 and 714 passed; build 718 failed using the
+  original session output/work roots, then passed with new output/work roots.
+  An identical source copied outside the checkout passed with the same 718 binary.
+  Build 730 with temporary pre-sanity tracing passed. Tracing was removed; integrated
+  build 731 passes all 3,277 native tests and the expected-failure recovery probes.
+  These observations do not distinguish cache/work-directory state from scheduling
+  or another input. They do not prove that a particular optimization introduced or
+  fixed the failure. The diagnostic is emitted before the micro optimization loops.
+- Evidence artifact: [generated-code session](../bench/results/generated-code/20260916/README.md).
+- Next: repeat the unchanged standalone source with controlled work directories and
+  six workers, preserve the failing pre-sanity capture lowering, and distinguish
+  cache reuse from shared code-generation state when cloning the macro's closure.
+- Complete when: a stable reproducer identifies the cause, the correction passes
+  that reproducer repeatedly, and the full native suite remains green.
+
 ### compiler.core.051 — Isolate a silent CodeGen failure observed in a discarded JIT prototype
 
 - Recorded: 2026-09-16 18:31

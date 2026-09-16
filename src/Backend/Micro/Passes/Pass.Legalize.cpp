@@ -752,7 +752,7 @@ namespace
         const MicroReg    originalDstReg = ops[0].reg;
         const MicroReg    originalSrcReg = ops[1].reg;
         const MicroOpBits opBits         = ops[2].opBits;
-        const MicroOp     op             = ops[3].microOp;
+        const MicroOp     op             = issue.replacementOp.value_or(ops[3].microOp);
         const MicroReg    requiredReg    = issue.requiredReg;
         SWC_ASSERT(requiredReg.isValid());
 
@@ -802,8 +802,9 @@ namespace
         }
 
         insertBinaryRegReg(context, instRef, rewrittenDstReg, rewrittenSrcReg, op, opBits);
-        if (rewrittenDstReg != originalDstReg)
-            insertMoveRegReg(context, instRef, originalDstReg, rewrittenDstReg, opBits);
+        const MicroReg resultReg = issue.resultReg.isValid() ? issue.resultReg : rewrittenDstReg;
+        if (resultReg != originalDstReg)
+            insertMoveRegReg(context, instRef, originalDstReg, resultReg, opBits);
 
         if (savedRequiredReg.isValid())
             insertMoveRegReg(context, instRef, requiredReg, savedRequiredReg, MicroOpBits::B64);

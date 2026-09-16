@@ -123,7 +123,7 @@ private const NativeDeclarationApprovals = [
     "bin/std/modules/core/src/input/keyboard.win32.swg",
     "public func virtualKeyToKey(vkey: VirtualKey)->Key",
     "bin/std/modules/core/src/system/environment.win32.swg",
-    "mtd acquireWin32DeviceContext()->HDC",
+    "mtd acquireWin32DeviceContext()->HDC => GetDC(.win32Handle())",
     "bin/std/modules/core/src/system/environment.win32.swg",
     "mtd releaseWin32DeviceContext(deviceContext: HDC)",
     "bin/std/modules/core/src/tests/input/key.test.swg",

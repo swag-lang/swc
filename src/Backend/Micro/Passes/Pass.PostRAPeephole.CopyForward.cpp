@@ -30,6 +30,31 @@ namespace PostRaPeephole
         constexpr int      K_MAX_SAME_COPY_WINDOW   = 16;
         constexpr uint32_t K_MAX_COPY_SOURCE_WINDOW = 16;
 
+        bool canMoveUnaryAcrossCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            switch (ops[2].microOp)
+            {
+                case MicroOp::ShiftLeft:
+                case MicroOp::ShiftRight:
+                case MicroOp::ShiftArithmeticLeft:
+                case MicroOp::ShiftArithmeticRight:
+                case MicroOp::RotateLeft:
+                case MicroOp::RotateRight:
+                    if (inst.op != MicroInstrOpcode::OpBinaryRegImm || ops[3].hasWideImmediateValue() ||
+                        (ops[3].valueU64 & (getNumBits(ops[1].opBits) - 1)) == 0)
+                        return false;
+                    break;
+                case MicroOp::Negate:
+                case MicroOp::BitwiseNot:
+                    if (inst.op != MicroInstrOpcode::OpUnaryReg)
+                        return false;
+                    break;
+                default:
+                    return false;
+            }
+            return true;
+        }
+
         bool regInList(std::span<const MicroReg> list, MicroReg reg)
         {
             for (const MicroReg r : list)
@@ -148,26 +173,8 @@ namespace PostRaPeephole
         const auto* ops = op->ops(*ctx.operands);
         if (!ops || ops[0].reg != copy[0].reg || ops[1].opBits != copy[2].opBits)
             return false;
-        switch (ops[2].microOp)
-        {
-            case MicroOp::ShiftLeft:
-            case MicroOp::ShiftRight:
-            case MicroOp::ShiftArithmeticLeft:
-            case MicroOp::ShiftArithmeticRight:
-            case MicroOp::RotateLeft:
-            case MicroOp::RotateRight:
-                if (op->op != MicroInstrOpcode::OpBinaryRegImm || ops[3].hasWideImmediateValue() ||
-                    (ops[3].valueU64 & (getNumBits(ops[1].opBits) - 1)) == 0)
-                    return false;
-                break;
-            case MicroOp::Negate:
-            case MicroOp::BitwiseNot:
-                if (op->op != MicroInstrOpcode::OpUnaryReg)
-                    return false;
-                break;
-            default:
-                return false;
-        }
+        if (!canMoveUnaryAcrossCopy(*op, ops))
+            return false;
         const MicroInstrRef backRef = ctx.nextRef(opRef);
         const MicroInstr*   back    = ctx.instruction(backRef);
         if (!back || back->op != MicroInstrOpcode::LoadRegReg)
@@ -185,6 +192,78 @@ namespace PostRaPeephole
         ctx.emitErase(copyRef);
         ctx.emitRewrite(opRef, op->op, std::span{rewritten, op->numOperands});
         ctx.emitRewrite(backRef, copyInst.op, std::span{copy, copyInst.numOperands});
+        return true;
+    }
+
+    // ADD followed by a result copy can compute directly in the copy's
+    // destination when ABI-aware liveness proves its old result is dead.
+    bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef addRef = ctx.previousRef(copyRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* ops = add->ops(*ctx.operands);
+        if (!ops || ops[3].microOp != MicroOp::Add || ops[0].reg != copy[1].reg || !ops[1].reg.isInt() ||
+            ops[2].opBits != copy[2].opBits || !ctx.isRegDeadAfterCurrent(copy[1].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+        MicroInstrOperand address[8] = {};
+        address[0].reg               = copy[0].reg;
+        address[1].reg               = ops[0].reg;
+        address[2].reg               = ops[1].reg;
+        address[3].opBits            = ops[2].opBits;
+        address[4].opBits            = MicroOpBits::B64;
+        address[5].valueU64          = 1;
+        MicroInstr probe;
+        probe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        probe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, probe, address)) || !ctx.claimAll({addRef, copyRef}))
+            return false;
+        ctx.emitRewrite(addRef, probe.op, address, true);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
+    // Move a dying unary result into its final register before the operation.
+    // This exposes preceding arithmetic to the input-copy folds on the next sweep.
+    bool tryRetargetUnaryResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef opRef = ctx.previousRef(copyRef);
+        const MicroInstr*   op    = ctx.instruction(opRef);
+        if (!op || (op->op != MicroInstrOpcode::OpBinaryRegImm && op->op != MicroInstrOpcode::OpUnaryReg))
+            return false;
+        const auto* ops = op->ops(*ctx.operands);
+        if (!ops || ops[0].reg != copy[1].reg || ops[1].opBits != copy[2].opBits)
+            return false;
+        if (!canMoveUnaryAcrossCopy(*op, ops))
+            return false;
+        if (!ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+        MicroInstrOperand rewritten[4] = {};
+        for (uint8_t i = 0; i < op->numOperands; ++i)
+            rewritten[i] = ops[i];
+        rewritten[0].reg = copy[0].reg;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *op, rewritten)) || !ctx.claimAll({opRef, copyRef}))
+            return false;
+        ctx.emitRewrite(opRef, copyInst.op, std::span{copy, copyInst.numOperands}, true);
+        ctx.emitRewrite(copyRef, op->op, std::span{rewritten, op->numOperands}, true);
         return true;
     }
 
@@ -266,7 +345,7 @@ namespace PostRaPeephole
             // swap a different register (a parallel-move cycle at a loop edge
             // then leaves a value in the wrong register).
             const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg && next->ops(*ctx.operands)[3].microOp != MicroOp::Exchange;
-            if (extends || conditional || compareRegs || compareImm || address || binary)
+            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)

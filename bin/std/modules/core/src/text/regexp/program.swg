@@ -51,10 +51,7 @@ impl ByteBitmap
     }
 
     #[Swag.Inline]
-    mtd const contains(value: u8)->bool
-    {
-        return (.words[value >> 6] & (1'u64 << (value & 63))) != 0
-    }
+    mtd const contains(value: u8)->bool => (.words[value >> 6] & (1'u64 << (value & 63))) != 0
 }
 
 // A compiled pattern, in the form every engine reads.
@@ -131,10 +128,7 @@ impl Program
         return cast(u32) .insts.count - 1
     }
 
-    mtd emitByteRange(lo, hi: u8, next: u32)->u32
-    {
-        return .addInst({kind: .ByteRange, lo: lo, hi: hi, next: next})
-    }
+    mtd emitByteRange(lo, hi: u8, next: u32)->u32 => .addInst({kind: .ByteRange, lo: lo, hi: hi, next: next})
 
     // Emits the automaton for one node, continuing at 'next' once the node has matched.
     //

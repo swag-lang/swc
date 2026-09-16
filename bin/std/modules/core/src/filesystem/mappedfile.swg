@@ -142,10 +142,7 @@ impl MappedFile
     }
 
     // Maps the complete current file.
-    mtd mapAll()->MappedRegion fail
-    {
-        return try .map(0, try .size())
-    }
+    mtd mapAll()->MappedRegion fail => try .map(0, try .size())
 }
 
 // Owns one contiguous view into a [[Core.File.MappedFile]].

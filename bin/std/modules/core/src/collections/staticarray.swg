@@ -21,10 +21,7 @@ impl StaticArray
 
     // Returns a raw, constant pointer to the array's buffer.
     #[Inline]
-    mtd opData()->const *T
-    {
-        return &.buffer[0]
-    }
+    mtd opData()->const *T => &.buffer[0]
 
     // Allows the array to be implicitly cast to a mutable slice.
     #[Inline]

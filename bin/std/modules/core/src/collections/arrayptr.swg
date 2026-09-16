@@ -48,10 +48,7 @@ impl ArrayPtr
     }
 
     // Checks if the array is empty (i.e., has no elements).
-    mtd const isEmpty()->bool
-    {
-        return .count == 0
-    }
+    mtd const isEmpty()->bool => .count == 0
 
     // Deallocates all objects pointed to by the elements in the array and clears the array.
     // The array's count is set to 0, but the capacity is not changed.
@@ -80,10 +77,7 @@ impl ArrayPtr
 
     // Allocates memory for a new object of type T using the array's allocator.
     // Returns a pointer to the newly allocated memory.
-    mtd allocate()->*T
-    {
-        return Memory.new'T(.allocator)
-    }
+    mtd allocate()->*T => Memory.new'T(.allocator)
 
     // Allocates a new object, adds its pointer to the end of the array, and returns the pointer.
     mtd addNew()->*T
@@ -106,8 +100,7 @@ impl ArrayPtr
     {
         if .count == 0 do
             return null
-        let buffer = .storage()
-        return buffer[0]
+        return .storage()[0]
     }
 
     // Returns the last pointer in the array, or null if the array is empty.
@@ -115,8 +108,7 @@ impl ArrayPtr
     {
         if .count == 0 do
             return null
-        let buffer = .storage()
-        return buffer[.count - 1]
+        return .storage()[.count - 1]
     }
 
     // Returns the index of the given pointer (by identity), or 'Swag.U64.Max' if not present.
@@ -136,10 +128,7 @@ impl ArrayPtr
     }
 
     // True if the given pointer (by identity) is in the array.
-    mtd const contains(item: *T?)->bool
-    {
-        return .indexOf(item) != Swag.U64.Max
-    }
+    mtd const contains(item: *T?)->bool => .indexOf(item) != Swag.U64.Max
 
     // Removes and deallocates the element at 'index' (and the 'num'-1 following it), keeping
     // the order of the remaining elements. Use removeAtOrdered to remove without deallocating.

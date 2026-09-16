@@ -40,18 +40,12 @@ public impl ByteStream
     mtd remainingString()->string => Swag.makeString(.data() + .seek, .length() - .seek)
 
     // Returns the total length of the buffer (read or write)
-    mtd const length()->u64
-    {
-        return .writeBuffer ? .writeBuffer.count : (.readBuffer).count
-    }
+    mtd const length()->u64 => .writeBuffer ? .writeBuffer.count : (.readBuffer).count
 
     // Kept in the exported dependency because public generic methods expand in
     // their caller and need this primitive. It is not part of the documented API.
     #[Swag.NoDoc]
-    mtd data()->const [*] u8
-    {
-        return .writeBuffer ? .writeBuffer.buffer! : (.readBuffer).buffer!
-    }
+    mtd data()->const [*] u8 => .writeBuffer ? .writeBuffer.buffer! : (.readBuffer).buffer!
 
     // Returns true if the end of the buffer was reached during reading
     mtd const isEof()->bool => .eof

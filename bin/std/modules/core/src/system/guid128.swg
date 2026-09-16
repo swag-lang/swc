@@ -51,10 +51,7 @@ impl Guid128
     }
 
     // Returns whether both identifiers have the same bits.
-    mtd const opEquals(other: Guid128)->bool
-    {
-        return .words[0] == other.words[0] and .words[1] == other.words[1]
-    }
+    mtd const opEquals(other: Guid128)->bool => .words[0] == other.words[0] and .words[1] == other.words[1]
 
     // Creates a random RFC 4122 version-4 UUID.
     func random()->Guid128

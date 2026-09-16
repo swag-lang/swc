@@ -107,10 +107,7 @@ impl Guid64
     }
 
     // Returns whether all bits are zero.
-    mtd isNull()->bool
-    {
-        return .value == 0
-    }
+    mtd isNull()->bool => .value == 0
 
     // Writes exactly 16 uppercase hexadecimal digits to `result`.
     mtd const toString(result: [..] u8)

@@ -39,10 +39,7 @@ struct ProcessEnvironment
 impl ProcessEnvironment
 {
     // Returns the spelling under which the platform stores `name`.
-    private func storedName(name: string)->String
-    {
-        return processEnvironmentStoredName(name)
-    }
+    private func storedName(name: string)->String => processEnvironmentStoredName(name)
 
     // Returns how many variables the environment holds.
     mtd const count()->u64 => .variables.count

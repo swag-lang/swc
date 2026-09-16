@@ -104,10 +104,7 @@ public
     }
 
     // Returns whether word.
-    func isWord(c: rune)->bool
-    {
-        return isLetter(c) or isDigit(c) or c == '_'
-    }
+    func isWord(c: rune)->bool => isLetter(c) or isDigit(c) or c == '_'
 
     // Converts this value to lower.
     func toLower(c: rune)->rune

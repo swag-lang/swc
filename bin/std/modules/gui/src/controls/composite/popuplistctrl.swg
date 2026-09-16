@@ -354,9 +354,7 @@ impl PopupListCtrl
     // Creates a hidden popup list owned by the top view of `owner`.
     func create(owner: *Wnd)->*PopupListCtrl
     {
-        let popup = Wnd.create'PopupListCtrl(owner.topView(), owner.position, owner.id)
-
-        with popup
+        with let popup = Wnd.create'PopupListCtrl(owner.topView(), owner.position, owner.id)
         {
             .setFrameFlags(.SmallShadow)
             .setFrameForm(.Square)

@@ -134,16 +134,10 @@ impl ConcatBuffer
     }
 
     // Returns an immutable zero-allocation view that traverses buckets from last to first.
-    mtd const reversed()->ReversedConcatBuffer
-    {
-        return {source: me}
-    }
+    mtd const reversed()->ReversedConcatBuffer => {source: me}
 
     // Returns the total number of bytes currently stored in the buffer.
-    mtd const count()->u64
-    {
-        return .lastBucket ? .lastBucket.countBefore + .lastBucket.count : 0
-    }
+    mtd const count()->u64 => .lastBucket ? .lastBucket.countBefore + .lastBucket.count : 0
 
     // Ensures that there is enough room to store at least 'numBytes' more bytes.
     // If the current bucket is full, a new one is allocated.
@@ -364,10 +358,7 @@ impl ConcatBuffer
     }
 
     // Returns the absolute byte offset represented by `position`.
-    func offsetOf(position: ConcatBufferPosition)->u64
-    {
-        return position.bucket ? position.bucket.countBefore + cast(u64) (position.pointer - position.bucket.data) : 0
-    }
+    func offsetOf(position: ConcatBufferPosition)->u64 => position.bucket ? position.bucket.countBefore + cast(u64) (position.pointer - position.bucket.data) : 0
 
     // Returns the current write position, including after restoring an earlier position.
     mtd const position()->ConcatBufferPosition

@@ -50,10 +50,7 @@ impl FileStream
     }
 
     // Returns whether the stream is open; a live stream's path is checked by its next operation.
-    func isOpen(const me)->bool
-    {
-        return .handle != null or .liveRead
-    }
+    func isOpen(const me)->bool => .handle != null or .liveRead
 
     // Reads at most `length` bytes, completing host-sized chunks until the stream ends.
     mtd read(buffer: *void?, length: u64)->u64 fail
@@ -194,10 +191,7 @@ impl FileStream
     }
 
     // Reads at most the size of `buffer` and returns the number of bytes read.
-    mtd read(buffer: [..] u8)->u64 fail
-    {
-        return try .read(buffer.buffer, buffer.count)
-    }
+    mtd read(buffer: [..] u8)->u64 fail => try .read(buffer.buffer, buffer.count)
 
     // Reads the next bounded UTF-8 segment without splitting an encoded rune.
     //
@@ -296,16 +290,10 @@ impl FileStream
     }
 
     // Writes at most the size of `buffer` and returns the number of bytes written.
-    mtd write(buffer: const [..] u8)->u64 fail
-    {
-        return try .write(buffer.buffer, buffer.count)
-    }
+    mtd write(buffer: const [..] u8)->u64 fail => try .write(buffer.buffer, buffer.count)
 
     // Reads the complete `buffer` and returns false only when the stream ends first.
-    mtd readExact(buffer: [..] u8)->bool fail
-    {
-        return try .read(buffer) == buffer.count
-    }
+    mtd readExact(buffer: [..] u8)->bool fail => try .read(buffer) == buffer.count
 
     // Moves to `offset`, reads the complete `buffer`, and returns false only when the stream ends first.
     // The resulting stream position follows the bytes read.

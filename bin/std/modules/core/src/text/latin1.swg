@@ -81,10 +81,7 @@ private func spaceMaskAt(data: const [*] u8, includeLatin1: bool)->u32
     return mask
 }
 
-private func isSpaceByte(value: u8, includeLatin1: bool)->bool
-{
-    return includeLatin1 ? isSpace(value) : (value >= 9 and value <= 13) or value == 32
-}
+private func isSpaceByte(value: u8, includeLatin1: bool)->bool => includeLatin1 ? isSpace(value) : (value >= 9 and value <= 13) or value == 32
 
 #[Swag.Inline]
 internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64

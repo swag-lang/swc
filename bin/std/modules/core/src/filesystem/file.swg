@@ -83,10 +83,7 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
 }
 
 // Opens an existing file for shared reading.
-func openRead(fullName: string)->FileStream fail
-{
-    return try open(fullName, .Open, .Read, .Read)
-}
+func openRead(fullName: string)->FileStream fail => try open(fullName, .Open, .Read, .Read)
 
 // Opens a read-only stream that releases the file between operations.
 //
@@ -103,10 +100,7 @@ func openReadLive(fullName: string)->FileStream fail
 }
 
 // Creates or replaces a file for exclusive writing.
-func openWrite(fullName: string)->FileStream fail
-{
-    return try open(fullName, .Create, .Write, .Zero)
-}
+func openWrite(fullName: string)->FileStream fail => try open(fullName, .Create, .Write, .Zero)
 
 // Reads the entire content of a file into a UTF-8 string
 func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = false)->String fail

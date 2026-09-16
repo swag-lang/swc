@@ -142,10 +142,7 @@ impl DateTime
     }
 
     // Returns the name of the given day of the week
-    func dayOfWeekName(day: DayOfWeek)->string
-    {
-        return DayOfWeekNames[cast(u32) day]
-    }
+    func dayOfWeekName(day: DayOfWeek)->string => DayOfWeekNames[cast(u32) day]
 
     // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
     internal func parseU8(buf: *string, eat: *u32)->u16 fail

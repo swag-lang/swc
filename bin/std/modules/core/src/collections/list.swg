@@ -127,10 +127,7 @@ impl List
     }
 
     // Returns an immutable zero-allocation view that traverses the list from tail to head.
-    mtd const reversed()->ReversedList'T
-    {
-        return {source: me}
-    }
+    mtd const reversed()->ReversedList'T => {source: me}
 
     // Removes and deallocates all elements from the list.
     mtd clear()

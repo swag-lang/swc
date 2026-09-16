@@ -55,16 +55,10 @@ internal const MaxTicks:    u64 = (DaysTo10000 * TicksPerDay) - 1
 internal const MaxMillisecondsToYear10000: u64 = DaysTo10000 * MillisecondsPerDay
 
 // Returns monotonic milliseconds from an unspecified origin.
-func monotonicMilliseconds()->u64
-{
-    return monotonicTicks() / (monotonicFrequency() / 1000)
-}
+func monotonicMilliseconds()->u64 => monotonicTicks() / (monotonicFrequency() / 1000)
 
 // Returns monotonic microseconds from an unspecified origin.
-func monotonicMicroseconds()->u64
-{
-    return monotonicTicks() / (monotonicFrequency() / 1000000)
-}
+func monotonicMicroseconds()->u64 => monotonicTicks() / (monotonicFrequency() / 1000000)
 
 // Names the ticks type.
 alias Ticks = u64
@@ -169,10 +163,7 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
 }
 
 // Returns true if the given year is a leap year
-func isLeapYear(year: u16)->bool
-{
-    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
-}
+func isLeapYear(year: u16)->bool => year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
 // Returns the number of days of the given month, for the given year
 func daysInMonth(year, month: u16)->u16

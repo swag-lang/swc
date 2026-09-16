@@ -167,10 +167,7 @@ impl OrderedMap
     }
 
     // Returns whether the map contains `key`.
-    mtd const contains(key: K)->bool
-    {
-        return .tryFind(key) != null
-    }
+    mtd const contains(key: K)->bool => .tryFind(key) != null
 
     // Returns the entry for `key`, or `null` when the key is absent.
     // The returned pointer is invalidated by insertion or removal.

@@ -6,6 +6,33 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.048 — Offer semantic cleanup edits with explicit preservation checks
+
+- Recorded: 2026-09-16 16:06
+- Evidence: the bin/ cleanup changed 53 direct-return bodies, five declaration/with pairs and
+  two relay locals. Candidate searches also found deliberate language-test syntax, owning locals
+  and typed temporaries which cannot safely be removed by a textual rewrite. The formatter
+  normalizes source shape; it cannot decide ownership, overload selection or evaluation effects.
+  Existing LSP entries cover diagnostics, navigation, completion and rename, not these rewrites.
+- Proposed contract: a compiler-backed suggestion produces a previewable, versioned source edit
+  only after proving the specific transformation preserves meaning. Start with expression bodies,
+  declaration-bound with and copyable relay returns. Preserve evaluation count/order, receiver
+  binding, contextual type, selected overload, lexical scope and destruction timing.
+  A single-use variable is a candidate, not proof of redundancy.
+- Boundaries: distinguish semantics-preserving cleanup from a diagnostic explaining a costly copy
+  and from a breaking language migration. Never turn a copy into a move, a required receiver into
+  an optional call, or a named owner into a temporary borrow automatically. Preserve comments and
+  do not rewrite intentional syntax fixtures as part of an unfiltered bulk operation.
+- Next: implement a semantic rewrite query on an ordinary compiler snapshot with a dry-run diff.
+  Prove positive and negative examples for each of the three initial transformations; expose the
+  same edits as editor code actions once compiler.core.008 provides the session layer. Wider
+  API-family renames use compiler.core.014 plus an explicit migration, not a cleanup heuristic.
+- Complete when: suggested edits apply only to the analyzed document version, are idempotent,
+  compile with the same relevant contracts, and regression tests reject transformations that
+  alter effects, ownership, overload resolution or scope. A CLI preview works independently of LSP.
+- Related: compiler.core.008, compiler.core.009, compiler.core.014;
+  language.design.024 in [language.design.md](language.design.md).
+
 ### compiler.core.047 — A script import intermittently defines a generic local twice
 
 - Recorded: 2026-09-16 09:28

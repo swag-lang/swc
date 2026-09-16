@@ -39,9 +39,7 @@ impl PropertiesCtrl
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionNavigation, id: WndId? = null)->*PropertiesCtrl
     {
-        let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
-
-        with ed
+        with let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
         {
             .flags = flags
 

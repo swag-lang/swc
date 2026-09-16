@@ -246,10 +246,7 @@ impl String
 
     // Returns a zero-allocation view that decodes Unicode scalar values lazily.
     #[Inline]
-    mtd const runes()->StringRunes
-    {
-        return {bytes: .toSlice()}
-    }
+    mtd const runes()->StringRunes => {bytes: .toSlice()}
 
     // Returns a zero-allocation view that traverses the UTF-8 bytes from last to first.
     mtd reversed()->ReversedSlice'u8 => reverseSlice(.toSlice())
@@ -289,24 +286,15 @@ impl String
 
     // Returns true if the String has zero length
     #[Inline]
-    mtd const isEmpty()->bool
-    {
-        return .length == 0
-    }
+    mtd const isEmpty()->bool => .length == 0
 
     // Returns true if the String is null (undefined)
     #[Inline]
-    mtd const isNull()->bool
-    {
-        return .buffer == null
-    }
+    mtd const isNull()->bool => .buffer == null
 
     // Returns true if the String is null or empty
     #[Inline]
-    mtd const isNullOrEmpty()->bool
-    {
-        return .buffer == null or .length == 0
-    }
+    mtd const isNullOrEmpty()->bool => .buffer == null or .length == 0
 
     // Transform a null string in an empty one
     mtd ensureNotNull()

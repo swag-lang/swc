@@ -18,10 +18,7 @@ func argument(index: u32)->string?
 }
 
 // Returns whether the command line contains `argument` exactly.
-func hasArgument(argument: string)->bool
-{
-    return Slice.contains(Swag.args(), argument)
-}
+func hasArgument(argument: string)->bool => Slice.contains(Swag.args(), argument)
 
 // Returns the executable path reported as command-line argument zero.
 //

@@ -320,10 +320,7 @@ func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail
 }
 
 // Parses f64.
-func parseF64(str: string)->{ value: f64, eat: u32, ovf: bool } fail
-{
-    return try StrConv.Atod.parse(str)
-}
+func parseF64(str: string)->{ value: f64, eat: u32, ovf: bool } fail => try StrConv.Atod.parse(str)
 
 // Convert an utf8 buffer to a boolean.
 // Returns the value and the number of bytes used to make the conversion

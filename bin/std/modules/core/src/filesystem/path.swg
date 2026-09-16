@@ -14,10 +14,7 @@ const VolumeSeparator       = WINDOWS ? ':'u8 : 0'u8      // Volume separator, o
 
 // Returns true if the given character is a directory separator
 #[Inline, ConstExpr]
-func isDirectorySeparator(c: u8)->bool
-{
-    return c == DirectorySeparator or AltDirectorySeparator != 0 and c == AltDirectorySeparator
-}
+func isDirectorySeparator(c: u8)->bool => c == DirectorySeparator or AltDirectorySeparator != 0 and c == AltDirectorySeparator
 
 // Returns whether `fullname` is a lexically valid path on the selected target.
 func isValidPathName(fullname: string)->bool
@@ -266,10 +263,7 @@ func extension(fullname: string?)->string?
 
 // Returns the file name extension in lower case, including the '.' character
 // Returns null if no extension was found
-func lowercaseExtension(fullname: string?)->String
-{
-    return String.toLower(extension(fullname))
-}
+func lowercaseExtension(fullname: string?)->String => String.toLower(extension(fullname))
 
 // Returns whether the path has `expectedExtension` under the target's case policy.
 func hasExtension(fullname, expectedExtension: string)->bool

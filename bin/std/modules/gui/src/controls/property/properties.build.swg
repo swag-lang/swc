@@ -54,9 +54,7 @@ internal impl Properties
         }
 
         // Both paths build the row: name it once, non-null, for everything below.
-        let line = rowWnd
-
-        with line
+        with let line = rowWnd
         {
             .wndFlags.add(.BeforeChildrenPaint)
 

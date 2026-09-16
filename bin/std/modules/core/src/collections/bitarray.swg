@@ -32,10 +32,7 @@ private impl BitArray
 
     mtd dataPtr()->[*] u32 => .buffer!
 
-    mtd const constDataPtr()->const [*] u32
-    {
-        return cast(const [*] u32) .buffer!
-    }
+    mtd const constDataPtr()->const [*] u32 => cast(const [*] u32) .buffer!
 
     // Frees the memory allocated by the bit array.
     // Does nothing if the buffer is not allocated.

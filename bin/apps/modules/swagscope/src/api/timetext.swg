@@ -17,19 +17,10 @@ private func wholeTimeText(total: u64)->String
 //
 // Every viewer that plays something reads its clock from here, so a film, a waveform, and a
 // score all spell the same instant the same way.
-func timeText(seconds: f64)->String
-{
-    return wholeTimeText(cast(u64) Math.max(Math.floor(seconds), 0))
-}
+func timeText(seconds: f64)->String => wholeTimeText(cast(u64) Math.max(Math.floor(seconds), 0))
 
 // Formats a total duration, rounding a non-empty final fraction up so it never reads as zero.
-func durationText(seconds: f64)->String
-{
-    return wholeTimeText(cast(u64) Math.max(Math.ceil(seconds), 0))
-}
+func durationText(seconds: f64)->String => wholeTimeText(cast(u64) Math.max(Math.ceil(seconds), 0))
 
 // Formats the current and total positions of a media transport.
-func timeRangeText(current, duration: f64)->String
-{
-    return Format.toString("% / %", timeText(current), durationText(duration))
-}
+func timeRangeText(current, duration: f64)->String => Format.toString("% / %", timeText(current), durationText(duration))

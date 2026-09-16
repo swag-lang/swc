@@ -228,10 +228,7 @@ private func writeU64(buffer: *Array'u8, value: u64)
         buffer.add(cast(u8) ((value >> (i * 8)) & 0xFF))
 }
 
-private func readU16(buffer: const [..] u8, offset: u64)->u16
-{
-    return cast(u16) buffer[offset] | cast(u16) buffer[offset + 1] << 8
-}
+private func readU16(buffer: const [..] u8, offset: u64)->u16 => cast(u16) buffer[offset] | cast(u16) buffer[offset + 1] << 8
 
 private func readU32(buffer: const [..] u8, offset: u64)->u32
 {

@@ -277,9 +277,7 @@ impl RichEditCtrl
         if pos.width == 0 do
             pos.width = parent.themeMetrics().editBox_Width
 
-        let ed = Wnd.create'RichEditCtrl(parent, "", pos, id)
-
-        with ed
+        with let ed = Wnd.create'RichEditCtrl(parent, "", pos, id)
         {
             // One stop of the keyboard traversal for the whole editor, on the view that owns the
             // caret and the key mapping.

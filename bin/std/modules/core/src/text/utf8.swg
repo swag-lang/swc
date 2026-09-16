@@ -1059,35 +1059,20 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
 }
 
 // Returns true if 'src' contains the string 'what'
-func contains(src: const [..] u8, what: string)->bool
-{
-    return indexOf(src, what) != Swag.U64.Max
-}
+func contains(src: const [..] u8, what: string)->bool => indexOf(src, what) != Swag.U64.Max
 
 // Returns true if 'src' contains the string 'what'
-func contains(src: const [..] u8, what: rune)->bool
-{
-    return indexOf(src, what) != Swag.U64.Max
-}
+func contains(src: const [..] u8, what: rune)->bool => indexOf(src, what) != Swag.U64.Max
 
 // Returns true if 'src' contains the string 'what'
-func contains(src: const [..] u8, what: u8)->bool
-{
-    return Slice.contains(src, what)
-}
+func contains(src: const [..] u8, what: u8)->bool => Slice.contains(src, what)
 
 // Returns true if 'src' contains the slice 'what'
-func contains(src, what: const [..] u8)->bool
-{
-    return Slice.findSubslice(src, what) != Swag.U64.Max
-}
+func contains(src, what: const [..] u8)->bool => Slice.findSubslice(src, what) != Swag.U64.Max
 
 // Find the last rune occurence of 'what', and returns the byte index of it.
 // Returns 'Swag.U64.Max' if not found
-func lastIndexOf(src: const [..] u8, what: rune)->u64
-{
-    return lastIndexOfAny(src, [what])
-}
+func lastIndexOf(src: const [..] u8, what: rune)->u64 => lastIndexOfAny(src, [what])
 
 // Returns the last index (in bytes) of a any of the runes in 'what'.
 // Returns 'Swag.U64.Max' if not found

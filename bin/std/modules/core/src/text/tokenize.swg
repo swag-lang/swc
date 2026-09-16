@@ -150,10 +150,7 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
 // Splits the string into substrings using a rune as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' is destroyed
-func split(src: string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
-{
-    return splitAny(src, [separator], maxSplit, removeEmpty)
-}
+func split(src: string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)->Array'(string) => splitAny(src, [separator], maxSplit, removeEmpty)
 
 // Splits the string into substrings using any rune from the given array as separator
 // Note that this returns an array of native strings, not copies.

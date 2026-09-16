@@ -467,10 +467,7 @@ struct RatingEditor {}
 
 impl IPropertyEditor for RatingEditor
 {
-    mtd impl canEdit(type: typeinfo?)->bool
-    {
-        return type == Rating
-    }
+    mtd impl canEdit(type: typeinfo?)->bool => type == Rating
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {

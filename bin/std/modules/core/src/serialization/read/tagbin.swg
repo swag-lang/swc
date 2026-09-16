@@ -202,10 +202,7 @@ private impl TagBin
     }
 
     // Returns the number of unread bytes.
-    mtd remaining()->u64
-    {
-        return .stream.length() - .stream.seek
-    }
+    mtd remaining()->u64 => .stream.length() - .stream.seek
 
     // Reads a varint-sized UTF-8 string from the current stream.
     mtd readWireString()->String fail

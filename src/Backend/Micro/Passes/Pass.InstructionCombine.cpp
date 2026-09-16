@@ -35,6 +35,8 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryOpBinaryRegImm);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldRedundantMaskBeforeShift);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryDropFloatOrderedGuard);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryBypassShiftCountMask);
+        r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryBypassShiftCountMask);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryOpBinaryRegReg);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryCommuteConstantLhs);

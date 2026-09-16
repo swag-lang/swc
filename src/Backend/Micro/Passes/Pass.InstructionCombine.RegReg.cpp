@@ -197,6 +197,61 @@ namespace InstructionCombine
             return true;
         }
 
+        // Variable scalar shifts already mask their count to five or six bits.
+        // Bypass a source mask only when it preserves all those low count bits.
+        bool tryBypassShiftCountMaskImpl(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+        {
+            const auto*    ops        = inst.ops(*ctx.operands);
+            const uint32_t countIndex = inst.op == MicroInstrOpcode::OpBinaryRegRegReg ? 2 : 1;
+            if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[0].reg.isVirtualInt() || !ops[countIndex].reg.isVirtualInt() ||
+                (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
+                return false;
+            switch (ops[countIndex + 2].microOp)
+            {
+                case MicroOp::ShiftLeft:
+                case MicroOp::ShiftArithmeticLeft:
+                case MicroOp::ShiftRight:
+                case MicroOp::ShiftArithmeticRight:
+                case MicroOp::RotateLeft:
+                case MicroOp::RotateRight:
+                    break;
+                default:
+                    return false;
+            }
+            auto          mask = ctx.ssa->reachingDef(ops[countIndex].reg, ref);
+            MicroInstrRef copyRef;
+            if (mask.valid() && !mask.isPhi && mask.inst && mask.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = mask.inst->ops(*ctx.operands);
+                if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < 32)
+                    return false;
+                copyRef = mask.instRef;
+                mask    = ctx.ssa->reachingDef(copy[1].reg, copyRef);
+            }
+            if (!mask.valid() || mask.isPhi || !mask.inst || mask.inst->op != MicroInstrOpcode::OpBinaryRegImm)
+                return false;
+            const auto*    masked    = mask.inst->ops(*ctx.operands);
+            const uint64_t countMask = getNumBits(ops[countIndex + 1].opBits) - 1;
+            if (!masked || masked[2].microOp != MicroOp::And || masked[3].hasWideImmediateValue() ||
+                getNumBits(masked[1].opBits) < 32 || (masked[3].valueU64 & countMask) != countMask)
+                return false;
+            const auto input = ctx.ssa->reachingDef(masked[0].reg, mask.instRef);
+            if (!input.valid() || input.isPhi || !input.inst || input.inst->op != MicroInstrOpcode::LoadRegReg)
+                return false;
+            const auto* copied = input.inst->ops(*ctx.operands);
+            if (!copied || !copied[1].reg.isVirtualInt() || getNumBits(copied[2].opBits) < 32)
+                return false;
+            const auto source = ctx.ssa->reachingDef(copied[1].reg, input.instRef);
+            if (!source.valid() || ctx.ssa->reachingDef(copied[1].reg, ref).valueId != source.valueId ||
+                !ctx.claimAll({ref, mask.instRef, input.instRef, copyRef.isValid() ? copyRef : ref}))
+                return false;
+            MicroInstrOperand shift[5];
+            std::copy_n(ops, inst.numOperands, shift);
+            shift[countIndex].reg = copied[1].reg;
+            ctx.emitRewrite(ref, inst.op, std::span{shift, inst.numOperands});
+            return true;
+        }
+
         // Complementary logical shifts of one value form a rotate. Keep the
         // input reads and the left result's copies at their original positions.
         bool tryFoldRotate(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
@@ -1116,6 +1171,11 @@ namespace InstructionCombine
         ctx.emitErase(initRef);
         ctx.emitErase(writebackRef);
         return true;
+    }
+
+    bool tryBypassShiftCountMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        return tryBypassShiftCountMaskImpl(ctx, ref, inst);
     }
 
     bool tryOpBinaryRegReg(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <ItemGroup Label="ProjectConfigurations">
         <ProjectConfiguration Include="DevMode|x64">
@@ -675,6 +675,7 @@
         <ClInclude Include="src\Support\Core\Flags.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
         <ClInclude Include="src\Support\Core\PagedStore.h"/>
+        <ClInclude Include="src\Support\Core\PointerSet.h"/>
         <ClInclude Include="src\Support\Core\SmallVector.h"/>
         <ClInclude Include="src\Support\Core\StringMap.h"/>
         <ClInclude Include="src\Support\Core\Timer.h"/>

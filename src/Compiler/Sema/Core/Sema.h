@@ -1,4 +1,4 @@
-// ReSharper disable CppMemberFunctionMayBeStatic
+﻿// ReSharper disable CppMemberFunctionMayBeStatic
 #pragma once
 #include "Backend/RuntimeBuildConfig.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -467,8 +467,11 @@ public:
     const SemaEscapeInfo* variableEscapeInfo(const SymbolVariable& symVar) const;
     // Every local currently known to borrow something, for the checks that start from the
     // BORROWED storage instead of the borrowing variable.
-    const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>&                          variableEscapeInfos() const { return variableEscapeInfos_; }
-    const std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash>& projectionEscapeInfos() const { return projectionEscapeInfos_; }
+    using VariableEscapeInfoMap   = std::unordered_map<const SymbolVariable*, SemaEscapeInfo>;
+    using ProjectionEscapeInfoMap = std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash>;
+
+    const VariableEscapeInfoMap&   variableEscapeInfos() const { return *variableEscapeInfos_; }
+    const ProjectionEscapeInfoMap& projectionEscapeInfos() const { return *projectionEscapeInfos_; }
     void                                                                                      setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                                                                                      clearVariableEscapeInfo(const SymbolVariable& symVar);
     void                                                                                      detachVariableOwnedPayload(const SymbolVariable& symVar);
@@ -507,6 +510,7 @@ public:
     // Flow joins for the borrow-escape state: a branch alternative starts from the entry
     // state, and alternatives UNION at the merge point (may-borrow), so a borrow cleared
     // in only one path survives the join.
+    void clearProjectionsOfRoot(const SymbolVariable& symVar);
     void pushEscapeBranch();
     void nextEscapeBranchAlternative();
     void popEscapeBranch(bool mergeEntryState);
@@ -675,15 +679,21 @@ private:
     std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
     struct EscapeBranchState
     {
-        std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          entryState;
-        std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          mergedState;
-        std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> entryProjectionState;
-        std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> mergedProjectionState;
+        // The state each alternative starts from is shared, not copied: a branch that changes no
+        // borrow - which is most of them - leaves the facts it entered with untouched.
+        std::shared_ptr<VariableEscapeInfoMap>   entryState;
+        std::shared_ptr<ProjectionEscapeInfoMap> entryProjectionState;
+        VariableEscapeInfoMap                    mergedState;
+        ProjectionEscapeInfoMap                  mergedProjectionState;
     };
 
     SmallVector4<SemaBorrowInvalidation>                                               borrowInvalidations_;
-    std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          variableEscapeInfos_;
-    std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> projectionEscapeInfos_;
+    // Borrow facts are snapshotted at every branch, and a function of any size has many. The
+    // snapshot shares the map and a writer copies it only when it has something to change.
+    VariableEscapeInfoMap&                   mutableVariableEscapeInfos();
+    ProjectionEscapeInfoMap&                 mutableProjectionEscapeInfos();
+    std::shared_ptr<VariableEscapeInfoMap>   variableEscapeInfos_   = std::make_shared<VariableEscapeInfoMap>();
+    std::shared_ptr<ProjectionEscapeInfoMap> projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>();
     std::unordered_map<const SymbolVariable*, uint32_t>                                variableScopeDepths_;
     std::vector<EscapeBranchState>                                                     escapeBranchStack_;
     AstVisit                                                                           visit_;

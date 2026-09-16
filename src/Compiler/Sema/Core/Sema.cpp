@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -264,10 +264,24 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
 Sema::~Sema() = default;
 
+Sema::VariableEscapeInfoMap& Sema::mutableVariableEscapeInfos()
+{
+    if (variableEscapeInfos_.use_count() > 1)
+        variableEscapeInfos_ = std::make_shared<VariableEscapeInfoMap>(*variableEscapeInfos_);
+    return *variableEscapeInfos_;
+}
+
+Sema::ProjectionEscapeInfoMap& Sema::mutableProjectionEscapeInfos()
+{
+    if (projectionEscapeInfos_.use_count() > 1)
+        projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>(*projectionEscapeInfos_);
+    return *projectionEscapeInfos_;
+}
+
 const SemaEscapeInfo* Sema::variableEscapeInfo(const SymbolVariable& symVar) const
 {
-    const auto it = variableEscapeInfos_.find(&symVar);
-    if (it == variableEscapeInfos_.end())
+    const auto it = variableEscapeInfos_->find(&symVar);
+    if (it == variableEscapeInfos_->end())
         return nullptr;
     return &it->second;
 }
@@ -280,34 +294,46 @@ void Sema::setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeI
         return;
     }
 
-    std::erase_if(projectionEscapeInfos_, [&symVar](const auto& it) { return it.first.root == &symVar; });
-    variableEscapeInfos_[&symVar] = info;
+    clearProjectionsOfRoot(symVar);
+    mutableVariableEscapeInfos()[&symVar] = info;
+}
+
+void Sema::clearProjectionsOfRoot(const SymbolVariable& symVar)
+{
+    const auto ofRoot = [&symVar](const auto& it) { return it.first.root == &symVar; };
+    if (std::ranges::none_of(*projectionEscapeInfos_, ofRoot))
+        return;
+    std::erase_if(mutableProjectionEscapeInfos(), ofRoot);
 }
 
 void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
 {
-    variableEscapeInfos_.erase(&symVar);
-    std::erase_if(projectionEscapeInfos_, [&symVar](const auto& it) { return it.first.root == &symVar; });
+    if (variableEscapeInfos_->contains(&symVar))
+        mutableVariableEscapeInfos().erase(&symVar);
+    clearProjectionsOfRoot(symVar);
 }
 
 void Sema::detachVariableOwnedPayload(const SymbolVariable& symVar)
 {
-    const auto it = variableEscapeInfos_.find(&symVar);
-    if (it != variableEscapeInfos_.end())
-    {
-        it->second.detachedOwnedPayload = it->second.detachedOwnedPayload || it->second.viaOwnedPayload;
-        it->second.viaOwnedPayload      = false;
-    }
+    // Nothing to detach unless the borrow still designates the payload: the assignment below
+    // would write back what is already there, and writing is what costs a copy.
+    const SemaEscapeInfo* current = variableEscapeInfo(symVar);
+    if (!current || !current->viaOwnedPayload)
+        return;
+
+    SemaEscapeInfo& info     = mutableVariableEscapeInfos().find(&symVar)->second;
+    info.detachedOwnedPayload = true;
+    info.viaOwnedPayload      = false;
 }
 
 void Sema::detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field)
 {
-    const auto it = variableEscapeInfos_.find(&symVar);
-    if (it == variableEscapeInfos_.end())
-        return;
+    const SemaEscapeInfo*                current = variableEscapeInfo(symVar);
     const SemaEscapeDetachedPayloadField detached{&owner, &field};
-    if (std::ranges::find(it->second.detachedOwnedPayloadFields, detached) == it->second.detachedOwnedPayloadFields.end())
-        it->second.detachedOwnedPayloadFields.push_back(detached);
+    if (!current || std::ranges::find(current->detachedOwnedPayloadFields, detached) != current->detachedOwnedPayloadFields.end())
+        return;
+
+    mutableVariableEscapeInfos().find(&symVar)->second.detachedOwnedPayloadFields.push_back(detached);
 }
 
 SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const
@@ -317,7 +343,7 @@ SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable
     if (own)
         result = *own;
 
-    for (const auto& [projection, info] : projectionEscapeInfos_)
+    for (const auto& [projection, info] : *projectionEscapeInfos_)
     {
         if (projection.root == &symVar)
             mergeEscapeInfo(result, info);
@@ -335,7 +361,7 @@ SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable
 SemaEscapeInfo Sema::variableFieldEscapeInfo(const SymbolVariable& symVar, const std::string_view fieldName) const
 {
     SemaEscapeInfo result;
-    for (const auto& [projection, info] : projectionEscapeInfos_)
+    for (const auto& [projection, info] : *projectionEscapeInfos_)
     {
         if (projection.root != &symVar || projection.components.empty())
             continue;
@@ -351,7 +377,7 @@ SemaEscapeInfo Sema::variableFieldEscapeInfo(const SymbolVariable& symVar, const
 SemaEscapeInfo Sema::projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const
 {
     SemaEscapeInfo result;
-    for (const auto& [candidate, info] : projectionEscapeInfos_)
+    for (const auto& [candidate, info] : *projectionEscapeInfos_)
     {
         if (candidate.root != projection.root || candidate.components.size() != projection.components.size())
             continue;
@@ -386,7 +412,7 @@ void Sema::setProjectionEscapeInfo(const SemaEscapeProjection& projection, const
         clearProjectionEscapeInfo(projection);
         return;
     }
-    projectionEscapeInfos_[projection] = info;
+    mutableProjectionEscapeInfos()[projection] = info;
 }
 
 void Sema::clearProjectionEscapeInfo(const SemaEscapeProjection& projection)
@@ -394,7 +420,7 @@ void Sema::clearProjectionEscapeInfo(const SemaEscapeProjection& projection)
     if (!projection.root)
         return;
 
-    std::erase_if(projectionEscapeInfos_, [&projection](const auto& it) {
+    std::erase_if(mutableProjectionEscapeInfos(), [&projection](const auto& it) {
         if (it.first.root != projection.root || it.first.components.size() < projection.components.size())
             return false;
         return std::equal(projection.components.begin(), projection.components.end(), it.first.components.begin());
@@ -478,8 +504,8 @@ void Sema::nextEscapeBranchAlternative()
     // Branch-local borrow state starts from the same entry snapshot for each
     // alternative; every possible parameter, projection and deferred call survives.
     EscapeBranchState& state = escapeBranchStack_.back();
-    mergeEscapeStates(*this, state.mergedState, variableEscapeInfos_);
-    mergeEscapeStates(*this, state.mergedProjectionState, projectionEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedState, *variableEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedProjectionState, *projectionEscapeInfos_);
     variableEscapeInfos_   = state.entryState;
     projectionEscapeInfos_ = state.entryProjectionState;
 }
@@ -491,16 +517,16 @@ void Sema::popEscapeBranch(bool mergeEntryState)
         return;
 
     EscapeBranchState& state = escapeBranchStack_.back();
-    mergeEscapeStates(*this, state.mergedState, variableEscapeInfos_);
-    mergeEscapeStates(*this, state.mergedProjectionState, projectionEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedState, *variableEscapeInfos_);
+    mergeEscapeStates(*this, state.mergedProjectionState, *projectionEscapeInfos_);
     if (mergeEntryState)
     {
-        mergeEscapeStates(*this, state.mergedState, state.entryState);
-        mergeEscapeStates(*this, state.mergedProjectionState, state.entryProjectionState);
+        mergeEscapeStates(*this, state.mergedState, *state.entryState);
+        mergeEscapeStates(*this, state.mergedProjectionState, *state.entryProjectionState);
     }
 
-    variableEscapeInfos_   = std::move(state.mergedState);
-    projectionEscapeInfos_ = std::move(state.mergedProjectionState);
+    variableEscapeInfos_   = std::make_shared<VariableEscapeInfoMap>(std::move(state.mergedState));
+    projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>(std::move(state.mergedProjectionState));
     escapeBranchStack_.pop_back();
 }
 

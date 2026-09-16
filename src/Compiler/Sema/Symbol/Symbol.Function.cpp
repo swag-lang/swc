@@ -948,7 +948,7 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
         return;
 
     sym->addExtraFlag(SymbolVariableFlagsE::FunctionLocal);
-    if (!localVariableSet_.insert(sym).second)
+    if (!localVariableSet_.insert(sym))
         return;
 
     localVariables_.push_back(sym);
@@ -993,7 +993,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 
     auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
     const std::unique_lock lock(callDependenciesMutex_);
-    if (!callDependencySet_.insert(mutableSym).second)
+    if (!callDependencySet_.insert(mutableSym))
         return;
     callDependencies_.push_back(mutableSym);
     noteCallGraphChanged();

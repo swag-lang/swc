@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
@@ -381,7 +382,7 @@ private:
 
     std::vector<SymbolVariable*>                  parameters_;
     std::vector<SymbolVariable*>                  localVariables_;
-    std::unordered_set<const SymbolVariable*>     localVariableSet_;
+    PointerSet<const SymbolVariable>              localVariableSet_;
     void refreshJitOrderCache() const;
 
     static inline std::atomic<uint64_t>           s_freesMaskVersion{0};
@@ -393,7 +394,7 @@ private:
     mutable bool                                  globalInitOffsetsComputed_ = false;
     mutable std::mutex                            globalInitOffsetsMutex_;
     std::vector<SymbolFunction*>                  callDependencies_;
-    std::unordered_set<SymbolFunction*>           callDependencySet_;
+    PointerSet<SymbolFunction>                    callDependencySet_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;
     uint32_t                                      numComputedLocals_                         = 0;
     uint32_t                                      localStackOffset_                          = 0;

@@ -328,6 +328,21 @@ namespace
             emitOpRegImm(dst, MicroOp::ShiftArithmeticRight, log2Divisor);
         }
 
+        // r = ((n + bias) & (C - 1)) - bias rounds signed remainders toward zero.
+        // Computing the low bits directly avoids materializing and rescaling a quotient.
+        void emitSignedModuloPow2(MicroReg dst, uint32_t log2Divisor) const
+        {
+            const uint32_t bits    = getNumBits(opBits);
+            const MicroReg biasReg = allocVirtualReg();
+            emitCopy(biasReg, dst);
+            if (log2Divisor > 1)
+                emitOpRegImm(biasReg, MicroOp::ShiftArithmeticRight, bits - 1);
+            emitOpRegImm(biasReg, MicroOp::ShiftRight, bits - log2Divisor);
+            emitOpRegReg(dst, biasReg, MicroOp::Add);
+            emitOpRegImm(dst, MicroOp::And, (1ull << log2Divisor) - 1);
+            emitOpRegReg(dst, biasReg, MicroOp::Subtract);
+        }
+
         // dst = dst / C for a positive non-power-of-two signed constant:
         // t = mulhi_s(n, M); if M < 0 then t += n; t >>= shift (arithmetic);
         // q = t + (t >>u N-1). The dividend must be provided when M is negative.
@@ -418,6 +433,13 @@ namespace
             // n / 1 == n, n % 1 == 0, for any signed n.
             ops[2].microOp  = isModulo ? MicroOp::And : MicroOp::Add;
             ops[3].valueU64 = 0;
+            return true;
+        }
+
+        if (isModulo && Math::isPowerOfTwo(immediate))
+        {
+            emitter.emitSignedModuloPow2(dstReg, Math::integerLog2(immediate));
+            storage.erase(instRef);
             return true;
         }
 

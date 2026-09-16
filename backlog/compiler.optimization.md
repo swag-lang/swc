@@ -15,6 +15,41 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-16 15:49 — Counted the rebuilds, attributed them, and bounded what removing them can buy.
+- Area: compiler/backend, compilation time
+- Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
+  `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
+  2026-09-16 (Release 0.1.687), one `swc build -w bin/std -m gui -bc release` builds SSA **78,072
+  times** over 9,521,265 instruction slots. **33,923** of those builds follow a pass mutation,
+  attributed as: copy elimination 13,827, instruction combine 9,717, value numbering 4,383,
+  constant folding 3,645, pre-RA peephole 1,990, branch simplification 355, strength reduction 7.
+  The remaining 44,149 are each loop entry's first build and are not avoidable this way.
+- What it is worth: a single-core profile of that build puts `MicroSsaState::build` at **5.65% of
+  the work**. Pass-mutation invalidations are 43.5% of the builds, so removing *every* one of them
+  bounds the gain at **about 2.5% of a gui release build**. The incremental use/def cache already
+  took the cheap part of a rebuild; what is left is dominance, phi placement and the rename walk.
+- The largest single redundancy: `MicroCopyEliminationPass::run` invalidates and rebuilds SSA in
+  the middle of itself, so that `eraseDeadCopies` can ask `isRegUsedAfter`. It did so **10,497**
+  times in that build - 13.4% of every SSA build in the module - after a rewrite that moved reads
+  between registers and changed no definition, no instruction and no edge. The pass knows exactly
+  which uses it redirected, so it can answer "does this copy's destination still have a reader"
+  from that record instead of rebuilding. Worth about 0.8% of the build on its own.
+- Constant folding, the case this entry used to name, is 11% of the invalidations. Its bounded
+  rewrite - an isolated virtual-integer `OpBinaryRegImm` folded into `LoadRegImm`, which keeps the
+  instruction reference, the definition and the CFG and only drops a read - is still the clearest
+  shape for a mutation contract, but it is not where the rebuilds are.
+- Next: make copy elimination answer its own liveness question from the redirects it just made,
+  and measure it. That is the one piece whose correctness argument is local to a single pass. Only
+  generalize to a declared mutation contract across passes if that measurement, on a quiet machine,
+  resolves against a floor of about 3%.
+- Complete when: copy elimination no longer rebuilds SSA inside itself, generated code is
+  unchanged, the SSA and native suites pass, and the measured gain is recorded - including a
+  recorded verdict of "below the floor" if that is what it is.
+- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 
 - Recorded: 2026-09-16 12:12
@@ -200,42 +235,6 @@ block, and the hot path keeps the register.
   them.
 - Complete when: the decoder's conversion stage measures the same with statement clamps as with
   the sign-bit forms, and the sign-bit forms are gone.
-
-### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-13 11:51 — Bound the remaining SSA rebuild to changed use edges after topology-preserving rewrites.
-- Area: compiler/backend, compilation time
-- Evidence: `MicroPassManager::runPass` still invalidates the shared SSA state whenever a pass
-  sets `passChanged`; `MicroSsaState::ensureFor` then rebuilds it before the next query. Local
-  instruction changes therefore still reconstruct dominators, phi nodes, and value uses for
-  the whole function. The September 5–7 profiles established that these rebuilds were a major
-  compilation cost, but their percentages no longer describe the current implementation.
-- Current boundary: whole-function SSA still rebuilds after a mutating consumer.
-  Rebuilds reuse instruction-local use/def caches and index reaching definitions over
-  the rename walk; effects-only consumers avoid SSA, DCE shares its snapshot across
-  removal waves, and SLP delays preparation until a viable plan. Rebuilds skip unnecessary
-  dominator, phi, terminal-restore and use-traversal work, while scalar consumers reuse
-  already inferred results. These reductions do not classify the dependencies of a mutation.
-  The [static follow-up](../bench/results/compilation/20260913/README.md) records the latest
-  functionally validated batches. The [compile-only comparison](../bench/results/compilation/20260912/README.md)
-  retains historical measurements; it does not quantify the current implementation.
-- Concrete remaining case: folding an isolated virtual-integer `OpBinaryRegImm Add B64`
-  into `LoadRegImm` preserves its instruction reference, definition and CFG, but removes
-  its read of the preceding register value. The manager already preserves the CFG when
-  the storage revision is unchanged, yet invalidates all SSA. The following CopyElimination
-  query therefore rebuilds blocks, dominance and phis as well as uses. Keeping SSA valid
-  without repair would leave the old use edge and instruction-use metadata visible to
-  copy elimination and DCE. This case applies only when no accompanying rewrite changes
-  instruction layout or definitions; ConstantFolding can perform those changes too.
-- Next: define a mutation contract for that bounded rewrite and refresh its local use/def
-  metadata and SSA use edges. Preserve topology-dependent state only under that contract;
-  retain full invalidation for mixed or unclassified changes. Defer the full performance
-  campaign until the shared CPU is quiet; current evidence establishes functional behavior,
-  not a measured gain.
-- Complete when: remaining redundant rebuilds are removed with a sound invalidation contract,
-  unchanged optimization decisions, and passing SSA/native tests.
-- Related: compiler.core.004, compiler.core.030.
 
 ### compiler.optimization.037 — Hoisting a constant-pool read out of a loop is undone by rematerialization
 

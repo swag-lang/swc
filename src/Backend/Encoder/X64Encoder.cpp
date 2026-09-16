@@ -2547,8 +2547,10 @@ void X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits)
     }
     else
     {
-        emitRex(store_, opBits, reg, reg);
-        emitSpecCpuOp(store_, MicroOp::Xor, opBits);
+        // A 32-bit XOR also clears the upper half, with identical zero flags.
+        const MicroOpBits encodedBits = opBits == MicroOpBits::B64 ? MicroOpBits::B32 : opBits;
+        emitRex(store_, encodedBits, reg, reg);
+        emitSpecCpuOp(store_, MicroOp::Xor, encodedBits);
         emitModRm(store_, reg, reg);
     }
 }

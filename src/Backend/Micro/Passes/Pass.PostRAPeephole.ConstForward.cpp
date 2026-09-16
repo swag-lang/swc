@@ -326,7 +326,10 @@ namespace PostRaPeephole
         if (!dst.isAnyInt() || bits == MicroOpBits::Zero || bits == MicroOpBits::B128)
             return false;
 
-        if (!regUsedBeforeRedef(ctx, defRef, dst))
+        // Loop counters and branch-local values may first be read beyond a
+        // control-flow edge. Fall back to the shared CFG liveness in that case.
+        if (!regUsedBeforeRedef(ctx, defRef, dst) &&
+            (ctx.isRegDeadAfterCurrent(dst) || !ctx.physicalLiveness.valid))
             return false;
         if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defRef, ctx.builder))
             return false;

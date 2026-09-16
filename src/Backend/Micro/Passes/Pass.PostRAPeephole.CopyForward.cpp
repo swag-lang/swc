@@ -754,21 +754,22 @@ namespace PostRaPeephole
             observed.push_back(nextRef);
             const bool extends        = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
             const bool conditional    = next->op == MicroInstrOpcode::LoadCondRegReg;
-            const bool compareRegs    = next->op == MicroInstrOpcode::CmpRegReg;
-            const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm;
+            const bool compareRegs    = next->op == MicroInstrOpcode::CmpRegReg || next->op == MicroInstrOpcode::TestRegReg;
+            const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm || next->op == MicroInstrOpcode::TestRegImm;
             const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
             // An exchange writes its second operand too: renaming it would
             // swap a different register (a parallel-move cycle at a loop edge
             // then leaves a value in the wrong register).
             const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg && next->ops(*ctx.operands)[3].microOp != MicroOp::Exchange;
-            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary)
+            const bool three  = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
+            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary || three)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)
                     return false;
-                const uint32_t widthOperand = extends || conditional ? 3 : compareImm ? 1
-                                                                                      : 2;
+                const uint32_t widthOperand = extends || conditional || three ? 3 : compareImm ? 1
+                                                                                               : 2;
                 // Address inputs use the full pointer width even when the
                 // address result is requested in a narrower destination.
                 const MicroOpBits readBits = address ? MicroOpBits::B64 : ops[widthOperand].opBits;
@@ -778,8 +779,8 @@ namespace PostRaPeephole
                     std::ranges::copy(std::span{ops, next->numOperands}, rewritten);
                     bool           changed      = false;
                     const uint32_t firstOperand = compareRegs || compareImm ? 0 : 1;
-                    const uint32_t lastOperand  = indexedAddress ? 2 : compareImm ? 0
-                                                                                  : 1;
+                    const uint32_t lastOperand  = indexedAddress || three ? 2 : compareImm ? 0
+                                                                                           : 1;
                     for (uint32_t i = firstOperand; i <= lastOperand; ++i)
                     {
                         if (rewritten[i].reg == copyOps[0].reg)

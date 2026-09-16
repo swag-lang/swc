@@ -666,7 +666,7 @@ namespace
     void applyRewriteRegImmToRegReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
-        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm || inst.op == MicroInstrOpcode::TestRegImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm || inst.op == MicroInstrOpcode::TestRegImm || inst.op == MicroInstrOpcode::TestMemImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm);
 
         const MicroInstrOpcode originalOpcode = inst.op;
         const MicroReg         originalReg    = ops[0].reg;
@@ -675,7 +675,7 @@ namespace
         uint64_t               originalOffset = 0;
         if (originalOpcode == MicroInstrOpcode::OpBinaryMemImm)
             originalOffset = ops[3].valueU64;
-        else if (originalOpcode == MicroInstrOpcode::CmpMemImm)
+        else if (originalOpcode == MicroInstrOpcode::CmpMemImm || originalOpcode == MicroInstrOpcode::TestMemImm)
             originalOffset = ops[2].valueU64;
         MicroInstrOperand immOperand;
         if (originalOpcode == MicroInstrOpcode::OpBinaryRegImm)
@@ -703,6 +703,15 @@ namespace
         else if (originalOpcode == MicroInstrOpcode::OpBinaryMemImm)
         {
             insertBinaryMemReg(context, instRef, originalReg, originalOffset, scratchReg, originalOp, opBits);
+        }
+        else if (originalOpcode == MicroInstrOpcode::TestMemImm)
+        {
+            MicroInstrOperand test[4] = {};
+            test[0].reg               = originalReg;
+            test[1].reg               = scratchReg;
+            test[2].opBits            = opBits;
+            test[3].valueU64          = originalOffset;
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::TestMemReg, test);
         }
         else if (originalOpcode == MicroInstrOpcode::TestRegImm)
         {

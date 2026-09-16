@@ -103,6 +103,35 @@ namespace PostRaPeephole
         }
     }
 
+    bool tryFoldLoadIntoTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.encoder)
+            return false;
+        const auto* load = inst.ops(*ctx.operands);
+        if (!load || !load[0].reg.isInt() || !load[1].reg.isInt() ||
+            load[1].reg.isInstructionPointer() || ctx.isPrivateFrameBase(load[0].reg))
+            return false;
+        const MicroInstrRef testRef = ctx.nextRef(ref);
+        const MicroInstr*   test    = ctx.instruction(testRef);
+        if (!test || test->op != MicroInstrOpcode::TestRegImm)
+            return false;
+        const auto* testOps = test->ops(*ctx.operands);
+        if (!testOps || testOps[0].reg != load[0].reg || getNumBits(testOps[1].opBits) > getNumBits(load[2].opBits) ||
+            !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 1))
+            return false;
+
+        MicroInstrOperand rewritten[4] = {load[1], testOps[1], load[3], testOps[2]};
+        MicroInstr        probe        = *test;
+        probe.op                       = MicroInstrOpcode::TestMemImm;
+        probe.numOperands              = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten) || !ctx.claimAll({ref, testRef}))
+            return false;
+        ctx.emitRewrite(ref, probe.op, rewritten);
+        ctx.emitErase(testRef);
+        return true;
+    }
+
     bool tryFoldLoadIntoNarrowExtract(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.encoder)

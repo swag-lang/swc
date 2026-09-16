@@ -973,6 +973,10 @@ namespace
                 return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpRegImm:
                 return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+            case MicroInstrOpcode::TestMemReg:
+                return std::format("{}({}, {})", tagInstructionToken("test"), memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::TestMemImm:
+                return std::format("{}({}, {})", tagInstructionToken("test"), memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder), hexU64(ops[3].valueU64));
             case MicroInstrOpcode::CmpMemReg:
                 return std::format("{}({}, {})", tagInstructionToken("cmp"), memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpMemImm:
@@ -1971,10 +1975,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegNumberBits(out, ctx, ops, 0, 2, 1, regPrintMode, encoder, false);
                 break;
 
+            case MicroInstrOpcode::TestMemReg:
             case MicroInstrOpcode::CmpMemReg:
                 appendMemRegBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
+            case MicroInstrOpcode::TestMemImm:
             case MicroInstrOpcode::CmpMemImm:
                 appendMemImmBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder, false);
                 break;

@@ -30,6 +30,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
         r.add(MicroInstrOpcode::CmpRegImm, tryReuseFlagsForCompare);
+        r.add(MicroInstrOpcode::TestMemReg, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
@@ -53,6 +55,7 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryClearBeforeSetCondition);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);

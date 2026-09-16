@@ -220,6 +220,8 @@ namespace
             case MicroInstrOpcode::VecGatherS32:
                 return 3;
 
+            case MicroInstrOpcode::TestMemReg:
+            case MicroInstrOpcode::TestMemImm:
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadVolatileRegMem:
             case MicroInstrOpcode::LoadMemReg:

@@ -470,6 +470,51 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A signed comparison against zero exposes the sign bit directly. Keep
+    // the original full-width source and define every result bit with a shift.
+    bool tryExtractSignBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ext = inst.ops(*ctx.operands);
+        if (!ext || !ext[0].reg.isInt() || ext[0].reg != ext[1].reg ||
+            ext[3].opBits != MicroOpBits::B8 ||
+            (ext[2].opBits != MicroOpBits::B32 && ext[2].opBits != MicroOpBits::B64) ||
+            ctx.isPrivateFrameBase(ext[0].reg))
+            return false;
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const auto* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[0].reg != ext[0].reg)
+            return false;
+        const MicroCond condition = setOps[1].cpuCond;
+        if (condition != MicroCond::Less && condition != MicroCond::Sign)
+            return false;
+        const MicroInstrRef cmpRef = ctx.previousRef(setRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const auto* cmpOps = cmp->ops(*ctx.operands);
+        if (!cmpOps || !cmpOps[0].reg.isInt() || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 ||
+            (cmpOps[1].opBits != MicroOpBits::B32 && cmpOps[1].opBits != MicroOpBits::B64) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({cmpRef, setRef, ref}))
+            return false;
+        MicroInstrOperand copy[3] = {};
+        copy[0].reg               = ext[0].reg;
+        copy[1].reg               = cmpOps[0].reg;
+        copy[2].opBits            = cmpOps[1].opBits;
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::LoadRegReg, copy);
+        MicroInstrOperand shift[4] = {};
+        shift[0].reg               = ext[0].reg;
+        shift[1].opBits            = cmpOps[1].opBits;
+        shift[2].microOp           = MicroOp::ShiftRight;
+        shift[3].valueU64          = getNumBits(cmpOps[1].opBits) - 1;
+        ctx.emitRewrite(setRef, MicroInstrOpcode::OpBinaryRegImm, shift, true);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // Zero the full result before its flag producer instead of extending
     // SETcc's byte afterward. The producer must not read that result register.
     bool tryClearBeforeSetCondition(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

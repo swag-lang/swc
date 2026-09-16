@@ -996,6 +996,87 @@ namespace
     // destination. The second compare is a register compare: it cannot fault.
     // The flags leave through the join changed, so they must be dead there,
     // and D may not be read anywhere else.
+    // `x >= LO and x <= HI` kept as a value: both sides bound the same value,
+    // so the right side becomes the whole test - x - LO compared unsigned
+    // against HI - LO (foldRangeChecks' fold) - and B simply takes it. The left
+    // side stays for the dead-code pass: B's first byte is overwritten.
+    struct RangeMerge
+    {
+        MicroInstrRef leftCmpRef  = MicroInstrRef::invalid();
+        MicroInstrRef rightCmpRef = MicroInstrRef::invalid();
+        MicroInstrRef rightSetRef = MicroInstrRef::invalid();
+        MicroCond     leftCond    = MicroCond::Unconditional;
+    };
+
+    bool tryFoldRangeMerge(MicroStorage& storage, MicroOperandStorage& operands, const RangeMerge& merge, uint32_t& nextVirtualIntRegIndex)
+    {
+        const MicroInstr* leftCmp  = merge.leftCmpRef.isValid() ? storage.ptr(merge.leftCmpRef) : nullptr;
+        const MicroInstr* rightCmp = storage.ptr(merge.rightCmpRef);
+        const MicroInstr* rightSet = storage.ptr(merge.rightSetRef);
+        if (!leftCmp || leftCmp->op != MicroInstrOpcode::CmpRegImm || rightCmp->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+
+        const MicroInstrOperand* leftOps  = leftCmp->ops(operands);
+        MicroInstrOperand*       rightOps = rightCmp->ops(operands);
+        const MicroReg           value    = leftOps[0].reg;
+        const MicroOpBits        bits     = leftOps[1].opBits;
+        if (!value.isVirtualInt() || rightOps[0].reg != value || rightOps[1].opBits != bits)
+            return false;
+        if (leftOps[2].hasWideImmediateValue() || rightOps[2].hasWideImmediateValue())
+            return false;
+
+        const uint64_t  mask      = getBitsMask(bits);
+        uint64_t        low       = leftOps[2].valueU64 & mask;
+        uint64_t        high      = rightOps[2].valueU64 & mask;
+        const MicroCond rightCond = rightSet->ops(operands)[1].cpuCond;
+        bool            isSigned  = false;
+        if (merge.leftCond == MicroCond::AboveOrEqual && rightCond == MicroCond::BelowOrEqual)
+            isSigned = false;
+        else if (merge.leftCond == MicroCond::GreaterOrEqual && rightCond == MicroCond::LessOrEqual)
+            isSigned = true;
+        else if (merge.leftCond == MicroCond::BelowOrEqual && rightCond == MicroCond::AboveOrEqual)
+            std::swap(low, high);
+        else if (merge.leftCond == MicroCond::LessOrEqual && rightCond == MicroCond::GreaterOrEqual)
+        {
+            isSigned = true;
+            std::swap(low, high);
+        }
+        else
+            return false;
+
+        if (isSigned)
+        {
+            const uint32_t numBits = getNumBits(bits);
+            const int64_t  lowS    = static_cast<int64_t>(low << (64 - numBits)) >> (64 - numBits);
+            const int64_t  highS   = static_cast<int64_t>(high << (64 - numBits)) >> (64 - numBits);
+            if (lowS > highS)
+                return false;
+        }
+        else if (low > high)
+            return false;
+
+        const MicroReg offset = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+
+        MicroInstrOperand copyOps[3];
+        copyOps[0].reg    = offset;
+        copyOps[1].reg    = value;
+        copyOps[2].opBits = bits;
+        storage.insertDerivedBefore(operands, merge.rightCmpRef, MicroInstrOpcode::LoadRegReg, copyOps);
+
+        MicroInstrOperand subOps[4];
+        subOps[0].reg     = offset;
+        subOps[1].opBits  = bits;
+        subOps[2].microOp = MicroOp::Subtract;
+        subOps[3].setImmediateValue(ApInt(low, getNumBits(bits)));
+        storage.insertDerivedBefore(operands, merge.rightCmpRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+
+        rightOps          = storage.ptr(merge.rightCmpRef)->ops(operands);
+        rightOps[0].reg   = offset;
+        rightOps[2].setImmediateValue(ApInt((high - low) & mask, getNumBits(bits)));
+        storage.ptr(merge.rightSetRef)->ops(operands)[1].cpuCond = MicroCond::BelowOrEqual;
+        return true;
+    }
+
     bool convertShortCircuitBooleans(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
     {
         if (!context.builder)
@@ -1009,6 +1090,10 @@ namespace
             MicroReg      rhs;
             MicroOp       op       = MicroOp::And;
             uint32_t      mentions = 2;
+            MicroInstrRef leftCmpRef  = MicroInstrRef::invalid();
+            MicroInstrRef rightCmpRef = MicroInstrRef::invalid();
+            MicroInstrRef rightSetRef = MicroInstrRef::invalid();
+            MicroCond     leftCond    = MicroCond::Unconditional;
         };
 
         SmallVector<Candidate> candidates;
@@ -1053,8 +1138,10 @@ namespace
                 candidate.op = MicroOp::Or;
             else
                 continue;
-            candidate.jumpRef = jumpRef;
-            candidate.result  = copyOps[0].reg;
+            candidate.jumpRef    = jumpRef;
+            candidate.result     = copyOps[0].reg;
+            candidate.leftCond   = leftCond;
+            candidate.leftCmpRef = storage.findPreviousInstructionRef(setRef);
 
             // The skipped part: a register compare, its setcc, an optional
             // widening of that byte, the copy into B, then the join.
@@ -1065,12 +1152,14 @@ namespace
             const MicroInstrOperand* cmpOps = inst->ops(operands);
             if (cmpOps[0].reg == candidate.result || (inst->op == MicroInstrOpcode::CmpRegReg && cmpOps[1].reg == candidate.result))
                 continue;
+            candidate.rightCmpRef = ref;
 
             ref  = storage.findNextInstructionRef(ref);
             inst = ref.isValid() ? storage.ptr(ref) : nullptr;
             if (!inst || inst->op != MicroInstrOpcode::SetCondReg)
                 continue;
-            candidate.rhs = inst->ops(operands)[0].reg;
+            candidate.rhs         = inst->ops(operands)[0].reg;
+            candidate.rightSetRef = ref;
             if (!candidate.rhs.isVirtualInt() || candidate.rhs == candidate.result)
                 continue;
 
@@ -1127,12 +1216,21 @@ namespace
             }
         }
 
-        bool changed = false;
+        bool     changed                = false;
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
         for (const Candidate& candidate : candidates)
         {
             // The setcc, the optional self-widening and the merge only.
             if (rhsMentions[candidate.rhs.index()] != candidate.mentions)
                 continue;
+
+            const RangeMerge range{.leftCmpRef = candidate.leftCmpRef, .rightCmpRef = candidate.rightCmpRef, .rightSetRef = candidate.rightSetRef, .leftCond = candidate.leftCond};
+            if (candidate.op == MicroOp::And && tryFoldRangeMerge(storage, operands, range, nextVirtualIntRegIndex))
+            {
+                storage.erase(candidate.jumpRef);
+                changed = true;
+                continue;
+            }
 
             MicroInstrOperand mergeOps[4];
             mergeOps[0].reg     = candidate.result;
@@ -2414,7 +2512,8 @@ namespace
         if (candidates.empty())
             return false;
 
-        bool changed = false;
+        bool     changed                = false;
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
         for (const EarlyReturn& earlyReturn : candidates)
         {
             const MicroReg armValue  = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);

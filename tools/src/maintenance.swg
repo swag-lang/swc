@@ -307,31 +307,13 @@ public func runSetup(context: *Context, _options: *Options)->s32 fail
     var native = context.binDir
     native.replace("/", "\\")
 
-    let environment = Env.currentEnvironment()
-    let current     = environment.value("PATH") orelse ""
-
-    if Utf8.indexOf(cast(const [..] u8) current, native.toString(), 0, .Latin1NoCase) != Swag.U64.Max
-    {
-        Console.println("\"", native.toString(), "\" is already in PATH.")
-    }
-    else
-    {
-        Console.println("Adding \"", native.toString(), "\" to user PATH...")
-
-        var updated = String.from(current)
-        if not updated.isEmpty() do
-            updated += ";"
-        updated += native
-
-        let code = try context.runProgramTokens("setx.exe", ["PATH", updated.toString()])
-        if code != 0 do
-            return code
-    }
-
-    Console.println("Setting SWAG_PATH to \"", native.toString(), "\"...")
-    let code = try context.runProgramTokens("setx.exe", ["SWAG_PATH", native.toString()])
-    if code != 0 do
-        return code
+    var environment: Setup.WindowsEnvironmentStore
+    let changed = try Setup.configureEnvironment(&environment, native.toString())
+    if changed do
+        Console.println("Added \"", native.toString(), "\" to user PATH.")
+    else do
+        Console.println("\"", native.toString(), "\" is already in user PATH.")
+    Console.println("Set SWAG_PATH to \"", native.toString(), "\".")
 
     let compiler = Path.combine(context.binDir.toString(), "swc.exe")
     Console.println("Associating \".swgs\" with \"", compiler.toString(), "\"...")

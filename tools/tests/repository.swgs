@@ -313,9 +313,125 @@ func checkBacklogAllocationHistory(root: string) fail
     try checkBacklogRenameAmbiguity(root)
 }
 
+// This store has no native handles and cannot read or change the real user environment.
+struct SetupMemoryEnvironment
+{
+    userPath: Tool.Setup.PathValue
+    swagPath: String
+    pathWrites: u32
+    swagWrites: u32
+    notifications: u32
+    rejectRead: bool
+    rejectPathWrite: bool
+    rejectSwagWrite: bool
+}
+
+impl Tool.Setup.IEnvironmentStore for SetupMemoryEnvironment
+{
+    mtd impl readUserPath()->Tool.Setup.PathValue fail
+    {
+        if .rejectRead do
+            fail Swag.SystemError{"fixture cannot read user PATH"}
+        return .userPath
+    }
+
+    mtd impl writeUserPath(value: Tool.Setup.PathValue) fail
+    {
+        .pathWrites += 1
+        if .rejectPathWrite do
+            fail Swag.SystemError{"fixture cannot write user PATH"}
+        .userPath = value
+    }
+
+    mtd impl writeSwagPath(directory: string) fail
+    {
+        .swagWrites += 1
+        if .rejectSwagWrite do
+            fail Swag.SystemError{"fixture cannot write SWAG_PATH"}
+        .swagPath = String.from(directory)
+    }
+
+    mtd impl notifyChanges()
+    {
+        .notifications += 1
+    }
+}
+
+func checkSetupPathCase(path, directory, expected: string, changed: bool, expands: bool = true) fail
+{
+    var store: SetupMemoryEnvironment
+    store.userPath = {String.from(path), expands}
+    let added = try Tool.Setup.configureEnvironment(&store, directory)
+    Swag.assert(added == changed)
+    Swag.assert(store.userPath.text.toString() == expected)
+    Swag.assert(store.userPath.expands == expands)
+    Swag.assert(store.pathWrites == (changed ? 1 : 0))
+    Swag.assert(store.swagWrites == 1 and store.swagPath.toString() == directory)
+    Swag.assert(store.notifications == 1)
+
+    // Repeated setup must not append a second entry.
+    let addedAgain = try Tool.Setup.configureEnvironment(&store, directory)
+    Swag.assert(not addedAgain)
+    Swag.assert(store.pathWrites == (changed ? 1 : 0))
+    Swag.assert(store.userPath.text.toString() == expected)
+}
+
+func checkSetupPath() fail
+{
+    let directory = "C:\\Swag\\bin"
+    try checkSetupPathCase("", directory, directory, true)
+    try checkSetupPathCase("C:\\Swag\\bin-old", directory, "C:\\Swag\\bin-old;C:\\Swag\\bin", true)
+    try checkSetupPathCase("C:\\Swag\\bin\\tools", directory, "C:\\Swag\\bin\\tools;C:\\Swag\\bin", true)
+    for existing in [directory, "C:\\Swag\\bin;C:\\Other", "C:\\Before;C:\\Swag\\bin;C:\\After", "C:\\Other;C:\\Swag\\bin", "c:/sWag/BIN/", "  \"C:\\Swag\\bin\"  "] do
+        try checkSetupPathCase(existing, directory, existing, false)
+
+    // Only the persisted user's entries belong in the new value. An inherited process
+    // PATH could already contain Swag and machine/toolchain paths; it is not this input.
+    try checkSetupPathCase("C:\\UserTools", directory, "C:\\UserTools;C:\\Swag\\bin", true, false)
+    try checkSetupPathCase("%TOOLS%\\bin", directory, "%TOOLS%\\bin;C:\\Swag\\bin", true)
+
+    // Preserve the complete payload beyond setx's 1,024-character limit, its unexpanded
+    // variable references, and Unicode text at the persistent-write boundary.
+    var longPath = String.from("%TOOLS%\\bin")
+    for 160 do
+        longPath += ";C:\\工具\\directory"
+    Swag.assert(longPath.count > 2048)
+    let unicodeDirectory = "C:\\Swag é\\bin"
+    let expected = Format.toString("%;%", longPath.toString(), unicodeDirectory)
+    try checkSetupPathCase(longPath.toString(), unicodeDirectory, expected.toString(), true)
+
+    var unreadable: SetupMemoryEnvironment
+    unreadable.rejectRead = true
+    discard catch Tool.Setup.configureEnvironment(&unreadable, directory) as readError
+    Swag.assert(readError != null)
+    Swag.assert(unreadable.pathWrites == 0 and unreadable.swagWrites == 0 and unreadable.notifications == 0)
+
+    var unwritable: SetupMemoryEnvironment
+    unwritable.rejectPathWrite = true
+    discard catch Tool.Setup.configureEnvironment(&unwritable, directory) as pathError
+    Swag.assert(pathError != null)
+    Swag.assert(unwritable.pathWrites == 1 and unwritable.swagWrites == 0 and unwritable.notifications == 0)
+
+    // A successful PATH write remains visible if SWAG_PATH fails afterward, and it still
+    // requires notification. The original error must reach the caller.
+    var partial: SetupMemoryEnvironment
+    partial.rejectSwagWrite = true
+    discard catch Tool.Setup.configureEnvironment(&partial, directory) as swagError
+    Swag.assert(swagError != null)
+    Swag.assert(partial.userPath.text.toString() == directory)
+    Swag.assert(partial.pathWrites == 1 and partial.swagWrites == 1 and partial.notifications == 1)
+}
+
 #main
 {
     let args = Env.arguments()
+    if args.count > 1 and args[1] == "--check-setup-path"
+    {
+        expect checkSetupPath()
+        Console.println("setup environment regression checks passed")
+        return
+    }
+
     if args.count > 1 and args[1] == "--check-core-bound-child"
     {
         let native = Win32.GetCommandLineW()!
@@ -470,5 +586,6 @@ func checkBacklogAllocationHistory(root: string) fail
     Swag.assert(Utf8.contains(captured.standardOutput(), "capture failure was detected"))
     expect checkBacklogAllocationHistory(root.toString())
     expect checkCoreBound()
+    expect checkSetupPath()
     Console.println("repository tooling regression checks passed")
 }

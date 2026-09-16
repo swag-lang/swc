@@ -41,11 +41,11 @@ namespace
     // the high half is non-zero, `imul` when the signed product does not fit.
     // The arithmetic-overflow safety check reads exactly that, so the rewrite
     // only applies where the flags provably die first.
-    bool tryUseSignedMultiply(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef instRef, MicroInstrOperand* ops, const uint8_t microOpSlot)
+    bool tryUseSignedMultiply(MicroPassContext& context, MicroInstrRef instRef, MicroInstrOperand* ops, const uint8_t microOpSlot)
     {
         if (ops[microOpSlot].microOp != MicroOp::MultiplyUnsigned)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef))
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*context.instructions, *context.operands, instRef, context.builder))
             return false;
 
         ops[microOpSlot].microOp = MicroOp::MultiplySigned;
@@ -466,10 +466,10 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         if (!ops[0].reg.isAnyInt())
             continue;
 
-        // Changing the multiply's signedness requires a local flag overwrite.
+        // Changing signedness is safe only when nobody observes the multiply's flags.
         // Test the operation before scanning the flags: only unsigned multiply
         // has a signed replacement. RegImm keeps the operation in slot 2, RegReg in 3.
-        const bool usedSignedMultiply = tryUseSignedMultiply(storage, operands, instRef, ops, isRegImm ? 2 : 3);
+        const bool usedSignedMultiply = tryUseSignedMultiply(context, instRef, ops, isRegImm ? 2 : 3);
         if (usedSignedMultiply)
             context.passChanged = true;
 
@@ -486,8 +486,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
             case MicroOp::MultiplyUnsigned:
                 if (immediate > 1 && !canRewriteShift(opBits, immediate))
                     break;
-                // A successful signed rewrite already found a flags definition
-                // before any use or boundary in this unchanged suffix.
+                // A successful signed rewrite already proved the flags dead
+                // in this unchanged suffix, including across CFG edges.
                 if (!usedSignedMultiply && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
                     break;
                 changed = tryReduceMultiplyByZero(ops, immediate) ||

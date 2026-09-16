@@ -69,6 +69,7 @@ enum class MicroInstrOpcode : uint8_t
 #include "Backend/Micro/MicroInstr.Def.inc"
 
 #undef SWC_MICRO_INSTR_DEF
+    Count,
 };
 
 inline constexpr std::array MICRO_INSTR_OPCODE_INFOS = {
@@ -78,7 +79,7 @@ inline constexpr std::array MICRO_INSTR_OPCODE_INFOS = {
 #undef SWC_MICRO_INSTR_DEF
 };
 
-static_assert(MICRO_INSTR_OPCODE_INFOS.size() == static_cast<size_t>(MicroInstrOpcode::LoadRegTlsSlot) + 1);
+static_assert(MICRO_INSTR_OPCODE_INFOS.size() == static_cast<size_t>(MicroInstrOpcode::Count));
 
 struct MicroInstrOperand
 {

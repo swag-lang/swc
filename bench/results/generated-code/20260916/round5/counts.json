@@ -1,0 +1,1190 @@
+{
+  "loadPair": {
+    "baseline": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x8]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x8]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "mov\trax, qword ptr [rcx + 0x8]"
+        ],
+        [
+          3,
+          "add\trax, qword ptr [rcx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadRepeated": {
+    "baseline": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          4,
+          "imul\trax, rdx"
+        ],
+        [
+          3,
+          "add\trax, qword ptr [rcx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          4,
+          "imul\trax, rdx"
+        ],
+        [
+          3,
+          "add\trax, qword ptr [rcx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "lea\trax, [rdx + 0x1]"
+        ],
+        [
+          4,
+          "imul\trax, qword ptr [rcx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadScaled": {
+    "baseline": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "mov\trax, qword ptr [rcx + 8*rdx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "mov\trax, qword ptr [rcx + 8*rdx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\trax, r8"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 8*rdx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadScaledOffset": {
+    "baseline": {
+      "bytes": 9,
+      "instructions": 3,
+      "code": [
+        [
+          5,
+          "mov\trax, qword ptr [rcx + 8*rdx + 0x18]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 3,
+      "code": [
+        [
+          5,
+          "mov\trax, qword ptr [rcx + 8*rdx + 0x18]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\trax, r8"
+        ],
+        [
+          5,
+          "add\trax, qword ptr [rcx + 8*rdx + 0x18]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadNarrow": {
+    "baseline": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "movzx\teax, byte ptr [rcx + rdx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "movzx\teax, byte ptr [rcx + rdx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          4,
+          "movzx\teax, byte ptr [rcx + rdx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadSigned": {
+    "baseline": {
+      "bytes": 12,
+      "instructions": 4,
+      "code": [
+        [
+          4,
+          "mov\tax, word ptr [rcx + 2*rdx]"
+        ],
+        [
+          4,
+          "movsx\trax, ax"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 3,
+      "code": [
+        [
+          5,
+          "movsx\trax, word ptr [rcx + 2*rdx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 3,
+      "code": [
+        [
+          5,
+          "movsx\trax, word ptr [rcx + 2*rdx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "maskedLoad": {
+    "baseline": {
+      "bytes": 7,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          3,
+          "movzx\teax, al"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 4,
+      "instructions": 2,
+      "code": [
+        [
+          3,
+          "movzx\teax, byte ptr [rcx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 4,
+      "instructions": 2,
+      "code": [
+        [
+          3,
+          "movzx\teax, byte ptr [rcx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "shiftedLoad": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          3,
+          "shr\teax, 0x10"
+        ],
+        [
+          3,
+          "movzx\teax, al"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 5,
+      "instructions": 2,
+      "code": [
+        [
+          4,
+          "movzx\teax, byte ptr [rcx + 0x2]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 5,
+      "instructions": 2,
+      "code": [
+        [
+          4,
+          "movzx\teax, byte ptr [rcx + 0x2]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "selectLoad": {
+    "baseline": {
+      "bytes": 15,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "test\trdx, rdx"
+        ],
+        [
+          2,
+          "je\t0x27ca <select_load+0xa>"
+        ],
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          2,
+          "jmp\t0x27ce <select_load+0xe>"
+        ],
+        [
+          4,
+          "mov\trax, qword ptr [rcx + 0x8]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 15,
+      "instructions": 6,
+      "code": [
+        [
+          3,
+          "test\trdx, rdx"
+        ],
+        [
+          2,
+          "je\t0x262a <select_load+0xa>"
+        ],
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          2,
+          "jmp\t0x262e <select_load+0xe>"
+        ],
+        [
+          4,
+          "mov\trax, qword ptr [rcx + 0x8]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 13,
+      "instructions": 5,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\trdx, rdx"
+        ],
+        [
+          3,
+          "sete\tal"
+        ],
+        [
+          4,
+          "mov\trax, qword ptr [rcx + 8*rax]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadCompare": {
+    "baseline": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "cmp\tqword ptr [rcx], rdx"
+        ],
+        [
+          5,
+          "mov\teax, 0x0"
+        ],
+        [
+          4,
+          "cmovae\tr8, rax"
+        ],
+        [
+          3,
+          "mov\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "cmp\tqword ptr [rcx], rdx"
+        ],
+        [
+          4,
+          "cmovb\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "cmp\tqword ptr [rcx], rdx"
+        ],
+        [
+          4,
+          "cmovb\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadBit": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          3,
+          "test\tal, 0x1"
+        ],
+        [
+          4,
+          "cmove\trdx, r8"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "test\tbyte ptr [rcx], 0x1"
+        ],
+        [
+          4,
+          "cmove\trdx, r8"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "test\tbyte ptr [rcx], 0x1"
+        ],
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          4,
+          "cmove\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "loadSum4": {
+    "baseline": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x8]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x10]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x18]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 16,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x8]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x10]"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 0x18]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 28,
+      "instructions": 7,
+      "code": [
+        [
+          4,
+          "movdqu\txmm0, xmmword ptr [rcx]"
+        ],
+        [
+          5,
+          "movdqu\txmm1, xmmword ptr [rcx + 0x10]"
+        ],
+        [
+          4,
+          "paddq\txmm1, xmm0"
+        ],
+        [
+          5,
+          "pshufd\txmm0, xmm1, 0xee        # xmm0 = xmm1[2,3,2,3]"
+        ],
+        [
+          4,
+          "paddq\txmm0, xmm1"
+        ],
+        [
+          5,
+          "movq\trax, xmm0"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "storeReload": {
+    "baseline": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\tqword ptr [rcx], rdx"
+        ],
+        [
+          4,
+          "lea\trax, [rdx + r8]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\tqword ptr [rcx], rdx"
+        ],
+        [
+          4,
+          "lea\trax, [rdx + r8]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 3,
+      "code": [
+        [
+          3,
+          "mov\tqword ptr [rcx], rdx"
+        ],
+        [
+          4,
+          "lea\trax, [r8 + rdx]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "storeNarrow": {
+    "baseline": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\tbyte ptr [rcx], dl"
+        ],
+        [
+          3,
+          "movzx\teax, dl"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\tbyte ptr [rcx], dl"
+        ],
+        [
+          3,
+          "movzx\teax, dl"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\tbyte ptr [rcx], dl"
+        ],
+        [
+          3,
+          "movzx\teax, dl"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "updateMemory": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "add\tqword ptr [rcx], rdx"
+        ],
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "add\tqword ptr [rcx], rdx"
+        ],
+        [
+          3,
+          "mov\trax, qword ptr [rcx]"
+        ],
+        [
+          3,
+          "add\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "add\trdx, qword ptr [rcx]"
+        ],
+        [
+          3,
+          "mov\tqword ptr [rcx], rdx"
+        ],
+        [
+          4,
+          "lea\trax, [rdx + r8]"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "accumulate": {
+    "baseline": {
+      "bytes": 34,
+      "instructions": 11,
+      "code": [
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          6,
+          "mov\tr9d, 0x0"
+        ],
+        [
+          3,
+          "test\trdx, rdx"
+        ],
+        [
+          2,
+          "jbe\t0x228e <accumulate+0x1e>"
+        ],
+        [
+          4,
+          "mov\trdx, qword ptr [rcx + 8*r9]"
+        ],
+        [
+          3,
+          "add\tr8, rdx"
+        ],
+        [
+          4,
+          "add\tr9, 0x1"
+        ],
+        [
+          3,
+          "cmp\tr9, rax"
+        ],
+        [
+          2,
+          "jb\t0x227e <accumulate+0xe>"
+        ],
+        [
+          3,
+          "mov\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 31,
+      "instructions": 11,
+      "code": [
+        [
+          3,
+          "mov\trax, rdx"
+        ],
+        [
+          3,
+          "xor\tr9d, r9d"
+        ],
+        [
+          3,
+          "test\trdx, rdx"
+        ],
+        [
+          2,
+          "jbe\t0x238b <accumulate+0x1b>"
+        ],
+        [
+          4,
+          "mov\trdx, qword ptr [rcx + 8*r9]"
+        ],
+        [
+          3,
+          "add\tr8, rdx"
+        ],
+        [
+          4,
+          "add\tr9, 0x1"
+        ],
+        [
+          3,
+          "cmp\tr9, rax"
+        ],
+        [
+          2,
+          "jb\t0x237b <accumulate+0xb>"
+        ],
+        [
+          3,
+          "mov\trax, r8"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 109,
+      "instructions": 30,
+      "code": [
+        [
+          3,
+          "mov\trax, r8"
+        ],
+        [
+          3,
+          "test\trdx, rdx"
+        ],
+        [
+          2,
+          "je\t0x16c <accumulate+0x6c>"
+        ],
+        [
+          4,
+          "cmp\trdx, 0x4"
+        ],
+        [
+          2,
+          "jae\t0x113 <accumulate+0x13>"
+        ],
+        [
+          3,
+          "xor\tr8d, r8d"
+        ],
+        [
+          2,
+          "jmp\t0x160 <accumulate+0x60>"
+        ],
+        [
+          3,
+          "mov\tr8, rdx"
+        ],
+        [
+          4,
+          "and\tr8, -0x4"
+        ],
+        [
+          5,
+          "movq\txmm1, rax"
+        ],
+        [
+          4,
+          "pxor\txmm0, xmm0"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          11,
+          "nop\tword ptr cs:[rax + rax]"
+        ],
+        [
+          5,
+          "movdqu\txmm2, xmmword ptr [rcx + 8*rax]"
+        ],
+        [
+          4,
+          "paddq\txmm1, xmm2"
+        ],
+        [
+          6,
+          "movdqu\txmm2, xmmword ptr [rcx + 8*rax + 0x10]"
+        ],
+        [
+          4,
+          "paddq\txmm0, xmm2"
+        ],
+        [
+          4,
+          "add\trax, 0x4"
+        ],
+        [
+          3,
+          "cmp\tr8, rax"
+        ],
+        [
+          2,
+          "jne\t0x130 <accumulate+0x30>"
+        ],
+        [
+          4,
+          "paddq\txmm0, xmm1"
+        ],
+        [
+          5,
+          "pshufd\txmm1, xmm0, 0xee        # xmm1 = xmm0[2,3,2,3]"
+        ],
+        [
+          4,
+          "paddq\txmm1, xmm0"
+        ],
+        [
+          5,
+          "movq\trax, xmm1"
+        ],
+        [
+          2,
+          "jmp\t0x167 <accumulate+0x67>"
+        ],
+        [
+          4,
+          "add\trax, qword ptr [rcx + 8*r8]"
+        ],
+        [
+          3,
+          "inc\tr8"
+        ],
+        [
+          3,
+          "cmp\trdx, r8"
+        ],
+        [
+          2,
+          "jne\t0x160 <accumulate+0x60>"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  }
+}

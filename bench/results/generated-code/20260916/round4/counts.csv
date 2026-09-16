@@ -3,11 +3,11 @@ negativeDivideTwo,5,16,5,16,6,17
 negativeDivideEight,5,16,5,16,6,19
 negativeDivideThree,5,16,5,16,9,33
 negativeModuloTwo,6,19,6,19,6,18
-clearLowestBit,4,11,4,11,3,8
-isolateLowestBit,5,13,5,13,4,10
+clearLowestBit,4,11,3,8,3,8
+isolateLowestBit,5,13,4,10,4,10
 andNot,4,10,4,10,4,10
-negatedSum,6,16,6,16,3,8
-complementSum,4,11,4,11,3,7
+negatedSum,6,16,3,8,3,8
+complementSum,4,11,3,7,3,7
 unsignedAverage,6,16,6,16,6,16
 variableBit,4,14,3,10,4,10
 maskedShiftRight,3,10,2,6,4,9
@@ -19,8 +19,8 @@ factor32,4,10,3,8,3,8
 square32,4,9,3,7,3,7
 xorOr32,4,8,4,7,4,7
 andXor32,4,8,4,7,4,7
-orMinusAnd32,5,10,5,10,3,5
-shiftMasked32,4,11,4,11,4,7
+orMinusAnd32,5,10,3,5,3,5
+shiftMasked32,4,11,2,6,4,7
 rotate32,3,7,3,6,3,6
 extractByte32,2,4,2,4,2,4
 signedModulo32,8,20,8,20,7,16

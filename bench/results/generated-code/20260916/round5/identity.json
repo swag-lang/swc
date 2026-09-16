@@ -1,0 +1,47 @@
+{
+  "baseline_commit": "5f172a505",
+  "baseline_build": 809,
+  "final_commit": "7a1cf7cf7796e3170eeb47d214d6363392e3a59c",
+  "final_version_header": "#pragma once\n\n// The compiler's identity, and part of the key of every cache it fills. A build produced by one\n// version is never read back by another: bump SWC_BUILD_NUM with every change to the compiler,\n// so what the previous one left behind is ignored instead of trusted.\ninline constexpr uint32_t SWC_VERSION   = 0;\ninline constexpr uint32_t SWC_REVISION  = 1;\ninline constexpr uint32_t SWC_BUILD_NUM = 815;\n",
+  "clang": "clang version 21.1.6\nTarget: x86_64-unknown-windows-msvc\nThread model: posix\nInstalledDir: C:\\Users\\chris\\AppData\\Local\\Programs\\Swift\\Toolchains\\6.3.3+Asserts\\usr\\bin\nBuild config: +assertions\n",
+  "compiler_baseline": {
+    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot63.exe",
+    "sha256": "8c394d2fa8694232fab0294950612daba1747e413224cfb81739ae79a2b3cb6e",
+    "bytes": 6787584
+  },
+  "compiler_final": {
+    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot69.exe",
+    "sha256": "f31bca2c382b63b0a221ec30fcddfa190bdac9649ea8e5f33e5befbb389bfde8",
+    "bytes": 6792192
+  },
+  "inputs": [
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\scalars-round5.swg",
+      "sha256": "505992f41ebfc709915ed0c4318228d9ce3266a981f07660aa35cf93eb32327f",
+      "bytes": 2038
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\scalars-round5.cpp",
+      "sha256": "07d10e0f2c0254c41d611f371fddd420c38272f72095bd6a3418db494a8650ea",
+      "bytes": 2545
+    }
+  ],
+  "outputs": [
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars_round5809.lib",
+      "sha256": "166ecf706e8c43ce2d3cb8512edb32aef9727b8386be2dfa67373928f3189717",
+      "bytes": 294090
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars_round5815.lib",
+      "sha256": "6c63872a96875c2693e78d1ac48ef672c7df14ade9b257e228393329987788c7",
+      "bytes": 293218
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars-round5-llvm.obj",
+      "sha256": "e805d084f7b6b59aad83ac3b861e29610c00971df42904acbe49ff21e05ae982",
+      "bytes": 1354
+    }
+  ],
+  "scope_note": "Sixteen memory/loop functions. Counts retain internal padding up to the last RET; trailing alignment is excluded. LLVM vectorizes loadSum4 and accumulate, so their smaller Swag bodies do not establish a throughput advantage."
+}

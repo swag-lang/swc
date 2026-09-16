@@ -780,6 +780,98 @@ namespace InstructionCombine
         }
     }
 
+    // Factor a product plus/minus a reread of the same ordinary memory cell.
+    // A bounded straight-line scan proves the two reads observe one value.
+    bool tryFactorReloadedProduct(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64 ||
+            (ops[3].microOp != MicroOp::Add && ops[3].microOp != MicroOp::Subtract) ||
+            keepAccessScalar(ctx, ref, ops[1].reg))
+            return false;
+
+        MicroReg      productReg  = ops[0].reg;
+        auto          product     = ctx.ssa->reachingDef(productReg, ref);
+        MicroInstrRef productCopy = MicroInstrRef::invalid();
+        if (product.valid() && !product.isPhi && product.inst && product.inst->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const auto* copy = product.inst->ops(*ctx.operands);
+            if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != MicroOpBits::B64 ||
+                ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1)
+                return false;
+            productCopy = product.instRef;
+            productReg  = copy[1].reg;
+            product     = ctx.ssa->reachingDef(productReg, productCopy);
+        }
+        if (!product.valid() || product.isPhi || !product.inst || product.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
+            ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1)
+            return false;
+        const auto* multiply = product.inst->ops(*ctx.operands);
+        if (!multiply || multiply[3].microOp != MicroOp::MultiplySigned || multiply[2].opBits != MicroOpBits::B64 || !multiply[1].reg.isVirtualInt())
+            return false;
+        const auto initial = ctx.ssa->reachingDef(productReg, product.instRef);
+        if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegMem ||
+            ctx.ssa->transitiveInstructionUseCount(initial.valueId, 2) != 1)
+            return false;
+        const auto* load = initial.inst->ops(*ctx.operands);
+        if (!load || load[2].opBits != MicroOpBits::B64 || load[3].valueU64 != ops[4].valueU64 ||
+            !sameAddressValue(ctx, rootAddressValue(ctx, load[1].reg, initial.instRef), ops[1].reg, ref))
+            return false;
+        const MicroReg factor      = multiply[1].reg;
+        const auto     factorValue = ctx.ssa->reachingDef(factor, product.instRef);
+        if (!factorValue.valid() || ctx.ssa->reachingDef(factor, ref).valueId != factorValue.valueId)
+            return false;
+
+        bool          reached = false;
+        MicroInstrRef scan    = ctx.storage->findNextInstructionRef(initial.instRef);
+        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && scan.isValid(); ++step, scan = ctx.storage->findNextInstructionRef(scan))
+        {
+            if (scan == ref)
+            {
+                reached = true;
+                break;
+            }
+            const auto& between = *ctx.storage->ptr(scan);
+            if (isControlOrCall(between) || writesMemory(between) || between.op == MicroInstrOpcode::LoadVolatileRegMem)
+                return false;
+        }
+        if (!reached || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
+            return false;
+        if (!ctx.nextVirtualFloatRegIndex)
+            MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+        if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
+            !ctx.claimAll({ref, product.instRef, initial.instRef, productCopy.isValid() ? productCopy : ref}))
+            return false;
+
+        const MicroReg    temporary   = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+        MicroInstrOperand adjusted[4] = {};
+        adjusted[0].reg               = temporary;
+        adjusted[1].reg               = factor;
+        adjusted[2].opBits            = MicroOpBits::B64;
+        adjusted[3].valueU64          = ops[3].microOp == MicroOp::Add ? 1 : UINT64_MAX;
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadAddrRegMem, adjusted);
+        MicroInstrOperand result[5] = {};
+        result[0].reg               = temporary;
+        result[1]                   = ops[1];
+        result[2]                   = ops[2];
+        result[3].microOp           = MicroOp::MultiplySigned;
+        result[4]                   = ops[4];
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegMem, result);
+        MicroInstrOperand copy[3] = {};
+        copy[0]                   = ops[0];
+        copy[1].reg               = temporary;
+        copy[2]                   = ops[2];
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
+        ctx.emitErase(initial.instRef);
+        ctx.emitErase(product.instRef);
+        if (productCopy.isValid())
+            ctx.emitErase(productCopy);
+        return true;
+    }
+
     // Fuse an indexed zero-extending load whose only consumer is a compare
     // against an immediate into a single memory compare at the source width:
     //

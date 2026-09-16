@@ -1,8 +1,8 @@
 {
   "baseline_commit": "2eefc93ce4316be7ce6538e660e642a4a021ac28",
   "baseline_build": 688,
-  "final_commit": "3a7f0d57b4e0d09c1dca4cadf7411d6a94774eb1",
-  "final_version_header": "#pragma once\n\n// The compiler's identity, and part of the key of every cache it fills. A build produced by one\n// version is never read back by another: bump SWC_BUILD_NUM with every change to the compiler,\n// so what the previous one left behind is ignored instead of trusted.\ninline constexpr uint32_t SWC_VERSION   = 0;\ninline constexpr uint32_t SWC_REVISION  = 1;\ninline constexpr uint32_t SWC_BUILD_NUM = 800;\n",
+  "final_commit": "7a1cf7cf7796e3170eeb47d214d6363392e3a59c",
+  "final_version_header": "#pragma once\n\n// The compiler's identity, and part of the key of every cache it fills. A build produced by one\n// version is never read back by another: bump SWC_BUILD_NUM with every change to the compiler,\n// so what the previous one left behind is ignored instead of trusted.\ninline constexpr uint32_t SWC_VERSION   = 0;\ninline constexpr uint32_t SWC_REVISION  = 1;\ninline constexpr uint32_t SWC_BUILD_NUM = 815;\n",
   "clang": "clang version 21.1.6\nTarget: x86_64-unknown-windows-msvc\nThread model: posix\nInstalledDir: C:\\Users\\chris\\AppData\\Local\\Programs\\Swift\\Toolchains\\6.3.3+Asserts\\usr\\bin\nBuild config: +assertions\n",
   "compiler_baseline": {
     "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-baseline.exe",
@@ -10,9 +10,9 @@
     "bytes": 6689792
   },
   "compiler_final": {
-    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot55.exe",
-    "sha256": "c6bf2c5e6c0682b48b2571a9ce917156ea2523c9cde905c999b86dd01f9f6a57",
-    "bytes": 6770176
+    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot69.exe",
+    "sha256": "f31bca2c382b63b0a221ec30fcddfa190bdac9649ea8e5f33e5befbb389bfde8",
+    "bytes": 6792192
   },
   "inputs": [
     {
@@ -33,9 +33,9 @@
       "bytes": 301750
     },
     {
-      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars_lot55.lib",
-      "sha256": "745d0b4d863814b948a3a9446b6f512350c2ae4d6e391341f30e93ba69680f0e",
-      "bytes": 296034
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars815.lib",
+      "sha256": "c1ba8171bb3b7f9fc3eccb2b7df13cb0494dcf1bfefae82315db1609979ee8f4",
+      "bytes": 295200
     },
     {
       "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars-llvm.obj",

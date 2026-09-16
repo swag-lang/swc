@@ -854,3 +854,27 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// Memory tests read their operands and define flags without writing a value.
+SWC_MICRO_INSTR_DEF(
+    TestMemReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 3,
+    })
+SWC_MICRO_INSTR_DEF(
+    TestMemImm,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 2,
+    })

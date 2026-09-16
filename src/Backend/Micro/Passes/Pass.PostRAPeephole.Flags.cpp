@@ -15,6 +15,8 @@ namespace PostRaPeephole
             {
                 case MicroInstrOpcode::TestRegReg:
                 case MicroInstrOpcode::TestRegImm:
+                case MicroInstrOpcode::TestMemReg:
+                case MicroInstrOpcode::TestMemImm:
                 case MicroInstrOpcode::CmpRegReg:
                 case MicroInstrOpcode::CmpRegImm:
                 case MicroInstrOpcode::CmpMemReg:
@@ -32,7 +34,8 @@ namespace PostRaPeephole
                 return false;
             // A RIP-relative memory comparison can own a relocation tied to
             // its instruction reference. Keep such comparisons in place.
-            return (inst.op != MicroInstrOpcode::CmpMemReg && inst.op != MicroInstrOpcode::CmpMemImm) ||
+            return (inst.op != MicroInstrOpcode::CmpMemReg && inst.op != MicroInstrOpcode::CmpMemImm &&
+                    inst.op != MicroInstrOpcode::TestMemReg && inst.op != MicroInstrOpcode::TestMemImm) ||
                    !ops[0].reg.isInstructionPointer();
         }
     }

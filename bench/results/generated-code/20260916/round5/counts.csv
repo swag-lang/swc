@@ -1,0 +1,17 @@
+function,baseline_instructions,baseline_bytes,final_instructions,final_bytes,llvm_instructions,llvm_bytes
+loadPair,3,8,3,8,3,8
+loadRepeated,4,11,4,11,3,9
+loadScaled,3,8,3,8,3,8
+loadScaledOffset,3,9,3,9,3,9
+loadNarrow,3,8,3,8,3,8
+loadSigned,4,12,3,9,3,9
+maskedLoad,3,7,2,4,2,4
+shiftedLoad,4,10,2,5,2,5
+selectLoad,6,15,6,15,5,13
+loadCompare,5,16,4,10,4,10
+loadBit,5,14,4,11,4,11
+loadSum4,5,16,5,16,7,28
+storeReload,3,8,3,8,3,8
+storeNarrow,4,9,4,9,4,9
+updateMemory,4,10,4,10,4,11
+accumulate,11,34,11,31,30,109

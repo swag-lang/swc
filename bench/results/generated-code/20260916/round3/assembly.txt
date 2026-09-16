@@ -116,11 +116,10 @@ absSigned
     test	rcx, rcx
     cmovge	rax, rcx
     ret
-  final: 5 instructions, 14 bytes
-    xor	rax, rax
-    sub	rax, rcx
-    test	rcx, rcx
-    cmovge	rax, rcx
+  final: 4 instructions, 11 bytes
+    mov	rax, rcx
+    neg	rax
+    cmovs	rax, rcx
     ret
   llvm: 4 instructions, 11 bytes
     mov	rax, rcx
@@ -151,8 +150,8 @@ bitSelect
     cmove	rdx, r8
     mov	rax, rdx
     ret
-  final: 4 instructions, 12 bytes
-    and	rcx, 0x1
+  final: 4 instructions, 11 bytes
+    test	cl, 0x1
     cmove	rdx, r8
     mov	rax, rdx
     ret
@@ -397,11 +396,9 @@ orMinusAnd
     and	rcx, rdx
     sub	rax, rcx
     ret
-  final: 5 instructions, 13 bytes
+  final: 3 instructions, 7 bytes
+    xor	rcx, rdx
     mov	rax, rcx
-    or	rax, rdx
-    and	rcx, rdx
-    sub	rax, rcx
     ret
   llvm: 3 instructions, 7 bytes
     mov	rax, rcx
@@ -473,14 +470,14 @@ dynamicDivideRemainder
     mov	rax, rdx
     add	rax, r10
     ret
-  final: 11 instructions, 31 bytes
+  final: 11 instructions, 29 bytes
     mov	r9, rdx
     mov	rax, rcx
-    xor	rdx, rdx
+    xor	edx, edx
     div	r9
     mov	r10, rax
     mov	rax, rcx
-    xor	rdx, rdx
+    xor	edx, edx
     div	r9
     mov	rax, rdx
     add	rax, r10

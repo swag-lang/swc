@@ -73,9 +73,9 @@ bitThree
     movzx	eax, al
     ret
   final: 4 instructions, 10 bytes
-    xor	eax, eax
-    and	rcx, 0x8
+    test	cl, 0x8
     setne	al
+    movzx	eax, al
     ret
   llvm: 4 instructions, 10 bytes
     mov	rax, rcx

@@ -156,6 +156,7 @@ namespace InstructionCombine
     bool tryFoldShiftAddIntoScaledAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMultiplyAddIntoScaledAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCopyAddIntoAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldComplementedSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldComplementPlusOne(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldPureResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryBypassShiftCountMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

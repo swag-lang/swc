@@ -543,6 +543,137 @@ namespace InstructionCombine
 
         return false;
     }
+    // ~(~a + b) = a - b, including a constant displacement in place of b.
+    // Rebuild only the final result after checking both source snapshots.
+    bool tryFoldComplementedSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[0].reg.isVirtualInt() || ops[2].microOp != MicroOp::BitwiseNot ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+        const MicroOpBits bits = ops[1].opBits;
+        auto              sum  = ctx.ssa->reachingDef(ops[0].reg, ref);
+        MicroInstrRef     resultCopy;
+        if (sum.valid() && !sum.isPhi && sum.inst && sum.inst->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const auto* copy = sum.inst->ops(*ctx.operands);
+            if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
+                ctx.ssa->transitiveInstructionUseCount(sum.valueId, 2) != 1)
+                return false;
+            resultCopy = sum.instRef;
+            sum        = ctx.ssa->reachingDef(copy[1].reg, resultCopy);
+        }
+        if (!sum.valid() || sum.isPhi || !sum.inst || ctx.ssa->transitiveInstructionUseCount(sum.valueId, 2) != 1)
+            return false;
+        const auto* add = sum.inst->ops(*ctx.operands);
+        if (!add)
+            return false;
+        std::array<MicroReg, 2> inputs;
+        std::array              inputRefs{sum.instRef, sum.instRef};
+        MicroInstrRef           sumInputCopy;
+        bool                    constant     = false;
+        uint64_t                displacement = 0;
+        if (sum.inst->op == MicroInstrOpcode::LoadAddrAmcRegMem)
+        {
+            if (add[3].opBits != bits || add[4].opBits != MicroOpBits::B64 || add[5].valueU64 != 1 || add[6].valueU64 != 0)
+                return false;
+            inputs = {add[1].reg, add[2].reg};
+        }
+        else if (sum.inst->op == MicroInstrOpcode::LoadAddrRegMem)
+        {
+            if (add[2].opBits != bits || add[3].hasWideImmediateValue())
+                return false;
+            inputs[0]    = add[1].reg;
+            constant     = true;
+            displacement = add[3].valueU64;
+        }
+        else if (sum.inst->op == MicroInstrOpcode::OpBinaryRegReg)
+        {
+            if (add[2].opBits != bits || add[3].microOp != MicroOp::Add ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, sum.instRef, ctx.builder))
+                return false;
+            const auto initial = ctx.ssa->reachingDef(add[0].reg, sum.instRef);
+            if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)
+                return false;
+            const auto* copy = initial.inst->ops(*ctx.operands);
+            if (!copy || copy[2].opBits != bits)
+                return false;
+            inputs       = {copy[1].reg, add[1].reg};
+            inputRefs[0] = initial.instRef;
+            sumInputCopy = initial.instRef;
+        }
+        else
+            return false;
+        for (uint32_t side = 0; side < (constant ? 1u : 2u); ++side)
+        {
+            if (!inputs[side].isVirtualInt())
+                continue;
+            auto          complement = ctx.ssa->reachingDef(inputs[side], inputRefs[side]);
+            MicroInstrRef complementCopy;
+            if (complement.valid() && !complement.isPhi && complement.inst && complement.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = complement.inst->ops(*ctx.operands);
+                if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != bits ||
+                    ctx.ssa->transitiveInstructionUseCount(complement.valueId, 2) != 1)
+                    continue;
+                complementCopy = complement.instRef;
+                complement     = ctx.ssa->reachingDef(copy[1].reg, complementCopy);
+            }
+            if (!complement.valid() || complement.isPhi || !complement.inst || complement.inst->op != MicroInstrOpcode::OpUnaryReg ||
+                ctx.ssa->transitiveInstructionUseCount(complement.valueId, 2) != 1)
+                continue;
+            const auto* inverted = complement.inst->ops(*ctx.operands);
+            if (!inverted || inverted[1].opBits != bits || inverted[2].microOp != MicroOp::BitwiseNot)
+                continue;
+            const auto original = ctx.ssa->reachingDef(inverted[0].reg, complement.instRef);
+            if (!original.valid() || original.isPhi || !original.inst || original.inst->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const auto* copied = original.inst->ops(*ctx.operands);
+            if (!copied || !copied[1].reg.isVirtualInt() || copied[2].opBits != bits)
+                continue;
+            const MicroReg source      = copied[1].reg;
+            const auto     sourceValue = ctx.ssa->reachingDef(source, original.instRef);
+            if (!sourceValue.valid() || ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId)
+                continue;
+            if (!constant)
+            {
+                const MicroReg other      = inputs[1 - side];
+                const auto     otherValue = ctx.ssa->reachingDef(other, inputRefs[1 - side]);
+                if (!other.isVirtualInt() || other == ops[0].reg || !otherValue.valid() ||
+                    ctx.ssa->reachingDef(other, ref).valueId != otherValue.valueId)
+                    continue;
+            }
+            if (!ctx.claimAll({ref, sum.instRef, complement.instRef, original.instRef,
+                               resultCopy.isValid() ? resultCopy : ref, complementCopy.isValid() ? complementCopy : ref,
+                               sumInputCopy.isValid() ? sumInputCopy : ref}))
+                continue;
+            MicroInstrOperand copy[3];
+            copy[0].reg    = ops[0].reg;
+            copy[1].reg    = source;
+            copy[2].opBits = bits;
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copy);
+            MicroInstrOperand subtract[4];
+            subtract[0].reg = ops[0].reg;
+            if (constant)
+            {
+                subtract[1].opBits   = bits;
+                subtract[2].microOp  = MicroOp::Subtract;
+                subtract[3].valueU64 = displacement;
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, subtract, true);
+            }
+            else
+            {
+                subtract[1].reg     = inputs[1 - side];
+                subtract[2].opBits  = bits;
+                subtract[3].microOp = MicroOp::Subtract;
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegReg, subtract, true);
+            }
+            return true;
+        }
+        return false;
+    }
+
 }
 
 SWC_END_NAMESPACE();

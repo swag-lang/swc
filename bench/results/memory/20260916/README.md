@@ -58,3 +58,7 @@ claimed. This change preserves all analysis data, checks and code-generation pas
 
 [Validation commands and exit codes](layout-validation.json). Later batches retain the direct
 regression boundary and rotate additional coverage, rather than rerunning the whole campaign.
+
+Integration with master `e71844062` uses compiler build 695. Both compiler builds and the
+57-test DevMode sanity suite passed again. The isolated release pattern failure persists;
+it is tracked as `compiler.core.049` in [the backlog](../../../../backlog/compiler.core.md).

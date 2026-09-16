@@ -77,5 +77,42 @@
     ],
     "exit": 5,
     "seconds": 9.370681899999909
+  },
+  "layout-integrated-sanity": {
+    "command": [
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\swc.dm.exe",
+      "--num-cores",
+      "6",
+      "C:\\Perso\\swag-lang\\swc-memory\\tools\\unittests.swgs",
+      "dm",
+      "sanity",
+      "-bc",
+      "devmode",
+      "--num-cores",
+      "6"
+    ],
+    "exit": 0,
+    "seconds": 10.832215800000995
+  },
+  "layout-integrated-patterns": {
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.dm.exe",
+      "test",
+      "-d",
+      "C:/Perso/swag-lang/swc-memory/bin/unittests/native",
+      "--file-filter",
+      "type_patterns.swg",
+      "-bc",
+      "release",
+      "--num-cores",
+      "6",
+      "--out-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/patterns-integrated-out",
+      "--work-dir",
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/patterns-integrated-work"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\memory-20260916",
+    "exit": 5,
+    "seconds": 0.5253386999975191
   }
 }

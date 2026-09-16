@@ -1,0 +1,1502 @@
+[
+  {
+    "exit": 0,
+    "wall_ms": 3412.6148,
+    "cpu_ms": 13562.5,
+    "peak_job_bytes": 627126272,
+    "peak_proc_bytes": 625881088,
+    "peak_working_set_bytes": 581005312,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 1,
+    "tag": "A",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1428806,
+        "sha256": "72eccfea1a17acea834dbb28274dd8b0e9e6db14936ba584cb5b8a5aa4461ce0"
+      },
+      ".rdata": {
+        "size": 772904,
+        "sha256": "0ecca6c45da6236fbdaea61ab776c0254c99a607316d9066da149ae5330ac1e6"
+      },
+      ".xdata": {
+        "size": 10168,
+        "sha256": "7745279bc34d28ac3449fa3f4bc38cb51a678aa916143de920e62e741b92fa82"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "4229559076dbab5872b2ba349dca183633c70f6d6e686b38a406049b44ffb648"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "712931f838808876371294de076e38795792edbd70659185effb89e70070f5f2"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "1a61094bee3e98050f0e9ac77164f16ced297b07fbfa116f5a1a72367c82b93f"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 31512,
+        "sha256": "7a18829eeeaf6fcfdf2a213ef7543d7c0b0a093ba137feb920cda53119bf873d"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35224,
+        "sha256": "1fa6348858b07b3a39cf676ea05fb37b9a85cd518292ad055a5bf269fab207a8"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 2223.9422,
+    "cpu_ms": 8750.0,
+    "peak_job_bytes": 662130688,
+    "peak_proc_bytes": 660877312,
+    "peak_working_set_bytes": 606015488,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 1,
+    "tag": "B",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1429286,
+        "sha256": "d47257a74b0985dc6f9c39b400b795307616c759b12b9e6a00ceefd2f15fd14e"
+      },
+      ".rdata": {
+        "size": 772856,
+        "sha256": "b8428af624600c2fb337a62c18ddd98faa45b8278b961d55be6efa1572679297"
+      },
+      ".xdata": {
+        "size": 10180,
+        "sha256": "4f86682f25ea5098e5e2f5be90d841590fda79a47d51cdc48ea3ab333cb53be9"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "6b693370a869dcd48fa0d9dc4e66f20e1c7ed1ad2cf8139e14baaf08eacf8388"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "b3bd7db0d1253c7d9ac548cca21e6ed1dfb3f74fcf055d876d6487869838a36f"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "92839a2477e4b91827bd3a6aee40552bb29d30081806cdd773fcb4cdc4eb0643"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 35576,
+        "sha256": "9ed87d0c49dfb17d56fb65fd9b82dd888ad52dd17c452d1488939370158c1d0e"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35232,
+        "sha256": "321ff65411ece0012912196613998c506f2eb87dcbaed43837eab1fe3037ed22"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1692.3078,
+    "cpu_ms": 7500.0,
+    "peak_job_bytes": 390836224,
+    "peak_proc_bytes": 389574656,
+    "peak_working_set_bytes": 345944064,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 1,
+    "tag": "A",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867302,
+        "sha256": "a1770b6c572e1aaa7b48b4b91fe80683b66c898a5984f9d48d6fd0226da7a160"
+      },
+      ".rdata": {
+        "size": 287625,
+        "sha256": "3b22deb2f01166b6d12972ec09c346f5ca08419c89b044b24e7fa3c5ac8d7698"
+      },
+      ".xdata": {
+        "size": 9344,
+        "sha256": "c18537e206964e127c6fafda13ee3db010ba7d6659f57ca4432907c3a1fc04ed"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "bd531f00c0024f05adb4e63b97777b1b56e89eba5752504eb4bfbe78904d1920"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "27ee08e95ff45c4ec53e6f8d765900627f3112a7948869fa6e82f6fbeee36d29"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "2d694a9494eef966e5401e6d78b1a95ff2ca28541d734711a399cbbd3100949f"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 31040,
+        "sha256": "302ab4cdbcc38afceca83043e7b5a8024b5d87b890bc8ee63824d36354ce1066"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17184,
+        "sha256": "458ad56dfd94991e368ae8d49219ddd301d7cccea9b5a9cae5b05d7183b22721"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1721.6684,
+    "cpu_ms": 7875.0,
+    "peak_job_bytes": 395845632,
+    "peak_proc_bytes": 394592256,
+    "peak_working_set_bytes": 345030656,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 1,
+    "tag": "B",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867286,
+        "sha256": "8a4e1d6938517b4443bbfdfee0e31e16abda87fe73a9d0f07d9ec2edf9a3a007"
+      },
+      ".rdata": {
+        "size": 288129,
+        "sha256": "876512f4ec4bb2550e2df5f6548a37d91c63a481ebe3a192bd9e7f76061f5eed"
+      },
+      ".xdata": {
+        "size": 9368,
+        "sha256": "dc587517b0121e832813eb7edf65d487ec6d08de47c6efe94ddbdbae65799027"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "cc124e0f6c9624b7fa28e346ef3b327a51dd73f2c5fe1d2f28c7c86926e13af7"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "ef8e418cfb90b5c7daf989e4da31119491f483e091230c3396d07099f220a3b8"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "7d8977883e6d4e4a034d72b274102d60437c7cf1794524103c7342decbf971f0"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 34856,
+        "sha256": "a5c93be7817907240d4162412decfb198893ecdf4ab923732256d031c35cfb42"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17184,
+        "sha256": "ed6d74936fdb1abf1dd86d02421d1156e481f9bbbb89e013601b42e8f1cd96e4"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 3082.3979,
+    "cpu_ms": 8312.5,
+    "peak_job_bytes": 643231744,
+    "peak_proc_bytes": 641982464,
+    "peak_working_set_bytes": 592359424,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 2,
+    "tag": "B",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1428246,
+        "sha256": "516cd5950d8cc93f1d236cda129e4783927850d60dcbf8255650aebf79abd995"
+      },
+      ".rdata": {
+        "size": 772328,
+        "sha256": "74ff60cd5bca9e535eb9b72f15509c7a4edcff761f84657e60c7c8047199dbb6"
+      },
+      ".xdata": {
+        "size": 10180,
+        "sha256": "cc10999f69b943844867a39263f71bb846b4f858ddbd1ceeb9cd1a1bfceddbd6"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "26109b1d1175aad1be558826d3cfd5dd6620fafc8e33c0583eb4b5ec866206de"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "8518c8d06bedd9e6af9707413ded8dbd0b473dfa825844c1fd03c2376c4e750d"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "afa21ff43970d112418816f8709e78fc167528ef4091d13806b05ce50dc63e1b"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 31496,
+        "sha256": "a90819c71676f0b15483711cfbd4d1700231d9e130d808a8b33666f93a46fa93"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35188,
+        "sha256": "63f026de5fd4bdc6a89f62a94abc6db0709aefed9c6cefbacad1eeac9bca81ab"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 3113.6105,
+    "cpu_ms": 8906.25,
+    "peak_job_bytes": 587333632,
+    "peak_proc_bytes": 586072064,
+    "peak_working_set_bytes": 537677824,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 2,
+    "tag": "A",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1429702,
+        "sha256": "6dd3847cf902896a3e5cea9417eaf166cc3faa833ac563f13638238ede647eb7"
+      },
+      ".rdata": {
+        "size": 773096,
+        "sha256": "ee3b24797c185a098d14b3d2154614c7e5e31619e3634a23830e64de686b36df"
+      },
+      ".xdata": {
+        "size": 10156,
+        "sha256": "3b4b8b62f7977d7ed267473fae17bc9220901ae7d89b2f5c2c9f1bd9392f300b"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "0947b28d43a8be5b751a47a73bb39e69a297f16fb2223e60592842b124cef404"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "1827d7590f371b190ea7b33d1aaa4713ef4dc9c9ae7045a5a2f5b15b14620ca5"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "9b285bfafe8103f37806e319a8b7d0314ad958a4984aa2ebe395f2a6e8770c21"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "2322f25266de5de0b064aeb7ab2e96017c2521dd7db52be68a7d82bab2a26ca4"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "c469d086cbf4c1a056a3ae3893cc230f75febe43315457bb62df8f866af379ba"
+      },
+      ".data": {
+        "size": 35048,
+        "sha256": "a72a19db5e6cac00ac8307b52f04662e6ef4a09084324a466aaff95c9bcca90c"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35240,
+        "sha256": "025a3857867c507c70092a053a5a39a1101a42f5cf8ab41532322f5b2706db13"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 2774.0519,
+    "cpu_ms": 7812.5,
+    "peak_job_bytes": 385634304,
+    "peak_proc_bytes": 384376832,
+    "peak_working_set_bytes": 338055168,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 2,
+    "tag": "B",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867254,
+        "sha256": "1e0ff3532d3e6e86342ef737f19baa387c08415deb702542111aa47f072d4b26"
+      },
+      ".rdata": {
+        "size": 287681,
+        "sha256": "2130a1612bbcd5cd06776d0b78bd9ac919ee85aed5f3931a91c3c213b0e36eca"
+      },
+      ".xdata": {
+        "size": 9344,
+        "sha256": "5e99c75e82a573fc5ba48f68f9c521bf17179f80c2283a9ebab0d9c6902a452b"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "23a37671f93066acd2c23a96b92732ec9db6d9e21a0fd5578e6c2db3683570cb"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "331f4179ad96d02be0186e1237b6c4d4d02e2dbf0ecc1b140281e364e9d9d01f"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "4b47304ebc8524ed5ab14afeff0282a9516ac589f984913488a26dbe43a2a3bd"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 35576,
+        "sha256": "0d6223f8b26e10b13b1d56541b673ff2c9ea83924e044209b807db7ba27af37c"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17192,
+        "sha256": "cd758eb2c9937742d4115a1b8dcd1589b28f87c55ef8863da13eb2c9809176c2"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 2689.5793,
+    "cpu_ms": 7812.5,
+    "peak_job_bytes": 366755840,
+    "peak_proc_bytes": 365453312,
+    "peak_working_set_bytes": 314159104,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 2,
+    "tag": "A",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867254,
+        "sha256": "0f91d05013c82da7824a6fd1fcb2cdbfbba42e9e401bbf842420a1848575cc76"
+      },
+      ".rdata": {
+        "size": 287713,
+        "sha256": "8697a5e258ab67bc793b493668aa285ac50991e42cc3dc7eb1595a8f4c5f8915"
+      },
+      ".xdata": {
+        "size": 9364,
+        "sha256": "047b79cd95b16805f80e67e5efc40f83b63e23819c4f6ae73e2bc5e5c5f06b82"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "50c4d7aa4900db0163c15f96d5cf533b8f4d5ecb80d02a3f5558c06055c7b7f0"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "f6584da3e3e9b7159f0a3d9f35c0c6352f7cbe3c656344e63b7139ed390cbcc3"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "51110a4152b35de7d375b388cbd01f8fc7ca2a62b68740f0e38f788758abf72b"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 35048,
+        "sha256": "408d3e144a5ecda32c28e1c1715b32affb075884aebcbcf9c9db60c5e0157da6"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17152,
+        "sha256": "da6bf31df523e8a7448a2cd6dade4b816407c564934f097b9264e0cb6bcf0cde"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 2941.5821,
+    "cpu_ms": 9156.25,
+    "peak_job_bytes": 648642560,
+    "peak_proc_bytes": 647393280,
+    "peak_working_set_bytes": 596934656,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 3,
+    "tag": "A",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1428246,
+        "sha256": "31b76fef5fee1d1aaeffc5b349406de60bde707bf60b9262daf425a6027b2582"
+      },
+      ".rdata": {
+        "size": 772024,
+        "sha256": "ca9370bd3f0f7cddda8ceb70932f828d6b2149c0e8e8bb09974bd8fffc050bb0"
+      },
+      ".xdata": {
+        "size": 10180,
+        "sha256": "d4677a2896274d3b4c1023ca94291e516845e6ebc8bd3b57c942bf8ba6eb903a"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "513d2039b14c57a78d35e9d07b0e892b16fcccd5cf4b48ba92650d094d23075a"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "7357bcd8b7e396e09f7a07dd8abae2dfe223f970aacfa6f9ccfff4c2686ab0d8"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "a93e725bdd4096820db92b35af2c09ffbedca6ca2b5a1385c6e76991106d3950"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 31496,
+        "sha256": "490e012127045c41878a10072abe4702e70e5a13144272cb7d57265fdb28a779"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35200,
+        "sha256": "8ea9f136bbdad6d9bb8c72dc7b99d5f296909d139b2fd0d7cb0be3d3b3d08cc4"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 2850.8242,
+    "cpu_ms": 9015.625,
+    "peak_job_bytes": 633298944,
+    "peak_proc_bytes": 632049664,
+    "peak_working_set_bytes": 578576384,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 3,
+    "tag": "B",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1429494,
+        "sha256": "8e8583a98fb5bd758bdab31e69d0060af83926573d5f31d79b58ff5d45eb7ae1"
+      },
+      ".rdata": {
+        "size": 773448,
+        "sha256": "acbfe598d3548b5160ec75beaef025618d5ae4abdab5cfe4378e2ae3a29d7621"
+      },
+      ".xdata": {
+        "size": 10188,
+        "sha256": "a51e84cfee31034d11604be40ccd9de663b035cac56df6a1371b313d797c1812"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "1a435fde2f08048152d02c1d20d9f35ea27581a453019bf2d598cc55fcc3ff45"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "b5f2dfdca3af56f9f8df097d775904b055b076df4b1def37845b323207a4cd49"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "0a687e72f4aae03dd5034591ad14093c384b27bf7fb6be80584d44b9c1f84b8c"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 35768,
+        "sha256": "4e816c473f3f571e504f2ac3f109ec182e1c7d2dfbe80d4563d36894ba212c1f"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35212,
+        "sha256": "45cd76e9b903ae03d5f9f19d4b1fa4a636f9f589b1c1fe683fa37842842d99d7"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 2428.1027,
+    "cpu_ms": 7906.25,
+    "peak_job_bytes": 382320640,
+    "peak_proc_bytes": 381071360,
+    "peak_working_set_bytes": 334446592,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 3,
+    "tag": "A",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867286,
+        "sha256": "e814ab86558c53212f155742d0c39075d43976d0f273486b2c30df3c27a350f7"
+      },
+      ".rdata": {
+        "size": 288241,
+        "sha256": "81a7e2b8ec8a3e885a7feb3ea152cb46a2bbbdaee5749baaf4129e6df734e0d5"
+      },
+      ".xdata": {
+        "size": 9384,
+        "sha256": "0587979dd446a6aae10321359502de1964a3589f326523c4c06294191e980edd"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "187f53d6f268d74e8eba3a27d60e12e52b61fbfb855bb1aa499f3804e6bca05e"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "0fecb65d5a3dfa47d00c785687661eba14b765af7fc20190132a4a88d7b6c0e6"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "5fe315f0d8d889d29acc8e5c37e63ac17cba51a98a4b424f468fea4c23c7f82f"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 31040,
+        "sha256": "a394e24e5571de6a4a58eabb4dc046102d6fa45c7b93e0b6010c2f67571c362f"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17168,
+        "sha256": "f9f1640c75450152bfbfb7913ea8ca035a7659af99763be03c3f94bba143e677"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1710.8887,
+    "cpu_ms": 7984.375,
+    "peak_job_bytes": 397508608,
+    "peak_proc_bytes": 396259328,
+    "peak_working_set_bytes": 349175808,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 3,
+    "tag": "B",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867286,
+        "sha256": "0952406af23653b569659e8e5fcf901dff7c2d8fd89de7372d1f6602f1b2c1ec"
+      },
+      ".rdata": {
+        "size": 287649,
+        "sha256": "1c22f05fa99ad447359f4393053b00b5716b6e08911ad7d0d7711040b8a8f912"
+      },
+      ".xdata": {
+        "size": 9364,
+        "sha256": "56e44d6b272b7692c8291a472935dda519d997225c6b8b181be21cd1a7f74d38"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "e21c850b401f7ea923d7f49c59b353d8a39b94ccc042663387c7f4e1e1157799"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "2f20b272ce15e5a9c09a3da46c6e63b5ae34ea639a18d546f51164b85cdf25f5"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "1555fa1aff4ee1318d958ac6ebf2d1e9cf19ae6f9e8b892d6b81a0e6f6ed720a"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 34856,
+        "sha256": "57c4a0864fda382cb5be5dc5ffa78bfbe9be6271f9ede4a1aad52c0a1ea793b6"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17184,
+        "sha256": "68e987f838ca1262d18a051861a278168bff9c7cb9c921fda8a6da553159f8ab"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1906.1654,
+    "cpu_ms": 8718.75,
+    "peak_job_bytes": 664879104,
+    "peak_proc_bytes": 663617536,
+    "peak_working_set_bytes": 609738752,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 4,
+    "tag": "B",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1428374,
+        "sha256": "404606aabd9e212b35c29a1bb1bf4553d036b005299c50eaf9f93585638d5318"
+      },
+      ".rdata": {
+        "size": 772576,
+        "sha256": "ba589d9a80628f3bb7494967f757cfdd53a1a532f483a0e5f124538f3effe921"
+      },
+      ".xdata": {
+        "size": 10140,
+        "sha256": "b856e17710e7a0e71291ce353304e0522b0beec071226155e4924794647c1ab0"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "917c2775c1721bdebd60b17a91b8ce8d9f3c9e45f8c6964fcc22da822e9b70cd"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "0c2abfb0d93c01ba07f9eb7595f82280e364fbc2fc33dac8d28f05be3ee99ad6"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "ad3147fdecd02a8735306ff3efc746586b99684acd10e0bf9c7af2ccd222cc11"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 34856,
+        "sha256": "481cbff0ec2e04ecceb73f91d51c99d657fccf3ef6e90ffdecc773a2d4410786"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35204,
+        "sha256": "e1d4b8337ee3110bd965a9ca10a7550fba810b9e5cb9390b0defe879bab9d341"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1888.295,
+    "cpu_ms": 8468.75,
+    "peak_job_bytes": 650063872,
+    "peak_proc_bytes": 648806400,
+    "peak_working_set_bytes": 595304448,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 4,
+    "tag": "A",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1428422,
+        "sha256": "6e25fa5ef997327073b577dad9ecc37b23374ef4728678c43863dea4c22e74e4"
+      },
+      ".rdata": {
+        "size": 771457,
+        "sha256": "62749e4bbc83862df3cc23b075f08ba2a08794d38f6f709a870e889f7a486718"
+      },
+      ".xdata": {
+        "size": 10136,
+        "sha256": "0c05dc03b950c8b4f1b8e63934a6ccd037685da86537e4cab0f3e631f9ea2fcc"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "a72b6ba277bc1e154397976a56dd22547e3194b21162ed8330ae54977f3e2191"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "ffc7623c94de2f3995722ae226a0185164843e20268c9fe613564e7fe39c9852"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "9b7afdee4200298cb45c019fcdb5dbca0754f925d7a075c8b620bfc3a07b6ffc"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 31512,
+        "sha256": "f469716a7026120e4e8cf74bfeff9e0e42e33e5db361175b93e862e7fa5963cf"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35204,
+        "sha256": "e8fdd5741158ccbb5198e9ad3847305802786e8e26fd7cd63d5dea0028538bbb"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1664.122,
+    "cpu_ms": 7203.125,
+    "peak_job_bytes": 394473472,
+    "peak_proc_bytes": 393228288,
+    "peak_working_set_bytes": 347058176,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 4,
+    "tag": "B",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867254,
+        "sha256": "6152c1ff1e03bf457e713e89ca6cb4d8a34c29f4f2c4ad3bc245f68353b5a56b"
+      },
+      ".rdata": {
+        "size": 288489,
+        "sha256": "ffb3170869b3a7c9c579dc2847707249f84040d991b9eedfefdda5d79e2dcdce"
+      },
+      ".xdata": {
+        "size": 9344,
+        "sha256": "e3c43956226acf9668fa343d816bd6e7c27d2a06e058607609c2bdd7cd13a113"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "1735ed310ef91db4ac97249e7bd73d3538becd2694e17ac7458879a228832cb4"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "768b1d70df9adc314d13a3a4e2c528984c433128d1a7a5340a5d1ea83bdf66f7"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "71d36e9d71b2ece8dcf0e271131a9e68d87e3a0e5f8f47ba7a05286ea7baf142"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 34856,
+        "sha256": "d3b43d1e2753e3b6fac521e90290c085a3df3ac62a56ea3ea89d505115def826"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17168,
+        "sha256": "423b5e88b2e4900b4325bb317804f8607fe5f4e3d6a4dedce80cbb71a8ba782b"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1631.3782,
+    "cpu_ms": 7218.75,
+    "peak_job_bytes": 395563008,
+    "peak_proc_bytes": 394309632,
+    "peak_working_set_bytes": 347615232,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 4,
+    "tag": "A",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867318,
+        "sha256": "6c02b82f2f5b6d176e7cd6b367b7d7f4053d6ed21d4798c34baa5276ca3fc9d6"
+      },
+      ".rdata": {
+        "size": 288017,
+        "sha256": "c260719bc8ece68e4ea7f0e222d86da31dd28342f5a2803705ad0d761d40e5cd"
+      },
+      ".xdata": {
+        "size": 9368,
+        "sha256": "63a00c39a48b7b1e72c57d66dfdb07f54ea6e1b12d6b3be83fb56ddc9be14740"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "b070397083c1735e9cf50776afe77fa31417b3007408cdfce77076f4301f5d04"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "1624fdb61a4fc89ecabd2b49f46e074f2566bddc2e581f9eec67ae5455958eb3"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "046804cab275afd683cb72d577efa7c8ebe2e458a55f569bc8f65ce492e7732d"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 34856,
+        "sha256": "d3b43d1e2753e3b6fac521e90290c085a3df3ac62a56ea3ea89d505115def826"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17196,
+        "sha256": "bcfaa9b9571897598dbfa0cae172d022c4c3436e787130a173b297d22a5cb43a"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1674.3769,
+    "cpu_ms": 7437.5,
+    "peak_job_bytes": 634040320,
+    "peak_proc_bytes": 632786944,
+    "peak_working_set_bytes": 585101312,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 5,
+    "tag": "A",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1429654,
+        "sha256": "3bbf9064d1b310d18c4b8ad43f8924a33f0b401cbdf3e37547154171de0c8582"
+      },
+      ".rdata": {
+        "size": 774000,
+        "sha256": "d1b3349b37ad23d1da8b65306125bf7774699bb9e62e7faea6fdb16179c2186e"
+      },
+      ".xdata": {
+        "size": 10148,
+        "sha256": "8409429e6c84de340dd28d27268996844706ef651d4fb6cd7f8b3c1117fcb7c4"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "ca0bc8145c03f66bc01fc4e85722147b12091933b09804844f5782bc665de1bb"
+      },
+      ".swagdbg": {
+        "size": 76288,
+        "sha256": "96cf240bd5db88976f3acadd84af1a59a99b78241fbc4ae03bf7aa5ffe6fdeda"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "9b285bfafe8103f37806e319a8b7d0314ad958a4984aa2ebe395f2a6e8770c21"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "d43ea8504f732a7110f4d4f29f55a220b11b4fd08062c638de78728d260ddb91"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "c469d086cbf4c1a056a3ae3893cc230f75febe43315457bb62df8f866af379ba"
+      },
+      ".data": {
+        "size": 31512,
+        "sha256": "cf76e6dbc00f25d8c02ecb172d023c10b799332da46bbb1a2209aa5f16a50d02"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35252,
+        "sha256": "f120aa43c06a93be17d955bdbadd0e6503117f2766bf1c76c61356ac1ae0eb07"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1795.4265,
+    "cpu_ms": 8078.125,
+    "peak_job_bytes": 670384128,
+    "peak_proc_bytes": 669130752,
+    "peak_working_set_bytes": 610119680,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 5,
+    "tag": "B",
+    "cfg": "devmode",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "devmode",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 1429254,
+        "sha256": "8014a9379c53bcd183555f1fc1c91da3dd0973e1293a88c17dfd850871827c3c"
+      },
+      ".rdata": {
+        "size": 772945,
+        "sha256": "8787b79b6cef647df85e2fc0208924f98bc0a5337ad3631a7c8b340321b6107c"
+      },
+      ".xdata": {
+        "size": 10180,
+        "sha256": "4890b851232e6ec1ac1df0ea2df55eacc0ce5977e78c15153560ee5dc960dd0b"
+      },
+      ".pdata": {
+        "size": 47796,
+        "sha256": "5dc4b1e1a5bbcd15018e99cb5d20055943827c1cffb58cf2691af24ef0f32995"
+      },
+      ".swagdbg": {
+        "size": 76800,
+        "sha256": "4624738ccc1372c8224e886b6bbe59ff363e323c4b1a2958c64e38f20de662fc"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "7b29864648d8f36d191840146e2c498ea2f8d7a96b3cce24ded47f7edd20cb7a"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "da533360085d25a7bd0142885e44b7dee4ba29c0ac72b2a6c59033d7070da807"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "9757b34789559ba25383df951408764b1dbc480e4a9bb714e3fe0318cc1c61f8"
+      },
+      ".data": {
+        "size": 31512,
+        "sha256": "cadcee9133fce4bcace1f4f2b264e0745676064fa3c77e0adff5c67f97c3712c"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 35248,
+        "sha256": "afd852fcfb24f498bf836c8f2263ca4c12f2f411ae5138b76a68c93c1cd572f7"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1530.5052,
+    "cpu_ms": 6468.75,
+    "peak_job_bytes": 380952576,
+    "peak_proc_bytes": 379695104,
+    "peak_working_set_bytes": 330305536,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 5,
+    "tag": "A",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Users/chris/AppData/Local/swc-agent-builds/memory-20260916/pre-transfer/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867318,
+        "sha256": "ea8c07881149adcf0b81966cd2f5011886581ed9697f8472e602afe4851731f4"
+      },
+      ".rdata": {
+        "size": 287960,
+        "sha256": "d4c526023e67a90bcbebde3bd1a04214a6ce9c07951043537101c825cdda12c6"
+      },
+      ".xdata": {
+        "size": 9388,
+        "sha256": "d8335d61c0b445c0e5fe8ee865b457e64b00817d50e27cfbb6f2c3f13020e36e"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "6f939f70f0ccdd5b8119a77963f571479c42c8a66bdb64d62f033fd6a9034a45"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "dd9463f87e8fea10ebbc31cda601cec617a07b6d32b5f1194bed28b100ed903e"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "2c01439ec198376a3eac954185c8b73450849b38af556cbf60a9e68d010cba81"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 33904,
+        "sha256": "86a0f311dae1b1d19266857ecdd7e0313cbd62d7edf14f7caec56bd15f5823ef"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17180,
+        "sha256": "033451fbab7f9b29327993948997f19424406016bbf5cf5ef16cb53cd944530c"
+      }
+    }
+  },
+  {
+    "exit": 0,
+    "wall_ms": 1484.043,
+    "cpu_ms": 6593.75,
+    "peak_job_bytes": 385048576,
+    "peak_proc_bytes": 383795200,
+    "peak_working_set_bytes": 333062144,
+    "stdout": "",
+    "stderr": "\r\n",
+    "round": 5,
+    "tag": "B",
+    "cfg": "release",
+    "module": "core",
+    "command": [
+      "C:/Perso/swag-lang/swc-memory/bin/swc.exe",
+      "build",
+      "--workspace",
+      "C:\\Perso\\swag-lang\\swc-memory\\bin\\std",
+      "--workspace-module",
+      "core",
+      "-bc",
+      "release",
+      "--rebuild",
+      "--silent",
+      "--num-cores",
+      "6"
+    ],
+    "affinity_mask": 349185,
+    "sections": {
+      ".text": {
+        "size": 867238,
+        "sha256": "0d72e4f1d96e6e4036b95d820e703df8e3abe7a6bb549803ef41d3a39b5974d2"
+      },
+      ".rdata": {
+        "size": 287625,
+        "sha256": "8b014d32dafff0e0431b6ff448f82c3a0e61a5480939a3938dd117ae4b018ad5"
+      },
+      ".xdata": {
+        "size": 9344,
+        "sha256": "4811a68503d26a1e310ced8adedd351c92c84df537b688556ddab8d4e3c3e9cf"
+      },
+      ".pdata": {
+        "size": 46524,
+        "sha256": "6f15a1897a7946004df706003ea1a9c5aa7e34a107d3bca89837b9b62698e1ee"
+      },
+      ".swagdbg": {
+        "size": 75776,
+        "sha256": "cb6a5e620c172cfa0817a567c4e54a5b1d0040f28210712c8d14364657f7a6ca"
+      },
+      ".idata": {
+        "size": 7064,
+        "sha256": "e4e8c14eb2438efba2c9d1ed3af824b7bac1ed18c1d9ae83bf2d1b4ea37c048f"
+      },
+      ".edata": {
+        "size": 75996,
+        "sha256": "98bb2cf5561b616b39c773698a57049e24f525370f0ea5ab2a22013e546fd25e"
+      },
+      ".rsrc": {
+        "size": 798,
+        "sha256": "8dc88737759f635818469d9b35f3ce38e3ce3f0c150fb6747ea154712e7026d7"
+      },
+      ".data": {
+        "size": 35048,
+        "sha256": "ccbb88b198e558cfe28bd9ad55e7996f93a320feb57b0988a0476ad962c0a7da"
+      },
+      ".bss": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".reloc": {
+        "size": 17184,
+        "sha256": "b7ec6577486b75343008185e148f4e5f306a56cebf6d19c15b10e1330195d8ea"
+      }
+    }
+  }
+]

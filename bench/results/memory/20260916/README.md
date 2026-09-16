@@ -108,3 +108,13 @@ causes large outliers. This fixes correctness; it is not a claimed performance i
 [Every sample, including the outliers](method-reloc-ab.json).
 Integration with master `ecd10b479` uses build 706. Both compiler builds and the
 1,487-test DevMode-compiler JIT release suite passed again.
+
+## Rejected candidate: move first-arrival sanitizer states
+
+Moving a consumed edge into its first destination avoided a deep copy, but kept the source
+hash-table capacities instead of constructing the compact destination tables used by copy
+assignment. The five-pair comparison of builds 706 and 707 increased paired peak working set
+by 4.3% in devmode and 0.8% in release; committed memory rose 5.6% and 1.3%. Paired elapsed
+changes were -1.0% and +1.7%, CPU changes -1.5% and +1.0%. The 57 sanity tests and 410 native
+control-flow tests passed, including the linked executable. The candidate was reverted and
+was not merged. [All samples](transfer-rejected.json).

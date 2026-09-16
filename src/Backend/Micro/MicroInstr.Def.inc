@@ -456,6 +456,32 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
     })
+// Carry arithmetic reads the incoming flags and defines the outgoing flags.
+SWC_MICRO_INSTR_DEF(
+    AddCarryRegImm,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::UsesCpuFlags | MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
+// Carry arithmetic reads the incoming flags and defines the outgoing flags.
+SWC_MICRO_INSTR_DEF(
+    SubtractBorrowRegReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::UsesCpuFlags | MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
 SWC_MICRO_INSTR_DEF(
     OpUnaryReg,
     MicroInstrDef{

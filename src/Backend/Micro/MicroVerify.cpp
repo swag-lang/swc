@@ -205,6 +205,7 @@ namespace
             case MicroInstrOpcode::JumpCond:
             case MicroInstrOpcode::JumpCondImm:
             case MicroInstrOpcode::AddCarryRegImm:
+            case MicroInstrOpcode::SubtractBorrowRegImm:
             case MicroInstrOpcode::SubtractBorrowRegReg:
             case MicroInstrOpcode::LoadHighByteRegReg:
             case MicroInstrOpcode::LoadRegReg:

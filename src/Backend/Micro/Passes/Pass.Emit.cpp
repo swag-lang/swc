@@ -288,6 +288,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::AddCarryRegImm:
             encoder.encodeAddCarryRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
             break;
+        case MicroInstrOpcode::SubtractBorrowRegImm:
+            encoder.encodeSubtractBorrowRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
+            break;
         case MicroInstrOpcode::SubtractBorrowRegReg:
             encoder.encodeSubtractBorrowRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;

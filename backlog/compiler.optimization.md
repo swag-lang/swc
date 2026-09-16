@@ -15,6 +15,29 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.039 — A pre-RA loop that stops short of its fixed point has no diagnostic
+
+- Recorded: 2026-09-16 12:12
+- Area: compiler/backend, compilation time
+- Evidence: the pre-RA optimization loop sweeps up to sixteen times and treats a sweep budget
+  that runs out as an error, through `MicroVerify::reportError` in
+  `MicroPassManager::runLoopPasses`. Outside a micro-validating build that call returns
+  `Result::Error` and says nothing, so the failure reaches the user as whatever the caller makes
+  of it. Lowering the cap to three with a temporary knob (Release 0.1.684) and building
+  `bin/std/modules/gui` produced eighteen semantic errors - overload resolution rejecting calls
+  that resolve normally - and no message about the backend. The compile-time evaluations that
+  feed those calls are lowered through the same loop, so a budget the loop cannot meet surfaces
+  as a front-end error about the user's own source.
+- Why it matters: the cap is the obvious knob for a cheaper optimization tier, and it cannot be
+  used. It is also unmeasured: nothing records how close a real function comes to sixteen sweeps,
+  so a function that needs a seventeenth today would fail the same silent way.
+- Next: give non-convergence a diagnostic in every configuration, naming the function and the
+  budget, so the failure is attributable. Then measure the sweep counts a full `bin/std` build
+  actually reaches, and decide from that whether the budget is a safety net or a live limit.
+- Complete when: a loop that exhausts its budget reports it as a compiler error naming the
+  function, and the sweep distribution over `bin/std` is recorded.
+- Related: compiler.optimization.029, compiler.core.004.
+
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 
 - Recorded: 2026-09-06 14:53

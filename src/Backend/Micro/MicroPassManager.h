@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroPass.h"
+#include "Backend/RuntimeBackendConfig.h"
 #include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -56,7 +57,7 @@ public:
     MicroPassManager& operator=(MicroPassManager&&) noexcept;
 
     void clear();
-    void configureDefaultPipeline(bool optimize);
+    void configureDefaultPipeline(const Runtime::BuildCfgBackend& backendCfg);
     void addStartPass(MicroPass& pass) { startPasses_.push_back(&pass); }
     void addPreRaLoopPass(MicroPass& pass) { preRaLoopPasses_.push_back(&pass); }
     void addPreRaAnalysisPass(MicroPass& pass) { preRaAnalysisPasses_.push_back(&pass); }

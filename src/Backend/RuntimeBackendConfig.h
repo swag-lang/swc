@@ -50,6 +50,13 @@ namespace Runtime
         // The optimizer runs at all.
         constexpr bool optimizes() const { return optimLevel != BuildCfgBackendOptimLevel::O0; }
 
+        // The optimizer also runs the analyses that cost compilation time: induction variables,
+        // strength reduction, value numbering, loop-invariant code motion, loop unrolling, and
+        // scheduling for register pressure. They are what separates O1 from O2, so the
+        // edit-build loop pays for the rewrites that are nearly free and a shipped build pays
+        // for the rest.
+        constexpr bool runsCostlyOptimizations() const { return optimLevel >= BuildCfgBackendOptimLevel::O2; }
+
         // Register allocation splits live intervals instead of assigning one register per
         // value for its whole life (compiler.optimization.024). Measured neutral on compilation time, so the
         // level it needs is the first one that optimizes at all.

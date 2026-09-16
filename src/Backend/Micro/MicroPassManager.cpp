@@ -499,9 +499,12 @@ void MicroPassManager::clear()
     finalPasses_.clear();
 }
 
-void MicroPassManager::configureDefaultPipeline(const bool optimize)
+void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& backendCfg)
 {
     clear();
+
+    const bool optimize = backendCfg.optimizes();
+    const bool costly   = backendCfg.runsCostlyOptimizations();
 
     // Phase 1 - Initial lowering (runs once).
     // Only stack adjustment normalization. Legalize is deferred to the RA loop:
@@ -528,18 +531,22 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         // to carry, and once the combine has folded it into an address mode
         // there is nothing left to carry, only an index to keep live beside
         // its base. Value numbering later shares the carriers of one stride.
-        addPreRaLoopPass(*inductionVariablePass_);
+        if (costly)
+            addPreRaLoopPass(*inductionVariablePass_);
         addPreRaLoopPass(*instructionCombinePass_);
-        addPreRaLoopPass(*strengthReductionPass_);
+        if (costly)
+            addPreRaLoopPass(*strengthReductionPass_);
         // Deduplicate identical dominating computes. Runs after strength
         // reduction so the multiply-high expansions of `u / C` and `u % C`
         // exist to be shared, and before LICM so a loop body slimmed by
         // sharing exposes more hoisting.
-        addPreRaLoopPass(*valueNumberingPass_);
+        if (costly)
+            addPreRaLoopPass(*valueNumberingPass_);
         // Hoist loop-invariant address/load/constant computations into the loop
         // preheader. Runs after instruction-combine so address modes (lea) are
         // already formed, and before DCE so any now-redundant copies are cleaned.
-        addPreRaLoopPass(*licmPass_);
+        if (costly)
+            addPreRaLoopPass(*licmPass_);
         // Claim loop regions for packed stack chunks: hoist their load to the
         // preheader, sink their store to the exit, keep the value in one
         // loop-carried vector register inside. A no-op until the SLP pass has
@@ -554,7 +561,8 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         // body it sizes up is already simplified, and the sweep after an
         // unroll folds the per-copy constant counters through extends and
         // address modes.
-        addPreRaLoopPass(*loopUnrollPass_);
+        if (costly)
+            addPreRaLoopPass(*loopUnrollPass_);
 
         // Runs once after the loop above has converged, on the canonical
         // scalar IR. Self-gated on the build configuration's vectorization
@@ -579,7 +587,7 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // its whole value set live at once. It reorders without reducing anything
     // the optimization loop's fixed point measures, so it cannot live inside
     // that loop; the pass gates itself to the first allocation sweep.
-    if (optimize)
+    if (costly)
         addRaLoopPass(*sinkToUsePass_);
     addRaLoopPass(*legalizePass_);
     addRaLoopPass(*regAllocPass_);

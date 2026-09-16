@@ -1660,17 +1660,18 @@ SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
         SharedSource,
         InterveningFlags,
         NarrowInitial,
-        UnsupportedMask,
+        UnsupportedAffineDelta,
         PartialMask,
         NoComplement
     };
-    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedMask, Case::PartialMask, Case::NoComplement})
+    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedAffineDelta, Case::PartialMask, Case::NoComplement})
     {
         constexpr MicroReg dst = MicroReg::virtualIntReg(1);
         constexpr MicroReg src = MicroReg::virtualIntReg(2);
         MicroBuilder       builder(ctx);
-        const uint64_t     initialValue = test == Case::UnsupportedMask ? 3 : test == Case::PartialMask ? 0xFFFFFFFF
-                                                                                                        : 1;
+        // Three is an encodable affine delta; seven still needs more than one LEA.
+        const uint64_t initialValue = test == Case::UnsupportedAffineDelta ? 7 : test == Case::PartialMask ? 0xFFFFFFFF
+                                                                                                           : 1;
         builder.emitLoadRegImm(dst, ApInt(initialValue, 64), test == Case::NarrowInitial ? MicroOpBits::B8 : MicroOpBits::B64);
         builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(3), MicroOpBits::B64);
         builder.emitLoadRegImm(src, ApInt(0, 64), MicroOpBits::B64);
@@ -1686,6 +1687,115 @@ SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 0)
             return Result::Error;
     }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Affine selects preserve live flags and both selected values, including signed
+// displacement limits and modulo-width wraparound. Rejected cases keep the CMOV.
+SWC_TEST_BEGIN(InstructionCombine_AffineSelect_PreservesValuesAndFlags)
+{
+    struct Case
+    {
+        uint64_t first;
+        uint64_t second;
+        bool     folds32;
+        bool     folds64;
+    };
+    constexpr Case cases[] = {
+        {3, 4, true, true},
+        {3, 5, true, true},
+        {0, 3, true, true},
+        {3, 7, true, true},
+        {7, 12, true, true},
+        {1, 9, true, true},
+        {7, 16, true, true},
+        {0x7FFFFFFF, 0x80000000, true, true},
+        {0x80000000, 0x80000001, true, false},
+        {0xFFFFFFFF80000000, 0xFFFFFFFF80000003, true, true},
+        {0xFFFFFFFF7FFFFFFF, 0xFFFFFFFF80000000, true, false},
+        {0xFFFFFFFFFFFFFFFF, 1, true, true},
+        {3, 9, false, false},
+        {3, 10, false, false},
+    };
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const Case& test : cases)
+            for (const bool reversed : {false, true})
+            {
+                constexpr MicroReg dst          = MicroReg::virtualIntReg(1);
+                constexpr MicroReg src          = MicroReg::virtualIntReg(2);
+                constexpr MicroReg flag         = MicroReg::virtualIntReg(3);
+                constexpr MicroReg base         = MicroReg::intReg(2);
+                const uint64_t     initialValue = (reversed ? test.second : test.first) & getBitsMask(bits);
+                const uint64_t     sourceValue  = (reversed ? test.first : test.second) & getBitsMask(bits);
+                const bool         folds        = bits == MicroOpBits::B32 ? test.folds32 : test.folds64;
+                MicroBuilder       builder(ctx);
+                builder.emitLoadRegImm(dst, ApInt(initialValue, 64), bits);
+                builder.emitCmpRegReg(base, MicroReg::intReg(3), bits);
+                builder.emitLoadRegImm(src, ApInt(sourceValue, 64), bits);
+                builder.emitLoadCondRegReg(dst, src, MicroCond::Equal, bits);
+                builder.emitSetCondReg(flag, MicroCond::Zero);
+                builder.emitLoadMemReg(base, 8, flag, MicroOpBits::B8);
+                builder.emitLoadMemReg(base, 0, dst, bits);
+                builder.emitRet();
+                SWC_RESULT(runInstCombinePass(builder));
+
+                const uint32_t addresses = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) + Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrAmcRegMem);
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != (folds ? 0u : 1u) ||
+                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != (folds ? 2u : 1u) ||
+                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != (folds ? 1u : 0u) ||
+                    addresses != (folds ? 1u : 0u) ||
+                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1 ||
+                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpUnaryReg) != 0 ||
+                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0 ||
+                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+                    return Result::Error;
+                if (!folds)
+                    continue;
+
+                MicroCond selectedCondition = MicroCond::Unconditional;
+                uint64_t  coefficient       = 0;
+                uint64_t  offset            = 0;
+                for (const MicroInstr& inst : builder.instructions().view())
+                {
+                    const MicroInstrOperand* ops = inst.ops(builder.operands());
+                    if (inst.op == MicroInstrOpcode::SetCondReg)
+                    {
+                        if (ops[0].reg == src)
+                            selectedCondition = ops[1].cpuCond;
+                        else if (ops[0].reg != flag || ops[1].cpuCond != MicroCond::Zero)
+                            return Result::Error;
+                    }
+                    if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg &&
+                        (ops[0].reg != dst || ops[1].reg != src || ops[2].opBits != bits || ops[3].opBits != MicroOpBits::B8))
+                        return Result::Error;
+                    if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
+                    {
+                        if (ops[0].reg != dst || ops[1].reg != dst || ops[2].opBits != bits)
+                            return Result::Error;
+                        coefficient = 1;
+                        offset      = ops[3].valueU64;
+                    }
+                    if (inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+                    {
+                        if (ops[0].reg != dst || (ops[1].reg != dst && ops[1].reg != MicroReg::noBase()) || ops[2].reg != dst ||
+                            ops[3].opBits != bits || ops[4].opBits != MicroOpBits::B64 ||
+                            (ops[5].valueU64 != 1 && ops[5].valueU64 != 2 && ops[5].valueU64 != 4 && ops[5].valueU64 != 8))
+                            return Result::Error;
+                        coefficient = (ops[1].reg == dst ? 1u : 0u) + ops[5].valueU64;
+                        offset      = ops[6].valueU64;
+                    }
+                }
+                if (selectedCondition != MicroCond::Equal && selectedCondition != MicroCond::NotEqual)
+                    return Result::Error;
+                for (const bool equal : {false, true})
+                {
+                    const uint64_t selected = selectedCondition == MicroCond::Equal ? equal : !equal;
+                    const uint64_t result   = (offset + coefficient * selected) & getBitsMask(bits);
+                    if (result != (equal ? sourceValue : initialValue))
+                        return Result::Error;
+                }
+            }
     return Result::Continue;
 }
 SWC_TEST_END()

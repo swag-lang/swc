@@ -385,6 +385,7 @@ namespace
                op == MicroOp::ModuloUnsigned ||
                op == MicroOp::ModuloSigned ||
                op == MicroOp::MultiplyUnsigned ||
+               op == MicroOp::MultiplyWideSigned ||
                op == MicroOp::MultiplyHighSigned ||
                op == MicroOp::MultiplyHighUnsigned;
     }
@@ -1134,6 +1135,7 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             break;
         }
         case MicroOp::MultiplyUnsigned:
+        case MicroOp::MultiplyWideSigned:
         case MicroOp::MultiplyHighSigned:
         case MicroOp::MultiplyHighUnsigned:
             info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
@@ -1246,20 +1248,21 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             }
         }
 
-        if (op == MicroOp::MultiplyHighUnsigned && (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+        if ((op == MicroOp::MultiplyHighUnsigned || op == MicroOp::MultiplyHighSigned) &&
+            (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
         {
-            // Expose MUL's high output to allocation instead of hiding an RDX-to-RAX
+            // Expose MUL/IMUL's high output to allocation instead of hiding an RDX-to-RAX
             // copy inside emission. This runs after scalar strength reduction.
             outIssue.kind          = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
             outIssue.operandIndex  = 0;
             outIssue.requiredReg   = x64RegToMicroReg(X64Reg::Rax);
             outIssue.resultReg     = x64RegToMicroReg(X64Reg::Rdx);
-            outIssue.replacementOp = MicroOp::MultiplyUnsigned;
+            outIssue.replacementOp = op == MicroOp::MultiplyHighSigned ? MicroOp::MultiplyWideSigned : MicroOp::MultiplyUnsigned;
             return true;
         }
 
         const bool isB8SignedMul = op == MicroOp::MultiplySigned && ops[2].opBits == MicroOpBits::B8;
-        if (op == MicroOp::MultiplyUnsigned ||
+        if (op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned ||
             isB8SignedMul ||
             op == MicroOp::MultiplyHighSigned ||
             op == MicroOp::MultiplyHighUnsigned ||
@@ -3000,12 +3003,13 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 
     ///////////////////////////////////////////
 
-    else if (op == MicroOp::MultiplyUnsigned)
+    else if (op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned)
     {
+        SWC_ASSERT(op != MicroOp::MultiplyWideSigned || opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
         const auto rax = x64RegToMicroReg(X64Reg::Rax);
         emitRex(store_, opBits, rax, regSrc);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
-        emitModRm(store_, MODRM_REG_4, regSrc);
+        emitModRm(store_, op == MicroOp::MultiplyWideSigned ? MODRM_REG_5 : MODRM_REG_4, regSrc);
     }
 
     ///////////////////////////////////////////
@@ -3162,7 +3166,7 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     SWC_ASSERT(!reg.isFloat());
-    SWC_ASSERT(!(op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
+    SWC_ASSERT(!(op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
 
     ///////////////////////////////////////////
 
@@ -3396,10 +3400,11 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
              op == MicroOp::DivideUnsigned ||
              op == MicroOp::DivideSigned ||
              op == MicroOp::MultiplyUnsigned ||
+             op == MicroOp::MultiplyWideSigned ||
              op == MicroOp::MultiplyHighSigned ||
              op == MicroOp::MultiplyHighUnsigned)
     {
-        SWC_ASSERT(!(op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
+        SWC_ASSERT(!(op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
     }
 
     ///////////////////////////////////////////
@@ -3573,7 +3578,7 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
     const uint64_t value = immediateToU64(valueInt);
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
-    SWC_ASSERT(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned));
+    SWC_ASSERT(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned));
 
     ///////////////////////////////////////////
     if (op == MicroOp::ShiftArithmeticRight)

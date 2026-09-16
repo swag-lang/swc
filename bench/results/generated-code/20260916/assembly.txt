@@ -10,9 +10,9 @@ factorOr
     mov	rax, rcx
     ret
   final: 4 instructions, 10 bytes
+    or	rdx, r8
+    and	rdx, rcx
     mov	rax, rdx
-    or	rax, r8
-    and	rax, rcx
     ret
   llvm: 4 instructions, 10 bytes
     mov	rax, rdx
@@ -32,9 +32,9 @@ factorAnd
     mov	rax, rcx
     ret
   final: 4 instructions, 10 bytes
+    and	rdx, r8
+    or	rdx, rcx
     mov	rax, rdx
-    and	rax, r8
-    or	rax, rcx
     ret
   llvm: 4 instructions, 10 bytes
     mov	rax, rdx
@@ -159,8 +159,8 @@ notXor
     xor	rax, rcx
     ret
   final: 3 instructions, 7 bytes
+    xor	rcx, rdx
     mov	rax, rcx
-    xor	rax, rdx
     ret
   llvm: 3 instructions, 7 bytes
     mov	rax, rcx
@@ -193,12 +193,11 @@ blend
     or	r9, rcx
     mov	rax, r9
     ret
-  final: 6 instructions, 16 bytes
-    mov	r9, rcx
-    xor	r9, rdx
-    and	r9, r8
-    xor	r9, rdx
-    mov	rax, r9
+  final: 5 instructions, 13 bytes
+    xor	rcx, rdx
+    and	rcx, r8
+    xor	rcx, rdx
+    mov	rax, rcx
     ret
   llvm: 5 instructions, 13 bytes
     mov	rax, rcx
@@ -216,8 +215,8 @@ mul7
     mov	rax, r9
     ret
   final: 3 instructions, 8 bytes
+    imul	rcx, rcx, 0x7
     mov	rax, rcx
-    imul	rax, rax, 0x7
     ret
   llvm: 3 instructions, 12 bytes
     lea	rax, [8*rcx]
@@ -233,8 +232,8 @@ mul10
     mov	rax, r9
     ret
   final: 3 instructions, 8 bytes
+    imul	rcx, rcx, 0xa
     mov	rax, rcx
-    imul	rax, rax, 0xa
     ret
   llvm: 3 instructions, 8 bytes
     add	rcx, rcx
@@ -250,8 +249,8 @@ mul12
     mov	rax, r9
     ret
   final: 3 instructions, 8 bytes
+    imul	rcx, rcx, 0xc
     mov	rax, rcx
-    imul	rax, rax, 0xc
     ret
   llvm: 3 instructions, 9 bytes
     shl	rcx, 0x2
@@ -267,8 +266,8 @@ mul15
     mov	rax, r9
     ret
   final: 3 instructions, 8 bytes
+    imul	rcx, rcx, 0xf
     mov	rax, rcx
-    imul	rax, rax, 0xf
     ret
   llvm: 3 instructions, 9 bytes
     lea	rax, [rcx + 4*rcx]
@@ -284,8 +283,8 @@ mul17
     mov	rax, r9
     ret
   final: 3 instructions, 8 bytes
+    imul	rcx, rcx, 0x11
     mov	rax, rcx
-    imul	rax, rax, 0x11
     ret
   llvm: 4 instructions, 11 bytes
     mov	rax, rcx
@@ -307,17 +306,14 @@ div7
     shr	r9, 0x2
     mov	rax, r9
     ret
-  final: 11 instructions, 39 bytes
-    mov	r9, rcx
-    mov	rax, r9
-    movabs	r8, 0x2492492492492493
-    mul	r8
-    mov	rax, rdx
-    sub	r9, rax
-    shr	r9
-    add	r9, rax
-    shr	r9, 0x2
-    mov	rax, r9
+  final: 8 instructions, 31 bytes
+    movabs	r9, 0x2492492492492493
+    mov	rax, rcx
+    mul	r9
+    sub	rcx, rdx
+    shr	rcx
+    lea	rax, [rcx + rdx]
+    shr	rax, 0x2
     ret
   llvm: 8 instructions, 31 bytes
     movabs	rdx, 0x2492492492492493
@@ -347,22 +343,18 @@ mod7
     sub	r9, rcx
     mov	rax, r9
     ret
-  final: 16 instructions, 55 bytes
-    mov	r9, rcx
-    mov	rax, r9
-    movabs	r8, 0x2492492492492493
-    mul	r8
-    mov	rax, rdx
-    mov	rcx, rax
-    mov	rax, r9
-    sub	rax, rcx
+  final: 12 instructions, 43 bytes
+    movabs	r9, 0x2492492492492493
+    mov	rax, rcx
+    mul	r9
+    mov	rax, rcx
+    sub	rax, rdx
     shr	rax
-    add	rax, rcx
+    add	rax, rdx
     shr	rax, 0x2
-    mov	rcx, rax
-    imul	rcx, rcx, 0x7
-    sub	r9, rcx
-    mov	rax, r9
+    imul	rax, rax, 0x7
+    sub	rcx, rax
+    mov	rax, rcx
     ret
   llvm: 12 instructions, 47 bytes
     movabs	rdx, 0x2492492492492493
@@ -387,11 +379,10 @@ boolMask
     mov	ecx, 0x0
     cmovae	rax, rcx
     ret
-  final: 5 instructions, 12 bytes
+  final: 4 instructions, 9 bytes
     xor	eax, eax
     cmp	rcx, rdx
-    setb	al
-    neg	rax
+    sbb	rax, rax
     ret
   llvm: 4 instructions, 9 bytes
     xor	eax, eax
@@ -519,10 +510,8 @@ highByte
     shr	rax, 0x8
     movzx	rax, al
     ret
-  final: 4 instructions, 11 bytes
-    mov	rax, rcx
-    shr	rax, 0x8
-    movzx	eax, al
+  final: 2 instructions, 4 bytes
+    movzx	eax, ch
     ret
   llvm: 2 instructions, 4 bytes
     movzx	eax, ch
@@ -596,8 +585,8 @@ complementOr
     not	rax
     ret
   final: 4 instructions, 10 bytes
+    or	rcx, rdx
     mov	rax, rcx
-    or	rax, rdx
     not	rax
     ret
   llvm: 4 instructions, 10 bytes
@@ -614,8 +603,8 @@ complementAnd
     not	rax
     ret
   final: 4 instructions, 10 bytes
+    and	rcx, rdx
     mov	rax, rcx
-    and	rax, rdx
     not	rax
     ret
   llvm: 4 instructions, 10 bytes
@@ -633,8 +622,8 @@ xorNot
     mov	rax, r9
     ret
   final: 4 instructions, 10 bytes
+    xor	rcx, rdx
     mov	rax, rcx
-    xor	rax, rdx
     not	rax
     ret
   llvm: 4 instructions, 10 bytes
@@ -653,8 +642,8 @@ addNeg
     mov	rax, r9
     ret
   final: 3 instructions, 7 bytes
+    sub	rcx, rdx
     mov	rax, rcx
-    sub	rax, rdx
     ret
   llvm: 3 instructions, 7 bytes
     mov	rax, rcx
@@ -767,11 +756,10 @@ flagAdd
     mov	rcx, r8
     add	rax, rcx
     ret
-  final: 5 instructions, 12 bytes
-    xor	eax, eax
+  final: 4 instructions, 11 bytes
     cmp	rcx, rdx
-    setb	al
-    add	rax, r8
+    mov	rax, r8
+    adc	rax, 0x0
     ret
   llvm: 4 instructions, 11 bytes
     mov	rax, r8
@@ -787,9 +775,9 @@ minValue
     cmovae	rax, rcx
     ret
   final: 4 instructions, 11 bytes
-    mov	rax, rcx
     cmp	rcx, rdx
-    cmovae	rax, rdx
+    cmovae	rcx, rdx
+    mov	rax, rcx
     ret
   llvm: 4 instructions, 11 bytes
     mov	rax, rdx
@@ -805,9 +793,9 @@ maxValue
     cmovbe	rax, rcx
     ret
   final: 4 instructions, 11 bytes
-    mov	rax, rcx
     cmp	rcx, rdx
-    cmovbe	rax, rdx
+    cmovbe	rcx, rdx
+    mov	rax, rcx
     ret
   llvm: 4 instructions, 11 bytes
     mov	rax, rdx
@@ -843,7 +831,7 @@ differenceZero
     ret
   final: 4 instructions, 9 bytes
     xor	eax, eax
-    cmp	rcx, rdx
+    sub	rcx, rdx
     sete	al
     ret
   llvm: 4 instructions, 9 bytes
@@ -863,9 +851,9 @@ divideThree
     mov	rax, r9
     ret
   final: 6 instructions, 23 bytes
+    movabs	r8, -0x5555555555555555
     mov	rax, rcx
-    movabs	rcx, -0x5555555555555555
-    mul	rcx
+    mul	r8
     mov	rax, rdx
     shr	rax
     ret
@@ -890,17 +878,14 @@ moduloThree
     sub	r9, rcx
     mov	rax, r9
     ret
-  final: 11 instructions, 39 bytes
-    mov	r9, rcx
-    mov	rax, r9
-    movabs	r8, -0x5555555555555555
-    mul	r8
-    mov	rax, rdx
-    mov	rcx, rax
-    shr	rcx
-    lea	rcx, [rcx + 2*rcx]
-    sub	r9, rcx
-    mov	rax, r9
+  final: 8 instructions, 30 bytes
+    movabs	r9, -0x5555555555555555
+    mov	rax, rcx
+    mul	r9
+    shr	rdx
+    lea	rdx, [rdx + 2*rdx]
+    sub	rcx, rdx
+    mov	rax, rcx
     ret
   llvm: 8 instructions, 30 bytes
     movabs	rdx, -0x5555555555555555
@@ -923,9 +908,9 @@ divideTen
     mov	rax, r9
     ret
   final: 6 instructions, 24 bytes
+    movabs	r8, -0x3333333333333333
     mov	rax, rcx
-    movabs	rcx, -0x3333333333333333
-    mul	rcx
+    mul	r8
     mov	rax, rdx
     shr	rax, 0x3
     ret
@@ -950,17 +935,14 @@ moduloTen
     sub	r9, rcx
     mov	rax, r9
     ret
-  final: 11 instructions, 40 bytes
-    mov	r9, rcx
-    mov	rax, r9
-    movabs	r8, -0x3333333333333333
-    mul	r8
-    mov	rax, rdx
-    mov	rcx, rax
-    shr	rcx, 0x3
-    imul	rcx, rcx, 0xa
-    sub	r9, rcx
-    mov	rax, r9
+  final: 8 instructions, 31 bytes
+    movabs	r9, -0x3333333333333333
+    mov	rax, rcx
+    mul	r9
+    shr	rdx, 0x3
+    imul	rdx, rdx, 0xa
+    sub	rcx, rdx
+    mov	rax, rcx
     ret
   llvm: 9 instructions, 35 bytes
     movabs	rdx, -0x3333333333333333

@@ -346,6 +346,184 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A count-only copy needs at most six bits. Clearing its upper half is
+    // harmless once the count dies or is replaced by the shift's full result.
+    bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || copy[2].opBits != MicroOpBits::B64 ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
+            return false;
+        const MicroInstrRef shiftRef = ctx.nextRef(ref);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        if (!shift || (shift->op != MicroInstrOpcode::OpBinaryRegReg && shift->op != MicroInstrOpcode::OpBinaryRegRegReg))
+            return false;
+        const auto*    ops        = shift->ops(*ctx.operands);
+        const bool     three      = shift->op == MicroInstrOpcode::OpBinaryRegRegReg;
+        const uint32_t countIndex = three ? 2 : 1;
+        if (!ops || ops[countIndex].reg != copy[0].reg || ops[three ? 1 : 0].reg == copy[0].reg ||
+            (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
+            return false;
+        switch (ops[countIndex + 2].microOp)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
+                break;
+            default:
+                return false;
+        }
+        if (!(three && ops[0].reg == copy[0].reg) && !ctx.isRegDeadAfter(copy[0].reg, ctx.instructionIndex + 1))
+            return false;
+        if (!ctx.claimAll({ref, shiftRef}))
+            return false;
+        MicroInstrOperand narrowed[3] = {copy[0], copy[1], copy[2]};
+        narrowed[2].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, narrowed);
+        return true;
+    }
+
+    // A full copy of a value just defined at 32 bits can use a 32-bit MOV.
+    // The IR width contract already guarantees that the source's upper half is zero.
+    bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || copy[2].opBits != MicroOpBits::B64 ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
+            return false;
+        const MicroInstrRef producerRef = ctx.previousRef(ref);
+        const MicroInstr*   producer    = ctx.instruction(producerRef);
+        const auto*         ops         = producer ? producer->ops(*ctx.operands) : nullptr;
+        if (!ops)
+            return false;
+        MicroOpBits bits;
+        switch (producer->op)
+        {
+            case MicroInstrOpcode::ClearReg:
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
+                bits = ops[1].opBits;
+                break;
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::LoadAddrRegMem:
+                bits = ops[2].opBits;
+                break;
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                bits = ops[3].opBits;
+                break;
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegImm:
+            {
+                const bool immediate = producer->op == MicroInstrOpcode::OpBinaryRegImm;
+                bits                 = ops[immediate ? 1 : 2].opBits;
+                const MicroOp op     = ops[immediate ? 2 : 3].microOp;
+                switch (op)
+                {
+                    case MicroOp::Add:
+                    case MicroOp::Subtract:
+                    case MicroOp::And:
+                    case MicroOp::Or:
+                    case MicroOp::Xor:
+                    case MicroOp::MultiplySigned:
+                        break;
+                    case MicroOp::ShiftLeft:
+                    case MicroOp::ShiftArithmeticLeft:
+                    case MicroOp::ShiftRight:
+                    case MicroOp::ShiftArithmeticRight:
+                    case MicroOp::RotateLeft:
+                    case MicroOp::RotateRight:
+                        if (!immediate || ops[3].hasWideImmediateValue() || (ops[3].valueU64 & 31) == 0)
+                            return false;
+                        break;
+                    default:
+                        return false;
+                }
+                break;
+            }
+            default:
+                return false;
+        }
+        const MicroInstrUseDef useDef = producer->collectUseDef(*ctx.operands, ctx.encoder);
+        if (ops[0].reg != copy[1].reg || bits != MicroOpBits::B32 || useDef.defs.size() != 1 || useDef.defs[0] != copy[1].reg ||
+            !ctx.claimAll({producerRef, ref}))
+            return false;
+        MicroInstrOperand narrowed[3] = {copy[0], copy[1], copy[2]};
+        narrowed[2].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, narrowed);
+        return true;
+    }
+
+    // Retarget a two-step add/multiply computation as one unit so forwarding
+    // cannot reintroduce its removed result copy on the next sweep.
+    bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || !copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroReg    dst         = copy[0].reg;
+        const MicroReg    src         = copy[1].reg;
+        MicroInstrRef     multiplyRef = ctx.previousRef(copyRef);
+        const MicroInstr* multiply    = ctx.instruction(multiplyRef);
+        const auto*       mul         = multiply ? multiply->ops(*ctx.operands) : nullptr;
+        bool              square      = false;
+        MicroInstrRef     addRef;
+        if (multiply && multiply->op == MicroInstrOpcode::OpBinaryRegReg && mul &&
+            mul[3].microOp == MicroOp::MultiplySigned && mul[0].reg == src &&
+            mul[1].reg != dst && ctx.isRegDeadAfterCurrent(src))
+            addRef = ctx.previousRef(multiplyRef);
+        else
+        {
+            addRef      = ctx.previousRef(copyRef);
+            multiplyRef = ctx.nextRef(copyRef);
+            multiply    = ctx.instruction(multiplyRef);
+            mul         = multiply ? multiply->ops(*ctx.operands) : nullptr;
+            if (!multiply || multiply->op != MicroInstrOpcode::OpBinaryRegReg || !mul ||
+                mul[3].microOp != MicroOp::MultiplySigned || mul[0].reg != dst || mul[1].reg != src ||
+                !ctx.isRegDeadAfter(src, ctx.instructionIndex + 1))
+                return false;
+            square = true;
+        }
+        const MicroInstr* add = ctx.instruction(addRef);
+        const auto*       ops = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg || !ops || ops[3].microOp != MicroOp::Add ||
+            ops[0].reg != src || !ops[1].reg.isInt() || !mul[1].reg.isInt() ||
+            ops[2].opBits != copy[2].opBits || mul[2].opBits != copy[2].opBits ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+        MicroInstrOperand address[8] = {};
+        address[0].reg               = dst;
+        address[1].reg               = src;
+        address[2].reg               = ops[1].reg;
+        address[3].opBits            = copy[2].opBits;
+        address[4].opBits            = MicroOpBits::B64;
+        address[5].valueU64          = 1;
+        MicroInstr probe;
+        probe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        probe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, address))
+            return false;
+        MicroInstrOperand product[4];
+        std::copy_n(mul, 4, product);
+        product[0].reg = dst;
+        if (square || product[1].reg == src)
+            product[1].reg = dst;
+        if (ctx.encoder->queryConformanceIssue(issue, *multiply, product) || !ctx.claimAll({addRef, multiplyRef, copyRef}))
+            return false;
+        ctx.emitRewrite(addRef, probe.op, address, true);
+        ctx.emitRewrite(multiplyRef, multiply->op, product);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // ADD followed by a result copy can compute directly in the copy's
     // destination when ABI-aware liveness proves its old result is dead.
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

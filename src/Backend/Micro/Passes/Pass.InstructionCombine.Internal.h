@@ -158,6 +158,7 @@ namespace InstructionCombine
     bool tryFoldCopyAddIntoAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldComplementPlusOne(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldPureResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryBypassShiftCountMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryThreeOperandShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLeaConstIntoMemBase(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -174,7 +175,7 @@ namespace InstructionCombine
     bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldBooleanSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropFloatOrderedGuard(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryCommuteConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
+    bool tryFoldConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
 
     //===-- Whole-IR scans --------------------------------------------------===//
 

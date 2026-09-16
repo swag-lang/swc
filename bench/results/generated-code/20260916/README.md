@@ -1,81 +1,92 @@
 # Generated-code audit - 2026-09-16
 
-The session used the separate `swc-micro-release` worktree and Release `swc.exe`,
-with `-bc release` and six workers. Each validated optimization batch was merged
-into local `master`. The probes were deliberately small, so each missing rewrite
-could be isolated and checked before moving to the next one.
+This ongoing session uses the separate `swc-micro-release` worktree and Release
+`swc.exe`, with `-bc release` and six workers. Each validated optimization batch
+is merged into local `master`. This checkpoint records build 800 at
+`3a7f0d57b`; iteration continues after it.
 
 ## Machine-code measurements
 
-The exact same [51 Swag functions](scalars.swg) were compiled with baseline build
-688 and checkpoint build 731. [Equivalent C++ functions](scalars.cpp) were compiled
-with clang 21.1.6, `-O2 -target x86_64-pc-windows-msvc`. The baseline is
-`2eefc93ce4316be7ce6538e660e642a4a021ac28`. Compiler and artifact hashes are in
-[identity.json](identity.json).
+Matching Swag and C++ scalar functions retain the same three-argument ABI.
+The reference compiler is clang 21.1.6 with
+`-O2 -target x86_64-pc-windows-msvc`. Counts include RET and exclude alignment
+and runtime functions. Ten-byte MOVABS instructions are counted in full.
 
-The [complete counts](counts.csv) and [counted assembly](assembly.txt) use native
-x64 instructions on both sides. Counts include RET and exclude inter-function
-alignment and runtime functions. These probes contain no loops or internal
-branches. Ten-byte MOVABS instructions are counted in full.
+The four corpora were introduced at different times. Each has its own baseline;
+percentage reductions must be calculated within that corpus.
 
-| Corpus | Instructions | Bytes |
-| --- | ---: | ---: |
-| Swag baseline | 319 | 994 |
-| Swag checkpoint | 209 | 592 |
-| LLVM reference | 192 | 559 |
+| Corpus | Functions | Baseline build | Baseline bytes | Build 800 bytes | LLVM bytes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| [Initial](counts.csv) | 51 | 688 | 994 | 540 | 559 |
+| [Additional](additional/counts.csv) | 25 | 740 | 412 | 335 | 346 |
+| [Third](round3/counts.csv) | 32 | 759 | 516 | 424 | 416 |
+| [Fourth](round4/counts.csv) | 32 | 794 | 440 | 392 | 385 |
 
-Swag reduces total bytes by 40.4% and instructions by 34.5% in this selected corpus.
-46 functions become smaller, five retain their size, and none grows. Compared
-with LLVM, 38 have equal size, five are smaller, and eight remain larger. These
-are static size measurements on examples selected during optimization, not a
-representative workload average or a runtime speed claim.
+The initial corpus reduces bytes by 45.7% and instructions from 319 to 191
+(LLVM: 192). Forty-nine functions shrink, two retain their size, and none grows.
+Forty-four now match LLVM's size and seven are smaller. The additional corpus
+also has no remaining larger function: nineteen match and six are smaller.
+The third and fourth corpora retain five and ten larger functions respectively.
+No function grows against its own baseline in any of these corpora.
 
-| Example | Baseline bytes | Checkpoint bytes | LLVM bytes |
+These are static measurements of examples selected during optimization, not a
+representative workload average or a runtime speed claim. A smaller hardware
+IDIV sequence, for example, need not execute faster than a longer multiplication
+sequence. Checkpoint comparisons include concurrent changes integrated from
+`master`, not only changes authored in this worktree.
+
+Each directory contains matching Swag/C++ inputs, per-instruction assembly,
+CSV/JSON counts, and compiler/artifact hashes in `identity.json`.
+
+| Example | Corpus baseline bytes | Build 800 bytes | LLVM bytes |
 | --- | ---: | ---: | ---: |
 | `(a & b) | (a & c)` | 25 | 10 | 10 |
 | `a | (a & b)` | 16 | 4 | 4 |
 | `(a & 255) | (a & 65280)` | 21 | 4 | 4 |
-| `(a & c) | (b & ~c)` | 25 | 16 | 13 |
-| `a < b ? 256 : 0` | 24 | 12 | 12 |
-| `a < b ? 0x100000000 : 0` | 29 | 13 | 13 |
-| `(a & 255) == 0 ? 1 : 0` | 18 | 8 | 8 |
-| `a - b == 0 ? 1 : 0` | 17 | 9 | 9 |
-| `a < 128 ? a : 0` | 20 | 14 | 14 |
-| `a / 3` | 29 | 23 | 23 |
+| `(a & c) | (b & ~c)` | 25 | 13 | 13 |
+| `a * (b + 1) - a * b` | 19 | 4 | 4 |
+| Signed `a % 8` | 32 | 22 | 22 |
+| `a ^ (a | b)` | 13 | 10 | 10 |
+| `a == 0 ? ~0 : 0` | 12 | 10 | 10 |
+| `a != 0 ? ~0 : 0` | 12 | 9 | 9 |
+| 32-bit `(a + b) * (a + b)` | 9 | 7 | 7 |
+| Variable 64-bit rotate | 31 | 9 | 9 |
 
 ## Changes
 
-The 27 optimization batches cover bitwise factoring, absorption and cancellation;
-constant masks and bitwise selection; low-half integer multiplication; negation
-and arithmetic cancellation; zero extension and shift widths; physical copy
-forwarding into comparisons, extensions, addresses and conditional moves; late
-copy/add and shift round-trip elimination; and boolean/mask materialization.
-Every rewrite retains width, flag, liveness and fixed-register constraints.
+The validated batches cover bitwise factoring and cancellation; constant masks
+and selections; integer multiplication and division; direct signed power-of-two
+remainders; address/base differences; width and sign-bit handling; high-byte
+extraction; carry arithmetic; physical copy coalescing; and constant/variable
+rotations. The latest batches remove redundant shift-count masks and narrow
+physical copies when upper bits are proven unnecessary.
 
-A reduced mask example also exposed an existing truncation of inferred runtime
-conditionals containing wide integer literals. Its type is now settled from both
-integer branches before a local captures it. A later full native run found that
-the first implementation also narrowed floating literals; the correction limits
-that rule to integers and preserves the existing f64 inference contract.
+Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
+encoding constraints. In particular, RET alone does not prove a physical value
+dead, and changing a 32-bit definition must preserve its zero-extended result.
+
+A reduced mask example exposed incorrect inference for wide integer branches.
+A broader run caught an initial correction that also narrowed floating literals;
+the final correction preserves their f64 inference contract. Another broad JIT
+run caught instruction-index invalidation during post-RA dead-code removal.
+Deferring erasures until analysis completes fixed it before that batch was merged.
 
 ## Validation
 
-All compiler builds and project commands used fresh CPU/memory admission and six
-workers. Focused tests rotated between arithmetic, casts, calls, loops, ABI and
-register-pressure cases, plus selected core, pixel, UTF-8 and SHA-256 consumers.
-New native regression files accompany the optimization families under
-`bin/unittests/native/optimizer`.
+Builds and tests used CPU/memory admission and six workers. Focused tests rotated
+between arithmetic, widths, flags, calls, branches, loops and register pressure,
+plus selected core, pixel, UTF-8, hashing and crypto consumers. Native regression
+files accompany optimization families under `bin/unittests/native/optimizer`.
 
-Periodic broader checks passed 3,268 native tests at build 712, all 735 core tests
-at build 714, and all 1,487 JIT tests at build 722. The late native checkpoint found
-the floating-inference regression described above; its reduced test and the
-existing short-function inference test pass after correction. The integrated checkpoint build 731 passes all 3,277 native tests and the three expected-failure recovery probes. A transient null-capture diagnosis is retained as compiler.core.052 below; no speculative fix is included.
+Recent broader checks passed all 1,487 JIT tests at build 794, all 742 core tests
+at build 796, and all 3,311 native tests plus the three expected-failure recovery
+probes at build 799. Build 800 then passed three focused files covering shift
+counts, variable rotations and copied 32-bit results.
 
-The full repository campaign, DevMode compiler and C++ unit tests were deliberately
-not run in this session. Two earlier C++ expectation families were updated for the
-changed emitted forms; their execution remains part of the later global campaign.
-Core rebuild time and peak working set were sampled during iteration, but machine
-load caused large timing variation, so no compile-time speedup is asserted here.
+The full repository campaign, DevMode compiler and C++ unit tests were not run
+by this worktree during this session. Concurrent contributors performed separate
+checks on their changes; those do not constitute a global checkpoint campaign.
+Shared-machine timing varied enough that no compile-time speedup is asserted.
 
 ## Reproduce
 
@@ -89,29 +100,23 @@ clang -O2 -c -target x86_64-pc-windows-msvc <report>/scalars.cpp -o <scratch>/sc
 llvm-objdump -d --x86-asm-syntax=intel <scratch>/scalars.obj
 ```
 
-Extract the COFF members of the Swag library before disassembling them: the current
-Swag archive long-name table is not accepted directly by LLVM's archive reader
-(`compiler.core.050`). The counted function bodies and per-instruction byte sizes
-are preserved in [counts.json](counts.json). The unused arguments are intentional:
-all probes retain the same three-argument ABI on both compilers.
+Use each subdirectory's corresponding source pair for the later corpora. Extract
+COFF members before disassembling Swag libraries: LLVM's archive reader rejects
+the current Swag long-name table (`compiler.core.050`). Counted instruction byte
+sizes are preserved in each `counts.json` and `assembly.txt`.
 
 ## Remaining leads
 
-The remaining measurements are tracked in compiler.optimization.041. The eight larger cases isolate physical return copies and constant division/remainder
-register choices (`blend`, `div7`, `mod7`, `moduloThree`, `moduloTen`), carry-based
-boolean arithmetic (`boolMask`, `flagAdd`), and high-byte extraction (`highByte`).
-The interval allocator currently records physical copy-source hints but skips
-physical copy destinations. A bounded trial of the symmetric destination hint
-should compare all probe outputs and register-pressure tests before adoption.
-No unvalidated allocator or new ADC/SBB encoding change is included.
+`compiler.optimization.041` tracks the current larger cases. They include absolute
+value and bit selection, `(a | b) - (a & b)`, combined quotient/remainder,
+zero-minus and complemented arithmetic, and several 32-bit register/width choices.
+The previously recorded initial-corpus gaps have all reached or beaten LLVM size.
 
 ## Intermittent diagnostic retained for follow-up
 
-The late build-728 full native run also diagnosed twelve null dereferences in
-`native/inline/binding_visit_growth.swg`. Builds 712 and 714 passed its isolated
-source; build 718 failed with the original scratch output/work roots, then passed
-with fresh roots. An identical source copied outside the checkout also passed.
-Build 730 with temporary pre-sanity tracing passed. The tracing was removed before
-checkpoint build 731, which passes the complete native suite. This does not establish
-whether work-directory state, scheduling, or another input caused the difference.
-`compiler.core.052` preserves the investigation; the failure is not claimed fixed.
+Build 728 diagnosed twelve null dereferences in
+`native/inline/binding_visit_growth.swg`. Older binaries differed depending on
+scratch roots or source location, and later repeated attempts did not reproduce
+it. Temporary tracing was removed; multiple subsequent full native suites,
+including build 799, pass. This does not establish the original cause.
+`compiler.core.052` remains open; the failure is not claimed fixed.

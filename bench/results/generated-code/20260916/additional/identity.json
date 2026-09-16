@@ -1,0 +1,46 @@
+{
+  "baseline_commit": "1faeb5e18",
+  "baseline_build": 740,
+  "final_commit": "3a7f0d57b4e0d09c1dca4cadf7411d6a94774eb1",
+  "final_version_header": "#pragma once\n\n// The compiler's identity, and part of the key of every cache it fills. A build produced by one\n// version is never read back by another: bump SWC_BUILD_NUM with every change to the compiler,\n// so what the previous one left behind is ignored instead of trusted.\ninline constexpr uint32_t SWC_VERSION   = 0;\ninline constexpr uint32_t SWC_REVISION  = 1;\ninline constexpr uint32_t SWC_BUILD_NUM = 800;\n",
+  "clang": "clang version 21.1.6\nTarget: x86_64-unknown-windows-msvc\nThread model: posix\nInstalledDir: C:\\Users\\chris\\AppData\\Local\\Programs\\Swift\\Toolchains\\6.3.3+Asserts\\usr\\bin\nBuild config: +assertions\n",
+  "compiler_baseline": {
+    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot29.exe",
+    "sha256": "51bb91b3b0b298c9462c7562b654f6c6093a9399d0feef26082b3b0b1d4253fc",
+    "bytes": 6712832
+  },
+  "compiler_final": {
+    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot55.exe",
+    "sha256": "c6bf2c5e6c0682b48b2571a9ce917156ea2523c9cde905c999b86dd01f9f6a57",
+    "bytes": 6770176
+  },
+  "inputs": [
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\scalars-extra.swg",
+      "sha256": "47e6fa89e6c9d5ad89ff90f4577baf0ac2f20cccf517bee7188e0dbd0ecea0c0",
+      "bytes": 1901
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\scalars-extra.cpp",
+      "sha256": "a1fa815d55796bd8fbf5878b72dd091aca5a069e1d3639e99af2468a3f3bc642",
+      "bytes": 2232
+    }
+  ],
+  "outputs": [
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars_extra740.lib",
+      "sha256": "36b01c656aee92bbee8b1df8f44c09507846b7501d9f392a942a664c451279ce",
+      "bytes": 298370
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars_extra800.lib",
+      "sha256": "e1676b8e9f270d8918233e4536f1d5b82ce696ceeaedc7a58031d1c3e59cc650",
+      "bytes": 294792
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars-extra-llvm.obj",
+      "sha256": "4f6a726fb9df1c2e03428bc2c52d2a8a85bb6461048be81594370c04de82ca5f",
+      "bytes": 1691
+    }
+  ]
+}

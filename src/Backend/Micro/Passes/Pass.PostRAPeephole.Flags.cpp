@@ -491,13 +491,25 @@ namespace PostRaPeephole
             return false;
         const MicroInstrRef cmpRef = ctx.previousRef(setRef);
         const MicroInstr*   cmp    = ctx.instruction(cmpRef);
-        // Register compares and subtraction have no relocation binding to move.
-        if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::OpBinaryRegReg))
+        if (!cmp)
             return false;
         const auto* cmpOps = cmp->ops(*ctx.operands);
-        if (!cmpOps || !cmpOps[0].reg.isInt() || !cmpOps[1].reg.isInt() ||
-            (cmp->op == MicroInstrOpcode::OpBinaryRegReg && cmpOps[3].microOp != MicroOp::Subtract))
+        if (!cmpOps || !cmpOps[0].reg.isInt())
             return false;
+        if (cmp->op == MicroInstrOpcode::CmpRegReg)
+        {
+            if (!cmpOps[1].reg.isInt())
+                return false;
+        }
+        else if (cmp->op != MicroInstrOpcode::CmpRegImm)
+        {
+            // These integer ALU producers overwrite the incoming flags and
+            // read their destination, so the use check also protects its result.
+            MicroReg    resultReg;
+            MicroOpBits resultBits;
+            if (!flagSettingResultDef(*cmp, cmpOps, resultReg, resultBits))
+                return false;
+        }
         const MicroInstrUseDef useDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
         for (const MicroReg reg : useDef.uses)
             if (reg == ext[0].reg)

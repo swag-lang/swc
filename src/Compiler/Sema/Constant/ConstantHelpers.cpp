@@ -169,16 +169,6 @@ namespace
         return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
     }
 
-    bool hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr)
-    {
-        DataSegmentRef sourceRef;
-        if (!sema.cstMgr().resolveDataSegmentRef(sourceRef, fieldPtr))
-            return false;
-
-        DataSegmentRelocation relocation;
-        return sema.cstMgr().shardDataSegment(sourceRef.shardIndex).findRelocation(relocation, sourceRef.offset, DataSegmentRelocationKind::FunctionSymbol);
-    }
-
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, std::span<const std::byte> payload)
     {
         if (payload.size() != sizeof(Runtime::ClosureValue))
@@ -358,11 +348,21 @@ namespace
             if (requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, reinterpret_cast<const void*>(rawPtr)))
                 return true;
 
-            return hasSourceFunctionRelocation(sema, payload.data());
+            return ConstantHelpers::hasSourceFunctionRelocation(sema, payload.data());
         }
 
         return false;
     }
+}
+
+bool ConstantHelpers::hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr)
+{
+    DataSegmentRef sourceRef;
+    if (!sema.cstMgr().resolveDataSegmentRef(sourceRef, fieldPtr))
+        return false;
+
+    DataSegmentRelocation relocation;
+    return sema.cstMgr().shardDataSegment(sourceRef.shardIndex).findRelocation(relocation, sourceRef.offset, DataSegmentRelocationKind::FunctionSymbol);
 }
 
 Result ConstantHelpers::waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef)

@@ -14,6 +14,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasFunctionPointerRelocation(Sema& sema, TypeRef typeRef, const void* ptr)
+    {
+        const TypeRef   storageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        const TypeInfo& type           = sema.typeMgr().get(storageTypeRef.isValid() ? storageTypeRef : typeRef);
+        if (!type.isAnyPointer() && !type.isFunction())
+            return false;
+
+        return ConstantHelpers::hasSourceFunctionRelocation(sema, ptr);
+    }
+
     Result makeScalarFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, std::span<const std::byte> bytes, ConstantRef& outCstRef)
     {
         outCstRef = ConstantRef::invalid();
@@ -177,6 +187,11 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
     const auto fieldBytes = std::span{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
+    // Reflected method addresses can still be unpublished. Keep the load from their
+    // relocatable slot instead of freezing its current bytes (possibly null).
+    if (hasFunctionPointerRelocation(sema, symVar.typeRef(), fieldBytes.data()))
+        return Result::Continue;
+
     ConstantRef cstRef = ConstantRef::invalid();
     SWC_RESULT(makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes, cstRef, symVar, nodeMemberRef));
 
@@ -229,7 +244,10 @@ namespace
         if (std::cmp_greater_equal(constIndex, count))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
-        const auto        elemBytes  = std::span{bytes.data() + (constIndex * elemSize), elemSize};
+        const auto elemBytes = std::span{bytes.data() + (constIndex * elemSize), elemSize};
+        if (hasFunctionPointerRelocation(sema, elemTypeRef, elemBytes.data()))
+            return Result::Continue;
+
         const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
 
         if (elemCstRef.isInvalid())

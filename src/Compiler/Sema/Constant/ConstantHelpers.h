@@ -12,6 +12,7 @@ struct SourceCodeRange;
 
 namespace ConstantHelpers
 {
+    bool        hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr);
     Result      waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     uint64_t    materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view);
     ConstantRef materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, std::span<const std::byte> payload);

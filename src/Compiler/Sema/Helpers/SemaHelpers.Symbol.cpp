@@ -1321,7 +1321,8 @@ namespace
         {
             const SymbolVariable& symVar = symbols[0]->cast<SymbolVariable>();
             SWC_RESULT(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, targetNodeRef, node.nodeRightRef));
-            return Result::SkipChildren;
+            if (sema.viewConstant(targetNodeRef).cstRef().isValid())
+                return Result::SkipChildren;
         }
 
         if (throughPointerOrRef || sema.isLValue(node.nodeLeftRef))

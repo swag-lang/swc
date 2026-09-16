@@ -15,6 +15,25 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.041 — Close the remaining small scalar code-generation gaps
+
+- Recorded: 2026-09-16 19:54
+- Area: compiler/backend, register allocation and instruction selection
+- Evidence: the [51-function native x64 comparison](../bench/results/generated-code/20260916/counts.csv)
+  uses Release Swag 731 and clang 21.1.6 at `-O2` on matching unsigned functions.
+  Eight Swag functions remain larger: `blend` 16/13 bytes, `div7` 39/31,
+  `mod7` 55/47, `moduloThree` 39/30, `moduloTen` 40/35, `boolMask` 12/9,
+  `flagAdd` 12/11, and `highByte` 11/4 (Swag/LLVM).
+- Leads: the first five retain physical copies or weaker constant-division register
+  choices. `buildLiveIntervals` records physical copy-source hints but skips physical
+  copy destinations. LLVM uses SBB/ADC for the next two and high-byte MOVZX for the last.
+  These are measured static shapes, not a runtime speed comparison.
+- Next: try the symmetric physical-destination hint first, compare every scalar
+  body and register-pressure cases, then assess carry arithmetic and high-byte
+  extraction with explicit flag and x64 encoding constraints.
+- Complete when: each retained gap has a validated reduction or a measured reason
+  to keep the existing form. Never infer physical-register death merely from RET.
+
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13

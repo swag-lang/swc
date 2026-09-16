@@ -345,11 +345,11 @@ SWC_TEST_BEGIN(MicroControlFlowGraph_RebuildsLargeBranchesAndRemovedLabels)
     std::array<MicroLabelRef, 32> targets;
     for (auto& target : targets)
         target = builder.createLabel();
-    const auto end = builder.createLabel();
+    const auto                    end = builder.createLabel();
     std::array<MicroLabelRef, 64> repeatedTargets;
     for (uint32_t i = 0; i < targets.size(); ++i)
     {
-        repeatedTargets[i] = targets[i];
+        repeatedTargets[i]                  = targets[i];
         repeatedTargets[targets.size() + i] = targets[targets.size() - 1 - i];
     }
     builder.emitJumpReg(MicroReg::virtualIntReg(1), repeatedTargets);
@@ -512,7 +512,7 @@ SWC_TEST_BEGIN(MicroVerify_AmcRegistersFollowTheirOperandRoles)
                 ops[7].setImmediateValue(ApInt(42, 64));
             if (test.op == MicroInstrOpcode::LoadSignedExtAmcRegMem || test.op == MicroInstrOpcode::LoadZeroExtAmcRegMem)
             {
-                ops[4].opBits     = MicroOpBits::B8;
+                ops[4].opBits     = test.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ? MicroOpBits::B32 : MicroOpBits::B8;
                 inst->numOperands = 7;
             }
             if (test.op == MicroInstrOpcode::VecUnaryAmcRegMem)

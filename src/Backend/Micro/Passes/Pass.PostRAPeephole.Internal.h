@@ -43,6 +43,13 @@ namespace PostRaPeephole
         uint32_t                            instructionIndex      = 0;
         bool                                physicalLivenessReady = false;
 
+        // Per instruction slot, the integer registers whose upper half is
+        // clear on entry, on every path. Computed on first use.
+        std::vector<uint32_t> upperHalfZeroIn;
+        bool                  upperHalfReady = false;
+        bool                  upperHalfValid = false;
+
+        bool isUpperHalfZeroBefore(MicroInstrRef ref, MicroReg reg);
         bool isRegDeadAfterCurrent(MicroReg reg);
         bool isRegDeadAfter(MicroReg reg, uint32_t index);
 
@@ -90,6 +97,7 @@ namespace PostRaPeephole
     bool tryCommuteBinaryResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    void eraseRedundantUpperHalfClears(Context& ctx);
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldCopyIntoIntegerAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

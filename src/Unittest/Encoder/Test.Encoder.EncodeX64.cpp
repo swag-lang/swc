@@ -256,7 +256,7 @@ namespace
         ENCODE_CASE("load_cond_reg_reg_ae_b8_promotes_b32", "45 0F 43 CA", b.emitLoadCondRegReg(R9, R10, MicroCond::AboveOrEqual, MicroOpBits::B8););
         ENCODE_CASE("load_cond_reg_reg_less", "4D 0F 4C CA", b.emitLoadCondRegReg(R9, R10, MicroCond::Less, MicroOpBits::B64););
         ENCODE_CASE("clear_reg_r9_b32", "45 31 C9", b.emitClearReg(R9, MicroOpBits::B32););
-        ENCODE_CASE("clear_reg_r11_b64", "4D 31 DB", b.emitClearReg(R11, MicroOpBits::B64););
+        ENCODE_CASE("clear_reg_r11_b64", "45 31 DB", b.emitClearReg(R11, MicroOpBits::B64););
         ENCODE_CASE("clear_reg_xmm1_b64", "66 0F 57 C9", b.emitClearReg(XMM1, MicroOpBits::B64););
         ENCODE_CASE("clear_reg_xmm1_b128", "0F 57 C9", b.emitClearReg(XMM1, MicroOpBits::B128););
         return Result::Continue;
@@ -330,9 +330,9 @@ namespace
 
         ENCODE_CASE("op_binary_reg_reg_mul_unsigned", "49 F7 E1", b.emitOpBinaryRegReg(RAX, R9, MicroOp::MultiplyUnsigned, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_mul_unsigned_non_rax_conform", "4C 89 C0 49 F7 E1 49 89 C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::MultiplyUnsigned, MicroOpBits::B64););
-        ENCODE_CASE("op_binary_reg_reg_div_unsigned", "48 31 D2 49 F7 F3", b.emitOpBinaryRegReg(RAX, R11, MicroOp::DivideUnsigned, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_div_unsigned", "31 D2 49 F7 F3", b.emitOpBinaryRegReg(RAX, R11, MicroOp::DivideUnsigned, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_div_signed", "48 99 49 F7 F8", b.emitOpBinaryRegReg(RAX, R8, MicroOp::DivideSigned, MicroOpBits::B64););
-        ENCODE_CASE("op_binary_reg_reg_mod_unsigned", "48 31 D2 49 F7 F1 48 89 D0", b.emitOpBinaryRegReg(RAX, R9, MicroOp::ModuloUnsigned, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_mod_unsigned", "31 D2 49 F7 F1 48 89 D0", b.emitOpBinaryRegReg(RAX, R9, MicroOp::ModuloUnsigned, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_mod_signed", "48 99 49 F7 FA 48 89 D0", b.emitOpBinaryRegReg(RAX, R10, MicroOp::ModuloSigned, MicroOpBits::B64););
 
         ENCODE_CASE("op_binary_reg_reg_float_and", "66 0F 54 C1", b.emitOpBinaryRegReg(XMM0, XMM1, MicroOp::FloatAnd, MicroOpBits::B64););

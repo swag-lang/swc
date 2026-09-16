@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
@@ -736,6 +738,15 @@ namespace PostRaPeephole
         if (copyOps[2].opBits != MicroOpBits::B32 && copyOps[2].opBits != MicroOpBits::B64)
             return false;
 
+        // A 32-bit copy of a register whose upper half is already clear
+        // copies all of it.
+        std::optional<MicroOpBits> copyBits;
+        const auto                 effectiveCopyBits = [&] {
+            if (!copyBits)
+                copyBits = copyOps[2].opBits == MicroOpBits::B32 && ctx.isUpperHalfZeroBefore(copyRef, copyOps[1].reg) ? MicroOpBits::B64 : copyOps[2].opBits;
+            return *copyBits;
+        };
+
         // Only the equality established by the copy is propagated. Stop when
         // either register changes or control leaves the straight line. Claim
         // every instruction crossed so later queued rewrites preserve that proof.
@@ -773,7 +784,7 @@ namespace PostRaPeephole
                 // A truncated LEA result depends only on the corresponding low
                 // input bits, even though its addressing mode uses 64-bit registers.
                 const MicroOpBits readBits = address ? ops[indexedAddress ? 3 : 2].opBits : ops[widthOperand].opBits;
-                if (ops[0].reg.isInt() && getNumBits(readBits) <= getNumBits(copyOps[2].opBits))
+                if (ops[0].reg.isInt() && (getNumBits(readBits) <= getNumBits(copyOps[2].opBits) || getNumBits(readBits) <= getNumBits(effectiveCopyBits())))
                 {
                     MicroInstrOperand rewritten[Action::K_MAX_OPS];
                     std::ranges::copy(std::span{ops, next->numOperands}, rewritten);
@@ -945,6 +956,250 @@ namespace PostRaPeephole
         ctx.emitRewrite(prevRef, prev->op, rewrittenOps);
         ctx.emitErase(copyRef);
         return true;
+    }
+
+    namespace
+    {
+        using UpperHalfState = uint32_t;
+
+        bool writesWholeRegisterAt32(const MicroOp op)
+        {
+            switch (op)
+            {
+                case MicroOp::Add:
+                case MicroOp::Subtract:
+                case MicroOp::And:
+                case MicroOp::Or:
+                case MicroOp::Xor:
+                case MicroOp::MultiplySigned:
+                case MicroOp::ShiftLeft:
+                case MicroOp::ShiftArithmeticLeft:
+                case MicroOp::ShiftRight:
+                case MicroOp::ShiftArithmeticRight:
+                case MicroOp::RotateLeft:
+                case MicroOp::RotateRight:
+                case MicroOp::Negate:
+                case MicroOp::BitwiseNot:
+                case MicroOp::ByteSwap:
+                case MicroOp::PopCount:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        bool isPartialWidth(const MicroOpBits bits)
+        {
+            return bits == MicroOpBits::B8 || bits == MicroOpBits::B16;
+        }
+
+        UpperHalfState regBit(const MicroReg reg)
+        {
+            return reg.isInt() && reg.index() < 32 ? UpperHalfState{1} << reg.index() : 0;
+        }
+
+        // Whether `reg`, the instruction's destination, has its upper half
+        // clear afterwards, given what was known before it. A byte or word
+        // write keeps the upper half as it was.
+        bool definesUpperHalfZero(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg reg, const UpperHalfState before)
+        {
+            if (!ops || ops[0].reg != reg)
+                return false;
+
+            const bool kept  = (before & regBit(reg)) != 0;
+            const auto known = [&](const MicroReg other) {
+                return (before & regBit(other)) != 0;
+            };
+
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::ClearReg:
+                    return isPartialWidth(ops[1].opBits) ? kept : true;
+                case MicroInstrOpcode::LoadRegImm:
+                    if (isPartialWidth(ops[1].opBits))
+                        return kept;
+                    return ops[1].opBits == MicroOpBits::B32 || (!ops[2].hasWideImmediateValue() && ops[2].valueU64 <= UINT32_MAX);
+                case MicroInstrOpcode::LoadRegReg:
+                    if (isPartialWidth(ops[2].opBits))
+                        return kept;
+                    return ops[2].opBits == MicroOpBits::B32 || known(ops[1].reg);
+                case MicroInstrOpcode::LoadRegMem:
+                    return isPartialWidth(ops[2].opBits) ? kept : ops[2].opBits == MicroOpBits::B32;
+                case MicroInstrOpcode::LoadAddrRegMem:
+                    return ops[2].opBits == MicroOpBits::B32;
+                case MicroInstrOpcode::LoadAmcRegMem:
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    return ops[3].opBits == MicroOpBits::B32;
+                case MicroInstrOpcode::LoadCondRegReg:
+                    return ops[3].opBits == MicroOpBits::B32 || (ops[3].opBits == MicroOpBits::B64 && kept && known(ops[1].reg));
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    if (isPartialWidth(ops[2].opBits))
+                        return kept;
+                    return ops[2].opBits == MicroOpBits::B32 || getNumBits(ops[3].opBits) <= 32;
+                case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                    if (isPartialWidth(ops[3].opBits))
+                        return kept;
+                    return ops[3].opBits == MicroOpBits::B32 || getNumBits(ops[4].opBits) <= 32;
+                case MicroInstrOpcode::LoadSignedExtRegReg:
+                case MicroInstrOpcode::LoadSignedExtRegMem:
+                    if (isPartialWidth(ops[2].opBits))
+                        return kept;
+                    return ops[2].opBits == MicroOpBits::B32;
+                case MicroInstrOpcode::SetCondReg:
+                    return kept;
+                case MicroInstrOpcode::OpBinaryRegReg:
+                case MicroInstrOpcode::OpBinaryRegMem:
+                {
+                    const MicroOpBits bits = ops[2].opBits;
+                    const MicroOp     op   = ops[3].microOp;
+                    if (op == MicroOp::Exchange)
+                        return false;
+                    if (isPartialWidth(bits))
+                        return kept;
+                    if (bits == MicroOpBits::B32)
+                        return writesWholeRegisterAt32(op);
+                    if (bits != MicroOpBits::B64 || inst.op != MicroInstrOpcode::OpBinaryRegReg)
+                        return false;
+                    if (op == MicroOp::And)
+                        return kept || known(ops[1].reg);
+                    if (op == MicroOp::Or || op == MicroOp::Xor)
+                        return kept && known(ops[1].reg);
+                    return false;
+                }
+                case MicroInstrOpcode::OpBinaryRegImm:
+                case MicroInstrOpcode::OpUnaryReg:
+                {
+                    const MicroOpBits bits = ops[1].opBits;
+                    const MicroOp     op   = ops[2].microOp;
+                    if (isPartialWidth(bits))
+                        return kept;
+                    if (bits == MicroOpBits::B32)
+                        return writesWholeRegisterAt32(op);
+                    if (bits != MicroOpBits::B64 || inst.op != MicroInstrOpcode::OpBinaryRegImm || ops[3].hasWideImmediateValue())
+                        return false;
+                    const uint64_t imm = ops[3].valueU64;
+                    if (op == MicroOp::And)
+                        return kept || imm <= UINT32_MAX;
+                    if (op == MicroOp::Or || op == MicroOp::Xor)
+                        return kept && imm <= UINT32_MAX;
+                    if (op == MicroOp::ShiftRight)
+                        return kept || (imm & 63) >= 32;
+                    return false;
+                }
+                default:
+                    return false;
+            }
+        }
+
+        UpperHalfState upperHalfAfter(const Context& ctx, const MicroInstr& inst, const UpperHalfState before)
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+            if (useDef.isCall)
+                return 0;
+
+            const MicroInstrOperand* ops   = inst.ops(*ctx.operands);
+            UpperHalfState           after = before;
+            for (const MicroReg def : useDef.defs)
+                after &= ~regBit(def);
+            for (const MicroReg def : useDef.defs)
+            {
+                if (definesUpperHalfZero(inst, ops, def, before))
+                    after |= regBit(def);
+            }
+            return after;
+        }
+
+        // A move that only clears the upper half of its own register:
+        // `mov r32, r32` or the equivalent widening.
+        bool isUpperHalfClear(const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            if (!ops || !ops[0].reg.isInt() || ops[0].reg != ops[1].reg)
+                return false;
+            if (inst.op == MicroInstrOpcode::LoadRegReg)
+                return ops[2].opBits == MicroOpBits::B32;
+            if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg)
+                return ops[2].opBits == MicroOpBits::B64 && ops[3].opBits == MicroOpBits::B32;
+            return false;
+        }
+    }
+
+    // Which integer registers have their upper half clear on entry to each
+    // instruction: after a 32-bit result, a zero-extension, or a full copy of
+    // either. A forward must-analysis over the instruction graph; a call and
+    // any definition it does not model forget what was known.
+    bool Context::isUpperHalfZeroBefore(const MicroInstrRef ref, const MicroReg reg)
+    {
+        if (!upperHalfReady)
+        {
+            upperHalfReady = true;
+            if (!builder)
+                return false;
+            const MicroControlFlowGraph& cfg = builder->controlFlowGraph();
+            if (cfg.hasUnsupportedControlFlowForCfgLiveness())
+                return false;
+
+            const uint32_t              count = cfg.instructionCount();
+            const auto                  refs  = cfg.instructionRefs();
+            std::vector<UpperHalfState> in(count, ~UpperHalfState{0});
+            std::vector<UpperHalfState> out(count, ~UpperHalfState{0});
+            std::vector<uint8_t>        queued(count, 1);
+            SmallVector<uint32_t>       worklist;
+            for (uint32_t i = count; i > 0; --i)
+                worklist.push_back(i - 1);
+
+            while (!worklist.empty())
+            {
+                const uint32_t index = worklist.back();
+                worklist.pop_back();
+                queued[index] = 0;
+
+                UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
+                for (const uint32_t pred : cfg.predecessors(index))
+                    state &= out[pred];
+                in[index] = state;
+
+                const MicroInstr* inst = storage->ptr(refs[index]);
+                if (!inst)
+                    return false;
+                const UpperHalfState after = upperHalfAfter(*this, *inst, state);
+                if (after == out[index])
+                    continue;
+                out[index] = after;
+                for (const uint32_t succ : cfg.successors(index))
+                {
+                    if (!queued[succ])
+                    {
+                        queued[succ] = 1;
+                        worklist.push_back(succ);
+                    }
+                }
+            }
+
+            upperHalfZeroIn.assign(storage->slotCount(), 0);
+            for (uint32_t index = 0; index < count; ++index)
+                upperHalfZeroIn[refs[index].get()] = in[index];
+            upperHalfValid = true;
+        }
+
+        if (!upperHalfValid || !ref.isValid() || ref.get() >= upperHalfZeroIn.size())
+            return false;
+        const UpperHalfState bit = regBit(reg);
+        return bit && (upperHalfZeroIn[ref.get()] & bit) != 0;
+    }
+
+    // A move that clears the upper half of a register where that half is
+    // already clear does nothing.
+    void eraseRedundantUpperHalfClears(Context& ctx)
+    {
+        for (auto it = ctx.storage->view().begin(); it != ctx.storage->view().end(); ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(*ctx.operands);
+            if (!isUpperHalfClear(*it, ops) || !ctx.isUpperHalfZeroBefore(it.current, ops[0].reg))
+                continue;
+            if (ctx.claimAll({it.current}))
+                ctx.emitErase(it.current);
+        }
     }
 }
 

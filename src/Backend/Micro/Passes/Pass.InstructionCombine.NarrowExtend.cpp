@@ -19,12 +19,31 @@ namespace InstructionCombine
 
         // The widest bit any reader takes from the value `reg` holds; 64 when a
         // reader is not understood. A copy into another virtual register reads
-        // what that register's own readers read, capped at the copy's width.
-        uint32_t demandedBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t depth)
+        // what that register's own readers read, capped at the copy's width. A
+        // phi reads what the merged value's readers read: one nothing reads,
+        // as the SSA places at a join the value does not live through, reads
+        // nothing, and one met again on a loop adds nothing new.
+        uint32_t demandedBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t depth, SmallVector<uint32_t>& visitedPhis)
         {
             uint32_t widest = 0;
             for (const auto& useSite : valueInfo.uses)
             {
+                if (useSite.kind == MicroSsaState::UseSite::Kind::Phi)
+                {
+                    const MicroSsaState::PhiInfo* phi = ssa.phiInfo(useSite.phiIndex);
+                    if (!phi || phi->reg != reg || depth >= K_MAX_DEMAND_DEPTH)
+                        return 64;
+                    if (std::ranges::find(visitedPhis, useSite.phiIndex) != visitedPhis.end())
+                        continue;
+                    visitedPhis.push_back(useSite.phiIndex);
+                    const auto* phiValue = ssa.valueInfo(phi->resultValueId);
+                    if (!phiValue)
+                        return 64;
+                    widest = std::max(widest, demandedBits(ssa, storage, operands, *phiValue, reg, depth + 1, visitedPhis));
+                    if (widest >= 64)
+                        return 64;
+                    continue;
+                }
                 if (useSite.kind != MicroSsaState::UseSite::Kind::Instruction)
                     return 64;
                 const MicroInstr* useInst = storage.ptr(useSite.instRef);
@@ -45,7 +64,7 @@ namespace InstructionCombine
                     const auto* copyInfo = ssa.valueInfo(copyValueId);
                     if (!copyInfo)
                         return 64;
-                    bits = std::min(bits, demandedBits(ssa, storage, operands, *copyInfo, useOps[0].reg, depth + 1));
+                    bits = std::min(bits, demandedBits(ssa, storage, operands, *copyInfo, useOps[0].reg, depth + 1, visitedPhis));
                 }
 
                 widest = std::max(widest, bits);
@@ -81,7 +100,8 @@ namespace InstructionCombine
         if (!valueInfo || valueInfo->uses.empty())
             return false;
 
-        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0) > getNumBits(srcBits))
+        SmallVector<uint32_t> visitedPhis;
+        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0, visitedPhis) > getNumBits(srcBits))
             return false;
 
         if (!ctx.claimAll({ref}))
@@ -128,20 +148,24 @@ namespace InstructionCombine
         const auto* valueInfo = ctx.ssa->valueInfo(valueId);
         if (!valueInfo || valueInfo->uses.empty())
             return false;
-        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0) > 32)
+        SmallVector<uint32_t> visitedPhis;
+        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0, visitedPhis) > 32)
             return false;
 
         if (ctx.isRelocated(ref))
             return false;
         for (const auto& useSite : valueInfo->uses)
         {
-            if (ctx.isClaimed(useSite.instRef))
+            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction && ctx.isClaimed(useSite.instRef))
                 return false;
         }
         if (!ctx.claimAll({ref}))
             return false;
         for (const auto& useSite : valueInfo->uses)
-            ctx.claimed.insert(useSite.instRef.get());
+        {
+            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction)
+                ctx.claimed.insert(useSite.instRef.get());
+        }
 
         MicroInstrOperand moveOps[3];
         moveOps[0].reg    = dst;

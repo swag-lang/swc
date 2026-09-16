@@ -1976,23 +1976,24 @@ void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, 
 void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
+    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
     if (memReg.isInstructionPointer())
     {
         SWC_ASSERT(memOffset == 0);
-        emitRex(store_, MicroOpBits::B64, reg, memReg);
+        emitRex(store_, opBits, reg, memReg);
         emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
         store_.pushU32(0);
     }
     else if (memOffset == 0)
     {
-        encodeLoadRegReg(reg, memReg, MicroOpBits::B64);
+        encodeLoadRegReg(reg, memReg, opBits);
     }
     else
     {
-        emitRex(store_, MicroOpBits::B64, reg, memReg);
+        emitRex(store_, opBits, reg, memReg);
         emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
         emitModRm(store_, memOffset, reg, memReg);
     }

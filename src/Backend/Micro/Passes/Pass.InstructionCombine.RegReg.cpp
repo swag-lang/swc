@@ -112,6 +112,44 @@ namespace InstructionCombine
             return true;
         }
 
+        // ~a ^ ~b = a ^ b. Erasing the two single-use complements keeps
+        // their input reads in place. NOT preserves flags, and the final XOR
+        // computes the same result and flags even when a branch reads them.
+        bool tryCancelBitwiseComplements(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Xor || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            std::array defs{ctx.ssa->reachingDef(ops[0].reg, ref), ctx.ssa->reachingDef(ops[1].reg, ref)};
+            std::array copies{MicroInstrRef::invalid(), MicroInstrRef::invalid()};
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                if (defs[i].valid() && !defs[i].isPhi && defs[i].inst && defs[i].inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = defs[i].inst->ops(*ctx.operands);
+                    if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
+                        ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                        return false;
+                    copies[i] = defs[i].instRef;
+                    defs[i] = ctx.ssa->reachingDef(copy[1].reg, copies[i]);
+                }
+                if (!defs[i].valid() || defs[i].isPhi || !defs[i].inst || defs[i].inst->op != MicroInstrOpcode::OpUnaryReg ||
+                    ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                    return false;
+                const auto* unary = defs[i].inst->ops(*ctx.operands);
+                if (!unary || unary[1].opBits != bits || unary[2].microOp != MicroOp::BitwiseNot)
+                    return false;
+            }
+            if (defs[0].instRef == defs[1].instRef ||
+                !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
+                return false;
+            ctx.emitErase(defs[0].instRef);
+            ctx.emitErase(defs[1].instRef);
+            return true;
+        }
+
         // a | (a & b) = a, a & (a | b) = a, and (a ^ b) ^ a = b.
         // The inner value must belong to this expression alone. Keep the reads
         // at the final operation only when their original values still reach it.
@@ -435,7 +473,7 @@ namespace InstructionCombine
         if (!ops || !ops[0].reg.isVirtualInt())
             return false;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldRotate(ctx, ref, ops) || tryFoldRepeatedBitwiseInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
+            return tryFoldRotate(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryFoldRepeatedBitwiseInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

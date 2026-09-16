@@ -320,7 +320,9 @@ namespace
             const uint32_t bits    = getNumBits(opBits);
             const MicroReg biasReg = allocVirtualReg();
             emitCopy(biasReg, dst);
-            emitOpRegImm(biasReg, MicroOp::ShiftArithmeticRight, bits - 1);
+            // Division by two needs only the sign bit as its rounding bias.
+            if (log2Divisor > 1)
+                emitOpRegImm(biasReg, MicroOp::ShiftArithmeticRight, bits - 1);
             emitOpRegImm(biasReg, MicroOp::ShiftRight, bits - log2Divisor);
             emitOpRegReg(dst, biasReg, MicroOp::Add);
             emitOpRegImm(dst, MicroOp::ShiftArithmeticRight, log2Divisor);

@@ -68,6 +68,67 @@ namespace InstructionCombine
             return true;
         }
 
+        // Multiplication by the same small constant can follow an add/subtract.
+        // Keep each input read at its original address-computation position.
+        bool tryFactorScaledInputs(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || !ops[1].reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64 ||
+                (ops[3].microOp != MicroOp::Add && ops[3].microOp != MicroOp::Subtract))
+                return false;
+            std::array                              defs{ctx.ssa->reachingDef(ops[0].reg, ref), ctx.ssa->reachingDef(ops[1].reg, ref)};
+            std::array                              copies{MicroInstrRef::invalid(), MicroInstrRef::invalid()};
+            std::array<const MicroInstrOperand*, 2> addresses;
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                if (defs[i].valid() && !defs[i].isPhi && defs[i].inst && defs[i].inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = defs[i].inst->ops(*ctx.operands);
+                    if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[1].reg.isVirtualInt() ||
+                        ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                        return false;
+                    copies[i] = defs[i].instRef;
+                    defs[i]   = ctx.ssa->reachingDef(copy[1].reg, copies[i]);
+                }
+                if (!defs[i].valid() || defs[i].isPhi || !defs[i].inst || defs[i].inst->op != MicroInstrOpcode::LoadAddrAmcRegMem ||
+                    ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                    return false;
+                addresses[i]        = defs[i].inst->ops(*ctx.operands);
+                const auto* address = addresses[i];
+                if (!address || !address[1].reg.isVirtualInt() || address[1].reg != address[2].reg ||
+                    address[3].opBits != MicroOpBits::B64 || address[4].opBits != MicroOpBits::B64 || address[6].valueU64 != 0 ||
+                    (address[5].valueU64 != 1 && address[5].valueU64 != 2 && address[5].valueU64 != 4 && address[5].valueU64 != 8))
+                    return false;
+                MicroInstrRef cursor = defs[i].instRef;
+                for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+                {
+                    const auto* current = ctx.instruction(cursor);
+                    if (!current || isBlockBoundary(*current))
+                        return false;
+                    cursor = ctx.nextRef(cursor);
+                }
+                if (cursor != ref)
+                    return false;
+            }
+            if (defs[0].instRef == defs[1].instRef || addresses[0][5].valueU64 != addresses[1][5].valueU64 ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
+                               copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
+                return false;
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                const MicroInstrOperand copy[3] = {addresses[i][0], addresses[i][1], addresses[i][3]};
+                ctx.emitRewrite(defs[i].instRef, MicroInstrOpcode::LoadRegReg, copy);
+            }
+            MicroInstrOperand combined[8];
+            std::copy_n(addresses[0], 8, combined);
+            combined[0].reg = ops[0].reg;
+            combined[1].reg = ops[0].reg;
+            combined[2].reg = ops[0].reg;
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, std::span{ops, 4});
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, combined, true);
+            return true;
+        }
+
         // Distribute a common shift through a single-use integer combination.
         // Addition/subtraction commute only with left shifts; bitwise operations
         // commute with either direction, including arithmetic right shifts.
@@ -902,7 +963,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

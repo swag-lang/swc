@@ -106,8 +106,8 @@ namespace InstructionCombine
         }
     }
 
-    // A select between zero and a single bit or all-one mask starts with setcc.
-    // Scale or negate that boolean only when the original flags are dead.
+    // Materialize small constant selects from a boolean with a scale, negation,
+    // or address computation. Flag-writing forms require dead original flags.
     // Reuse the adjacent single-use source materialization, then widen its byte:
     // the use/def model must not mistake setcc for a full-register definition.
     bool tryFoldBooleanSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
@@ -145,20 +145,40 @@ namespace InstructionCombine
         if (initialOps[1].opBits != bits || initialOps[2].hasWideImmediateValue())
             return false;
         const uint64_t initialValue = initialOps[2].valueU64 & getBitsMask(bits);
-        if ((sourceValue == 0) == (initialValue == 0))
-            return false;
-        const uint64_t mask   = sourceValue ? sourceValue : initialValue;
-        const bool     negate = mask == getBitsMask(bits);
-        if (!negate && !std::has_single_bit(mask))
-            return false;
-        if (mask != 1 && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        const bool     zeroMask     = (sourceValue == 0) != (initialValue == 0);
+        const uint64_t mask         = sourceValue ? sourceValue : initialValue;
+        const bool     negate       = mask == getBitsMask(bits);
+        const bool     affine       = !zeroMask || (!negate && !std::has_single_bit(mask));
+        uint64_t       base         = initialValue;
+        uint64_t       delta        = (sourceValue - initialValue) & getBitsMask(bits);
+        bool           inverse      = sourceValue == 0;
+        if (affine)
+        {
+            const auto encodable = [bits](uint64_t candidateBase, uint64_t candidateDelta) {
+                if (candidateDelta != 1 && candidateDelta != 2 && candidateDelta != 3 &&
+                    candidateDelta != 4 && candidateDelta != 5 && candidateDelta != 8 && candidateDelta != 9)
+                    return false;
+                const uint64_t extended = static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(candidateBase)));
+                return (extended & getBitsMask(bits)) == candidateBase;
+            };
+            inverse = false;
+            if (!encodable(base, delta))
+            {
+                base    = sourceValue;
+                delta   = (initialValue - sourceValue) & getBitsMask(bits);
+                inverse = true;
+                if (!encodable(base, delta))
+                    return false;
+            }
+        }
+        else if (mask != 1 && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
             return false;
         if (!valueHasSingleUse(*ctx.ssa, src, sourceRef))
             return false;
 
         MicroCond condition = ops[2].cpuCond;
         if (condition == MicroCond::Unconditional ||
-            (sourceValue == 0 && !MicroPassHelpers::invertCondition(condition, condition)))
+            (inverse && !MicroPassHelpers::invertCondition(condition, condition)))
             return false;
         if (!ctx.claimAll({sourceRef, ref}))
             return false;
@@ -172,7 +192,36 @@ namespace InstructionCombine
         extendOps[1].reg    = src;
         extendOps[2].opBits = bits;
         extendOps[3].opBits = MicroOpBits::B8;
-        if (mask == 1)
+        if (affine)
+        {
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+            const uint64_t offset = static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(base)));
+            if (delta == 1)
+            {
+                MicroInstrOperand address[4] = {};
+                address[0].reg               = dst;
+                address[1].reg               = dst;
+                address[2].opBits            = bits;
+                address[3].valueU64          = offset;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrRegMem, address, true);
+            }
+            else
+            {
+                MicroInstrOperand address[8] = {};
+                address[0].reg               = dst;
+                // A repeated base avoids the mandatory disp32 of an index-only
+                // address for scales two, three, five and nine.
+                const bool repeated = delta == 2 || delta == 3 || delta == 5 || delta == 9;
+                address[1].reg      = repeated ? dst : MicroReg::noBase();
+                address[2].reg      = dst;
+                address[3].opBits   = bits;
+                address[4].opBits   = MicroOpBits::B64;
+                address[5].valueU64 = repeated ? delta - 1 : delta;
+                address[6].valueU64 = offset;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, address, true);
+            }
+        }
+        else if (mask == 1)
             ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
         else
         {

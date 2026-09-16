@@ -195,6 +195,35 @@ namespace PostRaPeephole
         return true;
     }
 
+    // An address computation can write the final result even when it reads its
+    // old destination as a base/index. Only that old result must be dead.
+    bool tryRetargetAddressResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef addressRef = ctx.previousRef(copyRef);
+        const MicroInstr*   address    = ctx.instruction(addressRef);
+        if (!address || (address->op != MicroInstrOpcode::LoadAddrRegMem && address->op != MicroInstrOpcode::LoadAddrAmcRegMem))
+            return false;
+        const auto*    ops        = address->ops(*ctx.operands);
+        const uint32_t widthIndex = address->op == MicroInstrOpcode::LoadAddrRegMem ? 2 : 3;
+        if (!ops || ops[0].reg != copy[1].reg || ops[widthIndex].opBits != copy[2].opBits ||
+            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+        MicroInstrOperand rewritten[Action::K_MAX_OPS] = {};
+        std::copy_n(ops, address->numOperands, rewritten);
+        rewritten[0].reg = copy[0].reg;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *address, rewritten)) || !ctx.claimAll({addressRef, copyRef}))
+            return false;
+        ctx.emitRewrite(addressRef, address->op, std::span{rewritten, address->numOperands});
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // ADD followed by a result copy can compute directly in the copy's
     // destination when ABI-aware liveness proves its old result is dead.
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

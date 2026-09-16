@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -494,14 +495,102 @@ namespace
         return walked.slotFor((segmentId * 1099511628211ULL + offset) | 1ULL);
     }
 
+    // A membership set of the constant offsets one walk has already been through. The walk asks
+    // this a few dozen times per function and a module walks thousands of functions, so the set
+    // is reused rather than built: clearing it moves a stamp instead of touching the table, and a
+    // walk no longer starts by allocating one.
+    class WalkedOffsetSet
+    {
+    public:
+        // True when the key was not already present. Zero is not a key: it marks a free slot.
+        bool insert(const uint64_t key)
+        {
+            SWC_ASSERT(key != 0);
+            if (slots_.empty())
+                grow(INITIAL_CAPACITY);
+
+            size_t index = slotIndex(key);
+            while (slots_[index].key)
+            {
+                if (slots_[index].stamp != stamp_)
+                    break;
+                if (slots_[index].key == key)
+                    return false;
+                index = (index + 1) & (slots_.size() - 1);
+            }
+
+            slots_[index] = {.key = key, .stamp = stamp_};
+            ++count_;
+
+            // Linear probing degrades sharply near a full table; keep it below three quarters.
+            if (count_ * 4 > slots_.size() * 3)
+                grow(slots_.size() * 2);
+            return true;
+        }
+
+        void clear()
+        {
+            ++stamp_;
+            count_ = 0;
+        }
+
+    private:
+        struct Slot
+        {
+            uint64_t key   = 0;
+            uint64_t stamp = 0;
+        };
+
+        static constexpr size_t INITIAL_CAPACITY = 64;
+
+        size_t slotIndex(const uint64_t key) const { return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & (slots_.size() - 1); }
+
+        void grow(const size_t capacity)
+        {
+            // A stale slot belongs to an earlier walk, so only this walk's keys move.
+            std::vector<Slot> live;
+            live.reserve(count_);
+            for (const Slot& slot : slots_)
+            {
+                if (slot.key && slot.stamp == stamp_)
+                    live.push_back(slot);
+            }
+
+            slots_.assign(capacity, Slot{});
+            for (const Slot& slot : live)
+            {
+                size_t index = slotIndex(slot.key);
+                while (slots_[index].key)
+                    index = (index + 1) & (slots_.size() - 1);
+                slots_[index] = slot;
+            }
+        }
+
+        std::vector<Slot> slots_;
+        uint64_t          stamp_ = 1;
+        size_t            count_ = 0;
+    };
+
     // One walk of the constant graph: what it has found, which shards it read, and what it has
-    // already been through. Kept together so the walk carries one parameter instead of five.
+    // already been through. Kept together so the walk carries one parameter instead of five, and
+    // reused by the worker that runs it: the tables a walk needs are the same ones the next walk
+    // needs, and a module runs thousands of them.
     struct ConstantJitTargetWalk
     {
         SymbolFunction::ConstantJitTargetList         targets;
         SmallVector<std::pair<uint32_t, uint64_t>, 2> shardVersions;
-        std::unordered_set<uint64_t>                  visitedAllocations;
-        std::unordered_set<uintptr_t>                 seenTargets;
+        WalkedOffsetSet                               visitedAllocations;
+        PointerSet<SymbolFunction>                    seenStrictTargets;
+        PointerSet<SymbolFunction>                    seenOptionalTargets;
+
+        void reset()
+        {
+            targets.clear();
+            shardVersions.clear();
+            visitedAllocations.clear();
+            seenStrictTargets.clear();
+            seenOptionalTargets.clear();
+        }
     };
 
     // Walks the constant graph from one offset, collecting every function the data can name.
@@ -544,8 +633,10 @@ namespace
 
             // Nested reflection and interface tables can reach functions through any
             // data relocation. Match the graph used to detect unpublished metadata.
-            const uint64_t allocationKey = (static_cast<uint64_t>(current.shardIndex) << 32) | allocation.offset;
-            if (!walk.visitedAllocations.insert(allocationKey).second)
+            // The high bit keeps the first allocation of the first shard from packing to zero,
+            // which the table reads as a free slot.
+            const uint64_t allocationKey = 1ULL << 63 | static_cast<uint64_t>(current.shardIndex) << 32 | allocation.offset;
+            if (!walk.visitedAllocations.insert(allocationKey))
                 continue;
 
             if (!walkedIsCurrent)
@@ -576,8 +667,8 @@ namespace
                     // A target reached both through a relocation that tolerates an unresolved
                     // function and through one that does not is two different questions, so both
                     // spellings are kept; the same spelling twice is not.
-                    const uintptr_t key = reinterpret_cast<uintptr_t>(target) | (relocation.allowUnresolvedFunction ? 1u : 0u);
-                    if (!walk.seenTargets.insert(key).second)
+                    PointerSet<SymbolFunction>& seen = relocation.allowUnresolvedFunction ? walk.seenOptionalTargets : walk.seenStrictTargets;
+                    if (!seen.insert(target))
                         continue;
 
                     walk.targets.emplace_back(target, relocation.allowUnresolvedFunction);
@@ -625,7 +716,8 @@ namespace
                 return cache.targets;
         }
 
-        ConstantJitTargetWalk walk;
+        static thread_local ConstantJitTargetWalk walk;
+        walk.reset();
         walkConstantJitTargets(sema, walk, function);
         auto targets = std::make_shared<SymbolFunction::ConstantJitTargetList>(std::move(walk.targets));
         if (!remembers)
@@ -640,7 +732,19 @@ namespace
 
     bool appendConstantFunctionJitRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& roots, std::span<SymbolFunction* const> functions)
     {
-        std::unordered_set seenFunctions(roots.begin(), roots.end());
+        // Everything the run already reaches, so a constant that names one of them adds nothing.
+        // The set holds the whole call graph of the run and is built once per compile-time call,
+        // which is thousands of times over a module: it is a flat table the worker reuses rather
+        // than a node per function.
+        static thread_local PointerSet<SymbolFunction> seenFunctions;
+        seenFunctions.clear();
+        seenFunctions.reserve(roots.size() + functions.size() + 1);
+        for (SymbolFunction* root : roots)
+        {
+            if (root)
+                seenFunctions.insert(root);
+        }
+
         seenFunctions.insert(const_cast<SymbolFunction*>(&symFn));
         for (SymbolFunction* function : functions)
         {

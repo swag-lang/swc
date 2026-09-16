@@ -112,6 +112,119 @@ namespace InstructionCombine
             return true;
         }
 
+        struct MaskedInput
+        {
+            MicroReg      reg;
+            MicroReg      rawSource;
+            MicroReg      source;
+            MicroInstrRef defRef;
+            MicroInstrRef copyRef;
+            MicroInstrRef sourceCopyRef;
+            MicroInstrRef sourceRef;
+            uint64_t      mask = 0;
+        };
+
+        bool readMaskedInput(MaskedInput& out, const Context& ctx, MicroReg reg, MicroInstrRef ref, MicroOpBits bits)
+        {
+            auto def = ctx.ssa->reachingDef(reg, ref);
+            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = def.inst->ops(*ctx.operands);
+                if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
+                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                    return false;
+                out.copyRef = def.instRef;
+                reg         = copy[1].reg;
+                def         = ctx.ssa->reachingDef(reg, out.copyRef);
+            }
+            if (!def.valid() || def.isPhi || !def.inst || ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                return false;
+            const auto* ops = def.inst->ops(*ctx.operands);
+            if (!ops)
+                return false;
+            out.reg       = reg;
+            out.defRef    = def.instRef;
+            out.rawSource = reg;
+            if (def.inst->op == MicroInstrOpcode::OpBinaryRegImm)
+            {
+                if (ops[1].opBits != bits || ops[2].microOp != MicroOp::And || ops[3].hasWideImmediateValue())
+                    return false;
+                out.mask = ops[3].valueU64 & getBitsMask(bits);
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                    return false;
+            }
+            else if (def.inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
+            {
+                if (ops[2].opBits != bits || !ops[1].reg.isVirtualInt() ||
+                    ops[3].opBits == MicroOpBits::Zero || getNumBits(ops[3].opBits) > getNumBits(bits))
+                    return false;
+                out.mask      = getBitsMask(ops[3].opBits);
+                out.rawSource = ops[1].reg;
+            }
+            else
+                return false;
+
+            out.source    = out.rawSource;
+            out.sourceRef = out.defRef;
+            const auto input = ctx.ssa->reachingDef(out.source, out.sourceRef);
+            if (out.reg == out.rawSource && input.valid() && !input.isPhi && input.inst && input.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = input.inst->ops(*ctx.operands);
+                if (copy && copy[1].reg.isVirtualInt() && getNumBits(copy[2].opBits) >= getNumBits(bits))
+                {
+                    out.source        = copy[1].reg;
+                    out.sourceRef     = input.instRef;
+                    out.sourceCopyRef = input.instRef;
+                }
+            }
+            return true;
+        }
+
+        // (a & M) op (a & N) = a & (M op N). Zero-extensions are masks
+        // too, so canonicalizing a byte mask early must not hide this fold.
+        bool tryCombineBitMasks(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            const MicroOp op = ops[3].microOp;
+            if (!ctx.ssa || (op != MicroOp::And && op != MicroOp::Or && op != MicroOp::Xor) || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            MaskedInput lhs;
+            MaskedInput rhs;
+            if (!readMaskedInput(lhs, ctx, ops[0].reg, ref, bits) || !readMaskedInput(rhs, ctx, ops[1].reg, ref, bits) ||
+                lhs.source != rhs.source || lhs.defRef == rhs.defRef)
+                return false;
+            const auto source = ctx.ssa->reachingDef(lhs.source, lhs.sourceRef);
+            if (!source.valid() || ctx.ssa->reachingDef(rhs.source, rhs.sourceRef).valueId != source.valueId)
+                return false;
+            if (!ctx.claimAll({ref, lhs.defRef, rhs.defRef, lhs.copyRef.isValid() ? lhs.copyRef : ref, rhs.copyRef.isValid() ? rhs.copyRef : ref,
+                              lhs.sourceCopyRef.isValid() ? lhs.sourceCopyRef : ref, rhs.sourceCopyRef.isValid() ? rhs.sourceCopyRef : ref}))
+                return false;
+
+            // Keep the left input snapshot where the original mask read it.
+            if (lhs.reg == lhs.rawSource)
+                ctx.emitErase(lhs.defRef);
+            else
+            {
+                MicroInstrOperand copy[3];
+                copy[0].reg    = lhs.reg;
+                copy[1].reg    = lhs.rawSource;
+                copy[2].opBits = bits;
+                ctx.emitRewrite(lhs.defRef, MicroInstrOpcode::LoadRegReg, copy);
+            }
+            ctx.emitErase(rhs.defRef);
+            if (rhs.copyRef.isValid())
+                ctx.emitErase(rhs.copyRef);
+            MicroInstrOperand combined[4];
+            combined[0].reg      = ops[0].reg;
+            combined[1].opBits   = bits;
+            combined[2].microOp  = MicroOp::And;
+            combined[3].valueU64 = op == MicroOp::And ? lhs.mask & rhs.mask : op == MicroOp::Or ? lhs.mask | rhs.mask : lhs.mask ^ rhs.mask;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, combined);
+            return true;
+        }
+
         // ~a ^ ~b = a ^ b. Erasing the two single-use complements keeps
         // their input reads in place. NOT preserves flags, and the final XOR
         // computes the same result and flags even when a branch reads them.
@@ -150,20 +263,24 @@ namespace InstructionCombine
             return true;
         }
 
-        // a | (a & b) = a, a & (a | b) = a, and (a ^ b) ^ a = b.
+        // Repeated bitwise inputs absorb or cancel; addition and subtraction
+        // cancel as (a + b) - a = b and (a - b) + b = a.
         // The inner value must belong to this expression alone. Keep the reads
         // at the final operation only when their original values still reach it.
-        bool tryFoldRepeatedBitwiseInput(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        bool tryFoldRepeatedInput(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
         {
             const MicroOp outer = ops[3].microOp;
-            if (!ctx.ssa || (outer != MicroOp::And && outer != MicroOp::Or && outer != MicroOp::Xor) || !ops[1].reg.isVirtualInt())
+            if (!ctx.ssa || (outer != MicroOp::And && outer != MicroOp::Or && outer != MicroOp::Xor &&
+                             outer != MicroOp::Add && outer != MicroOp::Subtract) || !ops[1].reg.isVirtualInt())
                 return false;
             const MicroOpBits bits = ops[2].opBits;
             if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
                 return false;
-            const MicroOp inner = outer == MicroOp::And ? MicroOp::Or : outer == MicroOp::Or ? MicroOp::And : MicroOp::Xor;
+            const bool arithmetic = outer == MicroOp::Add || outer == MicroOp::Subtract;
+            const MicroOp inner = arithmetic ? (outer == MicroOp::Add ? MicroOp::Subtract : MicroOp::Add) :
+                                              (outer == MicroOp::And ? MicroOp::Or : outer == MicroOp::Or ? MicroOp::And : MicroOp::Xor);
 
-            for (uint32_t side = 0; side < 2; ++side)
+            for (uint32_t side = 0; side < (outer == MicroOp::Subtract ? 1u : 2u); ++side)
             {
                 MicroReg      innerReg = ops[side].reg;
                 auto          def      = ctx.ssa->reachingDef(innerReg, ref);
@@ -195,6 +312,9 @@ namespace InstructionCombine
                 const std::array inputRefs{initial.instRef, def.instRef};
                 for (uint32_t common = 0; common < 2; ++common)
                 {
+                    // Subtraction's right input is the only one an outer add cancels.
+                    if (outer == MicroOp::Add && common != 1)
+                        continue;
                     MicroReg      other    = ops[1 - side].reg;
                     MicroInstrRef otherRef = ref;
                     MicroInstrRef otherCopy;
@@ -215,7 +335,7 @@ namespace InstructionCombine
                     const auto commonValue = ctx.ssa->reachingDef(other, inputRefs[common]);
                     if (!commonValue.valid() || ctx.ssa->reachingDef(other, otherRef).valueId != commonValue.valueId)
                         continue;
-                    const uint32_t resultIndex = outer == MicroOp::Xor ? 1 - common : common;
+                    const uint32_t resultIndex = (outer == MicroOp::Xor || arithmetic) ? 1 - common : common;
                     const MicroReg result      = inputs[resultIndex];
                     const auto     resultValue = ctx.ssa->reachingDef(result, inputRefs[resultIndex]);
                     if (!resultValue.valid() || ctx.ssa->reachingDef(result, ref).valueId != resultValue.valueId)
@@ -473,7 +593,7 @@ namespace InstructionCombine
         if (!ops || !ops[0].reg.isVirtualInt())
             return false;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldRotate(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryFoldRepeatedBitwiseInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
+            return tryFoldRotate(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

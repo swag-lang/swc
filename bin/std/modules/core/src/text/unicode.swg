@@ -121,10 +121,10 @@ public
         return res.mappedRune
     }
 
-    // Converts this value to upper.
+    // Returns the Unicode simple uppercase mapping of one code point.
     func toUpper(c: rune)->rune
     {
-        if isLatin1(c) do
+        if isAscii(c) do
             return cast() Latin1.toUpper(cast(u8) c)
 
         var res = caseChangeTo(WantedCase.UpperCase, c, TableSpecialCaseRanges)
@@ -137,10 +137,10 @@ public
         return res.mappedRune
     }
 
-    // Converts this value to title.
+    // Returns the Unicode simple titlecase mapping of one code point.
     func toTitle(c: rune)->rune
     {
-        if isLatin1(c) do
+        if isAscii(c) do
             return cast() Latin1.toUpper(cast(u8) c)
 
         var res = caseChangeTo(WantedCase.TitleCase, c, TableSpecialCaseRanges)

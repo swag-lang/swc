@@ -81,6 +81,11 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
 
     Swag.assert(Unicode.toLower('\u00C9'rune) == '\u00E9'rune)
     Swag.assert(Unicode.toUpper('\u00E9'rune) == '\u00C9'rune)
+    Swag.assert(Unicode.toUpper('\u00B5'rune) == '\u039C'rune)
+    Swag.assert(Unicode.toUpper('\u00FF'rune) == '\u0178'rune)
+    Swag.assert(Unicode.toTitle('\u00B5'rune) == '\u039C'rune)
+    Swag.assert(Unicode.toTitle('\u00FF'rune) == '\u0178'rune)
+    Swag.assert(Unicode.toTitle('\u00DF'rune) == '\u00DF'rune)
 
     Swag.assert(Unicode.toLower('\u03A9'rune) == '\u03C9'rune)
     Swag.assert(Unicode.toUpper('\u03C9'rune) == '\u03A9'rune)
@@ -88,6 +93,10 @@ func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
     Swag.assert(Unicode.toTitle('\u01C6'rune) == '\u01C5'rune)
     Swag.assert(Unicode.toLower('\u0130'rune) == 'i'rune)
     Swag.assert(Unicode.toUpper('\u00DF'rune) == '\u00DF'rune)
+    Swag.assert(Unicode.toUpper('i'rune) == 'I'rune)
+    Swag.assert(Unicode.toUpper('\u0130'rune) == '\u0130'rune)
+    Swag.assert(Unicode.toUpper('\u0131'rune) == 'I'rune)
+    Swag.assert(Unicode.toUpper('\u03C2'rune) == '\u03A3'rune)
 }
 
 #test

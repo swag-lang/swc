@@ -47,6 +47,40 @@ using Swag
     Swag.assert(not Latin1.isSymbol('A'u8))
 }
 
+// A lowercase classification does not imply an uppercase partner fits in Latin-1.
+#test
+{
+    const Upper: [5] u8 = ['A'u8, 'Z'u8, 0xC0, 0xC9, 0xDE]
+    const Lower: [5] u8 = ['a'u8, 'z'u8, 0xE0, 0xE9, 0xFE]
+    for index in Upper.count
+    {
+        Swag.assert(Latin1.isUpper(Upper[index]))
+        Swag.assert(not Latin1.isLower(Upper[index]))
+        Swag.assert(Latin1.isLower(Lower[index]))
+        Swag.assert(not Latin1.isUpper(Lower[index]))
+        Swag.assert(Latin1.toLower(Upper[index]) == Lower[index])
+        Swag.assert(Latin1.toUpper(Lower[index]) == Upper[index])
+    }
+
+    // Micro sign, sharp s and y-diaeresis have no single-byte uppercase partner.
+    for value in [0xB5'u8, 0xDF'u8, 0xFF'u8]
+    {
+        Swag.assert(Latin1.isLower(value))
+        Swag.assert(not Latin1.isUpper(value))
+        Swag.assert(Latin1.toUpper(value) == value)
+        Swag.assert(Latin1.toLower(value) == value)
+    }
+
+    for value in [0xD7'u8, 0xF7'u8]
+    {
+        Swag.assert(Latin1.isSymbol(value))
+        Swag.assert(not Latin1.isLower(value))
+        Swag.assert(not Latin1.isUpper(value))
+        Swag.assert(Latin1.toUpper(value) == value)
+        Swag.assert(Latin1.toLower(value) == value)
+    }
+}
+
 #test
 {
     Swag.assert(Latin1.toLower('A'u8) == 'a'u8)
@@ -147,15 +181,15 @@ using Swag
             var original, expectedUpper, expectedLower: String
             for prefixSize
             {
-                original += "a"
+                original      += "a"
                 expectedUpper += "A"
                 expectedLower += "a"
             }
 
-            original += cast(rune) code
+            original      += cast(rune) code
             expectedUpper += cast(rune) expectedUpperCode
             expectedLower += cast(rune) expectedLowerCode
-            original += "zABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            original      += "zABCDEFGHIJKLMNOPQRSTUVWXYZ"
             expectedUpper += "ZABCDEFGHIJKLMNOPQRSTUVWXYZ"
             expectedLower += "zabcdefghijklmnopqrstuvwxyz"
 
@@ -179,8 +213,8 @@ using Swag
         for prefixSize do
             prefix += "0"
         let original = Format.toString("%\u0100\u0101\u0120\u0105\u4E01\U0001F600\U0001F62000000000000000000000000000000000", prefix.toString())
-        var upper = original
-        var lower = original
+        var upper    = original
+        var lower    = original
         Latin1.makeUpper(Swag.makeSlice(upper.storage(), upper.count))
         Latin1.makeLower(Swag.makeSlice(lower.storage(), lower.count))
         Swag.assert(upper.toString() == original.toString())
@@ -224,4 +258,6 @@ using Swag
     Swag.assert(Latin1.compareNatural(" ", "", ignoreCase: true) == 0)
     Swag.assert(Latin1.compareNatural("", " ", ignoreCase: true) == 0)
     Swag.assert(Latin1.compareNatural("\u0100", "\u0101", ignoreCase: true) == -1)
+    Swag.assert(Latin1.compareNatural("a\u0000b", "a\u0000c") == -1)
+    Swag.assert(Latin1.compareNatural("a\u0000", "a") == 1)
 }

@@ -334,7 +334,7 @@ func equals(path1, path2: string)->bool
     var offset1, offset2 = 0'u64
     while offset1 < path1.count and offset2 < path2.count
     {
-        let first = Utf8.decodeRune(Swag.makeSlice(path1.buffer + offset1, path1.count - offset1))
+        let first  = Utf8.decodeRune(Swag.makeSlice(path1.buffer + offset1, path1.count - offset1))
         let second = Utf8.decodeRune(Swag.makeSlice(path2.buffer + offset2, path2.count - offset2))
         if first.c == Utf8.RuneError and first.eat == 1 or second.c == Utf8.RuneError and second.eat == 1 do
             return false
@@ -343,6 +343,7 @@ func equals(path1, path2: string)->bool
         offset1 += first.eat
         offset2 += second.eat
     }
+
     return offset1 == path1.count and offset2 == path2.count
 }
 

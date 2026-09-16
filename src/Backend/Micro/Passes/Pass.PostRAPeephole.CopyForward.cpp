@@ -151,17 +151,18 @@ namespace PostRaPeephole
                 return false;
             observed.push_back(nextRef);
             const bool extends        = next->op == MicroInstrOpcode::LoadZeroExtRegReg || next->op == MicroInstrOpcode::LoadSignedExtRegReg;
+            const bool conditional    = next->op == MicroInstrOpcode::LoadCondRegReg;
             const bool compareRegs    = next->op == MicroInstrOpcode::CmpRegReg;
             const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm;
             const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
-            if (extends || compareRegs || compareImm || address || next->op == MicroInstrOpcode::OpBinaryRegReg)
+            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::OpBinaryRegReg)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)
                     return false;
-                const uint32_t widthOperand = extends ? 3 : compareImm ? 1
-                                                                       : 2;
+                const uint32_t widthOperand = extends || conditional ? 3 : compareImm ? 1
+                                                                                      : 2;
                 // Address inputs use the full pointer width even when the
                 // address result is requested in a narrower destination.
                 const MicroOpBits readBits = address ? MicroOpBits::B64 : ops[widthOperand].opBits;

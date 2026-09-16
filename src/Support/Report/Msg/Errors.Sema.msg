@@ -14,7 +14,7 @@ SWC_DIAG_DEF(sema_err_cannot_cast, Error, "argument {index} for call to '{sym}' 
 SWC_DIAG_DEF(sema_err_cast_unrelated_structs, Error, "cannot cast from '{type}' to '{requested-type}'; neither struct composes the other with 'using'; [help] cast through '*void' when the reinterpretation is intended")
 SWC_DIAG_DEF(sema_err_downcast_dynamic, Error, "cannot downcast a pointer to '{type}' because it has no dynamic identity; [help] mark that struct or a by-value 'using' parent with '#[Swag.DynCast]'")
 SWC_DIAG_DEF(sema_err_dynamic_cast_modifier, Error, "a dynamic cast needs exactly one of '#try' or '#assume'; [help] do not combine them with '#bit', '#wrap', or '#unconst'")
-SWC_DIAG_DEF(sema_err_dynamic_cast_destination, Error, "'cast #try' cannot represent failure with destination '{type}'; [help] request a pointer to the stored value, or a nullable interface")
+SWC_DIAG_DEF(sema_err_dynamic_cast_destination, Error, "'cast #try' cannot return null for destination '{type}'; [help] request a pointer to the stored value, or a nullable interface")
 SWC_DIAG_DEF(sema_err_dynamic_layout, Error, "cannot overlap storage containing a '#[Swag.DynCast]' struct; [help] keep those fields in separate storage")
 SWC_DIAG_DEF(sema_err_struct_cast_field_count, Error, "{what} for '{requested-type}' provides {count} fields, but the destination needs {value}")
 SWC_DIAG_DEF(sema_err_struct_cast_field_count, Error, "cannot cast from '{type}' to '{requested-type}'; source provides {count} fields, destination needs {value}")

@@ -589,12 +589,12 @@ func layoutRootView()
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    switch
     {
-    case ResizeEvent:
+    case cast #try (*ResizeEvent) evt != null:
         layoutRootView()
 
-    case DestroyEvent:
+    case cast #try (*DestroyEvent) evt != null:
         app.sigFrame.disable()
         g_Surface      = null
         g_View         = null

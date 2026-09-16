@@ -9,7 +9,7 @@ using Swag
     var info: SHSTOCKICONINFO
     catch SHGetStockIconInfo(.SIID_FOLDER, SHGSI_ICONLOCATION, &info) as badSize
     Swag.assert((cast #try (*SystemError) badSize != null))
-    Swag.assert((cast(SystemError) badSize).errorID == 0x80070057'u32)
+    Swag.assert((cast #assume (*SystemError) badSize).errorID == 0x80070057'u32)
 
     info.cbSize = #sizeof(SHSTOCKICONINFO)
     expect SHGetStockIconInfo(.SIID_FOLDER, SHGSI_ICON | SHGSI_SMALLICON, &info)

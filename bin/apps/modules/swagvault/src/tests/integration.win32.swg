@@ -730,10 +730,10 @@ namespace Integration
 
     func errorMessage(err: any?)->string
     {
-        switch err
+        switch
         {
-        case Error: return (cast(Error) err).message orelse "Swag Vault integration error."
-        case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows integration error."
+        case let error = cast #try (*Error) err: return error.message orelse "Swag Vault integration error."
+        case let error = cast #try (*Swag.SystemError) err: return error.message orelse "Windows integration error."
         }
 
         return Errors.message(err)

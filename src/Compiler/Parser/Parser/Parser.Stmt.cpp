@@ -1184,7 +1184,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         default:
             // An '@' intrinsic that yields a value is a primary expression like any other, so it
-            // opens a statement the same way: 'buf.buffer[as u32] = 1'. The statement-only
+            // opens a statement the same way. The statement-only
             // intrinsics carry no 'Return' kind and are handled above.
             if (Token::isIntrinsicReturn(id()) && !Token::isCompiler(id()))
                 return parseAssignStmt();

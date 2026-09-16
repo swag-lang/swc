@@ -424,14 +424,14 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FormatSpacing_PostfixDereference)
 {
-    // The postfix place-deref 'p[]' and the reinterpreting 'p[as T]' start at their
-    // operand piece: neither unary-operator nor cast-keyword spacing applies to them.
+    // Postfix dereferences start at their operand piece, including a parenthesized cast:
+    // unary-operator spacing does not separate the operand from its brackets.
     static constexpr std::string_view SOURCE =
         "func bar(p: *s32)\n"
         "{\n"
         "    var x = p[]\n"
         "    p[] = 1\n"
-        "    var y = p[as u32]\n"
+        "    var y = (cast(*u32) p)[]\n"
         "}\n";
 
     FormatOptions options;

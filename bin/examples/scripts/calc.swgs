@@ -80,9 +80,8 @@ func createBtn(str: string, x, y: s32)
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    switch evt
+    if cast #try (*CreateEvent) evt != null
     {
-    case CreateEvent:
         g_FontTxt = wnd.theme().createDefaultFont(30)
         g_FontBtn = wnd.theme().createDefaultFont(30)
 

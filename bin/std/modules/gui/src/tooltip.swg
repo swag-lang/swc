@@ -65,9 +65,7 @@ impl State
     // Hides the visible tip and drops any request waiting on its delay.
     public mtd hide()
     {
-        let current = .current
-        if current do
-            current.destroy()
+        .current?.destroy()
 
         .current       = null
         .currentOwner  = null

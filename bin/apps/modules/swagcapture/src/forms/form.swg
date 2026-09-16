@@ -39,15 +39,9 @@ interface IForm
     mtd isSame(ptr: *BaseForm)->bool
     mtd copy(dst, src: *BaseForm)
 
-    mtd mustClipToBound()->bool
-    {
-        return false
-    }
+    mtd mustClipToBound()->bool => false
 
-    mtd canRotate()->bool
-    {
-        return false
-    }
+    mtd canRotate()->bool => false
 }
 
 // The property panel is generated from the fields carrying a Properties.Name attribute
@@ -235,10 +229,7 @@ impl BaseForm
 
     // In quick mode a translucent highlight is previewed by remapping its alpha to
     // the full range (a checkerboard brush behind it shows the transparency).
-    mtd highlightAlpha()->u8
-    {
-        return cast(u8) Math.map(cast(f32) .alpha, 0, 100, 0, 255)
-    }
+    mtd highlightAlpha()->u8 => cast(u8) Math.map(cast(f32) .alpha, 0, 100, 0, 255)
 
     func drawHitTest(itf: IForm, pt: Math.Point, z: f32)->bool
     {

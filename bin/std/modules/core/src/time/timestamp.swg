@@ -11,16 +11,10 @@ struct Timestamp
 impl Timestamp
 {
     // Captures the current wall-clock time.
-    func now()->Timestamp
-    {
-        return fromDateTime(DateTime.now())
-    }
+    func now()->Timestamp => fromDateTime(DateTime.now())
 
     // Captures the current UTC wall-clock time.
-    func utcNow()->Timestamp
-    {
-        return fromDateTime(DateTime.utcNow())
-    }
+    func utcNow()->Timestamp => fromDateTime(DateTime.utcNow())
 
     // Replaces this value with the current wall-clock time.
     mtd setNow()

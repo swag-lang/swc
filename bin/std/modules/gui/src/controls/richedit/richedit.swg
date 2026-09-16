@@ -106,23 +106,16 @@ private impl IWnd for RichEditCtrl
         {
             .recomputeWrap = true
             .setDefaultStyles()
-            if .lexer do
-                .lexer.setupTheme(me)
+            .lexer?.setupTheme(me)
         }
     }
 }
 
 private impl RichEditCtrl
 {
-    mtd leftMargin()->f32
-    {
-        return .marginLeft
-    }
+    mtd leftMargin()->f32 => .marginLeft
 
-    mtd rightMargin()->f32
-    {
-        return .marginRight
-    }
+    mtd rightMargin()->f32 => .marginRight
 
     mtd setDefaultStyles()
     {

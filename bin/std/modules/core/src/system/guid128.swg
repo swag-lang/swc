@@ -195,8 +195,5 @@ impl Hash.IHash32 for Guid128
 {
     // Compute a 32-bit hash value for the identifier.
     // Uses CRC32 algorithm on the entire 16-byte identifier data.
-    mtd const impl compute()->u32
-    {
-        return Hash.Crc32.compute(Swag.makeSlice(&.bytes[0], 16))
-    }
+    mtd const impl compute()->u32 => Hash.Crc32.compute(Swag.makeSlice(&.bytes[0], 16))
 }

@@ -284,14 +284,17 @@ impl Decoder
             if firstPoc == secondPoc and first.mv[0, 0] == second.mv[1, 0] and first.mv[0, 1] == second.mv[1, 1] do
                 continue
 
-            var combined: PuMotion
-            combined.mv[0, 0]   = first.mv[0, 0]
-            combined.mv[0, 1]   = first.mv[0, 1]
-            combined.mv[1, 0]   = second.mv[1, 0]
-            combined.mv[1, 1]   = second.mv[1, 1]
-            combined.refIdx[0]  = first.refIdx[0]
-            combined.refIdx[1]  = second.refIdx[1]
-            combined.predFlags  = 3
+            with var combined: PuMotion
+            {
+                .mv[0, 0]  = first.mv[0, 0]
+                .mv[0, 1]  = first.mv[0, 1]
+                .mv[1, 0]  = second.mv[1, 0]
+                .mv[1, 1]  = second.mv[1, 1]
+                .refIdx[0] = first.refIdx[0]
+                .refIdx[1] = second.refIdx[1]
+                .predFlags = 3
+            }
+
             candidates[count[]] = combined
             count[] += 1
         }

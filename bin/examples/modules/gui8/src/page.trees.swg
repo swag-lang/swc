@@ -63,12 +63,15 @@ func createTreesPage(parent: *Wnd)
     table.sort(0, false, true)
     table.computeLayout()
 
-    let bottom    = createPanel(parent, "Collapsed branch states", "Tree controls preserve expansion, selection and check state independently.", layout.bottom)
-    let stateTree = ListCtrl.createSimple(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
-    stateTree.setFrameForm(.Square)
-    stateTree.setSelectionMode(.Multi)
-    stateTree.setIconSize(16)
-    stateTree.updateFlags(.ReserveExpandMargin)
+    let bottom         = createPanel(parent, "Collapsed branch states", "Tree controls preserve expansion, selection and check state independently.", layout.bottom)
+    with let stateTree = ListCtrl.createSimple(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    {
+        .setFrameForm(.Square)
+        .setSelectionMode(.Multi)
+        .setIconSize(16)
+        .updateFlags(.ReserveExpandMargin)
+    }
+
     let openRoot   = addSimpleTreeBranch(stateTree, "Expanded branch", .Plus, 2)
     let closedRoot = addSimpleTreeBranch(stateTree, "Collapsed branch", .Minimize, 2)
     stateTree.expand(openRoot)

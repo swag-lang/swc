@@ -8,14 +8,16 @@ using Core, Pixel, Gui
 // added there reaches the viewer without a list to update here.
 func imageViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "image"
-    result.staticName   = "Image"
-    result.attach       = &registerImageStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Image
-    result.create       = &createImageViewer
-    result.smokeFixture = "sample.svg"
+    with var result: retval
+    {
+        .key          = "image"
+        .staticName   = "Image"
+        .attach       = &registerImageStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Image
+        .create       = &createImageViewer
+        .smokeFixture = "sample.svg"
+    }
 
     let formats = Image.decodableFormats()
     for format in formats do
@@ -485,15 +487,17 @@ private impl ImageViewer
     {
         let services     = host.services()
         let navigateFile = services.navigateFile
-        let result       = Wnd.create'ImageViewer(host.contentParent(), "scope.image")
-        result.backgroundStyle      = .View
-        result.navigateFile         = navigateFile
-        result.reportFailure        = services.reportFailure
-        result.reportDetails        = services.reportDetails
-        result.reportChromeChanged  = services.reportChromeChanged
-        result.reportLoadingChanged = services.reportLoadingChanged
-        result.reportFinished       = services.reportFinished
-        result.reportShown          = services.reportShown
+        with let result  = Wnd.create'ImageViewer(host.contentParent(), "scope.image")
+        {
+            .backgroundStyle      = .View
+            .navigateFile         = navigateFile
+            .reportFailure        = services.reportFailure
+            .reportDetails        = services.reportDetails
+            .reportChromeChanged  = services.reportChromeChanged
+            .reportLoadingChanged = services.reportLoadingChanged
+            .reportFinished       = services.reportFinished
+            .reportShown          = services.reportShown
+        }
 
         result.actions     = host.createCommandGroup(imageCommandWidth(result.themeMetrics()))
         result.info        = host.createInfoGroup(ImageInfoWidth)

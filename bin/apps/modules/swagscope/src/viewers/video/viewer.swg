@@ -8,14 +8,16 @@ using Core, Pixel, Gui, Video, Audio
 // the player without a list to update here.
 func videoViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "video"
-    result.staticName   = "Video"
-    result.attach       = &registerVideoStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Video
-    result.create       = &createVideoViewer
-    result.smokeFixture = "glint-aac-mjpeg.mp4"
+    with var result: retval
+    {
+        .key          = "video"
+        .staticName   = "Video"
+        .attach       = &registerVideoStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Video
+        .create       = &createVideoViewer
+        .smokeFixture = "glint-aac-mjpeg.mp4"
+    }
 
     let formats = Reader.decodableFormats()
     for format in formats do
@@ -757,10 +759,7 @@ private impl VideoViewer
 
 internal impl VideoViewer
 {
-    mtd frameSeconds(index: u64)->f64
-    {
-        return .video.frameTimestamp(index)
-    }
+    mtd frameSeconds(index: u64)->f64 => .video.frameTimestamp(index)
 
     mtd currentSeconds()->f64
     {
@@ -1160,24 +1159,33 @@ internal impl VideoViewer
         fontMenu.addRadioItem(strings.ui_SubtitleFontMono, "scope.video.subtitle.font.mono", checked: g_VideoSubtitleSettings.font == .Monospace)
         menu.addPopup(strings.ui_SubtitleFont, fontMenu)
 
-        let sizeMenu = MenuCtrl.createPopup(menu, owner: me)
-        sizeMenu.addRadioItem(strings.ui_SubtitleSizeSmall, "scope.video.subtitle.size.small", checked: g_VideoSubtitleSettings.size == .Small)
-        sizeMenu.addRadioItem(strings.ui_SubtitleSizeNormal, "scope.video.subtitle.size.normal", checked: g_VideoSubtitleSettings.size == .Normal)
-        sizeMenu.addRadioItem(strings.ui_SubtitleSizeLarge, "scope.video.subtitle.size.large", checked: g_VideoSubtitleSettings.size == .Large)
-        sizeMenu.addRadioItem(strings.ui_SubtitleSizeVeryLarge, "scope.video.subtitle.size.veryLarge", checked: g_VideoSubtitleSettings.size == .VeryLarge)
+        with let sizeMenu = MenuCtrl.createPopup(menu, owner: me)
+        {
+            .addRadioItem(strings.ui_SubtitleSizeSmall, "scope.video.subtitle.size.small", checked: g_VideoSubtitleSettings.size == .Small)
+            .addRadioItem(strings.ui_SubtitleSizeNormal, "scope.video.subtitle.size.normal", checked: g_VideoSubtitleSettings.size == .Normal)
+            .addRadioItem(strings.ui_SubtitleSizeLarge, "scope.video.subtitle.size.large", checked: g_VideoSubtitleSettings.size == .Large)
+            .addRadioItem(strings.ui_SubtitleSizeVeryLarge, "scope.video.subtitle.size.veryLarge", checked: g_VideoSubtitleSettings.size == .VeryLarge)
+        }
+
         menu.addPopup(strings.ui_SubtitleSize, sizeMenu)
 
-        let effectMenu = MenuCtrl.createPopup(menu, owner: me)
-        effectMenu.addRadioItem(strings.ui_SubtitleEffectOutline, "scope.video.subtitle.effect.outline", checked: g_VideoSubtitleSettings.effect == .Outline)
-        effectMenu.addRadioItem(strings.ui_SubtitleEffectShadow, "scope.video.subtitle.effect.shadow", checked: g_VideoSubtitleSettings.effect == .Shadow)
-        effectMenu.addRadioItem(strings.ui_SubtitleEffectBackdrop, "scope.video.subtitle.effect.backdrop", checked: g_VideoSubtitleSettings.effect == .Background)
-        effectMenu.addRadioItem(strings.ui_SubtitleEffectNone, "scope.video.subtitle.effect.none", checked: g_VideoSubtitleSettings.effect == .None)
+        with let effectMenu = MenuCtrl.createPopup(menu, owner: me)
+        {
+            .addRadioItem(strings.ui_SubtitleEffectOutline, "scope.video.subtitle.effect.outline", checked: g_VideoSubtitleSettings.effect == .Outline)
+            .addRadioItem(strings.ui_SubtitleEffectShadow, "scope.video.subtitle.effect.shadow", checked: g_VideoSubtitleSettings.effect == .Shadow)
+            .addRadioItem(strings.ui_SubtitleEffectBackdrop, "scope.video.subtitle.effect.backdrop", checked: g_VideoSubtitleSettings.effect == .Background)
+            .addRadioItem(strings.ui_SubtitleEffectNone, "scope.video.subtitle.effect.none", checked: g_VideoSubtitleSettings.effect == .None)
+        }
+
         menu.addPopup(strings.ui_SubtitleEffect, effectMenu)
 
-        let positionMenu = MenuCtrl.createPopup(menu, owner: me)
-        positionMenu.addRadioItem(strings.ui_SubtitlePositionBottom, "scope.video.subtitle.position.bottom", checked: g_VideoSubtitleSettings.position == .Bottom)
-        positionMenu.addRadioItem(strings.ui_SubtitlePositionCenter, "scope.video.subtitle.position.center", checked: g_VideoSubtitleSettings.position == .Center)
-        positionMenu.addRadioItem(strings.ui_SubtitlePositionTop, "scope.video.subtitle.position.top", checked: g_VideoSubtitleSettings.position == .Top)
+        with let positionMenu = MenuCtrl.createPopup(menu, owner: me)
+        {
+            .addRadioItem(strings.ui_SubtitlePositionBottom, "scope.video.subtitle.position.bottom", checked: g_VideoSubtitleSettings.position == .Bottom)
+            .addRadioItem(strings.ui_SubtitlePositionCenter, "scope.video.subtitle.position.center", checked: g_VideoSubtitleSettings.position == .Center)
+            .addRadioItem(strings.ui_SubtitlePositionTop, "scope.video.subtitle.position.top", checked: g_VideoSubtitleSettings.position == .Top)
+        }
+
         menu.addPopup(strings.ui_SubtitlePosition, positionMenu)
 
         let colorMenu = MenuCtrl.createPopup(menu, owner: me)
@@ -1625,10 +1633,7 @@ internal impl VideoViewer
     }
 
     // Returns the picture the playback clock is currently on.
-    mtd clockFrame()->u64
-    {
-        return .video.frameAtTime(.currentSeconds())
-    }
+    mtd clockFrame()->u64 => .video.frameAtTime(.currentSeconds())
 
     // Advances presentation by at most one picture, and decides when to give up and skip.
     //

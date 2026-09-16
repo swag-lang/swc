@@ -109,17 +109,11 @@ impl HashTable
     }
 
     #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashTableEntry
-    {
-        return cast(const [*] HashTableEntry'(K, V)) (.table orelse cast([*] HashTableEntry'(K, V)) 1'u64)
-    }
+    mtd const constTablePtr()->const [*] HashTableEntry => cast(const [*] HashTableEntry'(K, V)) (.table orelse cast([*] HashTableEntry'(K, V)) 1'u64)
 
     // Returns the number of key-value pairs in the me.table.
     #[Inline]
-    mtd opCount()->u64
-    {
-        return .count
-    }
+    mtd opCount()->u64 => .count
 
     // Ensures the allocated memory is freed when the me.table goes out of scope.
     mtd opDrop()

@@ -26,13 +26,16 @@ impl Image
         let dc = GetDC(null)
         defer ReleaseDC(null, dc)
 
-        var infos: BITMAPINFO
-        infos.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
-        infos.bmiHeader.biWidth       = bitmap.bmWidth
-        infos.bmiHeader.biHeight      = bitmap.bmHeight
-        infos.bmiHeader.biPlanes      = 1
-        infos.bmiHeader.biBitCount    = bitmap.bmBitsPixel
-        infos.bmiHeader.biCompression = BI_RGB
+        with var infos: BITMAPINFO
+        {
+            .bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
+            .bmiHeader.biWidth       = bitmap.bmWidth
+            .bmiHeader.biHeight      = bitmap.bmHeight
+            .bmiHeader.biPlanes      = 1
+            .bmiHeader.biBitCount    = bitmap.bmBitsPixel
+            .bmiHeader.biCompression = BI_RGB
+        }
+
         try GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast([*] u8) result.pixels.storage(), &infos, cast() DIB_RGB_COLORS)
 
         return result

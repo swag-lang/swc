@@ -16,10 +16,7 @@ impl StringBuilder
     }
 
     // Returns the number of characters
-    mtd const count()->u64
-    {
-        return .buffer.count()
-    }
+    mtd const count()->u64 => .buffer.count()
 
     // Set sizes of buckets of the string builder
     mtd setBucketSize(size: u64)
@@ -67,14 +64,8 @@ impl StringBuilder
     }
 
     // Return the content as a string
-    mtd const toString()->String
-    {
-        return .buffer.toString()
-    }
+    mtd const toString()->String => .buffer.toString()
 
     // Return the content as a string by eating the content of the string builder (if possible)
-    mtd moveToString()->String
-    {
-        return .buffer.moveToString()
-    }
+    mtd moveToString()->String => .buffer.moveToString()
 }

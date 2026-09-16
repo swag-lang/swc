@@ -213,10 +213,7 @@ impl IForm for FormImage
 
     mtd impl movePoint(pt: u32, newPosX, newPosY: s32) {}
 
-    mtd impl boundRect()->Math.Rectangle
-    {
-        return .rectFormBound()
-    }
+    mtd impl boundRect()->Math.Rectangle => .rectFormBound()
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
@@ -263,10 +260,7 @@ impl IForm for FormImage
         }
     }
 
-    mtd impl isInside(pt: Math.Point)->bool
-    {
-        return .boundRect().contains(pt)
-    }
+    mtd impl isInside(pt: Math.Point)->bool => .boundRect().contains(pt)
 
     mtd impl hitTest(pt: Math.Point, z: f32)->bool
     {

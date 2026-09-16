@@ -141,8 +141,7 @@ impl Viewer.Host for ViewerPluginHost
     {
         Swag.assert(.window != null, "embedded viewers need an application window")
         let embedded = EmbeddedViewer.create(parent, .window)
-        let result: Viewer.Embedded = embedded
-        return result
+        return embedded
     }
 
     mtd impl createActionGroup(width: f32)->*Wnd

@@ -95,10 +95,7 @@ impl Condition
     //
     // Returns `false` when the deadline expired rather than a wake arriving. `mutex` is
     // reacquired either way.
-    mtd waitFor(mutex: *Mutex, milliseconds: u32)->bool
-    {
-        return __hostConditionWait(&.storage, &mutex.storage, milliseconds)
-    }
+    mtd waitFor(mutex: *Mutex, milliseconds: u32)->bool => __hostConditionWait(&.storage, &mutex.storage, milliseconds)
 
     // Wakes one waiter, if any is waiting.
     mtd wake() => __hostConditionWake(&.storage)

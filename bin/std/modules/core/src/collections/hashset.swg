@@ -103,17 +103,11 @@ impl HashSet
     }
 
     #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashSetEntry
-    {
-        return cast(const [*] HashSetEntry'(K)) (.table orelse cast([*] HashSetEntry'(K)) 1'u64)
-    }
+    mtd const constTablePtr()->const [*] HashSetEntry => cast(const [*] HashSetEntry'(K)) (.table orelse cast([*] HashSetEntry'(K)) 1'u64)
 
     // Returns the number of elements in the set.
     #[Inline]
-    mtd opCount()->u64
-    {
-        return .count
-    }
+    mtd opCount()->u64 => .count
 
     // Ensures the allocated memory is freed when the set goes out of scope.
     mtd opDrop()

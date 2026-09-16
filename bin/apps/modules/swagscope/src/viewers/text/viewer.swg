@@ -34,17 +34,20 @@ private func textPluginProbe(content: Viewer.ProbeContent)->bool
 // file whose beginning reads as text, whichever encoding spells it.
 func textViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = TextViewerKey
-    result.resolveName  = &textPluginName
-    result.attach       = &registerTextStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Text
-    result.create       = &createTextViewer
-    result.probe        = &textPluginProbe
-    result.textual      = true
-    result.smokeFixture = TextSmokeFixture
-    result.addSelectors(NamedExtensions)
+    with var result: retval
+    {
+        .key          = TextViewerKey
+        .resolveName  = &textPluginName
+        .attach       = &registerTextStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Text
+        .create       = &createTextViewer
+        .probe        = &textPluginProbe
+        .textual      = true
+        .smokeFixture = TextSmokeFixture
+        .addSelectors(NamedExtensions)
+    }
+
     return result
 }
 

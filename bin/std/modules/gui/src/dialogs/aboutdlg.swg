@@ -119,8 +119,7 @@ public impl AboutDlg
 
         // Identity and provenance are two quiet tiers: the product owns one raised panel and one
         // accent, while the supporting copy remains on the dialog surface below it.
-        let stackLayout = StackLayoutCtrl.create(body, .VerticalCenter)
-        with stackLayout
+        with let stackLayout = StackLayoutCtrl.create(body, .VerticalCenter)
         {
             .dockStyle = .Center
             .spacing   = metrics.dialog_BtnPadding * 2

@@ -462,8 +462,7 @@ private impl Tab
 
     mtd hidePopup()
     {
-        let popup = .popup!
-        popup.destroy()
+        .popup!.destroy()
         .popup = null
     }
 
@@ -535,8 +534,7 @@ private impl Tab
             w = Math.max(w, .minimumItemWidth)
             for vIt in .items
             {
-                let v = vIt!
-                v.width       = w
+                vIt!.width    = w
                 .mostRightPos += w
             }
 
@@ -544,8 +542,7 @@ private impl Tab
             let w = Math.max(.fixedItemWidth, .minimumItemWidth)
             for vIt in .items
             {
-                let v = vIt!
-                v.width       = w
+                vIt!.width    = w
                 .mostRightPos += w
             }
 
@@ -594,14 +591,12 @@ private impl Tab
             }
 
             let size = metrics.tabBar_PopupButtonSize
-            let bp   = .buttonPopup
-            bp.setPosition({barRect.right() - size - metrics.tabBar_PopupButtonMargin, (.barHeight - size) * 0.5, size, size})
+            .buttonPopup.setPosition({barRect.right() - size - metrics.tabBar_PopupButtonMargin, (.barHeight - size) * 0.5, size, size})
         }
         elif .buttonPopup
         {
             .firstVisibleIndex = 0
-            let bp = .buttonPopup
-            bp.destroy()
+            .buttonPopup.destroy()
             .buttonPopup = null
             .computeTabLayout()
         }
@@ -768,8 +763,7 @@ impl Tab
 
         let wasSelected = .selectedIndex == index
         let view        = .items[index]!.view
-        if view do
-            view.destroy()
+        view?.destroy()
         .items.deleteAt(index)
 
         if .items.isEmpty()
@@ -801,8 +795,7 @@ impl Tab
         for item in .items
         {
             let view = item!.view
-            if view do
-                view.destroy()
+            view?.destroy()
         }
 
         .items.clear()
@@ -835,10 +828,8 @@ impl Tab
         }
         else
         {
-            if oldView do
-                oldView.hide()
-            if newView do
-                newView.show()
+            oldView?.hide()
+            newView?.show()
         }
 
         .ensureVisible(index)
@@ -886,8 +877,7 @@ private impl Tab
             .hidePopup()
         if .buttonPopup
         {
-            let button = .buttonPopup
-            button.destroy()
+            .buttonPopup.destroy()
             .buttonPopup = null
         }
     }

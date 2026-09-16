@@ -4,13 +4,16 @@ func createListsPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 
-    let left   = createPanel(parent, "Simple ListCtrl", "Single-column rows with icons, hot tracking and multi-selection.", layout.left)
-    let simple = ListCtrl.createSimple(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
-    simple.setFrameForm(.Round)
-    simple.frameFlags.add(.FocusBorder)
-    simple.updateFlags(.HotTrack)
-    simple.setSelectionMode(.Multi)
-    simple.setIconSize(16)
+    let left        = createPanel(parent, "Simple ListCtrl", "Single-column rows with icons, hot tracking and multi-selection.", layout.left)
+    with let simple = ListCtrl.createSimple(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
+    {
+        .setFrameForm(.Round)
+        .frameFlags.add(.FocusBorder)
+        .updateFlags(.HotTrack)
+        .setSelectionMode(.Multi)
+        .setIconSize(16)
+    }
+
     for i in 24 do
         discard simple.createLine(Format.toString("Inbox item %", i + 1), sampleIcon(i))
     simple.computeLayout()

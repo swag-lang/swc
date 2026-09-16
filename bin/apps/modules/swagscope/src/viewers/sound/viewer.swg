@@ -8,14 +8,16 @@ using Core, Pixel, Gui, Audio, Threading
 // the player without a list to update here.
 func soundViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "sound"
-    result.staticName   = "Sound"
-    result.attach       = &registerSoundStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Sound
-    result.create       = &createSoundViewer
-    result.smokeFixture = "pacman_beginning.wav"
+    with var result: retval
+    {
+        .key          = "sound"
+        .staticName   = "Sound"
+        .attach       = &registerSoundStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Sound
+        .create       = &createSoundViewer
+        .smokeFixture = "pacman_beginning.wav"
+    }
 
     let extensions = SoundFile.decodableExtensions()
     result.addSelectors(extensions.toSlice())
@@ -814,13 +816,15 @@ internal impl SoundViewer
 {
     func create(host: Viewer.Host)->*SoundViewer fail
     {
-        let services = host.services()
-        let result   = Wnd.create'SoundViewer(host.contentParent(), "scope.sound")
-        result.backgroundStyle      = .View
-        result.reportDetails        = services.reportDetails
-        result.reportFinished       = services.reportFinished
-        result.reportFailure        = services.reportFailure
-        result.reportLoadingChanged = services.reportLoadingChanged
+        let services    = host.services()
+        with let result = Wnd.create'SoundViewer(host.contentParent(), "scope.sound")
+        {
+            .backgroundStyle      = .View
+            .reportDetails        = services.reportDetails
+            .reportFinished       = services.reportFinished
+            .reportFailure        = services.reportFailure
+            .reportLoadingChanged = services.reportLoadingChanged
+        }
 
         result.commands = host.createCommandGroup(SoundCommandWidth)
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})

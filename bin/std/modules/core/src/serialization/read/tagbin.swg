@@ -1156,10 +1156,7 @@ impl TagBin
 
     // Check if this serializer uses textual representation.
     // Always returns false since this is a binary serializer.
-    mtd isTextual()->bool
-    {
-        return false
-    }
+    mtd isTextual()->bool => false
 
     // Get the version number of the current section.
     // Returns 0 if no sections are active, otherwise returns the version found in the stream for the innermost struct.

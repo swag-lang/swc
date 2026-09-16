@@ -11,16 +11,19 @@ private func midiPluginProbe(content: Viewer.ProbeContent)->bool
 // Describes the MIDI viewer to the host.
 func midiViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "midi"
-    result.staticName   = "MIDI"
-    result.attach       = &registerMidiStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Midi
-    result.create       = &createMidiViewer
-    result.probe        = &midiPluginProbe
-    result.smokeFixture = "viewer.mid"
-    result.addSelectors(".mid;.midi")
+    with var result: retval
+    {
+        .key          = "midi"
+        .staticName   = "MIDI"
+        .attach       = &registerMidiStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Midi
+        .create       = &createMidiViewer
+        .probe        = &midiPluginProbe
+        .smokeFixture = "viewer.mid"
+        .addSelectors(".mid;.midi")
+    }
+
     return result
 }
 

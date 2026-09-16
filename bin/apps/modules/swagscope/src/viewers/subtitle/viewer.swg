@@ -5,16 +5,19 @@ using Core, Core.Errors, Pixel, Gui, Video
 // Describes the subtitle viewer to the host.
 func subtitleViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "subtitle"
-    result.staticName   = "Subtitles"
-    result.attach       = &registerSubtitleStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Subtitle
-    result.create       = &createSubtitleViewer
-    result.textual      = true
-    result.smokeFixture = "viewer.srt"
-    result.addSelectors(".srt;.vtt;.ass;.ssa;.lrc;.sub")
+    with var result: retval
+    {
+        .key          = "subtitle"
+        .staticName   = "Subtitles"
+        .attach       = &registerSubtitleStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Subtitle
+        .create       = &createSubtitleViewer
+        .textual      = true
+        .smokeFixture = "viewer.srt"
+        .addSelectors(".srt;.vtt;.ass;.ssa;.lrc;.sub")
+    }
+
     return result
 }
 

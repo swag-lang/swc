@@ -464,12 +464,14 @@ impl Painter
         Swag.assert(font != null, "invalid font")
         Swag.assert(run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
 
-        var result: retval
-        result.font          = font
-        result.tabSize       = run.tabSize
-        result.letterSpacing = run.letterSpacing
-        result.wordSpacing   = run.wordSpacing
-        result.glyphs.reserve(run.glyphs.count)
+        with var result: retval
+        {
+            .font          = font
+            .tabSize       = run.tabSize
+            .letterSpacing = run.letterSpacing
+            .wordSpacing   = run.wordSpacing
+            .glyphs.reserve(run.glyphs.count)
+        }
 
         var previousGlyphIndex = 0'u32
         let letterSpacingRef   = run.letterSpacing / font.scale()

@@ -24,17 +24,11 @@ impl Array
 {
     // Returns the number of elements in the array.
     #[Inline]
-    mtd opCount()->u64
-    {
-        return .count
-    }
+    mtd opCount()->u64 => .count
 
     // Returns a raw, constant pointer to the array's me.buffer.
     #[Inline]
-    mtd opData()->const *T?
-    {
-        return .buffer
-    }
+    mtd opData()->const *T? => .buffer
 
     // Ensures the allocated memory is freed when the array goes out of scope.
     mtd opDrop()
@@ -76,17 +70,11 @@ impl Array
 
     // Allows the array to be implicitly cast to a mutable slice.
     #[Inline]
-    mtd opCast()->[..] T
-    {
-        return .toSlice()
-    }
+    mtd opCast()->[..] T => .toSlice()
 
     // Allows the array to be implicitly cast to an immutable slice.
     #[Inline]
-    mtd const opCast()->const [..] T
-    {
-        return .toSlice()
-    }
+    mtd const opCast()->const [..] T => .toSlice()
 
     // Creates a slice from a sub-part of the array.
     #[Inline]
@@ -203,22 +191,13 @@ impl Array
     }
 
     // Returns a zero-allocation view that traverses the elements from last to first.
-    mtd reversed()->ReversedSlice'T
-    {
-        return reverseSlice(.toSlice())
-    }
+    mtd reversed()->ReversedSlice'T => reverseSlice(.toSlice())
 
     // Returns an immutable zero-allocation view that traverses the elements from last to first.
-    mtd const reversed()->ConstReversedSlice'T
-    {
-        return reverseSlice(.toSlice())
-    }
+    mtd const reversed()->ConstReversedSlice'T => reverseSlice(.toSlice())
 
     // Returns a zero-allocation view over adjacent elements.
-    mtd const pairs()->Pairs'T
-    {
-        return pairsView(.toSlice())
-    }
+    mtd const pairs()->Pairs'T => pairsView(.toSlice())
 
     // Returns the mutable address of an element using a single coordinate.
     // This can be used to treat the array as a 1D grid.

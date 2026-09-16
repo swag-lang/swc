@@ -57,13 +57,16 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
     if bytes[offset + 4] != 0 do
         fail UnsupportedFormatError{"Ogg page uses an unknown stream structure version"}
 
-    var result: retval
-    result.flags       = bytes[offset + 5]
-    result.granule     = cast(u64) readU32(bytes, offset + 6) | (cast(u64) readU32(bytes, offset + 10) << 32)
-    result.serial      = readU32(bytes, offset + 14)
-    result.sequence    = readU32(bytes, offset + 18)
-    result.segments    = cast(u32) bytes[offset + 26]
-    result.headerBytes = PageHeaderSize + result.segments
+    with var result: retval
+    {
+        .flags       = bytes[offset + 5]
+        .granule     = cast(u64) readU32(bytes, offset + 6) | (cast(u64) readU32(bytes, offset + 10) << 32)
+        .serial      = readU32(bytes, offset + 14)
+        .sequence    = readU32(bytes, offset + 18)
+        .segments    = cast(u32) bytes[offset + 26]
+        .headerBytes = PageHeaderSize + .segments
+    }
+
     if bytes.count - offset < result.headerBytes do
         fail InvalidFormatError{"Ogg page segment table is truncated"}
     for index in result.segments

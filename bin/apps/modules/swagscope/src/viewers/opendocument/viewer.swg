@@ -2045,15 +2045,18 @@ private impl OpenDocumentViewer
 
     func create(host: Viewer.Host)->*OpenDocumentViewer
     {
-        let services = host.services()
-        let result   = Wnd.create'OpenDocumentViewer(host.contentParent(), "scope.opendocument")
-        result.backgroundStyle      = .View
-        result.reportFailure        = services.reportFailure
-        result.reportDetails        = services.reportDetails
-        result.reportChromeChanged  = services.reportChromeChanged
-        result.reportLoadingChanged = services.reportLoadingChanged
-        result.info = host.createInfoGroup(ViewerZoomSlotWidth)
-        result.info.hide()
+        let services    = host.services()
+        with let result = Wnd.create'OpenDocumentViewer(host.contentParent(), "scope.opendocument")
+        {
+            .backgroundStyle      = .View
+            .reportFailure        = services.reportFailure
+            .reportDetails        = services.reportDetails
+            .reportChromeChanged  = services.reportChromeChanged
+            .reportLoadingChanged = services.reportLoadingChanged
+            .info = host.createInfoGroup(ViewerZoomSlotWidth)
+            .info.hide()
+        }
+
         with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.opendocument.zoom", .CenterContent)
         {
             .dockStyle = .Center

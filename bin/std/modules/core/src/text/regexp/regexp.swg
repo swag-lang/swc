@@ -152,10 +152,7 @@ public impl RegExp
     // The subject must match from its first byte to its last one: `abc` matches the pattern
     // `abc` but `abcd` does not. Use [[Core.Parser.RegExp.grep]] to look for an occurrence
     // inside a subject.
-    mtd match(str: string?)->bool
-    {
-        return .search(str orelse "", 0, true, true)
-    }
+    mtd match(str: string?)->bool => .search(str orelse "", 0, true, true)
 
     // Compiles the pattern, then returns whether the whole subject matches it.
     mtd match(expr: string, str: string, ignoreCase = false)->bool fail
@@ -344,10 +341,7 @@ public impl RegExp
     }
 
     // Returns what capture group `idx` matched, the same as [[Core.Parser.RegExp.getCapture]].
-    mtd opIndex(idx: u64)->string
-    {
-        return .getCapture(cast(u32) idx)
-    }
+    mtd opIndex(idx: u64)->string => .getCapture(cast(u32) idx)
 
     //
     // Rewriting.

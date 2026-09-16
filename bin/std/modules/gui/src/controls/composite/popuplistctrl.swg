@@ -436,8 +436,7 @@ impl PopupListCtrl
     #[Swag.Discardable]
     mtd addItem(name: string, id: WndId? = null, icon: Icon = {}, userData0: *void? = null, userData1: *void? = null)->*PopupListCtrlItem
     {
-        let item = .items.allocate()
-        with item
+        with let item = .items.allocate()
         {
             .name      = name
             .icon      = icon

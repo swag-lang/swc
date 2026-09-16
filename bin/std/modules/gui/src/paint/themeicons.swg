@@ -97,8 +97,5 @@ impl Theme
     //
     // The frames behind a given size are rasterized once from the vector icon set, at
     // the current atlas scale, and shared by every icon of that size.
-    mtd icon(idx: ThemeIcons, size = 24'f32)->Icon
-    {
-        return .res.icons.icon(cast(s32) idx, size, .res.atlasScale)
-    }
+    mtd icon(idx: ThemeIcons, size = 24'f32)->Icon => .res.icons.icon(cast(s32) idx, size, .res.atlasScale)
 }

@@ -1013,8 +1013,7 @@ impl Animator
         }
 
         incoming.show()
-        if incoming.parent do
-            incoming.parent.applyLayout()
+        incoming.parent?.applyLayout()
 
         let metrics = incoming.themeMetrics()
         let offset  = Math.Point{metrics.motion_PageOffset * (direction < 0 ? -1 : 1), 0}
@@ -1081,8 +1080,7 @@ impl Animator
                                    return
                                target.preferredSize.y = result == .Completed ? height : target.position.height
                                target.invalidateLayout()
-                               if target.parent do
-                                   target.parent.applyLayout()
+                               target.parent?.applyLayout()
                            })
     }
 }

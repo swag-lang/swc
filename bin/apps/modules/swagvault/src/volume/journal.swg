@@ -112,15 +112,18 @@ impl JournalRecord
             result.metadata.reserve(metadataCount)
             for metadataCount
             {
-                var patch: NodeMetadataPatch
-                patch.id             = try reader.readLittleEndian'u64()
-                patch.parentId       = try reader.readLittleEndian'u64()
-                patch.name           = try reader.readSizedString(MaximumNameSize)
-                patch.attributes     = try reader.readLittleEndian'u32()
-                patch.creationTime   = try reader.readLittleEndian'u64()
-                patch.lastAccessTime = try reader.readLittleEndian'u64()
-                patch.lastWriteTime  = try reader.readLittleEndian'u64()
-                patch.changeTime     = try reader.readLittleEndian'u64()
+                with var patch: NodeMetadataPatch
+                {
+                    .id             = try reader.readLittleEndian'u64()
+                    .parentId       = try reader.readLittleEndian'u64()
+                    .name           = try reader.readSizedString(MaximumNameSize)
+                    .attributes     = try reader.readLittleEndian'u32()
+                    .creationTime   = try reader.readLittleEndian'u64()
+                    .lastAccessTime = try reader.readLittleEndian'u64()
+                    .lastWriteTime  = try reader.readLittleEndian'u64()
+                    .changeTime     = try reader.readLittleEndian'u64()
+                }
+
                 result.metadata.add(#move patch)
             }
         }

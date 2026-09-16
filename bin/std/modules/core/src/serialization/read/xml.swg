@@ -20,16 +20,10 @@ public struct Xml
 public impl Xml
 {
     // Returns version.
-    mtd version()->u32
-    {
-        return 0
-    }
+    mtd version()->u32 => 0
 
     // Returns whether textual.
-    mtd isTextual()->bool
-    {
-        return true
-    }
+    mtd isTextual()->bool => true
 
     internal mtd readTag()->string fail
     {
@@ -152,19 +146,13 @@ public impl Xml
 
     {
         // Begins struct.
-        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool fail
-        {
-            return false
-        }
+        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool fail => false
 
         // Performs the end struct operation.
         mtd endStruct() fail {}
 
         // Begins sequence.
-        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool fail
-        {
-            return false
-        }
+        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool fail => false
 
         // Performs the end sequence operation.
         mtd endSequence() fail {}

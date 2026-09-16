@@ -332,9 +332,8 @@ impl QuickWnd
         let res = menu.doModal(pos, autoDestroy: true)
         if res == "0" and btn
         {
-            let qbtn  = cast #assume (*QuickButton) btn
-            let style = .currentStyle!
-            style.remove(qbtn.formItf!)
+            let qbtn = cast #assume (*QuickButton) btn
+            .currentStyle!.remove(qbtn.formItf!)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
         }
@@ -910,10 +909,9 @@ impl QuickWnd
 
             btn1.sigPressed += func|quickWnd = me|(btn)
             {
-                let main  = quickWnd.main
-                let mdl   = main.newFormFromModel(main.getEditMode())
-                let style = quickWnd.currentStyle!
-                style.forms.add(mdl)
+                let main = quickWnd.main
+                let mdl  = main.newFormFromModel(main.getEditMode())
+                quickWnd.currentStyle!.forms.add(mdl)
                 quickWnd.updateQuickStyles()
             }
         }

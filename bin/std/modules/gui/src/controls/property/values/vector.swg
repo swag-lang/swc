@@ -82,10 +82,7 @@ internal impl IPropertyEditor for VectorEditor
                type == Math.Rectangle
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
-    {
-        return list.constructVector(value, cast #assume(const *Swag.TypeInfoStruct) value.pointedType!, data, parent!)
-    }
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem => list.constructVector(value, cast #assume(const *Swag.TypeInfoStruct) value.pointedType!, data, parent!)
 }
 
 #init

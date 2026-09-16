@@ -348,18 +348,21 @@ private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList
             paths[paths.count - 1].close()
     }
 
-    var item = Item.createPath()
-    item.path        = #move path[]
-    item.hasFill     = paintFill
-    item.hasStroke   = paintStroke
-    item.evenOddFill = evenOdd
-    item.fillColor   = dimmed(state.fillColor, state.fillAlpha)
-    item.strokeColor = dimmed(state.strokeColor, state.strokeAlpha)
-    item.strokeWidth = state.strokeWidth
-    item.strokeStyle = state.strokeStyle
-    item.clip        = state.clip
-    item.hasClip     = state.hasClip
-    item.clipPath    = state.clipPath
+    with var item = Item.createPath()
+    {
+        .path        = #move path[]
+        .hasFill     = paintFill
+        .hasStroke   = paintStroke
+        .evenOddFill = evenOdd
+        .fillColor   = dimmed(state.fillColor, state.fillAlpha)
+        .strokeColor = dimmed(state.strokeColor, state.strokeAlpha)
+        .strokeWidth = state.strokeWidth
+        .strokeStyle = state.strokeStyle
+        .clip        = state.clip
+        .hasClip     = state.hasClip
+        .clipPath    = state.clipPath
+    }
+
     appendPaintedItem(parser, page, state, #move item, depth, decode)
     Swag.init(path, 1)
 }
@@ -1211,8 +1214,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             }
 
         case "h":
-            if current do
-                current.close()
+            current?.close()
 
         case "re":
             if ops.count >= 4

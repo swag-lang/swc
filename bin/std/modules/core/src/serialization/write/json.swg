@@ -36,10 +36,7 @@ struct Json
 impl Json
 {
     // Returns true indicating this writer produces textual output.
-    mtd isTextual()->bool
-    {
-        return true
-    }
+    mtd isTextual()->bool => true
 
     // Returns the identity written for a type value: the canonical runtime crc.
     mtd typeCrcOf(type: typeinfo?)->u32

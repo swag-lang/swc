@@ -75,10 +75,7 @@ impl Library
     // Deleted captures are moved here instead of being erased, so a mistaken delete can
     // be undone. It lives inside the library folder but the (non-recursive) capture
     // enumeration never descends into it, so trashed files stay out of the main list.
-    func getTrashFolder()->String
-    {
-        return Path.combine(getFolder(), ".trash")
-    }
+    func getTrashFolder()->String => Path.combine(getFolder(), ".trash")
 
     func enumerateTrash()->Array'File.FileInfo fail
     {
@@ -154,10 +151,7 @@ impl Library
 
     // Bring a trashed capture back into the library folder. Returns the restored path
     // (empty on failure) so the caller can register it again.
-    func restoreFile(trashFile: String)->String
-    {
-        return moveFile(getFolder(), trashFile)
-    }
+    func restoreFile(trashFile: String)->String => moveFile(getFolder(), trashFile)
 
     func newFileName()->String
     {

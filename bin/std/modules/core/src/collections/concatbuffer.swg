@@ -89,10 +89,7 @@ impl ReversedConcatBuffer
 impl ConcatBuffer
 {
     // Returns the total number of bytes in the buffer.
-    mtd const opCount()->u64
-    {
-        return .count()
-    }
+    mtd const opCount()->u64 => .count()
 
     // Ensures all allocated memory is freed when the buffer goes out of scope.
     mtd opDrop()

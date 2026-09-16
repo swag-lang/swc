@@ -228,8 +228,7 @@ impl Volume
             try Core.Crypto.randomBytes(randomChunk[0 until count])
             try .file.writeAllAt(offset, randomChunk[0 until count])
             offset += count
-            if progress do
-                progress.publish(progressBase + offset - first)
+            progress?.publish(progressBase + offset - first)
         }
     }
 
@@ -323,8 +322,7 @@ impl Volume
         // was measured instead and is far slower here: the system generator runs at about
         // 5.5 GiB/s while `Core.Crypto.chacha20Xor` runs at about 50 MiB/s, and the disk
         // bounds this loop long before either of them does.
-        if progress do
-            progress.setTotal(result.physicalSize)
+        progress?.setTotal(result.physicalSize)
         try result.randomizeRange(0, result.physicalSize, progress, 0, "Container creation was canceled.")
         if (try File.attributes(path)).has(.SparseFile) do
             try failWith("Sparse container files are not supported.", .SparseContainer)
@@ -518,16 +516,19 @@ impl Volume
         if progress and progress.isCanceled() do
             try failWith("Container creation was canceled.", .Canceled)
 
-        var result: retval
-        result.file.stream   = #move outer.file.stream
-        result.file.base     = region.first
-        result.file.limit    = region.count
-        result.path          = path
-        result.containerSize = requestedSize
-        result.physicalSize  = requestedSize
-        result.blockCount    = (requestedSize - DataOffset) / BlockRecordSize
-        result.nextNodeId    = RootNodeId + 1
-        result.label         = ProductName
+        with var result: retval
+        {
+            .file.stream   = #move outer.file.stream
+            .file.base     = region.first
+            .file.limit    = region.count
+            .path          = path
+            .containerSize = requestedSize
+            .physicalSize  = requestedSize
+            .blockCount    = (requestedSize - DataOffset) / BlockRecordSize
+            .nextNodeId    = RootNodeId + 1
+            .label         = ProductName
+        }
+
         var completed = false
         defer
         {
@@ -538,8 +539,7 @@ impl Volume
             }
         }
 
-        if progress do
-            progress.setTotal(requestedSize)
+        progress?.setTotal(requestedSize)
 
         // Clearing old journal records is essential when this free extent held an older volume.
         try result.randomizeRange(0, requestedSize, progress, 0, "Container creation was canceled.")
@@ -839,8 +839,7 @@ impl Volume
         }
 
         let addedPhysical = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
-        if progress do
-            progress.setTotal(addedPhysical)
+        progress?.setTotal(addedPhysical)
         if targetPhysical > previousPhysical
         {
             try .file.resize(targetPhysical)
@@ -875,8 +874,7 @@ impl Volume
         let previousPhysical = .physicalSize
         let targetPhysical   = try camouflageSize(.containerSize, previousPhysical)
         let addedPhysical    = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
-        if progress do
-            progress.setTotal(addedPhysical)
+        progress?.setTotal(addedPhysical)
 
         var committed = false
         defer
@@ -994,8 +992,7 @@ impl Volume
         }
 
         let addedPhysical = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
-        if progress do
-            progress.setTotal(addedPhysical + blocksToMove * BlockSize)
+        progress?.setTotal(addedPhysical + blocksToMove * BlockSize)
         if targetPhysical > previousPhysical
         {
             try .file.resize(targetPhysical)
@@ -1042,8 +1039,7 @@ impl Volume
                     physical += destination.count
                     count    -= destination.count
                     moved    += bytes
-                    if progress do
-                        progress.publish(moved)
+                    progress?.publish(moved)
                 }
             }
 
@@ -2174,10 +2170,7 @@ impl Volume
         return result
     }
 
-    mtd nodeIndex(id: u64)->u64
-    {
-        return .nodeLookup.nodePosition(id)
-    }
+    mtd nodeIndex(id: u64)->u64 => .nodeLookup.nodePosition(id)
 
     mtd removeNodeAt(index: u64)
     {
@@ -2188,10 +2181,7 @@ impl Volume
             .nodeLookup.updateNodePosition(.nodes[index].id, index)
     }
 
-    mtd hasChildren(id: u64)->bool
-    {
-        return .nodeLookup.hasChildren(id)
-    }
+    mtd hasChildren(id: u64)->bool => .nodeLookup.hasChildren(id)
 
     mtd deleteNode(id: u64) fail
     {
@@ -2264,10 +2254,7 @@ impl Volume
         return .blocks.freeBlockCount() * BlockSize
     }
 
-    mtd freeBlockCount()->u64
-    {
-        return .blocks.freeBlockCount()
-    }
+    mtd freeBlockCount()->u64 => .blocks.freeBlockCount()
 
     mtd totalBytes()->u64 => .blockCount * BlockSize
 }

@@ -30,8 +30,7 @@ impl Encoder
         // Everything the encoder emits goes through the staging buffer, so a bulk segment has to
         // hand over what is already staged before appending itself.
         .flushStaged()
-        let stream = .stream!
-        stream.addBytes(s)
+        .stream!.addBytes(s)
     }
 
     // Hands the staged bytes to the output buffer. Call it once the stream is complete.
@@ -40,8 +39,7 @@ impl Encoder
         if not .outCount do
             return
 
-        let stream = .stream!
-        stream.addBytes(Swag.makeSlice(cast(const [*] u8) &.outBuf[0], cast(u64) .outCount))
+        .stream!.addBytes(Swag.makeSlice(cast(const [*] u8) &.outBuf[0], cast(u64) .outCount))
         .outCount = 0
     }
 

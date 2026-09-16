@@ -458,8 +458,7 @@ impl CaptureClipboardForm
             return result
         }
 
-        let r = result!
-        r.setup(capture)
+        result!.setup(capture)
         return result
     }
 }
@@ -763,47 +762,53 @@ impl Capture
 
     private func fromLibraryMetadata(metadata: CaptureLibraryMetadata, manifest: const *Scc.Manifest)->*Capture
     {
-        let result = Memory.new'Capture()
-        result.width             = metadata.width
-        result.height            = metadata.height
-        result.linkedImage       = metadata.linkedImage
-        result.linkedUpToDate    = metadata.linkedUpToDate
-        result.title             = manifest.name
-        result.sourceKind        = metadata.sourceKind
-        result.capturedAt        = metadata.capturedAt
-        result.sourceApplication = metadata.sourceApplication
-        result.sourceExecutable  = metadata.sourceExecutable
-        result.sourceWindowTitle = metadata.sourceWindowTitle
-        result.sourceWindowClass = metadata.sourceWindowClass
-        result.tags              = manifest.tags
-        result.favorite          = metadata.favorite
-        result.rating            = metadata.rating
+        with let result = Memory.new'Capture()
+        {
+            .width             = metadata.width
+            .height            = metadata.height
+            .linkedImage       = metadata.linkedImage
+            .linkedUpToDate    = metadata.linkedUpToDate
+            .title             = manifest.name
+            .sourceKind        = metadata.sourceKind
+            .capturedAt        = metadata.capturedAt
+            .sourceApplication = metadata.sourceApplication
+            .sourceExecutable  = metadata.sourceExecutable
+            .sourceWindowTitle = metadata.sourceWindowTitle
+            .sourceWindowClass = metadata.sourceWindowClass
+            .tags              = manifest.tags
+            .favorite          = metadata.favorite
+            .rating            = metadata.rating
+        }
+
         return result
     }
 
     private func fromFileModel(model: *CaptureFileModel)->*Capture
     {
-        let result = Memory.new'Capture()
-        result.width             = model.width
-        result.height            = model.height
-        result.widthOrg          = model.widthOrg
-        result.heightOrg         = model.heightOrg
-        result.backImagePos      = model.backImagePos
-        result.forms             = #move model.forms
-        result.nextStepIndex     = model.nextStepIndex
-        result.nextGroupId       = model.nextGroupId
-        result.linkedImage       = #move model.linkedImage
-        result.linkedUpToDate    = model.linkedUpToDate
-        result.title             = #move model.title
-        result.sourceKind        = model.sourceKind
-        result.capturedAt        = model.capturedAt
-        result.sourceApplication = #move model.sourceApplication
-        result.sourceExecutable  = #move model.sourceExecutable
-        result.sourceWindowTitle = #move model.sourceWindowTitle
-        result.sourceWindowClass = #move model.sourceWindowClass
-        result.tags              = #move model.tags
-        result.favorite          = model.favorite
-        result.rating            = model.rating
+        with let result = Memory.new'Capture()
+        {
+            .width             = model.width
+            .height            = model.height
+            .widthOrg          = model.widthOrg
+            .heightOrg         = model.heightOrg
+            .backImagePos      = model.backImagePos
+            .forms             = #move model.forms
+            .nextStepIndex     = model.nextStepIndex
+            .nextGroupId       = model.nextGroupId
+            .linkedImage       = #move model.linkedImage
+            .linkedUpToDate    = model.linkedUpToDate
+            .title             = #move model.title
+            .sourceKind        = model.sourceKind
+            .capturedAt        = model.capturedAt
+            .sourceApplication = #move model.sourceApplication
+            .sourceExecutable  = #move model.sourceExecutable
+            .sourceWindowTitle = #move model.sourceWindowTitle
+            .sourceWindowClass = #move model.sourceWindowClass
+            .tags              = #move model.tags
+            .favorite          = model.favorite
+            .rating            = model.rating
+        }
+
         return result
     }
 
@@ -1067,12 +1072,15 @@ impl Capture
             let img = Clipboard.getImage()
             if img.isValid()
             {
-                let formImg = Memory.new'FormImage()
-                formImg.w             = img.width
-                formImg.h             = img.height
-                formImg.image         = img
-                formImg.borderColor.a = 0
-                formImg.backColor.a   = 0
+                with let formImg = Memory.new'FormImage()
+                {
+                    .w             = img.width
+                    .h             = img.height
+                    .image         = img
+                    .borderColor.a = 0
+                    .backColor.a   = 0
+                }
+
                 res.add(formImg)
             }
             else do
@@ -1339,15 +1347,18 @@ impl Capture
             painter.rotateTransformInPlace(angle)
         }
 
-        var drawInfo: LayerDrawInfo
-        drawInfo.dstRect           = paintRect
-        drawInfo.color             = colForm
-        drawInfo.interpolationMode = (base.paintShadow or not sharp) ? .Linear : .Pixel
-        drawInfo.releaseAfterDraw  = false
-        drawInfo.shadow.enabled    = base.paintShadow
-        drawInfo.shadow.radius     = 8.0
-        drawInfo.shadow.offsetX    = base.shadowOffsetX
-        drawInfo.shadow.offsetY    = base.shadowOffsetY
+        with var drawInfo: LayerDrawInfo
+        {
+            .dstRect           = paintRect
+            .color             = colForm
+            .interpolationMode = (base.paintShadow or not sharp) ? .Linear : .Pixel
+            .releaseAfterDraw  = false
+            .shadow.enabled    = base.paintShadow
+            .shadow.radius     = 8.0
+            .shadow.offsetX    = base.shadowOffsetX
+            .shadow.offsetY    = base.shadowOffsetY
+        }
+
         entry.layer.draw(drawInfo)
         painter.popTransform()
 
@@ -1455,14 +1466,17 @@ impl Capture
 
         defer painter.popTransform()
 
-        var drawInfo: LayerDrawInfo
-        drawInfo.dstRect           = paintRect
-        drawInfo.color             = colForm
-        drawInfo.interpolationMode = base.paintShadow ? .Linear : .Pixel
-        drawInfo.shadow.enabled    = base.paintShadow
-        drawInfo.shadow.radius     = quickMode ? 4.0 : 8.0
-        drawInfo.shadow.offsetX    = base.shadowOffsetX
-        drawInfo.shadow.offsetY    = base.shadowOffsetY
+        with var drawInfo: LayerDrawInfo
+        {
+            .dstRect           = paintRect
+            .color             = colForm
+            .interpolationMode = base.paintShadow ? .Linear : .Pixel
+            .shadow.enabled    = base.paintShadow
+            .shadow.radius     = quickMode ? 4.0 : 8.0
+            .shadow.offsetX    = base.shadowOffsetX
+            .shadow.offsetY    = base.shadowOffsetY
+        }
+
         layer.draw(drawInfo)
 
         with painter
@@ -2400,18 +2414,16 @@ impl Capture
     {
         if not .selection.count do
             return
-        let f        = .forms[.selection.back()]
-        let editView = .editView!
-        editView.main.updateModelValues(f)
+        let f = .forms[.selection.back()]
+        .editView!.main.updateModelValues(f)
     }
 
     mtd updateModelFromSelection()
     {
         if not .selection.count do
             return
-        let f        = .forms[.selection.back()]
-        let editView = .editView!
-        editView.main.updateModel(f)
+        let f = .forms[.selection.back()]
+        .editView!.main.updateModel(f)
     }
 
     mtd selectionHasChanged()
@@ -2557,15 +2569,9 @@ impl Capture
         return ptr
     }
 
-    mtd canUndo()->bool
-    {
-        return .undoMgr.canUndo()
-    }
+    mtd canUndo()->bool => .undoMgr.canUndo()
 
-    mtd canRedo()->bool
-    {
-        return .undoMgr.canRedo()
-    }
+    mtd canRedo()->bool => .undoMgr.canRedo()
 
     mtd undo()
     {

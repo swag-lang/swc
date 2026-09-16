@@ -5,15 +5,18 @@ using Core, Pixel, Gui
 // Describes the executable and archive inspector to the host.
 func binaryViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "binary"
-    result.staticName   = "Binary"
-    result.attach       = &registerBinaryStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Binary
-    result.create       = &createBinaryViewer
-    result.smokeFixture = "appicon.ico"
-    result.addSelectors(".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.mid;.midi;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm;*")
+    with var result: retval
+    {
+        .key          = "binary"
+        .staticName   = "Binary"
+        .attach       = &registerBinaryStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Binary
+        .create       = &createBinaryViewer
+        .smokeFixture = "appicon.ico"
+        .addSelectors(".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.mid;.midi;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm;*")
+    }
+
     return result
 }
 
@@ -630,16 +633,19 @@ internal impl BinaryViewer
 
     mtd createCommandMenu()->*MenuCtrl
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(ActionBinary.CopyAll)
-        menu.addItem(ActionBinary.CopyLine)
-        menu.addSeparator()
-        menu.addItem(ActionBinary.ExpandAll)
-        menu.addItem(ActionBinary.CollapseAll)
-        menu.addSeparator()
-        menu.addItem(ActionBinary.GoTo)
-        menu.addItem(ActionBinary.Back)
-        menu.addItem(ActionBinary.Forward)
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem(ActionBinary.CopyAll)
+            .addItem(ActionBinary.CopyLine)
+            .addSeparator()
+            .addItem(ActionBinary.ExpandAll)
+            .addItem(ActionBinary.CollapseAll)
+            .addSeparator()
+            .addItem(ActionBinary.GoTo)
+            .addItem(ActionBinary.Back)
+            .addItem(ActionBinary.Forward)
+        }
+
         return menu
     }
 
@@ -1061,13 +1067,15 @@ internal impl BinaryViewer
         let s        = binStrings()
         let services = host.services()
 
-        let result = Wnd.create'BinaryViewer(host.contentParent(), "scope.binary")
-        result.backgroundStyle = .View
-        result.registerAction'ActionBinary()
-        result.reportDetails        = services.reportDetails
-        result.reportFailure        = services.reportFailure
-        result.reportLoadingChanged = services.reportLoadingChanged
-        result.commands             = host.createCommandGroup(BinaryCommandWidth)
+        with let result = Wnd.create'BinaryViewer(host.contentParent(), "scope.binary")
+        {
+            .backgroundStyle = .View
+            .registerAction'ActionBinary()
+            .reportDetails        = services.reportDetails
+            .reportFailure        = services.reportFailure
+            .reportLoadingChanged = services.reportLoadingChanged
+            .commands             = host.createCommandGroup(BinaryCommandWidth)
+        }
 
         with result.backButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {

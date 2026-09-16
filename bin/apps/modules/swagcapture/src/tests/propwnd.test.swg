@@ -351,8 +351,7 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
     let posItemDead = testFindItem(prop, appStrings().ui_PropPosition)!
     var pt = posItemDead.line.surfaceRect().center()
     pt.y = posItemDead.line.surfaceRect().y - 8
-    let lineSrf = posItemDead.line.surface!
-    lineSrf.surfaceToScreen(&pt)
+    posItemDead.line.surface!.surfaceToScreen(&pt)
     f.gui.click(pt)
     f.gui.pump()
     Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)

@@ -594,8 +594,7 @@ func __hostTestRestoreHardwareFilter(previous: *void?)
 func __captureStack(skip: u32, wh: [..] (*void?))->u32
 {
     using __Win32RT
-    let nb = RtlCaptureStackBackTrace(skip + 1, cast() wh.count, cast() wh.buffer, null)
-    return nb
+    return RtlCaptureStackBackTrace(skip + 1, cast() wh.count, cast() wh.buffer, null)
 }
 
 // Returns the image that owns an address without changing its loader reference count.

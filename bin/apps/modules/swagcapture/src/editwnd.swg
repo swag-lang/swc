@@ -17,8 +17,5 @@ impl EditWnd
         return scroll
     }
 
-    mtd getCapture()->*Capture?
-    {
-        return .editView.capture
-    }
+    mtd getCapture()->*Capture? => .editView.capture
 }

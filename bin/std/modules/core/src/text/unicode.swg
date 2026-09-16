@@ -69,10 +69,7 @@ public
     }
 
     // Returns whether symbol math.
-    func isSymbolMath(c: rune)->bool
-    {
-        return isInTable(TableSymbolMath, c)
-    }
+    func isSymbolMath(c: rune)->bool => isInTable(TableSymbolMath, c)
 
     // Returns whether letter or digit.
     func isLetterOrDigit(c: rune)->bool

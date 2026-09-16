@@ -130,16 +130,14 @@ internal impl Properties
                prop.selItem and
                prop.selItem.numChilds
             {
-                let selItem = prop.selItem
-                selItem.flags.toggle(.Expanded)
+                prop.selItem.flags.toggle(.Expanded)
                 prop.updateStates()
             }
 
             // Toggle checkbox
             elif prop.selItem!.checkBox != null
             {
-                let selItem = prop.selItem
-                selItem.checkBox.toggle()
+                prop.selItem.checkBox.toggle()
             }
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .Released:

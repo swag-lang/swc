@@ -274,9 +274,7 @@ func rebuildInspector()
     if not objHost do
         return
 
-    let oldCtrl = g_PropCtrl
-    if oldCtrl do
-        oldCtrl.destroy()
+    g_PropCtrl?.destroy()
 
     let ctrl  = PropertiesCtrl.create(objHost, kind: g_DisplayMode, flags: .SearchBar)
     let props = ctrl.properties
@@ -300,9 +298,7 @@ func rebuildInspector()
     props.sigValueChanged += func(_list, item)
     {
         updateStatus(item)
-        let preview = g_Preview
-        if preview do
-            preview.invalidate()
+        g_Preview?.invalidate()
     }
 
     objHost.applyLayout()
@@ -322,9 +318,7 @@ func setCardCount(count: s32)
         return
     g_CardCount = count
     rebuildInspector()
-    let preview = g_Preview
-    if preview do
-        preview.invalidate()
+    g_Preview?.invalidate()
 }
 
 func createInspectorPage(parent: *Wnd)

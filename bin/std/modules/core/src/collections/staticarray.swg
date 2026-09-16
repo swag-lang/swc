@@ -17,10 +17,7 @@ impl StaticArray
 {
     // Returns the number of elements in the array.
     #[Inline]
-    mtd opCount()->u64
-    {
-        return .count
-    }
+    mtd opCount()->u64 => .count
 
     // Returns a raw, constant pointer to the array's buffer.
     #[Inline]
@@ -31,17 +28,11 @@ impl StaticArray
 
     // Allows the array to be implicitly cast to a mutable slice.
     #[Inline]
-    mtd opCast()->[..] T
-    {
-        return .toSlice()
-    }
+    mtd opCast()->[..] T => .toSlice()
 
     // Allows the array to be implicitly cast to an immutable slice.
     #[Inline]
-    mtd const opCast()->const [..] T
-    {
-        return .toSlice()
-    }
+    mtd const opCast()->const [..] T => .toSlice()
 
     // Creates a slice from a sub-part of the array.
     #[Inline]
@@ -151,22 +142,13 @@ impl StaticArray
     }
 
     // Returns a zero-allocation view that traverses the elements from last to first.
-    mtd reversed()->ReversedSlice'T
-    {
-        return reverseSlice(.toSlice())
-    }
+    mtd reversed()->ReversedSlice'T => reverseSlice(.toSlice())
 
     // Returns an immutable zero-allocation view that traverses the elements from last to first.
-    mtd const reversed()->ConstReversedSlice'T
-    {
-        return reverseSlice(.toSlice())
-    }
+    mtd const reversed()->ConstReversedSlice'T => reverseSlice(.toSlice())
 
     // Returns a zero-allocation view over adjacent elements.
-    mtd const pairs()->Pairs'T
-    {
-        return pairsView(.toSlice())
-    }
+    mtd const pairs()->Pairs'T => pairsView(.toSlice())
 
     // Drops all elements in the array, setting its me.count to 0.
     // This is equivalent to 'clear' for this type.
@@ -181,17 +163,11 @@ impl StaticArray
 
     // Returns a mutable slice containing all valid elements of the array.
     #[Inline]
-    mtd toSlice()->[..] T
-    {
-        return Swag.makeSlice(&.buffer[0], .count)
-    }
+    mtd toSlice()->[..] T => Swag.makeSlice(&.buffer[0], .count)
 
     // Returns an immutable slice containing all valid elements of the array.
     #[Inline]
-    mtd const toSlice()->const [..] T
-    {
-        return Swag.makeSlice(&.buffer[0], .count)
-    }
+    mtd const toSlice()->const [..] T => Swag.makeSlice(&.buffer[0], .count)
 
     // Changes the number of elements in the array to 'newCount'.
     // Asserts if 'newCount' exceeds the static capacity.

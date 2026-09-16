@@ -377,12 +377,15 @@ impl ViewerLoadingOverlay
 {
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
-        let result = Wnd.create'ViewerLoadingOverlay(parent, "scope.loading")
-        result.wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
-        result.backgroundStyle         = .Transparent
-        result.spinner                 = Wnd.create'ViewerLoadingSpinner(result, {0, 0, ViewerLoadingSpinnerSize, ViewerLoadingSpinnerSize})
-        result.spinner.backgroundStyle = .Transparent
-        result.hide()
+        with let result = Wnd.create'ViewerLoadingOverlay(parent, "scope.loading")
+        {
+            .wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
+            .backgroundStyle         = .Transparent
+            .spinner                 = Wnd.create'ViewerLoadingSpinner(result, {0, 0, ViewerLoadingSpinnerSize, ViewerLoadingSpinnerSize})
+            .spinner.backgroundStyle = .Transparent
+            .hide()
+        }
+
         return result
     }
 

@@ -156,8 +156,7 @@ impl Window
         if .callbacks.onResize
         {
             let {width, height} = try .clientSizeNative()
-            let onResize        = .callbacks.onResize
-            onResize(me, width, height)
+            .callbacks.onResize(me, width, height)
         }
 
         try .showNative()
@@ -176,8 +175,7 @@ impl Window
         if .callbacks.onResize
         {
             let {width, height} = try .clientSizeNative()
-            let onResize        = .callbacks.onResize
-            onResize(me, width, height)
+            .callbacks.onResize(me, width, height)
         }
 
         try .showOffScreenNative()

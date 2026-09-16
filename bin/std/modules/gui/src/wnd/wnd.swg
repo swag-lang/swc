@@ -332,17 +332,14 @@ struct Wnd
     isAllocated:      bool     // Whether destruction must release this allocation.
     paintsWhenHidden: bool     // Whether a transition keeps this logically hidden subtree in the paint order.
 
-    public
-    {
-        // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
-        // writing it from outside would desynchronize the pass from the tree.
+    // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
+    // writing it from outside would desynchronize the pass from the tree.
 
-        readonly
-        {
-            isPendingDestroy: bool                // Whether the window is scheduled for destruction.
-            managedByLayout:  bool                // Whether a layout container places this window.
-            layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
-        }
+    public readonly
+    {
+        isPendingDestroy: bool                // Whether the window is scheduled for destruction.
+        managedByLayout:  bool                // Whether a layout container places this window.
+        layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
     }
 
     private
@@ -586,35 +583,30 @@ impl Wnd
 
     // Allocates a concrete window with an empty name and rectangle.
     #[Swag.Inline]
-    func(T) create(parent: *Wnd? = null, id: WndId? = null, hook: HookEvent? = null)->*T
-    {
-        return create'T(parent, "", {}, id, hook)
-    }
+    func(T) create(parent: *Wnd? = null, id: WndId? = null, hook: HookEvent? = null)->*T => create'T(parent, "", {}, id, hook)
 
     #[Swag.Inline]
     // Allocates a concrete window with an empty name at `position`.
-    func(T) create(parent: *Wnd?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T
-    {
-        return create'T(parent, "", position, id, hook)
-    }
+    func(T) create(parent: *Wnd?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T => create'T(parent, "", position, id, hook)
 
     func(T) create(parent: *Wnd?, name: string?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T
     {
-        let res = Memory.new'T()
-        res.isAllocated = true
-        res.itf         = res[]
-        res.name.set(name)
-        res.id            = id
-        res.position      = position
-        res.preferredSize = {position.width, position.height}
-        res.isAllocated   = true
-        res.hookOnEvent   = hook
-
-        if parent
+        with let res = Memory.new'T()
         {
-            res.setParent(parent)
-            res.sendCreateEvent()
-            res.sendResizeEvent()
+            .isAllocated = true
+            .itf         = res[]
+            .name.set(name)
+            .id            = id
+            .position      = position
+            .preferredSize = {position.width, position.height}
+            .hookOnEvent   = hook
+
+            if parent
+            {
+                .setParent(parent)
+                .sendCreateEvent()
+                .sendResizeEvent()
+            }
         }
 
         return res
@@ -760,8 +752,7 @@ impl Wnd
         if not .wndFlags.has(.Hidden) do
             return
         .wndFlags.remove(.Hidden)
-        let parent = .parent!
-        parent.invalidate()
+        .parent!.invalidate()
     }
 
     // Hide the window
@@ -773,8 +764,7 @@ impl Wnd
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
         .app().unregisterWnd(me)
-        let parent = .parent!
-        parent.invalidate()
+        .parent!.invalidate()
     }
 
     // Enable/Disable the window
@@ -1082,17 +1072,13 @@ impl Wnd
     // Force the window to be repainted
     mtd invalidate()
     {
-        let srf = .surface
-        if srf do
-            srf.invalidateRect(.paintExtent(.surfaceRect()))
+        .surface?.invalidateRect(.paintExtent(.surfaceRect()))
     }
 
     // Invalidates one local rectangle after converting it to surface coordinates.
     mtd invalidateRect(rect: Math.Rectangle)
     {
-        let srf = .surface
-        if srf do
-            srf.invalidateRect(.localToSurface(rect))
+        .surface?.invalidateRect(.localToSurface(rect))
     }
 
     // Returns the rectangle this window paints into, in parent coordinates.
@@ -1118,9 +1104,7 @@ impl Wnd
         let anchor = .surfaceRect()
         var rect   = .presentationRect()
         rect.offset(anchor.x - .position.x, anchor.y - .position.y)
-        let srf = .surface
-        if srf do
-            srf.invalidateRect(.paintExtent(rect))
+        .surface?.invalidateRect(.paintExtent(rect))
     }
 
     // Keeps a logically hidden window in its parent's paint order during a visual handoff.
@@ -1129,8 +1113,7 @@ impl Wnd
         if .paintsWhenHidden == enabled do
             return
         .paintsWhenHidden = enabled
-        if .parent do
-            .parent.invalidate()
+        .parent?.invalidate()
     }
 
     // Changes paint-only opacity without changing layout, hit testing, or focus.
@@ -1225,8 +1208,7 @@ impl Wnd
     mtd invalidateLayout()
     {
         .layoutDirty = true
-        if .parent do
-            .parent.invalidateLayout()
+        .parent?.invalidateLayout()
     }
 
     // Drains deferred layout from the root down. Measuring alone does not arrange a container.
@@ -1536,8 +1518,7 @@ impl Wnd
                 .w = bottom
         }
 
-        if .parent do
-            .parent.sendResizeEvent()
+        .parent?.sendResizeEvent()
     }
 
     // Replaces all four margins with `value`.
@@ -1977,22 +1958,19 @@ impl Wnd
     // Captures platform pointer input for this window.
     mtd captureMouse()
     {
-        let srfn = .surface!
-        srfn.app.captureMouse(me)
+        .surface!.app.captureMouse(me)
     }
 
     // Releases the application's current pointer capture.
     mtd releaseMouse()
     {
-        let srfn = .surface!
-        srfn.app.releaseMouse()
+        .surface!.app.releaseMouse()
     }
 
     // Returns the window that currently owns pointer capture.
     mtd mouseCapture()->*Wnd?
     {
-        let srfn = .surface!
-        return srfn.app.mouseCapture()
+        return .surface!.app.mouseCapture()
     }
 
     //////////////////////////////////////////////
@@ -2344,10 +2322,7 @@ impl Wnd
     //////////////////////////////////////////////
 
     // Register a new timer for the given 'target'
-    mtd addTimer(time: Time.Duration)->*Timer
-    {
-        return .app().addTimer(time, me)
-    }
+    mtd addTimer(time: Time.Duration)->*Timer => .app().addTimer(time, me)
 
     // Removes a timer previously created for this window.
     mtd removeTimer(timer: *Timer)
@@ -2358,8 +2333,7 @@ impl Wnd
     // Posts quit event.
     mtd postQuitEvent()
     {
-        let srfn = .surface!
-        srfn.app.postQuitEvent()
+        .surface!.app.postQuitEvent()
     }
 
     // Posts event.

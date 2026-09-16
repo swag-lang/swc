@@ -487,10 +487,7 @@ impl ColorPickerCtrl
 
     // Returns the selected color.
     #[Swag.Inline]
-    mtd color()->Color
-    {
-        return .selectedColor
-    }
+    mtd color()->Color => .selectedColor
 
     // Changes the selected RGB channels while preserving alpha.
     mtd setColorPreservingAlpha(color: Color, notify = true)

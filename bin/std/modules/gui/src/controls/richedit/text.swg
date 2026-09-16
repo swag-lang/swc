@@ -213,13 +213,16 @@ impl RichEditCtrl
                 .selBeg.charPosInLine -= cut
             }
 
-            let nextLine = .newLine(lineIndex + 1)
-            nextLine.wordWrap = true
-            nextLine.chars.add(line.chars.toSlice()[cut until end])
-            nextLine.styles.add(line.styles.toSlice()[cut until end])
-            nextLine.dirtyStyle       = false
-            nextLine.lexerEndingState = line.lexerEndingState
-            nextLine.lexerCptCmt      = line.lexerCptCmt
+            with let nextLine = .newLine(lineIndex + 1)
+            {
+                .wordWrap = true
+                .chars.add(line.chars.toSlice()[cut until end])
+                .styles.add(line.styles.toSlice()[cut until end])
+                .dirtyStyle       = false
+                .lexerEndingState = line.lexerEndingState
+                .lexerCptCmt      = line.lexerCptCmt
+            }
+
             end = cut
         }
 
@@ -447,8 +450,7 @@ public impl RichEditCtrl
     mtd selectedText()->String
     {
         let res = .textRangeData(.selectionStart(), .selectionEnd())
-        let txt = Utf8.fromUnicode(res.text.toSlice())
-        return txt
+        return Utf8.fromUnicode(res.text.toSlice())
     }
 
     // Returns the complete plain text.
@@ -459,8 +461,7 @@ public impl RichEditCtrl
         .moveCursorStartFile(&sel0)
         .moveCursorEndFile(&sel1)
         let res = .textRangeData(sel0, sel1)
-        let txt = Utf8.fromUnicode(res.text.toSlice())
-        return txt
+        return Utf8.fromUnicode(res.text.toSlice())
     }
 
     // Returns the complete text and one style reference per rune.

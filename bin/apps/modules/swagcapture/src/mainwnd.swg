@@ -483,8 +483,7 @@ impl MainWnd
         case .Selection:
             .editMode = .Shape
             let capture = .getCapture()
-            if capture do
-                capture.updateEditModeFromSelection()
+            capture?.updateEditModeFromSelection()
             let edMode = .editMode
             .editMode = .Selection
             return edMode
@@ -970,8 +969,7 @@ impl MainWnd
         if .editWnd != null
         {
             let capture = .editWnd.getCapture()
-            if capture do
-                capture.invalidateAllFormCaches()
+            capture?.invalidateAllFormCaches()
         }
     }
 
@@ -1057,8 +1055,7 @@ impl MainWnd
 
         with let res = Wnd.create'MainWnd(parent, "capture.mainwnd")
         {
-            let resSrf = res.surface!
-            resSrf.setView(res)
+            res.surface!.setView(res)
             .icons.setup(renderer, captureIcons())
             .appIcon.set(renderer.addImage(imgApp))
             .backgroundStyle = .Window
@@ -1073,8 +1070,7 @@ impl MainWnd
         {
             main.editorOptions.theme = button.appearanceTheme
             let capture = main.editWnd.getCapture()
-            if capture do
-                capture.invalidateAllFormCaches()
+            capture?.invalidateAllFormCaches()
             main.saveAppState()
         }
 

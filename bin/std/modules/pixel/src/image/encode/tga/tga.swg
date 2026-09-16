@@ -145,12 +145,15 @@ internal impl IImageEncoder for Encoder
         if image.height > Swag.U16.Max do
             fail UnsupportedFormatError{"height is too big"}
 
-        var header: Header
-        header.imageTypeCode  = cast(u8) (userOptions.rle ? TYPE_RLE_RGB : TYPE_RGB)
-        header.width          = cast(u16) image.width
-        header.height         = cast(u16) image.height
-        header.bitsPerPixel   = image.bitsPerPixel
-        header.descriptorByte = image.pixelFormat.hasAlpha() ? 8'u8 : 0'u8
+        with var header: Header
+        {
+            .imageTypeCode  = cast(u8) (userOptions.rle ? TYPE_RLE_RGB : TYPE_RGB)
+            .width          = cast(u16) image.width
+            .height         = cast(u16) image.height
+            .bitsPerPixel   = image.bitsPerPixel
+            .descriptorByte = image.pixelFormat.hasAlpha() ? 8'u8 : 0'u8
+        }
+
         result.addStruct(header)
 
         if userOptions.rle

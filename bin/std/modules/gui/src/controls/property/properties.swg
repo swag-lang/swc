@@ -23,33 +23,21 @@ interface IPropertyNotify
     mtd itemHasChanged(list: *Properties, item: *PropertiesItem?) {}
 
     // Returns whether item visible.
-    mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool
-    {
-        return true
-    }
+    mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool => true
 
     // Returns whether item enabled.
-    mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool
-    {
-        return true
-    }
+    mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool => true
 
     // Return false to hide one value of an enum field (a value that makes no sense for the
     // host, e.g. a 'None' entry): the combo omits it, an enum-flags block skips its row.
     // Like isItemVisible, checked on the host notify and along the item's parent chain, but
     // when the row is BUILT: rebuild the grid content to re-evaluate it.
-    mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
-    {
-        return true
-    }
+    mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool => true
 
     // Return true to make 'item' read-only at runtime: shown but not editable, and "Paste" is
     // disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor.
     // The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.
-    mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool
-    {
-        return false
-    }
+    mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool => false
 
     // Called when the user right-clicks a row: add custom menu items (each with a unique
     // command id) before the built-in ones (Copy/Paste/...). Use a separator to set them apart.
@@ -57,10 +45,7 @@ interface IPropertyNotify
 
     // Called with the command id chosen in the popup menu when it is not one of the built-in
     // actions. Return true once handled. This is how custom fillPopupMenu items are executed.
-    mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool
-    {
-        return false
-    }
+    mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool => false
 
     // Return a validation state + message for 'item'. Called on build and after every
     // change; the row shows an accent bar + badge in the state color and the message as a
@@ -75,18 +60,12 @@ interface IPropertyNotify
     // value against the value the field is initialized to in the struct declaration; return
     // .AtDefault / .Modified to force the answer when the test is more involved than a plain
     // comparison. The first non-Auto result along the item's parent chain wins.
-    mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState
-    {
-        return .Auto
-    }
+    mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState => .Auto
 
     // Reset 'item' to its default value yourself; return true once handled. Return false (the
     // default) to let the grid restore the value declared in the struct. Called by the "Reset to
     // default" action and the revert marker. Checked along the item's parent chain.
-    mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool
-    {
-        return false
-    }
+    mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool => false
 }
 
 // Selects the layout density and presentation of a property editor.
@@ -519,8 +498,7 @@ impl Properties
 
         for it in .items
         {
-            let itn = it!
-            itn.line.destroyNow()
+            it!.line.destroyNow()
         }
 
         .items.clear()
@@ -587,8 +565,7 @@ impl Properties
         let typeStruct = cast #assume(const *Swag.TypeInfoStruct) typeof
         .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
 
-        let itemn = item
-        itemn.numChilds = cast(u32) (.items.count - numItemsBefore)
+        item.numChilds = cast(u32) (.items.count - numItemsBefore)
 
         .assignInstances(firstItemIdx, bases)
         .assignDefaults(firstItemIdx, typeof, cast([*] u8) bases[0])
@@ -687,14 +664,12 @@ impl Properties
         .sigValueChanged.call(me, item)
 
         // Notify the host, then all the hierarchy
-        if .hostNtfy do
-            .hostNtfy.itemHasChanged(me, item)
+        .hostNtfy?.itemHasChanged(me, item)
 
         var scan = cast(*PropertiesItem?) item
         while scan
         {
-            if scan.ntfyItf do
-                scan.ntfyItf.itemHasChanged(me, item)
+            scan.ntfyItf?.itemHasChanged(me, item)
             scan = scan.parent
         }
 

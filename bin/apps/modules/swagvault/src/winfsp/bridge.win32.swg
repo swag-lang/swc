@@ -140,15 +140,9 @@ namespace WinFsp
         discard fileContext
     }
 
-    func fspRead(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32
-    {
-        return callbackRead(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, transferred)
-    }
+    func fspRead(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32 => callbackRead(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, transferred)
 
-    func fspWrite(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
-    {
-        return callbackWrite(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, writeToEnd, constrained, transferred, info)
-    }
+    func fspWrite(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32 => callbackWrite(mountedVolume(fileSystem), idFromContext(fileContext), buffer, offset, length, writeToEnd, constrained, transferred, info)
 
     func fspFlush(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo?)->s32
     {
@@ -156,10 +150,7 @@ namespace WinFsp
         return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? info : &scratch)
     }
 
-    func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo)->s32
-    {
-        return callbackGetFileInfo(mountedVolume(fileSystem), idFromContext(fileContext), info)
-    }
+    func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: *void?, info: *FileInfo)->s32 => callbackGetFileInfo(mountedVolume(fileSystem), idFromContext(fileContext), info)
 
     func fspSetBasicInfo(fileSystem: *FspFileSystem, fileContext: *void?, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
         => callbackSetBasicInfo(mountedVolume(fileSystem), idFromContext(fileContext), attributes, creationTime, lastAccessTime, lastWriteTime, changeTime, info)

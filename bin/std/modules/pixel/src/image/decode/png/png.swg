@@ -140,10 +140,7 @@ impl Decoder
         return cast(const [..] u8) .chunkTRNS.datas!
     }
 
-    mtd safeDstPixels()->[*] u8
-    {
-        return .dstPixels!
-    }
+    mtd safeDstPixels()->[*] u8 => .dstPixels!
 
     mtd readChunk(ch: ChunkHeader)->DecodeChunk fail
     {

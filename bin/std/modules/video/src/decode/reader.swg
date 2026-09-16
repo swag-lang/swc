@@ -320,8 +320,7 @@ impl Reader
     // operation has returned.
     mtd requestCancel()
     {
-        if .deferred do
-            .deferred.requestCancel()
+        .deferred?.requestCancel()
     }
 
     // Returns the number of decoded sound tracks carried by the opened stream.

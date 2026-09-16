@@ -30,10 +30,7 @@ private impl BitArray
         return result
     }
 
-    mtd dataPtr()->[*] u32
-    {
-        return .buffer!
-    }
+    mtd dataPtr()->[*] u32 => .buffer!
 
     mtd const constDataPtr()->const [*] u32
     {
@@ -77,10 +74,7 @@ private impl BitArray
 public impl BitArray
 {
     // Returns the number of bits in the array.
-    mtd const opCount()->u64
-    {
-        return .count
-    }
+    mtd const opCount()->u64 => .count
 
     // Ensures the allocated memory is freed when the array goes out of scope.
     mtd opDrop()
@@ -106,10 +100,7 @@ public impl BitArray
     }
 
     // Returns the boolean value of the bit at a specific position.
-    mtd const opIndex(index: u64)->bool
-    {
-        return .get(index)
-    }
+    mtd const opIndex(index: u64)->bool => .get(index)
 
     // Sets the value of the bit at a specific position.
     mtd opIndexSet(index: u64, value: bool)

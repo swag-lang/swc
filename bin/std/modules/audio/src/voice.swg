@@ -346,8 +346,5 @@ public impl Voice
     }
 
     // Returns this voice's current gain in decibels.
-    mtd volumeDb()->f32 fail
-    {
-        return linearGainToDecibels(try .volume())
-    }
+    mtd volumeDb()->f32 fail => linearGainToDecibels(try .volume())
 }

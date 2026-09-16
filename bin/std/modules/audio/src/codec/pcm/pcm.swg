@@ -32,10 +32,7 @@ impl ICodec for CodecPcmToPcm16
         return false
     }
 
-    mtd impl initialize(source: const [*] void, sourceSize: u64)->u64 fail
-    {
-        return 0
-    }
+    mtd impl initialize(source: const [*] void, sourceSize: u64)->u64 fail => 0
 
     mtd impl decode(destination: [*] void, destinationSize: u64, source: const [*] void, sourceSize: u64)->CodecProgress fail
     {

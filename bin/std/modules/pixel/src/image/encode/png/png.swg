@@ -170,15 +170,13 @@ impl Encoder
 
     mtd writeData(buf: const [*] u8, bytes: u32)
     {
-        let stream = .stream!
-        stream.addBytes(Swag.makeSlice(buf, bytes))
+        .stream!.addBytes(Swag.makeSlice(buf, bytes))
     }
 
     mtd writeU32(val: u32)
     {
-        var v      = Math.nativeToBigEndian(val)
-        let stream = .stream!
-        stream.addBytes(Swag.makeSlice(cast(const [*] u8) &v, 4))
+        var v = Math.nativeToBigEndian(val)
+        .stream!.addBytes(Swag.makeSlice(cast(const [*] u8) &v, 4))
     }
 
     mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8

@@ -118,12 +118,15 @@ impl Pen
     // Creates a continuous pen painted with a repeating hatch.
     func createHatch(type: HatchStyle, color: Color, size: f32 = 1)->Pen
     {
-        var result: retval
-        result.brush.color  = color
-        result.brush.type   = .Hatch
-        result.brush.hatch  = type
-        result.size         = size
-        result.brush.uvMode = .Tile
+        with var result: retval
+        {
+            .brush.color  = color
+            .brush.type   = .Hatch
+            .brush.hatch  = type
+            .size         = size
+            .brush.uvMode = .Tile
+        }
+
         return result
     }
 }

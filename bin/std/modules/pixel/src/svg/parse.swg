@@ -3417,26 +3417,29 @@ private impl Parser
             }
 
             let shapeIndex = .drawing.shapes.count
-            let shape      = .drawing.shapes.emplaceInitAddress()
-            shape.pathList       = #move list
-            shape.fillColor      = fillColor
-            shape.fillPaintId    = #move fillPaintId
-            shape.fillOpacity    = fillOpacity
-            shape.strokeColor    = strokeColor
-            shape.strokePaintId  = #move strokePaintId
-            shape.strokeOpacity  = strokeOpacity
-            shape.hasFill        = hasFill
-            shape.hasStroke      = hasStroke
-            shape.evenOdd        = evenOdd
-            shape.strokeWidth    = strokeWidth
-            shape.strokeOffset   = strokeOffset
-            shape.strokeMiter    = strokeMiter
-            shape.strokePattern  = #move strokePattern
-            shape.capStyle       = capStyle
-            shape.joinStyle      = joinStyle
-            shape.paintTransform = paintTransform
-            shape.hidden         = hidden or state.inDefs
-            shape.filterId       = #move filterId
+            with let shape = .drawing.shapes.emplaceInitAddress()
+            {
+                .pathList       = #move list
+                .fillColor      = fillColor
+                .fillPaintId    = #move fillPaintId
+                .fillOpacity    = fillOpacity
+                .strokeColor    = strokeColor
+                .strokePaintId  = #move strokePaintId
+                .strokeOpacity  = strokeOpacity
+                .hasFill        = hasFill
+                .hasStroke      = hasStroke
+                .evenOdd        = evenOdd
+                .strokeWidth    = strokeWidth
+                .strokeOffset   = strokeOffset
+                .strokeMiter    = strokeMiter
+                .strokePattern  = #move strokePattern
+                .capStyle       = capStyle
+                .joinStyle      = joinStyle
+                .paintTransform = paintTransform
+                .hidden         = hidden or state.inDefs
+                .filterId       = #move filterId
+            }
+
             if not shape.hidden do
                 .drawing.items.add(DrawingItem{.Shape, shapeIndex})
         }

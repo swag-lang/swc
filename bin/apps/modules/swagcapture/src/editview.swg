@@ -213,8 +213,7 @@ impl EditView
         if .capture do
             Memory.delete(.capture)
         .capture = c
-        if .capture do
-            .capture.setup(me)
+        .capture?.setup(me)
         if .main != null
         {
             .main.captureHasChanged()

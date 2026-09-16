@@ -57,10 +57,7 @@ impl CurvePreset
     //
     // This reads the shared curve of the preset and allocates nothing, so plotting a preview and
     // running an animation go through one evaluator and cannot drift apart.
-    mtd const evaluate(x: f32)->f32
-    {
-        return Math.Curve.shared(me).evaluateNormalized(x)
-    }
+    mtd const evaluate(x: f32)->f32 => Math.Curve.shared(me).evaluateNormalized(x)
 }
 
 // A curve of arbitrarily many keys, evaluated as one ordinate for one abscissa.
@@ -108,12 +105,15 @@ private impl Curve
     // Builds one key, tangents included.
     func makeKey(x, y, inTangent, outTangent: f32, interpolation = CurveInterpolation.Hermite)->CurveKey
     {
-        var result: retval
-        result.x             = x
-        result.y             = y
-        result.inTangent     = inTangent
-        result.outTangent    = outTangent
-        result.interpolation = interpolation
+        with var result: retval
+        {
+            .x             = x
+            .y             = y
+            .inTangent     = inTangent
+            .outTangent    = outTangent
+            .interpolation = interpolation
+        }
+
         return result
     }
 
@@ -166,12 +166,15 @@ private impl Curve
         // at half the previous one, which is what makes the bounce die out.
         const Rebound = Steepness * Segment
 
-        var result: retval
-        result.keys.add(makeKey(0, 0, 0, 0))
-        result.keys.add(makeKey(Segment, 1, 2 * Rebound, -Rebound))
-        result.keys.add(makeKey(2 * Segment, 1, Rebound, -0.5 * Rebound))
-        result.keys.add(makeKey(2.5 * Segment, 1, 0.5 * Rebound, -0.25 * Rebound))
-        result.keys.add(makeKey(1, 1, 0.25 * Rebound, 0))
+        with var result: retval
+        {
+            .keys.add(makeKey(0, 0, 0, 0))
+            .keys.add(makeKey(Segment, 1, 2 * Rebound, -Rebound))
+            .keys.add(makeKey(2 * Segment, 1, Rebound, -0.5 * Rebound))
+            .keys.add(makeKey(2.5 * Segment, 1, 0.5 * Rebound, -0.25 * Rebound))
+            .keys.add(makeKey(1, 1, 0.25 * Rebound, 0))
+        }
+
         return result
     }
 
@@ -398,10 +401,7 @@ impl Curve
     }
 
     // Inserts a key with no tangent at `x`, `y` and returns the index it landed on.
-    mtd addKey(x, y: f32, interpolation = CurveInterpolation.Hermite)->u64
-    {
-        return .addKey(makeKey(x, y, 0, 0, interpolation))
-    }
+    mtd addKey(x, y: f32, interpolation = CurveInterpolation.Hermite)->u64 => .addKey(makeKey(x, y, 0, 0, interpolation))
 
     // Removes the key at `index`, keeping the remaining ones in order.
     mtd removeKeyAt(index: u64)

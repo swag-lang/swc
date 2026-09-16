@@ -43,14 +43,17 @@ internal impl RangeDecoder
 {
     func create(frame: const [..] u8)->RangeDecoder
     {
-        var result: retval
-        result.data      = frame.buffer
-        result.storage   = cast(u32) frame.count
-        result.bitsTotal = 9
-        result.range     = 1'u32 << CodeExtra
-        result.remainder = result.readByte()
-        result.value     = result.range - 1 - (result.remainder >> (SymBits - CodeExtra))
-        result.normalize()
+        with var result: retval
+        {
+            .data      = frame.buffer
+            .storage   = cast(u32) frame.count
+            .bitsTotal = 9
+            .range     = 1'u32 << CodeExtra
+            .remainder = .readByte()
+            .value     = .range - 1 - (.remainder >> (SymBits - CodeExtra))
+            .normalize()
+        }
+
         return result
     }
 

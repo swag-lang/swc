@@ -2327,10 +2327,7 @@ impl Transform
     }
 
     #[Swag.Inline]
-    func cround(val: f64)->CInt
-    {
-        return cast(CInt) Math.round(val)
-    }
+    func cround(val: f64)->CInt => cast(CInt) Math.round(val)
 
     func topX(edge: *Edge, currentY: CInt)->CInt
     {

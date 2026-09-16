@@ -605,10 +605,13 @@ impl Surface
         defer if emptyRegion do
             discard DeleteObject(emptyRegion)
 
-        var blurBehind: DWM_BLURBEHIND
-        blurBehind.dwFlags  = DWM_BB_ENABLE | DWM_BB_BLURREGION
-        blurBehind.fEnable  = TRUE
-        blurBehind.hRgnBlur = emptyRegion
+        with var blurBehind: DWM_BLURBEHIND
+        {
+            .dwFlags  = DWM_BB_ENABLE | DWM_BB_BLURREGION
+            .fEnable  = TRUE
+            .hRgnBlur = emptyRegion
+        }
+
         discard DwmEnableBlurBehindWindow(.hWnd, &blurBehind)
     }
 
@@ -815,10 +818,7 @@ impl Surface
     }
 
     // Returns whether the surface belongs to the topmost Z-order group.
-    mtd const isTopMost()->bool
-    {
-        return .topMost
-    }
+    mtd const isTopMost()->bool => .topMost
 
     // Brings the surface to the front of its current Z-order group.
     mtd bringToFront()

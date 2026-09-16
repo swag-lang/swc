@@ -225,8 +225,5 @@ impl Hash.IHash32 for Guid64
 {
     // Compute a 32-bit hash value for the GUID.
     // Uses CRC32 algorithm on the 8-byte GUID data for consistent hashing.
-    mtd const impl compute()->u32
-    {
-        return Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8) &.value, #sizeof(u64)))
-    }
+    mtd const impl compute()->u32 => Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8) &.value, #sizeof(u64)))
 }

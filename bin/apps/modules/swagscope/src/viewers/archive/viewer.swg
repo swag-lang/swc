@@ -464,13 +464,15 @@ private impl ArchiveViewer
 
     func create(host: Viewer.Host)->*ArchiveViewer
     {
-        let services = host.services()
-        let result   = Wnd.create'ArchiveViewer(host.contentParent(), "scope.archive")
-        result.backgroundStyle      = .View
-        result.sourceFile           = host.fileName()
-        result.reportFailure        = services.reportFailure
-        result.reportDetails        = services.reportDetails
-        result.reportLoadingChanged = services.reportLoadingChanged
+        let services    = host.services()
+        with let result = Wnd.create'ArchiveViewer(host.contentParent(), "scope.archive")
+        {
+            .backgroundStyle      = .View
+            .sourceFile           = host.fileName()
+            .reportFailure        = services.reportFailure
+            .reportDetails        = services.reportDetails
+            .reportLoadingChanged = services.reportLoadingChanged
+        }
 
         result.splitter = SplitterCtrl.create(result)
         result.splitter.dockStyle = .Center

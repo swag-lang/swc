@@ -5,16 +5,19 @@ using Core, Core.Errors, Pixel, Gui
 // Describes the delimited-text table viewer to the host.
 func tableViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "table"
-    result.staticName   = "Table"
-    result.attach       = &registerTableStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Table
-    result.create       = &createTableViewer
-    result.textual      = true
-    result.smokeFixture = "viewer.csv"
-    result.addSelectors(".csv;.tsv;.tab")
+    with var result: retval
+    {
+        .key          = "table"
+        .staticName   = "Table"
+        .attach       = &registerTableStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Table
+        .create       = &createTableViewer
+        .textual      = true
+        .smokeFixture = "viewer.csv"
+        .addSelectors(".csv;.tsv;.tab")
+    }
+
     return result
 }
 
@@ -504,12 +507,15 @@ impl TableViewer
 
     func create(parent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*TableViewer
     {
-        let result = TableViewer.createBase(parent)
-        result.reportFailure        = reportFailure
-        result.reportDetails        = reportDetails
-        result.reportLoadingChanged = reportLoadingChanged
-        result.load.start(fileName, &loadTableDocument)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        with let result = TableViewer.createBase(parent)
+        {
+            .reportFailure        = reportFailure
+            .reportDetails        = reportDetails
+            .reportLoadingChanged = reportLoadingChanged
+            .load.start(fileName, &loadTableDocument)
+            .loadTimer = .addTimer(Viewer.BackgroundPollInterval)
+        }
+
         return result
     }
 

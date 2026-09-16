@@ -359,8 +359,7 @@ impl Voice
         .streamPacketIdx   = 0
         .seekDiscardFrames = .file ? cast(u32) .file.leadingTrim : 0
         .destroyCodec()
-        if .packetCodec do
-            .packetCodec.reset()
+        .packetCodec?.reset()
     }
 
     mtd closeData()

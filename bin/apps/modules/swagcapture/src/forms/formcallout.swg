@@ -296,15 +296,9 @@ impl IForm for FormCallout
         }
     }
 
-    mtd impl isInside(pt: Math.Point)->bool
-    {
-        return .rectFormBound().contains(pt.x, pt.y)
-    }
+    mtd impl isInside(pt: Math.Point)->bool => .rectFormBound().contains(pt.x, pt.y)
 
-    mtd impl hitTest(pt: Math.Point, z: f32)->bool
-    {
-        return BaseForm.drawHitTest(me, pt, z)
-    }
+    mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {

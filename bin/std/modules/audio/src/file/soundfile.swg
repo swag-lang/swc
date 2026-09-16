@@ -343,17 +343,20 @@ impl SoundFile
         var stream     = try File.openRead(path)
         let sourceSize = try stream.size()
 
-        var result: retval
-        result.path               = path
-        result.encoding           = encoding
-        result.sampleRate         = sampleRateHz
-        result.channelCount       = channels
-        result.bitsPerSample      = 16
-        result.validBitsPerSample = 16
-        result.waveSpeakerMask    = options.speakerMask
-        result.timelineStart      = options.timelineStartSeconds
-        result.mediaName.add(cast(const [..] u8) options.displayName)
-        result.mediaLanguage.add(cast(const [..] u8) options.language)
+        with var result: retval
+        {
+            .path               = path
+            .encoding           = encoding
+            .sampleRate         = sampleRateHz
+            .channelCount       = channels
+            .bitsPerSample      = 16
+            .validBitsPerSample = 16
+            .waveSpeakerMask    = options.speakerMask
+            .timelineStart      = options.timelineStartSeconds
+            .mediaName.add(cast(const [..] u8) options.displayName)
+            .mediaLanguage.add(cast(const [..] u8) options.language)
+        }
+
         if not Math.isFinite(result.timelineStart) or result.timelineStart < 0 do
             fail BadParameterError{"sound timeline start is not finite and non-negative"}
         if not result.waveSpeakerMask
@@ -434,13 +437,16 @@ impl SoundFile
         var stream        = try File.openRead(path)
         let sourceSize    = try stream.size()
 
-        var result: retval
-        result.path               = path
-        result.encoding           = encoding
-        result.sampleRate         = sampleRateHz
-        result.channelCount       = channels
-        result.bitsPerSample      = bitsPerSample
-        result.validBitsPerSample = cast(u16) bitsPerSample
+        with var result: retval
+        {
+            .path               = path
+            .encoding           = encoding
+            .sampleRate         = sampleRateHz
+            .channelCount       = channels
+            .bitsPerSample      = bitsPerSample
+            .validBitsPerSample = cast(u16) bitsPerSample
+        }
+
         if channels == 1 do
             result.waveSpeakerMask = 4
         elif channels == 2 do

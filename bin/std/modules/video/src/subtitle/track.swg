@@ -554,13 +554,16 @@ impl Track
     // Creates an empty track for a container decoder.
     func create(name: string = "", language: string = "", format = Format.MatroskaText)->Track
     {
-        var result: retval
-        result.name.reserve(17)
-        result.name += name
-        result.language.reserve(17)
-        result.language += language
-        result.textStorage.reserve(17)
-        result.format = format
+        with var result: retval
+        {
+            .name.reserve(17)
+            .name += name
+            .language.reserve(17)
+            .language += language
+            .textStorage.reserve(17)
+            .format = format
+        }
+
         return result
     }
 
@@ -641,13 +644,16 @@ impl Track
     #[Swag.NoInline]
     func loadOwned(fileName: string)->*Track? fail
     {
-        let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
-        let result    = Memory.new'Track(allocator)
-        result.allocationAllocator   = allocator
-        result.name.allocator        = allocator
-        result.language.allocator    = allocator
-        result.cues.allocator        = allocator
-        result.textStorage.allocator = allocator
+        let allocator   = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
+        with let result = Memory.new'Track(allocator)
+        {
+            .allocationAllocator   = allocator
+            .name.allocator        = allocator
+            .language.allocator    = allocator
+            .cues.allocator        = allocator
+            .textStorage.allocator = allocator
+        }
+
         defer #fail Memory.delete(result, allocator)
         try Track.loadInto(result, fileName)
         return result

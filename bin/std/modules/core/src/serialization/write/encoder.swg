@@ -364,10 +364,7 @@ impl Encoder
 impl IEncoder for Encoder
 {
     // Returns whether textual.
-    mtd impl isTextual()->bool
-    {
-        return .serializer.isTextual()
-    }
+    mtd impl isTextual()->bool => .serializer.isTextual()
 
     // Start serialization
     mtd impl start(result: *ConcatBuffer) fail

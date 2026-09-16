@@ -25,8 +25,7 @@ impl IWnd for RichEditView
     {
         if .timerCaret
         {
-            let srf = .surface!
-            srf.app.removeTimer(.timerCaret)
+            .surface!.app.removeTimer(.timerCaret)
             .timerCaret = null
         }
 
@@ -39,8 +38,7 @@ impl IWnd for RichEditView
 
         if .focusedWindow() == me
         {
-            let srf = .surface!
-            srf.app.keyboardFocusWnd = null
+            .surface!.app.keyboardFocusWnd = null
         }
 
         .ed = null
@@ -168,8 +166,7 @@ impl IWnd for RichEditView
             .invalidate()
 
         case .Lost:
-            let srf = .surface!
-            srf.app.removeTimer(.timerCaret!)
+            .surface!.app.removeTimer(.timerCaret!)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()

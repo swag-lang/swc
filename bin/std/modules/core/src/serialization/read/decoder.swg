@@ -404,16 +404,10 @@ impl IDecoder for Decoder
     }
 
     // Returns version.
-    mtd impl version()->u32
-    {
-        return .serializer.version()
-    }
+    mtd impl version()->u32 => .serializer.version()
 
     // Returns whether textual.
-    mtd impl isTextual()->bool
-    {
-        return .serializer.isTextual()
-    }
+    mtd impl isTextual()->bool => .serializer.isTextual()
 
     // Performs the read operation.
     mtd impl read(data: *void, dataType: typeinfo) fail

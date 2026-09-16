@@ -230,14 +230,17 @@ impl Brush
     // Creates a two-stop linear gradient between path-space points.
     func createLinearGradient(start, end: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
-        var result: retval
-        result.color          = Color.fromArgb(Argb.White)
-        result.type           = .LinearGradient
-        result.gradientStart  = start
-        result.gradientEnd    = end
-        result.gradientSpread = spread
-        result.addGradientStop(0, color0)
-        result.addGradientStop(1, color1)
+        with var result: retval
+        {
+            .color          = Color.fromArgb(Argb.White)
+            .type           = .LinearGradient
+            .gradientStart  = start
+            .gradientEnd    = end
+            .gradientSpread = spread
+            .addGradientStop(0, color0)
+            .addGradientStop(1, color1)
+        }
+
         return result
     }
 
@@ -250,16 +253,19 @@ impl Brush
     // Creates a two-stop radial gradient from radius zero to `radius`.
     func createRadialGradient(center: Math.Vector2, radius: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
-        var result: retval
-        result.color           = Color.fromArgb(Argb.White)
-        result.type            = .RadialGradient
-        result.gradientStart   = center
-        result.gradientEnd     = center
-        result.gradientRadius0 = 0
-        result.gradientRadius1 = radius
-        result.gradientSpread  = spread
-        result.addGradientStop(0, color0)
-        result.addGradientStop(1, color1)
+        with var result: retval
+        {
+            .color           = Color.fromArgb(Argb.White)
+            .type            = .RadialGradient
+            .gradientStart   = center
+            .gradientEnd     = center
+            .gradientRadius0 = 0
+            .gradientRadius1 = radius
+            .gradientSpread  = spread
+            .addGradientStop(0, color0)
+            .addGradientStop(1, color1)
+        }
+
         return result
     }
 
@@ -272,24 +278,24 @@ impl Brush
     // Creates a two-stop angular gradient over the specified angle interval.
     func createSweepGradient(center: Math.Vector2, startAngle, endAngle: Math.Angle, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
     {
-        var result: retval
-        result.color          = Color.fromArgb(Argb.White)
-        result.type           = .SweepGradient
-        result.gradientStart  = center
-        result.gradientEnd    = center
-        result.gradientAngle0 = startAngle.radians
-        result.gradientAngle1 = endAngle.radians
-        result.gradientSpread = spread
-        result.addGradientStop(0, color0)
-        result.addGradientStop(1, color1)
+        with var result: retval
+        {
+            .color          = Color.fromArgb(Argb.White)
+            .type           = .SweepGradient
+            .gradientStart  = center
+            .gradientEnd    = center
+            .gradientAngle0 = startAngle.radians
+            .gradientAngle1 = endAngle.radians
+            .gradientSpread = spread
+            .addGradientStop(0, color0)
+            .addGradientStop(1, color1)
+        }
+
         return result
     }
 
     // Creates a two-stop sweep gradient covering one full turn.
-    func createSweepGradient(center: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
-    {
-        return createSweepGradient(center, 0.0'deg, 360.0'deg, color0, color1, spread)
-    }
+    func createSweepGradient(center: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush => createSweepGradient(center, 0.0'deg, 360.0'deg, color0, color1, spread)
 
     // Creates a two-stop full-turn sweep gradient from center coordinates.
     func createSweepGradient(centerX, centerY: f32, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush

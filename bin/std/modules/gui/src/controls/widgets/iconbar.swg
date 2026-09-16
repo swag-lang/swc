@@ -110,17 +110,11 @@ impl IconBar
 
     // Appends a radio-style button that remains checked after its first activation.
     #[Swag.Discardable]
-    mtd addRadioButton(icon: Icon, id: WndId? = null)->*IconButton
-    {
-        return .addButton(icon, id, .Radio)
-    }
+    mtd addRadioButton(icon: Icon, id: WndId? = null)->*IconButton => .addButton(icon, id, .Radio)
 
     // Appends a toggle button that flips checked state on every activation.
     #[Swag.Discardable]
-    mtd addToggleButton(icon: Icon, id: WndId? = null)->*IconButton
-    {
-        return .addButton(icon, id, .Toggle)
-    }
+    mtd addToggleButton(icon: Icon, id: WndId? = null)->*IconButton => .addButton(icon, id, .Toggle)
 
     // Changes the layout axis and immediately recomputes the bar size.
     mtd setOrientation(orientation: IconBarOrientation)

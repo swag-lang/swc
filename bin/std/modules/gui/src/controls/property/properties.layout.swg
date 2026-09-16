@@ -93,10 +93,7 @@ internal impl Properties
         return Math.max(width - .leftMargin - .rightMargin, 1.0)
     }
 
-    mtd listContentWidth()->f32
-    {
-        return .listContentWidthFromUseful(.listUsefulWidth())
-    }
+    mtd listContentWidth()->f32 => .listContentWidthFromUseful(.listUsefulWidth())
 
     mtd setListContentPadding(wnd: *Wnd?)
     {
@@ -131,10 +128,7 @@ internal impl Properties
         return Math.clamp(size, .gridMarginColumn, maxSize)
     }
 
-    mtd isGridHeader(item: *PropertiesItem)->bool
-    {
-        return .isGridLike() and item.flags.has(.Section | .Category | .Header)
-    }
+    mtd isGridHeader(item: *PropertiesItem)->bool => .isGridLike() and item.flags.has(.Section | .Category | .Header)
 
     mtd gridHeaderLabelWidth(item: *PropertiesItem)->f32
     {

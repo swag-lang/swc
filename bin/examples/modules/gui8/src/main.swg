@@ -174,8 +174,7 @@ func clearPage()
     let pageView0 = g_PageView!
     for child in pageView0.children
     {
-        let c = child
-        c.destroy()
+        child.destroy()
     }
 }
 
@@ -194,8 +193,7 @@ func buildPage()
     }
 
     refreshLayoutTree(g_PageView!)
-    let pv = g_PageView!
-    pv.invalidate()
+    g_PageView!.invalidate()
 }
 
 func layoutRootView()

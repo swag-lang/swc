@@ -37,8 +37,7 @@ internal impl Properties
         var scan = cast(*PropertiesItem?) item
         while scan
         {
-            if scan.ntfyItf do
-                scan.ntfyItf.fillPopupMenu(me, item, menu)
+            scan.ntfyItf?.fillPopupMenu(me, item, menu)
             scan = scan.parent
         }
 

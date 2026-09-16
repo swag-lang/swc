@@ -268,10 +268,7 @@ impl Label
     }
 
     // Returns the displayed plain text.
-    mtd text()->string
-    {
-        return .name.raw
-    }
+    mtd text()->string => .name.raw
 
     // Adds and removes label options, then updates layout and presentation.
     mtd updateFlags(add: LabelFlags = .None, remove = LabelFlags.None)

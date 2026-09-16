@@ -505,10 +505,7 @@ impl Triangle
         return p == .points[0] or p == .points[1] or p == .points[2]
     }
 
-    mtd contains(p1, p2: *Point)->bool
-    {
-        return .contains(p1) and .contains(p2)
-    }
+    mtd contains(p1, p2: *Point)->bool => .contains(p1) and .contains(p2)
 
     mtd markNeighbor(p1, p2: *Point, t: *Triangle)
     {
@@ -1077,8 +1074,7 @@ impl Tessellate
             if triangle.contains(eq, p1)
             {
                 triangle.markConstrainedEdge(eq, p1)
-                let constrainedEdge = .edgeEvent.constrainedEdge!
-                constrainedEdge.q = p1
+                .edgeEvent.constrainedEdge!.q = p1
                 triangle = nnTriangle(triangle.neighborAcross(point))
                 .addEdgeEvent(ep, p1, triangle, p1)
             }
@@ -1097,8 +1093,7 @@ impl Tessellate
             if triangle.contains(eq, p2)
             {
                 triangle.markConstrainedEdge(eq, p2)
-                let constrainedEdge = .edgeEvent.constrainedEdge!
-                constrainedEdge.q = p2
+                .edgeEvent.constrainedEdge!.q = p2
                 triangle = nnTriangle(triangle.neighborAcross(point))
                 .addEdgeEvent(ep, p2, triangle, p2)
             }
@@ -1341,8 +1336,7 @@ impl Tessellate
         {
             triangle.markConstrainedEdge(index)
             let t = triangle.neighbors[index]
-            if t do
-                t.markConstrainedEdge(ep, eq)
+            t?.markConstrainedEdge(ep, eq)
             return true
         }
 
@@ -1736,10 +1730,7 @@ impl Tessellate
         }
     }
 
-    mtd locateNode(point: *Point)->*Node
-    {
-        return .front.locateNode(point.x)
-    }
+    mtd locateNode(point: *Point)->*Node => .front.locateNode(point.x)
 
     mtd finalizationPolygon()
     {

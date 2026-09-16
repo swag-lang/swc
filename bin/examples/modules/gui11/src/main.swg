@@ -502,12 +502,14 @@ func startDecorativePulse()
     let btn = g_DecorativeBtn!
     btn.setPresentationPivot({0.5, 0.5})
 
-    var options: AnimationOptions
-    options.duration    = 900'ms
-    options.easing      = .EaseInOut
-    options.repeatCount = 0
-    options.autoReverse = true
-    options.motion      = .Decorative
+    with var options: AnimationOptions
+    {
+        .duration    = 900'ms
+        .easing      = .EaseInOut
+        .repeatCount = 0
+        .autoReverse = true
+        .motion      = .Decorative
+    }
 
     discard app.animator.animateF32(btn, AnimationChannel.from("Gui11.Pref.Pulse"), 1, 1.06, &setCardScale, options)
 }
@@ -515,12 +517,14 @@ func startDecorativePulse()
 // Breathes the opacity of one label forever, as feedback on work in progress.
 func startEssentialBreath()
 {
-    var options: AnimationOptions
-    options.duration    = 1100'ms
-    options.easing      = .EaseInOut
-    options.repeatCount = 0
-    options.autoReverse = true
-    options.motion      = .Essential
+    with var options: AnimationOptions
+    {
+        .duration    = 1100'ms
+        .easing      = .EaseInOut
+        .repeatCount = 0
+        .autoReverse = true
+        .motion      = .Essential
+    }
 
     discard app.animator.animateF32(g_EssentialLbl!, AnimationChannel.from("Gui11.Pref.Breath"), 1, 0.35, &setCardOpacity, options)
 }

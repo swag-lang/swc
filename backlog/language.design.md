@@ -10,6 +10,43 @@ surprising but specified rules, their comparative evidence, and their next decis
 Entries are ordered from the most recently updated down. An entry disappears when it
 ships; history lives in git, not here.
 
+### language.design.028 — A moved value cannot initialize an aggregate literal field or a conditional branch
+
+- Recorded: 2026-08-17 09:09
+- Updated: 2026-09-16 13:09 — added concrete owning-value construction sites from the bin cleanup
+- Area: language
+- Found while: fixing a case where those two expressions asserted in code generation instead of
+  being diagnosed
+- Observation: `blocks.add(Block{kind, #move text})` and
+  `var value = condition ? String.from("rule") : #move block.text` now report a clear error
+  rather than crashing the compiler, but both read like ordinary Swag and the language has no
+  short expression spelling for what they mean. Statement-level destination initialization and
+  field assignment already express the transfer; they do not always require an extra source temporary.
+- Evidence: `SemaCheck::noMoveRefType` rejects move references in aggregate fields, array elements
+  and conditional branches. Declaration/assignment transfer, `#move` parameters, and explicit
+  moves into by-value call parameters already work. The existing error suite
+  [sema_err_move_ref_type_context.swg](../bin/unittests/errors/sema/sema_err_move_ref_type_context.swg)
+  covers both conditional arms, a struct field and an array element. The remaining proposal is
+  expression placement, not general move support.
+- Additional consumers: `Capture.fromFileModel` in
+  [capture.swg](../bin/apps/modules/swagcapture/src/capture.swg) transfers forms, strings and tags
+  field by field; `loadIndesignDocument` in
+  [viewer.swg](../bin/apps/modules/swagscope/src/viewers/indesign/viewer.swg) combines scalar
+  metadata with `#move previews` in return storage. Declaration-bound `with` removes receiver
+  repetition at both sites, but an aggregate literal still cannot express their owned-field
+  transfers. Use the small document result as a consumer when evaluating per-field lowering;
+  do not replace these transfers with copies merely to shorten initialization.
+- Elsewhere: Rust may move a non-`Copy` value into an aggregate or another value context
+  ([Rust moved values](https://doc.rust-lang.org/reference/expressions.html#moved-and-copied-types)).
+  This is an alternative placement contract, not a claim that Swag only permits moves in calls.
+- Next: decide whether a literal field and a conditional branch should move-construct their
+  destination. The rule is not the obstacle, the lowering is: an aggregate literal is materialized
+  as one value through `emitAggregateLiteralPayload`, so a moved field needs its own store plus
+  the source's post-move invalidation instead of that path.
+- Complete when: the language deliberately accepts or retains rejection of move expressions in these
+  value positions. An accepting design must specify per-field lifecycle, source reset, evaluation
+  order, partial initialization and branch-dependent ownership, with focused code-generation tests.
+
 ### language.design.011 — The apostrophe carries three unrelated roles
 
 - Recorded: 2026-08-07 07:43
@@ -667,35 +704,6 @@ ships; history lives in git, not here.
   on the consumer who cannot see the declarations side by side.
 - Complete when: both multidimensional-array forms are measured in implementation and public APIs,
   and their compatibility or intentionally distinct use-site contract is documented and enforced.
-
-### language.design.028 — A moved value cannot initialize an aggregate literal field or a conditional branch
-
-- Recorded: 2026-08-17 09:09
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Area: language
-- Found while: fixing a case where those two expressions asserted in code generation instead of
-  being diagnosed
-- Observation: `blocks.add(Block{kind, #move text})` and
-  `var value = condition ? String.from("rule") : #move block.text` now report a clear error
-  rather than crashing the compiler, but both read like ordinary Swag and the language has no
-  short expression spelling for what they mean. Statement-level destination initialization and
-  field assignment already express the transfer; they do not always require an extra source temporary.
-- Evidence: `SemaCheck::noMoveRefType` rejects move references in aggregate fields, array elements
-  and conditional branches. Declaration/assignment transfer, `#move` parameters, and explicit
-  moves into by-value call parameters already work. The existing error suite
-  [sema_err_move_ref_type_context.swg](../bin/unittests/errors/sema/sema_err_move_ref_type_context.swg)
-  covers both conditional arms, a struct field and an array element. The remaining proposal is
-  expression placement, not general move support.
-- Elsewhere: Rust may move a non-`Copy` value into an aggregate or another value context
-  ([Rust moved values](https://doc.rust-lang.org/reference/expressions.html#moved-and-copied-types)).
-  This is an alternative placement contract, not a claim that Swag only permits moves in calls.
-- Next: decide whether a literal field and a conditional branch should move-construct their
-  destination. The rule is not the obstacle, the lowering is: an aggregate literal is materialized
-  as one value through `emitAggregateLiteralPayload`, so a moved field needs its own store plus
-  the source's post-move invalidation instead of that path.
-- Complete when: the language deliberately accepts or retains rejection of move expressions in these
-  value positions. An accepting design must specify per-field lifecycle, source reset, evaluation
-  order, partial initialization and branch-dependent ownership, with focused code-generation tests.
 
 ### language.design.029 — '.buffer' answers a non-null pointer for a payload that can be absent
 

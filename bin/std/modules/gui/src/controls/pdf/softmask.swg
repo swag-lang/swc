@@ -137,11 +137,13 @@ internal func softMaskCoverage(group: *SoftMaskGroup, region: Math.Rectangle)->I
     if region.width <= 0 or region.height <= 0 or not Math.isFinite(region.width) or not Math.isFinite(region.height) do
         return result
 
-    var options: RenderOptions
-    options.scale        = SoftMaskSamplesPerPoint
-    options.background   = group.backdrop
-    options.sourceRect   = region
-    options.maxDimension = SoftMaskMaxDimension
+    with var options: RenderOptions
+    {
+        .scale        = SoftMaskSamplesPerPoint
+        .background   = group.backdrop
+        .sourceRect   = region
+        .maxDimension = SoftMaskMaxDimension
+    }
 
     // A mark far larger than the mask still asks for the coverage over its own box; rasterizing
     // that at full density would cost more than the mark itself, so the density drops until the

@@ -87,17 +87,11 @@ impl Generator
 
     // Range is [0..1[, so 1.0 will never be returned
     #[Swag.Inline]
-    mtd nextF32()->f32
-    {
-        return cast(f32) (.nextU32() >> 8) * (1'f32 / 16777216'f32)
-    }
+    mtd nextF32()->f32 => cast(f32) (.nextU32() >> 8) * (1'f32 / 16777216'f32)
 
     // Range is [0..1[, so 1.0 will never be returned
     #[Swag.Inline]
-    mtd nextF64()->f64
-    {
-        return cast(f64) (.nextU64() >> 11) * (1'f64 / 9007199254740992'f64)
-    }
+    mtd nextF64()->f64 => cast(f64) (.nextU64() >> 11) * (1'f64 / 9007199254740992'f64)
 
     // Returns an unsigned random value in a given range
     // 'max' is excluded

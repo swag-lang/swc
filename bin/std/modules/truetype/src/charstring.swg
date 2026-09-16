@@ -169,24 +169,21 @@ private impl Type2State
     {
         .x = x
         .y = y
-        if .builder do
-            .builder.moveTo(x, y)
+        .builder?.moveTo(x, y)
     }
 
     mtd lineTo(x, y: f64)
     {
         .x = x
         .y = y
-        if .builder do
-            .builder.lineTo(x, y)
+        .builder?.lineTo(x, y)
     }
 
     mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
     {
         .x = x
         .y = y
-        if .builder do
-            .builder.curveTo(c1x, c1y, c2x, c2y, x, y)
+        .builder?.curveTo(c1x, c1y, c2x, c2y, x, y)
     }
 }
 
@@ -633,17 +630,18 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
         try fault(0x10)
 
     let glyphPrivate = font.privateFor(gid)
-    var state: Type2State
-    state.font         = font
-    state.builder      = builder
-    state.subrs        = glyphPrivate.subrs
-    state.nominalWidth = glyphPrivate.nominalWidth
-    state.width        = glyphPrivate.defaultWidth
-    state.widthOnly    = builder == null
+    with var state: Type2State
+    {
+        .font         = font
+        .builder      = builder
+        .subrs        = glyphPrivate.subrs
+        .nominalWidth = glyphPrivate.nominalWidth
+        .width        = glyphPrivate.defaultWidth
+        .widthOnly    = builder == null
+    }
 
     try execType2(&state, try font.charStrings.item(font.block, gid), 0)
-    if builder do
-        builder.closeContour()
+    builder?.closeContour()
 
     // A composed glyph is drawn as its base plus its accent, placed by the offsets the
     // charstring ended with. Both parts are named through StandardEncoding, never by index.
@@ -755,24 +753,21 @@ private impl Type1State
             return
         }
 
-        if .builder do
-            .builder.moveTo(x, y)
+        .builder?.moveTo(x, y)
     }
 
     mtd lineTo(x, y: f64)
     {
         .x = x
         .y = y
-        if .builder do
-            .builder.lineTo(x, y)
+        .builder?.lineTo(x, y)
     }
 
     mtd curveTo(c1x, c1y, c2x, c2y, x, y: f64)
     {
         .x = x
         .y = y
-        if .builder do
-            .builder.curveTo(c1x, c1y, c2x, c2y, x, y)
+        .builder?.curveTo(c1x, c1y, c2x, c2y, x, y)
     }
 
     // Replays a collected flex as the two curves it stands for.
@@ -849,8 +844,7 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
             }
 
         case 9:
-            if state.builder do
-                state.builder.closeContour()
+            state.builder?.closeContour()
             state.depth = 0
 
         case 21:
@@ -1078,8 +1072,7 @@ func runType1Charstring(font: *Type1Font, gid: u32, builder: *OutlineBuilder?)->
     state.widthOnly = builder == null
 
     try execType1(&state, font.charstrings[gid].toSlice(), 0)
-    if builder do
-        builder.closeContour()
+    builder?.closeContour()
 
     if builder and state.seacBase >= 0 and state.seacBase < 256 and state.seacAccent >= 0 and state.seacAccent < 256
     {

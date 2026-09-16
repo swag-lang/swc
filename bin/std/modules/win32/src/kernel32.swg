@@ -834,10 +834,7 @@ internal namespace Win32Priv
             try failWinError(GetLastError())
     }
 
-    func CreateJobObjectW(lpJobAttributes: *SECURITY_ATTRIBUTES?, lpName: LPCWSTR?)->HANDLE
-    {
-        return Win32Priv.CreateJobObjectW(lpJobAttributes, lpName)
-    }
+    func CreateJobObjectW(lpJobAttributes: *SECURITY_ATTRIBUTES?, lpName: LPCWSTR?)->HANDLE => Win32Priv.CreateJobObjectW(lpJobAttributes, lpName)
 
     func AssignProcessToJobObject(hJob: HANDLE, hProcess: HANDLE) fail
     {

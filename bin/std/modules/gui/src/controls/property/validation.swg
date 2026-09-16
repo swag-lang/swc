@@ -118,10 +118,7 @@ internal impl Properties
 
     // Assigns validation state directly for data not represented by a reflected struct field.
     #[Swag.Discardable]
-    mtd setItemValidation(item: *PropertiesItem, state: PropValidation, message: string? = null)->bool
-    {
-        return .applyItemValidation(item, state, message)
-    }
+    mtd setItemValidation(item: *PropertiesItem, state: PropValidation, message: string? = null)->bool => .applyItemValidation(item, state, message)
 
     // Draw the colored background of a row's validation bar, in the row line's client space. The
     // severity icon and the message text are drawn by the Label itself (like InfoBar), so they

@@ -48,6 +48,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryThreeOperandShift);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldComplementPlusOne);
+        r.add(MicroInstrOpcode::OpUnaryReg, tryFoldComplementOfDecrement);
         r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFuseInPlaceUpdate);
@@ -66,6 +67,7 @@ namespace
         // a plain one gets both folds across two sweeps.
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldMemoryAddressing);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoSignExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoZeroExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoCompare);
@@ -95,9 +97,11 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
+        // Narrowing the masked operation keeps the extend's work in a 32-bit
+        // operation; dropping the extend first would leave the operation wide.
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryDropRedundantZeroExtend);
-        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowExtend);
         return r;
     }

@@ -150,6 +150,94 @@ namespace InstructionCombine
         return false;
     }
 
+    // Fuse a plain load feeding a widening of the loaded bits into one
+    // extending load, as the indexed forms below do for arrays:
+    //
+    //     LoadRegMem          vt,  [base + disp]           (load bN)
+    //     LoadSignedExtRegReg dst, vt, bM <- bN            (or the zero form)
+    //   ->
+    //     LoadSignedExtRegMem dst, [base + disp], bM <- bN
+    //
+    // A 32-bit load already clears the upper half, so only the sign form
+    // takes one. The destination may be the loaded register itself: the
+    // extension is the load's first and only reader.
+    bool tryFoldLoadIntoExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+
+        // LoadRegMem: [dst, base, loadBits, offset].
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroReg    base     = loadOps[1].reg;
+        const MicroOpBits loadBits = loadOps[2].opBits;
+        const uint64_t    loadOff  = loadOps[3].valueU64;
+        if (!vt.isVirtualInt() || !base.isAnyInt() || base == vt)
+            return false;
+        if (loadBits != MicroOpBits::B8 && loadBits != MicroOpBits::B16 && loadBits != MicroOpBits::B32)
+            return false;
+        if (keepAccessScalar(ctx, loadRef, base))
+            return false;
+
+        uint32_t loadValueId = 0;
+        if (!ctx.ssa->defValue(vt, loadRef, loadValueId) || ctx.ssa->transitiveInstructionUseCount(loadValueId, 2) != 1)
+            return false;
+
+        MicroStorage::Iterator walker;
+        if (!findAnchorPosition(walker, *ctx.storage, loadRef))
+            return false;
+        ++walker;
+
+        const auto endIt = ctx.storage->view().end();
+        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
+        {
+            const MicroInstr& w = *walker;
+            if (isControlOrCall(w) || writesMemory(w))
+                return false;
+
+            const auto* useDef = ctx.ssa->instrUseDef(walker.current);
+            if (!useDef || microRegSpanContains(useDef->defs, base))
+                return false;
+            const bool usesVt = microRegSpanContains(useDef->uses, vt);
+            const bool defsVt = microRegSpanContains(useDef->defs, vt);
+            if (!usesVt && !defsVt)
+                continue;
+
+            const bool signExtend = w.op == MicroInstrOpcode::LoadSignedExtRegReg;
+            if (!signExtend && w.op != MicroInstrOpcode::LoadZeroExtRegReg)
+                return false;
+            if (!signExtend && loadBits == MicroOpBits::B32)
+                return false;
+
+            // LoadSignedExtRegReg / LoadZeroExtRegReg: [dst, src, dstBits, srcBits].
+            const MicroInstrOperand* wOps = w.ops(*ctx.operands);
+            if (!wOps || wOps[1].reg != vt || !wOps[0].reg.isAnyInt() || wOps[3].opBits != loadBits)
+                return false;
+            if (wOps[2].opBits != MicroOpBits::B32 && wOps[2].opBits != MicroOpBits::B64)
+                return false;
+
+            const MicroInstrRef extRef = walker.current;
+            if (!ctx.claimAll({loadRef, extRef}))
+                return false;
+
+            // LoadSignedExtRegMem / LoadZeroExtRegMem: [dst, base, dstBits, srcBits, offset].
+            MicroInstrOperand newOps[5];
+            newOps[0].reg      = wOps[0].reg;
+            newOps[1].reg      = base;
+            newOps[2].opBits   = wOps[2].opBits;
+            newOps[3].opBits   = loadBits;
+            newOps[4].valueU64 = loadOff;
+            ctx.emitRewrite(extRef, signExtend ? MicroInstrOpcode::LoadSignedExtRegMem : MicroInstrOpcode::LoadZeroExtRegMem, newOps, /*allocNewBlock=*/true);
+            ctx.emitErase(loadRef);
+            return true;
+        }
+
+        return false;
+    }
+
     // Fuse an indexed 32-bit load feeding a sign-extend-to-64 into a single
     // indexed movsxd (LoadSignedExtAmcRegMem):
     //

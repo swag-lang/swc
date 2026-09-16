@@ -2219,6 +2219,169 @@ SWC_TEST_BEGIN(InstCombine_ComplementaryShiftsToRotate)
 }
 SWC_TEST_END()
 
+namespace
+{
+    uint32_t countUnaryMicroOp(const MicroBuilder& builder, MicroOp op)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpUnaryReg && ops && ops[2].microOp == op)
+                ++count;
+        }
+        return count;
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_SignExtendOfLoad_FoldsIntoLoad)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 8, MicroOpBits::B32);
+    builder.emitLoadSignedExtendRegReg(v2, v1, MicroOpBits::B64, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 16, v2, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegMem) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ZeroExtendOfByteLoad_FoldsIntoLoad)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 3, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(v1, v1, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 16, v1, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegMem) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The loaded value has a second reader: the load stays.
+SWC_TEST_BEGIN(InstCombine_ExtendOfSharedLoad_Kept)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 8, MicroOpBits::B16);
+    builder.emitLoadSignedExtendRegReg(v2, v1, MicroOpBits::B64, MicroOpBits::B16);
+    builder.emitLoadMemReg(base, 16, v2, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 24, v1, MicroOpBits::B16);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// ~(x - 1) -> -x
+SWC_TEST_BEGIN(InstCombine_ComplementOfDecrement_BecomesNegate)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg v3   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(v2, v1, UINT64_MAX, MicroOpBits::B64);
+    builder.emitLoadRegReg(v3, v2, MicroOpBits::B64);
+    builder.emitOpUnaryReg(v3, MicroOp::BitwiseNot, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 8, v3, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countUnaryMicroOp(builder, MicroOp::Negate) != 1 || countUnaryMicroOp(builder, MicroOp::BitwiseNot) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The decrement is read elsewhere: the complement stays.
+SWC_TEST_BEGIN(InstCombine_ComplementOfSharedDecrement_Kept)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(v1, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 4, v1, MicroOpBits::B32);
+    builder.emitOpUnaryReg(v1, MicroOp::BitwiseNot, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 8, v1, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countUnaryMicroOp(builder, MicroOp::BitwiseNot) != 1 || countUnaryMicroOp(builder, MicroOp::Negate) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The widened boolean only reaches a byte copy and a join nothing else reads
+// through: its extension is dead.
+SWC_TEST_BEGIN(InstCombine_ExtendReadThroughJoinAsByte_Erased)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg merged = MicroReg::virtualIntReg(4);
+    constexpr MicroReg second = MicroReg::virtualIntReg(5);
+    constexpr MicroReg wide   = MicroReg::virtualIntReg(6);
+    MicroBuilder       builder(ctx);
+    const auto         label = builder.createLabel();
+
+    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(first, MicroCond::NotEqual);
+    builder.emitLoadRegReg(merged, first, MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, label);
+    builder.emitCmpRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(second, MicroCond::Equal);
+    builder.emitLoadZeroExtendRegReg(second, second, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadRegReg(merged, second, MicroOpBits::B8);
+    builder.placeLabel(label);
+    builder.emitLoadZeroExtendRegReg(wide, merged, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 8, wide, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

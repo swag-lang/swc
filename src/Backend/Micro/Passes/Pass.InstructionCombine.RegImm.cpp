@@ -336,6 +336,79 @@ namespace InstructionCombine
         return true;
     }
 
+    // ~(x - 1) is -x as well: the decrement and the complement become one
+    // negation, the round-up-to-alignment mask. The decrement must have no
+    // other reader, and the complement's flags may not escape since NEG
+    // writes flags NOT preserves.
+    bool tryFoldComplementOfDecrement(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].microOp != MicroOp::BitwiseNot || !ops[0].reg.isVirtualInt())
+            return false;
+        const MicroOpBits bits = ops[1].opBits;
+        if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            return false;
+
+        auto          def = ctx.ssa->reachingDef(ops[0].reg, ref);
+        MicroInstrRef copyRef;
+        if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const auto* copy = def.inst->ops(*ctx.operands);
+            if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != bits ||
+                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                return false;
+            copyRef = def.instRef;
+            def     = ctx.ssa->reachingDef(copy[1].reg, copyRef);
+        }
+        if (!def.valid() || def.isPhi || !def.inst || ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+            return false;
+
+        const auto* decrement = def.inst->ops(*ctx.operands);
+        if (!decrement)
+            return false;
+        const bool address = def.inst->op == MicroInstrOpcode::LoadAddrRegMem;
+        if (address)
+        {
+            if (decrement[2].opBits != bits || !decrement[1].reg.isVirtualInt() ||
+                decrement[3].hasWideImmediateValue() || decrement[3].valueU64 != UINT64_MAX)
+                return false;
+        }
+        else
+        {
+            if (def.inst->op != MicroInstrOpcode::OpBinaryRegImm || decrement[1].opBits != bits || decrement[3].hasWideImmediateValue())
+                return false;
+            const uint64_t mask = bits == MicroOpBits::B32 ? UINT32_MAX : UINT64_MAX;
+            const uint64_t imm  = decrement[3].valueU64 & mask;
+            if (!(decrement[2].microOp == MicroOp::Add && imm == mask) && !(decrement[2].microOp == MicroOp::Subtract && imm == 1))
+                return false;
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                return false;
+        }
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
+            return false;
+
+        if (address)
+        {
+            MicroInstrOperand copy[3];
+            copy[0].reg    = decrement[0].reg;
+            copy[1].reg    = decrement[1].reg;
+            copy[2].opBits = bits;
+            ctx.emitRewrite(def.instRef, MicroInstrOpcode::LoadRegReg, copy);
+        }
+        else
+            ctx.emitErase(def.instRef);
+
+        MicroInstrOperand negate[3];
+        negate[0].reg     = ops[0].reg;
+        negate[1].opBits  = bits;
+        negate[2].microOp = MicroOp::Negate;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, negate);
+        return true;
+    }
+
     bool tryOpBinaryRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref))

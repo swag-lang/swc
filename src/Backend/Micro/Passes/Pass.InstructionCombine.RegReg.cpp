@@ -68,6 +68,74 @@ namespace InstructionCombine
             return true;
         }
 
+        // Distribute a common shift through a single-use integer combination.
+        // Addition/subtraction commute only with left shifts; bitwise operations
+        // commute with either direction, including arithmetic right shifts.
+        bool tryFactorCommonShifts(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOp outer    = ops[3].microOp;
+            const bool    leftOnly = outer == MicroOp::Add || outer == MicroOp::Subtract;
+            if (!leftOnly && outer != MicroOp::And && outer != MicroOp::Or && outer != MicroOp::Xor)
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            std::array                              regs{ops[0].reg, ops[1].reg};
+            std::array                              defs{ctx.ssa->reachingDef(regs[0], ref), ctx.ssa->reachingDef(regs[1], ref)};
+            std::array                              copies{MicroInstrRef::invalid(), MicroInstrRef::invalid()};
+            std::array<const MicroInstrOperand*, 2> shifts;
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                if (defs[i].valid() && !defs[i].isPhi && defs[i].inst && defs[i].inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = defs[i].inst->ops(*ctx.operands);
+                    if (!copy || copy[2].opBits != bits || !copy[1].reg.isVirtualInt() ||
+                        ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                        return false;
+                    copies[i] = defs[i].instRef;
+                    regs[i]   = copy[1].reg;
+                    defs[i]   = ctx.ssa->reachingDef(regs[i], copies[i]);
+                }
+                if (!defs[i].valid() || defs[i].isPhi || !defs[i].inst || defs[i].inst->op != MicroInstrOpcode::OpBinaryRegImm ||
+                    ctx.ssa->transitiveInstructionUseCount(defs[i].valueId, 2) != 1)
+                    return false;
+                shifts[i] = defs[i].inst->ops(*ctx.operands);
+                if (!shifts[i] || shifts[i][1].opBits != bits || shifts[i][3].hasWideImmediateValue() ||
+                    shifts[i][3].valueU64 == 0 || shifts[i][3].valueU64 >= getNumBits(bits))
+                    return false;
+                const MicroOp shift = shifts[i][2].microOp;
+                if (shift != MicroOp::ShiftLeft && shift != MicroOp::ShiftArithmeticLeft &&
+                    (leftOnly || (shift != MicroOp::ShiftRight && shift != MicroOp::ShiftArithmeticRight)))
+                    return false;
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
+                    return false;
+                MicroInstrRef cursor = defs[i].instRef;
+                for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+                {
+                    const auto* current = ctx.instruction(cursor);
+                    if (!current || isBlockBoundary(*current))
+                        return false;
+                    cursor = ctx.nextRef(cursor);
+                }
+                if (cursor != ref)
+                    return false;
+            }
+            if (defs[0].instRef == defs[1].instRef || shifts[0][2].microOp != shifts[1][2].microOp ||
+                shifts[0][3].valueU64 != shifts[1][3].valueU64 ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
+                               copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
+                return false;
+            const MicroInstrOperand shifted[4] = {ops[0], shifts[0][1], shifts[0][2], shifts[0][3]};
+            ctx.emitErase(defs[0].instRef);
+            ctx.emitErase(defs[1].instRef);
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, std::span{ops, 4});
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, shifted);
+            return true;
+        }
+
         // Complementary logical shifts of one value form a rotate. Keep the
         // input reads and the left result's copies at their original positions.
         bool tryFoldRotate(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
@@ -834,7 +902,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

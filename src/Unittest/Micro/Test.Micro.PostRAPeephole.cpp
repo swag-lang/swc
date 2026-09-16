@@ -1198,6 +1198,34 @@ SWC_TEST_BEGIN(PostRAPeephole_CopySourceNotForwardedIntoExchange)
 }
 SWC_TEST_END()
 
+// `mov r, a; add r, b; cmp r, 0; je` - either the compare goes and the add
+// keeps setting the flags, or the add becomes a flag-free `lea` and the
+// compare stays. Never both in one sweep.
+SWC_TEST_BEGIN(PostRAPeephole_FlagReuseKeepsItsProducer)
+{
+    const auto&    conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg sum   = conv.intRegs[0];
+    const MicroReg left  = conv.intRegs[1];
+    const MicroReg right = conv.intRegs[2];
+    MicroBuilder   builder(ctx);
+    const auto     label = builder.createLabel();
+    builder.emitLoadRegReg(sum, left, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(sum, right, MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(sum, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, label);
+    builder.emitLoadRegReg(conv.intReturn, left, MicroOpBits::B64);
+    builder.placeLabel(label);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    const bool compareKept = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) == 1;
+    const bool addKept     = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) == 1;
+    if (!compareKept && !addKept)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -214,7 +214,11 @@ namespace PostRaPeephole
                 break;
         }
 
-        if (!ctx.claimAll({cmpRef}))
+        // The producer is claimed with the compare: a rule of the same sweep
+        // that rewrites it into a flag-free form (`mov r, a; add r, b` into a
+        // `lea`, relying on this very compare to redefine the flags) would
+        // leave the consumers reading nothing.
+        if (!ctx.claimAll({cmpRef, prevRef}))
             return false;
 
         ctx.emitErase(cmpRef);

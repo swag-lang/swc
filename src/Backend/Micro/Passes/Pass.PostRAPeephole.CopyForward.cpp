@@ -333,7 +333,8 @@ namespace PostRaPeephole
             const bool compareImm     = next->op == MicroInstrOpcode::CmpRegImm;
             const bool indexedAddress = next->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             const bool address        = indexedAddress || next->op == MicroInstrOpcode::LoadAddrRegMem;
-            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::OpBinaryRegReg)
+            if (extends || conditional || compareRegs || compareImm || address ||
+                next->op == MicroInstrOpcode::LoadRegReg || next->op == MicroInstrOpcode::OpBinaryRegReg)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)

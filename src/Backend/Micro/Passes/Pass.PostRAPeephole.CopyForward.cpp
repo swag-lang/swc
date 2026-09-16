@@ -135,9 +135,9 @@ namespace PostRaPeephole
                 inst->op == MicroInstrOpcode::Label)
                 return false;
 
-            const MicroInstrOperand* ops = inst->ops(*ctx.operands);
-            const bool sameCopy     = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == opBits;
-            const bool reversedCopy = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == src && ops[1].reg == dst &&
+            const MicroInstrOperand* ops          = inst->ops(*ctx.operands);
+            const bool               sameCopy     = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == opBits;
+            const bool               reversedCopy = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == src && ops[1].reg == dst &&
                                       ops[2].opBits == MicroOpBits::B64 && opBits == MicroOpBits::B64;
             if (sameCopy || reversedCopy)
             {
@@ -197,6 +197,128 @@ namespace PostRaPeephole
 
     // An address computation can write the final result even when it reads its
     // old destination as a base/index. Only that old result must be dead.
+    namespace
+    {
+        bool canRenameFullWidth(const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadRegReg:
+                case MicroInstrOpcode::CmpRegReg:
+                case MicroInstrOpcode::LoadAddrRegMem:
+                    return ops[2].opBits == MicroOpBits::B64;
+                case MicroInstrOpcode::CmpRegImm:
+                    return ops[1].opBits == MicroOpBits::B64;
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    return ops[3].opBits == MicroOpBits::B64 && ops[4].opBits == MicroOpBits::B64;
+                case MicroInstrOpcode::OpUnaryReg:
+                    return ops[1].opBits == MicroOpBits::B64 &&
+                           (ops[2].microOp == MicroOp::Negate || ops[2].microOp == MicroOp::BitwiseNot || ops[2].microOp == MicroOp::ByteSwap);
+                case MicroInstrOpcode::OpBinaryRegImm:
+                case MicroInstrOpcode::OpBinaryRegReg:
+                {
+                    const bool immediate = inst.op == MicroInstrOpcode::OpBinaryRegImm;
+                    if (ops[immediate ? 1 : 2].opBits != MicroOpBits::B64)
+                        return false;
+                    switch (ops[immediate ? 2 : 3].microOp)
+                    {
+                        case MicroOp::Add:
+                        case MicroOp::Subtract:
+                        case MicroOp::And:
+                        case MicroOp::Or:
+                        case MicroOp::Xor:
+                        case MicroOp::MultiplySigned:
+                            return true;
+                        case MicroOp::ShiftLeft:
+                        case MicroOp::ShiftRight:
+                        case MicroOp::ShiftArithmeticLeft:
+                        case MicroOp::ShiftArithmeticRight:
+                        case MicroOp::RotateLeft:
+                        case MicroOp::RotateRight:
+                            return immediate;
+                        default:
+                            return false;
+                    }
+                }
+                default:
+                    return false;
+            }
+        }
+    }
+
+    // Keep a short computation in a copied physical source when both old
+    // register values die within the straight-line window. Claim the complete
+    // window, including independent instructions, to exclude queued forwarding
+    // rewrites that could introduce a new read of either register.
+    bool tryCoalesceLocalCopyChain(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || !ctx.encoder || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || copy[2].opBits != MicroOpBits::B64 ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
+            return false;
+        const MicroReg     dst       = copy[0].reg;
+        const MicroReg     src       = copy[1].reg;
+        constexpr uint32_t maxWindow = 16;
+        // A removed 64-bit MOV saves three bytes. Each renamed 64-bit form can
+        // add at most one addressing byte, so three rewrites cannot grow code.
+        constexpr uint32_t                                                        maxRewrites = 3;
+        std::array<MicroInstrRef, maxWindow + 1>                                  window;
+        std::array<MicroInstrRef, maxRewrites>                                    rewrittenRefs;
+        std::array<std::array<MicroInstrOperand, Action::K_MAX_OPS>, maxRewrites> rewrittenOps;
+        uint32_t                                                                  rewriteCount  = 0;
+        bool                                                                      sourceChanged = false;
+        window[0]                                                                               = ref;
+        MicroInstrRef cursor                                                                    = ctx.nextRef(ref);
+        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        {
+            const MicroInstr* current = ctx.instruction(cursor);
+            if (!current || ctx.isClaimed(cursor))
+                return false;
+            const MicroInstrDef& info = MicroInstr::info(current->op);
+            if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            window[step]    = cursor;
+            const auto* ops = current->ops(*ctx.operands);
+            if (!ops)
+                return false;
+            const MicroInstrUseDef useDef            = current->collectUseDef(*ctx.operands, ctx.encoder);
+            const bool             readsDestination  = regInList(useDef.uses.span(), dst);
+            const bool             writesDestination = regInList(useDef.defs.span(), dst);
+            if (regInList(useDef.defs.span(), src) || (sourceChanged && regInList(useDef.uses.span(), src)))
+                return false;
+            if (readsDestination || writesDestination)
+            {
+                if (!readsDestination || rewriteCount == maxRewrites || current->numOperands > Action::K_MAX_OPS || !canRenameFullWidth(*current, ops))
+                    return false;
+                auto& rewritten = rewrittenOps[rewriteCount];
+                std::copy_n(ops, current->numOperands, rewritten.data());
+                for (uint32_t operand = 0; operand < info.regModes.size(); ++operand)
+                    if (info.regModes[operand] != MicroInstrRegMode::None && rewritten[operand].reg == dst)
+                        rewritten[operand].reg = src;
+                MicroConformanceIssue issue;
+                if (ctx.encoder->queryConformanceIssue(issue, *current, rewritten.data()))
+                    return false;
+                rewrittenRefs[rewriteCount++] = cursor;
+                sourceChanged |= writesDestination;
+            }
+            if (rewriteCount && ctx.isRegDeadAfter(dst, ctx.instructionIndex + step) && ctx.isRegDeadAfter(src, ctx.instructionIndex + step))
+            {
+                if (!ctx.claimAll(std::span{window.data(), step + 1}))
+                    return false;
+                ctx.emitErase(ref);
+                for (uint32_t i = 0; i < rewriteCount; ++i)
+                {
+                    const MicroInstr* changed = ctx.instruction(rewrittenRefs[i]);
+                    ctx.emitRewrite(rewrittenRefs[i], changed->op, std::span{rewrittenOps[i].data(), changed->numOperands});
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     bool tryRetargetAddressResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         const auto* copy = copyInst.ops(*ctx.operands);

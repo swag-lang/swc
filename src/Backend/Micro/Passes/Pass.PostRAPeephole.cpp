@@ -63,6 +63,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetAddressResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopySource);
+        r.add(MicroInstrOpcode::LoadRegReg, tryCoalesceLocalCopyChain);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseRedundantCopy);
         return r;

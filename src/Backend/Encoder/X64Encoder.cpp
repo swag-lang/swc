@@ -2142,7 +2142,7 @@ namespace
         emitValue(store, valueU64, immBits);
     }
 
-    void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, bool mr, MicroOpBits zeroExtSrcBits = MicroOpBits::Zero)
+    void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, bool mr, MicroOpBits extendSrcBits = MicroOpBits::Zero)
     {
         SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
 
@@ -2184,17 +2184,27 @@ namespace
                 emitSpecCpuOp(store, MicroOp::LoadEffectiveAddress, opBitsReg);
                 break;
             case MicroOp::MoveSignExtend:
-                emitSpecCpuOp(store, MicroOp::MoveSignExtend, opBitsReg);
+                if (extendSrcBits == MicroOpBits::B8 || extendSrcBits == MicroOpBits::B16)
+                {
+                    SWC_ASSERT(!mr && !reg.isFloat());
+                    emitCpuOp(store, 0x0F);
+                    emitCpuOp(store, extendSrcBits == MicroOpBits::B8 ? 0xBE : 0xBF);
+                }
+                else
+                {
+                    SWC_ASSERT(extendSrcBits == MicroOpBits::B32 && opBitsReg == MicroOpBits::B64);
+                    emitSpecCpuOp(store, MicroOp::MoveSignExtend, opBitsReg);
+                }
                 break;
             case MicroOp::Move:
-                if (zeroExtSrcBits != MicroOpBits::Zero)
+                if (extendSrcBits != MicroOpBits::Zero)
                 {
                     // Indexed movzx: 0F B6 (byte source) / 0F B7 (word source);
                     // the destination width rides the prefixes emitted above.
                     SWC_ASSERT(!mr && !reg.isFloat());
-                    SWC_ASSERT(zeroExtSrcBits == MicroOpBits::B8 || zeroExtSrcBits == MicroOpBits::B16);
+                    SWC_ASSERT(extendSrcBits == MicroOpBits::B8 || extendSrcBits == MicroOpBits::B16);
                     emitCpuOp(store, 0x0F);
-                    emitCpuOp(store, zeroExtSrcBits == MicroOpBits::B8 ? 0xB6 : 0xB7);
+                    emitCpuOp(store, extendSrcBits == MicroOpBits::B8 ? 0xB6 : 0xB7);
                 }
                 else if (reg.isFloat())
                 {
@@ -2285,13 +2295,12 @@ void X64Encoder::encodeVecGatherS32(MicroReg regDst, MicroReg baseReg, MicroReg 
 
 void X64Encoder::encodeLoadSignedExtendAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
 {
-    // Indexed movsxd: load a 32-bit dword from [base + index*scale + disp] and
-    // sign-extend it into a 64-bit register. encodeAmcReg's MoveSignExtend path
-    // emits the 0x63 opcode (dword->qword), so only b32->b64 is supported; the
-    // 32-bit source width is implicit in the opcode. The base/index addressing is
-    // 64-bit on this target (no 0x67 prefix).
-    SWC_ASSERT(numBitsDst == MicroOpBits::B64 && numBitsSrc == MicroOpBits::B32);
-    return encodeAmcReg(store_, regDst, MicroOpBits::B64, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::MoveSignExtend, false);
+    // Indexed movsx/movsxd uses the source width in its opcode and the
+    // destination width in REX.W. Addressing remains 64-bit.
+    SWC_ASSERT(numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64);
+    SWC_ASSERT(numBitsSrc == MicroOpBits::B8 || numBitsSrc == MicroOpBits::B16 ||
+               (numBitsSrc == MicroOpBits::B32 && numBitsDst == MicroOpBits::B64));
+    return encodeAmcReg(store_, regDst, numBitsDst, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::MoveSignExtend, false, numBitsSrc);
 }
 
 void X64Encoder::encodeLoadZeroExtendAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)

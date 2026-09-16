@@ -150,8 +150,8 @@ namespace InstructionCombine
         return false;
     }
 
-    // Fuse an indexed 32-bit load feeding a sign-extend-to-64 into a single
-    // indexed movsxd (LoadSignedExtAmcRegMem):
+    // Fuse an indexed byte, word, or dword load feeding a sign extension into
+    // one indexed movsx/movsxd (LoadSignedExtAmcRegMem):
     //
     //     LoadAmcRegMem       vt,  [base + idx*scale + disp]   (load b32)
     //     LoadSignedExtRegReg dst, vt, b64<-b32
@@ -179,9 +179,9 @@ namespace InstructionCombine
         const MicroOpBits loadBits = loadOps[3].opBits;
         const MicroOpBits addrBits = loadOps[4].opBits;
 
-        // The encoder's indexed movsxd only handles a 32-bit dword load into a
-        // 64-bit register with 64-bit addressing.
-        if (loadBits != MicroOpBits::B32 || addrBits != MicroOpBits::B64)
+        // Indexed sign extension accepts byte/word sources into 32/64 bits
+        // and dword sources into 64 bits, with 64-bit addressing.
+        if ((loadBits != MicroOpBits::B8 && loadBits != MicroOpBits::B16 && loadBits != MicroOpBits::B32) || addrBits != MicroOpBits::B64)
             return false;
         if (!vt.isVirtualInt() || base == vt || index == vt)
             return false;
@@ -227,7 +227,8 @@ namespace InstructionCombine
             const MicroReg    srcReg  = wOps[1].reg;
             const MicroOpBits dstBits = wOps[2].opBits;
             const MicroOpBits srcBits = wOps[3].opBits;
-            if (srcReg != vt || dstReg == vt || dstBits != MicroOpBits::B64 || srcBits != MicroOpBits::B32)
+            if (srcReg != vt || dstReg == vt || srcBits != loadBits ||
+                (dstBits != MicroOpBits::B32 && dstBits != MicroOpBits::B64) || getNumBits(dstBits) <= getNumBits(srcBits))
                 return false;
 
             const MicroInstrRef extRef = walker.current;

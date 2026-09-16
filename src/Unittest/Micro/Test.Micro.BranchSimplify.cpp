@@ -1279,6 +1279,119 @@ SWC_TEST_BEGIN(BranchSimplify_RepeatedBooleanMovesStillFuse)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // `c = 0; if a > b do <arm on c>` - the arm updates c and falls into the join.
+    struct TriangleShape
+    {
+        MicroReg      result = MicroReg::virtualIntReg(12);
+        MicroLabelRef join   = MicroLabelRef::invalid();
+    };
+
+    TriangleShape openTriangle(MicroBuilder& builder, const MicroReg lhs, const MicroReg rhs)
+    {
+        TriangleShape shape;
+        shape.join = builder.createLabel();
+        builder.emitLoadRegImm(shape.result, ApInt(5, 64), MicroOpBits::B64);
+        builder.emitCmpRegReg(lhs, rhs, MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::LessOrEqual, MicroOpBits::B32, shape.join);
+        return shape;
+    }
+
+    void closeTriangle(MicroBuilder& builder, const TriangleShape& shape)
+    {
+        builder.placeLabel(shape.join);
+        builder.emitLoadRegReg(MicroReg::virtualIntReg(13), shape.result, MicroOpBits::B64);
+        builder.emitRet();
+    }
+}
+
+// `if a > b do c += 1` written as an address step and a copy: the arm runs on
+// a renamed register and one move picks it when the skipped branch would not
+// have been taken.
+SWC_TEST_BEGIN(BranchSimplify_ConvertsConditionalUpdateToCmov)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    const MicroReg vT = MicroReg::virtualIntReg(14);
+    MicroBuilder   builder(ctx);
+
+    const TriangleShape shape = openTriangle(builder, vA, vB);
+    builder.emitLoadAddressRegMem(vT, shape.result, 1, MicroOpBits::B64);
+    builder.emitLoadRegReg(shape.result, vT, MicroOpBits::B64);
+    closeTriangle(builder, shape);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countConditionalMoves(builder, MicroCond::Greater) != 1)
+        return Result::Error;
+
+    // Nothing in the arm writes the result any more; only the move does.
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if ((inst.op == MicroInstrOpcode::LoadRegReg || inst.op == MicroInstrOpcode::LoadAddrRegMem) && ops && ops[0].reg == shape.result)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An arm that writes the flags gets the compare re-issued in front of the move.
+SWC_TEST_BEGIN(BranchSimplify_ConditionalUpdateReissuesCompare)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    const TriangleShape shape = openTriangle(builder, vA, vB);
+    builder.emitOpBinaryRegImm(shape.result, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+    closeTriangle(builder, shape);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countConditionalMoves(builder, MicroCond::Greater) != 1)
+        return Result::Error;
+
+    // add, then compare, then move.
+    bool sawAdd     = false;
+    bool sawCompare = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
+            sawAdd = true;
+        else if (inst.op == MicroInstrOpcode::CmpRegReg)
+            sawCompare = sawAdd;
+        else if (inst.op == MicroInstrOpcode::LoadCondRegReg && !sawCompare)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A load may fault on the path that skipped it: the branch stays.
+SWC_TEST_BEGIN(BranchSimplify_KeepsConditionalUpdateWithGuardedLoad)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    const TriangleShape shape = openTriangle(builder, vA, vB);
+    builder.emitLoadRegMem(shape.result, vA, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(shape.result, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+    closeTriangle(builder, shape);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 1 || countInstructionsWithOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

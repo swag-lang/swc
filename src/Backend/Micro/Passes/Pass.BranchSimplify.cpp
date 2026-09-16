@@ -1649,6 +1649,183 @@ namespace
         return true;
     }
 
+    // Speculative if-conversion of a triangle whose arm is more than one move:
+    //
+    //     cmp   X, Y                    cmp   X, Y
+    //     jcc   CC, .Ljoin              D' = D
+    //     A...  (defines D)       ->    A'...               ; every D in A renamed D'
+    //   .Ljoin:                         [cmp X, Y]          ; re-issued when A wrote the flags
+    //                                   cmov(~CC) D, D'
+    //                                 .Ljoin:
+    //
+    // `if a[i] > k do c += 1` lowers to this shape. LLVM speculates such a
+    // block into a select (SimplifyCFG's SpeculativelyExecuteBB) and then
+    // lowers the select without a branch; the arm rules are the diamond's:
+    // pure, short, nothing leaving but D. The copy in front keeps D's
+    // entry value visible to the renamed arm, so an arm that reads D before
+    // writing it, or writes only part of it, still computes what it did, and
+    // the full-width move then carries exactly the value the arm left.
+    struct Triangle
+    {
+        MicroInstrRef flagsRef     = MicroInstrRef::invalid();
+        MicroInstrRef jumpRef      = MicroInstrRef::invalid();
+        MicroInstrRef joinLabelRef = MicroInstrRef::invalid();
+        DiamondArm    arm;
+        MicroCond     moveCond    = MicroCond::Unconditional;
+        MicroReg      result      = MicroReg::invalid();
+        bool          sinkCompare = false;
+    };
+
+    bool tryMatchTriangleShape(Triangle& out, const DiamondScan& scan, MicroInstrRef jumpRef, const MicroInstr& jumpInst, const MicroInstrOperand* jumpOps)
+    {
+        uint32_t joinLabelId = 0;
+        if (!tryGetJumpTargetLabelId(joinLabelId, jumpInst, jumpOps))
+            return false;
+        if (!MicroPassHelpers::invertCondition(out.moveCond, jumpOps[0].cpuCond) || !conditionSupportsConditionalMove(out.moveCond))
+            return false;
+
+        MicroInstrRef stopRef;
+        if (!collectDiamondArm(out.arm, stopRef, scan, jumpRef) || out.arm.refs.empty() || !stopRef.isValid())
+            return false;
+
+        // A lone move is convertBranchesToConditionalMoves' shape.
+        if (out.arm.refs.size() == 1)
+        {
+            const MicroInstrOpcode op = scan.storage->ptr(out.arm.refs.front())->op;
+            if (op == MicroInstrOpcode::LoadRegReg || op == MicroInstrOpcode::LoadRegImm)
+                return false;
+        }
+
+        const MicroInstr* labelInst = scan.storage->ptr(stopRef);
+        uint32_t          labelId   = 0;
+        if (!labelInst || !tryGetLabelId(labelId, *labelInst, labelInst->ops(*scan.operands)) || labelId != joinLabelId)
+            return false;
+
+        out.jumpRef      = jumpRef;
+        out.joinLabelRef = stopRef;
+        return true;
+    }
+
+    bool qualifyTriangle(Triangle& triangle, const DiamondScan& scan)
+    {
+        if (!analyzeDiamondArm(triangle.arm, triangle.result, scan))
+            return false;
+
+        // The skipping path carries D's entry value to the join; the move
+        // needs that value to exist.
+        if (!scan.ssa->reachingDef(triangle.result, triangle.jumpRef).valid())
+            return false;
+
+        triangle.sinkCompare = triangle.arm.definesFlags;
+        if (!triangle.sinkCompare)
+            return true;
+        if (triangle.arm.readsEntryFlags)
+            return false;
+
+        triangle.flagsRef = scan.storage->findPreviousInstructionRef(triangle.jumpRef);
+        if (!triangle.flagsRef.isValid() || scan.relocated.contains(triangle.flagsRef.get()))
+            return false;
+        const MicroInstr* flagsInst = scan.storage->ptr(triangle.flagsRef);
+        if (flagsInst->op != MicroInstrOpcode::CmpRegReg && flagsInst->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const MicroInstrUseDef* flagsUseDef = scan.ssa->instrUseDef(triangle.flagsRef);
+        if (!flagsUseDef)
+            return false;
+        // The renamed arm no longer writes D, so the compare may read it; any
+        // other register the arm writes would reach the re-issued compare changed.
+        for (const MicroReg use : flagsUseDef->uses)
+        {
+            if (use != triangle.result && std::ranges::find(triangle.arm.defs, use) != triangle.arm.defs.end())
+                return false;
+        }
+
+        // The arm's flags no longer reach the join.
+        return MicroPassHelpers::areCpuFlagsDeadAfter(*scan.storage, *scan.operands, triangle.joinLabelRef, scan.builder);
+    }
+
+    bool convertTrianglesToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        std::vector<Triangle> triangles;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& jumpInst = *it;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            Triangle triangle;
+            if (tryMatchTriangleShape(triangle, scan, it.current, jumpInst, jumpOps))
+                triangles.push_back(std::move(triangle));
+        }
+
+        if (triangles.empty())
+            return false;
+
+        scan.ssa = MicroSsaState::ensureFor(context, localSsaState);
+        if (!scan.ssa || !scan.ssa->isValid())
+            return false;
+
+        std::erase_if(triangles, [&scan](Triangle& triangle) { return !qualifyTriangle(triangle, scan); });
+
+        // Two triangles never share an arm instruction: each arm ends at its
+        // own join label, and an arm holds no jump.
+        if (triangles.empty())
+            return false;
+
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        for (const Triangle& triangle : triangles)
+        {
+            const MicroReg renamedResult = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+
+            SmallVector<MicroInstrRegOperandRef> regOperands;
+            for (const MicroInstrRef ref : triangle.arm.refs)
+            {
+                regOperands.clear();
+                storage.ptr(ref)->collectRegOperands(operands, regOperands, context.encoder);
+                for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                {
+                    if (*regOperand.reg == triangle.result)
+                        *regOperand.reg = renamedResult;
+                }
+            }
+
+            MicroInstrOperand copyOps[3];
+            copyOps[0].reg    = renamedResult;
+            copyOps[1].reg    = triangle.result;
+            copyOps[2].opBits = MicroOpBits::B64;
+            storage.insertDerivedBefore(operands, triangle.arm.refs.front(), MicroInstrOpcode::LoadRegReg, copyOps);
+
+            if (triangle.sinkCompare)
+            {
+                const MicroInstr*        flagsInst = storage.ptr(triangle.flagsRef);
+                const MicroInstrOperand* flagsOps  = flagsInst->ops(operands);
+                MicroInstrOperand        sunkOps[3];
+                SWC_ASSERT(flagsInst->numOperands <= 3);
+                for (uint32_t i = 0; i < flagsInst->numOperands; ++i)
+                    sunkOps[i] = flagsOps[i];
+                storage.insertDerivedBefore(operands, triangle.joinLabelRef, flagsInst->op, std::span<const MicroInstrOperand>(sunkOps, flagsInst->numOperands));
+                storage.erase(triangle.flagsRef);
+            }
+
+            MicroInstrOperand movOps[4];
+            movOps[0].reg     = triangle.result;
+            movOps[1].reg     = renamedResult;
+            movOps[2].cpuCond = triangle.moveCond;
+            movOps[3].opBits  = MicroOpBits::B64;
+            storage.insertDerivedBefore(operands, triangle.joinLabelRef, MicroInstrOpcode::LoadCondRegReg, movOps);
+
+            storage.erase(triangle.jumpRef);
+        }
+
+        return true;
+    }
+
     // Speculative if-conversion of an early return:
     //
     //     cmp   X, Y                    cmp   X, Y
@@ -2150,6 +2327,13 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         localSsaState.invalidate();
     }
     if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState))
+    {
+        changed = true;
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
+
+    if (!changed && convertTrianglesToConditionalMoves(storage, operands, context, localSsaState))
     {
         changed = true;
         if (context.builder)

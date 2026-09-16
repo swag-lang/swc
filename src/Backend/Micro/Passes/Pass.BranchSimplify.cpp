@@ -978,6 +978,178 @@ namespace
         return true;
     }
 
+    // A short-circuit `and`/`or` whose result is kept as a value:
+    //
+    //     cmp    X1                      cmp    X1
+    //     setcc1 A                       setcc1 A
+    //     B = A                          B = A
+    //     j(~cc1) .L        ; and        cmp    X2
+    //     cmp    X2                ->    setcc2 D
+    //     setcc2 D                       [zext D]
+    //     [zext D]                       B &= D            ; B |= D for `or`
+    //     B = D                        .L:
+    //   .L:
+    //
+    // On the skipping edge B holds A, which the branch pins to 0 for `and` (1
+    // for `or`), so B is A op D on both paths once the second compare runs
+    // unconditionally - the `and i1` LLVM makes of two branches to a common
+    // destination. The second compare is a register compare: it cannot fault.
+    // The flags leave through the join changed, so they must be dead there,
+    // and D may not be read anywhere else.
+    bool convertShortCircuitBooleans(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+
+        struct Candidate
+        {
+            MicroInstrRef jumpRef   = MicroInstrRef::invalid();
+            MicroInstrRef mergeRef  = MicroInstrRef::invalid();
+            MicroReg      result;
+            MicroReg      rhs;
+            MicroOp       op       = MicroOp::And;
+            uint32_t      mentions = 2;
+        };
+
+        SmallVector<Candidate> candidates;
+        for (const MicroInstr& inst : storage.view())
+        {
+            if (inst.op == MicroInstrOpcode::JumpReg)
+                return false;
+        }
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            if (it->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrRef      jumpRef = it.current;
+            const MicroInstrOperand* jumpOps = it->ops(operands);
+            uint32_t                 joinId  = 0;
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional || !tryGetJumpTargetLabelId(joinId, *it, jumpOps))
+                continue;
+
+            // Before the jump: the copy of A into B, then the setcc of the
+            // flags the jump reads.
+            const MicroInstrRef copyRef = storage.findPreviousInstructionRef(jumpRef);
+            const MicroInstr*   copy    = copyRef.isValid() ? storage.ptr(copyRef) : nullptr;
+            if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const MicroInstrOperand* copyOps = copy->ops(operands);
+            if (copyOps[2].opBits != MicroOpBits::B8 || !copyOps[0].reg.isVirtualInt())
+                continue;
+            const MicroInstrRef setRef = storage.findPreviousInstructionRef(copyRef);
+            const MicroInstr*   set    = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+            if (!set || set->op != MicroInstrOpcode::SetCondReg || set->ops(operands)[0].reg != copyOps[1].reg)
+                continue;
+
+            const MicroCond leftCond = set->ops(operands)[1].cpuCond;
+            MicroCond       inverted = MicroCond::Unconditional;
+            if (!MicroPassHelpers::invertCondition(inverted, leftCond))
+                continue;
+            Candidate candidate;
+            if (jumpOps[0].cpuCond == inverted)
+                candidate.op = MicroOp::And;
+            else if (jumpOps[0].cpuCond == leftCond)
+                candidate.op = MicroOp::Or;
+            else
+                continue;
+            candidate.jumpRef = jumpRef;
+            candidate.result  = copyOps[0].reg;
+
+            // The skipped part: a register compare, its setcc, an optional
+            // widening of that byte, the copy into B, then the join.
+            MicroInstrRef     ref  = storage.findNextInstructionRef(jumpRef);
+            const MicroInstr* inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            if (!inst || (inst->op != MicroInstrOpcode::CmpRegReg && inst->op != MicroInstrOpcode::CmpRegImm))
+                continue;
+            const MicroInstrOperand* cmpOps = inst->ops(operands);
+            if (cmpOps[0].reg == candidate.result || (inst->op == MicroInstrOpcode::CmpRegReg && cmpOps[1].reg == candidate.result))
+                continue;
+
+            ref  = storage.findNextInstructionRef(ref);
+            inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            if (!inst || inst->op != MicroInstrOpcode::SetCondReg)
+                continue;
+            candidate.rhs = inst->ops(operands)[0].reg;
+            if (!candidate.rhs.isVirtualInt() || candidate.rhs == candidate.result)
+                continue;
+
+            ref  = storage.findNextInstructionRef(ref);
+            inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            if (inst && inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
+            {
+                const MicroInstrOperand* extOps = inst->ops(operands);
+                if (extOps[0].reg != candidate.rhs || extOps[1].reg != candidate.rhs)
+                    continue;
+                candidate.mentions += 2;
+                ref  = storage.findNextInstructionRef(ref);
+                inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            }
+
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const MicroInstrOperand* mergeOps = inst->ops(operands);
+            if (mergeOps[0].reg != candidate.result || mergeOps[1].reg != candidate.rhs || mergeOps[2].opBits != MicroOpBits::B8)
+                continue;
+            candidate.mergeRef = ref;
+
+            const MicroInstrRef labelRef = storage.findNextInstructionRef(ref);
+            const MicroInstr*   label    = labelRef.isValid() ? storage.ptr(labelRef) : nullptr;
+            uint32_t            labelId  = 0;
+            if (!label || !tryGetLabelId(labelId, *label, label->ops(operands)) || labelId != joinId)
+                continue;
+            if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, candidate.mergeRef))
+                continue;
+
+            candidates.push_back(candidate);
+        }
+
+        if (candidates.empty())
+            return false;
+
+        // D is a byte the skipped part made for B alone: nothing else may read
+        // it, or running that part on the other path would be observable.
+        std::unordered_map<uint32_t, uint32_t> rhsMentions;
+        for (const Candidate& candidate : candidates)
+            rhsMentions[candidate.rhs.index()] = 0;
+        SmallVector<MicroInstrRegOperandRef> regOperands;
+        for (const MicroInstr& inst : storage.view())
+        {
+            regOperands.clear();
+            inst.collectRegOperands(operands, regOperands, context.encoder);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (!regOperand.reg || !regOperand.reg->isVirtualInt())
+                    continue;
+                const auto found = rhsMentions.find(regOperand.reg->index());
+                if (found != rhsMentions.end())
+                    ++found->second;
+            }
+        }
+
+        bool changed = false;
+        for (const Candidate& candidate : candidates)
+        {
+            // The setcc, the optional self-widening and the merge only.
+            if (rhsMentions[candidate.rhs.index()] != candidate.mentions)
+                continue;
+
+            MicroInstrOperand mergeOps[4];
+            mergeOps[0].reg     = candidate.result;
+            mergeOps[1].reg     = candidate.rhs;
+            mergeOps[2].opBits  = MicroOpBits::B8;
+            mergeOps[3].microOp = candidate.op;
+            storage.insertDerivedBefore(operands, candidate.mergeRef, MicroInstrOpcode::OpBinaryRegReg, mergeOps);
+            storage.erase(candidate.mergeRef);
+            storage.erase(candidate.jumpRef);
+            changed = true;
+        }
+
+        if (changed)
+            context.builder->invalidateControlFlowGraph();
+        return changed;
+    }
+
     // Labels no jump references are pure fall-through markers, but they stop
     // every straight-line pattern walk (the materialized-boolean fusion in
     // particular). The sweep collects the targets of every label-consuming
@@ -2242,8 +2414,7 @@ namespace
         if (candidates.empty())
             return false;
 
-        bool     changed                = false;
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        bool changed = false;
         for (const EarlyReturn& earlyReturn : candidates)
         {
             const MicroReg armValue  = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
@@ -2426,6 +2597,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     changed |= foldRangeChecks(storage, operands, context);
+    if (changed && context.builder)
+        context.builder->invalidateControlFlowGraph();
+    changed |= convertShortCircuitBooleans(storage, operands, context);
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

@@ -385,6 +385,10 @@ func checkSetupPath() fail
     for existing in [directory, "C:\\Swag\\bin;C:\\Other", "C:\\Before;C:\\Swag\\bin;C:\\After", "C:\\Other;C:\\Swag\\bin", "c:/sWag/BIN/", "  \"C:\\Swag\\bin\"  "] do
         try checkSetupPathCase(existing, directory, existing, false)
 
+    // Folding UTF-8 continuation bytes merges distinct letters and misses real case pairs.
+    try checkSetupPathCase("C:\\Ā\\bin", "C:\\Ġ\\bin", "C:\\Ā\\bin;C:\\Ġ\\bin", true)
+    try checkSetupPathCase("C:\\Ā\\bin", "C:\\ā\\bin", "C:\\Ā\\bin", false)
+
     // Only the persisted user's entries belong in the new value. An inherited process
     // PATH could already contain Swag and machine/toolchain paths; it is not this input.
     try checkSetupPathCase("C:\\UserTools", directory, "C:\\UserTools;C:\\Swag\\bin", true, false)

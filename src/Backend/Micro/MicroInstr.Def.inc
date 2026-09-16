@@ -296,6 +296,19 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 
+// Reads bits 8..15 of the source and zero-extends them to the destination.
+SWC_MICRO_INSTR_DEF(
+    LoadHighByteRegReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
 SWC_MICRO_INSTR_DEF(
     LoadAddrRegMem,
     MicroInstrDef{

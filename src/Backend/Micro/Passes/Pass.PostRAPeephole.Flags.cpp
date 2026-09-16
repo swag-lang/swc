@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
@@ -217,6 +218,29 @@ namespace PostRaPeephole
             return false;
 
         ctx.emitErase(cmpRef);
+        return true;
+    }
+
+    // With one input already in the result register, ADD is one byte shorter
+    // than an unscaled LEA. The newly written flags must be unobserved.
+    bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isInt() || !ops[1].reg.isInt() || !ops[2].reg.isInt() ||
+            (ops[3].opBits != MicroOpBits::B32 && ops[3].opBits != MicroOpBits::B64) ||
+            ops[4].opBits != MicroOpBits::B64 || ops[5].valueU64 != 1 || ops[6].valueU64 != 0 ||
+            ctx.isPrivateFrameBase(ops[0].reg))
+            return false;
+        const MicroReg other = ops[0].reg == ops[1].reg ? ops[2].reg : ops[1].reg;
+        if ((ops[0].reg != ops[1].reg && ops[0].reg != ops[2].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) || !ctx.claimAll({ref}))
+            return false;
+        MicroInstrOperand add[4] = {};
+        add[0].reg               = ops[0].reg;
+        add[1].reg               = other;
+        add[2].opBits            = ops[3].opBits;
+        add[3].microOp           = MicroOp::Add;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegReg, add);
         return true;
     }
 
@@ -467,6 +491,34 @@ namespace PostRaPeephole
         ctx.emitRewrite(sourceRef, MicroInstrOpcode::ClearReg, clear);
         ctx.emitRewrite(cmpRef, cmp->op, narrow);
         ctx.emitErase(ref);
+        return true;
+    }
+
+    // The legacy high-byte registers can replace a shift plus byte extraction.
+    // Ask the encoder before forming one: a REX prefix makes them unavailable.
+    bool tryExtractHighByte(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ext = inst.ops(*ctx.operands);
+        if (!ext || !ctx.encoder || ext[3].opBits != MicroOpBits::B8 ||
+            (ext[2].opBits != MicroOpBits::B32 && ext[2].opBits != MicroOpBits::B64) ||
+            ctx.isPrivateFrameBase(ext[0].reg) || ctx.isPrivateFrameBase(ext[1].reg) ||
+            !ctx.encoder->supportsHighByteExtract(ext[0].reg, ext[1].reg))
+            return false;
+        const MicroInstrRef shiftRef = ctx.previousRef(ref);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        if (!shift || shift->op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const auto* ops = shift->ops(*ctx.operands);
+        if (!ops || ops[0].reg != ext[1].reg ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+            (ops[2].microOp != MicroOp::ShiftRight && ops[2].microOp != MicroOp::ShiftArithmeticRight) || ops[3].hasWideImmediateValue() || ops[3].valueU64 != 8 ||
+            (ext[0].reg != ext[1].reg && !ctx.isRegDeadAfterCurrent(ext[1].reg)) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({shiftRef, ref}))
+            return false;
+        const MicroInstrOperand extract[3] = {ext[0], ext[1], ext[2]};
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadHighByteRegReg, extract);
+        ctx.emitErase(shiftRef);
         return true;
     }
 

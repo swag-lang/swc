@@ -34,9 +34,11 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractHighByte);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowTruncatedRightShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractSignBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryClearBeforeSetCondition);

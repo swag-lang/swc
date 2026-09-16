@@ -47,11 +47,11 @@ using Swag
     // Returns whether word.
     func isWord(c: u8) => isLetter(c) or isDigit(c) or c == '_'
 
-    // Converts this value to lower.
+    // Returns the lowercase Latin-1 byte, preserving bytes with no lowercase mapping.
     func toLower(c: u8) => isUpper(c) ? (c | 0x20'u8) : c
 
-    // Converts this value to upper.
-    func toUpper(c: u8) => isLower(c) ? (c & ~0x20'u8) : c
+    // Returns the uppercase Latin-1 byte, preserving mappings outside this repertoire.
+    func toUpper(c: u8) => ((c >= 0x61 and c <= 0x7A) or (c >= 0xE0 and c <= 0xFE and c != 0xF7)) ? (c & ~0x20'u8) : c
 }
 
 #[Inline, ConstExpr]
@@ -72,7 +72,7 @@ private func isUpperUtf8(c: u8)->bool
 
 private func spaceMaskAt(data: const [*] u8)->u32
 {
-    let value = Math.Simd.load(data)
+    let value    = Math.Simd.load(data)
     let controls = (value >= Math.Simd.splat(9'u8)) & (value <= Math.Simd.splat(13'u8))
     return Math.Simd.bitmask(controls | (value == Math.Simd.splat(32'u8)))
 }
@@ -86,8 +86,8 @@ private func isEncodedSpace(first, last: u8)->bool => first == 0xC2 and (last ==
 internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let data = buffer.buffer
-    let count = buffer.count
+    let data   = buffer.buffer
+    let count  = buffer.count
     var offset = 0'u64
     while count - offset >= VectorSize
     {
@@ -118,12 +118,12 @@ internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 internal func lastNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let data = buffer.buffer
+    let data   = buffer.buffer
     var offset = buffer.count
     while offset >= VectorSize
     {
         let block = offset - VectorSize
-        let mask = spaceMaskAt(data + block)
+        let mask  = spaceMaskAt(data + block)
         if mask != 0xFFFF
         {
             offset = block + 32 - Math.leadingZeros((~mask) & 0xFFFF)
@@ -154,9 +154,9 @@ func makeUpper(buffer: [..] u8)
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
     let asciiFirst = Math.Simd.splat(0x61'u8)
-    let asciiLast = Math.Simd.splat(0x7A'u8)
-    let caseBit = Math.Simd.splat(0x20'u8)
-    var offset = 0'u64
+    let asciiLast  = Math.Simd.splat(0x7A'u8)
+    let caseBit    = Math.Simd.splat(0x20'u8)
+    var offset     = 0'u64
     while buffer.count - offset >= VectorSize
     {
         let value = Math.Simd.load(buffer.buffer + offset)
@@ -386,8 +386,8 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         // A UTF-8 continuation byte is never part of an ASCII decimal run.
         if ca >= '0'u8 and ca <= '9'u8 and cb >= '0'u8 and cb <= '9'u8
         {
-            let left = src[ai until src.count]
-            let right = dst[bi until dst.count]
+            let left   = src[ai until src.count]
+            let right  = dst[bi until dst.count]
             let result = ca == '0'u8 or cb == '0'u8 ? compareLeft(left, right) : compareRight(left, right)
             if result do
                 return result

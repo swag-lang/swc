@@ -20,6 +20,10 @@
 //       subtract. Encoder conformance is re-checked so we do not produce an
 //       immediate the target cannot encode.
 //
+//   eraseUnusedStackFrame
+//       Drops the local-stack subtract and its releases when the body calls
+//       nothing and no longer addresses the stack.
+//
 //   expandLargePrologueStackAdjustments
 //       Windows requires touching every guard page when growing the stack by
 //       more than one page, so a function that subtracts more than 4 KiB needs
@@ -329,6 +333,281 @@ namespace
         return changedAny;
     }
 
+    // The release run in front of a Ret: stack adds, then the pops of the saved
+    // registers. True when `addRef` starts such a run.
+    bool isFrameRelease(const MicroPassContext& context, const MicroInstrRef addRef)
+    {
+        for (MicroInstrRef ref = context.instructions->findNextInstructionRef(addRef); ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
+        {
+            const MicroInstr* inst = context.instructions->ptr(ref);
+            if (!inst)
+                return false;
+            if (inst->op == MicroInstrOpcode::Ret)
+                return true;
+            if (inst->op == MicroInstrOpcode::Pop || inst->op == MicroInstrOpcode::Nop)
+                continue;
+            return false;
+        }
+
+        return false;
+    }
+
+    // Allocation decides which nonvolatile registers the prologue saves, and the
+    // post-allocation peephole can still forward every use of one away: an
+    // argument copied into rsi whose readers now read rcx. LLVM computes the
+    // callee-saved set from the final code (determineCalleeSaves runs after
+    // every rewrite of the function body), so a save the body no longer needs is
+    // dropped here. The subtract grows by the freed slot: the final stack
+    // pointer, every stack-relative offset, the frame-pointer anchor and the call
+    // alignment all stay exactly as they were.
+    bool eraseUnusedRegisterSaves(const MicroPassContext& context, const CallConv& conv)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        const MicroReg stackPointer = conv.stackPointer;
+
+        struct Save
+        {
+            MicroInstrRef              pushRef = MicroInstrRef::invalid();
+            MicroReg                   reg;
+            bool                       used = false;
+            SmallVector<MicroInstrRef> popRefs;
+        };
+
+        SmallVector<Save>                    saves;
+        MicroInstrRef                        frameRef   = MicroInstrRef::invalid();
+        uint64_t                             frameSize  = 0;
+        bool                                 inEntryRun = true;
+        SmallVector<MicroInstrRef>           rets;
+        SmallVector<MicroInstrRegOperandRef> regOperands;
+        const auto                           markUsed = [&saves](const MicroReg reg) {
+            for (Save& save : saves)
+            {
+                if (save.reg == reg)
+                    save.used = true;
+            }
+        };
+
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            const MicroInstr&        inst = *it;
+            const MicroInstrOperand* ops  = inst.ops(*context.operands);
+            if (inst.op == MicroInstrOpcode::Nop || inst.op == MicroInstrOpcode::Label)
+                continue;
+
+            uint64_t immediate = 0;
+            if (inEntryRun)
+            {
+                if (inst.op == MicroInstrOpcode::Push && ops && frameRef.isInvalid())
+                {
+                    // The frame-pointer save anchors the frame; it is never dropped.
+                    if (ops[0].reg != conv.framePointer)
+                        saves.push_back({.pushRef = it.current, .reg = ops[0].reg});
+                    continue;
+                }
+
+                if (frameRef.isInvalid() && isStackAdjustWithOp(inst, ops, stackPointer, MicroOp::Subtract, immediate))
+                {
+                    frameRef  = it.current;
+                    frameSize = immediate;
+                    continue;
+                }
+
+                if (saves.empty() || frameRef.isInvalid())
+                    return false;
+                inEntryRun = false;
+            }
+
+            if (inst.op == MicroInstrOpcode::Ret)
+            {
+                rets.push_back(it.current);
+                continue;
+            }
+
+            // A pop restores a save only inside the release run of a Ret.
+            if (inst.op == MicroInstrOpcode::Pop && ops)
+            {
+                bool matched = false;
+                for (Save& save : saves)
+                {
+                    if (save.reg == ops[0].reg && isFrameRelease(context, it.current))
+                    {
+                        save.popRefs.push_back(it.current);
+                        matched = true;
+                    }
+                }
+
+                if (!matched)
+                    markUsed(ops[0].reg);
+                continue;
+            }
+
+            regOperands.clear();
+            inst.collectRegOperands(*context.operands, regOperands, context.encoder);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (regOperand.reg)
+                    markUsed(*regOperand.reg);
+            }
+
+            const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, context.encoder);
+            for (const MicroReg reg : useDef.uses)
+                markUsed(reg);
+            for (const MicroReg reg : useDef.defs)
+                markUsed(reg);
+        }
+
+        if (inEntryRun || rets.empty())
+            return false;
+
+        // Each Ret is released by `add sp, frame` followed by the pops.
+        SmallVector<MicroInstrRef> releaseRefs;
+        for (const MicroInstrRef retRef : rets)
+        {
+            MicroInstrRef ref = context.instructions->findPreviousInstructionRef(retRef);
+            while (ref.isValid())
+            {
+                const MicroInstr* inst = context.instructions->ptr(ref);
+                if (!inst || (inst->op != MicroInstrOpcode::Pop && inst->op != MicroInstrOpcode::Nop))
+                    break;
+                ref = context.instructions->findPreviousInstructionRef(ref);
+            }
+
+            const MicroInstr* release   = ref.isValid() ? context.instructions->ptr(ref) : nullptr;
+            uint64_t          immediate = 0;
+            if (!release || !isStackAdjustWithOp(*release, release->ops(*context.operands), stackPointer, MicroOp::Add, immediate) || immediate != frameSize)
+                return false;
+            releaseRefs.push_back(ref);
+        }
+
+        uint64_t freed = 0;
+        for (const Save& save : saves)
+        {
+            if (!save.used && save.popRefs.size() == rets.size())
+                freed += sizeof(uint64_t);
+        }
+
+        if (!freed)
+            return false;
+
+        // Grow the subtract and every release first: an immediate the encoder
+        // refuses leaves the function untouched.
+        const auto growAdjust = [&context](const MicroInstrRef ref, const uint64_t newSize) {
+            const MicroInstr*  inst = context.instructions->ptr(ref);
+            MicroInstrOperand* ops  = inst->ops(*context.operands);
+            const ApInt        old  = ops[3].immediateValue(64);
+            ops[3].setImmediateValue(ApInt(newSize, 64));
+            if (!MicroPassHelpers::violatesEncoderConformance(context, *inst, ops))
+                return true;
+            ops[3].setImmediateValue(old);
+            return false;
+        };
+
+        if (!growAdjust(frameRef, frameSize + freed))
+            return false;
+        for (const MicroInstrRef ref : releaseRefs)
+            SWC_INTERNAL_CHECK(growAdjust(ref, frameSize + freed));
+
+        for (const Save& save : saves)
+        {
+            if (save.used || save.popRefs.size() != rets.size())
+                continue;
+            context.instructions->erase(save.pushRef);
+            for (const MicroInstrRef ref : save.popRefs)
+                context.instructions->erase(ref);
+        }
+
+        return true;
+    }
+
+    // Lowering reserves the local stack before the body is optimized. Once every
+    // local lives in a register and the body calls nothing, that subtract and its
+    // releases only move the stack pointer down and back up. LLVM sizes the frame
+    // from the objects that survive (X86FrameLowering::emitPrologue emits no
+    // allocation for a leaf without stack objects), so a frame nothing addresses
+    // is dropped here: no call, no stack-pointer operand other than the entry
+    // subtract and the release in front of each Ret. A leaf does not need the
+    // call alignment the subtract may also have carried.
+    bool eraseUnusedStackFrame(const MicroPassContext& context, const CallConv& conv)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        if (context.forceFramePointer)
+            return false;
+
+        const MicroReg                       stackPointer = conv.stackPointer;
+        MicroInstrRef                        frameRef     = MicroInstrRef::invalid();
+        uint64_t                             frameSize    = 0;
+        uint32_t                             numRets      = 0;
+        bool                                 inEntryRun   = true;
+        SmallVector<MicroInstrRef>           releaseRefs;
+        SmallVector<MicroInstrRegOperandRef> regOperands;
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            const MicroInstr&        inst = *it;
+            const MicroInstrOperand* ops  = inst.ops(*context.operands);
+            if (inst.op == MicroInstrOpcode::Nop || inst.op == MicroInstrOpcode::Label)
+                continue;
+
+            uint64_t immediate = 0;
+            if (inEntryRun)
+            {
+                if (inst.op == MicroInstrOpcode::Push)
+                    continue;
+                if (frameRef.isInvalid() && isStackAdjustWithOp(inst, ops, stackPointer, MicroOp::Subtract, immediate))
+                {
+                    frameRef  = it.current;
+                    frameSize = immediate;
+                    continue;
+                }
+
+                if (frameRef.isInvalid())
+                    return false;
+                inEntryRun = false;
+            }
+
+            if (inst.op == MicroInstrOpcode::Ret)
+            {
+                ++numRets;
+                continue;
+            }
+
+            if (inst.op == MicroInstrOpcode::Pop)
+                continue;
+
+            if (isStackAdjustWithOp(inst, ops, stackPointer, MicroOp::Add, immediate))
+            {
+                if (immediate != frameSize || !isFrameRelease(context, it.current))
+                    return false;
+                releaseRefs.push_back(it.current);
+                continue;
+            }
+
+            if (inst.op == MicroInstrOpcode::Push || inst.collectUseDef(*context.operands, context.encoder).isCall)
+                return false;
+
+            regOperands.clear();
+            inst.collectRegOperands(*context.operands, regOperands, context.encoder);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (regOperand.reg && *regOperand.reg == stackPointer)
+                    return false;
+            }
+        }
+
+        // A pop outside a release run would read a slot the pushes did not
+        // write; isFrameRelease only admits pops between a release and its Ret.
+        if (frameRef.isInvalid() || numRets == 0 || releaseRefs.size() != numRets)
+            return false;
+
+        context.instructions->erase(frameRef);
+        for (const MicroInstrRef ref : releaseRefs)
+            context.instructions->erase(ref);
+        return true;
+    }
+
     bool needsWindowsStackProbe(const MicroPassContext& context, const uint64_t stackAdjust)
     {
         if (stackAdjust <= K_WINDOWS_STACK_PROBE_PAGE_SIZE)
@@ -456,9 +735,11 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const CallConv& conv                      = CallConv::get(context.callConvKind);
     const bool      changedFramePointerProlog = sanitizePrologueFramePointerSetups(context, conv);
     const bool      changedStackProlog        = sanitizePrologueStackAdjustments(context, conv);
-    const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
     const bool      changedStackEpilogue      = sanitizeEpilogueStackAdjustments(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue;
+    const bool      changedUnusedSaves        = eraseUnusedRegisterSaves(context, conv);
+    const bool      changedUnusedFrame        = eraseUnusedStackFrame(context, conv);
+    const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame;
     context.passChanged                       = changed;
     return Result::Continue;
 }

@@ -1173,6 +1173,31 @@ SWC_TEST_BEGIN(PostRAPeephole_PartialFlagWritersPreserveIncomingZero)
 }
 SWC_TEST_END()
 
+// A copy's source is never forwarded into an exchange: its second operand is
+// written as well, so `mov r12, rdx; xchg rdi, r12` must keep swapping r12.
+SWC_TEST_BEGIN(PostRAPeephole_CopySourceNotForwardedIntoExchange)
+{
+    const auto&    conv = CallConv::get(CallConvKind::Swag);
+    const MicroReg src  = conv.intRegs[0];
+    const MicroReg dst  = conv.intRegs[1];
+    const MicroReg peer = conv.intRegs[2];
+    MicroBuilder   builder(ctx);
+    builder.emitLoadRegReg(dst, src, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(peer, dst, MicroOp::Exchange, MicroOpBits::B64);
+    builder.emitLoadRegReg(conv.intReturn, dst, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && (ops[0].reg != peer || ops[1].reg != dst))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -116,7 +116,11 @@ namespace InstructionCombine
                     return ops[2].opBits == MicroOpBits::B32;
                 case MicroInstrOpcode::LoadCondRegReg:
                 case MicroInstrOpcode::LoadAmcRegMem:
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
                     return ops[3].opBits == MicroOpBits::B32;
+                // A 32-bit `lea` writes the whole register, like any 32-bit result.
+                case MicroInstrOpcode::LoadAddrRegMem:
+                    return ops[2].opBits == MicroOpBits::B32;
                 case MicroInstrOpcode::LoadZeroExtRegReg:
                 case MicroInstrOpcode::LoadZeroExtRegMem:
                     return extendLeavesUpperHalfZero(ops[2].opBits, ops[3].opBits);
@@ -217,7 +221,10 @@ namespace InstructionCombine
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!isDwordToQwordExtend(ops))
+        // The destination may be a physical register: the extension into the
+        // return register of a `u32` function is the one every such function
+        // ends with, and a full copy is what the allocator can fold away.
+        if (!ops || !ops[0].reg.isAnyInt() || !ops[1].reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64 || ops[3].opBits != MicroOpBits::B32)
             return false;
 
         const MicroReg dst = ops[0].reg;

@@ -1248,6 +1248,137 @@ namespace
         return changed;
     }
 
+    // The same range test once the short-circuit is already a byte AND: the
+    // bounds were not yet immediates when the branch went away, so the fold
+    // happens on the straight-line form.
+    //
+    //     cmp    X, LO                   cmp    X, LO           ; left for DCE
+    //     setge  A                       setge  A
+    //     B = A                          B = A
+    //     cmp    X, HI             ->    T = X; T -= LO
+    //     setle  D                       cmp    T, HI - LO
+    //     [zext  D]                      setbe  D
+    //     B &= D                         [zext D]
+    //                                    B = D
+    bool foldRangeAnds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+
+        struct Candidate
+        {
+            MicroInstrRef andRef = MicroInstrRef::invalid();
+            MicroReg      rhs;
+            uint32_t      mentions = 2;
+            RangeMerge    range;
+        };
+
+        const auto previous = [&storage](const MicroInstrRef ref) -> const MicroInstr* {
+            return ref.isValid() ? storage.ptr(ref) : nullptr;
+        };
+
+        SmallVector<Candidate> candidates;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            if (it->op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+            const MicroInstrOperand* andOps = it->ops(operands);
+            if (!andOps || andOps[3].microOp != MicroOp::And || andOps[2].opBits != MicroOpBits::B8)
+                continue;
+
+            Candidate candidate;
+            candidate.andRef = it.current;
+            candidate.rhs    = andOps[1].reg;
+            const MicroReg result = andOps[0].reg;
+            if (!candidate.rhs.isVirtualInt() || !result.isVirtualInt() || candidate.rhs == result)
+                continue;
+
+            MicroInstrRef     ref  = storage.findPreviousInstructionRef(it.current);
+            const MicroInstr* inst = previous(ref);
+            if (inst && inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
+            {
+                const MicroInstrOperand* extOps = inst->ops(operands);
+                if (extOps[0].reg != candidate.rhs || extOps[1].reg != candidate.rhs)
+                    continue;
+                candidate.mentions += 2;
+                ref  = storage.findPreviousInstructionRef(ref);
+                inst = previous(ref);
+            }
+            if (!inst || inst->op != MicroInstrOpcode::SetCondReg || inst->ops(operands)[0].reg != candidate.rhs)
+                continue;
+            candidate.range.rightSetRef = ref;
+
+            ref  = storage.findPreviousInstructionRef(ref);
+            inst = previous(ref);
+            if (!inst || inst->op != MicroInstrOpcode::CmpRegImm)
+                continue;
+            candidate.range.rightCmpRef = ref;
+
+            ref  = storage.findPreviousInstructionRef(ref);
+            inst = previous(ref);
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const MicroInstrOperand* copyOps = inst->ops(operands);
+            if (copyOps[0].reg != result || copyOps[2].opBits != MicroOpBits::B8)
+                continue;
+
+            ref  = storage.findPreviousInstructionRef(ref);
+            inst = previous(ref);
+            if (!inst || inst->op != MicroInstrOpcode::SetCondReg || inst->ops(operands)[0].reg != copyOps[1].reg)
+                continue;
+            candidate.range.leftCond   = inst->ops(operands)[1].cpuCond;
+            candidate.range.leftCmpRef = storage.findPreviousInstructionRef(ref);
+
+            if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, candidate.andRef))
+                continue;
+            candidates.push_back(candidate);
+        }
+
+        if (candidates.empty())
+            return false;
+
+        std::unordered_map<uint32_t, uint32_t> rhsMentions;
+        for (const Candidate& candidate : candidates)
+            rhsMentions[candidate.rhs.index()] = 0;
+        SmallVector<MicroInstrRegOperandRef> regOperands;
+        for (const MicroInstr& inst : storage.view())
+        {
+            regOperands.clear();
+            inst.collectRegOperands(operands, regOperands, context.encoder);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (!regOperand.reg || !regOperand.reg->isVirtualInt())
+                    continue;
+                const auto found = rhsMentions.find(regOperand.reg->index());
+                if (found != rhsMentions.end())
+                    ++found->second;
+            }
+        }
+
+        bool     changed                = false;
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        for (const Candidate& candidate : candidates)
+        {
+            if (rhsMentions[candidate.rhs.index()] != candidate.mentions)
+                continue;
+            if (!tryFoldRangeMerge(storage, operands, candidate.range, nextVirtualIntRegIndex))
+                continue;
+
+            MicroInstrOperand* andOps = storage.ptr(candidate.andRef)->ops(operands);
+            MicroInstrOperand  copyOps[3];
+            copyOps[0].reg    = andOps[0].reg;
+            copyOps[1].reg    = candidate.rhs;
+            copyOps[2].opBits = MicroOpBits::B8;
+            storage.insertDerivedBefore(operands, candidate.andRef, MicroInstrOpcode::LoadRegReg, copyOps);
+            storage.erase(candidate.andRef);
+            changed = true;
+        }
+
+        if (changed)
+            context.builder->invalidateControlFlowGraph();
+        return changed;
+    }
+
     // Labels no jump references are pure fall-through markers, but they stop
     // every straight-line pattern walk (the materialized-boolean fusion in
     // particular). The sweep collects the targets of every label-consuming
@@ -2699,6 +2830,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     changed |= convertShortCircuitBooleans(storage, operands, context);
+    if (changed && context.builder)
+        context.builder->invalidateControlFlowGraph();
+    changed |= foldRangeAnds(storage, operands, context);
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

@@ -163,6 +163,7 @@ namespace InstructionCombine
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryWidenCopyWithNarrowReaders(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool isValueZeroExtended32(const Context& ctx, uint32_t valueId);
     bool tryNarrowMaskedArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

@@ -3,6 +3,11 @@
 
 // Zero/sign extend whose upper bits are never read. Collapses to a plain
 // LoadRegReg at srcBits, or an erase when dst == src.
+//
+// The bits a value's readers take are its demanded bits, walked through
+// plain copies as LLVM's DemandedBits walks through moves and casts: a
+// parameter sign-extended on entry, copied into a local and only compared at
+// 32 bits never needs its upper half.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -10,22 +15,44 @@ namespace InstructionCombine
 {
     namespace
     {
-        bool allUsesFitWithin(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t maxBits)
+        constexpr uint32_t K_MAX_DEMAND_DEPTH = 4;
+
+        // The widest bit any reader takes from the value `reg` holds; 64 when a
+        // reader is not understood. A copy into another virtual register reads
+        // what that register's own readers read, capped at the copy's width.
+        uint32_t demandedBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t depth)
         {
-            SWC_UNUSED(ssa);
+            uint32_t widest = 0;
             for (const auto& useSite : valueInfo.uses)
             {
                 if (useSite.kind != MicroSsaState::UseSite::Kind::Instruction)
-                    return false;
+                    return 64;
                 const MicroInstr* useInst = storage.ptr(useSite.instRef);
                 if (!useInst)
-                    return false;
+                    return 64;
                 const MicroInstrOperand* useOps  = useInst->ops(operands);
                 const MicroOpBits        useBits = useReadBits(*useInst, useOps, reg);
-                if (useBits == MicroOpBits::Zero || getNumBits(useBits) > maxBits)
-                    return false;
+                if (useBits == MicroOpBits::Zero)
+                    return 64;
+
+                uint32_t bits = getNumBits(useBits);
+                if (useInst->op == MicroInstrOpcode::LoadRegReg && useOps[1].reg == reg && useOps[0].reg != reg &&
+                    useOps[0].reg.isVirtual() && depth < K_MAX_DEMAND_DEPTH)
+                {
+                    uint32_t copyValueId = 0;
+                    if (!ssa.defValue(useOps[0].reg, useSite.instRef, copyValueId))
+                        return 64;
+                    const auto* copyInfo = ssa.valueInfo(copyValueId);
+                    if (!copyInfo)
+                        return 64;
+                    bits = std::min(bits, demandedBits(ssa, storage, operands, *copyInfo, useOps[0].reg, depth + 1));
+                }
+
+                widest = std::max(widest, bits);
+                if (widest >= 64)
+                    return 64;
             }
-            return true;
+            return widest;
         }
     }
 
@@ -54,7 +81,7 @@ namespace InstructionCombine
         if (!valueInfo || valueInfo->uses.empty())
             return false;
 
-        if (!allUsesFitWithin(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, getNumBits(srcBits)))
+        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0) > getNumBits(srcBits))
             return false;
 
         if (!ctx.claimAll({ref}))
@@ -70,6 +97,56 @@ namespace InstructionCombine
         moveOps[0].reg    = dst;
         moveOps[1].reg    = src;
         moveOps[2].opBits = srcBits;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, moveOps);
+        return true;
+    }
+
+    // A 32-bit copy whose readers never look above bit 31 moves the whole
+    // register instead. The zero-extension it performed is unobservable, and
+    // a full-width move is what copy elimination merges and what the
+    // allocator's same-register copies erase to: `mov ecx, ecx` survived to the
+    // emitted code for every u32 parameter copied into a local. The readers are
+    // claimed so no rule of the same sweep can lean on the upper half being
+    // zero while it stops being so.
+    bool tryWidenCopyWithNarrowReaders(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].opBits != MicroOpBits::B32)
+            return false;
+
+        const MicroReg dst = ops[0].reg;
+        const MicroReg src = ops[1].reg;
+        if (!dst.isVirtualInt() || !src.isAnyInt() || dst == src)
+            return false;
+
+        uint32_t valueId = 0;
+        if (!ctx.ssa->defValue(dst, ref, valueId))
+            return false;
+        const auto* valueInfo = ctx.ssa->valueInfo(valueId);
+        if (!valueInfo || valueInfo->uses.empty())
+            return false;
+        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0) > 32)
+            return false;
+
+        if (ctx.isRelocated(ref))
+            return false;
+        for (const auto& useSite : valueInfo->uses)
+        {
+            if (ctx.isClaimed(useSite.instRef))
+                return false;
+        }
+        if (!ctx.claimAll({ref}))
+            return false;
+        for (const auto& useSite : valueInfo->uses)
+            ctx.claimed.insert(useSite.instRef.get());
+
+        MicroInstrOperand moveOps[3];
+        moveOps[0].reg    = dst;
+        moveOps[1].reg    = src;
+        moveOps[2].opBits = MicroOpBits::B64;
         ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, moveOps);
         return true;
     }

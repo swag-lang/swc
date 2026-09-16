@@ -162,3 +162,47 @@ compiler executable, 20 release native floating-point tests, and 255 devmode nat
 tests; both native selections also ran their linked executable. The initial three C++
 regressions failed with build 708 (861 other tests passed).
 [Commands and outcomes](compact-values-validation.json).
+
+## Rejected candidate: compact containers and consume final sanitizer states
+
+Build 713 removes empty-allocator padding from SmallVector, directly constructs sanitizer
+states and consumes them during the final checking pass. It also contains the two storage
+corrections described below. The baseline is build 708, with the SHA-256 recorded above;
+the candidate Release executable SHA-256 is
+`E49D05B4F2FCE1C99CBE971A170597D02088E5611778ACAD42EAABE841E13B71`.
+
+| Workload | Program configuration | Complete pairs | Paired peak WS change | Paired commit change | Paired elapsed change | Paired CPU change |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| core | devmode | 7 | -4.24% | -2.32% | -0.20% | -3.82% |
+| core | release | 7 | -5.53% | -3.87% | -4.73% | +0.38% |
+| gui | devmode | 2 | -5.26% | -4.08% | +34.15% | +41.30% |
+| gui | release | 1 | -4.73% | -4.18% | +27.65% | +18.80% |
+
+[All 28 core samples](compact-containers-core-rejected.json) and
+[all seven GUI samples](compact-containers-gui-rejected.json) are preserved. The second GUI
+release pair is incomplete: its candidate sample is retained but excluded from paired ratios.
+The user requested completion during this series. Although shared-machine activity introduces
+noise, the GUI results do not establish the required absence of a speed regression. The
+SmallVector layout and sanitizer changes are therefore reverted, not merged. These combined
+measurements cannot attribute the slowdown to any individual change.
+
+Both compiler builds passed before rejection, along with 864 C++ tests, 57 sanity tests,
+279 positive semantic source files and 304 expected-error semantic files. The preceding build
+712 also passed 149 release native generic tests and execution of the linked executable.
+[Commands and outcomes for this experimental bundle](containers-validation.json).
+
+## Final corrective batch: release builder storage and preserve page allocation policy
+
+MicroBuilder::releaseMemory used initializer-list assignment for vectors and hash containers,
+which cleared elements while retaining their backing storage. Explicit empty containers now
+release that storage; empty hash tables avoid needless replacement. A regression verifies
+released capacities and successful builder reuse.
+
+PagedStore move construction and move assignment omitted proximityPages_, so subsequent pages
+could silently switch allocation policy after a move. Both operations now preserve the policy.
+Two regressions cover move construction, move assignment, existing contents and moved-from reuse.
+The three initial regressions failed with baseline build 708 (861 other C++ tests passed).
+
+This final batch retains only these correctness fixes. It does not change SmallVector layout,
+sanitizer state propagation, optimizer settings or generated-code transformations. Measurements
+of the rejected combined bundle above are not claimed as gains for these fixes.

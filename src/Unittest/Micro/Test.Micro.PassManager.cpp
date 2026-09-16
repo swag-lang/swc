@@ -193,6 +193,40 @@ SWC_TEST_BEGIN(MicroPassManager_PreRa_ReportsALoopThatNeverSettles)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroBuilder_ReleaseMemoryDropsTransientStorageAndCanBeReused)
+{
+    MicroBuilder builder(ctx);
+    const size_t forbiddenBuckets = builder.virtualRegForbiddenPhysRegs().bucket_count();
+    const size_t preservedBuckets = builder.preservedVirtualCopyRegs().bucket_count();
+    for (uint32_t index = 1; index <= 1024; ++index)
+    {
+        const MicroReg reg = MicroReg::virtualIntReg(index);
+        builder.addVirtualRegForbiddenPhysReg(reg, MicroReg::intReg(0));
+        builder.preserveVirtualCopy(reg);
+    }
+    builder.emitNop();
+    builder.codeRelocations().reserve(4096);
+    MicroRelocation relocation;
+    relocation.instructionRef = builder.instructions().lastInstructionRef();
+    builder.codeRelocations().push_back(relocation);
+
+    builder.releaseMemory();
+    if (builder.instructions().allocatedBytes() || builder.operands().allocatedBytes() || builder.codeRelocations().capacity())
+        return Result::Error;
+    if (!builder.virtualRegForbiddenPhysRegs().empty() || !builder.preservedVirtualCopyRegs().empty() ||
+        builder.virtualRegForbiddenPhysRegs().bucket_count() > forbiddenBuckets ||
+        builder.preservedVirtualCopyRegs().bucket_count() > preservedBuckets)
+        return Result::Error;
+
+    builder.emitNop();
+    const MicroLabelRef label = builder.createLabel();
+    builder.placeLabel(label);
+    builder.emitRet();
+    if (builder.instructions().count() != 3 || !builder.codeRelocations().empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroBuilder_PruneRelocationsBeforeRecyclingSlots)
 {
     MicroBuilder builder(ctx);

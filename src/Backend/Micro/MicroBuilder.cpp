@@ -971,6 +971,7 @@ void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sou
 
 void MicroBuilder::releaseMemory()
 {
+    // Explicit empty containers release storage; initializer-list assignment retains it.
     instructions_                    = {};
     operands_                        = {};
     currentDebugSourceInfo_          = {};
@@ -979,14 +980,18 @@ void MicroBuilder::releaseMemory()
     printSourceLine_                 = 0;
     usesIntReturnRegOnRet_           = true;
     usesFloatReturnRegOnRet_         = true;
-    printPassOptions_                = {};
-    labels_                          = {};
-    relocations_                     = {};
-    virtualRegForbiddenPhysRegs_     = {};
-    preservedVirtualCopyRegs_        = {};
+    printPassOptions_                = std::vector<Utf8>{};
+    labels_                          = std::vector<MicroInstrRef>{};
+    relocations_                     = std::vector<MicroRelocation>{};
     controlFlowGraph_                = {};
     controlFlowGraphStorageRevision_ = 0;
     hasControlFlowGraph_             = false;
+
+    // These tables only grow before release, so an empty table still has its initial capacity.
+    if (!virtualRegForbiddenPhysRegs_.empty())
+        virtualRegForbiddenPhysRegs_ = decltype(virtualRegForbiddenPhysRegs_){};
+    if (!preservedVirtualCopyRegs_.empty())
+        preservedVirtualCopyRegs_ = decltype(preservedVirtualCopyRegs_){};
 }
 
 SWC_END_NAMESPACE();

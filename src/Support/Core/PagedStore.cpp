@@ -32,6 +32,7 @@ PagedStore::PagedStore(PagedStore&& other) noexcept :
     pageSizeValue_(other.pageSizeValue_),
     pageShift_(other.pageShift_),
     pageMask_(other.pageMask_),
+    proximityPages_(other.proximityPages_),
     curPage_(other.curPage_),
     curPageIndex_(other.curPageIndex_),
     lastPtr_(other.lastPtr_)
@@ -69,6 +70,7 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
         std::swap(pageSizeValue_, other.pageSizeValue_);
         std::swap(pageShift_, other.pageShift_);
         std::swap(pageMask_, other.pageMask_);
+        std::swap(proximityPages_, other.proximityPages_);
         std::swap(curPage_, other.curPage_);
         std::swap(curPageIndex_, other.curPageIndex_);
         std::swap(lastPtr_, other.lastPtr_);

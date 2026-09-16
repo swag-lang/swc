@@ -4,9 +4,49 @@
 
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
+
+SWC_TEST_BEGIN(PagedStore_MoveConstructionPreservesProximityAllocation)
+{
+    PagedStore source(32);
+    source.enableProximityPages();
+    const Ref first = source.reserveRange(32, 1, true);
+    source.at<uint32_t>(first) = 42;
+
+    PagedStore moved(std::move(source));
+    const Ref next = moved.reserveRange(32, 1, true);
+    if (moved.at<uint32_t>(first) != 42 || !Os::isProximityMemory(moved.ptr<std::byte>(next)))
+        return Result::Error;
+
+    const Ref reused = source.reserveRange(32, 1, true);
+    if (!Os::isProximityMemory(source.ptr<std::byte>(reused)))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PagedStore_MoveAssignmentPreservesAllocationPolicies)
+{
+    PagedStore source(32);
+    source.enableProximityPages();
+    const Ref first = source.reserveRange(32, 1, true);
+    source.at<uint32_t>(first) = 42;
+    PagedStore target(32);
+    const Ref previous = target.reserveRange(32, 1, true);
+    target.at<uint32_t>(previous) = 7;
+
+    target = std::move(source);
+    const Ref next = target.reserveRange(32, 1, true);
+    if (target.at<uint32_t>(first) != 42 || !Os::isProximityMemory(target.ptr<std::byte>(next)))
+        return Result::Error;
+
+    const Ref reused = source.reserveRange(32, 1, true);
+    if (source.at<uint32_t>(previous) != 7 || Os::isProximityMemory(source.ptr<std::byte>(reused)))
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(PagedStore_CopyToPreserveOffsetsKeepsSparseLayout)
 {

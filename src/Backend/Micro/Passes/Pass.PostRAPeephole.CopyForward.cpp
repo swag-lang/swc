@@ -346,6 +346,46 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A count-only copy needs at most six bits. Clearing its upper half is
+    // harmless once the count dies or is replaced by the shift's full result.
+    bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || copy[2].opBits != MicroOpBits::B64 ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
+            return false;
+        const MicroInstrRef shiftRef = ctx.nextRef(ref);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        if (!shift || (shift->op != MicroInstrOpcode::OpBinaryRegReg && shift->op != MicroInstrOpcode::OpBinaryRegRegReg))
+            return false;
+        const auto*    ops        = shift->ops(*ctx.operands);
+        const bool     three      = shift->op == MicroInstrOpcode::OpBinaryRegRegReg;
+        const uint32_t countIndex = three ? 2 : 1;
+        if (!ops || ops[countIndex].reg != copy[0].reg || ops[three ? 1 : 0].reg == copy[0].reg ||
+            (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
+            return false;
+        switch (ops[countIndex + 2].microOp)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
+                break;
+            default:
+                return false;
+        }
+        if (!(three && ops[0].reg == copy[0].reg) && !ctx.isRegDeadAfter(copy[0].reg, ctx.instructionIndex + 1))
+            return false;
+        if (!ctx.claimAll({ref, shiftRef}))
+            return false;
+        MicroInstrOperand narrowed[3] = {copy[0], copy[1], copy[2]};
+        narrowed[2].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, narrowed);
+        return true;
+    }
+
     // A full copy of a value just defined at 32 bits can use a 32-bit MOV.
     // The IR width contract already guarantees that the source's upper half is zero.
     bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

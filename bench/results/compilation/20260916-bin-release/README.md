@@ -209,3 +209,22 @@ one case. All six gui rebuilds completed. Baseline/candidate SHA-256:
 
 - `d0448a56ec886a6ffa274e02af55e53c0076e08f7b7a8ee3fec2a319f443e294`.
 - `5c0403440b8d01a11a0815dc3c860cdca1825f398112015bae2a5a90bd15cf32`.
+
+## Discarded: reuse of the sema-complete JIT snapshot
+
+Build 717 reused the first dependency order after semantic completion when the call-graph and
+native-global-target versions stayed unchanged, avoiding the second root walk. Three common-root
+pairs rebuilt all standard modules against baseline 715. Median paired elapsed was -11.95%, CPU
+-21.10%, cycles -20.92%, and peak working set -0.33%, but the first two baseline runs overlapped
+36.87% and 32.01% background CPU, against 7.67% and 6.74% for the candidates. The third pair had
+comparable background load (6.76% / 8.41%): elapsed was 22.197 / 22.183 seconds, and process CPU
+81.922 / 84.344 seconds. The apparent aggregate gain does not establish an isolated improvement;
+the prototype was discarded. All six builds passed and every sample is retained.
+
+Both compiler configurations built successfully. Release compiler/program `release`, reference
+`--file-filter 014_001_constexpr.swg`, passed one test; DevMode JIT
+`--file-filter static_if_reflect_cycle.swg`, program `devmode`, passed two tests.
+Baseline/candidate SHA-256:
+
+- `d0448a56ec886a6ffa274e02af55e53c0076e08f7b7a8ee3fec2a319f443e294`.
+- `48fdaf1c1913e4a0c81318c50966f86a76da6c7f80ff7e518564036eb0fb2753`.

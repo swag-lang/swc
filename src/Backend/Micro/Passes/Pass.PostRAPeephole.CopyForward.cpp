@@ -346,6 +346,71 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Retarget a two-step add/multiply computation as one unit so forwarding
+    // cannot reintroduce its removed result copy on the next sweep.
+    bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || !copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroReg    dst         = copy[0].reg;
+        const MicroReg    src         = copy[1].reg;
+        MicroInstrRef     multiplyRef = ctx.previousRef(copyRef);
+        const MicroInstr* multiply    = ctx.instruction(multiplyRef);
+        const auto*       mul         = multiply ? multiply->ops(*ctx.operands) : nullptr;
+        bool              square      = false;
+        MicroInstrRef     addRef;
+        if (multiply && multiply->op == MicroInstrOpcode::OpBinaryRegReg && mul &&
+            mul[3].microOp == MicroOp::MultiplySigned && mul[0].reg == src &&
+            mul[1].reg != dst && ctx.isRegDeadAfterCurrent(src))
+            addRef = ctx.previousRef(multiplyRef);
+        else
+        {
+            addRef      = ctx.previousRef(copyRef);
+            multiplyRef = ctx.nextRef(copyRef);
+            multiply    = ctx.instruction(multiplyRef);
+            mul         = multiply ? multiply->ops(*ctx.operands) : nullptr;
+            if (!multiply || multiply->op != MicroInstrOpcode::OpBinaryRegReg || !mul ||
+                mul[3].microOp != MicroOp::MultiplySigned || mul[0].reg != dst || mul[1].reg != src ||
+                !ctx.isRegDeadAfter(src, ctx.instructionIndex + 1))
+                return false;
+            square = true;
+        }
+        const MicroInstr* add = ctx.instruction(addRef);
+        const auto*       ops = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg || !ops || ops[3].microOp != MicroOp::Add ||
+            ops[0].reg != src || !ops[1].reg.isInt() || !mul[1].reg.isInt() ||
+            ops[2].opBits != copy[2].opBits || mul[2].opBits != copy[2].opBits ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+        MicroInstrOperand address[8] = {};
+        address[0].reg               = dst;
+        address[1].reg               = src;
+        address[2].reg               = ops[1].reg;
+        address[3].opBits            = copy[2].opBits;
+        address[4].opBits            = MicroOpBits::B64;
+        address[5].valueU64          = 1;
+        MicroInstr probe;
+        probe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        probe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, address))
+            return false;
+        MicroInstrOperand product[4];
+        std::copy_n(mul, 4, product);
+        product[0].reg = dst;
+        if (square || product[1].reg == src)
+            product[1].reg = dst;
+        if (ctx.encoder->queryConformanceIssue(issue, *multiply, product) || !ctx.claimAll({addRef, multiplyRef, copyRef}))
+            return false;
+        ctx.emitRewrite(addRef, probe.op, address, true);
+        ctx.emitRewrite(multiplyRef, multiply->op, product);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // ADD followed by a result copy can compute directly in the copy's
     // destination when ABI-aware liveness proves its old result is dead.
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

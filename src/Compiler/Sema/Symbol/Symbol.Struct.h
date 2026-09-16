@@ -96,6 +96,7 @@ public:
     static Result             waitTypeImplicitDefaultReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     static bool               typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);
     static bool               typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef);
+    static bool               typeHasAllZeroImplicitDefault(Sema& sema, TypeRef typeRef);
     static bool               fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field);
     static Result             lowerTypeImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef);
     Result                    resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const;

@@ -5,12 +5,12 @@ struct GlobalBase { value: s32 = 12 }
 
 struct GlobalOwner
 {
-    prefix: u64 = 31
+    prefix:     u64 = 31
     using base: GlobalBase
 }
 
-var owners: [2] GlobalOwner
-var task: Swag.Task
+var owners:    [2] GlobalOwner
+var task:      Swag.Task
 var completed: Swag.AtomicFlag
 
 #test

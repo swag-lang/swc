@@ -1060,26 +1060,39 @@ namespace
         }
 
         ConstantRef implicitStructCstRef   = ConstantRef::invalid();
-        ConstantRef implicitStructStoreRef = ConstantRef::invalid();
+        ConstantRef implicitGlobalStoreRef = ConstantRef::invalid();
         bool        implicitStructZeroInit = false;
-        if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
+        if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && (explicitType->isStruct() || explicitType->isArray()))
         {
             if (!directSelfStructField && !requiresExplicitInit)
             {
                 SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
-                const auto& symStruct = explicitType->payloadSymStruct();
-                symStruct.computeImplicitDefaultFlags(sema);
-                implicitStructZeroInit      = symStruct.hasImplicitAllZeroDefault();
                 const bool hasGlobalStorage = std::ranges::any_of(symbols, [](Symbol* symbol) {
                     const SymbolVariable* variable = getVariableSymbol(symbol);
                     return variable && isGlobalStorageVariable(*variable);
                 });
-                if (hasGlobalStorage)
-                    SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitStructStoreRef));
-                if (isConst)
-                    SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
-                else if (isLet)
-                    SWC_RESULT(symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
+                if (explicitType->isStruct())
+                {
+                    const auto& symStruct = explicitType->payloadSymStruct();
+                    symStruct.computeImplicitDefaultFlags(sema);
+                    implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
+                    if (hasGlobalStorage)
+                        SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitGlobalStoreRef));
+                    if (isConst)
+                        SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
+                    else if (isLet)
+                        SWC_RESULT(symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
+                }
+                else if (hasGlobalStorage && !SymbolStruct::typeHasAllZeroImplicitDefault(sema, explicitTypeRef))
+                {
+                    // Arrays need each element's implicit default, including dynamic identity,
+                    // just as a standalone global struct does.
+                    SWC_RESULT(SymbolStruct::prepareDynamicMetadata(sema, explicitTypeRef));
+                    ByteArray bytes(explicitType->sizeOf(sema.ctx()));
+                    SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(sema, bytes.span(), explicitTypeRef));
+                    implicitGlobalStoreRef = ConstantHelpers::materializeStaticPayloadConstant(sema, explicitTypeRef, bytes.span());
+                    SWC_ASSERT(implicitGlobalStoreRef.isValid());
+                }
             }
         }
         const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
@@ -1126,7 +1139,7 @@ namespace
             return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef());
 
         const ConstantRef initCstRef        = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
-        const ConstantRef globalInitCstRef  = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructStoreRef);
+        const ConstantRef globalInitCstRef  = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitGlobalStoreRef);
         const ConstantRef variableDefaultCf = setInitInfo.handled ? setInitInfo.defaultValueCstRef : initCstRef;
         storeLetConstants(symbols, isLet, initCstRef);
         storeGlobalVariableConstants(symbols, globalInitCstRef);

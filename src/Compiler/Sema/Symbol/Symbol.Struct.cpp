@@ -1056,6 +1056,11 @@ Result SymbolStruct::waitTypeImplicitDefaultReady(Sema& sema, const TypeRef type
     return waitTypeImplicitDefaultReadyRec(sema, typeRef, waitNodeRef, visited);
 }
 
+bool SymbolStruct::typeHasAllZeroImplicitDefault(Sema& sema, const TypeRef typeRef)
+{
+    return classifyTypeImplicitDefault(sema, typeRef) == ImplicitDefaultKind::AllZero;
+}
+
 bool SymbolStruct::fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field)
 {
     return implicitDefaultKindRequiresInit(classifyFieldImplicitDefault(sema, field));

@@ -43,12 +43,12 @@ private:
     Utf8   automaticWorkDirName(const Utf8& name) const;
     Result createBuildDir(const fs::path& buildDir) const;
 
-    Result        prepareDataSections() const;
-    Result        buildStartupAndDataSectionsParallel() const;
-    void          resetDataSections() const;
-    Result        prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
-    Result        finishDataSections(NativeRDataCollector& rdataCollector) const;
-    Result        partitionObjects() const;
+    Result prepareDataSections() const;
+    Result buildStartupAndDataSectionsParallel() const;
+    void   resetDataSections() const;
+    Result prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
+    Result finishDataSections(NativeRDataCollector& rdataCollector) const;
+    Result partitionObjects() const;
 
 public:
     // Re-splits the very same machine code one function per object, which is the granularity the

@@ -58,6 +58,8 @@ const ATTACH_PARENT_PROCESS = cast #bit (DWORD) -1
 const FALSE = 0
 const TRUE  = 1
 
+const CSTR_EQUAL = 2
+
 const FOREGROUND_BLUE      = 0x0001
 const FOREGROUND_GREEN     = 0x0002
 const FOREGROUND_RED       = 0x0004
@@ -552,6 +554,8 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func VirtualUnlock(lpAddress: LPVOID, dwSize: SIZE_T)->BOOL
     func GetLastError()->DWORD
     func SetLastError(dwErrCode: DWORD)
+
+    func CompareStringOrdinal(lpString1: LPCWSTR, cchCount1: INT, lpString2: LPCWSTR, cchCount2: INT, bIgnoreCase: BOOL)->INT
 
     // Converts a bounded code-page byte sequence to UTF-16; a zero output size queries capacity.
     func MultiByteToWideChar(CodePage: UINT, dwFlags: DWORD, lpMultiByteStr: LPCSTR, cbMultiByte: INT, lpWideCharStr: LPWSTR, cchWideChar: INT)->INT

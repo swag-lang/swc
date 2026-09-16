@@ -1606,6 +1606,53 @@ SWC_TEST_BEGIN(InstructionCombine_FoldsBooleanSelect)
 }
 SWC_TEST_END()
 
+// A zero/one select only needs SETcc and zero-extension, which preserve live flags.
+SWC_TEST_BEGIN(InstructionCombine_BooleanSelectPreservesLiveFlags)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const bool sourceNonzero : {false, true})
+        {
+            constexpr MicroReg dst  = MicroReg::virtualIntReg(1);
+            constexpr MicroReg src  = MicroReg::virtualIntReg(2);
+            constexpr MicroReg flag = MicroReg::virtualIntReg(3);
+            constexpr MicroReg base = MicroReg::intReg(2);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegImm(dst, ApInt(sourceNonzero ? 0 : 1, 64), bits);
+            builder.emitCmpRegReg(base, MicroReg::intReg(3), bits);
+            builder.emitLoadRegImm(src, ApInt(sourceNonzero ? 1 : 0, 64), bits);
+            builder.emitLoadCondRegReg(dst, src, MicroCond::Equal, bits);
+            builder.emitSetCondReg(flag, MicroCond::Zero);
+            builder.emitLoadMemReg(base, 8, flag, MicroOpBits::B8);
+            builder.emitLoadMemReg(base, 0, dst, bits);
+            builder.emitRet();
+            SWC_RESULT(runInstCombinePass(builder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 2 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpUnaryReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+                return Result::Error;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                const MicroInstrOperand* ops = inst.ops(builder.operands());
+                if (inst.op == MicroInstrOpcode::SetCondReg)
+                {
+                    if (ops[0].reg == src)
+                    {
+                        if (ops[1].cpuCond != (sourceNonzero ? MicroCond::Equal : MicroCond::NotEqual))
+                            return Result::Error;
+                    }
+                    else if (ops[0].reg != flag || ops[1].cpuCond != MicroCond::Zero)
+                        return Result::Error;
+                }
+                if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg && (ops[0].reg != dst || ops[1].reg != src || ops[2].opBits != bits || ops[3].opBits != MicroOpBits::B8))
+                    return Result::Error;
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
 {
     enum class Case
@@ -1614,14 +1661,17 @@ SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
         InterveningFlags,
         NarrowInitial,
         UnsupportedMask,
+        PartialMask,
         NoComplement
     };
-    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedMask, Case::NoComplement})
+    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedMask, Case::PartialMask, Case::NoComplement})
     {
         constexpr MicroReg dst = MicroReg::virtualIntReg(1);
         constexpr MicroReg src = MicroReg::virtualIntReg(2);
         MicroBuilder       builder(ctx);
-        builder.emitLoadRegImm(dst, ApInt(test == Case::UnsupportedMask ? 3 : 1, 64), test == Case::NarrowInitial ? MicroOpBits::B8 : MicroOpBits::B64);
+        const uint64_t     initialValue = test == Case::UnsupportedMask ? 3 : test == Case::PartialMask ? 0xFFFFFFFF
+                                                                                                        : 1;
+        builder.emitLoadRegImm(dst, ApInt(initialValue, 64), test == Case::NarrowInitial ? MicroOpBits::B8 : MicroOpBits::B64);
         builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(3), MicroOpBits::B64);
         builder.emitLoadRegImm(src, ApInt(0, 64), MicroOpBits::B64);
         if (test == Case::InterveningFlags)

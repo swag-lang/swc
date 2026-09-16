@@ -32,11 +32,12 @@ private func comparableDirectory(directory: string)->String
 // Compares complete entries while preserving the original PATH text and variable references.
 func pathContainsDirectory(path, directory: string)->bool
 {
-    let wanted = comparableDirectory(directory)
+    let wanted = Utf16.toZeroTerminated(comparableDirectory(directory).toString())
     for entry in Tokenize.split(path, ";")
     {
-        let normalized = comparableDirectory(entry)
-        if Path.equals(normalized.toString(), wanted.toString()) do
+        let normalized = Utf16.toZeroTerminated(comparableDirectory(entry).toString())
+        // Windows ordinal casing preserves Unicode identity; bytewise folding does not.
+        if CompareStringOrdinal(normalized.buffer, -1, wanted.buffer, -1, TRUE) == CSTR_EQUAL do
             return true
     }
 

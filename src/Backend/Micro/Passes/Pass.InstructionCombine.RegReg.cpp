@@ -29,6 +29,45 @@ namespace InstructionCombine
                    info.flags.has(MicroInstrFlagsE::IsCallInstruction);
         }
 
+        // A doubling with dead flags is one address computation. Read the
+        // uncopied input when the two add operands name the same SSA value.
+        bool tryDoubleInput(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (ops[3].microOp != MicroOp::Add || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            MicroInstrRef copyRef;
+            if (ops[0].reg != ops[1].reg)
+            {
+                if (!ctx.ssa)
+                    return false;
+                const auto def = ctx.ssa->reachingDef(ops[0].reg, ref);
+                if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegReg)
+                    return false;
+                const auto* copy = def.inst->ops(*ctx.operands);
+                if (!copy || copy[1].reg != ops[1].reg || getNumBits(copy[2].opBits) < getNumBits(bits))
+                    return false;
+                const auto source = ctx.ssa->reachingDef(ops[1].reg, def.instRef);
+                if (!source.valid() || ctx.ssa->reachingDef(ops[1].reg, ref).valueId != source.valueId)
+                    return false;
+                copyRef = def.instRef;
+            }
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.claimAll({ref, copyRef.isValid() ? copyRef : ref}))
+                return false;
+            MicroInstrOperand address[8] = {};
+            address[0].reg               = ops[0].reg;
+            address[1].reg               = ops[1].reg;
+            address[2].reg               = ops[1].reg;
+            address[3].opBits            = bits;
+            address[4].opBits            = MicroOpBits::B64;
+            address[5].valueU64          = 1;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, address, true);
+            return true;
+        }
+
         // Complementary logical shifts of one value form a rotate. Keep the
         // input reads and the left result's copies at their original positions.
         bool tryFoldRotate(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
@@ -712,6 +751,8 @@ namespace InstructionCombine
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
         if (!ops || !ops[0].reg.isVirtualInt())
             return false;
+        if (tryDoubleInput(ctx, ref, ops))
+            return true;
         if (ops[0].reg != ops[1].reg)
             return tryFoldRotate(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 

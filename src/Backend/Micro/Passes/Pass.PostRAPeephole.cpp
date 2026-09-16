@@ -37,6 +37,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowTruncatedRightShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractSignBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryClearBeforeSetCondition);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);

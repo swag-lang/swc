@@ -470,6 +470,34 @@ namespace PostRaPeephole
         return true;
     }
 
+    // If only a low byte/word of a logical right shift survives, perform the
+    // shift in 32 bits when all bits contributing to that slice are below bit 32.
+    bool tryNarrowTruncatedRightShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ext = inst.ops(*ctx.operands);
+        if (!ext || !ext[0].reg.isInt() || !ext[1].reg.isInt() ||
+            (ext[2].opBits != MicroOpBits::B32 && ext[2].opBits != MicroOpBits::B64) ||
+            (ext[3].opBits != MicroOpBits::B8 && ext[3].opBits != MicroOpBits::B16))
+            return false;
+        const MicroInstrRef shiftRef = ctx.previousRef(ref);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        if (!shift || shift->op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const auto* ops = shift->ops(*ctx.operands);
+        if (!ops || ops[0].reg != ext[1].reg || ops[1].opBits != MicroOpBits::B64 ||
+            ops[2].microOp != MicroOp::ShiftRight || ops[3].hasWideImmediateValue() ||
+            ops[3].valueU64 == 0 || ops[3].valueU64 >= 32 || ops[3].valueU64 + getNumBits(ext[3].opBits) > 32 ||
+            ctx.isPrivateFrameBase(ops[0].reg) ||
+            (ext[0].reg != ext[1].reg && !ctx.isRegDeadAfterCurrent(ext[1].reg)) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({shiftRef, ref}))
+            return false;
+        MicroInstrOperand narrowed[4] = {ops[0], ops[1], ops[2], ops[3]};
+        narrowed[1].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(shiftRef, shift->op, narrowed);
+        return true;
+    }
+
     // A signed comparison against zero exposes the sign bit directly. Keep
     // the original full-width source and define every result bit with a shift.
     bool tryExtractSignBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

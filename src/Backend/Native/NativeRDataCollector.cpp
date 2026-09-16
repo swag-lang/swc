@@ -19,6 +19,7 @@ Result NativeRDataCollector::collectAndEmit()
 {
     SWC_RESULT(collectStartupRoots());
     SWC_RESULT(collectFunctionRoots());
+    SWC_RESULT(collectGlobalRoots());
     return emitCollectedRoots();
 }
 
@@ -38,6 +39,20 @@ Result NativeRDataCollector::collectFunctionRoots()
             continue;
 
         SWC_RESULT(collectCodeRoots(info.debugName, info.machineCode->codeRelocations));
+    }
+
+    return Result::Continue;
+}
+
+Result NativeRDataCollector::collectGlobalRoots()
+{
+    const Utf8 ownerName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
+    for (const DataSegmentRelocation& relocation : builder_->compiler().globalInitSegment().copyRelocations())
+    {
+        if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
+            continue;
+
+        SWC_RESULT(enqueueSourceOffset(ownerName, relocation.targetShardIndex, relocation.targetOffset));
     }
 
     return Result::Continue;

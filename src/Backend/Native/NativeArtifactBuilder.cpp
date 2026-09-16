@@ -703,9 +703,10 @@ void NativeArtifactBuilder::resetDataSections() const
 
 Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const
 {
-    // Emitted function code is the source of truth for native constant roots.
-    // Startup roots are collected after startup lowering has completed.
+    // Global initializers also retain constants, such as dynamic type descriptors, without
+    // requiring a code reference. Startup roots arrive after startup lowering has completed.
     SWC_RESULT(rdataCollector.collectFunctionRoots());
+    SWC_RESULT(rdataCollector.collectGlobalRoots());
 
     CompilerInstance& compiler = builder_->compiler();
     const uint32_t    dataSize = compiler.globalInitSegment().extentSize();
@@ -713,19 +714,46 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
     {
         builder_->mergedData.bytes.resize(dataSize);
         compiler.globalInitSegment().copyToPreserveOffsets(std::span{builder_->mergedData.bytes.data(), dataSize});
+    }
 
+    return Result::Continue;
+}
+
+Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataCollector) const
+{
+    // Constant offsets are only known once every root, including startup, has been emitted.
+    SWC_RESULT(rdataCollector.emitCollectedRoots());
+
+    CompilerInstance& compiler = builder_->compiler();
+    if (!builder_->mergedData.bytes.empty())
+    {
         const std::vector<DataSegmentRelocation> relocations = compiler.globalInitSegment().copyRelocations();
         Utf8                                    dataBaseName;
+        Utf8                                    rdataBaseName;
         for (const auto& relocation : relocations)
         {
             NativeSectionRelocation record;
             record.offset = relocation.offset;
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
-                if (dataBaseName.empty())
-                    dataBaseName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
-                record.symbolName = dataBaseName;
-                record.addend     = relocation.targetOffset;
+                if (relocation.targetShardIndex == INVALID_REF)
+                {
+                    if (dataBaseName.empty())
+                        dataBaseName = nativeScopedSectionBaseSymbol(compiler, K_DATA_BASE_SYMBOL);
+                    record.symbolName = dataBaseName;
+                    record.addend     = relocation.targetOffset;
+                }
+                else
+                {
+                    uint32_t targetOffset = 0;
+                    if (!builder_->tryMapRDataSourceOffset(targetOffset, relocation.targetShardIndex, relocation.targetOffset))
+                        return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, nativeScopedSectionBaseSymbol(compiler, K_DATA_BASE_SYMBOL));
+
+                    if (rdataBaseName.empty())
+                        rdataBaseName = nativeScopedSectionBaseSymbol(compiler, K_R_DATA_BASE_SYMBOL);
+                    record.symbolName = rdataBaseName;
+                    record.addend     = targetOffset;
+                }
             }
             else
             {
@@ -762,11 +790,6 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
     }
 
     return Result::Continue;
-}
-
-Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataCollector)
-{
-    return rdataCollector.emitCollectedRoots();
 }
 
 Result NativeArtifactBuilder::partitionObjects() const

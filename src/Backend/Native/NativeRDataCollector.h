@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 class NativeBackendBuilder;
 
-// Collects the constant-shard allocations that are reachable from emitted native code
+// Collects the constant-shard allocations that are reachable from emitted native code or globals
 // and remaps their internal relocations into the merged .rdata section.
 class NativeRDataCollector
 {
@@ -20,6 +20,7 @@ public:
     Result collectAndEmit();
     Result collectStartupRoots();
     Result collectFunctionRoots();
+    Result collectGlobalRoots();
     Result emitCollectedRoots();
 
 private:

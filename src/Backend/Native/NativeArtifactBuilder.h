@@ -47,7 +47,7 @@ private:
     Result        buildStartupAndDataSectionsParallel() const;
     void          resetDataSections() const;
     Result        prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
-    static Result finishDataSections(NativeRDataCollector& rdataCollector);
+    Result        finishDataSections(NativeRDataCollector& rdataCollector) const;
     Result        partitionObjects() const;
 
 public:

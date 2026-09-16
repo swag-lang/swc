@@ -1352,6 +1352,45 @@ SWC_TEST_BEGIN(PostRAPeephole_DwordCopyOfWideValue_NotForwardedToWideReader)
 }
 SWC_TEST_END()
 
+// A byte copy feeding a byte extension: the extension reads the source.
+SWC_TEST_BEGIN(PostRAPeephole_ByteCopyForwardsIntoByteExtend)
+{
+    const auto&  conv = CallConv::get(CallConvKind::Swag);
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(conv.intReturn, conv.intRegs[0], MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(conv.intReturn, conv.intReturn, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    bool extendsSource = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg && ops && ops[1].reg == conv.intRegs[0])
+            extendsSource = true;
+    }
+    if (!extendsSource)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte copy read at 32 bits: the reader keeps the copy.
+SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedToDwordReader)
+{
+    const auto&  conv = CallConv::get(CallConvKind::Swag);
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(conv.intRegs[1], conv.intRegs[0], MicroOpBits::B8);
+    builder.emitLoadRegReg(conv.intReturn, conv.intRegs[1], MicroOpBits::B32);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (hasLoadRegReg(builder, conv.intReturn, conv.intRegs[0]))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

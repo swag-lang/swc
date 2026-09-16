@@ -2382,6 +2382,91 @@ SWC_TEST_BEGIN(InstCombine_ExtendReadThroughJoinAsByte_Erased)
 }
 SWC_TEST_END()
 
+namespace
+{
+    bool hasLoadRegRegBits(const MicroBuilder& builder, MicroReg dst, MicroOpBits bits)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == dst && ops[2].opBits == bits)
+                return true;
+        }
+        return false;
+    }
+}
+
+// A byte selected on two paths and read back only as a byte is moved at 32
+// bits on both.
+SWC_TEST_BEGIN(InstCombine_ByteSelectReadAsByte_WidensToDword)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg merged = MicroReg::virtualIntReg(3);
+    constexpr MicroReg wide   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+    const auto         other = builder.createLabel();
+    const auto         done  = builder.createLabel();
+
+    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B8);
+    builder.emitCmpRegImm(value, ApInt(3, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, other);
+    builder.emitLoadRegImm(merged, ApInt(0xFF, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+    builder.placeLabel(other);
+    builder.emitLoadRegReg(merged, value, MicroOpBits::B8);
+    builder.placeLabel(done);
+    builder.emitLoadZeroExtendRegReg(wide, merged, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 8, wide, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (!hasLoadRegRegBits(builder, merged, MicroOpBits::B32))
+        return Result::Error;
+    bool wideImmediate = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadRegImm && ops && ops[0].reg == merged)
+            wideImmediate = ops[1].opBits == MicroOpBits::B32 && ops[2].valueU64 == 0xFF;
+    }
+    if (!wideImmediate)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The joined byte is read at 32 bits: the byte writes keep their width.
+SWC_TEST_BEGIN(InstCombine_ByteSelectReadWide_Kept)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg merged = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+    const auto         other = builder.createLabel();
+    const auto         done  = builder.createLabel();
+
+    builder.emitLoadRegMem(merged, base, 16, MicroOpBits::B32);
+    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B8);
+    builder.emitCmpRegImm(value, ApInt(3, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, other);
+    builder.emitLoadRegImm(merged, ApInt(0x7F, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+    builder.placeLabel(other);
+    builder.emitLoadRegReg(merged, value, MicroOpBits::B8);
+    builder.placeLabel(done);
+    builder.emitLoadMemReg(base, 8, merged, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (!hasLoadRegRegBits(builder, merged, MicroOpBits::B8))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -128,18 +128,31 @@ namespace InstructionCombine
     // emitted code for every u32 parameter copied into a local. The readers are
     // claimed so no rule of the same sweep can lean on the upper half being
     // zero while it stops being so.
+    //
+    // A byte or word write whose readers take no more than its own bits is
+    // widened to 32 bits the same way, as LLVM promotes i8 arithmetic on x86:
+    // the write no longer keeps the rest of the register, so the value it
+    // replaces can die, and a select of two such bytes becomes a cmov.
     bool tryWidenCopyWithNarrowReaders(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa)
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || ops[2].opBits != MicroOpBits::B32)
+        if (!ops)
+            return false;
+
+        const bool        immediate = inst.op == MicroInstrOpcode::LoadRegImm;
+        const MicroOpBits bits      = ops[immediate ? 1 : 2].opBits;
+        const bool        partial   = bits == MicroOpBits::B8 || bits == MicroOpBits::B16;
+        if (bits != MicroOpBits::B32 && !partial)
+            return false;
+        if (immediate && (!partial || ops[2].hasWideImmediateValue()))
             return false;
 
         const MicroReg dst = ops[0].reg;
-        const MicroReg src = ops[1].reg;
-        if (!dst.isVirtualInt() || !src.isAnyInt() || dst == src)
+        const MicroReg src = immediate ? MicroReg::invalid() : ops[1].reg;
+        if (!dst.isVirtualInt() || (!immediate && (!src.isAnyInt() || dst == src)))
             return false;
 
         uint32_t valueId = 0;
@@ -149,7 +162,7 @@ namespace InstructionCombine
         if (!valueInfo || valueInfo->uses.empty())
             return false;
         SmallVector<uint32_t> visitedPhis;
-        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0, visitedPhis) > 32)
+        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, dst, 0, visitedPhis) > getNumBits(bits))
             return false;
 
         if (ctx.isRelocated(ref))
@@ -167,10 +180,20 @@ namespace InstructionCombine
                 ctx.claimed.insert(useSite.instRef.get());
         }
 
+        if (immediate)
+        {
+            MicroInstrOperand loadOps[3];
+            loadOps[0].reg      = dst;
+            loadOps[1].opBits   = MicroOpBits::B32;
+            loadOps[2].valueU64 = ops[2].valueU64 & (bits == MicroOpBits::B8 ? 0xFF : 0xFFFF);
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegImm, loadOps);
+            return true;
+        }
+
         MicroInstrOperand moveOps[3];
         moveOps[0].reg    = dst;
         moveOps[1].reg    = src;
-        moveOps[2].opBits = MicroOpBits::B64;
+        moveOps[2].opBits = partial ? MicroOpBits::B32 : MicroOpBits::B64;
         ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, moveOps);
         return true;
     }

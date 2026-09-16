@@ -192,3 +192,20 @@ Both compiler configurations built successfully. Validation rotated to these bou
 Batch-3 integration with master `bc0ec576c` used Release build 715. Native
 `--file-filter typeinfo_generic_method_where.swg -bc release` passed its case in JIT and in
 the emitted executable, exercising reflected generic methods excluded by a `where` condition.
+
+## Discarded: JIT global-address cache capacity
+
+Build 716 reserved the global-function address cache from the number of referenced global slots
+instead of every module global, and returned early when a compile-time call referenced none.
+Compared with batch-3 integration / build 715, three common-root gui pairs did not establish a
+repeatable gain: median paired elapsed +24.91%, CPU +2.36%, cycles +2.71%, peak working set +3.33%.
+Two elapsed pairs regressed. Background activity reached 48.87% during the third candidate,
+versus 8.18% during its paired baseline, so those timings cannot isolate the local change's cost.
+All samples are retained; the prototype was discarded.
+
+Both compilers built. Release compiler/program `release`, core `--test-file hashtable.test.swg`,
+passed 13 cases in JIT and native; DevMode JIT `--file-filter global_function_ptr.swg` passed
+one case. All six gui rebuilds completed. Baseline/candidate SHA-256:
+
+- `d0448a56ec886a6ffa274e02af55e53c0076e08f7b7a8ee3fec2a319f443e294`.
+- `5c0403440b8d01a11a0815dc3c860cdca1825f398112015bae2a5a90bd15cf32`.

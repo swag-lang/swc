@@ -317,6 +317,19 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     if (!typeRef.isValid())
         return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeFalseRef, nodeTrueView.typeRef(), nodeFalseView.typeRef());
 
+    // A runtime select has no single constant to concretize when an inferred
+    // local captures it. Settle both literal widths here, after contextual
+    // bindings have had their chance, so later uses cannot default to s32.
+    if (!nodeCondView.cstRef().isValid() && sema.typeMgr().get(typeRef).isScalarUnsized() &&
+        isUnsizedScalarConstant(nodeTrueView) && isUnsizedScalarConstant(nodeFalseView))
+    {
+        ConstantRef trueConstant;
+        ConstantRef falseConstant;
+        SWC_RESULT(Cast::concretizeConstant(sema, trueConstant, nodeTrueView.nodeRef(), nodeTrueView.cstRef(), TypeInfo::Sign::Unknown));
+        SWC_RESULT(Cast::concretizeConstant(sema, falseConstant, nodeFalseView.nodeRef(), nodeFalseView.cstRef(), TypeInfo::Sign::Unknown));
+        typeRef = sema.typeMgr().promote(sema.cstMgr().get(trueConstant).typeRef(), sema.cstMgr().get(falseConstant).typeRef(), true);
+    }
+
     sema.setType(sema.curNodeRef(), typeRef);
     if (ownsValue)
     {

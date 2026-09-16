@@ -106,8 +106,9 @@ namespace InstructionCombine
         }
     }
 
-    // A select between zero and one is the condition itself. Reuse the adjacent,
-    // single-use source materialization for setcc, then widen its byte explicitly:
+    // A select between zero and a single bit or all-one mask starts with setcc.
+    // Scale or negate that boolean only when the original flags are dead.
+    // Reuse the adjacent single-use source materialization, then widen its byte:
     // the use/def model must not mistake setcc for a full-register definition.
     bool tryFoldBooleanSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
@@ -127,9 +128,9 @@ namespace InstructionCombine
             return false;
         const MicroInstrOperand* sourceOps = source->ops(*ctx.operands);
         if (sourceOps[0].reg != src || sourceOps[1].opBits != bits ||
-            sourceOps[2].hasWideImmediateValue() || sourceOps[2].valueU64 > 1)
+            sourceOps[2].hasWideImmediateValue())
             return false;
-        const uint64_t sourceValue = sourceOps[2].valueU64;
+        const uint64_t sourceValue = sourceOps[2].valueU64 & getBitsMask(bits);
 
         const auto destinationDef = ctx.ssa->reachingDef(dst, ref);
         if (!destinationDef.valid())
@@ -141,7 +142,16 @@ namespace InstructionCombine
         if (!initial || initial->op != MicroInstrOpcode::LoadRegImm)
             return false;
         const MicroInstrOperand* initialOps = initial->ops(*ctx.operands);
-        if (initialOps[1].opBits != bits || initialOps[2].hasWideImmediateValue() || initialOps[2].valueU64 != 1 - sourceValue)
+        if (initialOps[1].opBits != bits || initialOps[2].hasWideImmediateValue())
+            return false;
+        const uint64_t initialValue = initialOps[2].valueU64 & getBitsMask(bits);
+        if ((sourceValue == 0) == (initialValue == 0))
+            return false;
+        const uint64_t mask   = sourceValue ? sourceValue : initialValue;
+        const bool     negate = mask == getBitsMask(bits);
+        if (!negate && !std::has_single_bit(mask))
+            return false;
+        if (mask != 1 && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
             return false;
         if (!valueHasSingleUse(*ctx.ssa, src, sourceRef))
             return false;
@@ -162,7 +172,24 @@ namespace InstructionCombine
         extendOps[1].reg    = src;
         extendOps[2].opBits = bits;
         extendOps[3].opBits = MicroOpBits::B8;
-        ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+        if (mask == 1)
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+        else
+        {
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+            MicroInstrOperand scale[4];
+            scale[0].reg     = dst;
+            scale[1].opBits  = bits;
+            scale[2].microOp = negate ? MicroOp::Negate : MicroOp::ShiftLeft;
+            if (negate)
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, std::span{scale, 3});
+            else
+            {
+                scale[1].opBits   = mask <= 0xFFFFFFFF ? MicroOpBits::B32 : bits;
+                scale[3].valueU64 = std::countr_zero(mask);
+                ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, scale);
+            }
+        }
         return true;
     }
 

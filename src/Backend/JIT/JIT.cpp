@@ -23,6 +23,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -124,9 +125,9 @@ namespace
         if (!runFunction)
             return;
 
-        std::unordered_set<const SymbolFunction*> seen;
-        const auto                               collect = [&](const SymbolFunction* function) {
-            if (!function || !seen.insert(function).second)
+        PointerSet<const SymbolFunction> seen;
+        const auto                       collect = [&](const SymbolFunction* function) {
+            if (!function || !seen.insert(function))
                 return;
             collectGlobalInitRelocationOffsets(*function, outOffsets);
         };

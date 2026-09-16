@@ -34,6 +34,10 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryClearBeforeSetCondition);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
@@ -43,6 +47,9 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
+        r.add(MicroInstrOpcode::LoadRegReg, tryInvertZeroSelect);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopySource);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseRedundantCopy);

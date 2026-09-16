@@ -346,6 +346,46 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A commutative result copied over its other input can be produced there
+    // directly. The old destination must be dead, including along CFG successors.
+    bool tryCommuteBinaryResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrRef binaryRef = ctx.previousRef(ref);
+        const MicroInstr*   binary    = ctx.instruction(binaryRef);
+        if (!binary || binary->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* ops = binary->ops(*ctx.operands);
+        if (!ops || ops[0].reg != copy[1].reg || ops[1].reg != copy[0].reg ||
+            (ops[2].opBits != copy[2].opBits && !(ops[2].opBits == MicroOpBits::B32 && copy[2].opBits == MicroOpBits::B64)))
+            return false;
+        switch (ops[3].microOp)
+        {
+            case MicroOp::Add:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+            case MicroOp::MultiplySigned:
+                break;
+            default:
+                return false;
+        }
+        const MicroInstrUseDef useDef = binary->collectUseDef(*ctx.operands, ctx.encoder);
+        if (useDef.defs.size() != 1 || useDef.defs[0] != copy[1].reg || !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+        MicroInstrOperand     swapped[4] = {ops[1], ops[0], ops[2], ops[3]};
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *binary, swapped)) || !ctx.claimAll({binaryRef, ref}))
+            return false;
+        ctx.emitRewrite(binaryRef, binary->op, swapped);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // A count-only copy needs at most six bits. Clearing its upper half is
     // harmless once the count dies or is replaced by the shift's full result.
     bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

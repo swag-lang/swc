@@ -206,3 +206,8 @@ The three initial regressions failed with baseline build 708 (861 other C++ test
 This final batch retains only these correctness fixes. It does not change SmallVector layout,
 sanitizer state propagation, optimizer settings or generated-code transformations. Measurements
 of the rejected combined bundle above are not claimed as gains for these fixes.
+
+Final integration uses compiler build 729. At the user's explicit request to stop immediately,
+the final Release and DevMode rebuilds were interrupted and integration tests were not run.
+Earlier green results above cover the storage fixes within the experimental bundles; they
+do not constitute completed validation of this final integrated revision.

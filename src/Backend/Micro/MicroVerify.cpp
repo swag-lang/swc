@@ -209,6 +209,7 @@ namespace
 
             case MicroInstrOpcode::JumpCond:
             case MicroInstrOpcode::JumpCondImm:
+            case MicroInstrOpcode::LoadHighByteRegReg:
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadRegImm:
             case MicroInstrOpcode::LoadRegPtrImm:

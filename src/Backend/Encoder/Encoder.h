@@ -69,6 +69,7 @@ public:
     // writing into one of its inputs. Where it cannot, the post-RA peephole
     // leaves the copy-then-operate pair alone.
     virtual bool                    supportsNonDestructiveFloatBinary() const { return false; }
+    virtual bool                    supportsHighByteExtract(MicroReg, MicroReg) const { return false; }
     void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
 
@@ -132,6 +133,7 @@ protected:
     virtual void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                              = 0;
     virtual void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                               = 0;
     virtual void encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                = 0;
+    virtual void encodeLoadHighByteRegReg(MicroReg regDst, MicroReg regSrc) = 0;
     virtual void encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                                 = 0;
     virtual void encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                               = 0;
     virtual void encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc)                  = 0;

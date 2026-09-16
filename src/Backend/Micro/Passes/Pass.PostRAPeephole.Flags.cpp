@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
@@ -490,6 +491,34 @@ namespace PostRaPeephole
         ctx.emitRewrite(sourceRef, MicroInstrOpcode::ClearReg, clear);
         ctx.emitRewrite(cmpRef, cmp->op, narrow);
         ctx.emitErase(ref);
+        return true;
+    }
+
+    // The legacy high-byte registers can replace a shift plus byte extraction.
+    // Ask the encoder before forming one: a REX prefix makes them unavailable.
+    bool tryExtractHighByte(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ext = inst.ops(*ctx.operands);
+        if (!ext || !ctx.encoder || ext[3].opBits != MicroOpBits::B8 ||
+            (ext[2].opBits != MicroOpBits::B32 && ext[2].opBits != MicroOpBits::B64) ||
+            ctx.isPrivateFrameBase(ext[0].reg) || ctx.isPrivateFrameBase(ext[1].reg) ||
+            !ctx.encoder->supportsHighByteExtract(ext[0].reg, ext[1].reg))
+            return false;
+        const MicroInstrRef shiftRef = ctx.previousRef(ref);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        if (!shift || shift->op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const auto* ops = shift->ops(*ctx.operands);
+        if (!ops || ops[0].reg != ext[1].reg ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+            (ops[2].microOp != MicroOp::ShiftRight && ops[2].microOp != MicroOp::ShiftArithmeticRight) || ops[3].hasWideImmediateValue() || ops[3].valueU64 != 8 ||
+            (ext[0].reg != ext[1].reg && !ctx.isRegDeadAfterCurrent(ext[1].reg)) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({shiftRef, ref}))
+            return false;
+        const MicroInstrOperand extract[3] = {ext[0], ext[1], ext[2]};
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadHighByteRegReg, extract);
+        ctx.emitErase(shiftRef);
         return true;
     }
 

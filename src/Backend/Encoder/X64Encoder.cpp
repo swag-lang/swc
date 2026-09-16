@@ -1819,6 +1819,25 @@ void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint6
     }
 }
 
+bool X64Encoder::supportsHighByteExtract(MicroReg regDst, MicroReg regSrc) const
+{
+    if (!regDst.isInt() || !regSrc.isInt())
+        return false;
+    const X64Reg source = microRegToX64Reg(regSrc);
+    return !isExtendedReg(microRegToX64Reg(regDst)) &&
+           (source == X64Reg::Rax || source == X64Reg::Rbx || source == X64Reg::Rcx || source == X64Reg::Rdx);
+}
+
+void X64Encoder::encodeLoadHighByteRegReg(MicroReg regDst, MicroReg regSrc)
+{
+    SWC_ASSERT(supportsHighByteExtract(regDst, regSrc));
+    // A REX prefix would select SPL/BPL/SIL/DIL instead of AH/CH/DH/BH.
+    // The dword destination clears its upper half without REX.W.
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0xB6);
+    store_.pushU8(static_cast<uint8_t>(0xC0 | (encodeReg(regDst) << 3) | (encodeReg(regSrc) + 4)));
+}
+
 void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);

@@ -1229,12 +1229,15 @@ func lastRune(src: const [..] u8)->rune
 enum ComparisonType
 {
     Latin1            // Selects latin1.
-    Latin1NoCase      // Selects latin1 no case.
+    Latin1NoCase      // Ignores ASCII and encoded Latin-1 case pairs; preserves other UTF-8 bytes.
     Unicode           // Selects unicode.
     UnicodeNoCase     // Selects unicode no case.
 }
 
-// Compare two utf8 buffers with the given algorithm
+// Compares UTF-8 buffers with the selected case policy, returning -1, 0 or 1.
+//
+// `.Latin1NoCase` folds only ASCII and Latin-1 case pairs, preserving all other encoded
+// characters. Use `.UnicodeNoCase` for Unicode simple case mapping. No mode normalizes text.
 func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s32
 {
     using ComparisonType

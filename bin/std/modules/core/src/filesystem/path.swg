@@ -261,16 +261,17 @@ func extension(fullname: string?)->string?
     return null
 }
 
-// Returns the file name extension in lower case, including the '.' character
-// Returns null if no extension was found
-func lowercaseExtension(fullname: string?)->String => String.toLower(extension(fullname))
+// Returns the file name extension in Unicode lowercase, including the '.' character.
+//
+// Returns an empty string if no extension was found.
+func lowercaseExtension(fullname: string?)->String => String.toLower(extension(fullname), .Unicode)
 
 // Returns whether the path has `expectedExtension` under the target's case policy.
 func hasExtension(fullname, expectedExtension: string)->bool
 {
     if TargetPathCaseSensitive do
         return extension(fullname) == expectedExtension
-    return lowercaseExtension(fullname) == String.toLower(expectedExtension)
+    return equals(extension(fullname) orelse "", expectedExtension)
 }
 
 // Returns true if the file name contains an extension
@@ -320,11 +321,29 @@ func combine(fullnames: (string?)...)->String
 }
 
 // Returns whether two paths are equal under the selected target's case policy.
+//
+// Case-insensitive targets compare Unicode simple-uppercase values without normalizing paths.
+// Malformed UTF-8 is compared byte-for-byte.
 func equals(path1, path2: string)->bool
 {
     if TargetPathCaseSensitive do
         return path1 == path2
-    return Utf8.compare(path1, path2, .Latin1NoCase) == 0
+    if path1 == path2 do
+        return true
+
+    var offset1, offset2 = 0'u64
+    while offset1 < path1.count and offset2 < path2.count
+    {
+        let first = Utf8.decodeRune(Swag.makeSlice(path1.buffer + offset1, path1.count - offset1))
+        let second = Utf8.decodeRune(Swag.makeSlice(path2.buffer + offset2, path2.count - offset2))
+        if first.c == Utf8.RuneError and first.eat == 1 or second.c == Utf8.RuneError and second.eat == 1 do
+            return false
+        if first.c != second.c and Unicode.toUpper(first.c) != Unicode.toUpper(second.c) do
+            return false
+        offset1 += first.eat
+        offset2 += second.eat
+    }
+    return offset1 == path1.count and offset2 == path2.count
 }
 
 // Replaces the target's alternate separator with its preferred separator.

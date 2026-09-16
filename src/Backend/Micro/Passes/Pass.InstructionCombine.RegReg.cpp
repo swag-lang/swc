@@ -112,6 +112,96 @@ namespace InstructionCombine
             return true;
         }
 
+        // a | (a & b) = a, a & (a | b) = a, and (a ^ b) ^ a = b.
+        // The inner value must belong to this expression alone. Keep the reads
+        // at the final operation only when their original values still reach it.
+        bool tryFoldRepeatedBitwiseInput(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            const MicroOp outer = ops[3].microOp;
+            if (!ctx.ssa || (outer != MicroOp::And && outer != MicroOp::Or && outer != MicroOp::Xor) || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            const MicroOp inner = outer == MicroOp::And ? MicroOp::Or : outer == MicroOp::Or ? MicroOp::And : MicroOp::Xor;
+
+            for (uint32_t side = 0; side < 2; ++side)
+            {
+                MicroReg      innerReg = ops[side].reg;
+                auto          def      = ctx.ssa->reachingDef(innerReg, ref);
+                MicroInstrRef resultCopy;
+                if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = def.inst->ops(*ctx.operands);
+                    if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
+                        ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                        continue;
+                    resultCopy = def.instRef;
+                    innerReg   = copy[1].reg;
+                    def        = ctx.ssa->reachingDef(innerReg, resultCopy);
+                }
+                if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
+                    ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                    continue;
+                const auto* binary = def.inst->ops(*ctx.operands);
+                if (!binary || binary[2].opBits != bits || binary[3].microOp != inner || !binary[1].reg.isVirtualInt())
+                    continue;
+                const auto initial = ctx.ssa->reachingDef(innerReg, def.instRef);
+                if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)
+                    continue;
+                const auto* input = initial.inst->ops(*ctx.operands);
+                if (!input || !input[1].reg.isVirtualInt() || getNumBits(input[2].opBits) < getNumBits(bits))
+                    continue;
+
+                const std::array inputs{input[1].reg, binary[1].reg};
+                const std::array inputRefs{initial.instRef, def.instRef};
+                for (uint32_t common = 0; common < 2; ++common)
+                {
+                    MicroReg      other    = ops[1 - side].reg;
+                    MicroInstrRef otherRef = ref;
+                    MicroInstrRef otherCopy;
+                    if (other != inputs[common])
+                    {
+                        const auto reaching = ctx.ssa->reachingDef(other, ref);
+                        if (!reaching.valid() || reaching.isPhi || !reaching.inst || reaching.inst->op != MicroInstrOpcode::LoadRegReg)
+                            continue;
+                        const auto* copy = reaching.inst->ops(*ctx.operands);
+                        if (!copy || getNumBits(copy[2].opBits) < getNumBits(bits))
+                            continue;
+                        other     = copy[1].reg;
+                        otherRef  = reaching.instRef;
+                        otherCopy = reaching.instRef;
+                    }
+                    if (other != inputs[common])
+                        continue;
+                    const auto commonValue = ctx.ssa->reachingDef(other, inputRefs[common]);
+                    if (!commonValue.valid() || ctx.ssa->reachingDef(other, otherRef).valueId != commonValue.valueId)
+                        continue;
+                    const uint32_t resultIndex = outer == MicroOp::Xor ? 1 - common : common;
+                    const MicroReg result      = inputs[resultIndex];
+                    const auto     resultValue = ctx.ssa->reachingDef(result, inputRefs[resultIndex]);
+                    if (!resultValue.valid() || ctx.ssa->reachingDef(result, ref).valueId != resultValue.valueId)
+                        continue;
+                    if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                        !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                        continue;
+                    if (!ctx.claimAll({ref, def.instRef, initial.instRef, resultCopy.isValid() ? resultCopy : ref, otherCopy.isValid() ? otherCopy : ref}))
+                        continue;
+
+                    MicroInstrOperand copy[3];
+                    copy[0].reg    = ops[0].reg;
+                    copy[1].reg    = result;
+                    copy[2].opBits = bits;
+                    ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
+                    ctx.emitErase(def.instRef);
+                    if (resultCopy.isValid())
+                        ctx.emitErase(resultCopy);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // Factor AND over OR/XOR, and OR over AND. Keep the two non-common
         // inputs at their original read positions and move only the common
         // input, after proving that its value survives to the final operation.
@@ -345,7 +435,7 @@ namespace InstructionCombine
         if (!ops || !ops[0].reg.isVirtualInt())
             return false;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldRotate(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
+            return tryFoldRotate(ctx, ref, ops) || tryFoldRepeatedBitwiseInput(ctx, ref, ops) || tryFactorBitwiseInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

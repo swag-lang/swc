@@ -1660,18 +1660,18 @@ SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
         SharedSource,
         InterveningFlags,
         NarrowInitial,
-        UnsupportedAffineDelta,
+        UnsupportedConstant,
         PartialMask,
         NoComplement
     };
-    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedAffineDelta, Case::PartialMask, Case::NoComplement})
+    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedConstant, Case::PartialMask, Case::NoComplement})
     {
         constexpr MicroReg dst = MicroReg::virtualIntReg(1);
         constexpr MicroReg src = MicroReg::virtualIntReg(2);
         MicroBuilder       builder(ctx);
-        // Three is an encodable affine delta; seven still needs more than one LEA.
-        const uint64_t initialValue = test == Case::UnsupportedAffineDelta ? 7 : test == Case::PartialMask ? 0xFFFFFFFF
-                                                                                                           : 1;
+        // 129 fits neither a single LEA scale nor a sign-extended byte mask.
+        const uint64_t initialValue = test == Case::UnsupportedConstant ? 129 : test == Case::PartialMask ? 0xFFFFFFFF
+                                                                                                          : 1;
         builder.emitLoadRegImm(dst, ApInt(initialValue, 64), test == Case::NarrowInitial ? MicroOpBits::B8 : MicroOpBits::B64);
         builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(3), MicroOpBits::B64);
         builder.emitLoadRegImm(src, ApInt(0, 64), MicroOpBits::B64);
@@ -1800,12 +1800,12 @@ SWC_TEST_BEGIN(InstructionCombine_AffineSelect_PreservesValuesAndFlags)
 }
 SWC_TEST_END()
 
-// Scaling a materialized condition preserves a zero/single-bit or zero/all-one select,
-// but the added shift or negate must not overwrite flags consumed after the select.
+// Shifts, negation and compact masks preserve the selected values, but their
+// arithmetic must not overwrite flags consumed after the select.
 SWC_TEST_BEGIN(InstructionCombine_ScaledBooleanSelect_PreservesMasksAndFlags)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
-        for (const uint64_t mask : {uint64_t{2}, uint64_t{0x80000000}, uint64_t{0xFFFFFFFF}, uint64_t{0x100000000}, uint64_t{0x8000000000000000}, ~uint64_t{0}})
+        for (const uint64_t mask : {uint64_t{2}, uint64_t{7}, uint64_t{127}, uint64_t{128}, uint64_t{129}, uint64_t{0x80000000}, uint64_t{0xFFFFFFFF}, uint64_t{0x100000000}, uint64_t{0x8000000000000000}, ~uint64_t{0}})
         {
             if (mask > getBitsMask(bits))
                 continue;
@@ -1832,15 +1832,30 @@ SWC_TEST_BEGIN(InstructionCombine_ScaledBooleanSelect_PreservesMasksAndFlags)
                     builder.emitLoadMemReg(base, 0, dst, bits);
                     builder.emitRet();
                     SWC_RESULT(runInstCombinePass(builder));
-                    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != (liveFlags ? 1u : 0u) ||
-                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 1 ||
-                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != (liveFlags ? 0u : 1u))
+                    // 127 is the compact-mask boundary; 128 uses a shift and 129 stays a select.
+                    const bool folds = !liveFlags && mask != 129;
+                    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != (folds ? 0u : 1u) ||
+                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != (folds || liveFlags ? 1u : 0u) ||
+                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != (folds ? 1u : 0u))
                         return Result::Error;
-                    if (liveFlags)
+                    if (!folds)
+                    {
+                        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpUnaryReg) != 0 ||
+                            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+                            return Result::Error;
+                        for (const MicroInstr& inst : builder.instructions().view())
+                        {
+                            const MicroInstrOperand* ops = inst.ops(builder.operands());
+                            if (inst.op == MicroInstrOpcode::SetCondReg && (ops[0].reg != flag || ops[1].cpuCond != MicroCond::Zero))
+                                return Result::Error;
+                        }
                         continue;
+                    }
 
-                    const bool negate = mask == getBitsMask(bits);
-                    uint32_t   scales = 0;
+                    const bool              compactMask = mask == 7 || mask == 127;
+                    const bool              negate      = mask == getBitsMask(bits);
+                    uint32_t                scales      = 0;
+                    std::array<uint64_t, 2> values{0, 1};
                     for (const MicroInstr& inst : builder.instructions().view())
                     {
                         const MicroInstrOperand* ops = inst.ops(builder.operands());
@@ -1848,15 +1863,26 @@ SWC_TEST_BEGIN(InstructionCombine_ScaledBooleanSelect_PreservesMasksAndFlags)
                             return Result::Error;
                         if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg && (ops[0].reg != dst || ops[1].reg != src || ops[2].opBits != bits || ops[3].opBits != MicroOpBits::B8))
                             return Result::Error;
-                        if (inst.op != (negate ? MicroInstrOpcode::OpUnaryReg : MicroInstrOpcode::OpBinaryRegImm))
+                        if (inst.op == MicroInstrOpcode::OpUnaryReg)
+                        {
+                            if ((!negate && !compactMask) || ops[0].reg != dst || ops[1].opBits != bits || ops[2].microOp != MicroOp::Negate)
+                                return Result::Error;
+                            for (uint64_t& value : values)
+                                value = (0ull - value) & getBitsMask(bits);
+                            ++scales;
+                            continue;
+                        }
+                        if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
                             continue;
                         ++scales;
-                        const MicroOpBits scaleBits = negate || mask > 0xFFFFFFFF ? bits : MicroOpBits::B32;
-                        if (ops[0].reg != dst || ops[1].opBits != scaleBits || ops[2].microOp != (negate ? MicroOp::Negate : MicroOp::ShiftLeft) ||
-                            (!negate && ops[3].valueU64 != std::countr_zero(mask)))
+                        const MicroOpBits scaleBits = mask > 0xFFFFFFFF ? bits : MicroOpBits::B32;
+                        if (negate || ops[0].reg != dst || ops[1].opBits != scaleBits || ops[2].microOp != (compactMask ? MicroOp::And : MicroOp::ShiftLeft) ||
+                            ops[3].valueU64 != (compactMask ? mask : std::countr_zero(mask)))
                             return Result::Error;
+                        for (uint64_t& value : values)
+                            value = (compactMask ? value & ops[3].valueU64 : value << ops[3].valueU64) & getBitsMask(scaleBits);
                     }
-                    if (scales != 1)
+                    if (scales != (compactMask ? 2u : 1u) || values[0] != 0 || values[1] != mask)
                         return Result::Error;
                 }
         }

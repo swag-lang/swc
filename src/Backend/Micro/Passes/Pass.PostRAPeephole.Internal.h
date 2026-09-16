@@ -36,7 +36,11 @@ namespace PostRaPeephole
         // post-RA sweep). See MicroPassContext::isFirstOptimizationSweep.
         bool allowForwarding = true;
 
-        bool claimAll(std::initializer_list<MicroInstrRef> refs);
+        bool claimAll(std::span<const MicroInstrRef> refs);
+        bool claimAll(std::initializer_list<MicroInstrRef> refs)
+        {
+            return claimAll(std::span<const MicroInstrRef>{refs.begin(), refs.size()});
+        }
         bool isPrivateFrameBase(MicroReg reg) const;
     };
 

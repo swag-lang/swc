@@ -188,12 +188,14 @@ namespace
         ENCODE_CASE("load_sext_reg_reg_b16", "4D 0F BF CA", b.emitLoadSignedExtendRegReg(R9, R10, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_sext_reg_reg_b32", "4D 63 D1", b.emitLoadSignedExtendRegReg(R10, R9, MicroOpBits::B64, MicroOpBits::B32););
 
-        ENCODE_CASE("load_zext_reg_mem_b8", "4D 0F B6 5C 24 44", b.emitLoadZeroExtendRegMem(R11, R12, 0x44, MicroOpBits::B64, MicroOpBits::B8););
-        ENCODE_CASE("load_zext_reg_mem_b16", "4D 0F B7 95 88 00 00 00", b.emitLoadZeroExtendRegMem(R10, R13, 0x88, MicroOpBits::B64, MicroOpBits::B16););
+        ENCODE_CASE("load_zext_reg_mem_b8", "45 0F B6 5C 24 44", b.emitLoadZeroExtendRegMem(R11, R12, 0x44, MicroOpBits::B64, MicroOpBits::B8););
+        ENCODE_CASE("load_zext_reg_mem_b16", "45 0F B7 95 88 00 00 00", b.emitLoadZeroExtendRegMem(R10, R13, 0x88, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_zext_reg_mem_b32", "44 8B 4C 24 24", b.emitLoadZeroExtendRegMem(R9, RSP, 0x24, MicroOpBits::B64, MicroOpBits::B32););
-        ENCODE_CASE("load_zext_reg_reg_b8", "4D 0F B6 C3", b.emitLoadZeroExtendRegReg(R8, R11, MicroOpBits::B64, MicroOpBits::B8););
+        ENCODE_CASE("load_zext_reg_reg_b8", "45 0F B6 C3", b.emitLoadZeroExtendRegReg(R8, R11, MicroOpBits::B64, MicroOpBits::B8););
+        ENCODE_CASE("load_zext_reg_reg_b8_no_rex_w", "0F B6 C1", b.emitLoadZeroExtendRegReg(RAX, RCX, MicroOpBits::B64, MicroOpBits::B8););
+        ENCODE_CASE("load_zext_reg_reg_b16_no_rex_w", "0F B7 C1", b.emitLoadZeroExtendRegReg(RAX, RCX, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_zext_reg_reg_sil_b8_b32", "40 0F B6 C6", b.emitLoadZeroExtendRegReg(RAX, RSI, MicroOpBits::B32, MicroOpBits::B8););
-        ENCODE_CASE("load_zext_reg_reg_b16", "4D 0F B7 CA", b.emitLoadZeroExtendRegReg(R9, R10, MicroOpBits::B64, MicroOpBits::B16););
+        ENCODE_CASE("load_zext_reg_reg_b16", "45 0F B7 CA", b.emitLoadZeroExtendRegReg(R9, R10, MicroOpBits::B64, MicroOpBits::B16););
         ENCODE_CASE("load_zext_reg_reg_b32", "45 89 CA", b.emitLoadZeroExtendRegReg(R10, R9, MicroOpBits::B64, MicroOpBits::B32););
 
         // The thread's own block holds its first thread-local slots at a fixed

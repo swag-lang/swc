@@ -86,7 +86,7 @@ namespace PostRaPeephole
         }
     }
 
-    bool Context::claimAll(std::initializer_list<MicroInstrRef> refs)
+    bool Context::claimAll(std::span<const MicroInstrRef> refs)
     {
         for (const MicroInstrRef ref : refs)
             if (isClaimed(ref))

@@ -75,6 +75,12 @@ namespace PostRaPeephole
     // registers, same width - a narrower copy left the upper half of the
     // destination with something else - and nothing in between writes either
     // register or leaves the straight line.
+    //
+    // The reversed pair `mov A, B ... mov B, A` is the same equality read the
+    // other way; it comes from a parameter homed in one register and copied
+    // back into its argument register by the next value's allocation. Only the
+    // full-width pair qualifies: a 32-bit move back would also clear the upper
+    // half of B, which the first move never promised was zero.
     bool tryEraseRedundantCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         if (copyInst.op != MicroInstrOpcode::LoadRegReg || ctx.isClaimed(copyRef))
@@ -105,8 +111,10 @@ namespace PostRaPeephole
                 return false;
 
             const MicroInstrOperand* ops = inst->ops(*ctx.operands);
-            if (inst->op == MicroInstrOpcode::LoadRegReg && ops &&
-                ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == opBits)
+            const bool sameCopy     = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == opBits;
+            const bool reversedCopy = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == src && ops[1].reg == dst &&
+                                      ops[2].opBits == MicroOpBits::B64 && opBits == MicroOpBits::B64;
+            if (sameCopy || reversedCopy)
             {
                 if (!ctx.claimAll({copyRef}))
                     return false;

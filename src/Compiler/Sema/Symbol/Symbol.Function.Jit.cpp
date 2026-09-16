@@ -14,13 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class DepVisitState : uint8_t
-    {
-        Visiting,
-        Done,
-    };
-
-
     struct DepStackEntry
     {
         SymbolFunction* function = nullptr;
@@ -32,8 +25,8 @@ namespace
         // Iterative DFS avoids recursive stack growth on large call graphs and
         // emits dependencies before dependents, which is the order JIT batching
         // needs for patching direct calls.
-        std::unordered_map<SymbolFunction*, DepVisitState> visitStates;
-        SmallVector<DepStackEntry>                         stack;
+        PointerSet<SymbolFunction> seen;
+        SmallVector<DepStackEntry> stack;
         stack.push_back({.function = &root, .expanded = false});
 
         while (!stack.empty())
@@ -44,32 +37,23 @@ namespace
             if (!function)
                 continue;
 
-            const auto foundState = visitStates.find(function);
+            // Only the first visit schedules an expanded entry. Both an active ancestor
+            // and an already completed dependency have the same answer on later visits.
             if (current.expanded)
             {
-                if (foundState != visitStates.end() && foundState->second == DepVisitState::Done)
-                    continue;
-
-                visitStates[function] = DepVisitState::Done;
                 outJitOrder.push_back(function);
                 continue;
             }
 
-            if (foundState != visitStates.end())
-            {
-                if (foundState->second == DepVisitState::Done)
-                    continue;
+            if (!seen.insert(function))
                 continue;
-            }
 
             if (function->isIgnored())
             {
-                visitStates[function] = DepVisitState::Done;
                 outJitOrder.push_back(function);
                 continue;
             }
 
-            visitStates[function] = DepVisitState::Visiting;
             stack.push_back({.function = function, .expanded = true});
 
             SmallVector<SymbolFunction*> dependencies;
@@ -81,7 +65,6 @@ namespace
                 stack.push_back({.function = dependency, .expanded = false});
             }
         }
-
     }
 
     SourceCodeRef safeCodeRef(const SymbolFunction& function)

@@ -8,9 +8,45 @@
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
+
+SWC_TEST_BEGIN(JIT_DependencyOrderPreservesCyclesSharedChildrenAndIgnoredNodes)
+{
+    std::array<std::unique_ptr<SymbolFunction>, 8> functions;
+    for (uint32_t index = 0; index < functions.size(); ++index)
+        functions[index] = std::make_unique<SymbolFunction>(nullptr, TokenRef{index}, IdentifierRef{index}, SymbolFlags{});
+
+    functions[0]->addCallDependency(functions[1].get());
+    functions[0]->addCallDependency(functions[2].get());
+    functions[1]->addCallDependency(functions[3].get());
+    functions[2]->addCallDependency(functions[3].get());
+    functions[2]->addCallDependency(functions[4].get());
+    functions[4]->addCallDependency(functions[2].get());
+    functions[0]->addCallDependency(functions[5].get());
+    functions[5]->addCallDependency(functions[6].get());
+    functions[5]->setIgnored(ctx);
+
+    SmallVector<SymbolFunction*> order;
+    functions[0]->visitJitOrder([&order](SymbolFunction* function) { order.push_back(function); });
+    constexpr std::array FIRST_ORDER = {3, 1, 4, 2, 5, 0};
+    SWC_ASSERT(order.size() == FIRST_ORDER.size());
+    for (size_t index = 0; index < order.size(); ++index)
+        SWC_ASSERT(order[index] == functions[FIRST_ORDER[index]].get());
+
+    // A new edge under a previously shared leaf must invalidate the cached root order.
+    functions[3]->addCallDependency(functions[7].get());
+    order.clear();
+    functions[0]->visitJitOrder([&order](SymbolFunction* function) { order.push_back(function); });
+    constexpr std::array SECOND_ORDER = {7, 3, 1, 4, 2, 5, 0};
+    SWC_ASSERT(order.size() == SECOND_ORDER.size());
+    for (size_t index = 0; index < order.size(); ++index)
+        SWC_ASSERT(order[index] == functions[SECOND_ORDER[index]].get());
+}
+SWC_TEST_END()
+
 #ifdef _M_X64
 
 namespace

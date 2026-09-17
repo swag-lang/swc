@@ -79,20 +79,16 @@
       ]
     },
     "final": {
-      "bytes": 11,
-      "instructions": 4,
+      "bytes": 9,
+      "instructions": 3,
       "code": [
         [
-          3,
-          "mov\trax, qword ptr [rcx]"
+          4,
+          "lea\trax, [rdx + 0x1]"
         ],
         [
           4,
-          "imul\trax, rdx"
-        ],
-        [
-          3,
-          "add\trax, qword ptr [rcx]"
+          "imul\trax, qword ptr [rcx]"
         ],
         [
           1,
@@ -488,7 +484,7 @@
         ],
         [
           2,
-          "je\t0x262a <select_load+0xa>"
+          "je\t0x234a <select_load+0xa>"
         ],
         [
           3,
@@ -496,7 +492,7 @@
         ],
         [
           2,
-          "jmp\t0x262e <select_load+0xe>"
+          "jmp\t0x234e <select_load+0xe>"
         ],
         [
           4,
@@ -856,7 +852,7 @@
         ],
         [
           3,
-          "movzx\teax, dl"
+          "movzx\teax, byte ptr [rcx]"
         ],
         [
           3,
@@ -1028,7 +1024,7 @@
         ],
         [
           2,
-          "jbe\t0x238b <accumulate+0x1b>"
+          "jbe\t0x4adb <accumulate+0x1b>"
         ],
         [
           4,
@@ -1048,7 +1044,7 @@
         ],
         [
           2,
-          "jb\t0x237b <accumulate+0xb>"
+          "jb\t0x4acb <accumulate+0xb>"
         ],
         [
           3,

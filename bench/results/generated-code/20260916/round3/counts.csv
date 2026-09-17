@@ -8,7 +8,7 @@ clampSigned,7,29,7,29,7,29
 absSigned,5,14,4,11,4,11
 zeroSelect,4,11,4,11,4,11
 bitSelect,4,12,4,11,4,11
-bitTimesValue,4,12,4,12,4,10
+bitTimesValue,4,12,4,10,4,10
 addIfZero,5,12,5,12,4,12
 addIfNotZero,5,12,5,12,4,12
 subtractIfBelow,6,15,4,11,4,11

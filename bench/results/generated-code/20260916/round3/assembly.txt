@@ -167,10 +167,10 @@ bitTimesValue
     imul	rcx, rdx
     mov	rax, rcx
     ret
-  final: 4 instructions, 12 bytes
-    and	rcx, 0x1
-    imul	rcx, rdx
-    mov	rax, rcx
+  final: 4 instructions, 10 bytes
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
     ret
   llvm: 4 instructions, 10 bytes
     xor	eax, eax

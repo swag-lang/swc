@@ -1,8 +1,8 @@
 {
   "baseline_commit": "5f172a505",
   "baseline_build": 809,
-  "final_commit": "7a1cf7cf7796e3170eeb47d214d6363392e3a59c",
-  "final_version_header": "#pragma once\n\n// The compiler's identity, and part of the key of every cache it fills. A build produced by one\n// version is never read back by another: bump SWC_BUILD_NUM with every change to the compiler,\n// so what the previous one left behind is ignored instead of trusted.\ninline constexpr uint32_t SWC_VERSION   = 0;\ninline constexpr uint32_t SWC_REVISION  = 1;\ninline constexpr uint32_t SWC_BUILD_NUM = 815;\n",
+  "final_commit": "376fe9e1cf73b8693c751cdbacada98de097d1d5",
+  "final_version_header": "#pragma once\n\n// The compiler's identity, and part of the key of every cache it fills. A build produced by one\n// version is never read back by another: bump SWC_BUILD_NUM with every change to the compiler,\n// so what the previous one left behind is ignored instead of trusted.\ninline constexpr uint32_t SWC_VERSION   = 0;\ninline constexpr uint32_t SWC_REVISION  = 1;\ninline constexpr uint32_t SWC_BUILD_NUM = 829;\n",
   "clang": "clang version 21.1.6\nTarget: x86_64-unknown-windows-msvc\nThread model: posix\nInstalledDir: C:\\Users\\chris\\AppData\\Local\\Programs\\Swift\\Toolchains\\6.3.3+Asserts\\usr\\bin\nBuild config: +assertions\n",
   "compiler_baseline": {
     "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot63.exe",
@@ -10,9 +10,9 @@
     "bytes": 6787584
   },
   "compiler_final": {
-    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot69.exe",
-    "sha256": "f31bca2c382b63b0a221ec30fcddfa190bdac9649ea8e5f33e5befbb389bfde8",
-    "bytes": 6792192
+    "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\swc-lot74.exe",
+    "sha256": "eab087b107c2eddb846e9ff644c789ae849b2e9108d2d8ee32054b0911e011c2",
+    "bytes": 6817792
   },
   "inputs": [
     {
@@ -33,9 +33,9 @@
       "bytes": 294090
     },
     {
-      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars_round5815.lib",
-      "sha256": "6c63872a96875c2693e78d1ac48ef672c7df14ade9b257e228393329987788c7",
-      "bytes": 293218
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\single_bits829.lib",
+      "sha256": "3932b0e7216e2e85b4cfde71afd9e15c4c5c9701f5db3bbf397526aa50a2fef4",
+      "bytes": 297758
     },
     {
       "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\asm-out\\scalars-round5-llvm.obj",
@@ -43,5 +43,32 @@
       "bytes": 1354
     }
   ],
-  "scope_note": "Sixteen memory/loop functions. Counts retain internal padding up to the last RET; trailing alignment is excluded. LLVM vectorizes loadSum4 and accumulate, so their smaller Swag bodies do not establish a throughput advantage."
+  "scope_note": "Sixteen memory/loop functions. Counts retain internal padding up to the last RET; trailing alignment is excluded. LLVM vectorizes loadSum4 and accumulate, so their smaller Swag bodies do not establish a throughput advantage.",
+  "swag_compilation_inputs": [
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\single-bit-products.swg",
+      "sha256": "9a421f1501d13a894d19ce4edca1778c450b4ff1964996d2ec59564febb70e26",
+      "bytes": 1532
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\bit-product-probe.swg",
+      "sha256": "847e244433ffd6468e4969a4cffffea24bd0614cf2b7b78e0de26f0e93048f6a",
+      "bytes": 707
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\scalars-round3.swg",
+      "sha256": "a21ac35db86eb53c52a915f51961d21012aeac1072a5fbd3a34f557ed5d00ccc",
+      "bytes": 3572
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\scalars-round4.swg",
+      "sha256": "e104553b5009c7921602ae3938e04dade9ee43b5dd5a47726631e6f40bf8cf34",
+      "bytes": 3432
+    },
+    {
+      "file": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-micro-release-20260916\\scalars-round5.swg",
+      "sha256": "505992f41ebfc709915ed0c4318228d9ce3266a981f07660aa35cf93eb32327f",
+      "bytes": 2038
+    }
+  ]
 }

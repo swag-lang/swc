@@ -179,6 +179,7 @@ namespace InstructionCombine
     bool tryFoldThreeWaySelects(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseSubtractionFlags(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryReuseSaturatingAddFlags(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIndexedSignBit(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryWidenCopyWithNarrowReaders(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

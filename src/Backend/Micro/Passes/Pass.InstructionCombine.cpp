@@ -108,6 +108,7 @@ namespace
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldRelocatedAddressIntoAccess);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldRelocatedAddressIntoAccess);
         r.add(MicroInstrOpcode::CmpRegReg, tryDropDeadCompare);
+        r.add(MicroInstrOpcode::CmpRegReg, tryReuseSubtractionFlags);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropDeadCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);

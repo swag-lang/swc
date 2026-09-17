@@ -4149,6 +4149,225 @@ namespace
         return false;
     }
 
+    struct IndexedDiamondCell
+    {
+        MicroInstrRef atRef = MicroInstrRef::invalid();
+        MicroReg      base  = MicroReg::invalid();
+        MicroReg      index = MicroReg::invalid();
+        MicroOpBits   bits  = MicroOpBits::Zero;
+        uint64_t      mul   = 0;
+        uint64_t      add   = 0;
+    };
+
+    bool matchIndexedDiamondCell(IndexedDiamondCell& out, const MicroSsaState& ssa, const MicroOperandStorage& operands,
+                                 MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            return false;
+
+        if (inst.op == MicroInstrOpcode::LoadAmcRegMem)
+        {
+            if (ops[4].opBits != MicroOpBits::B64)
+                return false;
+            out = {.atRef = ref, .base = ops[1].reg, .index = ops[2].reg, .bits = ops[3].opBits,
+                   .mul = ops[5].valueU64, .add = ops[6].valueU64};
+            return true;
+        }
+
+        if (inst.op != MicroInstrOpcode::LoadRegMem || ops[3].valueU64 != 0)
+            return false;
+        const MicroSsaState::ReachingDef address = ssa.reachingDef(ops[1].reg, ref);
+        if (!address.valid() || address.isPhi || !address.inst || address.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+            return false;
+        const MicroInstrOperand* addressOps = address.inst->ops(operands);
+        if (!addressOps || addressOps[3].opBits != MicroOpBits::B64 || addressOps[4].opBits != MicroOpBits::B64)
+            return false;
+        out = {.atRef = address.instRef, .base = addressOps[1].reg, .index = addressOps[2].reg, .bits = ops[2].opBits,
+               .mul = addressOps[5].valueU64, .add = addressOps[6].valueU64};
+        return true;
+    }
+
+    bool sameIndexedDiamondCell(const IndexedDiamondCell& left, const IndexedDiamondCell& right, const MicroSsaState& ssa)
+    {
+        if (left.bits != right.bits || left.mul != right.mul || left.add != right.add)
+            return false;
+        const MicroSsaState::ReachingDef leftBase   = ssa.reachingDef(left.base, left.atRef);
+        const MicroSsaState::ReachingDef rightBase  = ssa.reachingDef(right.base, right.atRef);
+        const MicroSsaState::ReachingDef leftIndex  = ssa.reachingDef(left.index, left.atRef);
+        const MicroSsaState::ReachingDef rightIndex = ssa.reachingDef(right.index, right.atRef);
+        return leftBase.valid() && rightBase.valid() && leftBase.valueId == rightBase.valueId &&
+               leftIndex.valid() && rightIndex.valid() && leftIndex.valueId == rightIndex.valueId;
+    }
+
+    // A narrow saturating subtraction can repeat both indexed reads in its
+    // subtracting arm after the comparison already proved the reads safe. Keep
+    // those values in zero-extended registers and select the difference from
+    // the subtraction flags instead of retaining the load-bearing diamond.
+    bool convertComparedMemoryNarrowSaturatingSubtract(MicroStorage& storage, MicroOperandStorage& operands,
+                                                       MicroPassContext& context, MicroSsaState& localSsaState)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstrRef cmpRef = it.current;
+            const MicroInstr&   cmp    = *it;
+            if (cmp.op != MicroInstrOpcode::CmpAmcReg || scan.relocated.contains(cmpRef.get()))
+                continue;
+            const MicroInstrOperand* cmpOps = cmp.ops(operands);
+            if (!cmpOps || (cmpOps[4].opBits != MicroOpBits::B8 && cmpOps[4].opBits != MicroOpBits::B16) ||
+                cmpOps[3].opBits != MicroOpBits::B64)
+                continue;
+            const MicroOpBits bits = cmpOps[4].opBits;
+
+            const MicroInstrRef rightSourceRef = storage.findPreviousInstructionRef(cmpRef);
+            const MicroInstr*   rightSource    = storage.ptr(rightSourceRef);
+            const auto*         rightSourceOps = rightSource ? rightSource->ops(operands) : nullptr;
+            if (!rightSource || rightSource->op != MicroInstrOpcode::LoadAmcRegMem || !rightSourceOps ||
+                rightSourceOps[0].reg != cmpOps[2].reg || rightSourceOps[3].opBits != bits ||
+                rightSourceOps[4].opBits != MicroOpBits::B64 || scan.relocated.contains(rightSourceRef.get()))
+                continue;
+
+            const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
+            const MicroInstr*   jump    = storage.ptr(jumpRef);
+            const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
+            if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
+                jumpOps[0].cpuCond != MicroCond::AboveOrEqual || scan.relocated.contains(jumpRef.get()))
+                continue;
+
+            const MicroInstrRef zeroRef = storage.findNextInstructionRef(jumpRef);
+            const MicroInstr*   zero    = storage.ptr(zeroRef);
+            const auto*         zeroOps = zero ? zero->ops(operands) : nullptr;
+            if (!zero || zero->op != MicroInstrOpcode::LoadRegImm || !zeroOps || zeroOps[2].valueU64 != 0 ||
+                !zeroOps[0].reg.isVirtualInt() || scan.relocated.contains(zeroRef.get()))
+                continue;
+
+            const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(zeroRef);
+            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
+            const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                continue;
+
+            uint32_t armLabelId  = 0;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
+                !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
+                continue;
+            const auto armReferences = scan.labelReferences.find(armLabelId);
+            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+                continue;
+
+            const MicroInstrRef armLabelRef = storage.findNextInstructionRef(joinJumpRef);
+            const MicroInstr*   armLabel    = storage.ptr(armLabelRef);
+            uint32_t            foundLabelId = 0;
+            if (!armLabel || scan.relocated.contains(armLabelRef.get()) ||
+                !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
+                continue;
+
+            const MicroInstrRef leftLoadRef = storage.findNextInstructionRef(armLabelRef);
+            const MicroInstr*   leftLoad    = storage.ptr(leftLoadRef);
+            const auto*         leftLoadOps = leftLoad ? leftLoad->ops(operands) : nullptr;
+            const MicroInstrRef rightLoadRef = storage.findNextInstructionRef(leftLoadRef);
+            const MicroInstr*   rightLoad    = storage.ptr(rightLoadRef);
+            const auto*         rightLoadOps = rightLoad ? rightLoad->ops(operands) : nullptr;
+            const MicroInstrRef subRef       = storage.findNextInstructionRef(rightLoadRef);
+            const MicroInstr*   sub          = storage.ptr(subRef);
+            const auto*         subOps       = sub ? sub->ops(operands) : nullptr;
+            const MicroInstrRef resultCopyRef = storage.findNextInstructionRef(subRef);
+            const MicroInstr*   resultCopy    = storage.ptr(resultCopyRef);
+            const auto*         resultCopyOps = resultCopy ? resultCopy->ops(operands) : nullptr;
+            if (!leftLoad || !leftLoadOps || !rightLoad || !rightLoadOps ||
+                !sub || sub->op != MicroInstrOpcode::OpBinaryRegReg || !subOps ||
+                subOps[0].reg != leftLoadOps[0].reg || subOps[1].reg != rightLoadOps[0].reg ||
+                subOps[2].opBits != bits || subOps[3].microOp != MicroOp::Subtract ||
+                !resultCopy || resultCopy->op != MicroInstrOpcode::LoadRegReg || !resultCopyOps ||
+                resultCopyOps[0].reg != zeroOps[0].reg || resultCopyOps[1].reg != leftLoadOps[0].reg)
+                continue;
+
+            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(resultCopyRef);
+            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            if (!joinLabel || !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
+                continue;
+            const MicroInstrRef finalExtendRef = storage.findNextInstructionRef(joinLabelRef);
+            const MicroInstr*   finalExtend    = storage.ptr(finalExtendRef);
+            const auto*         finalExtendOps = finalExtend ? finalExtend->ops(operands) : nullptr;
+            if (!finalExtend || finalExtend->op != MicroInstrOpcode::LoadZeroExtRegReg || !finalExtendOps ||
+                finalExtendOps[1].reg != zeroOps[0].reg || finalExtendOps[2].opBits != MicroOpBits::B64 ||
+                finalExtendOps[3].opBits != bits)
+                continue;
+
+            const MicroSsaState* ssa = MicroSsaState::ensureFor(context, localSsaState);
+            if (!ssa || !ssa->isValid())
+                return false;
+            IndexedDiamondCell sourceCell;
+            IndexedDiamondCell leftCell;
+            IndexedDiamondCell rightCell;
+            if (!matchIndexedDiamondCell(sourceCell, *ssa, operands, rightSourceRef, *rightSource) ||
+                !matchIndexedDiamondCell(leftCell, *ssa, operands, leftLoadRef, *leftLoad) ||
+                !matchIndexedDiamondCell(rightCell, *ssa, operands, rightLoadRef, *rightLoad))
+                continue;
+            const IndexedDiamondCell comparedCell = {.atRef = cmpRef, .base = cmpOps[0].reg, .index = cmpOps[1].reg,
+                                                      .bits = bits, .mul = cmpOps[5].valueU64, .add = cmpOps[6].valueU64};
+            if (!sameIndexedDiamondCell(comparedCell, leftCell, *ssa) || !sameIndexedDiamondCell(sourceCell, rightCell, *ssa))
+                continue;
+
+            MicroInstrOperand widenedRightOps[7];
+            std::copy_n(rightSourceOps, 7, widenedRightOps);
+            widenedRightOps[3].opBits = MicroOpBits::B32;
+            widenedRightOps[4].opBits = bits;
+            MicroInstrOperand widenedLeftOps[7];
+            widenedLeftOps[0]           = leftLoadOps[0];
+            widenedLeftOps[1]           = cmpOps[0];
+            widenedLeftOps[2]           = cmpOps[1];
+            widenedLeftOps[3].opBits    = MicroOpBits::B32;
+            widenedLeftOps[4].opBits    = bits;
+            widenedLeftOps[5]           = cmpOps[5];
+            widenedLeftOps[6]           = cmpOps[6];
+            MicroInstrOperand clearOps[2];
+            clearOps[0]                 = zeroOps[0];
+            clearOps[1].opBits          = MicroOpBits::B32;
+            MicroInstrOperand subtractOps[4];
+            subtractOps[0]              = leftLoadOps[0];
+            subtractOps[1]              = rightSourceOps[0];
+            subtractOps[2].opBits       = MicroOpBits::B32;
+            subtractOps[3].microOp      = MicroOp::Subtract;
+            MicroInstrOperand selectOps[4];
+            selectOps[0]                = zeroOps[0];
+            selectOps[1]                = leftLoadOps[0];
+            selectOps[2].cpuCond        = MicroCond::AboveOrEqual;
+            selectOps[3].opBits         = MicroOpBits::B32;
+            MicroInstrOperand returnOps[3];
+            returnOps[0]                = finalExtendOps[0];
+            returnOps[1]                = zeroOps[0];
+            returnOps[2].opBits         = MicroOpBits::B32;
+
+            storage.insertDerivedBefore(operands, rightSourceRef, MicroInstrOpcode::LoadZeroExtAmcRegMem, widenedRightOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadZeroExtAmcRegMem, widenedLeftOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::ClearReg, clearOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::OpBinaryRegReg, subtractOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadCondRegReg, selectOps);
+            storage.insertDerivedBefore(operands, finalExtendRef, MicroInstrOpcode::LoadRegReg, returnOps);
+            storage.erase(rightSourceRef);
+            storage.erase(cmpRef);
+            storage.erase(jumpRef);
+            storage.erase(zeroRef);
+            storage.erase(joinJumpRef);
+            storage.erase(armLabelRef);
+            storage.erase(leftLoadRef);
+            storage.erase(rightLoadRef);
+            storage.erase(subRef);
+            storage.erase(resultCopyRef);
+            storage.erase(finalExtendRef);
+            return true;
+        }
+
+        return false;
+    }
+
     // A comparison already reads this exact cell on every path, so reusing a
     // register load for the arm cannot introduce a fault:
     //
@@ -5254,6 +5473,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             context.builder->invalidateControlFlowGraph();
     }
     if (forwardComparedLoadIntoDiamondArm(storage, operands, context))
+    {
+        changed = true;
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        localSsaState.invalidate();
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
+    if (convertComparedMemoryNarrowSaturatingSubtract(storage, operands, context, localSsaState))
     {
         changed = true;
         if (context.ssaState)

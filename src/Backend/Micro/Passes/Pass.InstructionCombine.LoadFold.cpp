@@ -1,5 +1,8 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -25,6 +28,50 @@ namespace InstructionCombine
     namespace
     {
         constexpr uint32_t K_MAX_LOADFOLD_WINDOW = 16;
+
+        // A returned 64-bit boolean is cheapest when its SETcc destination can
+        // occupy the integer return register and be cleared before CMP. If the
+        // other comparison operand is a one-use load, keeping that temporary
+        // out of the return register creates exactly that allocation without
+        // changing the 64-bit instruction lengths (REX.W is already present).
+        void protectReturnedB64ComparisonSource(Context& ctx, MicroInstrRef cmpRef, MicroReg source)
+        {
+            if (!ctx.builder || !ctx.passContext || !source.isVirtualInt())
+                return;
+
+            const MicroInstrRef setRef = ctx.storage->findNextInstructionRef(cmpRef);
+            const MicroInstr*   set    = ctx.storage->ptr(setRef);
+            const auto*         setOps = set && set->op == MicroInstrOpcode::SetCondReg ? set->ops(*ctx.operands) : nullptr;
+            if (!setOps || !setOps[0].reg.isVirtualInt())
+                return;
+
+            MicroInstrRef       extRef = ctx.storage->findNextInstructionRef(setRef);
+            const MicroInstr*   ext    = ctx.storage->ptr(extRef);
+            const auto*         extOps = ext && ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
+            if (extOps && extOps[0].reg == setOps[0].reg && extOps[1].reg == setOps[0].reg &&
+                extOps[2].opBits == MicroOpBits::B32 && extOps[3].opBits == MicroOpBits::B8)
+            {
+                extRef = ctx.storage->findNextInstructionRef(extRef);
+                ext    = ctx.storage->ptr(extRef);
+                extOps = ext && ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
+            }
+            if (!extOps || extOps[1].reg != setOps[0].reg || extOps[2].opBits != MicroOpBits::B64 || extOps[3].opBits != MicroOpBits::B8)
+                return;
+
+            const CallConv&     conv    = CallConv::get(ctx.passContext->callConvKind);
+            const MicroInstrRef copyRef = ctx.storage->findNextInstructionRef(extRef);
+            const MicroInstr*   copy    = ctx.storage->ptr(copyRef);
+            const auto*         copyOps = copy && copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
+            if (!copyOps || copyOps[0].reg != conv.intReturn || copyOps[1].reg != extOps[0].reg || copyOps[2].opBits != MicroOpBits::B64)
+                return;
+
+            const MicroInstrRef retRef = ctx.storage->findNextInstructionRef(copyRef);
+            const MicroInstr*   ret    = ctx.storage->ptr(retRef);
+            if (!ret || ret->op != MicroInstrOpcode::Ret)
+                return;
+
+            ctx.builder->addVirtualRegForbiddenPhysReg(source, conv.intReturn);
+        }
 
         // Ops the encoder can express as `reg <op>= [mem]` (encodeOpBinaryRegMem).
         // Note: shifts are NOT foldable here (no `shl reg, [mem]` form), but
@@ -979,6 +1026,12 @@ namespace InstructionCombine
                     if (needsUnsignedConds || !rhs.isVirtualInt() || rhs == vt || rhs == base || rhs == index)
                         return false;
 
+                    const MicroSsaState::ReachingDef rhsDef = ctx.ssa->reachingDef(rhs, walker.current);
+                    const bool rhsIsSingleUseMemoryLoad = rhsDef.valid() && !rhsDef.isPhi && rhsDef.inst &&
+                                                          (rhsDef.inst->op == MicroInstrOpcode::LoadRegMem ||
+                                                           rhsDef.inst->op == MicroInstrOpcode::LoadAmcRegMem) &&
+                                                          valueHasSingleUse(*ctx.ssa, rhs, rhsDef.instRef);
+
                     const MicroInstrRef cmpRef = walker.current;
                     if (cellReadAgainInStraightLine(ctx, loadRef, cmpRef, base, index, mulValue, addValue, cmpBits))
                         return false;
@@ -994,6 +1047,8 @@ namespace InstructionCombine
                     newOps[4].opBits   = cmpBits;
                     newOps[5].valueU64 = mulValue;
                     newOps[6].valueU64 = addValue;
+                    if (cmpBits == MicroOpBits::B64 && rhsIsSingleUseMemoryLoad)
+                        protectReturnedB64ComparisonSource(ctx, cmpRef, rhs);
                     ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpAmcReg, newOps, /*allocNewBlock=*/true);
                     ctx.emitErase(loadRef);
                     return true;

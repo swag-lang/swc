@@ -2142,6 +2142,112 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Select the varying operand before applying a shared binary operation:
+    // `R = A op B; A = A op C; cmovCC R, A` becomes
+    // `cmovCC B, C; R = A op B`. B and A must die with the original select
+    // because the rewrite respectively overwrites B and preserves A.
+    bool tryFactorCommonConditionalBinary(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
+            return false;
+        const MicroReg result = copy[0].reg;
+        const MicroReg common = copy[1].reg;
+
+        const MicroInstrRef firstOpRef = ctx.nextRef(copyRef);
+        const MicroInstr*   firstOp    = ctx.instruction(firstOpRef);
+        const auto*         first      = firstOp ? firstOp->ops(*ctx.operands) : nullptr;
+        if (!firstOp || firstOp->op != MicroInstrOpcode::OpBinaryRegReg || !first ||
+            first[0].reg != result || !first[1].reg.isInt() ||
+            (first[2].opBits != MicroOpBits::B32 && first[2].opBits != MicroOpBits::B64) ||
+            (first[3].microOp != MicroOp::Add && first[3].microOp != MicroOp::Subtract && first[3].microOp != MicroOp::Xor) ||
+            getNumBits(copy[2].opBits) < getNumBits(first[2].opBits))
+            return false;
+        const MicroReg firstVarying = first[1].reg;
+        const MicroOp  operation    = first[3].microOp;
+        const MicroOpBits bits      = first[2].opBits;
+
+        const MicroInstrRef secondOpRef = ctx.nextRef(firstOpRef);
+        const MicroInstr*   secondOp    = ctx.instruction(secondOpRef);
+        const auto*         second      = secondOp ? secondOp->ops(*ctx.operands) : nullptr;
+        if (!secondOp || secondOp->op != MicroInstrOpcode::OpBinaryRegReg || !second ||
+            second[0].reg != common || !second[1].reg.isInt() || second[1].reg == firstVarying ||
+            second[2].opBits != bits || second[3].microOp != operation)
+            return false;
+        const MicroReg secondVarying = second[1].reg;
+        if (firstVarying == result || firstVarying == common || secondVarying == result || secondVarying == common ||
+            ctx.isPrivateFrameBase(firstVarying) || ctx.isPrivateFrameBase(secondVarying))
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(secondOpRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        if (!compare || (compare->op != MicroInstrOpcode::CmpRegImm && compare->op != MicroInstrOpcode::CmpRegReg))
+            return false;
+        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
+        for (const MicroReg reg : {result, common, firstVarying, secondVarying})
+        {
+            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
+                return false;
+        }
+
+        const MicroInstrRef selectRef = ctx.nextRef(compareRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != common || selected[3].opBits != bits ||
+            !ctx.isRegDeadAfter(firstVarying, ctx.instructionIndex + 4) ||
+            !ctx.isRegDeadAfter(common, ctx.instructionIndex + 4) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[0].reg               = firstVarying;
+        rewrittenSelect[1].reg               = secondVarying;
+        MicroInstrOperand finalOps[8]        = {};
+        MicroInstr        finalProbe;
+        if (operation == MicroOp::Add)
+        {
+            finalOps[0].reg       = result;
+            finalOps[1].reg       = common;
+            finalOps[2].reg       = firstVarying;
+            finalOps[3].opBits    = bits;
+            finalOps[4].opBits    = MicroOpBits::B64;
+            finalOps[5].valueU64  = 1;
+            finalProbe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+            finalProbe.numOperands = 8;
+        }
+        else
+        {
+            finalOps[0]            = first[0];
+            finalOps[1]            = first[1];
+            finalOps[2]            = first[2];
+            finalOps[3]            = first[3];
+            finalProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+            finalProbe.numOperands = 4;
+        }
+        MicroInstrOperand narrowedCopy[3] = {copy[0], copy[1], copy[2]};
+        narrowedCopy[2].opBits            = bits;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            ctx.encoder->queryConformanceIssue(issue, finalProbe, finalOps) ||
+            (operation != MicroOp::Add && ctx.encoder->queryConformanceIssue(issue, copyInst, narrowedCopy)) ||
+            !ctx.claimAll({copyRef, firstOpRef, secondOpRef, compareRef, selectRef}))
+            return false;
+
+        if (operation == MicroOp::Add)
+            ctx.emitErase(copyRef);
+        else
+            ctx.emitRewrite(copyRef, copyInst.op, narrowedCopy);
+        ctx.emitRewrite(firstOpRef, compare->op, std::span{compare->ops(*ctx.operands), compare->numOperands}, true);
+        ctx.emitRewrite(secondOpRef, select->op, rewrittenSelect);
+        ctx.emitRewrite(compareRef, finalProbe.op, std::span{finalOps, finalProbe.numOperands}, true);
+        ctx.emitErase(selectRef);
+        return true;
+    }
+
     // Keep a selected value in the input register that is dead after its use,
     // then form the final sum directly in the original result register.
     bool tryFoldSelectedIntegerAdd(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)

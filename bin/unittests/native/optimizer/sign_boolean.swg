@@ -16,6 +16,10 @@ func preserve(a: s64)->u64
     let low: u64 = a < 0 ? 1 : 0
     return (cast #bit (u64) a) ^ low
 }
+#[Swag.NoInline]
+func indexedNegative(values: const [*]s64, index: u64)->u64 => values[index] < 0 ? 1 : 0
+#[Swag.NoInline]
+func indexedNegative32(values: const [*]s32, index: u64)->u32 => values[index] < 0 ? 1 : 0
 
 #test
 {
@@ -35,4 +39,8 @@ func preserve(a: s64)->u64
         Swag.assert(negative32(a) == expected)
         Swag.assert(negativeWide(a) == expected)
     }
+    for a, index in values do
+        Swag.assert(indexedNegative(&values[0], index) == ((cast #bit (u64) a) >> 63))
+    for a, index in narrow do
+        Swag.assert(indexedNegative32(&narrow[0], index) == ((cast #bit (u32) a) >> 31))
 }

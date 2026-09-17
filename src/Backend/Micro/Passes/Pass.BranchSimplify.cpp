@@ -3927,6 +3927,170 @@ namespace
         return false;
     }
 
+    // Both subtraction arms of an absolute difference reload the values that
+    // fed the comparison. Compute both register differences in straight-line
+    // code, with the forward subtraction last so its flags also select the
+    // result:
+    //
+    //     cmp left, right                  reverse = right
+    //     jbe .Lreverse                    reverse -= left
+    //     result = left - [right]   ->     result = left
+    //     jmp .Ljoin                       result -= right
+    //   .Lreverse:                         cmovbe result, reverse
+    //     result = [right] - [left]
+    //   .Ljoin:
+    bool convertComparedLoadsSubtractDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        const auto sameAddress = [](const MicroInstrOperand* loadOps, const MicroInstrOperand* memoryOps) {
+            return loadOps[1].reg == memoryOps[1].reg && loadOps[2].reg == memoryOps[2].reg &&
+                   loadOps[3].opBits == memoryOps[3].opBits && loadOps[4].opBits == memoryOps[4].opBits &&
+                   loadOps[5].valueU64 == memoryOps[5].valueU64 && loadOps[6].valueU64 == memoryOps[6].valueU64;
+        };
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstrRef cmpRef = it.current;
+            const MicroInstr&   cmp    = *it;
+            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated.contains(cmpRef.get()))
+                continue;
+            const MicroInstrOperand* cmpOps = cmp.ops(operands);
+            if (!cmpOps || (cmpOps[2].opBits != MicroOpBits::B32 && cmpOps[2].opBits != MicroOpBits::B64))
+                continue;
+
+            const MicroInstrRef rightSourceRef = storage.findPreviousInstructionRef(cmpRef);
+            const MicroInstr*   rightSource    = storage.ptr(rightSourceRef);
+            const auto*         rightSourceOps = rightSource ? rightSource->ops(operands) : nullptr;
+            const MicroInstrRef leftSourceRef  = storage.findPreviousInstructionRef(rightSourceRef);
+            const MicroInstr*   leftSource     = storage.ptr(leftSourceRef);
+            const auto*         leftSourceOps  = leftSource ? leftSource->ops(operands) : nullptr;
+            if (!rightSource || rightSource->op != MicroInstrOpcode::LoadAmcRegMem || !rightSourceOps ||
+                !leftSource || leftSource->op != MicroInstrOpcode::LoadAmcRegMem || !leftSourceOps ||
+                rightSourceOps[0].reg != cmpOps[1].reg || leftSourceOps[0].reg != cmpOps[0].reg ||
+                rightSourceOps[3].opBits != cmpOps[2].opBits || leftSourceOps[3].opBits != cmpOps[2].opBits ||
+                scan.relocated.contains(rightSourceRef.get()) || scan.relocated.contains(leftSourceRef.get()))
+                continue;
+
+            const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
+            const MicroInstr*   jump    = storage.ptr(jumpRef);
+            const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
+            if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
+                jumpOps[0].cpuCond == MicroCond::Unconditional || !conditionSupportsConditionalMove(jumpOps[0].cpuCond) ||
+                scan.relocated.contains(jumpRef.get()))
+                continue;
+
+            const MicroInstrRef forwardCopyRef = storage.findNextInstructionRef(jumpRef);
+            const MicroInstr*   forwardCopy    = storage.ptr(forwardCopyRef);
+            const auto*         forwardCopyOps = forwardCopy ? forwardCopy->ops(operands) : nullptr;
+            const MicroInstrRef forwardSubRef  = storage.findNextInstructionRef(forwardCopyRef);
+            const MicroInstr*   forwardSub     = storage.ptr(forwardSubRef);
+            const auto*         forwardSubOps  = forwardSub ? forwardSub->ops(operands) : nullptr;
+            const MicroInstrRef forwardResultRef = storage.findNextInstructionRef(forwardSubRef);
+            const MicroInstr*   forwardResult    = storage.ptr(forwardResultRef);
+            const auto*         forwardResultOps = forwardResult ? forwardResult->ops(operands) : nullptr;
+            if (!forwardCopy || forwardCopy->op != MicroInstrOpcode::LoadRegReg || !forwardCopyOps ||
+                forwardCopyOps[1].reg != cmpOps[0].reg || forwardCopyOps[2].opBits != cmpOps[2].opBits ||
+                !forwardSub || forwardSub->op != MicroInstrOpcode::OpBinaryRegAmcMem || !forwardSubOps ||
+                forwardSubOps[0].reg != forwardCopyOps[0].reg || forwardSubOps[7].microOp != MicroOp::Subtract ||
+                !sameAddress(rightSourceOps, forwardSubOps) ||
+                !forwardResult || forwardResult->op != MicroInstrOpcode::LoadRegReg || !forwardResultOps ||
+                forwardResultOps[1].reg != forwardCopyOps[0].reg || forwardResultOps[2].opBits != cmpOps[2].opBits)
+                continue;
+
+            const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(forwardResultRef);
+            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
+            const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                continue;
+
+            uint32_t armLabelId  = 0;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
+                !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
+                continue;
+            const auto armReferences = scan.labelReferences.find(armLabelId);
+            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+                continue;
+
+            const MicroInstrRef armLabelRef = storage.findNextInstructionRef(joinJumpRef);
+            const MicroInstr*   armLabel    = storage.ptr(armLabelRef);
+            uint32_t            foundLabelId = 0;
+            if (!armLabel || !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
+                continue;
+
+            const MicroInstrRef reverseLoadRef = storage.findNextInstructionRef(armLabelRef);
+            const MicroInstr*   reverseLoad    = storage.ptr(reverseLoadRef);
+            const auto*         reverseLoadOps = reverseLoad ? reverseLoad->ops(operands) : nullptr;
+            const MicroInstrRef reverseSubRef  = storage.findNextInstructionRef(reverseLoadRef);
+            const MicroInstr*   reverseSub     = storage.ptr(reverseSubRef);
+            const auto*         reverseSubOps  = reverseSub ? reverseSub->ops(operands) : nullptr;
+            const MicroInstrRef reverseResultRef = storage.findNextInstructionRef(reverseSubRef);
+            const MicroInstr*   reverseResult    = storage.ptr(reverseResultRef);
+            const auto*         reverseResultOps = reverseResult ? reverseResult->ops(operands) : nullptr;
+            if (!reverseLoad || reverseLoad->op != MicroInstrOpcode::LoadAmcRegMem || !reverseLoadOps ||
+                !sameAddress(rightSourceOps, reverseLoadOps) ||
+                !reverseSub || reverseSub->op != MicroInstrOpcode::OpBinaryRegAmcMem || !reverseSubOps ||
+                reverseSubOps[0].reg != reverseLoadOps[0].reg || reverseSubOps[7].microOp != MicroOp::Subtract ||
+                !sameAddress(leftSourceOps, reverseSubOps) ||
+                !reverseResult || reverseResult->op != MicroInstrOpcode::LoadRegReg || !reverseResultOps ||
+                reverseResultOps[0].reg != forwardResultOps[0].reg || reverseResultOps[1].reg != reverseLoadOps[0].reg ||
+                reverseResultOps[2].opBits != cmpOps[2].opBits)
+                continue;
+
+            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(reverseResultRef);
+            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            if (!joinLabel || !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
+                continue;
+
+            MicroInstrOperand reverseCopyOps[3];
+            reverseCopyOps[0]       = reverseLoadOps[0];
+            reverseCopyOps[1].reg   = cmpOps[1].reg;
+            reverseCopyOps[2]       = cmpOps[2];
+            MicroInstrOperand reverseRegOps[4];
+            reverseRegOps[0]         = reverseSubOps[0];
+            reverseRegOps[1].reg     = cmpOps[0].reg;
+            reverseRegOps[2]         = cmpOps[2];
+            reverseRegOps[3].microOp = MicroOp::Subtract;
+            MicroInstrOperand resultCopyOps[3];
+            resultCopyOps[0]       = forwardResultOps[0];
+            resultCopyOps[1].reg   = cmpOps[0].reg;
+            resultCopyOps[2]       = cmpOps[2];
+            MicroInstrOperand resultSubOps[4];
+            resultSubOps[0]         = forwardResultOps[0];
+            resultSubOps[1].reg     = cmpOps[1].reg;
+            resultSubOps[2]         = cmpOps[2];
+            resultSubOps[3].microOp = MicroOp::Subtract;
+            MicroInstrOperand selectOps[4];
+            selectOps[0]         = forwardResultOps[0];
+            selectOps[1]         = reverseLoadOps[0];
+            selectOps[2]         = jumpOps[0];
+            selectOps[3]         = cmpOps[2];
+
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadRegReg, reverseCopyOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::OpBinaryRegReg, reverseRegOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadRegReg, resultCopyOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::OpBinaryRegReg, resultSubOps);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadCondRegReg, selectOps);
+            storage.erase(cmpRef);
+            storage.erase(jumpRef);
+            storage.erase(forwardCopyRef);
+            storage.erase(forwardSubRef);
+            storage.erase(forwardResultRef);
+            storage.erase(joinJumpRef);
+            storage.erase(armLabelRef);
+            storage.erase(reverseLoadRef);
+            storage.erase(reverseSubRef);
+            storage.erase(reverseResultRef);
+            return true;
+        }
+
+        return false;
+    }
+
     // A comparison already reads this exact cell on every path, so reusing a
     // register load for the arm cannot introduce a fault:
     //
@@ -5032,6 +5196,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             context.builder->invalidateControlFlowGraph();
     }
     if (forwardComparedLoadIntoDiamondArm(storage, operands, context))
+    {
+        changed = true;
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        localSsaState.invalidate();
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
+    if (convertComparedLoadsSubtractDiamond(storage, operands, context))
     {
         changed = true;
         if (context.ssaState)

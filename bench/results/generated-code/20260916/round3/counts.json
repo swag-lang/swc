@@ -675,20 +675,20 @@
       ]
     },
     "final": {
-      "bytes": 12,
+      "bytes": 10,
       "instructions": 4,
       "code": [
         [
-          4,
-          "and\trcx, 0x1"
-        ],
-        [
-          4,
-          "imul\trcx, rdx"
+          2,
+          "xor\teax, eax"
         ],
         [
           3,
-          "mov\trax, rcx"
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
         ],
         [
           1,

@@ -18,10 +18,9 @@ loadRepeated
     imul	rax, rdx
     add	rax, qword ptr [rcx]
     ret
-  final: 4 instructions, 11 bytes
-    mov	rax, qword ptr [rcx]
-    imul	rax, rdx
-    add	rax, qword ptr [rcx]
+  final: 3 instructions, 9 bytes
+    lea	rax, [rdx + 0x1]
+    imul	rax, qword ptr [rcx]
     ret
   llvm: 3 instructions, 9 bytes
     lea	rax, [rdx + 0x1]
@@ -120,9 +119,9 @@ selectLoad
     ret
   final: 6 instructions, 15 bytes
     test	rdx, rdx
-    je	0x262a <select_load+0xa>
+    je	0x234a <select_load+0xa>
     mov	rax, qword ptr [rcx]
-    jmp	0x262e <select_load+0xe>
+    jmp	0x234e <select_load+0xe>
     mov	rax, qword ptr [rcx + 0x8]
     ret
   llvm: 5 instructions, 13 bytes
@@ -212,7 +211,7 @@ storeNarrow
     ret
   final: 4 instructions, 9 bytes
     mov	byte ptr [rcx], dl
-    movzx	eax, dl
+    movzx	eax, byte ptr [rcx]
     add	rax, r8
     ret
   llvm: 4 instructions, 9 bytes
@@ -255,12 +254,12 @@ accumulate
     mov	rax, rdx
     xor	r9d, r9d
     test	rdx, rdx
-    jbe	0x238b <accumulate+0x1b>
+    jbe	0x4adb <accumulate+0x1b>
     mov	rdx, qword ptr [rcx + 8*r9]
     add	r8, rdx
     add	r9, 0x1
     cmp	r9, rax
-    jb	0x237b <accumulate+0xb>
+    jb	0x4acb <accumulate+0xb>
     mov	rax, r8
     ret
   llvm: 30 instructions, 109 bytes

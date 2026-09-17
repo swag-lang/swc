@@ -555,7 +555,7 @@ shiftMaskTop
     and	rax, rcx
     ret
   final: 3 instructions, 8 bytes
-    movzx	eax, cx
+    mov	rax, rcx
     shl	rax, 0x30
     ret
   llvm: 3 instructions, 8 bytes

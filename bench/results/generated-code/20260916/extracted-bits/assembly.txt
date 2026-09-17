@@ -1,0 +1,258 @@
+bit0Product64
+  baseline: 4 instructions, 10 bytes
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 10 bytes
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  llvm: 4 instructions, 10 bytes
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+
+bit1Product64
+  baseline: 5 instructions, 13 bytes
+    shr	rcx
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 10 bytes
+    xor	eax, eax
+    test	cl, 0x2
+    cmovne	rax, rdx
+    ret
+  llvm: 5 instructions, 15 bytes
+    mov	rax, rcx
+    shl	rax, 0x3e
+    sar	rax, 0x3f
+    and	rax, rdx
+    ret
+
+bit7Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x7
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 9 bytes
+    xor	eax, eax
+    test	cl, cl
+    cmovs	rax, rdx
+    ret
+  llvm: 4 instructions, 12 bytes
+    movsx	rax, cl
+    sar	rax, 0x7
+    and	rax, rdx
+    ret
+
+bit8Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x8
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 12 bytes
+    xor	eax, eax
+    test	cx, 0x100
+    cmovne	rax, rdx
+    ret
+  llvm: 5 instructions, 15 bytes
+    mov	rax, rcx
+    shl	rax, 0x37
+    sar	rax, 0x3f
+    and	rax, rdx
+    ret
+
+bit15Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0xf
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 10 bytes
+    xor	eax, eax
+    test	cx, cx
+    cmovs	rax, rdx
+    ret
+  llvm: 4 instructions, 12 bytes
+    movsx	rax, cx
+    sar	rax, 0xf
+    and	rax, rdx
+    ret
+
+bit16Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x10
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 13 bytes
+    xor	eax, eax
+    test	ecx, 0x10000
+    cmovne	rax, rdx
+    ret
+  llvm: 5 instructions, 15 bytes
+    mov	rax, rcx
+    shl	rax, 0x2f
+    sar	rax, 0x3f
+    and	rax, rdx
+    ret
+
+bit17Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x11
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 13 bytes
+    xor	eax, eax
+    test	ecx, 0x20000
+    cmovne	rax, rdx
+    ret
+  llvm: 5 instructions, 15 bytes
+    mov	rax, rcx
+    shl	rax, 0x2e
+    sar	rax, 0x3f
+    and	rax, rdx
+    ret
+
+bit31Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x1f
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 9 bytes
+    xor	eax, eax
+    test	ecx, ecx
+    cmovs	rax, rdx
+    ret
+  llvm: 4 instructions, 11 bytes
+    movsxd	rax, ecx
+    sar	rax, 0x1f
+    and	rax, rdx
+    ret
+
+bit32Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x20
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 5 instructions, 14 bytes
+    shr	rcx, 0x20
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  llvm: 5 instructions, 15 bytes
+    mov	rax, rcx
+    shl	rax, 0x1f
+    sar	rax, 0x3f
+    and	rax, rdx
+    ret
+
+bit40Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x28
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 5 instructions, 14 bytes
+    shr	rcx, 0x28
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  llvm: 5 instructions, 15 bytes
+    mov	rax, rcx
+    shl	rax, 0x17
+    sar	rax, 0x3f
+    and	rax, rdx
+    ret
+
+bit63Product64
+  baseline: 5 instructions, 14 bytes
+    shr	rcx, 0x3f
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	rax, rdx
+    ret
+  final: 4 instructions, 10 bytes
+    xor	eax, eax
+    test	rcx, rcx
+    cmovs	rax, rdx
+    ret
+  llvm: 4 instructions, 11 bytes
+    mov	rax, rcx
+    sar	rax, 0x3f
+    and	rax, rdx
+    ret
+
+bit7Product32
+  baseline: 5 instructions, 12 bytes
+    shr	ecx, 0x7
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	eax, edx
+    ret
+  final: 4 instructions, 8 bytes
+    xor	eax, eax
+    test	cl, cl
+    cmovs	eax, edx
+    ret
+  llvm: 4 instructions, 9 bytes
+    movsx	eax, cl
+    sar	eax, 0x7
+    and	eax, edx
+    ret
+
+bit15Product32
+  baseline: 5 instructions, 12 bytes
+    shr	ecx, 0xf
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	eax, edx
+    ret
+  final: 4 instructions, 9 bytes
+    xor	eax, eax
+    test	cx, cx
+    cmovs	eax, edx
+    ret
+  llvm: 4 instructions, 9 bytes
+    movsx	eax, cx
+    sar	eax, 0xf
+    and	eax, edx
+    ret
+
+bit31Product32
+  baseline: 5 instructions, 12 bytes
+    shr	ecx, 0x1f
+    xor	eax, eax
+    test	cl, 0x1
+    cmovne	eax, edx
+    ret
+  final: 4 instructions, 8 bytes
+    xor	eax, eax
+    test	ecx, ecx
+    cmovs	eax, edx
+    ret
+  llvm: 4 instructions, 8 bytes
+    mov	eax, ecx
+    sar	eax, 0x1f
+    and	eax, edx
+    ret

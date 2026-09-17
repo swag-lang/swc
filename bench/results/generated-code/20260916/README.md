@@ -2,36 +2,40 @@
 
 This ongoing session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
-is merged into local `master`. This checkpoint records build 815 at
-`7a1cf7cf7`; iteration continues after it.
+is merged into local master. This checkpoint records measured builds 829
+(376fe9e1c) and 830 (e6e9d1623), identified separately for each corpus.
+Iteration continues after this checkpoint.
 
 ## Machine-code measurements
 
-Matching Swag and C++ functions retain the same three-argument layout. Swag
+Matching Swag and C++ functions retain the same parameter layout. Swag
 canonicalizes narrow signed returns to 64 bits, so some signed 32-bit results
 retain an extension that the C++ return convention does not require.
 The reference compiler is clang 21.1.6 with
 `-O2 -target x86_64-pc-windows-msvc`. Counts include RET and exclude trailing alignment
 and runtime functions. Internal padding before the last RET is retained. Ten-byte MOVABS instructions are counted in full.
 
-The five corpora were introduced at different times. Each has its own baseline;
+The six corpora were introduced at different times. Each has its own baseline;
 percentage reductions must be calculated within that corpus.
 
-| Corpus | Functions | Baseline build | Baseline bytes | Build 815 bytes | LLVM bytes |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| [Initial](counts.csv) | 51 | 688 | 994 | 540 | 559 |
-| [Additional](additional/counts.csv) | 25 | 740 | 412 | 335 | 346 |
-| [Third](round3/counts.csv) | 32 | 759 | 516 | 412 | 416 |
-| [Fourth](round4/counts.csv) | 32 | 794 | 440 | 364 | 385 |
-| [Memory and loops](round5/counts.csv) | 16 | 809 | 195 | 172 | 259 |
+| Corpus | Functions | Baseline build | Baseline bytes | Measured build | Measured bytes | LLVM bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| [Initial](counts.csv) | 51 | 688 | 994 | 830 | 540 | 559 |
+| [Additional](additional/counts.csv) | 25 | 740 | 412 | 830 | 335 | 346 |
+| [Third](round3/counts.csv) | 32 | 759 | 516 | 829 | 410 | 416 |
+| [Fourth](round4/counts.csv) | 32 | 794 | 440 | 829 | 364 | 385 |
+| [Memory and loops](round5/counts.csv) | 16 | 809 | 195 | 829 | 170 | 259 |
+| [Extracted bits](extracted-bits/counts.csv) | 14 | 827 | 185 | 829 | 149 | 172 |
 
+The corpora contain 170 functions. No function grows against its own baseline.
 The initial corpus reduces bytes by 45.7% and instructions from 319 to 191
 (LLVM: 192). Forty-nine functions shrink, two retain their size, and none grows.
-Forty-four now match LLVM's size and seven are smaller. The additional corpus
+Forty-four match LLVM's size and seven are smaller. The additional corpus
 also has no remaining larger function: nineteen match and six are smaller.
-The third, fourth and fifth corpora retain two, four and two larger functions
-respectively.
-No function grows against its own baseline in any of these corpora.
+Six functions across the third, fourth and fifth corpora remain larger than
+LLVM: one, four and one respectively.
+All fourteen extracted-bit functions match or beat LLVM's size; eleven shrink
+against their build-827 baseline and three retain their size.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -44,7 +48,7 @@ Checkpoint comparisons include concurrent changes integrated from
 Each directory contains matching Swag/C++ inputs, per-instruction assembly,
 CSV/JSON counts, and compiler/artifact hashes in `identity.json`.
 
-| Example | Corpus baseline bytes | Build 815 bytes | LLVM bytes |
+| Example | Corpus baseline bytes | Measured bytes | LLVM bytes |
 | --- | ---: | ---: | ---: |
 | `(a & b) | (a & c)` | 25 | 10 | 10 |
 | `a | (a & b)` | 16 | 4 | 4 |
@@ -65,6 +69,8 @@ CSV/JSON counts, and compiler/artifact hashes in `identity.json`.
 | Extract byte 2 from a loaded 64-bit word | 10 | 5 | 5 |
 | Memory comparison selecting a value or zero | 16 | 10 | 10 |
 | Memory bit test selecting one of two values | 14 | 11 | 11 |
+| 64-bit product from bit 31 | 14 | 9 | 11 |
+| 32-bit product from bit 7 | 12 | 8 | 9 |
 
 ## Changes
 
@@ -76,7 +82,10 @@ rotations. Later batches simplify negation and complementary sums, forward
 copies into three-operand shifts, fuse signed indexed loads, read narrow memory
 extracts directly, select values after memory comparisons, and emit register or
 memory TEST for dead masked results. Zero initialization uses CFG liveness and
-shorter x64 encodings.
+shorter x64 encodings. Recent batches factor implicit unit terms such as
+`a * b + a`, fold repeated loads into multiplication, emit true 32-bit LEA results,
+and select products directly from individual source bits. Typed TEST operands
+participate in demanded-bit analysis so unnecessary extensions disappear.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -95,11 +104,11 @@ between arithmetic, widths, flags, calls, branches, loops and register pressure,
 plus selected core, pixel, UTF-8, hashing and crypto consumers. Native regression
 files accompany optimization families under `bin/unittests/native/optimizer`.
 
-Recent broader checks passed all 1,487 JIT tests at build 812, all 742 core tests
-at build 796, and all 3,328 native tests plus the three expected-failure recovery
-probes at build 815. The intervening batches rotated focused files and selected
-consumers, including thirteen core hashtable tests at build 813. Each batch was
-validated before its merge into local master.
+Recent broader checks passed all 1,487 JIT tests at build 827, all 742 core tests
+at build 818, and all 3,338 native tests plus the three expected-failure recovery
+probes at build 829. Build 830 passed four integration files covering extracted
+bits, aggregate construction, floating fields and short-circuit booleans. Each
+batch was validated before its merge into local master.
 
 The full repository campaign, DevMode compiler and C++ unit tests were not run
 by this worktree during this session. Concurrent contributors performed separate
@@ -125,10 +134,11 @@ sizes are preserved in each `counts.json` and `assembly.txt`.
 
 ## Remaining leads
 
-`compiler.optimization.041` tracks the current larger cases. They include absolute
-value and bit selection, `(a | b) - (a & b)`, combined quotient/remainder,
-zero-minus and complemented arithmetic, and several 32-bit register/width choices.
-The previously recorded initial-corpus gaps have all reached or beaten LLVM size.
+The measured larger cases now concern combined quotient/remainder, a negative
+signed remainder, some 32-bit register/width choices, and selecting an address
+before loading. The earlier low-bit product and repeated-load factoring gaps
+have reached LLVM's size. The required signed-return extension remains an ABI
+constraint, not an ordinary dead-copy opportunity.
 
 ## Intermittent diagnostic retained for follow-up
 

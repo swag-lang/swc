@@ -1,0 +1,1038 @@
+{
+  "bit0Product64": {
+    "baseline": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit1Product64": {
+    "baseline": {
+      "bytes": 13,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "shr\trcx"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x2"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 15,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shl\trax, 0x3e"
+        ],
+        [
+          4,
+          "sar\trax, 0x3f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit7Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x7"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "test\tcl, cl"
+        ],
+        [
+          4,
+          "cmovs\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 12,
+      "instructions": 4,
+      "code": [
+        [
+          4,
+          "movsx\trax, cl"
+        ],
+        [
+          4,
+          "sar\trax, 0x7"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit8Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x8"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 12,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          5,
+          "test\tcx, 0x100"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 15,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shl\trax, 0x37"
+        ],
+        [
+          4,
+          "sar\trax, 0x3f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit15Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0xf"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcx, cx"
+        ],
+        [
+          4,
+          "cmovs\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 12,
+      "instructions": 4,
+      "code": [
+        [
+          4,
+          "movsx\trax, cx"
+        ],
+        [
+          4,
+          "sar\trax, 0xf"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit16Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x10"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 13,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          6,
+          "test\tecx, 0x10000"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 15,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shl\trax, 0x2f"
+        ],
+        [
+          4,
+          "sar\trax, 0x3f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit17Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x11"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 13,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          6,
+          "test\tecx, 0x20000"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 15,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shl\trax, 0x2e"
+        ],
+        [
+          4,
+          "sar\trax, 0x3f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit31Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x1f"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "test\tecx, ecx"
+        ],
+        [
+          4,
+          "cmovs\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "movsxd\trax, ecx"
+        ],
+        [
+          4,
+          "sar\trax, 0x1f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit32Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x20"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x20"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 15,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shl\trax, 0x1f"
+        ],
+        [
+          4,
+          "sar\trax, 0x3f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit40Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x28"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x28"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 15,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "shl\trax, 0x17"
+        ],
+        [
+          4,
+          "sar\trax, 0x3f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit63Product64": {
+    "baseline": {
+      "bytes": 14,
+      "instructions": 5,
+      "code": [
+        [
+          4,
+          "shr\trcx, 0x3f"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          4,
+          "cmovne\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 10,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\trcx, rcx"
+        ],
+        [
+          4,
+          "cmovs\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 11,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "mov\trax, rcx"
+        ],
+        [
+          4,
+          "sar\trax, 0x3f"
+        ],
+        [
+          3,
+          "and\trax, rdx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit7Product32": {
+    "baseline": {
+      "bytes": 12,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "shr\tecx, 0x7"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          3,
+          "cmovne\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "test\tcl, cl"
+        ],
+        [
+          3,
+          "cmovs\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "movsx\teax, cl"
+        ],
+        [
+          3,
+          "sar\teax, 0x7"
+        ],
+        [
+          2,
+          "and\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit15Product32": {
+    "baseline": {
+      "bytes": 12,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "shr\tecx, 0xf"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          3,
+          "cmovne\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcx, cx"
+        ],
+        [
+          3,
+          "cmovs\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 9,
+      "instructions": 4,
+      "code": [
+        [
+          3,
+          "movsx\teax, cx"
+        ],
+        [
+          3,
+          "sar\teax, 0xf"
+        ],
+        [
+          2,
+          "and\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  },
+  "bit31Product32": {
+    "baseline": {
+      "bytes": 12,
+      "instructions": 5,
+      "code": [
+        [
+          3,
+          "shr\tecx, 0x1f"
+        ],
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          3,
+          "test\tcl, 0x1"
+        ],
+        [
+          3,
+          "cmovne\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "final": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "xor\teax, eax"
+        ],
+        [
+          2,
+          "test\tecx, ecx"
+        ],
+        [
+          3,
+          "cmovs\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    },
+    "llvm": {
+      "bytes": 8,
+      "instructions": 4,
+      "code": [
+        [
+          2,
+          "mov\teax, ecx"
+        ],
+        [
+          3,
+          "sar\teax, 0x1f"
+        ],
+        [
+          2,
+          "and\teax, edx"
+        ],
+        [
+          1,
+          "ret"
+        ]
+      ]
+    }
+  }
+}

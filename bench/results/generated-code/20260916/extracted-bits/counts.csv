@@ -1,0 +1,15 @@
+function,baseline_instructions,baseline_bytes,final_instructions,final_bytes,llvm_instructions,llvm_bytes
+bit0Product64,4,10,4,10,4,10
+bit1Product64,5,13,4,10,5,15
+bit7Product64,5,14,4,9,4,12
+bit8Product64,5,14,4,12,5,15
+bit15Product64,5,14,4,10,4,12
+bit16Product64,5,14,4,13,5,15
+bit17Product64,5,14,4,13,5,15
+bit31Product64,5,14,4,9,4,11
+bit32Product64,5,14,5,14,5,15
+bit40Product64,5,14,5,14,5,15
+bit63Product64,5,14,4,10,4,11
+bit7Product32,5,12,4,8,4,9
+bit15Product32,5,12,4,9,4,9
+bit31Product32,5,12,4,8,4,8

@@ -1175,6 +1175,7 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
         case MicroInstrOpcode::OpBinaryAmcMemReg:
         case MicroInstrOpcode::OpUnaryAmcMem:
         case MicroInstrOpcode::OpBinaryAmcMemImm:
+        case MicroInstrOpcode::CmpAmcReg:
             // This form is only built for native integer register operations.
             return false;
 
@@ -1333,6 +1334,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
 
     if (inst.op == MicroInstrOpcode::OpUnaryAmcMem)
+        return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
+
+    if (inst.op == MicroInstrOpcode::CmpAmcReg)
         return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
 
     if (inst.op == MicroInstrOpcode::OpBinaryAmcMemImm)
@@ -2240,6 +2244,7 @@ namespace
             case MicroOp::And:
             case MicroOp::Or:
             case MicroOp::Xor:
+            case MicroOp::Compare:
                 SWC_ASSERT(!reg.isFloat());
                 emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
                 break;
@@ -2399,6 +2404,12 @@ void X64Encoder::encodeCmpAmcImm(MicroReg regBase, MicroReg regMul, uint64_t mul
 {
     SWC_ASSERT(!regBase.isFloat() && !regMul.isFloat());
     return encodeAmcOpImm(store_, regBase, regMul, mulValue, addValue, value, MicroOp::Compare, opBits);
+}
+
+void X64Encoder::encodeCmpAmcReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroReg regSrc, MicroOpBits opBits)
+{
+    SWC_ASSERT(regBase.isInt() && regMul.isInt() && regSrc.isInt());
+    return encodeAmcReg(store_, regSrc, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::Compare, true);
 }
 
 // ============================================================================

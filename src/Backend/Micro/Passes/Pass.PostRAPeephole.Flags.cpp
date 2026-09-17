@@ -22,6 +22,7 @@ namespace PostRaPeephole
                 case MicroInstrOpcode::CmpMemReg:
                 case MicroInstrOpcode::CmpMemImm:
                 case MicroInstrOpcode::CmpAmcImm:
+                case MicroInstrOpcode::CmpAmcReg:
                     return true;
 
                 default:

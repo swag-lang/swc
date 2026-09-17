@@ -361,6 +361,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::CmpAmcImm:
             encoder.encodeCmpAmcImm(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[5].valueU64, ops[6].immediateValue(getNumBits(ops[2].opBits)), ops[2].opBits);
             break;
+        case MicroInstrOpcode::CmpAmcReg:
+            encoder.encodeCmpAmcReg(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[2].reg, ops[4].opBits);
+            break;
         case MicroInstrOpcode::SetCondReg:
             encoder.encodeSetCondReg(ops[0].reg, ops[1].cpuCond);
             break;

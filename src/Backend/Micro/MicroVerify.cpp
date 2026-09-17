@@ -262,6 +262,7 @@ namespace
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
             case MicroInstrOpcode::CmpAmcImm:
+            case MicroInstrOpcode::CmpAmcReg:
                 return 7;
 
             case MicroInstrOpcode::LoadAmcMemImm:

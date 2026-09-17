@@ -1270,6 +1270,7 @@ namespace
             case MicroInstrOpcode::LoadSignedExtAmcRegMem:
             case MicroInstrOpcode::LoadZeroExtAmcRegMem:
             case MicroInstrOpcode::CmpAmcImm:
+            case MicroInstrOpcode::CmpAmcReg:
             case MicroInstrOpcode::VecUnaryRegMem:
             case MicroInstrOpcode::VecUnaryAmcRegMem:
                 scan.hasUnresolvedMemRead = true;

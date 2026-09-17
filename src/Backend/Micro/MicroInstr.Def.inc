@@ -738,6 +738,20 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 
+// Indexed compare against a register:
+// [base, index, src, addrBits, cmpBits, mul, add].
+SWC_MICRO_INSTR_DEF(
+    CmpAmcReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
 // Packed four-lane permute (pshufd): dst = shuffle(src, control), with dst
 // distinct from src allowed. The only non-destructive reg/reg/imm shape in
 // the instruction set, hence its own opcode: [dst, src, opBits, control].

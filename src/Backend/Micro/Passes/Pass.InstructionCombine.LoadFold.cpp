@@ -928,9 +928,9 @@ namespace InstructionCombine
         }
 
         // Shared tail of the two compare folds below: from an indexed load at
-        // loadRef whose single consumer must be a CmpRegImm on the loaded
-        // value, rewrite that compare into CmpAmcImm at cmpBits and erase the
-        // load. `cmpBits` is the width the memory operand is compared at.
+        // loadRef whose single consumer must compare the loaded value, rewrite
+        // that compare to use the indexed memory operand at cmpBits and erase
+        // the load. `cmpBits` is the width the memory operand is compared at.
         bool foldAmcLoadIntoCompareAt(Context& ctx, MicroInstrRef loadRef, MicroReg vt, MicroReg base, MicroReg index, uint64_t mulValue, uint64_t addValue, MicroOpBits expectedCmpBits, MicroOpBits cmpBits, bool needsUnsignedConds)
         {
             MicroStorage::Iterator walker;
@@ -959,16 +959,45 @@ namespace InstructionCombine
                 if (!usesVt && !defsVt)
                     continue;
 
-                // First reference to vt must be the compare-against-immediate.
-                if (w.op != MicroInstrOpcode::CmpRegImm)
+                // First reference to vt must be a comparison with vt on the
+                // left, so replacing that operand preserves every condition.
+                if (w.op != MicroInstrOpcode::CmpRegImm && w.op != MicroInstrOpcode::CmpRegReg)
                     return false;
 
                 // CmpRegImm: [reg, opBits, imm].
+                // CmpRegReg: [lhs, rhs, opBits].
                 const MicroInstrOperand* wOps = w.ops(*ctx.operands);
                 if (!wOps)
                     return false;
-                if (wOps[0].reg != vt || wOps[1].opBits != expectedCmpBits)
+                const MicroOpBits actualCmpBits = w.op == MicroInstrOpcode::CmpRegImm ? wOps[1].opBits : wOps[2].opBits;
+                if (wOps[0].reg != vt || actualCmpBits != expectedCmpBits)
                     return false;
+
+                if (w.op == MicroInstrOpcode::CmpRegReg)
+                {
+                    const MicroReg rhs = wOps[1].reg;
+                    if (needsUnsignedConds || !rhs.isVirtualInt() || rhs == vt || rhs == base || rhs == index)
+                        return false;
+
+                    const MicroInstrRef cmpRef = walker.current;
+                    if (cellReadAgainInStraightLine(ctx, loadRef, cmpRef, base, index, mulValue, addValue, cmpBits))
+                        return false;
+                    if (!ctx.claimAll({loadRef, cmpRef}))
+                        return false;
+
+                    // CmpAmcReg: [base, index, src, addrBits, cmpBits, mul, add].
+                    MicroInstrOperand newOps[7];
+                    newOps[0].reg      = base;
+                    newOps[1].reg      = index;
+                    newOps[2].reg      = rhs;
+                    newOps[3].opBits   = MicroOpBits::B64;
+                    newOps[4].opBits   = cmpBits;
+                    newOps[5].valueU64 = mulValue;
+                    newOps[6].valueU64 = addValue;
+                    ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpAmcReg, newOps, /*allocNewBlock=*/true);
+                    ctx.emitErase(loadRef);
+                    return true;
+                }
 
                 // The immediate must keep its meaning at the memory width,
                 // and stay encodable (cmp r/m64 sign-extends a 32-bit

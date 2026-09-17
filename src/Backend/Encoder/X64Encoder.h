@@ -90,6 +90,7 @@ protected:
     void encodeTestMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits) override;
     void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits) override;
     void encodeCmpAmcImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOpBits opBits) override;
+    void encodeCmpAmcReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroReg regSrc, MicroOpBits opBits) override;
     void encodeTestRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits) override;
     void encodeCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits) override;
     void encodeSetCondReg(MicroReg reg, MicroCond cpuCond) override;

@@ -66,6 +66,7 @@ namespace
             case MicroInstrOpcode::CmpMemImm:
             case MicroInstrOpcode::CmpMemReg:
             case MicroInstrOpcode::CmpAmcImm:
+            case MicroInstrOpcode::CmpAmcReg:
                 return true;
             default:
                 return false;

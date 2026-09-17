@@ -956,6 +956,12 @@ bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
             out.mulIdx   = 4;
             out.addIdx   = 5;
             return true;
+        case MicroInstrOpcode::CmpAmcReg:
+            out.baseIdx  = 0;
+            out.indexIdx = 1;
+            out.mulIdx   = 5;
+            out.addIdx   = 6;
+            return true;
         default:
             return false;
     }

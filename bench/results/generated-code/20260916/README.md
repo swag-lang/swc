@@ -90,6 +90,11 @@ The narrow-result continuation reduces `u16` floor and ceiling averages from
 21 to 17, absolute difference from 25 to 21, and median-of-three from 60 to
 46. Rotations, byte swaps and three-value min/max chains now match LLVM.
 The `u8` saturating-add follow-up reduces 29 bytes to 22; LLVM emits 20.
+Two supplementary `u8` probes isolate the larger branch-heavy gaps: spelling
+the loaded operands once as locals reduces saturating subtract from 32 to 18
+bytes (LLVM 19) and absolute difference from 46 to 19 (LLVM 22). Future work
+there should target repeated memory-expression reuse and branch formation,
+rather than the final post-allocation sequences.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware

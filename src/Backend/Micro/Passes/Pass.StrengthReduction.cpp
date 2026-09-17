@@ -536,9 +536,33 @@ namespace
 
         // dst = dst / C for a positive signed constant power of two (C = 2^k, k >= 1):
         // q = (n + ((n >> N-1) >>u N-k)) >> k, all shifts arithmetic except the bias.
+        // From C = 4, as LLVM's x86 lowering does, the rounding bias is
+        // selected instead: q = (n >= 0 ? n : n + C - 1) >> k, a `lea`, a
+        // compare, a `cmov` and the shift.
         void emitSignedDividePow2(MicroReg dst, uint32_t log2Divisor) const
         {
-            const uint32_t bits    = getNumBits(opBits);
+            const uint32_t bits = getNumBits(opBits);
+            if (log2Divisor > 1 && log2Divisor < 32)
+            {
+                const MicroReg roundedReg = allocVirtualReg();
+                emitCopy(roundedReg, dst);
+                emitOpRegImm(roundedReg, MicroOp::Add, (1ull << log2Divisor) - 1);
+                MicroInstrOperand cmpOps[3];
+                cmpOps[0].reg    = dst;
+                cmpOps[1].opBits = opBits;
+                cmpOps[2].setImmediateValue(ApInt(uint64_t{0}, bits));
+                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::CmpRegImm, cmpOps);
+                MicroInstrOperand selectOps[4];
+                selectOps[0].reg     = roundedReg;
+                selectOps[1].reg     = dst;
+                selectOps[2].cpuCond = MicroCond::GreaterOrEqual;
+                selectOps[3].opBits  = opBits;
+                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadCondRegReg, selectOps);
+                emitOpRegImm(roundedReg, MicroOp::ShiftArithmeticRight, log2Divisor);
+                emitCopy(dst, roundedReg);
+                return;
+            }
+
             const MicroReg biasReg = allocVirtualReg();
             emitCopy(biasReg, dst);
             // Division by two needs only the sign bit as its rounding bias.

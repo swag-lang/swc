@@ -1,8 +1,8 @@
 #global private
 
 // Absolute differences compute `a - b` next to the select that the compare
-// of a and b feeds, and reuse its flags. Signed and unsigned values, equal
-// ones and a whole row of bytes must give the same distances.
+// of a and b feeds, and reuse its flags. Signed and unsigned values, bytes
+// and words, equal ones and a whole row of bytes must give the same distances.
 
 #[Swag.Optimize(true), Swag.NoInline, Swag.Safety(.Overflow, false)]
 func distance32(a, b: u32)->u32 => a > b ? a - b : b - a
@@ -26,6 +26,12 @@ func sumOfDistances(a, b: const [*] u8, count: u64)->u32
 #[Swag.Optimize(true), Swag.NoInline, Swag.Safety(.Overflow, false)]
 func lowerDistance(a, b: s32)->s32 => a < b ? b - a : a - b
 
+#[Swag.Optimize(true), Swag.NoInline, Swag.Safety(.Overflow, false)]
+func distance8(a, b: u8)->u8 => a > b ? a - b : b - a
+
+#[Swag.Optimize(true), Swag.NoInline, Swag.Safety(.Overflow, false)]
+func distance16(a, b: s16)->s16 => a > b ? a - b : b - a
+
 func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
 
 #test
@@ -44,6 +50,19 @@ func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
             let sb = cast #wrap (s32) b
             let expectedS = sa < sb ? cast #wrap (s32) (cast(s64) sb - cast(s64) sa) : cast #wrap (s32) (cast(s64) sa - cast(s64) sb)
             Swag.assert(lowerDistance(sa, sb) == expectedS)
+        }
+    }
+
+    for i in 0 until 256
+    {
+        for j in 0 until 256
+        {
+            let x = cast(u8) i
+            let y = cast(u8) j
+            Swag.assert(cast(s64) distance8(x, y) == slowDistance(i, j))
+            let wx = cast #wrap (s16) (i * 131 - 16000)
+            let wy = cast #wrap (s16) (j * 127 - 16000)
+            Swag.assert(distance16(wx, wy) == cast #wrap (s16) slowDistance(wx, wy))
         }
     }
 

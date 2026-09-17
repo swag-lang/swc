@@ -311,7 +311,7 @@ namespace InstructionCombine
         const MicroReg           left  = ops[0].reg;
         const MicroReg           right = ops[1].reg;
         const MicroOpBits        bits  = ops[2].opBits;
-        if (!left.isVirtualInt() || !right.isVirtualInt() || left == right || getNumBits(bits) < 32)
+        if (!left.isVirtualInt() || !right.isVirtualInt() || left == right)
             return false;
 
         // The reader right after the compare, and nothing after it that reads

@@ -1090,20 +1090,136 @@ namespace PostRaPeephole
             MicroInstrOperand add[3]         = {};
             add[0].reg                       = ops[0].reg;
             add[1].opBits                    = bits;
-            add[2].valueU64                  = offset;
+            add[2].valueU64                  = signedOffset & getBitsMask(bits);
             ctx.emitRewrite(value.compareRef, compare->op, compareOne, true);
             ctx.emitRewrite(value.setRef, MicroInstrOpcode::AddCarryRegImm, add);
             ctx.emitErase(ref);
             return true;
         }
-        if (value.inverse || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
+        if (value.reg != ops[0].reg)
+            return false;
+        // The cleared boolean plus CF is ADC by the offset; plus the inverse
+        // of CF it is offset + 1 - CF, which SBB by the negated successor
+        // leaves in the cleared register.
+        uint64_t immediate = signedOffset;
+        if (value.inverse)
+        {
+            const int64_t successor = static_cast<int64_t>(signedOffset) + 1;
+            if (successor > INT32_MAX)
+                return false;
+            immediate = static_cast<uint64_t>(-successor);
+        }
+        if (!claimCarryBoolean(ctx, ref, value))
             return false;
         MicroInstrOperand add[3] = {};
         add[0].reg               = ops[0].reg;
         add[1].opBits            = bits;
-        add[2].valueU64          = signedOffset;
-        ctx.emitRewrite(ref, MicroInstrOpcode::AddCarryRegImm, add);
+        add[2].valueU64          = immediate & getBitsMask(bits);
+        ctx.emitRewrite(ref, value.inverse ? MicroInstrOpcode::SubtractBorrowRegImm : MicroInstrOpcode::AddCarryRegImm, add);
         ctx.emitErase(value.setRef);
+        return true;
+    }
+
+    // Two constants one apart, selected on the carry, are the carry added to
+    // or subtracted from one of them, as LLVM's x86 lowering turns
+    // `c < 0xF0 ? 3 : 4` into `mov eax, 4; sbb eax, 0`:
+    //
+    //     mov R, K                           mov R, K
+    //     mov T, K - 1              ->       sbb R, 0
+    //     cmovb R, T
+    //
+    // Moves leave the flags alone, so the carry the select reads is the one
+    // SBB or ADC reads. The load of T goes once T dies at the select.
+    bool tryFoldCarrySelectOfConstants(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        constexpr uint32_t K_MAX_WINDOW = 4;
+
+        if (ctx.isClaimed(ref) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic())
+            return false;
+        const auto* select = inst.ops(*ctx.operands);
+        if (!select || !select[0].reg.isInt() || !select[1].reg.isInt() || select[0].reg == select[1].reg ||
+            ctx.isPrivateFrameBase(select[0].reg) || (select[3].opBits != MicroOpBits::B32 && select[3].opBits != MicroOpBits::B64))
+            return false;
+        const MicroCond cond = select[2].cpuCond;
+        if (cond != MicroCond::Below && cond != MicroCond::AboveOrEqual)
+            return false;
+        const MicroReg    result = select[0].reg;
+        const MicroReg    other  = select[1].reg;
+        const MicroOpBits bits   = select[3].opBits;
+        const uint64_t    mask   = getBitsMask(bits);
+
+        // The constant loads of both registers; nothing between a load and
+        // the select mentions its register.
+        MicroInstrRef resultLoad = MicroInstrRef::invalid();
+        MicroInstrRef otherLoad  = MicroInstrRef::invalid();
+        MicroInstrRef cursor     = ctx.previousRef(ref);
+        for (uint32_t step = 0; step < K_MAX_WINDOW && cursor.isValid() && (!resultLoad.isValid() || !otherLoad.isValid()); ++step)
+        {
+            const MicroInstr* current = ctx.instruction(cursor);
+            if (!current || current->op == MicroInstrOpcode::Label)
+                return false;
+            const MicroInstrFlags flags = MicroInstr::info(current->op).flags;
+            if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const auto* currentOps = current->ops(*ctx.operands);
+            const bool  isLoad     = current->op == MicroInstrOpcode::LoadRegImm && currentOps && !currentOps[2].hasWideImmediateValue() &&
+                                (currentOps[1].opBits == MicroOpBits::B32 || currentOps[1].opBits == MicroOpBits::B64);
+            if (isLoad && !resultLoad.isValid() && currentOps[0].reg == result)
+            {
+                resultLoad = cursor;
+            }
+            else if (isLoad && !otherLoad.isValid() && currentOps[0].reg == other)
+            {
+                otherLoad = cursor;
+            }
+            else
+            {
+                const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
+                for (const MicroReg reg : {result, other})
+                {
+                    const bool pending = reg == result ? !resultLoad.isValid() : !otherLoad.isValid();
+                    if (pending && (microRegSpanContains(useDef.uses.span(), reg) || microRegSpanContains(useDef.defs.span(), reg)))
+                        return false;
+                }
+            }
+            cursor = ctx.previousRef(cursor);
+        }
+        if (!resultLoad.isValid() || !otherLoad.isValid())
+            return false;
+
+        const auto*    resultOps = ctx.instruction(resultLoad)->ops(*ctx.operands);
+        const auto*    otherOps  = ctx.instruction(otherLoad)->ops(*ctx.operands);
+        const uint64_t kept      = resultOps[2].valueU64 & getBitsMask(resultOps[1].opBits) & mask;
+        const uint64_t selected  = otherOps[2].valueU64 & getBitsMask(otherOps[1].opBits) & mask;
+
+        // The value the register holds without carry, and whether the carry
+        // subtracts from it or adds to it.
+        const bool     carryKeeps = cond == MicroCond::AboveOrEqual;
+        const uint64_t base       = carryKeeps ? selected : kept;
+        const uint64_t onCarry    = carryKeeps ? kept : selected;
+        bool           borrow     = false;
+        if (onCarry == ((base - 1) & mask))
+            borrow = true;
+        else if (onCarry != ((base + 1) & mask))
+            return false;
+
+        if (!ctx.isRegDeadAfterCurrent(other) || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({ref, resultLoad, otherLoad}))
+            return false;
+
+        if (carryKeeps)
+        {
+            MicroInstrOperand baseLoad[3] = {otherOps[0], otherOps[1], otherOps[2]};
+            baseLoad[0].reg               = result;
+            ctx.emitRewrite(resultLoad, MicroInstrOpcode::LoadRegImm, baseLoad);
+        }
+        ctx.emitErase(otherLoad);
+        MicroInstrOperand carry[3] = {};
+        carry[0].reg               = result;
+        carry[1].opBits            = bits;
+        carry[2].valueU64          = 0;
+        ctx.emitRewrite(ref, borrow ? MicroInstrOpcode::SubtractBorrowRegImm : MicroInstrOpcode::AddCarryRegImm, carry);
         return true;
     }
 

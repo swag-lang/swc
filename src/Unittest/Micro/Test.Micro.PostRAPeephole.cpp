@@ -1457,6 +1457,176 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp rcx, 0xF0 ; mov rax, K ; mov rdx, other ; cmov(cond) rax, rdx ;
+    // [rdx read again] ; ret
+    void emitCarrySelect(MicroBuilder& builder, uint64_t kept, uint64_t selected, MicroCond cond, bool otherLive)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg rdx = MicroReg::intReg(3);
+        constexpr MicroReg r8  = MicroReg::intReg(8);
+
+        builder.emitCmpRegImm(rcx, ApInt(0xF0, 64), MicroOpBits::B8);
+        builder.emitLoadRegImm(rax, ApInt(kept, 64), MicroOpBits::B32);
+        builder.emitLoadRegImm(rdx, ApInt(selected, 64), MicroOpBits::B32);
+        builder.emitLoadCondRegReg(rax, rdx, cond, MicroOpBits::B32);
+        if (otherLive)
+            builder.emitLoadMemReg(r8, 0, rdx, MicroOpBits::B32);
+        builder.emitRet();
+    }
+
+    // The carry instruction left in place of the select, and the constant
+    // loaded into rax.
+    bool findCarryResult(const MicroBuilder& builder, MicroInstrOpcode& outOp, uint64_t& outBase)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        outOp                  = MicroInstrOpcode::Nop;
+        outBase                = UINT64_MAX;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg == rax)
+                outBase = ops[2].valueU64;
+            if (inst.op == MicroInstrOpcode::SubtractBorrowRegImm || inst.op == MicroInstrOpcode::AddCarryRegImm)
+                outOp = inst.op;
+            if (inst.op == MicroInstrOpcode::LoadCondRegReg)
+                return false;
+        }
+        return outOp != MicroInstrOpcode::Nop;
+    }
+}
+
+// `c < 0xF0 ? 3 : 4` subtracts the carry from 4.
+SWC_TEST_BEGIN(PostRAPeephole_CarrySelectOfConstants_Borrows)
+{
+    MicroBuilder builder(ctx);
+    emitCarrySelect(builder, 4, 3, MicroCond::Below, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    MicroInstrOpcode op   = MicroInstrOpcode::Nop;
+    uint64_t         base = 0;
+    if (!findCarryResult(builder, op, base) || op != MicroInstrOpcode::SubtractBorrowRegImm || base != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// `c >= 0xF0 ? 8 : 7` subtracts the carry from 8, the constant selected
+// without carry.
+SWC_TEST_BEGIN(PostRAPeephole_CarrySelectOfConstants_BorrowsFromSelectedBase)
+{
+    MicroBuilder builder(ctx);
+    emitCarrySelect(builder, 7, 8, MicroCond::AboveOrEqual, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    MicroInstrOpcode op   = MicroInstrOpcode::Nop;
+    uint64_t         base = 0;
+    if (!findCarryResult(builder, op, base) || op != MicroInstrOpcode::SubtractBorrowRegImm || base != 8)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// `c < 0xF0 ? 5 : 4` adds the carry to 4.
+SWC_TEST_BEGIN(PostRAPeephole_CarrySelectOfConstants_Adds)
+{
+    MicroBuilder builder(ctx);
+    emitCarrySelect(builder, 4, 5, MicroCond::Below, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    MicroInstrOpcode op   = MicroInstrOpcode::Nop;
+    uint64_t         base = 0;
+    if (!findCarryResult(builder, op, base) || op != MicroInstrOpcode::AddCarryRegImm || base != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Constants two apart, or a selected register still read, keep the select.
+SWC_TEST_BEGIN(PostRAPeephole_CarrySelectOfConstants_Kept)
+{
+    for (const bool otherLive : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        emitCarrySelect(builder, 4, otherLive ? 3 : 2, MicroCond::Below, otherLive);
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        MicroInstrOpcode op   = MicroInstrOpcode::Nop;
+        uint64_t         base = 0;
+        if (findCarryResult(builder, op, base))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // xor eax, eax ; cmp ecx, <rhs> ; set(cond) al ; add eax, offset
+    void emitCarryOffset(MicroBuilder& builder, MicroCond cond, bool compareWithZero, uint64_t offset)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg rdx = MicroReg::intReg(3);
+        constexpr MicroReg r8  = MicroReg::intReg(8);
+
+        builder.emitClearReg(rax, MicroOpBits::B32);
+        if (compareWithZero)
+            builder.emitCmpRegImm(rcx, ApInt(uint64_t{0}, 64), MicroOpBits::B32);
+        else
+            builder.emitCmpRegReg(rcx, rdx, MicroOpBits::B32);
+        builder.emitSetCondReg(rax, cond);
+        builder.emitOpBinaryRegImm(rax, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B32);
+        builder.emitLoadMemReg(r8, 0, rax, MicroOpBits::B32);
+        builder.emitRet();
+    }
+
+    bool hasCarryImmediate(const MicroBuilder& builder, MicroInstrOpcode op, uint64_t value)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == op && inst.ops(builder.operands())[2].valueU64 == value)
+                return true;
+        }
+        return false;
+    }
+}
+
+// setae al ; add eax, 9 is 10 - CF: SBB by -10, in the dword's own width.
+SWC_TEST_BEGIN(PostRAPeephole_InverseCarryOffset_Borrows)
+{
+    MicroBuilder builder(ctx);
+    emitCarryOffset(builder, MicroCond::AboveOrEqual, false, 9);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (!hasCarryImmediate(builder, MicroInstrOpcode::SubtractBorrowRegImm, 0xFFFFFFF6))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// sete al ; add eax, -10 turns into cmp ecx, 1 ; adc eax, -10, whose
+// immediate stays within the dword the encoder takes.
+SWC_TEST_BEGIN(PostRAPeephole_ZeroTestNegativeOffset_AddsDwordImmediate)
+{
+    MicroBuilder builder(ctx);
+    emitCarryOffset(builder, MicroCond::Equal, true, 0xFFFFFFFFFFFFFFF6);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (!hasCarryImmediate(builder, MicroInstrOpcode::AddCarryRegImm, 0xFFFFFFF6))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

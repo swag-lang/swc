@@ -78,6 +78,7 @@ namespace PostRaPeephole
     bool tryFoldZeroTestBooleanSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowBitwiseZeroExtensions(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldCarrySelectOfConstants(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowShiftedBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryShortenAddressUnitOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

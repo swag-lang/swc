@@ -34,6 +34,7 @@ namespace
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegImm, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::CmpRegReg, tryEraseRepeatedCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
@@ -41,6 +42,7 @@ namespace
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldCarryMask);
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldZeroComparisonMask);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldZeroBooleanProduct);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldUnsignedAverage);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCarryArithmetic);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCarryComparisonSum);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldZeroTestBooleanSum);
@@ -82,6 +84,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetSelectedIntermediate);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalCascadeResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalChainResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalResultCopy);

@@ -7,6 +7,120 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    // Reuse a nearby identical register comparison across instructions that
+    // preserve both its operands and the CPU flags. Conditional moves are the
+    // common case: they consume the first comparison without changing it, so
+    // a second comparison of the same values is redundant.
+    bool tryEraseRepeatedCompare(Context& ctx, const MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const auto* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || !cmp[0].reg.isAnyInt() || !cmp[1].reg.isAnyInt())
+            return false;
+
+        constexpr uint32_t                       maxWindow = 4;
+        std::array<MicroInstrRef, maxWindow + 1> window;
+        window[0]            = cmpRef;
+        MicroInstrRef cursor = ctx.previousRef(cmpRef);
+        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.previousRef(cursor))
+        {
+            const MicroInstr* previous = ctx.instruction(cursor);
+            if (!previous || ctx.isClaimed(cursor))
+                return false;
+            window[step]                 = cursor;
+            const auto* previousOperands = previous->ops(*ctx.operands);
+            if (previous->op == MicroInstrOpcode::CmpRegReg && previousOperands &&
+                previousOperands[0].reg == cmp[0].reg && previousOperands[1].reg == cmp[1].reg &&
+                previousOperands[2].opBits == cmp[2].opBits)
+            {
+                if (!ctx.claimAll(std::span{window.data(), step + 1}))
+                    return false;
+                ctx.emitErase(cmpRef);
+                return true;
+            }
+
+            const MicroInstrDef& info = MicroInstr::info(previous->op);
+            if (previous->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                instructionActuallyDefinesCpuFlags(*previous, previousOperands))
+                return false;
+
+            const MicroInstrUseDef useDef = previous->collectUseDef(*ctx.operands, ctx.encoder);
+            if (std::ranges::find(useDef.defs, cmp[0].reg) != useDef.defs.end() ||
+                std::ranges::find(useDef.defs, cmp[1].reg) != useDef.defs.end())
+                return false;
+        }
+        return false;
+    }
+
+    // The overflow-safe unsigned average idiom can use a widened add once
+    // both dword inputs are known to have clear upper halves:
+    //
+    //     M = A; M &= B                  A += B, b64
+    //     A ^= B; A >>= 1, b32    ->    A >>= 1, b64
+    //     A += M
+    bool tryFoldUnsignedAverage(Context& ctx, MicroInstrRef addRef, const MicroInstr& addInst)
+    {
+        if (ctx.isClaimed(addRef))
+            return false;
+        const auto* add = addInst.ops(*ctx.operands);
+        if (!add || add[2].opBits != MicroOpBits::B32 || add[3].microOp != MicroOp::Add ||
+            !add[0].reg.isInt() || !add[1].reg.isInt() || add[0].reg == add[1].reg ||
+            ctx.isPrivateFrameBase(add[0].reg) || ctx.isPrivateFrameBase(add[1].reg) ||
+            !ctx.isRegDeadAfterCurrent(add[1].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+
+        const MicroReg      result = add[0].reg;
+        const MicroReg      mask   = add[1].reg;
+        const MicroInstrRef shiftRef = ctx.previousRef(addRef);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        const auto*         shifted  = shift ? shift->ops(*ctx.operands) : nullptr;
+        if (!shift || shift->op != MicroInstrOpcode::OpBinaryRegImm || !shifted || shifted[0].reg != result ||
+            shifted[1].opBits != MicroOpBits::B32 || shifted[2].microOp != MicroOp::ShiftRight ||
+            shifted[3].hasWideImmediateValue() || shifted[3].valueU64 != 1)
+            return false;
+
+        const MicroInstrRef xorRef = ctx.previousRef(shiftRef);
+        const MicroInstr*   xorInst = ctx.instruction(xorRef);
+        const auto*         xorOps  = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        if (!xorInst || xorInst->op != MicroInstrOpcode::OpBinaryRegReg || !xorOps || xorOps[0].reg != result ||
+            !xorOps[1].reg.isInt() || xorOps[1].reg == result || xorOps[1].reg == mask ||
+            xorOps[2].opBits != MicroOpBits::B32 || xorOps[3].microOp != MicroOp::Xor)
+            return false;
+        const MicroReg other = xorOps[1].reg;
+
+        const MicroInstrRef andRef = ctx.previousRef(xorRef);
+        const MicroInstr*   andInst = ctx.instruction(andRef);
+        const auto*         andOps  = andInst ? andInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef copyRef = ctx.previousRef(andRef);
+        const MicroInstr*   copyInst = ctx.instruction(copyRef);
+        const auto*         copyOps  = copyInst ? copyInst->ops(*ctx.operands) : nullptr;
+        if (!andInst || andInst->op != MicroInstrOpcode::OpBinaryRegReg || !andOps ||
+            andOps[0].reg != mask || andOps[1].reg != other || andOps[2].opBits != MicroOpBits::B32 || andOps[3].microOp != MicroOp::And ||
+            !copyInst || copyInst->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
+            copyOps[0].reg != mask || copyOps[1].reg != result || copyOps[2].opBits != MicroOpBits::B32 ||
+            !ctx.isUpperHalfZeroBefore(copyRef, result) || !ctx.isUpperHalfZeroBefore(copyRef, other))
+            return false;
+
+        MicroInstrOperand widenedAdd[4] = {add[0], xorOps[1], add[2], add[3]};
+        widenedAdd[2].opBits            = MicroOpBits::B64;
+        MicroInstrOperand widenedShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
+        widenedShift[1].opBits            = MicroOpBits::B64;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, addInst, widenedAdd) ||
+                             ctx.encoder->queryConformanceIssue(issue, *shift, widenedShift))) ||
+            !ctx.claimAll({copyRef, andRef, xorRef, shiftRef, addRef}))
+            return false;
+        ctx.emitErase(copyRef);
+        ctx.emitRewrite(andRef, MicroInstrOpcode::OpBinaryRegReg, widenedAdd);
+        ctx.emitErase(xorRef);
+        ctx.emitRewrite(shiftRef, shift->op, widenedShift);
+        ctx.emitErase(addRef);
+        return true;
+    }
+
     namespace
     {
         bool isCompareInstruction(MicroInstrOpcode op)

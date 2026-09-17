@@ -13,6 +13,9 @@ func cancelLeft32(a, b: u32)->u32 => (b ^ a) ^ a
 func cancelRight32(a, b: u32)->u32 => a ^ (a ^ b)
 
 #[Swag.NoInline]
+func absorbXorOr32(a, b: u32)->u32 => a | (a ^ b)
+
+#[Swag.NoInline]
 func absorbOr64(a, b: u64)->u64 => a | (a & b)
 
 #[Swag.NoInline]
@@ -23,6 +26,9 @@ func cancelLeft64(a, b: u64)->u64 => (b ^ a) ^ a
 
 #[Swag.NoInline]
 func cancelRight64(a, b: u64)->u64 => a ^ (a ^ b)
+
+#[Swag.NoInline]
+func absorbXorOr64(a, b: u64)->u64 => (a ^ b) | b
 
 #[Swag.NoInline]
 func reusedXor(a, b: u64)->u64
@@ -52,10 +58,12 @@ func changedInput(a, b: u64)->u64
             Swag.assert(absorbAnd32(a32, b32) == a32)
             Swag.assert(cancelLeft32(a32, b32) == b32)
             Swag.assert(cancelRight32(a32, b32) == b32)
+            Swag.assert(absorbXorOr32(a32, b32) == (a32 | b32))
             Swag.assert(absorbOr64(a, b) == a)
             Swag.assert(absorbAnd64(a, b) == a)
             Swag.assert(cancelLeft64(a, b) == b)
             Swag.assert(cancelRight64(a, b) == b)
+            Swag.assert(absorbXorOr64(a, b) == (a | b))
             Swag.assert(reusedXor(a, b) == (a | b))
             Swag.assert(changedInput(a, b) == ((a & b) | (a ^ 0xFF00FF00FF00FF00)))
         }

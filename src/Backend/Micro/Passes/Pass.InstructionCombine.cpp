@@ -107,11 +107,14 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldRelocatedAddressIntoAccess);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldRelocatedAddressIntoAccess);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldRelocatedAddressIntoAccess);
+        r.add(MicroInstrOpcode::CmpRegReg, tryDropDeadCompare);
+        r.add(MicroInstrOpcode::CmpRegImm, tryDropDeadCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldThreeWaySelects);
         // Narrowing the masked operation keeps the extend's work in a 32-bit
         // operation; dropping the extend first would leave the operation wide.
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);

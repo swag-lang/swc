@@ -450,6 +450,224 @@ namespace InstructionCombine
         return true;
     }
 
+    namespace
+    {
+        constexpr uint32_t K_MAX_FLAG_WALK = 4;
+
+        // The compare whose flags `ref` reads: the nearest earlier compare
+        // across instructions that leave the flags alone.
+        MicroInstrRef findFlagSource(const Context& ctx, MicroInstrRef ref)
+        {
+            MicroInstrRef at = ref;
+            for (uint32_t step = 0; step < K_MAX_FLAG_WALK; ++step)
+            {
+                at                     = ctx.storage->findPreviousInstructionRef(at);
+                const MicroInstr* inst = at.isValid() ? ctx.storage->ptr(at) : nullptr;
+                if (!inst)
+                    return MicroInstrRef::invalid();
+                if (inst->op == MicroInstrOpcode::CmpRegReg || inst->op == MicroInstrOpcode::CmpRegImm)
+                    return at;
+                if (inst->op != MicroInstrOpcode::LoadRegImm && inst->op != MicroInstrOpcode::LoadRegReg)
+                    return MicroInstrRef::invalid();
+            }
+            return MicroInstrRef::invalid();
+        }
+
+        // Whether two compares test the same values the same way.
+        bool isSameCompareOfSameValues(const Context& ctx, MicroInstrRef leftRef, MicroInstrRef rightRef)
+        {
+            const MicroInstr* left  = ctx.storage->ptr(leftRef);
+            const MicroInstr* right = ctx.storage->ptr(rightRef);
+            if (!left || !right || left->op != right->op)
+                return false;
+            const MicroInstrOperand* leftOps  = left->ops(*ctx.operands);
+            const MicroInstrOperand* rightOps = right->ops(*ctx.operands);
+            if (leftOps[0].reg != rightOps[0].reg || leftOps[1].opBits != rightOps[1].opBits)
+                return false;
+            if (left->op == MicroInstrOpcode::CmpRegReg)
+            {
+                if (leftOps[1].reg != rightOps[1].reg || leftOps[2].opBits != rightOps[2].opBits)
+                    return false;
+            }
+            else if (leftOps[2].hasWideImmediateValue() || rightOps[2].hasWideImmediateValue() || leftOps[2].valueU64 != rightOps[2].valueU64)
+                return false;
+
+            const auto sameValue = [&](MicroReg reg) {
+                const MicroSsaState::ReachingDef atLeft  = ctx.ssa->reachingDef(reg, leftRef);
+                const MicroSsaState::ReachingDef atRight = ctx.ssa->reachingDef(reg, rightRef);
+                return atLeft.valid() && atRight.valid() && atLeft.valueId == atRight.valueId;
+            };
+            if (!leftOps[0].reg.isVirtualInt() || !sameValue(leftOps[0].reg))
+                return false;
+            return left->op != MicroInstrOpcode::CmpRegReg || (leftOps[1].reg.isVirtualInt() && sameValue(leftOps[1].reg));
+        }
+
+        bool constantAt(uint64_t& outValue, const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+        {
+            if (!reg.isVirtualInt())
+                return false;
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (!def.valid() || def.isPhi || !def.inst)
+                return false;
+            if (def.inst->op == MicroInstrOpcode::ClearReg)
+            {
+                outValue = 0;
+                return true;
+            }
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            if (def.inst->op != MicroInstrOpcode::LoadRegImm || ops[2].hasWideImmediateValue())
+                return false;
+            outValue = ops[2].valueU64 & getBitsMask(ops[1].opBits);
+            return true;
+        }
+
+        // Whether `reg`, where `atRef` reads it, is `cond ? value : 0` at
+        // `bits`: a select over a zero, or, for 1, a widened setcc. Returns the
+        // compare the selection read.
+        MicroInstrRef matchFlagSelect(const Context& ctx, MicroReg reg, MicroInstrRef atRef, MicroCond cond, uint64_t value, MicroOpBits bits)
+        {
+            MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* copyOps = def.inst->ops(*ctx.operands);
+                if (getNumBits(copyOps[2].opBits) < getNumBits(bits) || !copyOps[1].reg.isVirtualInt())
+                    return MicroInstrRef::invalid();
+                def = ctx.ssa->reachingDef(copyOps[1].reg, def.instRef);
+            }
+            if (!def.valid() || def.isPhi || !def.inst)
+                return MicroInstrRef::invalid();
+
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            if (def.inst->op == MicroInstrOpcode::LoadCondRegReg)
+            {
+                uint64_t initial  = 0;
+                uint64_t selected = 0;
+                if (ops[2].cpuCond != cond || getNumBits(ops[3].opBits) < getNumBits(bits) || !constantAt(initial, ctx, ops[0].reg, def.instRef) ||
+                    !constantAt(selected, ctx, ops[1].reg, def.instRef))
+                    return MicroInstrRef::invalid();
+                if ((initial & getBitsMask(bits)) != 0 || (selected & getBitsMask(bits)) != (value & getBitsMask(bits)))
+                    return MicroInstrRef::invalid();
+                return findFlagSource(ctx, def.instRef);
+            }
+
+            if (def.inst->op == MicroInstrOpcode::LoadZeroExtRegReg && value == 1 && ops[3].opBits == MicroOpBits::B8 &&
+                getNumBits(ops[2].opBits) >= getNumBits(bits) && ops[1].reg.isVirtualInt())
+            {
+                const MicroSsaState::ReachingDef set = ctx.ssa->reachingDef(ops[1].reg, def.instRef);
+                if (!set.valid() || set.isPhi || !set.inst || set.inst->op != MicroInstrOpcode::SetCondReg ||
+                    set.inst->ops(*ctx.operands)[1].cpuCond != cond)
+                    return MicroInstrRef::invalid();
+                return findFlagSource(ctx, set.instRef);
+            }
+
+            return MicroInstrRef::invalid();
+        }
+    }
+
+    // `if a < b return -1; if a > b return 1; return 0` selects twice from
+    // the same compare:
+    //
+    //     D = 0; cmovg D, 1                  setg H
+    //     cmp a, b                     ->    setl L
+    //     cmovl D, -1                        H -= L         (bytes)
+    //                                        D = sext(H)
+    //
+    // The two conditions exclude each other, so D is the three-way sign,
+    // lowered as LLVM lowers `scmp`. Either order of the two selects, and the
+    // unsigned conditions, take the same form.
+    bool tryFoldThreeWaySelects(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa || !ctx.passContext)
+            return false;
+
+        const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+        const MicroReg           dst  = ops[0].reg;
+        const MicroOpBits        bits = ops[3].opBits;
+        if (!dst.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+            return false;
+
+        MicroCond greater = MicroCond::Unconditional;
+        MicroCond less    = MicroCond::Unconditional;
+        switch (ops[2].cpuCond)
+        {
+            case MicroCond::Less:
+            case MicroCond::Greater:
+                greater = MicroCond::Greater;
+                less    = MicroCond::Less;
+                break;
+            case MicroCond::Below:
+            case MicroCond::Above:
+                greater = MicroCond::Above;
+                less    = MicroCond::Below;
+                break;
+            default:
+                return false;
+        }
+
+        // The outer select takes 1 on `greater` or -1 on `less`; the value it
+        // replaces is the other one or zero.
+        const bool     outerIsLess = ops[2].cpuCond == less;
+        const uint64_t minusOne    = getBitsMask(bits);
+        uint64_t       selected    = 0;
+        if (!constantAt(selected, ctx, ops[1].reg, ref) || selected != (outerIsLess ? minusOne : 1))
+            return false;
+
+        const MicroInstrRef outerCompare = findFlagSource(ctx, ref);
+        if (!outerCompare.isValid())
+            return false;
+        const MicroInstrRef innerCompare = matchFlagSelect(ctx, dst, ref, outerIsLess ? greater : less, outerIsLess ? 1 : minusOne, bits);
+        if (!innerCompare.isValid() || !isSameCompareOfSameValues(ctx, innerCompare, outerCompare))
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+
+        if (!ctx.nextVirtualIntRegIndex)
+            MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+        if (ctx.nextVirtualIntRegIndex + 2 >= MicroReg::K_MAX_INDEX)
+            return false;
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        const MicroReg high = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+        const MicroReg low  = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+
+        MicroInstrOperand highOps[2];
+        highOps[0].reg     = high;
+        highOps[1].cpuCond = greater;
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::SetCondReg, highOps);
+        MicroInstrOperand lowOps[2];
+        lowOps[0].reg     = low;
+        lowOps[1].cpuCond = less;
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::SetCondReg, lowOps);
+        MicroInstrOperand subOps[4];
+        subOps[0].reg     = high;
+        subOps[1].reg     = low;
+        subOps[2].opBits  = MicroOpBits::B8;
+        subOps[3].microOp = MicroOp::Subtract;
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, subOps);
+
+        MicroInstrOperand signOps[4];
+        signOps[0].reg    = dst;
+        signOps[1].reg    = high;
+        signOps[2].opBits = bits;
+        signOps[3].opBits = MicroOpBits::B8;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadSignedExtRegReg, signOps);
+        return true;
+    }
+
+    // A compare whose flags are written again before anything reads them does
+    // nothing, as a select folded away leaves its compare behind.
+    bool tryDropDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        SWC_UNUSED(inst);
+        if (ctx.isClaimed(ref) || !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(*ctx.storage, *ctx.operands, ref))
+            return false;
+        if (!ctx.claimAll({ref}))
+            return false;
+        ctx.emitErase(ref);
+        return true;
+    }
+
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa)

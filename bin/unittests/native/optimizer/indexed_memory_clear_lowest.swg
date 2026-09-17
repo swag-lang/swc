@@ -1,9 +1,9 @@
 #global private
 
-#[Swag.NoInline]
+#[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func clearLowest64(values: [*] u64, index: u64)->u64 => values[index] & (values[index] - 1)
 
-#[Swag.NoInline]
+#[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func clearLowest32(values: [*] u32, index: u64)->u32 => values[index] & (values[index] - 1)
 
 #test

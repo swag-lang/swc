@@ -3307,6 +3307,71 @@ SWC_TEST_BEGIN(InstCombine_SubtractionOfStaleValue_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // A sum of three widened bytes, or of two dword loads, sign-extended to 64.
+    void emitSumSignExtend(MicroBuilder& builder, bool bytes)
+    {
+        constexpr MicroReg base = MicroReg::virtualIntReg(1);
+        constexpr MicroReg a    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg b    = MicroReg::virtualIntReg(3);
+        constexpr MicroReg c    = MicroReg::virtualIntReg(4);
+        constexpr MicroReg wide = MicroReg::virtualIntReg(5);
+
+        if (bytes)
+        {
+            builder.emitLoadRegMem(a, base, 0, MicroOpBits::B8);
+            builder.emitOpBinaryRegImm(a, ApInt(1, 64), MicroOp::Xor, MicroOpBits::B8);
+            builder.emitLoadZeroExtendRegReg(a, a, MicroOpBits::B32, MicroOpBits::B8);
+            builder.emitLoadRegMem(b, base, 1, MicroOpBits::B8);
+            builder.emitOpBinaryRegImm(b, ApInt(1, 64), MicroOp::Xor, MicroOpBits::B8);
+            builder.emitLoadZeroExtendRegReg(b, b, MicroOpBits::B32, MicroOpBits::B8);
+            builder.emitLoadRegMem(c, base, 2, MicroOpBits::B8);
+            builder.emitOpBinaryRegImm(c, ApInt(1, 64), MicroOp::Xor, MicroOpBits::B8);
+            builder.emitLoadZeroExtendRegReg(c, c, MicroOpBits::B32, MicroOpBits::B8);
+            builder.emitOpBinaryRegReg(a, b, MicroOp::Add, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(a, c, MicroOp::Add, MicroOpBits::B32);
+        }
+        else
+        {
+            builder.emitLoadRegMem(a, base, 0, MicroOpBits::B32);
+            builder.emitLoadRegMem(b, base, 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(a, b, MicroOp::Add, MicroOpBits::B32);
+        }
+        builder.emitLoadSignedExtendRegReg(wide, a, MicroOpBits::B64, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 8, wide, MicroOpBits::B64);
+        builder.emitRet();
+    }
+}
+
+// A count that cannot reach the sign bit needs no sign extension.
+SWC_TEST_BEGIN(InstCombine_SmallSumSignExtend_BecomesCopy)
+{
+    MicroBuilder builder(ctx);
+    emitSumSignExtend(builder, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A sum of dwords may set the sign bit.
+SWC_TEST_BEGIN(InstCombine_DwordSumSignExtend_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitSumSignExtend(builder, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -1889,6 +1889,82 @@ namespace InstructionCombine
         return tryBypassShiftCountMaskImpl(ctx, ref, inst);
     }
 
+    // The usual branchless absolute-value expansion uses a sign mask:
+    //
+    //     result = value                     result = value
+    //     mask = value                       neg result
+    //     sar mask, bits - 1          ->     cmovs result, value
+    //     xor result, mask
+    //     sub result, mask
+    //
+    // Negation sets SF from the candidate magnitude. It is set exactly when
+    // the original nonnegative value must be restored, including the minimum
+    // signed value where both representations are the same bit pattern.
+    bool tryFoldAbsoluteValueSignMask(Context& ctx, MicroInstrRef subRef, const MicroInstr& subInst)
+    {
+        if (ctx.isClaimed(subRef) || !ctx.ssa || subInst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const MicroInstrOperand* subOps = subInst.ops(*ctx.operands);
+        if (!subOps || subOps[3].microOp != MicroOp::Subtract ||
+            (subOps[2].opBits != MicroOpBits::B32 && subOps[2].opBits != MicroOpBits::B64) ||
+            !subOps[0].reg.isVirtualInt() || !subOps[1].reg.isVirtualInt() || subOps[0].reg == subOps[1].reg)
+            return false;
+        const MicroOpBits bits   = subOps[2].opBits;
+        const MicroReg    result = subOps[0].reg;
+        const MicroReg    mask   = subOps[1].reg;
+
+        const MicroInstrRef xorRef = ctx.storage->findPreviousInstructionRef(subRef);
+        const MicroInstr*   xorInst = xorRef.isValid() ? ctx.storage->ptr(xorRef) : nullptr;
+        const MicroInstrOperand* xorOps = xorInst && xorInst->op == MicroInstrOpcode::OpBinaryRegReg ? xorInst->ops(*ctx.operands) : nullptr;
+        if (!xorOps || xorOps[0].reg != result || xorOps[1].reg != mask || xorOps[2].opBits != bits || xorOps[3].microOp != MicroOp::Xor)
+            return false;
+
+        const MicroInstrRef shiftRef = ctx.storage->findPreviousInstructionRef(xorRef);
+        const MicroInstr*   shift    = shiftRef.isValid() ? ctx.storage->ptr(shiftRef) : nullptr;
+        const MicroInstrOperand* shiftOps = shift && shift->op == MicroInstrOpcode::OpBinaryRegImm ? shift->ops(*ctx.operands) : nullptr;
+        if (!shiftOps || shiftOps[0].reg != mask || shiftOps[1].opBits != bits || shiftOps[2].microOp != MicroOp::ShiftArithmeticRight ||
+            shiftOps[3].hasWideImmediateValue() || shiftOps[3].valueU64 != getNumBits(bits) - 1)
+            return false;
+
+        const MicroInstrRef maskCopyRef = ctx.storage->findPreviousInstructionRef(shiftRef);
+        const MicroInstr*   maskCopy    = maskCopyRef.isValid() ? ctx.storage->ptr(maskCopyRef) : nullptr;
+        const MicroInstrOperand* maskCopyOps = maskCopy && maskCopy->op == MicroInstrOpcode::LoadRegReg ? maskCopy->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef resultCopyRef = ctx.storage->findPreviousInstructionRef(maskCopyRef);
+        const MicroInstr*   resultCopy    = resultCopyRef.isValid() ? ctx.storage->ptr(resultCopyRef) : nullptr;
+        const MicroInstrOperand* resultCopyOps = resultCopy && resultCopy->op == MicroInstrOpcode::LoadRegReg ? resultCopy->ops(*ctx.operands) : nullptr;
+        if (!maskCopyOps || !resultCopyOps || maskCopyOps[0].reg != mask || resultCopyOps[0].reg != result ||
+            maskCopyOps[1].reg != resultCopyOps[1].reg || !maskCopyOps[1].reg.isVirtualInt() ||
+            getNumBits(maskCopyOps[2].opBits) < getNumBits(bits) || getNumBits(resultCopyOps[2].opBits) < getNumBits(bits))
+            return false;
+
+        const MicroSsaState::ReachingDef sourceAtResult = ctx.ssa->reachingDef(resultCopyOps[1].reg, resultCopyRef);
+        const MicroSsaState::ReachingDef sourceAtMask   = ctx.ssa->reachingDef(maskCopyOps[1].reg, maskCopyRef);
+        const MicroSsaState::ReachingDef maskAtXor      = ctx.ssa->reachingDef(mask, xorRef);
+        const MicroSsaState::ReachingDef maskAtSub      = ctx.ssa->reachingDef(mask, subRef);
+        if (!sourceAtResult.valid() || !sourceAtMask.valid() || sourceAtResult.valueId != sourceAtMask.valueId ||
+            !maskAtXor.valid() || !maskAtSub.valid() || maskAtXor.valueId != maskAtSub.valueId ||
+            maskAtXor.instRef != shiftRef || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subRef, ctx.builder) ||
+            !ctx.claimAll({resultCopyRef, maskCopyRef, shiftRef, xorRef, subRef}))
+            return false;
+
+        MicroInstrOperand negate[3];
+        negate[0].reg     = result;
+        negate[1].opBits  = bits;
+        negate[2].microOp = MicroOp::Negate;
+
+        MicroInstrOperand select[4];
+        select[0].reg     = result;
+        select[1].reg     = resultCopyOps[1].reg;
+        select[2].cpuCond = MicroCond::Sign;
+        select[3].opBits  = bits;
+
+        ctx.emitErase(maskCopyRef);
+        ctx.emitErase(shiftRef);
+        ctx.emitRewrite(xorRef, MicroInstrOpcode::OpUnaryReg, negate);
+        ctx.emitRewrite(subRef, MicroInstrOpcode::LoadCondRegReg, select);
+        return true;
+    }
+
     bool tryOpBinaryRegReg(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref))

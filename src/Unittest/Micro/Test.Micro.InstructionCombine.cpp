@@ -3635,6 +3635,53 @@ SWC_TEST_BEGIN(InstCombine_NarrowCopySquare_Kept)
 }
 SWC_TEST_END()
 
+// A min select whose right operand dies selects into that operand, and a copy
+// hands the result to its register: the readers keep reading the result.
+SWC_TEST_BEGIN(InstCombine_MinSelect_ReusesDeadCompareOperand)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg result = MicroReg::virtualIntReg(4);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
+    builder.emitLoadRegMem(right, base, 4, MicroOpBits::B32);
+    builder.emitLoadRegReg(result, left, MicroOpBits::B64);
+    builder.emitCmpRegReg(left, right, MicroOpBits::B32);
+    builder.emitLoadCondRegReg(result, right, MicroCond::Greater, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 8, result, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 12, left, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    bool selectSeen = false;
+    bool copySeen   = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadCondRegReg)
+        {
+            if (ops[0].reg != right || ops[1].reg != left || ops[2].cpuCond != MicroCond::LessOrEqual)
+                return Result::Error;
+            selectSeen = true;
+        }
+        else if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == result)
+        {
+            if (!selectSeen || ops[1].reg != right)
+                return Result::Error;
+            copySeen = true;
+        }
+        else if (inst.op == MicroInstrOpcode::LoadMemReg && ops[1].reg == result && !copySeen)
+        {
+            return Result::Error;
+        }
+    }
+    return selectSeen && copySeen ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

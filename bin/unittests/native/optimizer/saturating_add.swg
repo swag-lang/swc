@@ -14,7 +14,7 @@ func indexed32(values: const [*]u32, index: u64)->u32
 {
     let left  = values[index]
     let right = values[index + 1]
-    let sum   = left + right
+    let sum   = left + #wrap right
     return sum < left ? 0xFFFFFFFF : sum
 }
 

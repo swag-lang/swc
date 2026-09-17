@@ -245,6 +245,47 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedDivideMagicNoFixup)
 }
 SWC_TEST_END()
 
+// A 32-bit div_u v1, 10 multiplies at 64 bits and shifts the high half down:
+// no mulhi, so no rax/rdx.
+SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideUsesWideProduct)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitOpBinaryRegImm(v1, ApInt(10, 64), MicroOp::DivideUnsigned, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 0)
+        return Result::Error;
+    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1)
+        return Result::Error;
+    if (!hasLoadRegImmValue(builder, 0xCCCCCCCDull) || !hasBinaryRegImm(builder, MicroOp::ShiftRight, 35))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A 32-bit divisor whose multiplier needs the fixup keeps the high multiply.
+SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideFixupKeepsHighMultiply)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::DivideUnsigned, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // div_u v1, 7 needs the add-fixup sequence: mulhi, sub, shr 1, add, shr.
 SWC_TEST_BEGIN(StrengthReduction_UnsignedDivideMagicFixup)
 {

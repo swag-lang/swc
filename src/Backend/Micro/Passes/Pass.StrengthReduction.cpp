@@ -288,6 +288,35 @@ namespace
         // With the fixup: q = ((n - mulhi(n, M)) >> 1 + mulhi(n, M)) >> (shift - 1).
         void emitUnsignedDivide(MicroReg dst, const UnsignedDivisionMagic& magic) const
         {
+            // A 32-bit dividend times a 32-bit multiplier fits in 64 bits: the
+            // plain 64-bit product shifted down is the high half, as LLVM emits
+            // it, and needs neither rax nor rdx.
+            if (!magic.addFixup && opBits == MicroOpBits::B32)
+            {
+                const MicroReg wideReg  = allocVirtualReg();
+                const MicroReg magicReg = allocVirtualReg();
+                emitCopy(wideReg, dst);
+                MicroInstrOperand loadOps[3];
+                loadOps[0].reg    = magicReg;
+                loadOps[1].opBits = MicroOpBits::B64;
+                loadOps[2].setImmediateValue(ApInt(magic.multiplier, 64));
+                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadRegImm, loadOps);
+                MicroInstrOperand mulOps[4];
+                mulOps[0].reg     = wideReg;
+                mulOps[1].reg     = magicReg;
+                mulOps[2].opBits  = MicroOpBits::B64;
+                mulOps[3].microOp = MicroOp::MultiplySigned;
+                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, mulOps);
+                MicroInstrOperand shiftOps[4];
+                shiftOps[0].reg     = wideReg;
+                shiftOps[1].opBits  = MicroOpBits::B64;
+                shiftOps[2].microOp = MicroOp::ShiftRight;
+                shiftOps[3].setImmediateValue(ApInt(32 + magic.shift, 64));
+                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+                emitCopy(dst, wideReg);
+                return;
+            }
+
             const MicroReg magicReg = allocVirtualReg();
             emitLoadImm(magicReg, magic.multiplier);
 

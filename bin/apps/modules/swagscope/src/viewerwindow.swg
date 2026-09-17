@@ -93,416 +93,6 @@ struct ViewerFolderHistory
 
 // Keeps the search group centered on the complete action bar, independently of the action cluster
 // and viewer selector docked at opposite edges.
-struct ViewerActionBar
-{
-    using wnd:       Wnd
-    centerGroup:     *Wnd?
-    fillCenterGroup: bool
-}
-
-impl IWnd for ViewerActionBar
-{
-    mtd impl onResizeEvent(evt: *ResizeEvent)
-    {
-        discard evt
-        .centerContent()
-    }
-}
-
-impl ViewerActionBar
-{
-    func create(parent: *Wnd)->*ViewerActionBar
-    {
-        let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerActionBarHeight})
-        result.dockStyle       = .Top
-        result.backgroundStyle = .ToolBar
-        result.padding         = {12, 6, 12, 0}
-        return result
-    }
-
-    mtd centerContent()
-    {
-        if not .centerGroup do
-            return
-        let client         = .paddedClientRect()
-        let group          = .centerGroup
-        let preferredWidth = group.preferredSize.x
-        let width          = preferredWidth > 0 ? Math.min(preferredWidth, client.width) : (.fillCenterGroup ? client.width : group.position.width)
-        group.setPosition({client.horzCenter() - width * 0.5, client.vertCenter() - group.position.height * 0.5, width, group.position.height}, computeLayout: false)
-        group.applyLayout()
-    }
-}
-
-// Keeps file identity on the left and every reading of that file on the right.
-//
-// The general details and whatever the viewer adds to them form one run ending at the band's
-// right edge, in that order. Anchoring the run there rather than centring the general details
-// is what lets a long reading spend the whole band before it has to end in an ellipsis.
-struct ViewerInfoLayout
-{
-    using wnd: Wnd
-
-    late
-    {
-        filesButton:  *IconButton
-        fileGroup:    *StackLayoutCtrl
-        generalLabel: *Label
-    }
-
-    sideButton: *IconButton?
-}
-
-impl IWnd for ViewerInfoLayout
-{
-    mtd impl onResizeEvent(evt: *ResizeEvent)
-    {
-        discard evt
-        if (.fileGroup != null) and (.generalLabel != null) do
-            .computeLayout()
-    }
-}
-
-impl ViewerInfoLayout
-{
-    mtd computeLayout()
-    {
-        let client = .paddedClientRect()
-
-        let filesWidth = .filesButton.isLocallyVisible() ? .filesButton.position.width : 0
-        if filesWidth
-        {
-            .filesButton.setPosition({client.x, client.y, filesWidth, client.height}, computeLayout: false)
-            .filesButton.applyLayout()
-        }
-
-        // The button that opens the panel of files and the file it opened read as one group, so
-        // they sit closer together than two unrelated groups of the band do.
-        let fileLeft     = client.x + (filesWidth ? filesWidth + ViewerInfoFileSpacing : 0)
-        let maxFileWidth = Math.max(client.horzCenter() - fileLeft - ViewerInfoGroupSpacing, 0)
-        let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent({maxFileWidth, client.height}).x), maxFileWidth)
-        .fileGroup.setPosition({fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
-        .fileGroup.computeLayout()
-
-        var right = client.right()
-        if .sideButton and .sideButton.isLocallyVisible()
-        {
-            let button = .sideButton
-            right -= button.position.width
-            button.setPosition({right, client.y, button.position.width, client.height}, computeLayout: false)
-            button.applyLayout()
-            right -= ViewerInfoSideButtonSpacing
-        }
-
-        // What the viewer contributes is measured first, because it says exactly what it needs;
-        // the general details then spend everything that is left before they ellipsize.
-        let leftBound = .fileGroup.position.right() + ViewerInfoGroupSpacing
-        let available = Math.max(right - leftBound, 0)
-
-        var viewers: Array'(*Wnd)
-        for child in .children
-        {
-            if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton) or not child.isLocallyVisible() do
-                continue
-            viewers.add(child)
-        }
-
-        var widths: Array'f32
-        var run:    f32
-        for one in viewers
-        {
-            // The room a viewer reserved is its preferred size, never the width the last pass gave
-            // it: reading the current width back would let the group only ever shrink.
-            let spacing = run ? ViewerInfoGroupSpacing : 0
-            let limit   = one.preferredSize.x > 0 ? one.preferredSize.x : one.position.width
-            let wanted  = Math.min(Math.ceil(one.itf.measureContent({available, client.height}).x), limit)
-            let width   = Math.max(Math.min(wanted, available - run - spacing), 0)
-            widths.add(width)
-            if width do
-                run += spacing + width
-        }
-
-        let generalSpacing = run ? ViewerInfoGroupSpacing : 0
-        let generalWanted  = .generalLabel.name.isEmpty() ? 0 : Math.ceil(.generalLabel.itf.measureContent({}).x)
-        let generalWidth   = Math.max(Math.min(generalWanted, available - run - generalSpacing), 0)
-
-        var x = right - run - generalWidth - (generalWidth ? generalSpacing : 0)
-        .generalLabel.setPosition({x, client.y, generalWidth, client.height}, computeLayout: false)
-        if generalWidth do
-            x += generalWidth + generalSpacing
-
-        for one, i in viewers
-        {
-            one.setPosition({x, client.y, widths[i], client.height}, computeLayout: false)
-            one.applyLayout()
-            if widths[i] do
-                x += widths[i] + ViewerInfoGroupSpacing
-        }
-    }
-}
-
-// Application-owned presentation for every viewer failure.
-struct ViewerErrorView
-{
-    using wnd: Wnd
-
-    late
-    {
-        summaryLabel: *Label
-        reasonLabel:  *Label
-        iconLabel:    *Label
-    }
-}
-
-// Keeps the animated repaint local to the activity mark. The host covers the whole document, so
-// animating the host itself would repaint every visible viewer subtree on every frame.
-struct ViewerLoadingSpinner
-{
-    using wnd: Wnd
-
-    animationPhase: f32
-}
-
-// Application-owned wait surface shared by every progressive viewer.
-//
-// A renderer only reports whether it is waiting; it neither chooses nor paints the feedback.
-// The transparent host leaves the document exactly as it was and adds only the activity mark,
-// so loading HTML or a picture cannot appear to change the document background. When the mark
-// is decided on is the window's business, see [[ViewerWindow.updateLoadingIndicator]]; this
-// surface only makes its arrival a fade rather than a pop.
-struct ViewerLoadingOverlay
-{
-    using wnd: Wnd
-
-    late spinner: *ViewerLoadingSpinner
-    fadeAni:      AnimationHandle
-}
-
-// One application-owned marker for every current occurrence. Viewers report the band they painted
-// over what they revealed and nothing else; this layer supplies the air around it, the corner, the
-// themed wash, its own edge and a quiet electric pulse, so PDF text and a byte in the hexadecimal
-// view speak exactly the same visual language.
-//
-// The band takes the corner a selected row already takes, and its edge is drawn inside its
-// outline rather than across it: a rule sitting half outside a translucent wash reads as a frame
-// with something faint behind it instead of as one marked word.
-struct ViewerSearchOverlay
-{
-    using wnd: Wnd
-    phase:     f32
-}
-
-impl IWnd for ViewerSearchOverlay
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        let painter = evt.paintContext.painter
-        let colors  = .themeColors()
-        let pulse   = 0.5'f32 + 0.5'f32 * Math.sin(.phase * Math.ConstF32.TwoPi)
-
-        // The band, and around it the room the halo falls off in.
-        var mark = .clientRect()
-        mark.applyPadding({ViewerSearchGlowReach, ViewerSearchGlowReach, ViewerSearchGlowReach, ViewerSearchGlowReach})
-        if mark.isEmpty() do
-            return
-
-        // The halo is a stack of filled rounded rectangles, drawn from the outermost inward: each
-        // one covers those inside it, so their alphas add up toward the band while the outermost
-        // ring stays a breath. Filling rather than stroking also keeps the whole marker off the
-        // renderer's antialiased no-overlap pass, which clears alpha on a translucent top layer
-        // and leaves seams as the pulse changes intensity.
-        let glowStrength = (0.35'f32 + pulse * 0.65) / cast(f32) ViewerSearchGlowSteps
-        let glow         = colors.searchMatch_Glow.withAlpha(cast(u8) (cast(f32) colors.searchMatch_Glow.a * glowStrength))
-        for step in ViewerSearchGlowSteps
-        {
-            let reach = ViewerSearchGlowReach * cast(f32) (ViewerSearchGlowSteps - step) / cast(f32) ViewerSearchGlowSteps
-            var ring  = mark
-            ring.inflate(reach)
-            painter.fillRoundRect(ring, ViewerSearchMarkRadius + reach, ViewerSearchMarkRadius + reach, glow)
-        }
-
-        painter.fillRoundRect(mark, ViewerSearchMarkRadius, ViewerSearchMarkRadius, colors.searchMatch_Bk)
-
-        var pen = Pen.createSolid(colors.searchMatch_Border, ViewerSearchMarkEdge)
-        pen.borderPos = .Inside
-        painter.drawRoundRect(mark, ViewerSearchMarkRadius, ViewerSearchMarkRadius, pen)
-    }
-}
-
-impl ViewerSearchOverlay
-{
-    func create(parent: *Wnd)->*ViewerSearchOverlay
-    {
-        let result = Wnd.create'ViewerSearchOverlay(parent, "scope.search.highlight")
-        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
-        result.backgroundStyle = .Transparent
-        result.hide()
-        return result
-    }
-
-    // Follows a surface-coordinate match without entering the viewer's own layout or hit testing.
-    //
-    // `bounds` is the band the view painted; the air is added here, wider than it is tall because
-    // a line's leading is what bounds the marker vertically while nothing bounds it horizontally.
-    mtd showMatch(bounds: Math.Rectangle)
-    {
-        let parent  = .parent!
-        let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
-        .setPosition({topLeft.x - ViewerSearchOverlayInsetX, topLeft.y - ViewerSearchOverlayInsetY,
-                      bounds.width + ViewerSearchOverlayInsetX * 2, bounds.height + ViewerSearchOverlayInsetY * 2},
-                     computeLayout: false)
-        .show()
-        .bringToFront()
-    }
-}
-
-impl IWnd for ViewerLoadingSpinner
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        let painter = evt.paintContext.painter
-        let center  = .clientRect().center()
-        let shape   = viewerLoadingSpinnerGeometry(.animationPhase)
-        let end     = shape.start + shape.sweep
-
-        painter.setAntialiased(true)
-        painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Ink, 9)
-        painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Voltage, 5)
-
-        .animationPhase = Math.fract(.animationPhase + .timing().deltaSeconds * 0.7)
-        .invalidate()
-    }
-}
-
-impl ViewerLoadingOverlay
-{
-    func create(parent: *Wnd)->*ViewerLoadingOverlay
-    {
-        with let result = Wnd.create'ViewerLoadingOverlay(parent, "scope.loading")
-        {
-            .wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
-            .backgroundStyle         = .Transparent
-            .spinner                 = Wnd.create'ViewerLoadingSpinner(result, {0, 0, ViewerLoadingSpinnerSize, ViewerLoadingSpinnerSize})
-            .spinner.backgroundStyle = .Transparent
-            .hide()
-        }
-
-        return result
-    }
-
-    // Covers `rect`, expressed in the shared parent coordinates; painting centers the activity mark.
-    mtd cover(rect: Math.Rectangle)
-    {
-        .setPosition(rect, computeLayout: false)
-        .spinner.setPosition({(rect.width - ViewerLoadingSpinnerSize) * 0.5, (rect.height - ViewerLoadingSpinnerSize) * 0.5, ViewerLoadingSpinnerSize, ViewerLoadingSpinnerSize}, computeLayout: false)
-    }
-
-    // Shows the mark, fading it in unless motion is reduced.
-    mtd reveal()
-    {
-        if .isLocallyVisible() do
-            return
-        .show()
-
-        let animator = &.app().animator
-        if animator.isActive(.fadeAni) do
-            animator.cancel(.fadeAni)
-        if .app().isReducedMotion()
-        {
-            .setPresentationOpacity(1)
-            return
-        }
-
-        .setPresentationOpacity(0)
-        var fade: AnimationOptions
-        fade.duration = ViewerLoadingFadeIn
-        fade.easing   = .EaseOut
-        .fadeAni      = animator.animateF32(me, AnimationChannel.from("scope.Loading.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value); }, fade)
-    }
-
-    // Hides the mark at once; a wait that ends is not announced.
-    mtd conceal()
-    {
-        let animator = &.app().animator
-        if animator.isActive(.fadeAni) do
-            animator.cancel(.fadeAni)
-        .hide()
-    }
-}
-
-impl ViewerErrorView
-{
-    func create(parent: *Wnd, reason: string)->*ViewerErrorView
-    {
-        let result = Wnd.create'ViewerErrorView(parent, "scope.error")
-        result.backgroundStyle = .View
-
-        with let stack = StackLayoutCtrl.create(result, .VerticalCenter)
-        {
-            .dockStyle = .Center
-            .padding   = {48, 48, 48, 48}
-            .spacing   = 8
-
-            with result.iconLabel = Label.create(stack, "", {0, 0, 48, 48})
-            {
-                .layoutSpec.alignX = .Center
-                .setIcon(result.theme().icon(.Critical, 48))
-                .setIconColor(result.themeColors().error)
-            }
-
-            with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
-            {
-                .layoutSpec.alignX = .Center
-                .setTextAlignment(.Center, .Center)
-            }
-
-            with result.reasonLabel = Label.create(stack, reason, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight)
-            {
-                .layoutSpec.alignX = .Center
-                .setTextAlignment(.Center, .Center)
-            }
-        }
-
-        result.applyLayout()
-        return result
-    }
-
-    mtd retranslate()
-    {
-        .summaryLabel.setText(appStrings().ui_ViewerError)
-    }
-
-    mtd refreshTheme()
-    {
-        .iconLabel.setIcon(.theme().icon(.Critical, 48))
-        .iconLabel.setIconColor(.themeColors().error)
-    }
-}
-
-// The document header that names the open file, and answers for it.
-//
-// The panel is closed by default and the file being read is the one an action is wanted for most,
-// so the header carries the same menu a panel row does.
-struct ViewerInfoBar
-{
-    using wnd: Wnd
-}
-
-impl IWnd for ViewerInfoBar
-{
-    mtd impl onMouseEvent(evt: *MouseEvent)
-    {
-        // The labels the band holds decline the button, so the press arrives here having crossed
-        // whichever one the pointer was over.
-        if evt.kind != .Released or evt.button != .Right
-        {
-            evt.accepted = false
-            return
-        }
-
-        (cast #assume(*ViewerWindow) .parent!.parent!).showCurrentFileActions(evt.surfacePos)
-    }
-}
-
 func viewerWindowFor(view: *Wnd)->*ViewerWindow
 {
     return view.ancestorByType'ViewerWindow()!
@@ -514,98 +104,6 @@ func reportViewerFailure(view: *Wnd, reason: string)
     window.replaceFailedViewer(view, reason)
 }
 
-struct ViewerClassifiedFile
-{
-    absoluteFileName: String
-    fileSize:         String
-    choices:          Array'ViewerPluginChoice
-    folderFiles:      Array'String
-    recent:           Array'String
-    exists:           bool
-    metadata:         File.FileInfo
-}
-
-// Classifies one requested file without making the GUI thread open or probe it.
-struct ViewerChoiceLoad
-{
-    task:     Swag.Task
-    index:    *ViewerPluginRegistry?
-    fileName: String
-    recent:   Array'String
-    result:   ViewerClassifiedFile
-    started:  bool
-}
-
-impl ViewerChoiceLoad
-{
-    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String)
-    {
-        Swag.assert(not .started)
-
-        // The operation is reusable. A completed result was moved to the window, so rebuild every
-        // owning field before the worker appends the next folder and history snapshot.
-        .result   = {}
-        .index    = index
-        .fileName = fileName
-        .recent   = recent
-        .started  = true
-
-        let operation = me
-        .task.submit(func|operation|()
-        {
-            var absolute = catch Path.absolute(operation.fileName.toString()) as pathError
-            if pathError != null do
-                absolute = operation.fileName
-            operation.result.absoluteFileName = #move absolute
-            operation.result.exists = File.exists(operation.result.absoluteFileName.toString())
-            if operation.result.exists
-            {
-                operation.result.choices = operation.index!.choices(operation.result.absoluteFileName.toString())
-                let info = catch File.info(operation.result.absoluteFileName.toString()) as infoError
-                if infoError == null
-                {
-                    operation.result.fileSize = StrConv.toDisplaySize(info.size)
-                    operation.result.metadata = #move info
-                }
-            }
-
-            for one in operation.recent where File.exists(one[].toString()) do
-                operation.result.recent.add(one[])
-
-            let folder = Path.directoryName(operation.result.absoluteFileName.toString())
-            if not folder do
-                return
-            let files = catch Directory.enumerateFiles(folder) as listError
-            if listError != null do
-                return
-            for file in files
-            {
-                if file.isDirectory() do
-                    continue
-                operation.result.folderFiles.add(file.fullname)
-            }
-
-            operation.result.folderFiles.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
-        })
-    }
-
-    mtd const isDone()->bool => .started and .task.isDone()
-
-    mtd finish()->ViewerClassifiedFile
-    {
-        Swag.assert(.isDone())
-        .task.wait()
-        .started = false
-        return #move .result
-    }
-
-    mtd opDrop()
-    {
-        if .started do
-            .task.wait()
-    }
-}
-
 struct ViewerWindow
 {
     using wnd: Wnd
@@ -613,6 +111,7 @@ struct ViewerWindow
     late
     {
         commandBar:          *ViewerActionBar
+        commandButtons:      *IconBar
         kindButton:          *IconButton
         openButton:          *IconButton
         closeButton:         *IconButton
@@ -1287,128 +786,123 @@ impl ViewerWindow
         }
     }
 
-    func create(parent: *Wnd, index: ViewerPluginRegistry)->*ViewerWindow
+    private mtd createAppearanceChrome()
     {
-        let result = Wnd.create'ViewerWindow(parent, "scope.main")
-        result.surface!.setView(result)
-        result.surface.minSize = {ViewerMinWidth, 420}
-        result.backgroundStyle = .Application
-        result.index           = #move index
-        result.language        = Gui.ReferenceLanguage
-        result.index.attachTo(result.app())
-
-        result.appearanceButton = AppearanceButton.create(result.surface, "scope.appearance")
-        result.appearanceButton.sigThemeChanged += func|window = result|(button)
+        .appearanceButton = AppearanceButton.create(.surface!, "scope.appearance")
+        .appearanceButton.sigThemeChanged += func|window = me|(button)
         {
             window.themeIndex = cast(u32) button.appearanceTheme
             catch window.saveState()
         }
 
-        result.appearanceButton.sigLanguageChanged += func|window = result|(button)
+        .appearanceButton.sigLanguageChanged += func|window = me|(button)
         {
             window.language = button.language
             catch window.saveState()
         }
 
-        result.appearanceButton.sigAboutRequested += func|window = result|(button)
+        .appearanceButton.sigAboutRequested += func|window = me|(button)
         {
             discard button
             window.showAbout()
         }
 
-        result.accentRail = Separator.create(result, .Top, .Accent)
+        .accentRail = Separator.create(me, .Top, .Accent)
+    }
 
-        result.commandBar = ViewerActionBar.create(result)
-        let actionSize            = themeActionButtonSize(result.themeMetrics())
-        let dropDownWidth         = themeDropDownButtonWidth(result.themeMetrics())
+    private mtd createCommandBar()
+    {
+        .commandBar = ViewerActionBar.create(me)
+        let actionSize            = themeActionButtonSize(.themeMetrics())
+        let dropDownWidth         = themeDropDownButtonWidth(.themeMetrics())
         let searchNavigationWidth = 2 * actionSize + ViewerSearchCountWidth + 8
         let searchBarWidth        = dropDownWidth + ViewerSearchFieldWidth + searchNavigationWidth + 2 * ViewerSearchGroupSpacing
 
-        with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with .commandButtons = IconBar.create(.commandBar, themeActionIconSize(.themeMetrics()), itemPadding: .themeMetrics().btnIcon_Padding)
         {
             .dockStyle = .Left
-            .toolTip   = appStrings().ui_Open
-            .sigPressed += func|window = result|(button)
+        }
+
+        with .openButton = .commandButtons.addButton(.theme().icon(.OpenFile, themeActionIconSize(.themeMetrics())))
+        {
+            .toolTip    = appStrings().ui_Open
+            .sigPressed += func|window = me|(button)
             {
                 discard button
                 window.chooseFile()
             }
         }
 
-        with result.openDefaultButton = IconButton.create(result.commandBar, result.theme().icon(.OpenExternal, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with .openDefaultButton = .commandButtons.addButton(.theme().icon(.OpenExternal, themeActionIconSize(.themeMetrics())))
         {
-            .dockStyle = .Left
-            .toolTip   = appStrings().ui_OpenDefault
+            .toolTip = appStrings().ui_OpenDefault
             .enable(false)
-            .sigPressed += func|window = result|(button)
+            .sigPressed += func|window = me|(button)
             {
                 discard button
                 window.openCurrentFileDefault()
             }
         }
 
-        with result.closeButton = IconButton.create(result.commandBar, result.theme().icon(.WndClose, themeActionIconSize(result.themeMetrics())), {0, 0, actionSize, actionSize})
+        with .closeButton = .commandButtons.addButton(.theme().icon(.WndClose, themeActionIconSize(.themeMetrics())))
         {
-            .dockStyle = .Left
-            .toolTip   = appStrings().ui_CloseFile
+            .toolTip = appStrings().ui_CloseFile
             .enable(false)
-            .sigPressed += func|window = result|(button)
+            .sigPressed += func|window = me|(button)
             {
                 discard button
                 window.closeFile()
             }
         }
 
-        with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
+        with .fullScreenButton = .commandButtons.addToggleButton(.theme().icon(.FullScreen, themeActionIconSize(.themeMetrics())))
         {
-            .dockStyle = .Left
-            .toolTip   = appStrings().ui_FullScreen
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(button)
+            .toolTip = appStrings().ui_FullScreen
+            .sigCheckedChanged += func|window = me|(button)
             {
                 window.setFullScreen(button.isChecked)
             }
         }
 
-        with result.searchGroup = StackLayoutCtrl.create(result.commandBar, .Center, {0, 0, searchBarWidth, actionSize})
+        with .searchGroup = StackLayoutCtrl.create(.commandBar, .Center, {0, 0, searchBarWidth, actionSize})
         {
             .backgroundStyle = .Transparent
             .spacing         = ViewerSearchGroupSpacing
             .hide()
         }
 
-        result.commandBar.centerGroup = result.searchGroup
+        .commandBar.centerGroup = .searchGroup
 
-        with result.searchOptionsButton = IconButton.create(result.searchGroup, result.theme().icon(.Options, themeActionIconSize(result.themeMetrics())), {0, 0, dropDownWidth, actionSize}, flags: .CenterContent)
+        with .searchOptionsButton = IconButton.create(.searchGroup, .theme().icon(.Options, themeActionIconSize(.themeMetrics())), {0, 0, dropDownWidth, actionSize}, flags: .CenterContent)
         {
             .layoutSpec.alignY = .Center
             .toolTip = appStrings().ui_SearchOptions
             .setArrowPosition(.RightDownward)
-            .sigPressed += func|window = result|(button)
+            .sigPressed += func|window = me|(button)
             {
                 discard button
                 window.showSearchOptionsMenu()
             }
         }
 
-        with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
+        with .searchBox = EditBox.create(.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
         {
-            .setIcon(result.theme().icon(.Search, themeActionIconSize(result.themeMetrics())))
+            .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_Search)
-            .setValidator(func|window = result|(edit)->EditBoxCheckResult { return window.validateSearchEdit(edit) })
-            .sigTextChanged += func|window = result|(edit)
+            .setValidator(func|window = me|(edit)->EditBoxCheckResult { return window.validateSearchEdit(edit) })
+            .sigTextChanged += func|window = me|(edit)
             {
                 discard edit
                 window.restartSearch()
             }
 
-            .sigSubmitted += func|window = result|(edit)
+            .sigSubmitted += func|window = me|(edit)
             {
                 discard edit
                 window.findNext()
             }
 
-            .sigCancelled += func|window = result|(edit)
+            .sigCancelled += func|window = me|(edit)
             {
                 discard edit
                 window.hideSearch()
@@ -1417,17 +911,17 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchNavigation = StackLayoutCtrl.create(result.searchGroup, .Center, {0, 0, searchNavigationWidth, actionSize})
+        with .searchNavigation = StackLayoutCtrl.create(.searchGroup, .Center, {0, 0, searchNavigationWidth, actionSize})
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
         }
 
-        with result.searchPrevious = IconButton.create(result.searchNavigation, result.theme().icon(.SearchPrevious, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with .searchPrevious = IconButton.create(.searchNavigation, .theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())), {0, 0, actionSize, actionSize})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchPrevious
-            .sigPressed        += func|window = result|(button)
+            .sigPressed        += func|window = me|(button)
             {
                 discard button
                 window.findPrevious()
@@ -1436,11 +930,11 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchNext = IconButton.create(result.searchNavigation, result.theme().icon(.SearchNext, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with .searchNext = IconButton.create(.searchNavigation, .theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())), {0, 0, actionSize, actionSize})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchNext
-            .sigPressed        += func|window = result|(button)
+            .sigPressed        += func|window = me|(button)
             {
                 discard button
                 window.findNext()
@@ -1449,114 +943,122 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchCountLabel = Label.create(result.searchNavigation, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
+        with .searchCountLabel = Label.create(.searchNavigation, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
         {
             .margin.x = 8
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        result.commandBar.centerContent()
+        .commandBar.centerContent()
 
         // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
-        // Viewer commands now have their own row, so this global bar stays compact at every width.
-        with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 180, 36})
+        // Viewer commands have their own row, so this selector can close the global bar's right edge.
+        with .viewerCombo = ComboBox.create(.commandBar, {0, 0, 180, 36})
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
             .hide()
-            .sigChanged += func|window = result|(combo, index)
+            .sigChanged += func|window = me|(combo, index)
             {
                 discard combo
                 window.selectViewer(index)
             }
         }
+    }
 
+    private mtd createInfoBar(panelGutter: f32)
+    {
         // File identity and content statistics are read before the document. The information
         // surface follows the same panel composition as both side panes: a rounded semantic
         // ground inside one shared chrome seam. Viewer tools belong to the dedicated band below.
-        let panelGutter = result.themeMetrics().panel_GutterSize
-        with result.infoBarHost = Wnd.create'Wnd(result, {0, 0, 0, ViewerInfoHeight + panelGutter * 2})
+        with .infoBarHost = Wnd.create'Wnd(me, {0, 0, 0, ViewerInfoHeight + panelGutter * 2})
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
             .padding         = {panelGutter, panelGutter, panelGutter, panelGutter}
         }
 
-        with result.infoBar = Wnd.create'ViewerInfoBar(result.infoBarHost)
+        with .infoBar = Wnd.create'ViewerInfoBar(.infoBarHost)
         {
             .dockStyle       = .Center
             .backgroundStyle = .InformationPanel
             .padding         = {8, 2, 8, 2}
         }
 
-        with result.infoContentGroup = Wnd.create'ViewerInfoLayout(result.infoBar, {0, 0, 0, 36})
+        with .infoContentGroup = Wnd.create'ViewerInfoLayout(.infoBar, {0, 0, 0, 36})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
         }
 
-        with result.filesButton = IconButton.create(result.infoContentGroup, result.theme().icon(.History, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
+        with .filesButton = IconButton.create(.infoContentGroup, .theme().icon(.History, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())}, flags: .Toggle)
         {
             .toolTip = appStrings().ui_Files
             .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(button)
+            .sigCheckedChanged += func|window = me|(button)
             {
                 window.setFilePanelVisible(button.isChecked)
                 catch window.saveState()
             }
         }
 
-        result.infoContentGroup.filesButton = result.filesButton
+        .infoContentGroup.filesButton = .filesButton
 
-        with result.infoFileGroup = StackLayoutCtrl.create(result.infoContentGroup, .Left, {0, 0, 0, 36})
+        with .infoFileGroup = StackLayoutCtrl.create(.infoContentGroup, .Left, {0, 0, 0, 36})
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
         }
 
-        with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 36})
+        with .infoIconLabel = Label.create(.infoFileGroup, "", {0, 0, 24, 36})
         {
-            .margin.z = result.themeMetrics().btnIcon_SpacingIcon
+            .margin.z = me.themeMetrics().btnIcon_SpacingIcon
             .setIconAlignment(.Center, .Center)
         }
 
-        with result.infoNameLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 36}, null, .Ellipsis)
+        with .infoNameLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .Ellipsis)
         {
             .layoutSpec.policyX = .Expand
             .layoutSpec.weightX = 0
-            .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
+            .style.setFont(me.theme().createDefaultFont(13, .Bold), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 36}, null, .SecondaryText)
+        with .infoSizeLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .SecondaryText)
         {
             .margin.x = 8
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.infoStatsLabel = Label.create(result.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
+        with .infoStatsLabel = Label.create(.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
         {
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        result.infoContentGroup.fileGroup    = result.infoFileGroup
-        result.infoContentGroup.generalLabel = result.infoStatsLabel
+        .infoContentGroup.fileGroup    = .infoFileGroup
+        .infoContentGroup.generalLabel = .infoStatsLabel
+    }
 
-        with result.viewerBar = Wnd.create'ViewerActionBar(result, {0, 0, 0, ViewerBarHeight})
+    private mtd createViewerBar()
+    {
+        with .viewerBar = Wnd.create'ViewerActionBar(me, {0, 0, 0, ViewerBarHeight})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
             .padding         = {12, 6, 12, 6}
             .fillCenterGroup = true
         }
+    }
 
+    private mtd createFilePanel(panelGutter: f32)
+    {
         // The toolbar-colored lane is the static seam shared with the application chrome. The
         // rounded structural panel sits inside it, so the lists read as one integrated surface
         // instead of a square block divided from the document by an unrelated rule.
-        with result.filePanelHost = Wnd.create'Wnd(result, {0, 0, ViewerPanelWidth + panelGutter, 0})
+        with .filePanelHost = Wnd.create'Wnd(me, {0, 0, ViewerPanelWidth + panelGutter, 0})
         {
             .dockStyle       = .Left
             .backgroundStyle = .ToolBar
@@ -1567,7 +1069,7 @@ impl ViewerWindow
             .hide()
         }
 
-        with result.filePanel = SplitterCtrl.create(result.filePanelHost, {0, 0, ViewerPanelWidth, 0}, vertical: true)
+        with .filePanel = SplitterCtrl.create(.filePanelHost, {0, 0, ViewerPanelWidth, 0}, vertical: true)
         {
             .dockStyle       = .Center
             .minSize.x       = ViewerPanelWidth
@@ -1575,58 +1077,58 @@ impl ViewerWindow
             .backgroundStyle = .Transparent
         }
 
-        with result.recentPane = Wnd.create'Wnd(result.filePanel)
+        with .recentPane = Wnd.create'Wnd(.filePanel)
         {
             .backgroundStyle = .Panel
             .padding         = {0, 8, 0, 8}
         }
 
-        with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())})
+        with let recentHeader = Wnd.create'Wnd(.recentPane, {0, 0, 0, themeCompactButtonSize(.themeMetrics())})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, themeRowIconSize(result.themeMetrics())), {0, 0, themeCompactButtonSize(result.themeMetrics()), themeCompactButtonSize(result.themeMetrics())})
+        with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, themeRowIconSize(.themeMetrics())), {0, 0, themeCompactButtonSize(.themeMetrics()), themeCompactButtonSize(.themeMetrics())})
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
-            .sigPressed += func|window = result|(button)
+            .sigPressed += func|window = me|(button)
             {
                 discard button
                 window.confirmClearRecent()
             }
         }
 
-        with result.recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())}, null, .SecondaryText)
+        with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, themeCompactButtonSize(.themeMetrics())}, null, .SecondaryText)
         {
             .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
-        with result.recentList = ListCtrl.createSimple(result.recentPane)
+        with .recentList = ListCtrl.createSimple(.recentPane)
         {
             .dockStyle = .Center
-            .setIconSize(themeRowIconSize(result.themeMetrics()))
+            .setIconSize(themeRowIconSize(me.themeMetrics()))
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
             .scrollWnd.padding.z = 0
             .scrollWnd.updateFlags(.DisableHorizontal)
-            .sigSelectionChanged += func|window = result|(list)
+            .sigSelectionChanged += func|window = me|(list)
             {
                 window.openListSelection(list, window.recent.toSlice())
             }
 
-            .sigRightClicked += func|window = result|(list, position)
+            .sigRightClicked += func|window = me|(list, position)
             {
                 window.showFileMenu(list, window.recent.toSlice(), list.listView.localToSurface(position))
             }
         }
 
-        with result.folderPane = Wnd.create'Wnd(result.filePanel)
+        with .folderPane = Wnd.create'Wnd(.filePanel)
         {
             .backgroundStyle = .Panel
             .padding         = {0, 8, 0, 8}
@@ -1634,90 +1136,93 @@ impl ViewerWindow
 
         // The header carries the filter beside the folder name: the toggle changes what this
         // list holds, and the next/previous arrows walk the same list.
-        with let folderHeader = Wnd.create'Wnd(result.folderPane, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())})
+        with let folderHeader = Wnd.create'Wnd(.folderPane, {0, 0, 0, themeCompactButtonSize(.themeMetrics())})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, themeRowIconSize(result.themeMetrics())), {0, 0, themeCompactButtonSize(result.themeMetrics()), themeCompactButtonSize(result.themeMetrics())}, flags: .Toggle)
+        with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, themeRowIconSize(.themeMetrics())), {0, 0, themeCompactButtonSize(.themeMetrics()), themeCompactButtonSize(.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_SameKind
             .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(button)
+            .sigCheckedChanged += func|window = me|(button)
             {
                 window.setFolderSameKind(button.isChecked)
             }
         }
 
-        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, themeRowIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeCompactButtonSize(result.themeMetrics())}, flags: .CenterContent)
+        with .folderHistoryButton = IconButton.create(folderHeader, .theme().icon(.History, themeRowIconSize(.themeMetrics())), {0, 0, themeDropDownButtonWidth(.themeMetrics()), themeCompactButtonSize(.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.z  = 8
             .toolTip   = appStrings().ui_FolderHistory
             .setArrowPosition(.RightDownward)
             .enable(false)
-            .sigPressed += func|window = result|(button)
+            .sigPressed += func|window = me|(button)
             {
                 discard button
                 window.showFolderHistory()
             }
         }
 
-        with result.folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())}, null, .SecondaryText | .Ellipsis)
+        with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, themeCompactButtonSize(.themeMetrics())}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
-        with result.folderList = ListCtrl.createSimple(result.folderPane)
+        with .folderList = ListCtrl.createSimple(.folderPane)
         {
             .dockStyle = .Center
-            .setIconSize(themeRowIconSize(result.themeMetrics()))
+            .setIconSize(themeRowIconSize(me.themeMetrics()))
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
             .scrollWnd.padding.z = 0
             .scrollWnd.updateFlags(.DisableHorizontal)
-            .sigSelectionChanged += func|window = result|(list)
+            .sigSelectionChanged += func|window = me|(list)
             {
                 window.openListSelection(list, window.siblings.toSlice())
             }
 
-            .sigRightClicked += func|window = result|(list, position)
+            .sigRightClicked += func|window = me|(list, position)
             {
                 window.showFileMenu(list, window.siblings.toSlice(), list.listView.localToSurface(position))
             }
         }
 
-        with let recentItem = result.filePanel.addPane(result.recentPane, ViewerRecentHeight)
+        with let recentItem = .filePanel.addPane(.recentPane, ViewerRecentHeight)
         {
             .minimumSize  = ViewerPaneMinSize
             .preserveSize = true
         }
 
-        result.filePanel.addPane(result.folderPane).minimumSize = ViewerPaneMinSize
+        .filePanel.addPane(.folderPane).minimumSize = ViewerPaneMinSize
+    }
 
+    private mtd createDocumentPanel(panelGutter: f32)
+    {
         // The document is the middle panel of the same composition. It owns the seams on both
         // sides, so showing either optional side panel never doubles the four-pixel rhythm.
-        with result.documentHost = Wnd.create'Wnd(result)
+        with .documentHost = Wnd.create'Wnd(me)
         {
             .dockStyle       = .Center
             .backgroundStyle = .ToolBar
             .padding         = {panelGutter, 0, panelGutter, 0}
         }
 
-        with result.documentPanel = Wnd.create'Wnd(result.documentHost)
+        with .documentPanel = Wnd.create'Wnd(.documentHost)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Panel
             .style.addStyleSheetColors("wnd_Bk $view_Bk")
         }
 
-        with result.emptyView = StackLayoutCtrl.create(result.documentPanel, .VerticalCenter)
+        with .emptyView = StackLayoutCtrl.create(.documentPanel, .VerticalCenter)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -1725,29 +1230,32 @@ impl ViewerWindow
             .spacing         = 12
         }
 
-        with result.emptyIconLabel = Label.create(result.emptyView, "", {0, 0, 48, 48})
+        with .emptyIconLabel = Label.create(.emptyView, "", {0, 0, 48, 48})
         {
             .layoutSpec.alignX = .Center
             .setIconAlignment(.Center, .Center)
         }
 
-        with result.emptyLabel = Label.create(result.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
+        with .emptyLabel = Label.create(.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
 
-        with result.emptyHintLabel = Label.create(result.emptyView, appStrings().ui_DropHint, {0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        with .emptyHintLabel = Label.create(.emptyView, appStrings().ui_DropHint, {0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
 
-        result.loadingOverlay = ViewerLoadingOverlay.create(result.documentPanel)
-        result.searchOverlay  = ViewerSearchOverlay.create(result.documentPanel)
-        result.dropHighlight  = ViewerDropHighlight.create(result.documentPanel)
+        .loadingOverlay = ViewerLoadingOverlay.create(.documentPanel)
+        .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)
+        .dropHighlight  = ViewerDropHighlight.create(.documentPanel)
+    }
 
-        result.hookOnChildEvent = func|window = result|(wnd, evt)
+    private mtd hookChildEvents()
+    {
+        .hookOnChildEvent = func|window = me|(wnd, evt)
         {
             discard wnd
             switch evt
@@ -1759,6 +1267,26 @@ impl ViewerWindow
 
             return false
         }
+    }
+
+    func create(parent: *Wnd, index: ViewerPluginRegistry)->*ViewerWindow
+    {
+        let result = Wnd.create'ViewerWindow(parent, "scope.main")
+        result.surface!.setView(result)
+        result.surface.minSize = {ViewerMinWidth, 420}
+        result.backgroundStyle = .Application
+        result.index           = #move index
+        result.language        = Gui.ReferenceLanguage
+        result.index.attachTo(result.app())
+
+        let panelGutter = result.themeMetrics().panel_GutterSize
+        result.createAppearanceChrome()
+        result.createCommandBar()
+        result.createInfoBar(panelGutter)
+        result.createViewerBar()
+        result.createFilePanel(panelGutter)
+        result.createDocumentPanel(panelGutter)
+        result.hookChildEvents()
 
         result.applyLanguage()
         result.refreshArtwork()
@@ -1767,10 +1295,6 @@ impl ViewerWindow
         return result
     }
 
-    // Creates the standard product identity, provenance, and capability dialog.
-    // `version` is a parameter for the same reason `buildDate` is: the live one carries the
-    // compiler build number, which moves with every compiler change, and a golden of this box
-    // would be invalidated by each of them.
     mtd createAboutDialog(buildDate: Time.DateTime, version: string? = null)->*AboutDlg
     {
         let liveVersion = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)

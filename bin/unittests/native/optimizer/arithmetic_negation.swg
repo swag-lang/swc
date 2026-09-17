@@ -38,7 +38,7 @@ func checkedMultiplyMinusOne(a: s64)->s64 => a * -1
         Swag.assert(complementPlusOne(a) == expected)
         Swag.assert(multiplyMinusOne(a) == expected)
         Swag.assert(sharedComplement(a) == (expected ^ ~a))
-        let a32 = cast(u32) (a & 0xFFFFFFFF)
+        let a32        = cast(u32) (a & 0xFFFFFFFF)
         let expected32 = 0'u32 - a32
         Swag.assert(complementPlusOne32(a32) == expected32)
         Swag.assert(multiplyMinusOne32(a32) == expected32)

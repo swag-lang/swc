@@ -41,8 +41,8 @@ func stored(slot: *bool, a, b, c: s64)->s64
 #test
 {
     var b: Box = {x: 10, y: 20, w: 5, h: 6}
-    let xs = [9, 10, 14, 15]
-    let ys = [19, 20, 25, 26]
+    let xs     = [9, 10, 14, 15]
+    let ys     = [19, 20, 25, 26]
     for px in xs
     {
         for py in ys

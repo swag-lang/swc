@@ -26,7 +26,7 @@ func difference8Expression(values: const [*]u8, index: u64)->u8 =>
 
 #test
 {
-    let values16 = [0'u16, 0, 0, 1, 1, 0, 7, 12, 12, 7, 0, 0xFFFF]
+    let values16  = [0'u16, 0, 0, 1, 1, 0, 7, 12, 12, 7, 0, 0xFFFF]
     let results16 = [0'u16, 1, 1, 5, 5, 0xFFFF]
     for result, index in results16
     {
@@ -34,7 +34,7 @@ func difference8Expression(values: const [*]u8, index: u64)->u8 =>
         Swag.assert(difference16Expression(&values16[0], index * 2) == result)
     }
 
-    let values8 = [0'u8, 1, 1, 0, 7, 12, 12, 7, 0, 0xFF]
+    let values8  = [0'u8, 1, 1, 0, 7, 12, 12, 7, 0, 0xFF]
     let results8 = [1'u8, 1, 5, 5, 0xFF]
     for result, index in results8
     {

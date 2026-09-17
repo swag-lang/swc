@@ -17,7 +17,7 @@ struct Counters
 #[Swag.Optimize(true), Swag.NoInline]
 func bump(c: *Counters, hits: s32, total: s64)
 {
-    c.hits += hits
+    c.hits  += hits
     c.total += total
 }
 
@@ -25,7 +25,7 @@ func bump(c: *Counters, hits: s32, total: s64)
 func tag(c: *Counters, flags: u8, kind: u16)
 {
     c.flags = flags
-    c.kind = kind
+    c.kind  = kind
 }
 
 #[Swag.Optimize(true), Swag.NoInline]

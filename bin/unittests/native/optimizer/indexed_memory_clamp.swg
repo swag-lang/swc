@@ -1,15 +1,15 @@
 #global private
 
 #[Swag.NoInline]
-func clampUnsigned32(values: const [*]u32, index: u64) -> u32 => values[index] > 100 ? 100 : values[index]
+func clampUnsigned32(values: const [*]u32, index: u64)->u32 => values[index] > 100 ? 100 : values[index]
 
 #[Swag.NoInline]
-func clampSigned64(values: const [*]s64, index: u64) -> s64 => values[index] < -100 ? -100 : values[index]
+func clampSigned64(values: const [*]s64, index: u64)->s64 => values[index] < -100 ? -100 : values[index]
 
 // This limit cannot use x64's sign-extended 32-bit immediate. It protects the
 // register form while the small limits above exercise the immediate fold.
 #[Swag.NoInline]
-func clampWideUnsigned64(values: const [*]u64, index: u64) -> u64 => values[index] > 0x8000000000000000 ? 0x8000000000000000 : values[index]
+func clampWideUnsigned64(values: const [*]u64, index: u64)->u64 => values[index] > 0x8000000000000000 ? 0x8000000000000000 : values[index]
 
 #test
 {

@@ -49,7 +49,7 @@ func branch(a: u64, b: u32)->u64
         let low = a & 0xFFFFFFFF
         for b in [0'u32, 1, 7, 0x80000000, 0xFFFFFFFF]
         {
-            let sum = (low + cast(u64) b) & 0xFFFFFFFF
+            let sum        = (low + cast(u64) b) & 0xFFFFFFFF
             let difference = (low - cast(u64) b) & 0xFFFFFFFF
             Swag.assert(retainSource(a, b) == (a ^ ((sum * difference) & 0xFFFFFFFF)))
             Swag.assert(branch(a, b) == (b == 0 ? a : sum))

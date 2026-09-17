@@ -1,13 +1,13 @@
 #global private
 
 #[Swag.NoInline]
-func or64(a, b: u8)->u64 => cast(u64)(a) | cast(u64)(b)
+func or64(a, b: u8)->u64 => cast(u64) (a) | cast(u64) (b)
 
 #[Swag.NoInline]
-func xor64(a, b: u8)->u64 => cast(u64)(a) ^ cast(u64)(b)
+func xor64(a, b: u8)->u64 => cast(u64) (a) ^ cast(u64) (b)
 
 #[Swag.NoInline]
-func and32(a, b: u8)->u32 => cast(u32)(a) & cast(u32)(b)
+func and32(a, b: u8)->u32 => cast(u32) (a) & cast(u32) (b)
 
 #test
 {
@@ -16,9 +16,9 @@ func and32(a, b: u8)->u32 => cast(u32)(a) & cast(u32)(b)
     {
         for b in values
         {
-            Swag.assert(or64(a, b) == cast(u64)(a | b))
-            Swag.assert(xor64(a, b) == cast(u64)(a ^ b))
-            Swag.assert(and32(a, b) == cast(u32)(a & b))
+            Swag.assert(or64(a, b) == cast(u64) (a | b))
+            Swag.assert(xor64(a, b) == cast(u64) (a ^ b))
+            Swag.assert(and32(a, b) == cast(u32) (a & b))
         }
     }
 }

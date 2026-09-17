@@ -1,10 +1,10 @@
 #global private
 
 #[Swag.NoInline]
-func lessAndNonzero(values: const [*]u64, index: u64) -> u64 => cast(u64)(values[index] < values[index + 1] and values[index] != 0)
+func lessAndNonzero(values: const [*]u64, index: u64)->u64 => cast(u64) (values[index] < values[index + 1] and values[index] != 0)
 
 #[Swag.NoInline]
-func equalOrZero(values: const [*]u64, index: u64) -> u64 => cast(u64)(values[index] == values[index + 1] or values[index] == 0)
+func equalOrZero(values: const [*]u64, index: u64)->u64 => cast(u64) (values[index] == values[index + 1] or values[index] == 0)
 
 #test
 {

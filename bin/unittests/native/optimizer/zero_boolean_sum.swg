@@ -1,16 +1,16 @@
 #global private
 
 #[Swag.NoInline]
-func zeroCount64(a, b: u64)->u64 => cast(u64)(a == 0) + cast(u64)(b == 0)
+func zeroCount64(a, b: u64)->u64 => cast(u64) (a == 0) + cast(u64) (b == 0)
 
 #[Swag.NoInline]
-func zeroCount32(a, b: u32)->u32 => cast(u32)(a == 0) + cast(u32)(b == 0)
+func zeroCount32(a, b: u32)->u32 => cast(u32) (a == 0) + cast(u32) (b == 0)
 
 #[Swag.NoInline]
-func nonzeroCount64(a, b: u64)->u64 => cast(u64)(a != 0) + cast(u64)(b != 0)
+func nonzeroCount64(a, b: u64)->u64 => cast(u64) (a != 0) + cast(u64) (b != 0)
 
 #[Swag.NoInline]
-func mixedCount32(a, b: u32)->u32 => cast(u32)(a != 0) + cast(u32)(b == 0)
+func mixedCount32(a, b: u32)->u32 => cast(u32) (a != 0) + cast(u32) (b == 0)
 
 #test
 {
@@ -19,8 +19,8 @@ func mixedCount32(a, b: u32)->u32 => cast(u32)(a != 0) + cast(u32)(b == 0)
     {
         for b in values64
         {
-            Swag.assert(zeroCount64(a, b) == cast(u64)(a == 0) + cast(u64)(b == 0))
-            Swag.assert(nonzeroCount64(a, b) == cast(u64)(a != 0) + cast(u64)(b != 0))
+            Swag.assert(zeroCount64(a, b) == cast(u64) (a == 0) + cast(u64) (b == 0))
+            Swag.assert(nonzeroCount64(a, b) == cast(u64) (a != 0) + cast(u64) (b != 0))
         }
     }
 
@@ -29,8 +29,8 @@ func mixedCount32(a, b: u32)->u32 => cast(u32)(a != 0) + cast(u32)(b == 0)
     {
         for b in values32
         {
-            Swag.assert(zeroCount32(a, b) == cast(u32)(a == 0) + cast(u32)(b == 0))
-            Swag.assert(mixedCount32(a, b) == cast(u32)(a != 0) + cast(u32)(b == 0))
+            Swag.assert(zeroCount32(a, b) == cast(u32) (a == 0) + cast(u32) (b == 0))
+            Swag.assert(mixedCount32(a, b) == cast(u32) (a != 0) + cast(u32) (b == 0))
         }
     }
 }

@@ -1,10 +1,10 @@
 #global private
 
 #[Swag.NoInline]
-func absDiff64(values: const [*]u64, index: u64) -> u64 => values[index] > values[index + 1] ? values[index] - values[index + 1] : values[index + 1] - values[index]
+func absDiff64(values: const [*]u64, index: u64)->u64 => values[index] > values[index + 1] ? values[index] - values[index + 1] : values[index + 1] - values[index]
 
 #[Swag.NoInline]
-func absDiff32(values: const [*]u32, index: u64) -> u32 => values[index] > values[index + 1] ? values[index] - values[index + 1] : values[index + 1] - values[index]
+func absDiff32(values: const [*]u32, index: u64)->u32 => values[index] > values[index + 1] ? values[index] - values[index + 1] : values[index + 1] - values[index]
 
 #test
 {

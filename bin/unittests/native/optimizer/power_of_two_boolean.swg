@@ -4,7 +4,7 @@
 func indexed(values: const [*]u64, index: u64)->u64
 {
     let value = values[index]
-    return cast(u64)(value != 0 and (value & (value - 1)) == 0)
+    return cast(u64) (value != 0 and (value & (value - 1)) == 0)
 }
 
 #[Swag.NoInline]

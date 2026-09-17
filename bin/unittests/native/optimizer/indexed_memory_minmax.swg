@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.NoInline]
-func minUnsigned64(values: const [*]u64, index: u64) -> u64
+func minUnsigned64(values: const [*]u64, index: u64)->u64
 {
     let left  = values[index]
     let right = values[index + 1]
@@ -9,7 +9,7 @@ func minUnsigned64(values: const [*]u64, index: u64) -> u64
 }
 
 #[Swag.NoInline]
-func maxSigned64(values: const [*]s64, index: u64) -> s64
+func maxSigned64(values: const [*]s64, index: u64)->s64
 {
     let left  = values[index]
     let right = values[index + 1]

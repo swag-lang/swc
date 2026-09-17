@@ -11,7 +11,7 @@ func clampSigned32(values: const [*]s32, index: u64, low: s32, high: s32)->s32 =
 
 #test
 {
-    let values = [0'u64, 4, 5, 7, 8, 0xFFFFFFFFFFFFFFFF]
+    let values  = [0'u64, 4, 5, 7, 8, 0xFFFFFFFFFFFFFFFF]
     let results = [5'u64, 5, 5, 7, 7, 7]
     for value, index in values do
         Swag.assert(clamp(&values[0], index, 5, 7) == results[index])

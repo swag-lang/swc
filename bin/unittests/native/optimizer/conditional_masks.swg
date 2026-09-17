@@ -24,7 +24,7 @@ func signedMask(a, b: s64)->s64 => a < b ? -1 : 0
 #[Swag.NoInline]
 func multipleUses(a, b: u64)->u64
 {
-    let first = a < b ? 0x100000000 : 0
+    let first  = a < b ? 0x100000000 : 0
     let second = a < b ? 0 : 0x8000000000000000
     return first | second
 }

@@ -33,7 +33,7 @@ func slowPopcount(x: u64)->u32
     while v != 0
     {
         count += cast(u32) (v & 1)
-        v >>= 1
+        v     >>= 1
     }
     return count
 }

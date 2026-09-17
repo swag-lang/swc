@@ -22,7 +22,7 @@ func reusedAnd(a, b, c: u64)->u64
 #[Swag.NoInline]
 func changedOr(a, b, c: u64)->u64
 {
-    let first = a | b
+    let first   = a | b
     let changed = a ^ 0xFF00FF00FF00FF00
     return first & (changed | c)
 }

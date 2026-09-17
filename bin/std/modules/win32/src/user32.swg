@@ -761,7 +761,7 @@ const GWLP_ID         = -12
 
 const GWL_EXSTYLE = -20
 
-const HWND_BROADCAST = cast(HWND) 0xFFFF'u64
+const HWND_BROADCAST   = cast(HWND) 0xFFFF'u64
 const SMTO_ABORTIFHUNG = 0x0002
 
 const HWND_TOP       = cast(HWND) 0'u64

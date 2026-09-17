@@ -67,6 +67,25 @@ its element type, its options, its result shape — belong in the same file.
   requires. Before writing any geometric, textual, or numeric helper, check whether the type
   already offers it or should.
 
+### Keep constructors as composition outlines
+
+A constructor for a window, service, or other aggregate should reveal the object it creates before
+it explains every part. Initialize the root contract, invoke construction methods in dependency or
+visual order, connect cross-part behavior, establish derived state, and return.
+
+- Extract a receiver method when one coherent part's construction, configuration, and callbacks
+  obscure that outline. Name the method after the part it produces, and keep the method beside the
+  receiver rather than creating an aspect file for it.
+- Create a separate type and file when the part owns state or behavior independently. Moving a
+  block only to shorten a function is not a component boundary; distinct ownership, lifecycle,
+  invariants, or reuse is.
+- Keep heterogeneous parts explicit. Data-driven construction earns its indirection when every
+  row has the same typed lifecycle and the data captures the complete variation. If callers still
+  need per-item fields, casts, callback switches, or exceptional setup, the table hid code instead
+  of removing ceremony.
+- Judge existing examples by these rules before copying them. Repetition elsewhere can identify a
+  reusable contract, but it can also expose the same missing boundary.
+
 ## Name Source Files Consistently
 
 - Name `.swg` and `.swgs` files entirely in lowercase. Do not mirror type casing in filenames.

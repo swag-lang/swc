@@ -157,7 +157,7 @@ struct TracePair { first, second: TraceOwner; code: s32 }
 
 func interruptedPair() fail
 {
-    var first = TraceOwner{1}
+    var first  = TraceOwner{1}
     var second = TraceOwner{2}
     discard TracePair{#move first, #move second, try failField()}
 }
@@ -173,7 +173,7 @@ func interruptedPair() fail
 {
     drops = 0
     {
-        var first = Unique{2}
+        var first  = Unique{2}
         var second = Unique{3}
         let values: [2] Unique = [(#move first), #move second]
         Swag.assert(values[0].value == 2 and values[1].value == 3)

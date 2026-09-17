@@ -997,13 +997,17 @@ namespace PostRaPeephole
         const auto*         first          = firstSelect ? firstSelect->ops(*ctx.operands) : nullptr;
         if (!firstSelect || firstSelect->op != MicroInstrOpcode::LoadCondRegReg || !first ||
             first[0].reg != temporary || first[1].reg == temporary || first[1].reg == result ||
-            first[3].opBits != copy[2].opBits)
+            (first[3].opBits != MicroOpBits::B32 && first[3].opBits != MicroOpBits::B64) ||
+            (first[3].opBits != copy[2].opBits &&
+             !(first[3].opBits == MicroOpBits::B32 && copy[2].opBits == MicroOpBits::B64 &&
+               ctx.isUpperHalfZeroBefore(copyRef, result))))
             return false;
+        const MicroOpBits bits = first[3].opBits;
 
         const MicroInstrRef compareRef = ctx.nextRef(firstSelectRef);
         const MicroInstr*   compare    = ctx.instruction(compareRef);
         const auto*         cmp        = compare ? compare->ops(*ctx.operands) : nullptr;
-        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !cmp || cmp[2].opBits != copy[2].opBits)
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !cmp || cmp[2].opBits != bits)
             return false;
         MicroReg other;
         if (cmp[0].reg == temporary)
@@ -1019,7 +1023,7 @@ namespace PostRaPeephole
         const MicroInstr*   secondSelect    = ctx.instruction(secondSelectRef);
         const auto*         second          = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
         if (!secondSelect || secondSelect->op != MicroInstrOpcode::LoadCondRegReg || !second ||
-            second[0].reg != other || second[1].reg != temporary || second[3].opBits != copy[2].opBits ||
+            second[0].reg != other || second[1].reg != temporary || second[3].opBits != bits ||
             !regIsDeadAfter(ctx, secondSelectRef, result) ||
             !ctx.isRegDeadAfter(temporary, ctx.instructionIndex + 3))
             return false;

@@ -91,8 +91,8 @@ struct ViewerFolderHistory
     file:   String
 }
 
-// Keeps the search group centered on the complete action bar, independently of the file actions
-// and viewer selector docked at its edges.
+// Keeps the search group centered on the complete action bar, independently of the action cluster
+// and viewer selector docked at opposite edges.
 struct ViewerActionBar
 {
     using wnd:       Wnd
@@ -1326,9 +1326,8 @@ impl ViewerWindow
 
         with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
-            .dockStyle  = .Left
-            .margin.z   = 8
-            .toolTip    = appStrings().ui_Open
+            .dockStyle = .Left
+            .toolTip   = appStrings().ui_Open
             .sigPressed += func|window = result|(button)
             {
                 discard button
@@ -1339,7 +1338,6 @@ impl ViewerWindow
         with result.openDefaultButton = IconButton.create(result.commandBar, result.theme().icon(.OpenExternal, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
-            .margin.z  = 8
             .toolTip   = appStrings().ui_OpenDefault
             .enable(false)
             .sigPressed += func|window = result|(button)
@@ -1352,7 +1350,6 @@ impl ViewerWindow
         with result.closeButton = IconButton.create(result.commandBar, result.theme().icon(.WndClose, themeActionIconSize(result.themeMetrics())), {0, 0, actionSize, actionSize})
         {
             .dockStyle = .Left
-            .margin.z  = 8
             .toolTip   = appStrings().ui_CloseFile
             .enable(false)
             .sigPressed += func|window = result|(button)
@@ -1364,7 +1361,7 @@ impl ViewerWindow
 
         with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
-            .dockStyle = .Right
+            .dockStyle = .Left
             .toolTip   = appStrings().ui_FullScreen
             .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|window = result|(button)
@@ -1466,7 +1463,6 @@ impl ViewerWindow
         with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 180, 36})
         {
             .dockStyle = .Right
-            .margin.z  = 12
             .toolTip   = appStrings().ui_Viewer
             .hide()
             .sigChanged += func|window = result|(combo, index)

@@ -9,6 +9,67 @@ SWC_BEGIN_NAMESPACE();
 
 namespace InstructionCombine
 {
+    // A signed comparison with zero only asks for the loaded value's sign
+    // bit. Read that bit directly instead of materializing flags and setcc:
+    //
+    //     cmp [base + index*scale + disp], 0
+    //     setl B                              -> load R, [base + index*scale + disp]
+    //     zero_extend R, B                       shr  R, bits - 1
+    //
+    // The result width deliberately matches the compared width here. Wider
+    // and narrower casts keep their existing explicit extension so this rule
+    // does not change how their upper bits are represented in the micro IR.
+    bool tryFoldIndexedSignBit(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || !ctx.ssa || cmpInst.op != MicroInstrOpcode::CmpAmcImm)
+            return false;
+
+        const MicroInstrOperand* cmpOps = cmpInst.ops(*ctx.operands);
+        if (!cmpOps || (cmpOps[2].opBits != MicroOpBits::B32 && cmpOps[2].opBits != MicroOpBits::B64) ||
+            cmpOps[6].hasWideImmediateValue() || cmpOps[6].valueU64 != 0)
+            return false;
+
+        const MicroInstrRef setRef = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstr*   set    = setRef.isValid() ? ctx.storage->ptr(setRef) : nullptr;
+        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            return false;
+        const MicroInstrOperand* setOps = set->ops(*ctx.operands);
+        if (!setOps || setOps[1].cpuCond != MicroCond::Less || !setOps[0].reg.isVirtualInt() ||
+            !valueHasSingleUse(*ctx.ssa, setOps[0].reg, setRef))
+            return false;
+
+        const MicroInstrRef extendRef = ctx.storage->findNextInstructionRef(setRef);
+        const MicroInstr*   extend    = extendRef.isValid() ? ctx.storage->ptr(extendRef) : nullptr;
+        if (!extend || extend->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const MicroInstrOperand* extendOps = extend->ops(*ctx.operands);
+        if (!extendOps || extendOps[1].reg != setOps[0].reg || extendOps[2].opBits != cmpOps[2].opBits ||
+            extendOps[3].opBits != MicroOpBits::B8 || !extendOps[0].reg.isVirtualInt() ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, setRef, ctx.builder) ||
+            !ctx.claimAll({cmpRef, setRef, extendRef}))
+            return false;
+
+        MicroInstrOperand loadOps[7];
+        loadOps[0]        = extendOps[0];
+        loadOps[1]        = cmpOps[0];
+        loadOps[2]        = cmpOps[1];
+        loadOps[3].opBits = cmpOps[2].opBits;
+        loadOps[4]        = cmpOps[3];
+        loadOps[5]        = cmpOps[4];
+        loadOps[6]        = cmpOps[5];
+
+        MicroInstrOperand shiftOps[4];
+        shiftOps[0]          = extendOps[0];
+        shiftOps[1]          = cmpOps[2];
+        shiftOps[2].microOp  = MicroOp::ShiftRight;
+        shiftOps[3].valueU64 = getNumBits(cmpOps[2].opBits) - 1;
+
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::LoadAmcRegMem, loadOps, /*allocNewBlock=*/true);
+        ctx.emitRewrite(setRef, MicroInstrOpcode::OpBinaryRegImm, shiftOps, /*allocNewBlock=*/true);
+        ctx.emitErase(extendRef);
+        return true;
+    }
+
     // `a > b ? a - b : b - a` computes `a - b` before the compare that the
     // select reads, and a subtraction sets the flags of that very compare:
     //

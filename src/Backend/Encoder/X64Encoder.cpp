@@ -1172,6 +1172,10 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
                    ops[3].microOp == MicroOp::MultiplySigned || ops[3].microOp == MicroOp::MultiplyUnsigned ||
                    ops[3].microOp == MicroOp::MultiplyHighSigned || ops[3].microOp == MicroOp::MultiplyHighUnsigned;
 
+        case MicroInstrOpcode::OpBinaryAmcMemReg:
+            // This form is only built for native integer register operations.
+            return false;
+
         case MicroInstrOpcode::OpBinaryRegMem:
             // ops: [0] dst, [1] base, [2] opBits, [3] microOp, [4] offset
             return ops[3].microOp == MicroOp::MultiplySigned || ops[3].microOp == MicroOp::MultiplyUnsigned ||
@@ -1322,6 +1326,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryRegAmcMem)
         return requireStandardIntOpBits(outIssue, ops[3].opBits, 3);
+
+    if (inst.op == MicroInstrOpcode::OpBinaryAmcMemReg)
+        return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
 
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
@@ -2191,8 +2198,8 @@ namespace
             case MicroOp::And:
             case MicroOp::Or:
             case MicroOp::Xor:
-                SWC_ASSERT(!mr && !reg.isFloat());
-                emitSpecCpuOp(store, getX64RegMemOpCode(op), opBitsReg);
+                SWC_ASSERT(!reg.isFloat());
+                emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
                 break;
             case MicroOp::MultiplySigned:
                 SWC_ASSERT(!mr && !reg.isFloat() && opBitsReg != MicroOpBits::B8);
@@ -3032,6 +3039,12 @@ void X64Encoder::encodeOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, Micr
 {
     SWC_ASSERT(regDst.isInt() && regBase.isInt() && regMul.isInt());
     encodeAmcReg(store_, regDst, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, op, false);
+}
+
+void X64Encoder::encodeOpBinaryAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regBase.isInt() && regMul.isInt() && regSrc.isInt());
+    encodeAmcReg(store_, regSrc, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, op, true);
 }
 
 void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)

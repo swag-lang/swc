@@ -733,7 +733,12 @@ namespace PostRaPeephole
         if (ctx.isClaimed(copyRef))
             return false;
         const MicroInstrOperand* copyOps = copyInst.ops(*ctx.operands);
-        if (!copyOps || !copyOps[0].reg.isInt() || !copyOps[1].reg.isInt() || copyOps[0].reg == copyOps[1].reg)
+        if (!copyOps || copyOps[0].reg == copyOps[1].reg)
+            return false;
+        // A scalar float copy forwards to float readers of its lane alone.
+        const bool floatCopy = copyOps[0].reg.isFloat() && copyOps[1].reg.isFloat() &&
+                               (copyOps[2].opBits == MicroOpBits::B32 || copyOps[2].opBits == MicroOpBits::B64);
+        if (!floatCopy && (!copyOps[0].reg.isInt() || !copyOps[1].reg.isInt()))
             return false;
         // A byte or word copy forwards too, to readers of no more than its bits.
         if (copyOps[2].opBits == MicroOpBits::Zero || copyOps[2].opBits == MicroOpBits::B128)
@@ -777,7 +782,9 @@ namespace PostRaPeephole
             const bool three  = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
             // A store or a memory update reads its value operand; the base stays.
             const bool memory = next->op == MicroInstrOpcode::LoadMemReg || next->op == MicroInstrOpcode::OpBinaryMemReg;
-            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary || three || memory)
+            const bool candidate = floatCopy ? compareRegs || next->op == MicroInstrOpcode::LoadRegReg || binary || three || memory
+                                             : extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary || three || memory;
+            if (candidate)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)
@@ -787,7 +794,7 @@ namespace PostRaPeephole
                 // A truncated LEA result depends only on the corresponding low
                 // input bits, even though its addressing mode uses 64-bit registers.
                 const MicroOpBits readBits = address ? ops[indexedAddress ? 3 : 2].opBits : ops[widthOperand].opBits;
-                if (ops[0].reg.isInt() && (getNumBits(readBits) <= getNumBits(copyOps[2].opBits) || getNumBits(readBits) <= getNumBits(effectiveCopyBits())))
+                if ((floatCopy || ops[0].reg.isInt()) && (getNumBits(readBits) <= getNumBits(copyOps[2].opBits) || getNumBits(readBits) <= getNumBits(effectiveCopyBits())))
                 {
                     MicroInstrOperand rewritten[Action::K_MAX_OPS];
                     std::ranges::copy(std::span{ops, next->numOperands}, rewritten);

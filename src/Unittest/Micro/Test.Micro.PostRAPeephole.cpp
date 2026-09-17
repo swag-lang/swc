@@ -1434,6 +1434,29 @@ SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
 }
 SWC_TEST_END()
 
+// A scalar float copied only as the second operand of a three-operand
+// operation: the operation reads the source.
+SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegReg(xmm1, xmm2, MicroOpBits::B32);
+    builder.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, MicroOp::FloatMultiply, MicroOpBits::B32);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops && ops[2].reg == xmm2)
+            return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

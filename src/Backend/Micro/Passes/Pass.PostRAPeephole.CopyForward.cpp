@@ -2826,6 +2826,86 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A wrapping byte sum followed by `sum >= original` tests the inverse of
+    // the carry the addition already produced. Keep that carry live while the
+    // byte result is widened for the final saturating select.
+    bool tryFoldIndexedByteSaturatingAdd(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroReg sum      = copy[0].reg;
+        const MicroReg original = copy[1].reg;
+        const MicroInstrRef loadRef = ctx.previousRef(copyRef);
+        const MicroInstr*   load    = ctx.instruction(loadRef);
+        const auto*         loadOps = load ? load->ops(*ctx.operands) : nullptr;
+        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loadOps ||
+            loadOps[0].reg != original || loadOps[3].opBits != MicroOpBits::B8)
+            return false;
+
+        const MicroInstrRef addRef = ctx.nextRef(copyRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        const auto*         addOps = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegAmcMem || !addOps ||
+            addOps[0].reg != sum || addOps[3].opBits != MicroOpBits::B8 || addOps[7].microOp != MicroOp::Add)
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(addRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         compared   = compare ? compare->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !compared ||
+            compared[0].reg != sum || compared[1].reg != original || compared[2].opBits != MicroOpBits::B8)
+            return false;
+
+        const MicroInstrRef constantRef = ctx.nextRef(compareRef);
+        const MicroInstr*   constant    = ctx.instruction(constantRef);
+        const auto*         constantOps = constant ? constant->ops(*ctx.operands) : nullptr;
+        if (!constant || constant->op != MicroInstrOpcode::LoadRegImm || !constantOps ||
+            constantOps[1].opBits != MicroOpBits::B32 || constantOps[2].hasWideImmediateValue() || constantOps[2].valueU64 != 0xFF)
+            return false;
+        const MicroReg result = constantOps[0].reg;
+
+        const MicroInstrRef selectRef = ctx.nextRef(constantRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != sum || selected[2].cpuCond != MicroCond::AboveOrEqual ||
+            selected[3].opBits != MicroOpBits::B32)
+            return false;
+        const MicroReg widened = addOps[1].reg;
+        if (!widened.isInt() || widened == original || widened == result ||
+            !ctx.isRegDeadAfter(widened, ctx.instructionIndex + 4))
+            return false;
+
+        MicroInstrOperand rewrittenAdd[8];
+        std::copy_n(addOps, 8, rewrittenAdd);
+        rewrittenAdd[0].reg = original;
+        MicroInstrOperand extend[4] = {};
+        extend[0].reg                = widened;
+        extend[1].reg                = original;
+        extend[2].opBits             = MicroOpBits::B32;
+        extend[3].opBits             = MicroOpBits::B8;
+        MicroInstr extendProbe;
+        extendProbe.op          = MicroInstrOpcode::LoadZeroExtRegReg;
+        extendProbe.numOperands = 4;
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[1].reg               = widened;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *add, rewrittenAdd) ||
+            ctx.encoder->queryConformanceIssue(issue, extendProbe, extend) ||
+            ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            !ctx.claimAll({copyRef, addRef, compareRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(copyRef, add->op, rewrittenAdd, true);
+        ctx.emitRewrite(addRef, extendProbe.op, extend);
+        ctx.emitErase(compareRef);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        return true;
+    }
+
     // Select the varying operand before applying a shared binary operation:
     // `R = A op B; A = A op C; cmovCC R, A` becomes
     // `cmovCC B, C; R = A op B`. B and A must die with the original select

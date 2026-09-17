@@ -123,6 +123,49 @@ SWC_TEST_BEGIN(ABI_ReturnedNarrowIntegerMovesWithoutExtension)
 }
 SWC_TEST_END()
 
+// A C callee gets its narrow result extended, as the platform ABI has it.
+SWC_TEST_BEGIN(ABI_CReturnedNarrowIntegerIsExtended)
+{
+    constexpr MicroReg                     value = MicroReg::virtualIntReg(100);
+    MicroBuilder                           builder(ctx);
+    const ABITypeNormalize::NormalizedType ret{.isVoid = false, .isSigned = false, .numBits = 8};
+    ABICall::materializeValueToReturnRegs(builder, CallConvKind::C, value, false, ret);
+
+    const MicroInstr* inst = singleInstruction(builder);
+    if (!inst || inst->op != MicroInstrOpcode::LoadZeroExtRegReg)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A Swag callee canonicalizes its parameters, so the call site moves a narrow
+// argument as it is; a C callee gets it extended.
+SWC_TEST_BEGIN(ABI_NarrowArgumentExtendedForCCalleesOnly)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(100);
+    const std::array   args  = {ABICall::PreparedArg{.srcReg = value, .isSigned = true, .numBits = 16}};
+    for (const CallConvKind kind : {CallConvKind::Swag, CallConvKind::C})
+    {
+        MicroBuilder builder(ctx);
+        ABICall::prepareArgs(builder, kind, args);
+
+        bool extended = false;
+        bool moved    = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadSignedExtRegReg && ops[1].reg == value)
+                extended = true;
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == value && ops[2].opBits == MicroOpBits::B64)
+                moved = true;
+        }
+        if (kind == CallConvKind::Swag ? (extended || !moved) : (!extended || moved))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The call site extends what it receives, which the callee relies on.
 SWC_TEST_BEGIN(ABI_ReceivedNarrowIntegerIsCanonicalized)
 {

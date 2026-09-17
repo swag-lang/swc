@@ -126,6 +126,32 @@ namespace
         return numBits && numBits < 64;
     }
 
+    // In the Swag convention the receiver canonicalizes a narrow integer: the
+    // callee its parameters on entry, the call site the value it gets back.
+    // The sender then moves only the value's own bits. A C convention keeps
+    // the platform ABI's extension on both sides.
+    bool senderExtendsNarrowInts(CallConvKind callConvKind)
+    {
+        return callConvKind != CallConvKind::Swag;
+    }
+
+    // Moves an integer value's own bits into a register: bytes and words as a
+    // whole register, which the allocator merges, dwords with the move that
+    // clears the upper half, free after a 32-bit write.
+    void loadIntValueToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint8_t numBits)
+    {
+        const MicroOpBits valueBits = canonicalIntBits(numBits);
+        builder.emitLoadRegReg(dstReg, srcReg, valueBits == MicroOpBits::B32 ? MicroOpBits::B32 : MicroOpBits::B64);
+    }
+
+    void loadIntArgToReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg dstReg, const ABICall::PreparedArg& arg)
+    {
+        if (senderExtendsNarrowInts(callConvKind))
+            ABICall::loadCanonicalIntToReg(builder, dstReg, arg.srcReg, arg.numBits, arg.isSigned);
+        else
+            loadIntValueToReg(builder, dstReg, arg.srcReg, arg.numBits);
+    }
+
     void emitReturnWriteBack(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret, MicroReg regBase)
     {
         if (ret.isVoid || ret.isIndirect)
@@ -524,7 +550,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             switch (arg.kind)
             {
                 case PreparedArgKind::Direct:
-                    loadCanonicalIntToReg(builder, conv.intArgRegs[i], arg.srcReg, arg.numBits, arg.isSigned);
+                    loadIntArgToReg(builder, callConvKind, conv.intArgRegs[i], arg);
                     break;
 
                 case PreparedArgKind::InterfaceObject:
@@ -581,7 +607,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                     if (arg.isAddressed)
                         loadCanonicalIntFromMemToReg(builder, conv.intArgRegs[i], arg.srcReg, 0, arg.numBits, arg.isSigned);
                     else
-                        loadCanonicalIntToReg(builder, conv.intArgRegs[i], arg.srcReg, arg.numBits, arg.isSigned);
+                        loadIntArgToReg(builder, callConvKind, conv.intArgRegs[i], arg);
                 }
                 break;
             }
@@ -692,14 +718,14 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
         return;
     }
 
-    // Every call site canonicalizes the returned integer again, and a foreign
-    // caller never reads past the value's width, so the callee only moves the
-    // value's own bits: the copy then vanishes when the value already sits in
-    // the return register, as a `u8` or `s32` result does in clang's code. A
-    // byte or word moves as a whole register, which the allocator merges; a
-    // dword keeps its zero-extending move, which 32-bit results make free.
-    const MicroOpBits valueBits = canonicalIntBits(ret.numBits);
-    builder.emitLoadRegReg(conv.intReturn, valueReg, valueBits == MicroOpBits::B32 ? MicroOpBits::B32 : MicroOpBits::B64);
+    // A Swag call site canonicalizes the returned integer, so the callee only
+    // moves the value's own bits: the copy then vanishes when the value already
+    // sits in the return register, as a `u8` or `s32` result does in clang's
+    // code.
+    if (senderExtendsNarrowInts(callConvKind))
+        loadCanonicalIntToReg(builder, conv.intReturn, valueReg, ret.numBits, ret.isSigned);
+    else
+        loadIntValueToReg(builder, conv.intReturn, valueReg, ret.numBits);
 }
 
 void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)

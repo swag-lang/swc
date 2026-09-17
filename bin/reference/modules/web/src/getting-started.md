@@ -100,7 +100,8 @@ swc build -w hello -m hello --debug
 `devmode` is the default configuration. It keeps safety and sanity checks while
 using optimized code; `release` favors runtime performance. Neither emits debug
 information by default. Add `--debug` when a debugger needs symbols and source
-line mappings. Use `swc help build` for the authoritative option list and
+line mappings. It covers every dependency the program takes in, and keeps its
+artifacts in a directory of their own, so the plain build stays as it was. Use `swc help build` for the authoritative option list and
 `--show-config` to inspect the resolved toolchain and output paths.
 
 ## Import a standard module

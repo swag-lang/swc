@@ -16,7 +16,8 @@ swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 
 Common options: `-bc <config>` selects `release` or `devmode` (default `devmode`),
 `--all-cfg` repeats the `build`, `tests`, and `goldens` campaigns in both configurations;
-focused tools select one configuration with `-bc`. `--debug` emits native debug information,
+focused tools select one configuration with `-bc`. `--debug` emits native debug information for
+the program and every dependency it takes in, under `<config>-debug` output directories,
 `--run-arg <value>` passes
 an argument to what gets launched, and repeated `--test-file <substring>` values select a union
 of `#test` source files without removing the implementation sources they exercise. Repeated

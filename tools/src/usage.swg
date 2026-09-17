@@ -60,6 +60,7 @@ Builds or tests the standard library.
   dm                 use the DevMode compiler
   <module>           one of bin/std/modules, for instance core or pixel
   -bc <config>       release or devmode (default devmode)
+  --debug            build with debug information, in a directory of its own
   --test-file <text> run only #test functions from matching source paths; repeatable
   --test-tag <text>  run only #test functions with a matching Swag.TestTag; repeatable
   --run-arg <value>  pass a run argument to the tested module
@@ -76,6 +77,7 @@ Builds, runs, tests, or smokes the examples workspace.
   dm                 use the DevMode compiler
   <module>           one of bin/examples/modules, for instance gui2 or pixel4
   -bc <config>       release or devmode (default devmode)
+  --debug            build the program and every dependency with debug information
   --test-file <text> run only #test functions from matching source paths; repeatable
   --test-tag <text>  run only #test functions with a matching Swag.TestTag; repeatable
   --frames <count>   bound a run or a smoke to that many frames
@@ -97,6 +99,7 @@ Builds, runs, tests, or smokes one or every module in the applications workspace
   dm                 use the DevMode compiler
   <application>      a module under bin/apps/modules, for instance swagvault or swagcapture
   -bc <config>       release or devmode (default devmode)
+  --debug            build the program and every dependency with debug information
   --test-file <text> run only #test functions from matching source paths; repeatable
   --test-tag <text>  run only #test functions with a matching Swag.TestTag; repeatable
   --frames <count>   bound a smoke to that many frames

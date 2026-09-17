@@ -174,7 +174,7 @@ namespace
             // MD5 and refuses to show source without a checksum it trusts) verify and load the matching source.
             if (sourceFile)
             {
-                const std::array<uint8_t, 32> hash = DebugInfo::sourceFileChecksum(ctx, *sourceFile);
+                const std::array<uint8_t, 32> hash = ctx.compiler().sourceFileChecksum(*sourceFile);
                 entry.checksumKind                 = K_CHKSUM_TYPE_SHA256;
                 entry.checksumSize                 = static_cast<uint8_t>(hash.size());
                 std::memcpy(entry.checksum.data(), hash.data(), hash.size());

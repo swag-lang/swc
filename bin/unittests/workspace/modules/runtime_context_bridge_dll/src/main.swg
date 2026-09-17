@@ -37,6 +37,14 @@ public func ctxSharedContextMarker()->u64
     return ctxBaseContextMarker()
 }
 
+// Panics from inside this module, so an executable that took its code in can check that its stack
+// trace names this frame.
+#[Swag.NoInline]
+public func ctxSharedPanic()
+{
+    Swag.panic("raised by a dependency", #curlocation)
+}
+
 // Exercise exe -> dll calls with a wide ABI surface: scalars, aggregates, pointers and struct returns.
 public alias CtxAbiAlias = s32
 

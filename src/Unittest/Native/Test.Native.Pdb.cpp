@@ -14,7 +14,20 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint16_t K_S_PROCREF = 0x1125;
+    constexpr uint16_t K_S_PROCREF        = 0x1125;
+    constexpr uint16_t K_LF_POINTER       = 0x1002;
+    constexpr uint16_t K_LF_FIELDLIST     = 0x1203;
+    constexpr uint16_t K_LF_STRUCTURE     = 0x1505;
+    constexpr uint16_t K_LF_MEMBER        = 0x150D;
+    constexpr uint16_t K_CV_PROP_FORWARD  = 0x0080;
+    constexpr uint16_t K_CV_ACCESS_PUBLIC = 0x0003;
+    constexpr uint32_t K_CV_PTR_NEAR64    = 0x000C;
+    constexpr uint32_t K_T_INT4           = 0x0074;
+    constexpr uint32_t K_NODE_FORWARD     = 0x1000;
+    constexpr uint32_t K_NODE_POINTER     = 0x1001;
+    constexpr uint32_t K_NODE_FIELDS      = 0x1002;
+    constexpr uint32_t K_TYPE_INDEX_END   = 0x1004;
+    constexpr uint16_t K_NODE_SIZE        = 16;
 
     void emit(ByteArray& out, std::initializer_list<int> bytes)
     {
@@ -34,6 +47,61 @@ namespace
     uint16_t readU16(const ByteArray& bytes, const size_t offset)
     {
         return bytes.readLe16(offset);
+    }
+
+    // Appends one type record, padded to four bytes the way the CodeView writer pads it.
+    void appendTypeRecord(ByteArray& records, const uint16_t kind, const ByteArray& payload)
+    {
+        const size_t start = records.size();
+        records.appendLe16(0);
+        records.appendLe16(kind);
+        records.append(payload);
+        for (size_t pad = (4 - (records.size() - start) % 4) % 4; pad > 0; --pad)
+            records.pushBack(static_cast<std::byte>(0xF0 + pad));
+        records.writeLe16(start, static_cast<uint16_t>(records.size() - start - sizeof(uint16_t)));
+    }
+
+    ByteArray structurePayload(const uint16_t memberCount, const uint16_t properties, const uint32_t fieldList, const uint16_t size, const std::string_view name)
+    {
+        ByteArray payload;
+        payload.appendLe16(memberCount);
+        payload.appendLe16(properties);
+        payload.appendLe32(fieldList);
+        payload.appendLe32(0); // derivation list
+        payload.appendLe32(0); // vtable shape
+        payload.appendLe16(size);
+        payload.appendCString(name);
+        return payload;
+    }
+
+    void appendMember(ByteArray& fields, const uint32_t typeIndex, const uint16_t offset, const std::string_view name)
+    {
+        fields.appendLe16(K_LF_MEMBER);
+        fields.appendLe16(K_CV_ACCESS_PUBLIC);
+        fields.appendLe32(typeIndex);
+        fields.appendLe16(offset);
+        fields.appendCString(name);
+    }
+
+    // A structure that points at itself names its own forward declaration. A debugger replaces that
+    // declaration with the definition it finds in the bucket its name hashes to.
+    ByteArray selfReferencingNodeTypes()
+    {
+        ByteArray records;
+        appendTypeRecord(records, K_LF_STRUCTURE, structurePayload(0, K_CV_PROP_FORWARD, 0, 0, "Node"));
+
+        ByteArray pointer;
+        pointer.appendLe32(K_NODE_FORWARD);
+        pointer.appendLe32(K_CV_PTR_NEAR64);
+        appendTypeRecord(records, K_LF_POINTER, pointer);
+
+        ByteArray fields;
+        appendMember(fields, K_NODE_POINTER, 0, "next");
+        appendMember(fields, K_T_INT4, 8, "value");
+        appendTypeRecord(records, K_LF_FIELDLIST, fields);
+
+        appendTypeRecord(records, K_LF_STRUCTURE, structurePayload(2, 0, K_NODE_FIELDS, K_NODE_SIZE, "Node"));
+        return records;
     }
 
     bool pdbContainsSymbolRecord(const ByteArray& bytes, const uint16_t kind, const std::string_view name)
@@ -98,7 +166,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     image.imageBase    = imageBase;
     image.stackReserve = 0x100000;
 
-    constexpr uint32_t tInt4    = 0x0074; // CodeView primitive: 32-bit signed int (no TPI record needed)
     constexpr uint16_t cvRegRsp = 335;
 
     const fs::path  dir = fs::temp_directory_path() / "swc_pdb_test";
@@ -110,7 +177,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     const fs::path macroPath = dir / "pdbmacro.swg";
 
     LinkDebugInfo dbg;
-    dbg.enabled = true;
+    dbg.enabled     = true;
+    dbg.tpiRecords  = selfReferencingNodeTypes();
+    dbg.tpiIndexEnd = K_TYPE_INDEX_END;
     LinkDebugFile dbgFile;
     dbgFile.path         = Utf8(srcPath);
     dbgFile.checksumKind = 3; // SHA-256
@@ -140,14 +209,15 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     tailBlock.codeOffsets = {8, 16};
     tailBlock.lines       = {11, 12};
     fn.lineBlocks.push_back(std::move(tailBlock));
-    fn.locals.push_back({.name = "myLocal", .typeIndex = tInt4, .frameOffset = 0x20, .cvRegister = cvRegRsp, .isParam = false});
+    fn.locals.push_back({.name = "myLocal", .typeIndex = K_T_INT4, .frameOffset = 0x20, .cvRegister = cvRegRsp, .isParam = false});
+    fn.locals.push_back({.name = "myNode", .typeIndex = K_NODE_POINTER, .frameOffset = 0x18, .cvRegister = cvRegRsp, .isParam = false});
     dbg.functions.push_back(std::move(fn));
 
     LinkDebugGlobal global;
     global.sectionName   = ".data";
     global.sectionOffset = 0;
     global.displayName   = "myGlobal";
-    global.typeIndex     = tInt4;
+    global.typeIndex     = K_T_INT4;
     global.isPublic      = true;
     dbg.globals.push_back(std::move(global));
 
@@ -280,15 +350,42 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
             frame.InstructionOffset = funcAddr;
             SymSetContext(symHandle, &frame, nullptr);
 
-            bool       foundLocal = false;
-            const auto localCb    = [](PSYMBOL_INFO sym, ULONG, PVOID ctx1) -> BOOL {
-                if (std::string_view{sym->Name, sym->NameLen} == "myLocal")
-                    *static_cast<bool*>(ctx1) = true;
+            struct ScopeLocals
+            {
+                bool  foundLocal = false;
+                ULONG nodeTypeId = 0;
+                bool  foundNode  = false;
+            };
+
+            ScopeLocals scope;
+            const auto  localCb = [](PSYMBOL_INFO sym, ULONG, PVOID ctx1) -> BOOL {
+                auto&                  found = *static_cast<ScopeLocals*>(ctx1);
+                const std::string_view name{sym->Name, sym->NameLen};
+                if (name == "myLocal")
+                    found.foundLocal = true;
+                if (name == "myNode")
+                {
+                    found.foundNode  = true;
+                    found.nodeTypeId = sym->TypeIndex;
+                }
                 return TRUE;
             };
-            SymEnumSymbols(symHandle, 0, "*", localCb, &foundLocal);
-            if (!foundLocal)
+            SymEnumSymbols(symHandle, 0, "*", localCb, &scope);
+            if (!scope.foundLocal)
                 fail("local variable myLocal was not enumerated in scope");
+            else if (!scope.foundNode)
+                fail("local variable myNode was not enumerated in scope");
+
+            // The pointer names the forward declaration; the debugger has to reach the definition.
+            ULONG   pointee  = 0;
+            DWORD   children = 0;
+            ULONG64 length   = 0;
+            if (result == Result::Continue && !SymGetTypeInfo(symHandle, modBase, scope.nodeTypeId, TI_GET_TYPEID, &pointee))
+                fail("myNode has no pointee type");
+            else if (result == Result::Continue && (!SymGetTypeInfo(symHandle, modBase, pointee, TI_GET_LENGTH, &length) || length != K_NODE_SIZE))
+                fail("the forward declaration of Node did not resolve to its definition's size");
+            else if (result == Result::Continue && (!SymGetTypeInfo(symHandle, modBase, pointee, TI_GET_CHILDRENCOUNT, &children) || children != 2))
+                fail("the forward declaration of Node did not resolve to its definition's fields");
         }
     }
 

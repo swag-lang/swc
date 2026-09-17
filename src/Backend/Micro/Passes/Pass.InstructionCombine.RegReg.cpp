@@ -1170,8 +1170,9 @@ namespace InstructionCombine
                 if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
                     ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
                     continue;
-                const auto* binary = def.inst->ops(*ctx.operands);
-                if (!binary || binary[2].opBits != bits || binary[3].microOp != inner || !binary[1].reg.isVirtualInt())
+                const auto* binary   = def.inst->ops(*ctx.operands);
+                const bool  foldOrXor = binary && outer == MicroOp::Or && binary[3].microOp == MicroOp::Xor;
+                if (!binary || binary[2].opBits != bits || (binary[3].microOp != inner && !foldOrXor) || !binary[1].reg.isVirtualInt())
                     continue;
                 const auto initial = ctx.ssa->reachingDef(innerReg, def.instRef);
                 if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)
@@ -1220,10 +1221,21 @@ namespace InstructionCombine
 
                     MicroInstrOperand copy[3];
                     copy[0].reg    = ops[0].reg;
-                    copy[1].reg    = result;
                     copy[2].opBits = bits;
+                    if (foldOrXor)
+                    {
+                        MicroInstrOperand absorbed[4];
+                        std::copy_n(binary, 4, absorbed);
+                        absorbed[3].microOp = MicroOp::Or;
+                        ctx.emitRewrite(def.instRef, MicroInstrOpcode::OpBinaryRegReg, absorbed);
+                        copy[1].reg = innerReg;
+                    }
+                    else
+                    {
+                        copy[1].reg = result;
+                        ctx.emitErase(def.instRef);
+                    }
                     ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
-                    ctx.emitErase(def.instRef);
                     if (resultCopy.isValid())
                         ctx.emitErase(resultCopy);
                     return true;

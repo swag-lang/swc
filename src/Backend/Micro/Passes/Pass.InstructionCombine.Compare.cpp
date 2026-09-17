@@ -9,6 +9,25 @@ SWC_BEGIN_NAMESPACE();
 
 namespace InstructionCombine
 {
+    namespace
+    {
+        bool sameValueAt(const Context& ctx, MicroReg reg, MicroInstrRef first, MicroInstrRef second)
+        {
+            const MicroSsaState::ReachingDef firstDef  = ctx.ssa->reachingDef(reg, first);
+            const MicroSsaState::ReachingDef secondDef = ctx.ssa->reachingDef(reg, second);
+            return firstDef.valid() && secondDef.valid() && firstDef.valueId == secondDef.valueId;
+        }
+
+        bool isAllOnesLoad(const MicroSsaState::ReachingDef& def, const MicroOperandStorage& operands, MicroOpBits bits)
+        {
+            if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegImm)
+                return false;
+            const MicroInstrOperand* ops = def.inst->ops(operands);
+            return ops && ops[1].opBits == bits && !ops[2].hasWideImmediateValue() &&
+                   (ops[2].valueU64 & getBitsMask(bits)) == getBitsMask(bits);
+        }
+    }
+
     // A signed comparison with zero only asks for the loaded value's sign
     // bit. Read that bit directly instead of materializing flags and setcc:
     //
@@ -67,6 +86,76 @@ namespace InstructionCombine
         ctx.emitRewrite(cmpRef, MicroInstrOpcode::LoadAmcRegMem, loadOps, /*allocNewBlock=*/true);
         ctx.emitRewrite(setRef, MicroInstrOpcode::OpBinaryRegImm, shiftOps, /*allocNewBlock=*/true);
         ctx.emitErase(extendRef);
+        return true;
+    }
+
+    // For an unsigned saturating sum, `left <= MAX - right` is exactly the
+    // absence of carry from `left + right`. The addition already sits next to
+    // the select by the time this rule runs, so its flags can replace the
+    // explicit limit calculation and comparison:
+    //
+    //     limit = MAX - right              sum = left
+    //     result = MAX                     sum += right
+    //     sum = left                ->     cmovae result, sum
+    //     sum += right
+    //     cmp left, limit
+    //     cmovbe result, sum
+    //
+    // Dead-code elimination removes the now-unused limit chain.
+    bool tryReuseSaturatingAddFlags(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || !ctx.ssa || cmpInst.op != MicroInstrOpcode::CmpRegReg)
+            return false;
+
+        const MicroInstrOperand* cmpOps = cmpInst.ops(*ctx.operands);
+        if (!cmpOps || (cmpOps[2].opBits != MicroOpBits::B32 && cmpOps[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroOpBits bits = cmpOps[2].opBits;
+
+        const MicroInstrRef selectRef = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstr*   select    = selectRef.isValid() ? ctx.storage->ptr(selectRef) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg)
+            return false;
+        const MicroInstrOperand* selectOps = select->ops(*ctx.operands);
+        if (!selectOps || selectOps[2].cpuCond != MicroCond::BelowOrEqual || selectOps[3].opBits != bits ||
+            !selectOps[0].reg.isVirtualInt() || !selectOps[1].reg.isVirtualInt())
+            return false;
+
+        const MicroSsaState::ReachingDef sumDef = ctx.ssa->reachingDef(selectOps[1].reg, selectRef);
+        if (!sumDef.valid() || sumDef.isPhi || !sumDef.inst || sumDef.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
+            sumDef.instRef != ctx.storage->findPreviousInstructionRef(cmpRef))
+            return false;
+        const MicroInstrOperand* addOps = sumDef.inst->ops(*ctx.operands);
+        if (!addOps || addOps[0].reg != selectOps[1].reg || addOps[2].opBits != bits || addOps[3].microOp != MicroOp::Add)
+            return false;
+
+        const MicroSsaState::ReachingDef sumInput = ctx.ssa->reachingDef(addOps[0].reg, sumDef.instRef);
+        if (!sumInput.valid() || sumInput.isPhi || !sumInput.inst || sumInput.inst->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrOperand* copyOps = sumInput.inst->ops(*ctx.operands);
+        if (!copyOps || copyOps[0].reg != addOps[0].reg || copyOps[1].reg != cmpOps[0].reg ||
+            getNumBits(copyOps[2].opBits) < getNumBits(bits) || !sameValueAt(ctx, cmpOps[0].reg, sumInput.instRef, cmpRef))
+            return false;
+
+        const MicroSsaState::ReachingDef limitDef = ctx.ssa->reachingDef(cmpOps[1].reg, cmpRef);
+        if (!limitDef.valid() || limitDef.isPhi || !limitDef.inst || limitDef.inst->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const MicroInstrOperand* subOps = limitDef.inst->ops(*ctx.operands);
+        if (!subOps || subOps[0].reg != cmpOps[1].reg || subOps[1].reg != addOps[1].reg || subOps[2].opBits != bits ||
+            subOps[3].microOp != MicroOp::Subtract || !sameValueAt(ctx, addOps[1].reg, limitDef.instRef, sumDef.instRef))
+            return false;
+
+        const MicroSsaState::ReachingDef limitInput = ctx.ssa->reachingDef(subOps[0].reg, limitDef.instRef);
+        const MicroSsaState::ReachingDef fallback   = ctx.ssa->reachingDef(selectOps[0].reg, selectRef);
+        if (!isAllOnesLoad(limitInput, *ctx.operands, bits) || !isAllOnesLoad(fallback, *ctx.operands, bits) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder) ||
+            !ctx.claimAll({sumDef.instRef, cmpRef, selectRef}))
+            return false;
+
+        MicroInstrOperand rewritten[4] = {selectOps[0], selectOps[1], selectOps[2], selectOps[3]};
+        rewritten[2].cpuCond           = MicroCond::AboveOrEqual;
+        ctx.emitErase(cmpRef);
+        ctx.emitRewrite(selectRef, MicroInstrOpcode::LoadCondRegReg, rewritten);
         return true;
     }
 

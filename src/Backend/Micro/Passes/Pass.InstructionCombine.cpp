@@ -121,6 +121,7 @@ namespace
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseCompareOperandForSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldThreeWaySelects);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryNarrowSelect);
         // Narrowing the masked operation keeps the extend's work in a 32-bit
         // operation; dropping the extend first would leave the operation wide.
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);

@@ -154,6 +154,8 @@ namespace InstructionCombine
         const MicroReg src = immediate ? MicroReg::invalid() : ops[1].reg;
         if (!dst.isVirtualInt() || (!immediate && (!src.isAnyInt() || dst == src)))
             return false;
+        if (partial && ctx.booleanMerges.contains(dst.index()))
+            return false;
 
         uint32_t valueId = 0;
         if (!ctx.ssa->defValue(dst, ref, valueId))

@@ -2467,6 +2467,101 @@ SWC_TEST_BEGIN(InstCombine_ByteSelectReadWide_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // fb = sp; x, y read from the frame; [fb] = 0; [fb] = x; [fb + 4] = y; v = [fb]
+    void emitPairThroughFrame(MicroBuilder& builder, bool escape)
+    {
+        constexpr MicroReg fb    = MicroReg::virtualIntReg(1);
+        constexpr MicroReg x     = MicroReg::virtualIntReg(2);
+        constexpr MicroReg y     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg value = MicroReg::virtualIntReg(4);
+        constexpr MicroReg addr  = MicroReg::virtualIntReg(5);
+
+        builder.emitLoadRegReg(fb, CallConv::get(CallConvKind::Swag).stackPointer, MicroOpBits::B64);
+        builder.emitLoadRegMem(x, fb, 32, MicroOpBits::B32);
+        builder.emitLoadRegMem(y, fb, 36, MicroOpBits::B32);
+        builder.emitLoadMemImm(fb, 0, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(fb, 0, x, MicroOpBits::B32);
+        builder.emitLoadMemReg(fb, 4, y, MicroOpBits::B32);
+        if (escape)
+        {
+            builder.emitLoadAddressRegMem(addr, fb, 0, MicroOpBits::B64);
+            builder.emitLoadMemReg(fb, 24, addr, MicroOpBits::B64);
+        }
+        builder.emitLoadRegMem(value, fb, 0, MicroOpBits::B64);
+        builder.emitLoadMemReg(fb, 16, value, MicroOpBits::B64);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_PairBuiltInFrame_AssembledInRegister)
+{
+    MicroBuilder builder(ctx);
+    emitPairThroughFrame(builder, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 2)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 0)
+        return Result::Error;
+    if (countBinaryMicroOp(builder, MicroOp::Or) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The slot's address escapes: the aggregate stays in memory.
+SWC_TEST_BEGIN(InstCombine_PairWithEscapedSlot_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitPairThroughFrame(builder, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 3)
+        return Result::Error;
+    if (countBinaryMicroOp(builder, MicroOp::Or) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A boolean merged from two setcc results stays a byte: branch
+// simplification reads those merges at byte width.
+SWC_TEST_BEGIN(InstCombine_BooleanMergeCopy_KeepsByteWidth)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg second = MicroReg::virtualIntReg(4);
+    constexpr MicroReg merged = MicroReg::virtualIntReg(5);
+    constexpr MicroReg wide   = MicroReg::virtualIntReg(6);
+    MicroBuilder       builder(ctx);
+    const auto         done = builder.createLabel();
+
+    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(first, MicroCond::NotEqual);
+    builder.emitLoadRegReg(merged, first, MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+    builder.emitCmpRegImm(value, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(second, MicroCond::Less);
+    builder.emitLoadRegReg(merged, second, MicroOpBits::B8);
+    builder.placeLabel(done);
+    builder.emitLoadZeroExtendRegReg(wide, merged, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 8, wide, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (hasLoadRegRegBits(builder, merged, MicroOpBits::B32) || !hasLoadRegRegBits(builder, merged, MicroOpBits::B8))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

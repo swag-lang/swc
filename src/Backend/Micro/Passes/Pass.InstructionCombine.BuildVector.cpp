@@ -120,7 +120,7 @@ namespace InstructionCombine
         // local. An address computed after the slot cannot reach back into
         // it. Stores elsewhere do not matter - the walk already refused any
         // between the lane stores and the load.
-        bool slotHasOtherReaders(const Context& ctx, const MicroReg base, const uint64_t slotOffset, const MicroInstrRef loadRef, const SmallVector<MicroInstrRef, 16>& storeRefs)
+        bool slotHasOtherReaders(const Context& ctx, const MicroReg base, const uint64_t slotOffset, const uint64_t slotBytes, const MicroInstrRef loadRef, const SmallVector<MicroInstrRef, 16>& storeRefs)
         {
             const auto view = ctx.storage->view();
             for (auto it = view.begin(); it != view.end(); ++it)
@@ -144,7 +144,7 @@ namespace InstructionCombine
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
                 {
                     // ops: [0] dst, [1] base, [2] opBits, [3] offset
-                    if (ops[1].reg != base || ops[3].valueU64 < slotOffset + 16)
+                    if (ops[1].reg != base || ops[3].valueU64 < slotOffset + slotBytes)
                         return true;
                     continue;
                 }
@@ -159,7 +159,7 @@ namespace InstructionCombine
                     return true;
                 if (isPureStore(inst.op))
                     continue;
-                if (rangesOverlap(ops[info.memOffsetOperandIndex].valueU64, accessBytes(inst, ops), slotOffset, 16))
+                if (rangesOverlap(ops[info.memOffsetOperandIndex].valueU64, accessBytes(inst, ops), slotOffset, slotBytes))
                     return true;
             }
             return false;
@@ -525,7 +525,7 @@ namespace InstructionCombine
             if (ctx.isClaimed(ref) || ctx.isRelocated(ref))
                 return false;
         }
-        if (slotHasOtherReaders(ctx, base, slotOffset, loadRef, storeRefs))
+        if (slotHasOtherReaders(ctx, base, slotOffset, 16, loadRef, storeRefs))
             return false;
 
         // The queue has not mutated the IR, so these are the same indices an
@@ -563,6 +563,267 @@ namespace InstructionCombine
         Step last       = plan.steps.back();
         last.ops[0].reg = dst;
         ctx.emitRewrite(loadRef, last.op, std::span<const MicroInstrOperand>(last.ops, last.numOps), true);
+        for (const MicroInstrRef ref : storeRefs)
+            ctx.emitErase(ref);
+        return true;
+    }
+
+    namespace
+    {
+        // A part of a scalar slot: the bytes one store wrote, from a register
+        // or an immediate.
+        struct ScalarPiece
+        {
+            uint32_t rel   = 0;
+            uint32_t bytes = 0;
+            bool     isImm = false;
+            uint64_t imm   = 0;
+            MicroReg reg   = MicroReg::invalid();
+        };
+
+        // The stores that together wrote the slot, walked backwards from the
+        // load in a straight line, the latest store to a byte winning. A
+        // register store must still be whole where the load reads; the bytes
+        // of an immediate fill whatever later stores left.
+        bool collectScalarStores(const Context& ctx, const MicroInstrRef loadRef, const MicroReg base, const uint64_t slotOffset, const uint32_t slotBytes, SmallVector<ScalarPiece, 8>& outPieces, SmallVector<MicroInstrRef, 16>& outStoreRefs)
+        {
+            uint32_t covered = 0;
+            const uint32_t full    = (1u << slotBytes) - 1;
+
+            // Once every byte is known, the walk goes on only to pick up the
+            // stores the later ones overwrote, and stops quietly where the
+            // straight line or the slot's own stores end.
+            MicroInstrRef ref = ctx.storage->findPreviousInstructionRef(loadRef);
+            for (uint32_t step = 0; ref.isValid() && step < K_MAX_BUILD_WINDOW; ++step, ref = ctx.storage->findPreviousInstructionRef(ref))
+            {
+                const bool        trailing = covered == full;
+                const MicroInstr* inst     = ctx.storage->ptr(ref);
+                if (!inst || isControlOrCall(*inst))
+                    return trailing;
+                const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+                if (!ops)
+                    return trailing;
+
+                const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(ref);
+                if (useDef && std::ranges::find(useDef->defs, base) != useDef->defs.end())
+                    return trailing;
+
+                const bool storeReg = inst->op == MicroInstrOpcode::LoadMemReg;
+                const bool storeImm = inst->op == MicroInstrOpcode::LoadMemImm;
+                if (!storeReg && !storeImm)
+                {
+                    if (writesMemory(*inst))
+                        return trailing;
+                    continue;
+                }
+
+                // LoadMemReg: [0] base, [1] src, [2] opBits, [3] offset
+                // LoadMemImm: [0] base, [1] opBits, [2] offset, [3] imm
+                const MicroReg    storeBase = ops[0].reg;
+                const MicroOpBits bits      = storeReg ? ops[2].opBits : ops[1].opBits;
+                const uint64_t    offset    = storeReg ? ops[3].valueU64 : ops[2].valueU64;
+                const uint32_t    bytes     = static_cast<uint32_t>(bits) / 8;
+                if (storeBase != base)
+                {
+                    if (!isFrameDerivedAddress(ctx, storeBase, ref))
+                        return trailing;
+                    continue;
+                }
+                if (!rangesOverlap(offset, bytes, slotOffset, slotBytes))
+                    continue;
+                if (offset < slotOffset || offset + bytes > slotOffset + slotBytes || !bytes || bytes > 8)
+                    return trailing;
+
+                const uint32_t rel  = static_cast<uint32_t>(offset - slotOffset);
+                const uint32_t mask = ((1u << bytes) - 1) << rel;
+                if ((covered & mask) == mask)
+                {
+                    // Overwritten by later stores before the load, the only
+                    // reader: it goes with them.
+                    if (!ctx.isClaimed(ref) && !ctx.isRelocated(ref))
+                        outStoreRefs.push_back(ref);
+                    continue;
+                }
+                if (storeReg)
+                {
+                    if (covered & mask)
+                        return false;
+                    ScalarPiece piece;
+                    piece.rel   = rel;
+                    piece.bytes = bytes;
+                    piece.reg   = ops[1].reg;
+                    if (!piece.reg.isVirtualInt())
+                        return false;
+                    const MicroSsaState::ReachingDef atStore = ctx.ssa->reachingDef(piece.reg, ref);
+                    const MicroSsaState::ReachingDef atLoad  = ctx.ssa->reachingDef(piece.reg, loadRef);
+                    if (!atStore.valid() || !atLoad.valid() || atStore.valueId != atLoad.valueId)
+                        return false;
+                    outPieces.push_back(piece);
+                }
+                else
+                {
+                    const uint64_t value = bytes == 8 ? ops[3].valueU64 : ops[3].valueU64 & ((1ULL << (bytes * 8)) - 1);
+                    for (uint32_t b = 0; b < bytes; ++b)
+                    {
+                        if (covered & (1u << (rel + b)))
+                            continue;
+                        ScalarPiece piece;
+                        piece.rel   = rel + b;
+                        piece.bytes = 1;
+                        piece.isImm = true;
+                        piece.imm   = (value >> (b * 8)) & 0xFF;
+                        outPieces.push_back(piece);
+                    }
+                }
+                covered |= mask;
+                outStoreRefs.push_back(ref);
+            }
+            return covered == full;
+        }
+    }
+
+    // A small aggregate built through the frame and read back whole, as a
+    // struct returned or passed in one register is:
+    //
+    //     LoadMemImm  [fb+o],   0, b64          t0 = x (b32)
+    //     LoadMemReg  [fb+o],   x, b32    ->    t1 = y (b32)
+    //     LoadMemReg  [fb+o+4], y, b32          t1 <<= 32
+    //     LoadRegMem  v, [fb+o], b64            t0 |= t1
+    //                                           v = t0
+    //
+    // LLVM never puts such a value in memory: it is the fields shifted into
+    // place, with the bytes no field wrote taken from the immediate that
+    // cleared the slot. Nothing else may read the bytes the stores wrote,
+    // since the stores go with the load.
+    bool tryBuildScalarFromStores(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || ctx.isRelocated(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+        const MicroOpBits loadBits = loadOps[2].opBits;
+        if (loadBits != MicroOpBits::B16 && loadBits != MicroOpBits::B32 && loadBits != MicroOpBits::B64)
+            return false;
+        const MicroReg dst        = loadOps[0].reg;
+        const MicroReg base       = loadOps[1].reg;
+        const uint64_t slotOffset = loadOps[3].valueU64;
+        const uint32_t slotBytes  = static_cast<uint32_t>(loadBits) / 8;
+        if (!dst.isVirtualInt() || !base.isVirtualInt() || dst == base || !isFrameDerivedAddress(ctx, base, loadRef))
+            return false;
+
+        SmallVector<ScalarPiece, 8>    pieces;
+        SmallVector<MicroInstrRef, 16> storeRefs;
+        if (!collectScalarStores(ctx, loadRef, base, slotOffset, slotBytes, pieces, storeRefs) || pieces.size() < 2)
+            return false;
+        for (const MicroInstrRef ref : storeRefs)
+        {
+            if (ctx.isClaimed(ref) || ctx.isRelocated(ref))
+                return false;
+        }
+        if (slotHasOtherReaders(ctx, base, slotOffset, slotBytes, loadRef, storeRefs))
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, loadRef, ctx.builder))
+            return false;
+
+        uint64_t                    immBits = 0;
+        SmallVector<ScalarPiece, 8> regs;
+        for (const ScalarPiece& piece : pieces)
+        {
+            if (piece.isImm)
+                immBits |= piece.imm << (piece.rel * 8);
+            else
+                regs.push_back(piece);
+        }
+
+        const MicroOpBits wideBits = slotBytes == 8 ? MicroOpBits::B64 : MicroOpBits::B32;
+        if (!ctx.nextVirtualIntRegIndex)
+        {
+            SWC_ASSERT(ctx.passContext != nullptr);
+            MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+        }
+        if (ctx.nextVirtualIntRegIndex + regs.size() + 1 >= MicroReg::K_MAX_INDEX)
+            return false;
+
+        ctx.claimed.insert(loadRef.get());
+        for (const MicroInstrRef ref : storeRefs)
+            ctx.claimed.insert(ref.get());
+
+        MicroReg accumulator = MicroReg::invalid();
+        for (const ScalarPiece& piece : regs)
+        {
+            const MicroReg part = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+            if (piece.bytes == 4 || piece.bytes == 8)
+            {
+                MicroInstrOperand copy[3];
+                copy[0].reg    = part;
+                copy[1].reg    = piece.reg;
+                copy[2].opBits = piece.bytes == 4 ? MicroOpBits::B32 : MicroOpBits::B64;
+                ctx.emitInsertBefore(loadRef, MicroInstrOpcode::LoadRegReg, copy);
+            }
+            else
+            {
+                MicroInstrOperand extend[4];
+                extend[0].reg    = part;
+                extend[1].reg    = piece.reg;
+                extend[2].opBits = wideBits;
+                extend[3].opBits = piece.bytes == 1 ? MicroOpBits::B8 : MicroOpBits::B16;
+                ctx.emitInsertBefore(loadRef, MicroInstrOpcode::LoadZeroExtRegReg, extend);
+            }
+            if (piece.rel)
+            {
+                MicroInstrOperand shift[4];
+                shift[0].reg      = part;
+                shift[1].opBits   = wideBits;
+                shift[2].microOp  = MicroOp::ShiftLeft;
+                shift[3].valueU64 = piece.rel * 8;
+                ctx.emitInsertBefore(loadRef, MicroInstrOpcode::OpBinaryRegImm, shift);
+            }
+            if (!accumulator.isValid())
+            {
+                accumulator = part;
+                continue;
+            }
+            MicroInstrOperand merge[4];
+            merge[0].reg     = accumulator;
+            merge[1].reg     = part;
+            merge[2].opBits  = wideBits;
+            merge[3].microOp = MicroOp::Or;
+            ctx.emitInsertBefore(loadRef, MicroInstrOpcode::OpBinaryRegReg, merge);
+        }
+
+        if (!accumulator.isValid())
+        {
+            MicroInstrOperand load[3];
+            load[0].reg      = dst;
+            load[1].opBits   = loadBits;
+            load[2].valueU64 = immBits;
+            ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadRegImm, load, true);
+        }
+        else
+        {
+            if (immBits)
+            {
+                const MicroReg    constant = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+                MicroInstrOperand load[3];
+                load[0].reg      = constant;
+                load[1].opBits   = wideBits;
+                load[2].valueU64 = immBits;
+                ctx.emitInsertBefore(loadRef, MicroInstrOpcode::LoadRegImm, load);
+                MicroInstrOperand merge[4];
+                merge[0].reg     = accumulator;
+                merge[1].reg     = constant;
+                merge[2].opBits  = wideBits;
+                merge[3].microOp = MicroOp::Or;
+                ctx.emitInsertBefore(loadRef, MicroInstrOpcode::OpBinaryRegReg, merge);
+            }
+            MicroInstrOperand result[3];
+            result[0].reg    = dst;
+            result[1].reg    = accumulator;
+            result[2].opBits = loadBits;
+            ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadRegReg, result, true);
+        }
         for (const MicroInstrRef ref : storeRefs)
             ctx.emitErase(ref);
         return true;

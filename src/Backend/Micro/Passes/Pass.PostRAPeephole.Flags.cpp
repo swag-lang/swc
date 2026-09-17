@@ -21,7 +21,8 @@ namespace PostRaPeephole
         if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpRegReg)
             return false;
         const auto* cmp = cmpInst.ops(*ctx.operands);
-        if (!cmp || (cmp[2].opBits != MicroOpBits::B32 && cmp[2].opBits != MicroOpBits::B64) ||
+        if (!cmp || (cmp[2].opBits != MicroOpBits::B8 && cmp[2].opBits != MicroOpBits::B16 &&
+                     cmp[2].opBits != MicroOpBits::B32 && cmp[2].opBits != MicroOpBits::B64) ||
             !cmp[0].reg.isInt() || !cmp[1].reg.isInt() || cmp[0].reg == cmp[1].reg)
             return false;
         const MicroReg    sum      = cmp[0].reg;
@@ -71,23 +72,50 @@ namespace PostRaPeephole
         const MicroInstrRef selectRef   = ctx.nextRef(fallbackRef);
         const MicroInstr*   select      = ctx.instruction(selectRef);
         const auto*         selected    = select ? select->ops(*ctx.operands) : nullptr;
+        const bool narrow = bits == MicroOpBits::B8 || bits == MicroOpBits::B16;
         if (!fallback || fallback->op != MicroInstrOpcode::LoadRegImm || !fallbackOps ||
             !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
             selected[0].reg != fallbackOps[0].reg || selected[1].reg != sum ||
-            selected[2].cpuCond != MicroCond::AboveOrEqual || selected[3].opBits != bits ||
+            selected[2].cpuCond != MicroCond::AboveOrEqual || selected[3].opBits != (narrow ? MicroOpBits::B32 : bits) ||
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
             return false;
+
+        MicroInstrRef extendRef;
+        if (narrow)
+        {
+            extendRef               = ctx.nextRef(selectRef);
+            const MicroInstr* extend = ctx.instruction(extendRef);
+            const auto*       ext    = extend ? extend->ops(*ctx.operands) : nullptr;
+            if (!extend || extend->op != MicroInstrOpcode::LoadZeroExtRegReg || !ext ||
+                ext[0].reg != selected[0].reg || ext[1].reg != selected[0].reg ||
+                ext[2].opBits != MicroOpBits::B64 || ext[3].opBits != bits)
+                return false;
+        }
 
         MicroInstrOperand rewrittenLoad[Action::K_MAX_OPS] = {};
         std::copy_n(loaded, load->numOperands, rewrittenLoad);
         rewrittenLoad[0].reg = sum;
+        MicroInstr loadProbe = *load;
+        if (narrow)
+        {
+            loadProbe.op               = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+            loadProbe.numOperands      = 7;
+            rewrittenLoad[3].opBits    = MicroOpBits::B32;
+            rewrittenLoad[4].opBits    = bits;
+        }
+        const std::array refs = {loadRef, copyRef, addRef, cmpRef, fallbackRef, selectRef, extendRef};
         MicroConformanceIssue issue;
-        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *load, rewrittenLoad)) ||
-            !ctx.claimAll({loadRef, copyRef, addRef, cmpRef, fallbackRef, selectRef}))
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, loadProbe, rewrittenLoad)) ||
+            !ctx.claimAll(std::span{refs.data(), narrow ? 7u : 6u}))
             return false;
-        ctx.emitRewrite(loadRef, load->op, std::span{rewrittenLoad, load->numOperands});
+        if (narrow)
+            ctx.emitRewrite(loadRef, loadProbe.op, std::span{rewrittenLoad, 7}, true);
+        else
+            ctx.emitRewrite(loadRef, loadProbe.op, std::span{rewrittenLoad, load->numOperands});
         ctx.emitErase(copyRef);
         ctx.emitErase(cmpRef);
+        if (narrow)
+            ctx.emitErase(extendRef);
         return true;
     }
 

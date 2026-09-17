@@ -958,7 +958,11 @@ namespace PostRaPeephole
         if (ctx.isClaimed(copyRef))
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
-        if (!copy || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+        const bool  signExtend = copyInst.op == MicroInstrOpcode::LoadSignedExtRegReg;
+        if (!copy || (!signExtend && copyInst.op != MicroInstrOpcode::LoadRegReg) ||
+            (signExtend ? copy[2].opBits != MicroOpBits::B64 || copy[3].opBits != MicroOpBits::B32
+                        : copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
             copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
             !ctx.isRegDeadAfterCurrent(copy[1].reg))
             return false;
@@ -974,8 +978,9 @@ namespace PostRaPeephole
             return false;
         const MicroReg firstResult = second[1].reg;
         const MicroOpBits bits = second[3].opBits;
-        if ((copy[2].opBits != bits &&
+        if ((!signExtend && copy[2].opBits != bits &&
              !(copy[2].opBits == MicroOpBits::B64 && bits == MicroOpBits::B32 && ctx.isUpperHalfZeroBefore(copyRef, secondResult))) ||
+            (signExtend && bits != MicroOpBits::B32) ||
             !ctx.isRegDeadAfterCurrent(firstResult))
             return false;
 
@@ -1030,18 +1035,28 @@ namespace PostRaPeephole
         rewrittenSecond[0].reg              = result;
         rewrittenSecond[1].reg              = secondResult;
         rewrittenSecond[2].cpuCond          = invertedSecond;
+        MicroInstrOperand rewrittenCopy[4] = {copy[0], copy[1], copy[2], {}};
+        if (signExtend)
+        {
+            rewrittenCopy[1].reg   = result;
+            rewrittenCopy[3]       = copy[3];
+        }
 
         MicroConformanceIssue issue;
         if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *firstSelect, rewrittenFirst) ||
                              ctx.encoder->queryConformanceIssue(issue, *secondCompare, rewrittenCompare) ||
-                             ctx.encoder->queryConformanceIssue(issue, *secondSelect, rewrittenSecond))) ||
+                             ctx.encoder->queryConformanceIssue(issue, *secondSelect, rewrittenSecond) ||
+                             (signExtend && ctx.encoder->queryConformanceIssue(issue, copyInst, rewrittenCopy)))) ||
             !ctx.claimAll({initialRef, firstCompareRef, firstSelectRef, secondCompareRef, secondSelectRef, copyRef}))
             return false;
         ctx.emitErase(initialRef);
         ctx.emitRewrite(firstSelectRef, firstSelect->op, rewrittenFirst);
         ctx.emitRewrite(secondCompareRef, secondCompare->op, rewrittenCompare);
         ctx.emitRewrite(secondSelectRef, secondSelect->op, rewrittenSecond);
-        ctx.emitErase(copyRef);
+        if (signExtend)
+            ctx.emitRewrite(copyRef, copyInst.op, rewrittenCopy);
+        else
+            ctx.emitErase(copyRef);
         return true;
     }
 

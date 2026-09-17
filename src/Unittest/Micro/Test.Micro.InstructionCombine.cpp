@@ -2528,6 +2528,40 @@ SWC_TEST_BEGIN(InstCombine_PairWithEscapedSlot_Kept)
 }
 SWC_TEST_END()
 
+// A boolean merged from two setcc results stays a byte: branch
+// simplification reads those merges at byte width.
+SWC_TEST_BEGIN(InstCombine_BooleanMergeCopy_KeepsByteWidth)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg second = MicroReg::virtualIntReg(4);
+    constexpr MicroReg merged = MicroReg::virtualIntReg(5);
+    constexpr MicroReg wide   = MicroReg::virtualIntReg(6);
+    MicroBuilder       builder(ctx);
+    const auto         done = builder.createLabel();
+
+    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(first, MicroCond::NotEqual);
+    builder.emitLoadRegReg(merged, first, MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+    builder.emitCmpRegImm(value, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(second, MicroCond::Less);
+    builder.emitLoadRegReg(merged, second, MicroOpBits::B8);
+    builder.placeLabel(done);
+    builder.emitLoadZeroExtendRegReg(wide, merged, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 8, wide, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (hasLoadRegRegBits(builder, merged, MicroOpBits::B32) || !hasLoadRegRegBits(builder, merged, MicroOpBits::B8))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

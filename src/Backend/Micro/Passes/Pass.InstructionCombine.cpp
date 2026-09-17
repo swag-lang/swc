@@ -181,6 +181,21 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         const auto view = ctx.storage->view();
         for (auto it = view.begin(); it != view.end(); ++it)
         {
+            const MicroInstrOperand* ops = it->ops(*ctx.operands);
+            if (!ctx.ssa || it->op != MicroInstrOpcode::LoadRegReg || !ops || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isVirtualInt())
+                continue;
+            MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(ops[1].reg, it.current);
+            if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
+            {
+                const MicroInstrOperand* extOps = source.inst->ops(*ctx.operands);
+                if (extOps && extOps[0].reg == extOps[1].reg)
+                    source = ctx.ssa->reachingDef(extOps[1].reg, source.instRef);
+            }
+            if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::SetCondReg)
+                ctx.booleanMerges.insert(ops[0].reg.index());
+        }
+        for (auto it = view.begin(); it != view.end(); ++it)
+        {
             const bool widenable = it->op == MicroInstrOpcode::LoadRegReg || it->op == MicroInstrOpcode::LoadRegImm;
             if (widenable && (ctx.relocated.empty() || !ctx.isRelocated(it.current)))
                 tryWidenCopyWithNarrowReaders(ctx, it.current, *it);

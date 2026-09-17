@@ -46,6 +46,9 @@ namespace InstructionCombine
         // codeOffset zero points - so claimAll refuses them unless a rule
         // that explicitly manages the relocation opts in.
         std::unordered_set<uint32_t> relocated;
+        // Registers a byte copy of a setcc result writes: the boolean merges
+        // branch simplification reads as bytes, which keep their width.
+        std::unordered_set<uint32_t> booleanMerges;
 
         bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
 

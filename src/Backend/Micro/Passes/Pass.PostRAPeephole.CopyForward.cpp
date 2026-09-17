@@ -2142,6 +2142,74 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Keep a selected value in the input register that is dead after its use,
+    // then form the final sum directly in the original result register.
+    bool tryFoldSelectedIntegerAdd(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroReg result      = copy[0].reg;
+        const MicroReg alternative = copy[1].reg;
+
+        const MicroInstrRef compareRef = ctx.nextRef(copyRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         compared   = compare ? compare->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !compared ||
+            (compared[2].opBits != MicroOpBits::B32 && compared[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
+        if (regInList(compareUseDef.uses.span(), result) || regInList(compareUseDef.defs.span(), result))
+            return false;
+
+        const MicroInstrRef selectRef = ctx.nextRef(compareRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || !selected[1].reg.isInt() || selected[1].reg == result ||
+            selected[1].reg == alternative || selected[3].opBits != compared[2].opBits ||
+            (copy[2].opBits != selected[3].opBits &&
+             !(copy[2].opBits == MicroOpBits::B64 && selected[3].opBits == MicroOpBits::B32)))
+            return false;
+
+        const MicroInstrRef addRef = ctx.nextRef(selectRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        const auto*         added  = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg || !added ||
+            added[0].reg != result || !added[1].reg.isInt() || added[1].reg == result || added[1].reg == alternative ||
+            added[2].opBits != selected[3].opBits || added[3].microOp != MicroOp::Add ||
+            !ctx.isRegDeadAfter(alternative, ctx.instructionIndex + 3) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[0].reg               = alternative;
+        MicroInstrOperand address[8]         = {};
+        address[0].reg                       = result;
+        address[1].reg                       = alternative;
+        address[2].reg                       = added[1].reg;
+        address[3].opBits                    = added[2].opBits;
+        address[4].opBits                    = MicroOpBits::B64;
+        address[5].valueU64                  = 1;
+        MicroInstr addressProbe;
+        addressProbe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        addressProbe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            ctx.encoder->queryConformanceIssue(issue, addressProbe, address) ||
+            !ctx.claimAll({copyRef, compareRef, selectRef, addRef}))
+            return false;
+
+        ctx.emitErase(copyRef);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        ctx.emitRewrite(addRef, addressProbe.op, address, true);
+        return true;
+    }
+
     // Keep value additions intact through SSA/loop optimization, then merge
     // the physical input copy with a flag-dead add. A 32-bit LEA needs only
     // the low input bits even though its addressing operands are 64-bit.

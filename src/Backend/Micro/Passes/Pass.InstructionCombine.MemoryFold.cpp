@@ -212,53 +212,101 @@ namespace InstructionCombine
         if (!opOps || opOps[0].reg != value || !valueHasSingleUse(*ctx.ssa, value, opRef))
             return false;
 
-        const bool unaryUpdate = op->op == MicroInstrOpcode::OpBinaryRegImm;
-        if (unaryUpdate)
+        const bool immediateUpdate = op->op == MicroInstrOpcode::OpBinaryRegImm;
+        bool       unaryUpdate     = false;
+        if (immediateUpdate)
         {
-            if (opOps[1].opBits != loadOps[3].opBits || opOps[1].opBits != loadOps[4].opBits ||
-                (opOps[2].microOp != MicroOp::Add && opOps[2].microOp != MicroOp::Subtract) ||
-                opOps[3].hasWideImmediateValue() || opOps[3].valueU64 != 1 ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder))
+            if ((opOps[2].microOp != MicroOp::Add && opOps[2].microOp != MicroOp::Subtract &&
+                 opOps[2].microOp != MicroOp::And && opOps[2].microOp != MicroOp::Or && opOps[2].microOp != MicroOp::Xor) ||
+                opOps[3].hasWideImmediateValue())
                 return false;
+
+            const uint64_t immediate = opOps[3].valueU64;
+            const bool widenedAnd = loadOps[3].opBits == MicroOpBits::B64 && opOps[1].opBits == MicroOpBits::B32 &&
+                                    opOps[2].microOp == MicroOp::And && immediate <= 0x7FFFFFFF;
+            if (opOps[1].opBits != loadOps[3].opBits && !widenedAnd)
+                return false;
+
+            const bool immediateFits = opOps[1].opBits == MicroOpBits::B8 ? immediate <= 0xFF || immediate >= 0xFFFFFFFFFFFFFF80 :
+                                       opOps[1].opBits == MicroOpBits::B16 ? immediate <= 0xFFFF || immediate >= 0xFFFFFFFFFFFF8000 :
+                                       opOps[1].opBits == MicroOpBits::B32 ? immediate <= 0xFFFFFFFF :
+                                       immediate <= 0x7FFFFFFF || immediate >= 0xFFFFFFFF80000000;
+            if (!immediateFits)
+                return false;
+
+            unaryUpdate = immediate == 1 && (opOps[2].microOp == MicroOp::Add || opOps[2].microOp == MicroOp::Subtract) &&
+                          MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder);
         }
         else if (!opOps[1].reg.isVirtualInt() || opOps[1].reg == value || opOps[1].reg == base || opOps[1].reg == index ||
-                 opOps[2].opBits != loadOps[3].opBits || opOps[2].opBits != loadOps[4].opBits ||
+                 opOps[2].opBits != loadOps[3].opBits ||
                  (opOps[3].microOp != MicroOp::Add && opOps[3].microOp != MicroOp::Subtract &&
                   opOps[3].microOp != MicroOp::And && opOps[3].microOp != MicroOp::Or && opOps[3].microOp != MicroOp::Xor))
         {
             return false;
         }
 
-        const MicroInstrRef storeRef = ctx.storage->findNextInstructionRef(opRef);
+        MicroReg      storedValue = value;
+        MicroInstrRef copyRef     = MicroInstrRef::invalid();
+        MicroInstrRef storeRef    = ctx.storage->findNextInstructionRef(opRef);
+        const MicroInstr* maybeCopy = ctx.storage->ptr(storeRef);
+        if (maybeCopy && maybeCopy->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const MicroInstrOperand* copyOps = maybeCopy->ops(*ctx.operands);
+            const MicroOpBits        opBits  = immediateUpdate ? opOps[1].opBits : opOps[2].opBits;
+            if (!copyOps || copyOps[1].reg != value || copyOps[2].opBits != opBits || !copyOps[0].reg.isVirtualInt() ||
+                copyOps[0].reg == base || copyOps[0].reg == index || !valueHasSingleUse(*ctx.ssa, copyOps[0].reg, storeRef))
+                return false;
+            storedValue = copyOps[0].reg;
+            copyRef     = storeRef;
+            storeRef    = ctx.storage->findNextInstructionRef(copyRef);
+        }
+
         const MicroInstr*   store    = ctx.storage->ptr(storeRef);
         if (!store || store->op != MicroInstrOpcode::LoadAmcMemReg)
             return false;
         const MicroInstrOperand* storeOps = store->ops(*ctx.operands);
-        if (!storeOps || storeOps[0].reg != base || storeOps[1].reg != index || storeOps[2].reg != value ||
-            storeOps[3].opBits != loadOps[3].opBits || storeOps[4].opBits != loadOps[4].opBits ||
-            storeOps[5].valueU64 != loadOps[5].valueU64 || storeOps[6].valueU64 != loadOps[6].valueU64 ||
-            !ctx.claimAll({loadRef, opRef, storeRef}))
+        if (!storeOps || storeOps[0].reg != base || storeOps[1].reg != index || storeOps[2].reg != storedValue ||
+            storeOps[3].opBits != loadOps[4].opBits || storeOps[4].opBits != loadOps[3].opBits ||
+            storeOps[5].valueU64 != loadOps[5].valueU64 || storeOps[6].valueU64 != loadOps[6].valueU64)
+            return false;
+        if (copyRef.isValid() ? !ctx.claimAll({loadRef, opRef, copyRef, storeRef}) : !ctx.claimAll({loadRef, opRef, storeRef}))
             return false;
 
         MicroInstrOperand update[8] = {};
         update[0]                   = loadOps[1];
         update[1]                   = loadOps[2];
-        update[3]                   = loadOps[3];
-        update[4]                   = loadOps[4];
-        update[5]                   = loadOps[5];
-        update[6]                   = loadOps[6];
         if (unaryUpdate)
         {
+            update[3] = loadOps[4];
+            update[4] = loadOps[3];
+            update[5] = loadOps[5];
+            update[6] = loadOps[6];
             update[7] = opOps[2];
             ctx.emitRewrite(opRef, MicroInstrOpcode::OpUnaryAmcMem, update, /*allocNewBlock=*/true);
+        }
+        else if (immediateUpdate)
+        {
+            update[2] = loadOps[3];
+            update[3] = loadOps[4];
+            update[4] = loadOps[5];
+            update[5] = loadOps[6];
+            update[6] = opOps[3];
+            update[7] = opOps[2];
+            ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryAmcMemImm, update, /*allocNewBlock=*/true);
         }
         else
         {
             update[2] = opOps[1];
+            update[3] = loadOps[4];
+            update[4] = loadOps[3];
+            update[5] = loadOps[5];
+            update[6] = loadOps[6];
             update[7] = opOps[3];
             ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryAmcMemReg, update, /*allocNewBlock=*/true);
         }
         ctx.emitErase(loadRef);
+        if (copyRef.isValid())
+            ctx.emitErase(copyRef);
         ctx.emitErase(storeRef);
         return true;
     }

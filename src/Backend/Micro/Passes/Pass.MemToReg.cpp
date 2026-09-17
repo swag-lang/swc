@@ -835,6 +835,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::CmpAmcImm:
             case MicroInstrOpcode::OpUnaryAmcMem:
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
                 amcBase = ops[0].reg;
                 break;
             default:

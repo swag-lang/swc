@@ -948,6 +948,13 @@ namespace
                 return naturalBinaryExpression(lhs, ops[7].microOp, rhs);
             }
 
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
+            {
+                const auto lhs = memAmcString(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[5].valueU64, regPrintMode, encoder);
+                const auto rhs = hexU64(ops[6].valueU64);
+                return naturalBinaryExpression(lhs, ops[7].microOp, rhs);
+            }
+
             case MicroInstrOpcode::OpBinaryMemReg:
             {
                 const auto lhs = memBaseOffsetString(ops[0].reg, ops[4].valueU64, regPrintMode, encoder);
@@ -2077,6 +2084,16 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[4].opBits);
+                break;
+
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[7].microOp));
+                appendSep(out);
+                appendMemAmc(out, ctx, ops[0].reg, ops[1].reg, ops[4].valueU64, ops[5].valueU64, regPrintMode, encoder);
+                appendSep(out);
+                appendImmediate(out, ctx, hexU64(ops[6].valueU64), false);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[2].opBits);
                 break;
 
             case MicroInstrOpcode::OpBinaryMemReg:

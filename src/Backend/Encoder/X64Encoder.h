@@ -102,6 +102,7 @@ protected:
     void encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits) override;
     void encodeOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits) override;
     void encodeOpBinaryAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroReg regSrc, MicroOp op, MicroOpBits opBits) override;
+    void encodeOpBinaryAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOp op, MicroOpBits opBits) override;
     void encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits) override;
     void encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, MicroOp op, MicroOpBits opBits) override;
     void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& valueInt, MicroOp op, MicroOpBits opBits) override;

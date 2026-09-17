@@ -2253,6 +2253,223 @@ namespace PostRaPeephole
         return true;
     }
 
+    // BMI2 can compute both arms of a conditional variable shift without
+    // copies. When both arms shift the same value, select the count instead
+    // and use one ordinary shift. The two canonical count copies provide the
+    // four instruction slots needed by the replacement.
+    bool tryFactorCommonConditionalShiftNoCopy(Context& ctx, const MicroInstrRef compareRef, const MicroInstr& compareInst)
+    {
+        if (ctx.isClaimed(compareRef) || !ctx.encoder ||
+            (compareInst.op != MicroInstrOpcode::CmpRegImm && compareInst.op != MicroInstrOpcode::CmpRegReg))
+            return false;
+
+        const MicroInstrRef firstCopyRef = ctx.nextRef(compareRef);
+        const MicroInstr*   firstCopy    = ctx.instruction(firstCopyRef);
+        const auto*         firstCopyOps = firstCopy ? firstCopy->ops(*ctx.operands) : nullptr;
+        if (!firstCopy || firstCopy->op != MicroInstrOpcode::LoadRegReg || !firstCopyOps ||
+            firstCopyOps[0].reg != firstCopyOps[1].reg || firstCopyOps[2].opBits != MicroOpBits::B32)
+            return false;
+        const MicroReg firstCount = firstCopyOps[0].reg;
+
+        const MicroInstrRef firstShiftRef = ctx.nextRef(firstCopyRef);
+        const MicroInstr*   firstShift    = ctx.instruction(firstShiftRef);
+        const auto*         first         = firstShift ? firstShift->ops(*ctx.operands) : nullptr;
+        if (!firstShift || firstShift->op != MicroInstrOpcode::OpBinaryRegRegReg || !first ||
+            first[2].reg != firstCount || (first[3].opBits != MicroOpBits::B32 && first[3].opBits != MicroOpBits::B64))
+            return false;
+        switch (first[4].microOp)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+                break;
+            default:
+                return false;
+        }
+        const MicroReg    result = first[0].reg;
+        const MicroReg    common = first[1].reg;
+        const MicroOpBits bits   = first[3].opBits;
+        if (result == common || result == firstCount || common == firstCount)
+            return false;
+
+        const MicroInstrRef secondCopyRef = ctx.nextRef(firstShiftRef);
+        const MicroInstr*   secondCopy    = ctx.instruction(secondCopyRef);
+        const auto*         secondCopyOps = secondCopy ? secondCopy->ops(*ctx.operands) : nullptr;
+        if (!secondCopy || secondCopy->op != MicroInstrOpcode::LoadRegReg || !secondCopyOps ||
+            secondCopyOps[0].reg != secondCopyOps[1].reg || secondCopyOps[2].opBits != MicroOpBits::B32)
+            return false;
+        const MicroReg secondCount = secondCopyOps[0].reg;
+        if (secondCount == result || secondCount == common || secondCount == firstCount)
+            return false;
+
+        const MicroInstrRef secondShiftRef = ctx.nextRef(secondCopyRef);
+        const MicroInstr*   secondShift    = ctx.instruction(secondShiftRef);
+        const auto*         second         = secondShift ? secondShift->ops(*ctx.operands) : nullptr;
+        if (!secondShift || secondShift->op != MicroInstrOpcode::OpBinaryRegRegReg || !second ||
+            second[0].reg != common || second[1].reg != common || second[2].reg != secondCount ||
+            second[3].opBits != bits || second[4].microOp != first[4].microOp)
+            return false;
+
+        const MicroInstrRef selectRef = ctx.nextRef(secondShiftRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != common || selected[3].opBits != bits)
+            return false;
+        const bool firstCountDead = ctx.isRegDeadAfter(firstCount, ctx.instructionIndex + 5);
+        const bool commonDead     = ctx.isRegDeadAfter(common, ctx.instructionIndex + 5);
+        const bool flagsDead      = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder);
+        if (!firstCountDead || !commonDead || !flagsDead)
+            return false;
+        const MicroInstrUseDef compareUseDef = compareInst.collectUseDef(*ctx.operands, ctx.encoder);
+        for (const MicroReg reg : {result, common, firstCount, secondCount})
+        {
+            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
+                return false;
+        }
+
+        MicroInstrOperand copyValue[3] = {};
+        copyValue[0].reg                = result;
+        copyValue[1].reg                = common;
+        copyValue[2].opBits             = bits;
+        MicroInstr copyValueProbe;
+        copyValueProbe.op          = MicroInstrOpcode::LoadRegReg;
+        copyValueProbe.numOperands = 3;
+        MicroInstrOperand choose[4] = {};
+        choose[0].reg               = firstCount;
+        choose[1].reg               = secondCount;
+        choose[2].cpuCond           = selected[2].cpuCond;
+        choose[3].opBits            = MicroOpBits::B32;
+        MicroInstr chooseProbe;
+        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands = 4;
+        MicroInstrOperand moveCount[3] = {};
+        moveCount[0].reg                = common;
+        moveCount[1].reg                = firstCount;
+        moveCount[2].opBits             = MicroOpBits::B32;
+        MicroInstr moveCountProbe;
+        moveCountProbe.op          = MicroInstrOpcode::LoadRegReg;
+        moveCountProbe.numOperands = 3;
+        MicroInstrOperand shift[4] = {};
+        shift[0].reg                = result;
+        shift[1].reg                = common;
+        shift[2].opBits             = bits;
+        shift[3].microOp            = first[4].microOp;
+        MicroInstr shiftProbe;
+        shiftProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        shiftProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, copyValueProbe, copyValue) ||
+            ctx.encoder->queryConformanceIssue(issue, chooseProbe, choose) ||
+            ctx.encoder->queryConformanceIssue(issue, moveCountProbe, moveCount) ||
+            ctx.encoder->queryConformanceIssue(issue, shiftProbe, shift) ||
+            !ctx.claimAll({firstCopyRef, firstShiftRef, secondCopyRef, secondShiftRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(firstCopyRef, copyValueProbe.op, copyValue);
+        ctx.emitRewrite(firstShiftRef, chooseProbe.op, choose);
+        ctx.emitRewrite(secondCopyRef, moveCountProbe.op, moveCount);
+        ctx.emitRewrite(secondShiftRef, shiftProbe.op, shift);
+        ctx.emitErase(selectRef);
+        return true;
+    }
+
+    // The same shape without canonical count copies has only three slots.
+    // Keep BMI2 for the final operation: copy the common value, select the
+    // count in place, and shift the copy once.
+    bool tryFactorCommonConditionalShiftBare(Context& ctx, const MicroInstrRef compareRef, const MicroInstr& compareInst)
+    {
+        if (ctx.isClaimed(compareRef) || !ctx.encoder ||
+            (compareInst.op != MicroInstrOpcode::CmpRegImm && compareInst.op != MicroInstrOpcode::CmpRegReg))
+            return false;
+        const MicroInstrRef firstShiftRef = ctx.nextRef(compareRef);
+        const MicroInstr*   firstShift    = ctx.instruction(firstShiftRef);
+        const auto*         first         = firstShift ? firstShift->ops(*ctx.operands) : nullptr;
+        if (!firstShift || firstShift->op != MicroInstrOpcode::OpBinaryRegRegReg || !first ||
+            (first[3].opBits != MicroOpBits::B32 && first[3].opBits != MicroOpBits::B64))
+            return false;
+        switch (first[4].microOp)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+                break;
+            default:
+                return false;
+        }
+        const MicroReg    result     = first[0].reg;
+        const MicroReg    common     = first[1].reg;
+        const MicroReg    firstCount = first[2].reg;
+        const MicroOpBits bits       = first[3].opBits;
+        if (result == common || result == firstCount || common == firstCount)
+            return false;
+
+        const MicroInstrRef secondShiftRef = ctx.nextRef(firstShiftRef);
+        const MicroInstr*   secondShift    = ctx.instruction(secondShiftRef);
+        const auto*         second         = secondShift ? secondShift->ops(*ctx.operands) : nullptr;
+        if (!secondShift || secondShift->op != MicroInstrOpcode::OpBinaryRegRegReg || !second ||
+            second[0].reg != common || second[1].reg != common || second[3].opBits != bits ||
+            second[4].microOp != first[4].microOp)
+            return false;
+        const MicroReg secondCount = second[2].reg;
+        if (secondCount == result || secondCount == common || secondCount == firstCount)
+            return false;
+
+        const MicroInstrRef selectRef = ctx.nextRef(secondShiftRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != common || selected[3].opBits != bits ||
+            !ctx.isRegDeadAfter(firstCount, ctx.instructionIndex + 3) ||
+            !ctx.isRegDeadAfter(common, ctx.instructionIndex + 3) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+        const MicroInstrUseDef compareUseDef = compareInst.collectUseDef(*ctx.operands, ctx.encoder);
+        for (const MicroReg reg : {result, common, firstCount, secondCount})
+        {
+            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
+                return false;
+        }
+
+        MicroInstrOperand copyValue[3] = {};
+        copyValue[0].reg                = result;
+        copyValue[1].reg                = common;
+        copyValue[2].opBits             = bits;
+        MicroInstr copyValueProbe;
+        copyValueProbe.op          = MicroInstrOpcode::LoadRegReg;
+        copyValueProbe.numOperands = 3;
+        MicroInstrOperand choose[4] = {};
+        choose[0].reg               = firstCount;
+        choose[1].reg               = secondCount;
+        choose[2].cpuCond           = selected[2].cpuCond;
+        choose[3].opBits            = MicroOpBits::B32;
+        MicroInstr chooseProbe;
+        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands = 4;
+        MicroInstrOperand shift[5] = {};
+        shift[0].reg                = result;
+        shift[1].reg                = result;
+        shift[2].reg                = firstCount;
+        shift[3].opBits             = bits;
+        shift[4].microOp            = first[4].microOp;
+        MicroInstr shiftProbe;
+        shiftProbe.op          = MicroInstrOpcode::OpBinaryRegRegReg;
+        shiftProbe.numOperands = 5;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, copyValueProbe, copyValue) ||
+            ctx.encoder->queryConformanceIssue(issue, chooseProbe, choose) ||
+            ctx.encoder->queryConformanceIssue(issue, shiftProbe, shift) ||
+            !ctx.claimAll({firstShiftRef, secondShiftRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(firstShiftRef, copyValueProbe.op, copyValue);
+        ctx.emitRewrite(secondShiftRef, chooseProbe.op, choose);
+        ctx.emitRewrite(selectRef, shiftProbe.op, shift);
+        return true;
+    }
+
     // Select the varying operand before applying a shared binary operation:
     // `R = A op B; A = A op C; cmovCC R, A` becomes
     // `cmovCC B, C; R = A op B`. B and A must die with the original select

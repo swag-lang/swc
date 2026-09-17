@@ -1881,10 +1881,13 @@ namespace
             if (!key.isVirtualInt())
                 continue;
 
-            // The chain: compares of the key, each taking its case on equality.
+            // The chain: compares of the key, each taking its case on equality,
+            // or a case range `cmp X, LO; jb .SKIP; cmp X, HI; jbe .L; .SKIP:`.
             SmallVector<std::pair<uint64_t, uint32_t>, 16> cases;
             std::unordered_map<uint32_t, uint32_t>         chainJumps;
-            size_t                                         at = start;
+            size_t                                         at            = start;
+            bool                                           fallsIntoCase = false;
+            uint32_t                                       fallDefaultId = 0;
             while (true)
             {
                 const MicroInstr* cmp  = instAt(at);
@@ -1894,6 +1897,47 @@ namespace
                 const MicroInstrOperand* cmpOps  = cmp->ops(operands);
                 const MicroInstrOperand* jumpOps = jump->ops(operands);
                 uint32_t                 target  = 0;
+                // The last case may leave for the default on inequality and fall
+                // into its own arm.
+                if (jumpOps[0].cpuCond == MicroCond::NotEqual)
+                {
+                    const MicroInstr* arm   = instAt(at + 2);
+                    uint32_t          armId = 0;
+                    if (cmpOps[0].reg != key || cmpOps[1].opBits != keyBits || cmpOps[2].hasWideImmediateValue() || !arm ||
+                        !tryGetLabelId(armId, *arm, arm->ops(operands)) || !tryGetJumpTargetLabelId(fallDefaultId, *jump, jumpOps))
+                        break;
+                    cases.push_back({cmpOps[2].valueU64 & getBitsMask(keyBits), armId});
+                    fallsIntoCase = true;
+                    at += 1;
+                    break;
+                }
+                if (jumpOps[0].cpuCond == MicroCond::Below)
+                {
+                    const MicroInstr* highCmp  = instAt(at + 2);
+                    const MicroInstr* highJump = instAt(at + 3);
+                    const MicroInstr* skip     = instAt(at + 4);
+                    uint32_t          skipId   = 0;
+                    uint32_t          placedId = 0;
+                    if (!highCmp || !highJump || !skip || highCmp->op != MicroInstrOpcode::CmpRegImm || highJump->op != MicroInstrOpcode::JumpCond ||
+                        !tryGetJumpTargetLabelId(skipId, *jump, jumpOps) || !tryGetLabelId(placedId, *skip, skip->ops(operands)) || placedId != skipId ||
+                        labelReferences[skipId] != 1)
+                        break;
+                    const MicroInstrOperand* highOps     = highCmp->ops(operands);
+                    const MicroInstrOperand* highJumpOps = highJump->ops(operands);
+                    if (cmpOps[0].reg != key || cmpOps[1].opBits != keyBits || cmpOps[2].hasWideImmediateValue() || highOps[0].reg != key ||
+                        highOps[1].opBits != keyBits || highOps[2].hasWideImmediateValue() || highJumpOps[0].cpuCond != MicroCond::BelowOrEqual ||
+                        !tryGetJumpTargetLabelId(target, *highJump, highJumpOps))
+                        break;
+                    const uint64_t rangeLow  = cmpOps[2].valueU64 & getBitsMask(keyBits);
+                    const uint64_t rangeHigh = highOps[2].valueU64 & getBitsMask(keyBits);
+                    if (rangeHigh < rangeLow || rangeHigh - rangeLow >= K_MAX_ENTRIES)
+                        break;
+                    for (uint64_t caseValue = rangeLow; caseValue <= rangeHigh; ++caseValue)
+                        cases.push_back({caseValue, target});
+                    ++chainJumps[target];
+                    at += 5;
+                    continue;
+                }
                 if (cmpOps[0].reg != key || cmpOps[1].opBits != keyBits || cmpOps[2].hasWideImmediateValue() || jumpOps[0].cpuCond != MicroCond::Equal ||
                     !tryGetJumpTargetLabelId(target, *jump, jumpOps))
                     break;
@@ -1906,8 +1950,8 @@ namespace
 
             const size_t      tailAt    = at;
             const MicroInstr* tail      = instAt(tailAt);
-            uint32_t          defaultId = 0;
-            if (!isUnconditionalJump(tail) || !tryGetJumpTargetLabelId(defaultId, *tail, tail->ops(operands)))
+            uint32_t          defaultId = fallDefaultId;
+            if (!fallsIntoCase && (!isUnconditionalJump(tail) || !tryGetJumpTargetLabelId(defaultId, *tail, tail->ops(operands))))
                 continue;
 
             // Every case loads one immediate into the same register, then
@@ -1925,7 +1969,8 @@ namespace
                 const MicroInstr* before  = instAt(labelAt - 1);
                 const MicroInstr* load    = instAt(labelAt + 1);
                 const MicroInstr* exit    = instAt(labelAt + 2);
-                if (!before || !load || !exit || (before->op != MicroInstrOpcode::Ret && !isUnconditionalJump(before)))
+                const bool fallenInto = fallsIntoCase && labelAt == tailAt + 1;
+                if (!before || !load || !exit || (!fallenInto && before->op != MicroInstrOpcode::Ret && !isUnconditionalJump(before)))
                     return false;
                 if (load->op != MicroInstrOpcode::LoadRegImm || (labelAt >= start && labelAt <= tailAt))
                     return false;
@@ -2217,7 +2262,11 @@ namespace
                 storage.erase(layout.order[tailAt]);
             }
             else
-                storage.ptr(layout.order[tailAt])->ops(operands)[2].valueU64 = endId;
+            {
+                MicroInstrOperand* tailOps = storage.ptr(layout.order[tailAt])->ops(operands);
+                tailOps[0].cpuCond         = MicroCond::Unconditional;
+                tailOps[2].valueU64        = endId;
+            }
 
             for (size_t chainAt = start; chainAt < tailAt; ++chainAt)
                 storage.erase(layout.order[chainAt]);

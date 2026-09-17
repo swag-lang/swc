@@ -1841,6 +1841,85 @@ SWC_TEST_BEGIN(BranchSimplify_WideSwitchTableKept)
 }
 SWC_TEST_END()
 
+// `case 3, 4, 5` lowered as a range joins the table.
+SWC_TEST_BEGIN(BranchSimplify_SwitchWithCaseRangeBecomesPackedTable)
+{
+    const MicroReg base   = MicroReg::virtualIntReg(9);
+    const MicroReg key    = MicroReg::virtualIntReg(10);
+    const MicroReg result = CallConv::get(CallConvKind::Swag).intReturn;
+    MicroBuilder   builder(ctx);
+    const auto     first    = builder.createLabel();
+    const auto     second   = builder.createLabel();
+    const auto     skip     = builder.createLabel();
+    const auto     fallback = builder.createLabel();
+
+    builder.emitLoadRegMem(key, base, 0, MicroOpBits::B32);
+    builder.emitCmpRegImm(key, ApInt(1, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, first);
+    builder.emitCmpRegImm(key, ApInt(2, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, second);
+    builder.emitCmpRegImm(key, ApInt(3, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, skip);
+    builder.emitCmpRegImm(key, ApInt(5, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, first);
+    builder.placeLabel(skip);
+    builder.emitCmpRegImm(key, ApInt(8, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, second);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, fallback);
+    builder.placeLabel(first);
+    builder.emitLoadRegImm(result, ApInt(31, 64), MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(second);
+    builder.emitLoadRegImm(result, ApInt(28, 64), MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(fallback);
+    builder.emitLoadRegImm(result, ApInt(30, 64), MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The last case may leave for the default on inequality and fall into its arm.
+SWC_TEST_BEGIN(BranchSimplify_SwitchFallingIntoLastCaseBecomesPackedTable)
+{
+    const MicroReg base   = MicroReg::virtualIntReg(9);
+    const MicroReg key    = MicroReg::virtualIntReg(10);
+    const MicroReg result = CallConv::get(CallConvKind::Swag).intReturn;
+    MicroBuilder   builder(ctx);
+    const auto     first    = builder.createLabel();
+    const auto     second   = builder.createLabel();
+    const auto     fallback = builder.createLabel();
+
+    builder.emitLoadRegMem(key, base, 0, MicroOpBits::B32);
+    builder.emitCmpRegImm(key, ApInt(1, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, first);
+    builder.emitCmpRegImm(key, ApInt(2, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, second);
+    builder.emitCmpRegImm(key, ApInt(4, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, fallback);
+    builder.placeLabel(first);
+    builder.emitLoadRegImm(result, ApInt(31, 64), MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(second);
+    builder.emitLoadRegImm(result, ApInt(28, 64), MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(fallback);
+    builder.emitLoadRegImm(result, ApInt(30, 64), MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

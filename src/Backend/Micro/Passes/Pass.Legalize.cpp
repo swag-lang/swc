@@ -928,9 +928,13 @@ namespace
         const MicroReg requiredReg = issue.requiredReg;
         SWC_ASSERT(requiredReg.isValid());
 
-        MicroReg rewrittenBase  = ops[0].reg;
-        MicroReg rewrittenIndex = ops[1].reg;
-        const MicroReg source   = ops[2].reg;
+        // The moves inserted below can grow the operand storage under `ops`:
+        // every operand is copied first.
+        MicroInstrOperand rewritten[8] = {ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], ops[6], ops[7]};
+        MicroReg          rewrittenBase  = rewritten[0].reg;
+        MicroReg          rewrittenIndex = rewritten[1].reg;
+        const MicroReg    source         = rewritten[2].reg;
+        const bool        sameBaseIndex  = rewritten[1].reg == rewritten[0].reg;
         addVirtualForbiddenRegIfNeeded(context, rewrittenBase, requiredReg);
         addVirtualForbiddenRegIfNeeded(context, rewrittenIndex, requiredReg);
 
@@ -952,7 +956,7 @@ namespace
         }
         if (rewrittenIndex == requiredReg)
         {
-            if (ops[1].reg == ops[0].reg)
+            if (sameBaseIndex)
                 rewrittenIndex = rewrittenBase;
             else
             {
@@ -964,7 +968,6 @@ namespace
         }
 
         insertMoveRegReg(context, instRef, requiredReg, source, MicroOpBits::B64);
-        MicroInstrOperand rewritten[8] = {ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], ops[6], ops[7]};
         rewritten[0].reg                = rewrittenBase;
         rewritten[1].reg                = rewrittenIndex;
         rewritten[2].reg                = requiredReg;

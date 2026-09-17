@@ -634,12 +634,14 @@ namespace InstructionCombine
 
         // Complementary logical shifts of one value form a rotate. Keep the
         // input reads and the left result's copies at their original positions.
+        // A byte or word rotate keeps the upper bits the byte or word `or` kept:
+        // `(x << 8) | (x >> 8)` on a word is `rol ax, 8`.
         bool tryFoldRotate(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
         {
             if (!ctx.ssa || ops[3].microOp != MicroOp::Or || !ops[1].reg.isVirtualInt())
                 return false;
             const MicroOpBits bits = ops[2].opBits;
-            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            if (bits != MicroOpBits::B8 && bits != MicroOpBits::B16 && bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
                 return false;
             std::array                                regs{ops[0].reg, ops[1].reg};
             std::array                                defs{ctx.ssa->reachingDef(regs[0], ref), ctx.ssa->reachingDef(regs[1], ref)};
@@ -671,7 +673,7 @@ namespace InstructionCombine
                 if (!inputs[i].valid() || inputs[i].isPhi || !inputs[i].inst || inputs[i].inst->op != MicroInstrOpcode::LoadRegReg)
                     return false;
                 inputOps[i] = inputs[i].inst->ops(*ctx.operands);
-                if (!inputOps[i] || inputOps[i][2].opBits != shifts[i][1].opBits || !inputOps[i][1].reg.isVirtualInt() ||
+                if (!inputOps[i] || getNumBits(inputOps[i][2].opBits) < getNumBits(shifts[i][1].opBits) || !inputOps[i][1].reg.isVirtualInt() ||
                     !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
                     return false;
             }

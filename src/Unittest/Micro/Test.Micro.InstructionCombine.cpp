@@ -2161,11 +2161,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(InstCombine_ComplementaryShiftsToRotate)
 {
-    for (const MicroOpBits shiftBits : {MicroOpBits::B32, MicroOpBits::B64})
+    for (const MicroOpBits shiftBits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
         for (const bool narrow : {false, true})
             for (const bool leftFirst : {false, true})
                 for (const bool resultCopy : {false, true})
-                    for (uint32_t test = 0; test < 7; ++test)
+                    for (uint32_t test = 0; test < 8; ++test)
                     {
                         if (narrow && shiftBits != MicroOpBits::B64)
                             continue;
@@ -2180,7 +2180,8 @@ SWC_TEST_BEGIN(InstCombine_ComplementaryShiftsToRotate)
                         const MicroOp      second = leftFirst ? MicroOp::ShiftRight : MicroOp::ShiftLeft;
                         builder.emitLoadRegMem(source, MicroReg::intReg(8), 0, narrow && test != 6 ? MicroOpBits::B32 : shiftBits);
                         builder.emitLoadRegReg(alias, source, MicroOpBits::B64);
-                        builder.emitLoadRegReg(lhs, alias, shiftBits);
+                        // Test 7 reads the shifted values through qword copies.
+                        builder.emitLoadRegReg(lhs, alias, test == 7 ? MicroOpBits::B64 : shiftBits);
                         builder.emitOpBinaryRegImm(lhs, ApInt(6, 64), first, shiftBits);
                         if (test == 1)
                             builder.emitSetCondReg(MicroReg::virtualIntReg(6), MicroCond::Zero);
@@ -2188,7 +2189,7 @@ SWC_TEST_BEGIN(InstCombine_ComplementaryShiftsToRotate)
                             builder.emitLoadMemReg(MicroReg::intReg(9), 0, lhs, shiftBits);
                         if (test == 4)
                             builder.emitLoadRegMem(alias, MicroReg::intReg(8), 8, shiftBits);
-                        builder.emitLoadRegReg(rhs, alias, shiftBits);
+                        builder.emitLoadRegReg(rhs, alias, test == 7 ? MicroOpBits::B64 : shiftBits);
                         builder.emitOpBinaryRegImm(rhs, ApInt(getNumBits(bits) - (test == 5 ? 7 : 6), 64), second, shiftBits);
                         const MicroReg dst = resultCopy ? output : lhs;
                         if (resultCopy)
@@ -2211,7 +2212,7 @@ SWC_TEST_BEGIN(InstCombine_ComplementaryShiftsToRotate)
                                     return Result::Error;
                             }
                         }
-                        const bool expected = test == 0 || (test == 6 && !narrow);
+                        const bool expected = test == 0 || test == 7 || (test == 6 && !narrow);
                         if (rotates != (expected ? 1u : 0u))
                             return Result::Error;
                     }

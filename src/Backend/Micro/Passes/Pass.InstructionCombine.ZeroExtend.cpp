@@ -193,6 +193,176 @@ namespace InstructionCombine
                    ops[3].opBits == MicroOpBits::B32;
         }
 
+        constexpr uint64_t K_UNBOUNDED = UINT64_MAX;
+
+        uint64_t boundedAdd(uint64_t left, uint64_t right)
+        {
+            return left > K_UNBOUNDED - right ? K_UNBOUNDED : left + right;
+        }
+
+        uint64_t boundedMultiply(uint64_t left, uint64_t right)
+        {
+            return left && right > K_UNBOUNDED / left ? K_UNBOUNDED : left * right;
+        }
+
+        // All ones up to the highest set bit: the largest value an or or a xor
+        // of values up to `value` can reach.
+        uint64_t fillBelow(uint64_t value)
+        {
+            return value ? (UINT64_MAX >> std::countl_zero(value)) : 0;
+        }
+
+        // An upper bound on the unsigned value a definition leaves in its
+        // register, or K_UNBOUNDED. Only operations whose result is exactly
+        // the arithmetic one at their width are bounded: a sum that could
+        // wrap is not.
+        uint64_t valueUpperBound(const Context& ctx, uint32_t valueId, SmallVector<uint32_t>& visited, uint32_t depth);
+
+        uint64_t regUpperBound(const Context& ctx, MicroReg reg, MicroInstrRef atRef, SmallVector<uint32_t>& visited, uint32_t depth)
+        {
+            if (!reg.isVirtualInt())
+                return K_UNBOUNDED;
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            return def.valid() ? valueUpperBound(ctx, def.valueId, visited, depth + 1) : K_UNBOUNDED;
+        }
+
+        uint64_t valueUpperBound(const Context& ctx, uint32_t valueId, SmallVector<uint32_t>& visited, uint32_t depth)
+        {
+            if (depth >= K_MAX_PHI_DEPTH)
+                return K_UNBOUNDED;
+            const MicroSsaState::ValueInfo* value = ctx.ssa->valueInfo(valueId);
+            if (!value)
+                return K_UNBOUNDED;
+
+            if (value->isPhi())
+            {
+                // A loop-carried value is not bounded by its first input.
+                if (std::ranges::find(visited, valueId) != visited.end())
+                    return K_UNBOUNDED;
+                visited.push_back(valueId);
+                const MicroSsaState::PhiInfo* phi = ctx.ssa->phiInfo(value->phiIndex);
+                if (!phi || phi->incomingValueIds.empty())
+                    return K_UNBOUNDED;
+                uint64_t bound = 0;
+                for (const uint32_t incoming : phi->incomingValueIds)
+                    bound = std::max(bound, valueUpperBound(ctx, incoming, visited, depth + 1));
+                return bound;
+            }
+
+            const MicroInstr* inst = ctx.storage->ptr(value->instRef);
+            if (!inst)
+                return K_UNBOUNDED;
+            const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+            if (!ops || ops[0].reg != value->reg)
+                return K_UNBOUNDED;
+
+            switch (inst->op)
+            {
+                case MicroInstrOpcode::ClearReg:
+                    return 0;
+
+                case MicroInstrOpcode::LoadRegImm:
+                    return ops[2].hasWideImmediateValue() ? K_UNBOUNDED : ops[2].valueU64 & getBitsMask(ops[1].opBits);
+
+                case MicroInstrOpcode::LoadZeroExtRegReg:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    return getBitsMask(ops[3].opBits);
+
+                // A 32-bit move clears the upper half; a byte or word move keeps it.
+                case MicroInstrOpcode::LoadRegReg:
+                    if (ops[2].opBits == MicroOpBits::B64)
+                        return regUpperBound(ctx, ops[1].reg, value->instRef, visited, depth);
+                    if (ops[2].opBits == MicroOpBits::B32)
+                        return std::min(regUpperBound(ctx, ops[1].reg, value->instRef, visited, depth), getBitsMask(MicroOpBits::B32));
+                    return K_UNBOUNDED;
+
+                case MicroInstrOpcode::LoadRegMem:
+                    return ops[2].opBits == MicroOpBits::B32 ? getBitsMask(MicroOpBits::B32) : K_UNBOUNDED;
+
+                case MicroInstrOpcode::LoadCondRegReg:
+                {
+                    if (getNumBits(ops[3].opBits) < 32)
+                        return K_UNBOUNDED;
+                    const uint64_t kept     = regUpperBound(ctx, ops[0].reg, value->instRef, visited, depth);
+                    const uint64_t selected = regUpperBound(ctx, ops[1].reg, value->instRef, visited, depth);
+                    return std::min(std::max(kept, selected), getBitsMask(ops[3].opBits));
+                }
+
+                case MicroInstrOpcode::OpBinaryRegImm:
+                {
+                    const MicroOpBits bits = ops[1].opBits;
+                    if ((bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || ops[3].hasWideImmediateValue())
+                        return K_UNBOUNDED;
+                    const uint64_t mask  = getBitsMask(bits);
+                    const uint64_t imm   = ops[3].valueU64 & mask;
+                    const uint64_t input = std::min(regUpperBound(ctx, ops[0].reg, value->instRef, visited, depth), mask);
+                    uint64_t       bound = K_UNBOUNDED;
+                    switch (ops[2].microOp)
+                    {
+                        case MicroOp::And:
+                            return std::min(input, imm);
+                        case MicroOp::ShiftRight:
+                            return imm < getNumBits(bits) ? input >> imm : K_UNBOUNDED;
+                        case MicroOp::Add:
+                            bound = boundedAdd(input, imm);
+                            break;
+                        case MicroOp::Or:
+                        case MicroOp::Xor:
+                            bound = fillBelow(std::max(input, imm));
+                            break;
+                        case MicroOp::MultiplySigned:
+                            if (input > mask >> 1 || imm > mask >> 1)
+                                return K_UNBOUNDED;
+                            bound = boundedMultiply(input, imm);
+                            break;
+                        case MicroOp::MultiplyUnsigned:
+                            bound = boundedMultiply(input, imm);
+                            break;
+                        default:
+                            return K_UNBOUNDED;
+                    }
+                    return bound <= mask ? bound : K_UNBOUNDED;
+                }
+
+                case MicroInstrOpcode::OpBinaryRegReg:
+                {
+                    const MicroOpBits bits = ops[2].opBits;
+                    if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                        return K_UNBOUNDED;
+                    const uint64_t mask  = getBitsMask(bits);
+                    const uint64_t left  = std::min(regUpperBound(ctx, ops[0].reg, value->instRef, visited, depth), mask);
+                    const uint64_t right = std::min(regUpperBound(ctx, ops[1].reg, value->instRef, visited, depth), mask);
+                    uint64_t       bound = K_UNBOUNDED;
+                    switch (ops[3].microOp)
+                    {
+                        case MicroOp::And:
+                            return std::min(left, right);
+                        case MicroOp::Add:
+                            bound = boundedAdd(left, right);
+                            break;
+                        case MicroOp::Or:
+                        case MicroOp::Xor:
+                            bound = fillBelow(std::max(left, right));
+                            break;
+                        case MicroOp::MultiplySigned:
+                            if (left > mask >> 1 || right > mask >> 1)
+                                return K_UNBOUNDED;
+                            bound = boundedMultiply(left, right);
+                            break;
+                        case MicroOp::MultiplyUnsigned:
+                            bound = boundedMultiply(left, right);
+                            break;
+                        default:
+                            return K_UNBOUNDED;
+                    }
+                    return bound <= mask ? bound : K_UNBOUNDED;
+                }
+
+                default:
+                    return K_UNBOUNDED;
+            }
+        }
+
         void emitExtendAsCopy(Context& ctx, const MicroInstrRef ref, const MicroReg dst, const MicroReg src)
         {
             if (dst == src)
@@ -242,6 +412,35 @@ namespace InstructionCombine
             return false;
 
         emitExtendAsCopy(ctx, ref, dst, src);
+        return true;
+    }
+
+    // A dword whose sign bit is known clear, in a register whose upper half is
+    // clear, is already its own sign extension: a count of booleans returned
+    // as s32 needs no movsxd, as LLVM drops a sext of a known non-negative value.
+    bool tryDropNonNegativeSignExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isAnyInt() || !ops[1].reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64 || ops[3].opBits != MicroOpBits::B32)
+            return false;
+
+        const MicroSsaState::ReachingDef reaching = ctx.ssa->reachingDef(ops[1].reg, ref);
+        if (!reaching.valid())
+            return false;
+
+        SmallVector<uint32_t> visited;
+        if (!valueIsZeroExtended32(ctx, reaching.valueId, visited, 0))
+            return false;
+        visited.clear();
+        if (valueUpperBound(ctx, reaching.valueId, visited, 0) > 0x7FFFFFFFu)
+            return false;
+
+        if (!ctx.claimAll({ref}))
+            return false;
+        emitExtendAsCopy(ctx, ref, ops[0].reg, ops[1].reg);
         return true;
     }
 

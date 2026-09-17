@@ -1391,6 +1391,49 @@ SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedToDwordReader)
 }
 SWC_TEST_END()
 
+// A copy used only as the value of a memory update: the update reads the source.
+SWC_TEST_BEGIN(PostRAPeephole_CopyForwardsIntoMemoryUpdate)
+{
+    const auto&  conv = CallConv::get(CallConvKind::Swag);
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(conv.intReturn, conv.intRegs[1], MicroOpBits::B32);
+    builder.emitOpBinaryMemReg(conv.intRegs[0], 0, conv.intReturn, MicroOp::Add, MicroOpBits::B32);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    bool readsSource = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryMemReg && ops && ops[1].reg == conv.intRegs[1])
+            readsSource = true;
+    }
+    if (!readsSource)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte copy stored at 32 bits: the store keeps reading the copy.
+SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
+{
+    const auto&  conv = CallConv::get(CallConvKind::Swag);
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(conv.intReturn, conv.intRegs[1], MicroOpBits::B8);
+    builder.emitLoadMemReg(conv.intRegs[0], 0, conv.intReturn, MicroOpBits::B32);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadMemReg && ops && ops[1].reg == conv.intRegs[1])
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

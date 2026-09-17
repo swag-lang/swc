@@ -47,11 +47,13 @@ struct LinkDebugFunction
 };
 
 // A global/static data symbol, addressed by its containing section plus an offset (the writer maps the
-// section to its final segment/RVA).
+// section to its final segment/RVA). A global an archive member brought in is addressed from a symbol
+// instead, since its module's data no longer starts where the image's section does.
 struct LinkDebugGlobal
 {
     Utf8     sectionName;       // ".data" / ".bss"
-    uint32_t sectionOffset = 0; // byte offset within that section
+    Utf8     symbolName;        // when set, the offset counts from this symbol instead of the section
+    uint32_t sectionOffset = 0; // byte offset within that section, or from symbolName
     Utf8     displayName;
     uint32_t typeIndex = 0;
     bool     isPublic  = false;

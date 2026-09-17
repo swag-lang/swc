@@ -127,7 +127,7 @@ void CommandLineParser::registerCommands()
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->optimLevelExplicit});
     add(HelpOptionGroup::Target, "test build run smoke", "--debug", nullptr,
         &cmdLine_->debugInfo,
-        "Emit debug information for native artifacts");
+        "Emit debug information for native artifacts and every dependency they take in, kept under '<config>-debug' output directories");
     add(HelpOptionGroup::Target, "doc", "--doc-output-dir", nullptr,
         &cmdLine_->docOutputDir,
         "Write generated documentation to this directory");

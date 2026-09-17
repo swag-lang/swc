@@ -337,6 +337,12 @@ public:
     // Full in-memory content of the per-thread generated-source dump at the given path (the bytes that are
     // flushed to the .gen.<thread>.swgsrc file). Used to checksum generated sources without racing the on-disk flush.
     bool               tryGetGeneratedSourceContent(const fs::path& path, std::string_view& outContent) const;
+
+    // SHA-256 of a source file's content for the PDB/CodeView checksum: the bytes Visual Studio re-hashes
+    // from disk. For a generated source (CustomSrc) that is the whole per-thread .gen.<thread>.swgsrc dump,
+    // taken from memory at link time to avoid racing the on-disk flush, not a single section view. It is
+    // computed once per path: an archive writes one object per function, and each names its files.
+    std::array<uint8_t, 32> sourceFileChecksum(const SourceFile& file) const;
     void               registerInMemoryFile(fs::path path, std::string_view content);
     static Sema*       tryGetJobSema(Job* job);
     static const Sema* tryGetJobSema(const Job* job);
@@ -614,6 +620,8 @@ private:
     mutable std::once_flag                                           jitExecMgrOnce_;
     void*                                                            runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                                        sourceStorageMutex_;
+    mutable std::shared_mutex                                        sourceChecksumsMutex_;
+    mutable std::unordered_map<fs::path, std::array<uint8_t, 32>>    sourceChecksums_;
     mutable std::shared_mutex                                        nativeCodeSegmentMutex_;
     mutable std::shared_mutex                                        nativeSpecialFunctionsMutex_;
     mutable std::shared_mutex                                        nativeGlobalFunctionInitTargetsMutex_;

@@ -58,7 +58,7 @@ bool                         linkRelocKindFromCoffType(LinkRelocKind& outKind, u
 
 // Merges the given COFF objects into a single LinkImage: sections of the same name are concatenated
 // (honouring alignment and rebasing symbols/relocations), defined symbols are collected globally, and
-// CodeView debug sections (.debug$*) are dropped. Appends to outImage; the caller still fills in
+// CodeView debug sections (.debug$*) and runtime symbol fragments (.swagsym) are dropped. Appends to outImage; the caller still fills in
 // imports, exports, the entry symbol and image options. Returns false and fills outDiag on an
 // unsupported relocation kind.
 bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects);

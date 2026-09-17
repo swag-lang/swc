@@ -195,7 +195,7 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
 
 private func applicationDirectory(context: *Context, options: *Options, name: string)->String
 {
-    return Path.combine(applicationWorkspace(context).toString(), ".output", name, "executable", options.buildCfg.toString(), context.targetArch.toString())
+    return Path.combine(applicationWorkspace(context).toString(), ".output", name, "executable", options.artifactConfiguration().toString(), context.targetArch.toString())
 }
 
 // Returns the workspace containing every standard application.
@@ -217,7 +217,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
         // The applications workspace may hold a shared contract module used by one or more
         // executables. It has no application payload to package, and a successful workspace build
         // has already published its library artifact for importers.
-        let libraryDir = Path.combine(applicationWorkspace(context).toString(), ".output", name, "shared-library", options.buildCfg.toString(), context.targetArch.toString())
+        let libraryDir = Path.combine(applicationWorkspace(context).toString(), ".output", name, "shared-library", options.artifactConfiguration().toString(), context.targetArch.toString())
         let library    = Path.combine(libraryDir.toString(), Format.toString("%.dll", name).toString())
         if File.exists(library) do
             return 0

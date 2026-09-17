@@ -220,6 +220,8 @@
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
         <ClCompile Include="src\Backend\Linker\PEWriter.cpp"/>
         <ClCompile Include="src\Backend\Linker\PdbWriter.cpp"/>
+        <ClCompile Include="src\Backend\Linker\LinkDebugMerge.cpp"/>
+        <ClCompile Include="src\Backend\Debug\SymbolTable.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
@@ -791,6 +793,9 @@
         <ClInclude Include="src\Backend\Linker\LinkJob.h"/>
         <ClInclude Include="src\Backend\Linker\LinkImage.h"/>
         <ClInclude Include="src\Backend\Linker\LinkDebugInfo.h"/>
+        <ClInclude Include="src\Backend\Linker\LinkDebugMerge.h"/>
+        <ClInclude Include="src\Backend\Debug\CodeViewLeaf.h"/>
+        <ClInclude Include="src\Backend\Debug\SymbolTable.h"/>
         <ClInclude Include="src\Backend\Linker\PdbWriter.h"/>
         <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\Win32OsPatcher.h"/>

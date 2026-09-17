@@ -1,25 +1,9 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
-#include "Compiler/SourceFile.h"
-#include "Main/CompilerInstance.h"
-#include "Main/TaskContext.h"
-#include "Support/Math/Sha256.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
-
-std::array<uint8_t, 32> DebugInfo::sourceFileChecksum(const TaskContext& ctx, const SourceFile& file)
-{
-    // For generated sources the on-disk .gen.<thread>.swgsrc is the concatenation of every section produced on a thread,
-    // while file.sourceView() is just one section. Hash the full in-memory dump (final by link time, so no
-    // race with the on-disk flush) so the checksum matches what a debugger re-hashes from disk.
-    std::string_view content;
-    if (file.hasFlag(FileFlagsE::CustomSrc) && ctx.compiler().tryGetGeneratedSourceContent(file.path(), content))
-        return sha256(std::span{reinterpret_cast<const std::byte*>(content.data()), content.size()});
-    const std::string_view sourceView = file.sourceView();
-    return sha256(std::span{reinterpret_cast<const std::byte*>(sourceView.data()), sourceView.size()});
-}
 
 std::unique_ptr<DebugInfo> DebugInfo::create(const Runtime::TargetOs targetOs)
 {

@@ -71,6 +71,22 @@ public impl Context
         return try .captureProgram(.compiler.toString(), withCoreBound(arguments))
     }
 
+    // Runs the compiler under test with `arguments`, keeps everything it wrote in `output`, and
+    // returns its exit code.
+    //
+    // For a check whose subject is a failure report: [[Tool.Context.captureCompiler]] turns a failed
+    // run into an error of the tool itself.
+    mtd captureCompilerReport(output: *String, arguments: Arguments)->s32 fail
+    {
+        let bound       = withCoreBound(arguments)
+        let commandLine = joinArguments(bound.toSlice())
+        var info        = Env.StartInfo{fileName: .compiler.toString(), arguments: commandLine.toString(), environment: &.childEnv, standardOutput: .Pipe, standardError: .Pipe}
+        var process     = try Env.runProcess(info)
+        output.append(process.standardOutput())
+        output.append(process.standardError())
+        return process.exitCode()
+    }
+
     // Runs `program` with a command line written out in place.
     mtd runProgramTokens(program: string, tokens: const [..] string)->s32 fail
     {

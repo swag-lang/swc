@@ -395,10 +395,11 @@ namespace
         const bool signBitSet = (immediate >> (bits - 1)) & 1;
         if (isSigned && signBitSet)
         {
-            // The divisor's sign does not affect a remainder. Restrict this to
-            // power-of-two magnitudes above one so INT_MIN % -1 keeps its trap.
+            // The divisor's sign does not affect a remainder. Only -2 produces
+            // a smaller sequence than IDIV; wider powers of two grow the code.
+            // Keeping -1 on IDIV also preserves the INT_MIN % -1 trap.
             const uint64_t magnitude = (~immediate + 1) & bitsMask;
-            if (!isModulo || magnitude <= 1 || !Math::isPowerOfTwo(magnitude))
+            if (!isModulo || magnitude != 2)
                 return false;
             immediate = magnitude;
         }

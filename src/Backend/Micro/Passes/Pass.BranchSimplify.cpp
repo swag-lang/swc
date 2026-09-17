@@ -2769,6 +2769,8 @@ namespace
             MicroInstrRef rightCmpRef = MicroInstrRef::invalid();
             MicroInstrRef rightSetRef = MicroInstrRef::invalid();
             MicroCond     leftCond    = MicroCond::Unconditional;
+            MicroReg      skippedDecrement;
+            MicroReg      skippedMask;
         };
 
         SmallVector<Candidate> candidates;
@@ -2822,6 +2824,48 @@ namespace
             // widening of that byte, the copy into B, then the join.
             MicroInstrRef     ref  = storage.findNextInstructionRef(jumpRef);
             const MicroInstr* inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            if (inst && inst->op != MicroInstrOpcode::CmpRegReg && inst->op != MicroInstrOpcode::CmpRegImm)
+            {
+                // The one profitable pure RHS currently admitted here is the
+                // canonical clear-lowest-bit test. Its two temporaries are
+                // checked for outside mentions below before speculation.
+                if (inst->op != MicroInstrOpcode::LoadRegReg)
+                    continue;
+                const MicroInstrOperand* decrementCopy = inst->ops(operands);
+                if (!decrementCopy || (decrementCopy[2].opBits != MicroOpBits::B32 && decrementCopy[2].opBits != MicroOpBits::B64))
+                    continue;
+                const MicroOpBits bits   = decrementCopy[2].opBits;
+                const MicroReg    source = decrementCopy[1].reg;
+                candidate.skippedDecrement = decrementCopy[0].reg;
+
+                ref  = storage.findNextInstructionRef(ref);
+                inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+                const MicroInstrOperand* decrement = inst && inst->op == MicroInstrOpcode::OpBinaryRegImm ? inst->ops(operands) : nullptr;
+                if (!decrement || decrement[0].reg != candidate.skippedDecrement || decrement[1].opBits != bits ||
+                    decrement[2].microOp != MicroOp::Subtract || decrement[3].hasWideImmediateValue() || decrement[3].valueU64 != 1)
+                    continue;
+
+                ref  = storage.findNextInstructionRef(ref);
+                inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+                const MicroInstrOperand* maskCopy = inst && inst->op == MicroInstrOpcode::LoadRegReg ? inst->ops(operands) : nullptr;
+                if (!maskCopy || maskCopy[1].reg != source || maskCopy[2].opBits != bits)
+                    continue;
+                candidate.skippedMask = maskCopy[0].reg;
+
+                ref  = storage.findNextInstructionRef(ref);
+                inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+                const MicroInstrOperand* mask = inst && inst->op == MicroInstrOpcode::OpBinaryRegReg ? inst->ops(operands) : nullptr;
+                if (!mask || mask[0].reg != candidate.skippedMask || mask[1].reg != candidate.skippedDecrement ||
+                    mask[2].opBits != bits || mask[3].microOp != MicroOp::And)
+                    continue;
+
+                ref  = storage.findNextInstructionRef(ref);
+                inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+                const MicroInstrOperand* compare = inst && inst->op == MicroInstrOpcode::CmpRegImm ? inst->ops(operands) : nullptr;
+                if (!compare || compare[0].reg != candidate.skippedMask || compare[1].opBits != bits ||
+                    compare[2].hasWideImmediateValue() || compare[2].valueU64 != 0)
+                    continue;
+            }
             if (!inst || (inst->op != MicroInstrOpcode::CmpRegReg && inst->op != MicroInstrOpcode::CmpRegImm))
                 continue;
             const MicroInstrOperand* cmpOps = inst->ops(operands);
@@ -2874,8 +2918,16 @@ namespace
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
         std::unordered_map<uint32_t, uint32_t> rhsMentions;
+        std::unordered_map<uint32_t, uint32_t> skippedMentions;
         for (const Candidate& candidate : candidates)
+        {
             rhsMentions[candidate.rhs.index()] = 0;
+            if (candidate.skippedDecrement.isValid())
+            {
+                skippedMentions[candidate.skippedDecrement.index()] = 0;
+                skippedMentions[candidate.skippedMask.index()]      = 0;
+            }
+        }
         SmallVector<MicroInstrRegOperandRef> regOperands;
         for (const MicroInstr& inst : storage.view())
         {
@@ -2888,6 +2940,9 @@ namespace
                 const auto found = rhsMentions.find(regOperand.reg->index());
                 if (found != rhsMentions.end())
                     ++found->second;
+                const auto skipped = skippedMentions.find(regOperand.reg->index());
+                if (skipped != skippedMentions.end())
+                    ++skipped->second;
             }
         }
 
@@ -2897,6 +2952,9 @@ namespace
         {
             // The setcc, the optional self-widening and the merge only.
             if (rhsMentions[candidate.rhs.index()] != candidate.mentions)
+                continue;
+            if (candidate.skippedDecrement.isValid() &&
+                (skippedMentions[candidate.skippedDecrement.index()] != 3 || skippedMentions[candidate.skippedMask.index()] != 3))
                 continue;
 
             const RangeMerge range{.leftCmpRef = candidate.leftCmpRef, .rightCmpRef = candidate.rightCmpRef, .rightSetRef = candidate.rightSetRef, .leftCond = candidate.leftCond};

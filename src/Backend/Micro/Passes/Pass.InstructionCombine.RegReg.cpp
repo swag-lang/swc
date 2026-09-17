@@ -29,6 +29,159 @@ namespace InstructionCombine
                    info.flags.has(MicroInstrFlagsE::IsCallInstruction);
         }
 
+        struct ZeroComparisonBoolean
+        {
+            MicroReg      comparedReg;
+            MicroOpBits   comparedBits = MicroOpBits::Zero;
+            MicroCond     cond         = MicroCond::Unconditional;
+            MicroInstrRef compareRef;
+            MicroInstrRef setRef;
+            MicroInstrRef copyRef;
+        };
+
+        bool matchZeroComparisonBoolean(Context& ctx, MicroReg reg, MicroInstrRef useRef, ZeroComparisonBoolean& out)
+        {
+            auto def = ctx.ssa->reachingDef(reg, useRef);
+            if (!def.valid() || def.isPhi || !def.inst)
+                return false;
+            if (def.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copy = def.inst->ops(*ctx.operands);
+                if (!copy || copy[0].reg != reg || copy[2].opBits != MicroOpBits::B8 ||
+                    !valueHasSingleUse(*ctx.ssa, reg, def.instRef))
+                    return false;
+                out.copyRef = def.instRef;
+                reg         = copy[1].reg;
+                def         = ctx.ssa->reachingDef(reg, out.copyRef);
+            }
+            if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::SetCondReg ||
+                !valueHasSingleUse(*ctx.ssa, reg, def.instRef))
+                return false;
+            const auto* set = def.inst->ops(*ctx.operands);
+            if (!set || set[0].reg != reg)
+                return false;
+
+            const MicroInstrRef compareRef = ctx.previousRef(def.instRef);
+            const MicroInstr*   compare    = ctx.instruction(compareRef);
+            if (!compare || compare->op != MicroInstrOpcode::CmpRegImm)
+                return false;
+            const auto* cmp = compare->ops(*ctx.operands);
+            if (!cmp || (cmp[1].opBits != MicroOpBits::B32 && cmp[1].opBits != MicroOpBits::B64) ||
+                cmp[2].hasWideImmediateValue() || cmp[2].valueU64 != 0)
+                return false;
+
+            out.comparedReg  = cmp[0].reg;
+            out.comparedBits = cmp[1].opBits;
+            out.cond         = set[1].cpuCond;
+            out.compareRef   = compareRef;
+            out.setRef       = def.instRef;
+            return true;
+        }
+
+        // A non-zero test combined with the standard clear-lowest-bit test is
+        // exactly a population count of one:
+        //
+        //     x != 0 && (x & (x - 1)) == 0  ->  popcnt(x) == 1
+        //
+        // Branch simplification exposes the boolean AND. Requiring the whole
+        // single-use chain keeps the replacement local and lets the indexed
+        // load fold directly into POPCNT on the following combine sweep.
+        bool tryFoldPowerOfTwoBoolean(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::And || ops[2].opBits != MicroOpBits::B8 ||
+                !ops[1].reg.isVirtualInt() || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                return false;
+
+            for (uint32_t nonZeroSide = 0; nonZeroSide < 2; ++nonZeroSide)
+            {
+                ZeroComparisonBoolean nonZero;
+                ZeroComparisonBoolean zero;
+                const MicroReg         nonZeroReg = nonZeroSide ? ops[1].reg : ops[0].reg;
+                const MicroReg         zeroReg    = nonZeroSide ? ops[0].reg : ops[1].reg;
+                if (!matchZeroComparisonBoolean(ctx, nonZeroReg, ref, nonZero) ||
+                    !matchZeroComparisonBoolean(ctx, zeroReg, ref, zero) ||
+                    (nonZero.cond != MicroCond::NotEqual && nonZero.cond != MicroCond::NotZero) ||
+                    (zero.cond != MicroCond::Equal && zero.cond != MicroCond::Zero) ||
+                    nonZero.comparedBits != zero.comparedBits)
+                    continue;
+
+                const auto maskDef = ctx.ssa->reachingDef(zero.comparedReg, zero.compareRef);
+                if (!maskDef.valid() || maskDef.isPhi || !maskDef.inst || maskDef.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
+                    !valueHasSingleUse(*ctx.ssa, zero.comparedReg, maskDef.instRef))
+                    continue;
+                const auto* mask = maskDef.inst->ops(*ctx.operands);
+                if (!mask || mask[0].reg != zero.comparedReg || mask[2].opBits != zero.comparedBits ||
+                    mask[3].microOp != MicroOp::And || !mask[1].reg.isVirtualInt())
+                    continue;
+
+                const auto sourceCopy = ctx.ssa->reachingDef(mask[0].reg, maskDef.instRef);
+                if (!sourceCopy.valid() || sourceCopy.isPhi || !sourceCopy.inst || sourceCopy.inst->op != MicroInstrOpcode::LoadRegReg ||
+                    !valueHasSingleUse(*ctx.ssa, mask[0].reg, sourceCopy.instRef))
+                    continue;
+                const auto* sourceCopyOps = sourceCopy.inst->ops(*ctx.operands);
+                if (!sourceCopyOps || sourceCopyOps[2].opBits != zero.comparedBits)
+                    continue;
+
+                const auto decrement = ctx.ssa->reachingDef(mask[1].reg, maskDef.instRef);
+                if (!decrement.valid() || decrement.isPhi || !decrement.inst || decrement.inst->op != MicroInstrOpcode::LoadAddrRegMem ||
+                    !valueHasSingleUse(*ctx.ssa, mask[1].reg, decrement.instRef))
+                    continue;
+                const auto* decrementOps = decrement.inst->ops(*ctx.operands);
+                if (!decrementOps || decrementOps[2].opBits != zero.comparedBits || decrementOps[3].hasWideImmediateValue() ||
+                    (decrementOps[3].valueU64 & getBitsMask(zero.comparedBits)) != getBitsMask(zero.comparedBits))
+                    continue;
+
+                const MicroReg source = nonZero.comparedReg;
+                if (source != sourceCopyOps[1].reg || source != decrementOps[1].reg)
+                    continue;
+                const auto sourceValue = ctx.ssa->reachingDef(source, nonZero.compareRef);
+                if (!sourceValue.valid() || ctx.ssa->reachingDef(source, sourceCopy.instRef).valueId != sourceValue.valueId ||
+                    ctx.ssa->reachingDef(source, decrement.instRef).valueId != sourceValue.valueId ||
+                    ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId)
+                    continue;
+
+                if (!ctx.nextVirtualFloatRegIndex)
+                    MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
+                if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
+                    !ctx.claimAll({ref, nonZero.compareRef, nonZero.setRef, nonZero.copyRef.isValid() ? nonZero.copyRef : ref,
+                                   zero.compareRef, zero.setRef, zero.copyRef.isValid() ? zero.copyRef : ref,
+                                   maskDef.instRef, sourceCopy.instRef, decrement.instRef}))
+                    continue;
+
+                const MicroReg temporary = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+                MicroInstrOperand count[4];
+                count[0].reg     = temporary;
+                count[1].reg     = source;
+                count[2].opBits  = zero.comparedBits;
+                count[3].microOp = MicroOp::PopCount;
+                ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, count);
+
+                MicroInstrOperand compare[3];
+                compare[0].reg      = temporary;
+                compare[1].opBits   = zero.comparedBits;
+                compare[2].valueU64 = 1;
+                ctx.emitInsertBefore(ref, MicroInstrOpcode::CmpRegImm, compare);
+
+                MicroInstrOperand set[2];
+                set[0].reg     = ops[0].reg;
+                set[1].cpuCond = MicroCond::Equal;
+                ctx.emitRewrite(ref, MicroInstrOpcode::SetCondReg, set);
+                ctx.emitErase(nonZero.compareRef);
+                ctx.emitErase(nonZero.setRef);
+                if (nonZero.copyRef.isValid())
+                    ctx.emitErase(nonZero.copyRef);
+                ctx.emitErase(zero.compareRef);
+                ctx.emitErase(zero.setRef);
+                if (zero.copyRef.isValid())
+                    ctx.emitErase(zero.copyRef);
+                ctx.emitErase(maskDef.instRef);
+                ctx.emitErase(sourceCopy.instRef);
+                ctx.emitErase(decrement.instRef);
+                return true;
+            }
+            return false;
+        }
+
         // A doubling with dead flags is one address computation. Read the
         // uncopied input when the two add operands name the same SSA value.
         bool tryDoubleInput(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
@@ -1973,6 +2126,8 @@ namespace InstructionCombine
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
         if (!ops || !ops[0].reg.isVirtualInt())
             return false;
+        if (tryFoldPowerOfTwoBoolean(ctx, ref, ops))
+            return true;
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)

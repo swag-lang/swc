@@ -215,12 +215,15 @@ namespace
         builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
     }
 
+    // An integer loaded from memory goes straight into its lane when its
+    // address is pinned to that lane, as the call lowering pins it: no other
+    // lane's load can overwrite the address first.
     bool requiresRegisterArgHomeSlot(const ABICall::PreparedArg& arg)
     {
         if (arg.isFloat && arg.numBits == 128)
             return false;
         if (arg.isAddressed)
-            return true;
+            return arg.isFloat || !arg.constrainToArgLane || !arg.srcReg.isVirtualInt();
         if (arg.isFloat)
             return !arg.srcReg.isVirtualFloat();
         return !arg.srcReg.isVirtualInt();
@@ -550,7 +553,10 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             switch (arg.kind)
             {
                 case PreparedArgKind::Direct:
-                    loadIntArgToReg(builder, callConvKind, conv.intArgRegs[i], arg);
+                    if (arg.isAddressed)
+                        loadCanonicalIntFromMemToReg(builder, conv.intArgRegs[i], arg.srcReg, 0, arg.numBits, arg.isSigned);
+                    else
+                        loadIntArgToReg(builder, callConvKind, conv.intArgRegs[i], arg);
                     break;
 
                 case PreparedArgKind::InterfaceObject:

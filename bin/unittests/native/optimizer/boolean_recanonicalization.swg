@@ -12,10 +12,10 @@
     {
         Swag.assert(either64(a, b, c, d) == (a == b or c > d ? 1 : 0))
 
-        let a32 = cast(u32) a
-        let b32 = cast(u32) b
-        let c32 = cast(u32) c
-        let d32 = cast(u32) d
+        let a32 = cast #wrap (u32) a
+        let b32 = cast #wrap (u32) b
+        let c32 = cast #wrap (u32) c
+        let d32 = cast #wrap (u32) d
         Swag.assert(outside32(a32, b32, c32) == (a32 < b32 or a32 > c32 ? 1 : 0))
         Swag.assert(both32(a32, b32, c32, d32) == (a32 < b32 and c32 != d32 ? 1 : 0))
         Swag.assert(different32(a32, b32, c32, d32) == ((a32 < b32) != (c32 < d32) ? 1 : 0))

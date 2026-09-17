@@ -93,6 +93,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetUnaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFactorNarrowConditionalShift);
         r.add(MicroInstrOpcode::LoadRegReg, tryFactorCommonConditionalShift);
         r.add(MicroInstrOpcode::LoadRegReg, tryFactorCommonConditionalBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldSelectedIntegerAdd);

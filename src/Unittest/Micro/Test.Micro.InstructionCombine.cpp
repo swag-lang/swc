@@ -2824,6 +2824,183 @@ SWC_TEST_BEGIN(InstCombine_WideScaleIndexedLoad_NotFoldedIntoOp)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // (X - lowA <= 25) | (X - lowB <= 25) on bytes, the shape `or` chains of
+    // letter ranges leave.
+    void emitRangePair(MicroBuilder& builder, uint64_t lowA, uint64_t lowB)
+    {
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg value  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg second = MicroReg::virtualIntReg(4);
+        constexpr MicroReg byteA  = MicroReg::virtualIntReg(5);
+        constexpr MicroReg byteB  = MicroReg::virtualIntReg(6);
+        constexpr MicroReg result = MicroReg::virtualIntReg(7);
+        constexpr MicroReg wide   = MicroReg::virtualIntReg(8);
+
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B32);
+        builder.emitLoadAddressRegMem(first, value, 0 - lowA, MicroOpBits::B32);
+        builder.emitCmpRegImm(first, ApInt(25, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(byteA, MicroCond::BelowOrEqual);
+        builder.emitLoadRegReg(result, byteA, MicroOpBits::B8);
+        builder.emitLoadAddressRegMem(second, value, 0 - lowB, MicroOpBits::B32);
+        builder.emitCmpRegImm(second, ApInt(25, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(byteB, MicroCond::BelowOrEqual);
+        builder.emitOpBinaryRegReg(result, byteB, MicroOp::Or, MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegReg(wide, result, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitLoadMemReg(base, 4, wide, MicroOpBits::B32);
+        builder.emitRet();
+    }
+
+    bool hasByteOr(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.ops(builder.operands())[3].microOp == MicroOp::Or)
+                return true;
+        }
+        return false;
+    }
+}
+
+// 'a'..'z' or 'A'..'Z' is one range with bit 5 cleared.
+SWC_TEST_BEGIN(InstCombine_CaseRangePair_MasksTheBit)
+{
+    MicroBuilder builder(ctx);
+    emitRangePair(builder, 0x61, 0x41);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (hasByteOr(builder))
+        return Result::Error;
+    bool masked = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::And && (ops[3].valueU64 & 0xFFFFFFFFu) == 0xFFFFFFDFu)
+            masked = true;
+    }
+    return masked ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// Ranges two bits apart are not one masked range.
+SWC_TEST_BEGIN(InstCombine_RangePairTwoBitsApart_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitRangePair(builder, 0x61, 0x01);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (!hasByteOr(builder))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte subtraction carries the upper bits of its register through, but a
+// byte extension of its result reads none of them: the zero-extension before
+// it is dead.
+SWC_TEST_BEGIN(InstCombine_ExtendBeforeByteUpdate_Dropped)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    constexpr MicroReg out   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(left, base, 0, MicroOpBits::B8);
+    builder.emitOpBinaryRegImm(left, ApInt(3, 64), MicroOp::Add, MicroOpBits::B8);
+    builder.emitLoadRegMem(right, base, 1, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(left, left, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitOpBinaryRegReg(left, right, MicroOp::Subtract, MicroOpBits::B8);
+    builder.emitLoadSignedExtendRegReg(out, left, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 8, out, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The same update read at 32 bits needs the upper bits the extension cleared.
+SWC_TEST_BEGIN(InstCombine_ExtendBeforeByteUpdateReadWide_Kept)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(left, base, 0, MicroOpBits::B8);
+    builder.emitOpBinaryRegImm(left, ApInt(3, 64), MicroOp::Add, MicroOpBits::B8);
+    builder.emitLoadRegMem(right, base, 1, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(left, left, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitOpBinaryRegReg(left, right, MicroOp::Subtract, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 8, left, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A shift reads the low byte of its count: widening the count first is dead.
+SWC_TEST_BEGIN(InstCombine_WidenedShiftCount_BecomesCopy)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count = MicroReg::virtualIntReg(2);
+    constexpr MicroReg wide  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(count, base, 0, MicroOpBits::B8);
+    builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(wide, count, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(value, wide, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The shifted value itself is read at full width.
+SWC_TEST_BEGIN(InstCombine_WidenedShiftValue_Kept)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg count = MicroReg::virtualIntReg(2);
+    constexpr MicroReg wide  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B8);
+    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(wide, value, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadRegMem(count, base, 1, MicroOpBits::B8);
+    builder.emitOpBinaryRegReg(wide, count, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 8, wide, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

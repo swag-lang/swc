@@ -1594,6 +1594,112 @@ SWC_TEST_BEGIN(BranchSimplify_RangeChainWithStoreKept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // x > y ? 1 : -zext(x < y), the diamond `x > y ? 1 : (x < y ? -1 : 0)`
+    // leaves. `plainElse` replaces the negated byte with a loaded value.
+    void emitSignDiamond(MicroBuilder& builder, MicroCond branchCond, MicroCond lessCond, bool plainElse)
+    {
+        const MicroReg base   = MicroReg::virtualIntReg(9);
+        const MicroReg value  = MicroReg::virtualIntReg(10);
+        const MicroReg other  = MicroReg::virtualIntReg(11);
+        const MicroReg result = MicroReg::virtualIntReg(12);
+        const MicroReg flag   = MicroReg::virtualIntReg(13);
+        const MicroReg wide   = MicroReg::virtualIntReg(14);
+        const auto     other_ = builder.createLabel();
+        const auto     end    = builder.createLabel();
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(other, base, 8, MicroOpBits::B64);
+        builder.emitCmpRegReg(value, other, MicroOpBits::B64);
+        builder.emitJumpToLabel(branchCond, MicroOpBits::B32, other_);
+        builder.emitLoadRegImm(result, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, end);
+        builder.placeLabel(other_);
+        builder.emitCmpRegReg(value, other, MicroOpBits::B64);
+        builder.emitSetCondReg(flag, lessCond);
+        builder.emitLoadZeroExtendRegReg(wide, flag, MicroOpBits::B64, MicroOpBits::B8);
+        if (plainElse)
+            builder.emitLoadRegMem(wide, base, 16, MicroOpBits::B64);
+        builder.emitOpUnaryReg(wide, MicroOp::Negate, MicroOpBits::B64);
+        builder.emitLoadRegReg(result, wide, MicroOpBits::B64);
+        builder.placeLabel(end);
+        builder.emitLoadMemReg(base, 24, result, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    bool hasSignedByteExtend(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadSignedExtRegReg && inst.ops(builder.operands())[3].opBits == MicroOpBits::B8)
+                return true;
+        }
+        return false;
+    }
+}
+
+// The signed three-way sign becomes setg - setl.
+SWC_TEST_BEGIN(BranchSimplify_SignDiamondBecomesByteDifference)
+{
+    MicroBuilder builder(ctx);
+    emitSignDiamond(builder, MicroCond::LessOrEqual, MicroCond::Less, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || !hasSignedByteExtend(builder))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The unsigned one becomes seta - setb.
+SWC_TEST_BEGIN(BranchSimplify_UnsignedSignDiamondBecomesByteDifference)
+{
+    MicroBuilder builder(ctx);
+    emitSignDiamond(builder, MicroCond::BelowOrEqual, MicroCond::Below, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || !hasSignedByteExtend(builder))
+        return Result::Error;
+    bool above = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::SetCondReg && inst.ops(builder.operands())[1].cpuCond == MicroCond::Above)
+            above = true;
+    }
+    return above ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A mixed signed branch and unsigned byte is no sign.
+SWC_TEST_BEGIN(BranchSimplify_MixedSignDiamondKept)
+{
+    MicroBuilder builder(ctx);
+    emitSignDiamond(builder, MicroCond::LessOrEqual, MicroCond::Below, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (hasSignedByteExtend(builder))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An arm that negates something else is no sign either.
+SWC_TEST_BEGIN(BranchSimplify_SignDiamondWithOtherValueKept)
+{
+    MicroBuilder builder(ctx);
+    emitSignDiamond(builder, MicroCond::LessOrEqual, MicroCond::Less, true);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (hasSignedByteExtend(builder))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

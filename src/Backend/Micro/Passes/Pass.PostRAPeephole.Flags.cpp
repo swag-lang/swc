@@ -405,11 +405,11 @@ namespace PostRaPeephole
         return true;
     }
 
-    // Two zero comparisons can share one full-width boolean destination. The
-    // second comparison exposes its boolean as carry because unsigned x < 1
-    // is exactly x == 0. Reusing the existing instruction slots also moves the
-    // clear before the first SETcc, so neither byte result needs a MOVZX.
-    bool tryFoldZeroBooleanSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    // Two zero/nonzero comparisons can share one full-width boolean destination.
+    // Comparing unsigned x with one exposes x == 0 as carry; SBB by -1 exposes
+    // its inverse. Reusing the existing instruction slots also moves the clear
+    // before the first SETcc, so neither byte result needs a MOVZX.
+    bool tryFoldZeroTestBooleanSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic())
             return false;
@@ -451,14 +451,18 @@ namespace PostRaPeephole
         const auto* secondSet = setSecond->ops(*ctx.operands);
         const auto* firstCmp  = cmpFirst->ops(*ctx.operands);
         const auto* secondCmp = cmpSecond->ops(*ctx.operands);
+        const bool  firstZero    = firstSet && (firstSet[1].cpuCond == MicroCond::Equal || firstSet[1].cpuCond == MicroCond::Zero);
+        const bool  firstNonzero = firstSet && (firstSet[1].cpuCond == MicroCond::NotEqual || firstSet[1].cpuCond == MicroCond::NotZero);
+        const bool  secondZero   = secondSet && (secondSet[1].cpuCond == MicroCond::Equal || secondSet[1].cpuCond == MicroCond::Zero);
+        const bool  secondNonzero = secondSet && (secondSet[1].cpuCond == MicroCond::NotEqual || secondSet[1].cpuCond == MicroCond::NotZero);
         if (!firstSet || !secondSet || !firstCmp || !secondCmp ||
             firstSet[0].reg != add[0].reg || secondSet[0].reg != add[1].reg ||
-            (firstSet[1].cpuCond != MicroCond::Equal && firstSet[1].cpuCond != MicroCond::Zero) ||
-            (secondSet[1].cpuCond != MicroCond::Equal && secondSet[1].cpuCond != MicroCond::Zero) ||
+            (!firstZero && !firstNonzero) || (!secondZero && !secondNonzero) ||
             !firstCmp[0].reg.isInt() || !secondCmp[0].reg.isInt() ||
             firstCmp[0].reg == add[0].reg || secondCmp[0].reg == add[0].reg ||
             firstCmp[2].hasWideImmediateValue() || secondCmp[2].hasWideImmediateValue() ||
             firstCmp[2].valueU64 != 0 || secondCmp[2].valueU64 != 0 ||
+            (secondNonzero && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder)) ||
             !ctx.claimAll({cmpFirstRef, setFirstRef, cmpSecondRef, setSecondRef, extFirstRef, extSecondRef, ref}))
             return false;
 
@@ -472,12 +476,12 @@ namespace PostRaPeephole
         MicroInstrOperand addCarry[3] = {};
         addCarry[0].reg               = add[0].reg;
         addCarry[1].opBits            = add[2].opBits;
-        addCarry[2].valueU64          = 0;
+        addCarry[2].valueU64          = secondNonzero ? getBitsMask(add[2].opBits) : 0;
         ctx.emitRewrite(cmpFirstRef, MicroInstrOpcode::ClearReg, clear);
         ctx.emitRewrite(setFirstRef, MicroInstrOpcode::CmpRegImm, compareFirst, true);
         ctx.emitRewrite(cmpSecondRef, MicroInstrOpcode::SetCondReg, set);
         ctx.emitRewrite(setSecondRef, MicroInstrOpcode::CmpRegImm, compareSecond, true);
-        ctx.emitRewrite(extFirstRef, MicroInstrOpcode::AddCarryRegImm, addCarry);
+        ctx.emitRewrite(extFirstRef, secondNonzero ? MicroInstrOpcode::SubtractBorrowRegImm : MicroInstrOpcode::AddCarryRegImm, addCarry);
         ctx.emitErase(extSecondRef);
         ctx.emitErase(ref);
         return true;

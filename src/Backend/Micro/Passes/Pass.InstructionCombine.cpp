@@ -118,6 +118,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseCompareOperandForSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldThreeWaySelects);
         // Narrowing the masked operation keeps the extend's work in a 32-bit

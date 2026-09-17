@@ -199,6 +199,7 @@ namespace InstructionCombine
     bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
     bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldBooleanSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryReuseCompareOperandForSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropFloatOrderedGuard(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
 

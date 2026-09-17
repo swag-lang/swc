@@ -159,6 +159,135 @@ namespace InstructionCombine
         return true;
     }
 
+    // A min/max select does not need a separate result register when one
+    // compared operand dies at the select:
+    //
+    //     result = left                  cmp left, right
+    //     cmp left, right       ->        cmov!CC right, left
+    //     cmovCC result, right
+    //
+    // Rename the selected value's consumers to `right`. SSA proves that its
+    // previous value has no observer other than this compare/select pair and
+    // that the register is not redefined before any renamed consumer.
+    bool tryReuseCompareOperandForSelect(Context& ctx, MicroInstrRef selectRef, const MicroInstr& selectInst)
+    {
+        if (ctx.isClaimed(selectRef) || !ctx.ssa || selectInst.op != MicroInstrOpcode::LoadCondRegReg)
+            return false;
+        const MicroInstrOperand* selectOps = selectInst.ops(*ctx.operands);
+        if (!selectOps || !selectOps[0].reg.isVirtualInt() || !selectOps[1].reg.isVirtualInt() ||
+            (selectOps[3].opBits != MicroOpBits::B32 && selectOps[3].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroReg    result = selectOps[0].reg;
+        const MicroReg    right  = selectOps[1].reg;
+        const MicroOpBits bits   = selectOps[3].opBits;
+        if (result == right)
+            return false;
+
+        const MicroInstrRef cmpRef = ctx.storage->findPreviousInstructionRef(selectRef);
+        const MicroInstr*   cmp    = cmpRef.isValid() ? ctx.storage->ptr(cmpRef) : nullptr;
+        const MicroInstrOperand* cmpOps = cmp && cmp->op == MicroInstrOpcode::CmpRegReg ? cmp->ops(*ctx.operands) : nullptr;
+        if (!cmpOps || cmpOps[1].reg != right || cmpOps[2].opBits != bits || !cmpOps[0].reg.isVirtualInt())
+            return false;
+        const MicroReg left = cmpOps[0].reg;
+        if (left == right || left == result)
+            return false;
+
+        const MicroInstrRef copyRef = ctx.storage->findPreviousInstructionRef(cmpRef);
+        const MicroInstr*   copy    = copyRef.isValid() ? ctx.storage->ptr(copyRef) : nullptr;
+        const MicroInstrOperand* copyOps = copy && copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
+        if (!copyOps || copyOps[0].reg != result || copyOps[1].reg != left || getNumBits(copyOps[2].opBits) < getNumBits(bits) ||
+            !valueHasSingleUse(*ctx.ssa, result, copyRef))
+            return false;
+
+        const MicroSsaState::ReachingDef rightValue = ctx.ssa->reachingDef(right, cmpRef);
+        if (!rightValue.valid() || rightValue.isPhi || ctx.ssa->transitiveInstructionUseCount(rightValue.valueId, 3) != 2)
+            return false;
+        const MicroSsaState::ValueInfo* rightInfo = ctx.ssa->valueInfo(rightValue.valueId);
+        if (!rightInfo)
+            return false;
+        for (const MicroSsaState::UseSite& use : rightInfo->uses)
+        {
+            if (use.kind != MicroSsaState::UseSite::Kind::Instruction || (use.instRef != cmpRef && use.instRef != selectRef))
+                return false;
+        }
+
+        uint32_t resultValueId = 0;
+        if (!ctx.ssa->defValue(result, selectRef, resultValueId))
+            return false;
+        const MicroSsaState::ValueInfo* resultInfo = ctx.ssa->valueInfo(resultValueId);
+        if (!resultInfo || resultInfo->uses.empty())
+            return false;
+
+        SmallVector<MicroInstrRef, 8> uses;
+        for (const MicroSsaState::UseSite& use : resultInfo->uses)
+        {
+            if (use.kind != MicroSsaState::UseSite::Kind::Instruction || ctx.isClaimed(use.instRef) || ctx.isRelocated(use.instRef) ||
+                ctx.ssa->reachingDef(right, use.instRef).valueId != rightValue.valueId)
+                return false;
+            if (std::ranges::find(uses, use.instRef) == uses.end())
+                uses.push_back(use.instRef);
+        }
+
+        for (const MicroInstrRef useRef : uses)
+        {
+            MicroInstr* useInst = ctx.storage->ptr(useRef);
+            if (!useInst || useInst->numOperands > Action::K_MAX_OPS)
+                return false;
+            SmallVector<MicroInstrRegOperandRef> regOperands;
+            useInst->collectRegOperands(*ctx.operands, regOperands, nullptr);
+            bool found = false;
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (!regOperand.reg || *regOperand.reg != result)
+                    continue;
+                if (!regOperand.use || regOperand.def)
+                    return false;
+                found = true;
+            }
+            if (!found)
+                return false;
+        }
+
+        MicroCond inverted = MicroCond::Unconditional;
+        if (!MicroPassHelpers::invertCondition(inverted, selectOps[2].cpuCond) || !ctx.claimAll({copyRef, cmpRef, selectRef}))
+            return false;
+        for (const MicroInstrRef useRef : uses)
+            ctx.claimed.insert(useRef.get());
+
+        MicroInstrOperand rewrittenSelect[4];
+        rewrittenSelect[0].reg     = right;
+        rewrittenSelect[1].reg     = left;
+        rewrittenSelect[2].cpuCond = inverted;
+        rewrittenSelect[3].opBits  = bits;
+        ctx.emitErase(copyRef);
+        ctx.emitRewrite(selectRef, MicroInstrOpcode::LoadCondRegReg, rewrittenSelect);
+
+        for (const MicroInstrRef useRef : uses)
+        {
+            const MicroInstr*        useInst = ctx.storage->ptr(useRef);
+            const MicroInstrOperand* useOps  = useInst->ops(*ctx.operands);
+            MicroInstrOperand        rewritten[Action::K_MAX_OPS];
+            std::ranges::copy(std::span{useOps, useInst->numOperands}, rewritten);
+
+            MicroInstr* mutableUse = ctx.storage->ptr(useRef);
+            SmallVector<MicroInstrRegOperandRef> regOperands;
+            mutableUse->collectRegOperands(*ctx.operands, regOperands, nullptr);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (!regOperand.reg || *regOperand.reg != result || !regOperand.use)
+                    continue;
+                size_t index = 0;
+                while (index < useInst->numOperands && &useOps[index].reg != regOperand.reg)
+                    ++index;
+                SWC_ASSERT(index < useInst->numOperands);
+                rewritten[index].reg = right;
+            }
+            ctx.emitRewrite(useRef, useInst->op, std::span{rewritten, useInst->numOperands});
+        }
+        return true;
+    }
+
     // `a > b ? a - b : b - a` computes `a - b` before the compare that the
     // select reads, and a subtraction sets the flags of that very compare:
     //

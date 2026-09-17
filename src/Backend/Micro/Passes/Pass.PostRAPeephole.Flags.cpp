@@ -53,9 +53,26 @@ namespace PostRaPeephole
         if (addBits != bits || addOp != MicroOp::Add)
             return false;
 
-        const MicroInstrRef copyRef = ctx.previousRef(addRef);
+        MicroInstrRef       copyRef = ctx.previousRef(addRef);
         const MicroInstr*   copy    = ctx.instruction(copyRef);
-        const auto*         copied  = copy ? copy->ops(*ctx.operands) : nullptr;
+        MicroInstrRef       middleLoadRef;
+        if (copy && copy->op != MicroInstrOpcode::LoadRegReg)
+        {
+            const auto* middleOps = copy->ops(*ctx.operands);
+            const MicroInstrUseDef useDef = copy->collectUseDef(*ctx.operands, ctx.encoder);
+            if (add->op != MicroInstrOpcode::OpBinaryRegReg || !middleOps ||
+                (copy->op != MicroInstrOpcode::LoadRegMem && copy->op != MicroInstrOpcode::LoadAmcRegMem) ||
+                middleOps[0].reg != addOps[1].reg ||
+                std::ranges::find(useDef.uses, sum) != useDef.uses.end() ||
+                std::ranges::find(useDef.uses, original) != useDef.uses.end() ||
+                std::ranges::find(useDef.defs, sum) != useDef.defs.end() ||
+                std::ranges::find(useDef.defs, original) != useDef.defs.end())
+                return false;
+            middleLoadRef = copyRef;
+            copyRef       = ctx.previousRef(middleLoadRef);
+            copy          = ctx.instruction(copyRef);
+        }
+        const auto* copied = copy ? copy->ops(*ctx.operands) : nullptr;
         if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copied ||
             copied[0].reg != sum || copied[1].reg != original || getNumBits(copied[2].opBits) < getNumBits(bits))
             return false;
@@ -103,10 +120,21 @@ namespace PostRaPeephole
             rewrittenLoad[3].opBits    = MicroOpBits::B32;
             rewrittenLoad[4].opBits    = bits;
         }
-        const std::array refs = {loadRef, copyRef, addRef, cmpRef, fallbackRef, selectRef, extendRef};
+        std::array<MicroInstrRef, 8> refs;
+        size_t                       numRefs = 0;
+        refs[numRefs++]                      = loadRef;
+        refs[numRefs++]                      = copyRef;
+        if (middleLoadRef.isValid())
+            refs[numRefs++] = middleLoadRef;
+        refs[numRefs++] = addRef;
+        refs[numRefs++] = cmpRef;
+        refs[numRefs++] = fallbackRef;
+        refs[numRefs++] = selectRef;
+        if (narrow)
+            refs[numRefs++] = extendRef;
         MicroConformanceIssue issue;
         if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, loadProbe, rewrittenLoad)) ||
-            !ctx.claimAll(std::span{refs.data(), narrow ? 7u : 6u}))
+            !ctx.claimAll(std::span{refs.data(), numRefs}))
             return false;
         if (narrow)
             ctx.emitRewrite(loadRef, loadProbe.op, std::span{rewrittenLoad, 7}, true);

@@ -476,6 +476,64 @@ namespace PostRaPeephole
         return true;
     }
 
+    // The first use of a copied value can discard its upper half. Until that
+    // full 32-bit write, no instruction may observe the original high bits.
+    bool tryNarrowCopyBefore32BitWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* copy = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !ctx.encoder || !copy || copy[2].opBits != MicroOpBits::B64 ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
+            return false;
+        constexpr uint32_t                       maxWindow = 8;
+        std::array<MicroInstrRef, maxWindow + 1> window;
+        window[0]            = ref;
+        MicroInstrRef cursor = ctx.nextRef(ref);
+        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        {
+            const MicroInstr* current = ctx.instruction(cursor);
+            if (!current || ctx.isClaimed(cursor))
+                return false;
+            const MicroInstrDef& info = MicroInstr::info(current->op);
+            if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            window[step]                  = cursor;
+            const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
+            if (!regInList(useDef.uses.span(), copy[0].reg) && !regInList(useDef.defs.span(), copy[0].reg))
+                continue;
+            const auto* ops = current->ops(*ctx.operands);
+            if (!ops || ops[0].reg != copy[0].reg || useDef.defs.size() != 1 || useDef.defs[0] != copy[0].reg)
+                return false;
+            const bool regReg = current->op == MicroInstrOpcode::OpBinaryRegReg;
+            if (!regReg && current->op != MicroInstrOpcode::OpBinaryRegImm && current->op != MicroInstrOpcode::OpUnaryReg)
+                return false;
+            if (ops[regReg ? 2 : 1].opBits != MicroOpBits::B32)
+                return false;
+            switch (ops[regReg ? 3 : 2].microOp)
+            {
+                case MicroOp::Add:
+                case MicroOp::Subtract:
+                case MicroOp::And:
+                case MicroOp::Or:
+                case MicroOp::Xor:
+                case MicroOp::MultiplySigned:
+                    break;
+                default:
+                    if (regReg || !canMoveUnaryAcrossCopy(*current, ops))
+                        return false;
+                    break;
+            }
+            // Queued forwarding must not introduce a wider read in the window.
+            if (!ctx.claimAll(std::span{window.data(), step + 1}))
+                return false;
+            MicroInstrOperand narrowed[3] = {copy[0], copy[1], copy[2]};
+            narrowed[2].opBits            = MicroOpBits::B32;
+            ctx.emitRewrite(ref, inst.op, narrowed);
+            return true;
+        }
+        return false;
+    }
+
     // A full copy of a value just defined at 32 bits can use a 32-bit MOV.
     // The IR width contract already guarantees that the source's upper half is zero.
     bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

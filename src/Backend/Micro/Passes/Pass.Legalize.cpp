@@ -803,8 +803,9 @@ namespace
             insertMoveRegReg(context, instRef, helperReg, requiredReg, MicroOpBits::B64);
         }
 
-        const MicroReg fixedOperandReg = operandIsDst ? originalDstReg : originalSrcReg;
-        insertMoveRegReg(context, instRef, requiredReg, fixedOperandReg, MicroOpBits::B64);
+        const MicroReg    fixedOperandReg  = operandIsDst ? originalDstReg : originalSrcReg;
+        const MicroOpBits fixedOperandBits = opBits == MicroOpBits::B32 ? MicroOpBits::B32 : MicroOpBits::B64;
+        insertMoveRegReg(context, instRef, requiredReg, fixedOperandReg, fixedOperandBits);
 
         MicroReg rewrittenDstReg                           = originalDstReg;
         MicroReg rewrittenSrcReg                           = originalSrcReg;

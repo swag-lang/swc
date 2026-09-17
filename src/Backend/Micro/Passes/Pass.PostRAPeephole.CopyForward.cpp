@@ -710,6 +710,79 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A 64-bit overflow-safe ceiling average can keep its result in the
+    // original input by computing the xor in the copied temporary first:
+    //
+    //     M = A; M |= B                 M = A; M ^= B
+    //     A ^= B; A >>= 1        ->     A |= B; M >>= 1
+    //     M -= A; A = M                 A -= M
+    bool tryFoldUnsignedCeilAverage64(Context& ctx, const MicroInstrRef resultCopyRef, const MicroInstr& resultCopyInst)
+    {
+        if (ctx.isClaimed(resultCopyRef))
+            return false;
+        const auto* resultCopy = resultCopyInst.ops(*ctx.operands);
+        if (!resultCopy || resultCopy[2].opBits != MicroOpBits::B64 || !resultCopy[0].reg.isInt() || !resultCopy[1].reg.isInt() ||
+            resultCopy[0].reg == resultCopy[1].reg || ctx.isPrivateFrameBase(resultCopy[0].reg) ||
+            ctx.isPrivateFrameBase(resultCopy[1].reg) || !ctx.isRegDeadAfterCurrent(resultCopy[1].reg))
+            return false;
+        const MicroReg result = resultCopy[0].reg;
+        const MicroReg merged = resultCopy[1].reg;
+
+        const MicroInstrRef subtractRef = ctx.previousRef(resultCopyRef);
+        const MicroInstr*   subtract    = ctx.instruction(subtractRef);
+        const auto*         sub         = subtract ? subtract->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef shiftRef    = ctx.previousRef(subtractRef);
+        const MicroInstr*   shift       = ctx.instruction(shiftRef);
+        const auto*         shifted     = shift ? shift->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef xorRef      = ctx.previousRef(shiftRef);
+        const MicroInstr*   xorInst     = ctx.instruction(xorRef);
+        const auto*         xorOps      = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef orRef       = ctx.previousRef(xorRef);
+        const MicroInstr*   orInst      = ctx.instruction(orRef);
+        const auto*         orOps       = orInst ? orInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef initialCopyRef  = ctx.previousRef(orRef);
+        const MicroInstr*   initialCopyInst = ctx.instruction(initialCopyRef);
+        const auto*         initialCopy     = initialCopyInst ? initialCopyInst->ops(*ctx.operands) : nullptr;
+        if (!subtract || subtract->op != MicroInstrOpcode::OpBinaryRegReg || !sub ||
+            sub[0].reg != merged || sub[1].reg != result || sub[2].opBits != MicroOpBits::B64 || sub[3].microOp != MicroOp::Subtract ||
+            !shift || shift->op != MicroInstrOpcode::OpBinaryRegImm || !shifted || shifted[0].reg != result ||
+            shifted[1].opBits != MicroOpBits::B64 || shifted[2].microOp != MicroOp::ShiftRight ||
+            shifted[3].hasWideImmediateValue() || shifted[3].valueU64 != 1 ||
+            !xorInst || xorInst->op != MicroInstrOpcode::OpBinaryRegReg || !xorOps || xorOps[0].reg != result ||
+            xorOps[2].opBits != MicroOpBits::B64 || xorOps[3].microOp != MicroOp::Xor ||
+            !orInst || orInst->op != MicroInstrOpcode::OpBinaryRegReg || !orOps || orOps[0].reg != merged ||
+            orOps[1].reg != xorOps[1].reg || orOps[2].opBits != MicroOpBits::B64 || orOps[3].microOp != MicroOp::Or ||
+            !initialCopyInst || initialCopyInst->op != MicroInstrOpcode::LoadRegReg || !initialCopy ||
+            initialCopy[0].reg != merged || initialCopy[1].reg != result || initialCopy[2].opBits != MicroOpBits::B64 ||
+            !xorOps[1].reg.isInt() || xorOps[1].reg == result || xorOps[1].reg == merged ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subtractRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand rewrittenXor[4] = {orOps[0], orOps[1], orOps[2], orOps[3]};
+        rewrittenXor[3].microOp           = MicroOp::Xor;
+        MicroInstrOperand rewrittenOr[4]  = {xorOps[0], xorOps[1], xorOps[2], xorOps[3]};
+        rewrittenOr[3].microOp            = MicroOp::Or;
+        MicroInstrOperand rewrittenShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
+        rewrittenShift[0].reg               = merged;
+        MicroInstrOperand rewrittenSubtract[4] = {sub[0], sub[1], sub[2], sub[3]};
+        rewrittenSubtract[0].reg               = result;
+        rewrittenSubtract[1].reg               = merged;
+
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *orInst, rewrittenXor) ||
+                             ctx.encoder->queryConformanceIssue(issue, *xorInst, rewrittenOr) ||
+                             ctx.encoder->queryConformanceIssue(issue, *shift, rewrittenShift) ||
+                             ctx.encoder->queryConformanceIssue(issue, *subtract, rewrittenSubtract))) ||
+            !ctx.claimAll({initialCopyRef, orRef, xorRef, shiftRef, subtractRef, resultCopyRef}))
+            return false;
+        ctx.emitRewrite(orRef, orInst->op, rewrittenXor);
+        ctx.emitRewrite(xorRef, xorInst->op, rewrittenOr);
+        ctx.emitRewrite(shiftRef, shift->op, rewrittenShift);
+        ctx.emitRewrite(subtractRef, subtract->op, rewrittenSubtract);
+        ctx.emitErase(resultCopyRef);
+        return true;
+    }
+
     // The overflow-safe ceiling average widens clear dwords and keeps its
     // result in the original input register:
     //
@@ -885,7 +958,11 @@ namespace PostRaPeephole
         if (ctx.isClaimed(copyRef))
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
-        if (!copy || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+        const bool  signExtend = copyInst.op == MicroInstrOpcode::LoadSignedExtRegReg;
+        if (!copy || (!signExtend && copyInst.op != MicroInstrOpcode::LoadRegReg) ||
+            (signExtend ? copy[2].opBits != MicroOpBits::B64 || copy[3].opBits != MicroOpBits::B32
+                        : copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
             copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
             !ctx.isRegDeadAfterCurrent(copy[1].reg))
             return false;
@@ -901,8 +978,9 @@ namespace PostRaPeephole
             return false;
         const MicroReg firstResult = second[1].reg;
         const MicroOpBits bits = second[3].opBits;
-        if ((copy[2].opBits != bits &&
+        if ((!signExtend && copy[2].opBits != bits &&
              !(copy[2].opBits == MicroOpBits::B64 && bits == MicroOpBits::B32 && ctx.isUpperHalfZeroBefore(copyRef, secondResult))) ||
+            (signExtend && bits != MicroOpBits::B32) ||
             !ctx.isRegDeadAfterCurrent(firstResult))
             return false;
 
@@ -957,18 +1035,28 @@ namespace PostRaPeephole
         rewrittenSecond[0].reg              = result;
         rewrittenSecond[1].reg              = secondResult;
         rewrittenSecond[2].cpuCond          = invertedSecond;
+        MicroInstrOperand rewrittenCopy[4] = {copy[0], copy[1], copy[2], {}};
+        if (signExtend)
+        {
+            rewrittenCopy[1].reg   = result;
+            rewrittenCopy[3]       = copy[3];
+        }
 
         MicroConformanceIssue issue;
         if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *firstSelect, rewrittenFirst) ||
                              ctx.encoder->queryConformanceIssue(issue, *secondCompare, rewrittenCompare) ||
-                             ctx.encoder->queryConformanceIssue(issue, *secondSelect, rewrittenSecond))) ||
+                             ctx.encoder->queryConformanceIssue(issue, *secondSelect, rewrittenSecond) ||
+                             (signExtend && ctx.encoder->queryConformanceIssue(issue, copyInst, rewrittenCopy)))) ||
             !ctx.claimAll({initialRef, firstCompareRef, firstSelectRef, secondCompareRef, secondSelectRef, copyRef}))
             return false;
         ctx.emitErase(initialRef);
         ctx.emitRewrite(firstSelectRef, firstSelect->op, rewrittenFirst);
         ctx.emitRewrite(secondCompareRef, secondCompare->op, rewrittenCompare);
         ctx.emitRewrite(secondSelectRef, secondSelect->op, rewrittenSecond);
-        ctx.emitErase(copyRef);
+        if (signExtend)
+            ctx.emitRewrite(copyRef, copyInst.op, rewrittenCopy);
+        else
+            ctx.emitErase(copyRef);
         return true;
     }
 

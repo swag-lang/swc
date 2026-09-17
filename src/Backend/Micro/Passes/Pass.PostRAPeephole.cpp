@@ -84,6 +84,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage64);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetSelectedIntermediate);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalCascadeResultCopy);
@@ -95,6 +96,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseRedundantCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyBefore32BitWrite);
+        r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryFoldConditionalCascadeResultCopy);
         return r;
     }
 

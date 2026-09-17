@@ -18,12 +18,39 @@ namespace InstructionCombine
     {
         constexpr uint32_t K_MAX_DEMAND_DEPTH = 4;
 
+        // The width of a byte or word operation that updates `reg` in place, or
+        // 0: such an operation reads its own bits and carries the rest of the
+        // register into its result.
+        uint32_t partialUpdateBits(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg reg)
+        {
+            if (!ops || ops[0].reg != reg)
+                return 0;
+
+            MicroOpBits bits = MicroOpBits::Zero;
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::OpBinaryRegReg:
+                    bits = ops[2].opBits;
+                    break;
+                case MicroInstrOpcode::OpBinaryRegImm:
+                case MicroInstrOpcode::OpUnaryReg:
+                    bits = ops[1].opBits;
+                    break;
+                default:
+                    return 0;
+            }
+
+            return bits == MicroOpBits::B8 || bits == MicroOpBits::B16 ? getNumBits(bits) : 0;
+        }
+
         // The widest bit any reader takes from the value `reg` holds; 64 when a
         // reader is not understood. A copy into another virtual register reads
         // what that register's own readers read, capped at the copy's width. A
-        // phi reads what the merged value's readers read: one nothing reads,
-        // as the SSA places at a join the value does not live through, reads
-        // nothing, and one met again on a loop adds nothing new.
+        // byte or word update reads its own bits plus whatever its result's
+        // readers take from the bits it carries through. A phi reads what the
+        // merged value's readers read: one nothing reads, as the SSA places at
+        // a join the value does not live through, reads nothing, and one met
+        // again on a loop adds nothing new.
         uint32_t demandedBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState::ValueInfo& valueInfo, MicroReg reg, uint32_t depth, SmallVector<uint32_t>& visitedPhis)
         {
             uint32_t widest = 0;
@@ -55,7 +82,18 @@ namespace InstructionCombine
                 if (useBits == MicroOpBits::Zero)
                     return 64;
 
-                uint32_t bits = getNumBits(useBits);
+                uint32_t       bits        = getNumBits(useBits);
+                const uint32_t partialBits = partialUpdateBits(*useInst, useOps, reg);
+                if (partialBits && depth < K_MAX_DEMAND_DEPTH)
+                {
+                    uint32_t resultValueId = 0;
+                    if (!ssa.defValue(reg, useSite.instRef, resultValueId))
+                        return 64;
+                    const auto* resultInfo = ssa.valueInfo(resultValueId);
+                    if (!resultInfo)
+                        return 64;
+                    bits = std::max(partialBits, demandedBits(ssa, storage, operands, *resultInfo, reg, depth + 1, visitedPhis));
+                }
                 if (useInst->op == MicroInstrOpcode::LoadRegReg && useOps[1].reg == reg && useOps[0].reg != reg &&
                     useOps[0].reg.isVirtual() && depth < K_MAX_DEMAND_DEPTH)
                 {
@@ -145,6 +183,152 @@ namespace InstructionCombine
             extendOps[idx] = ops[idx];
         extendOps[3].opBits = MicroOpBits::B8;
         ctx.emitRewrite(ref, MicroInstrOpcode::LoadSignedExtRegReg, extendOps);
+        return true;
+    }
+
+    namespace
+    {
+        // `setbe T` after `cmp I, K` after `I = X - LO` (a 32-bit lea): T says
+        // whether X lies in [LO, LO + K].
+        struct RangeByte
+        {
+            MicroInstrRef setRef;
+            MicroInstrRef cmpRef;
+            MicroInstrRef leaRef;
+            MicroReg      value;
+            uint32_t      valueId = 0;
+            uint64_t      low     = 0;
+            uint64_t      span    = 0;
+        };
+
+        bool matchRangeByte(RangeByte& out, const Context& ctx, const MicroSsaState::ReachingDef& set)
+        {
+            if (!set.valid() || set.isPhi || !set.inst || set.inst->op != MicroInstrOpcode::SetCondReg ||
+                set.inst->ops(*ctx.operands)[1].cpuCond != MicroCond::BelowOrEqual)
+                return false;
+
+            const MicroInstrRef cmpRef = ctx.storage->findPreviousInstructionRef(set.instRef);
+            const MicroInstr*   cmp    = cmpRef.isValid() ? ctx.storage->ptr(cmpRef) : nullptr;
+            if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
+                return false;
+            const MicroInstrOperand* cmpOps = cmp->ops(*ctx.operands);
+            if (cmpOps[1].opBits != MicroOpBits::B32 || cmpOps[2].hasWideImmediateValue() || !cmpOps[0].reg.isVirtualInt())
+                return false;
+
+            const MicroInstrRef leaRef = ctx.storage->findPreviousInstructionRef(cmpRef);
+            const MicroInstr*   lea    = leaRef.isValid() ? ctx.storage->ptr(leaRef) : nullptr;
+            if (!lea || lea->op != MicroInstrOpcode::LoadAddrRegMem)
+                return false;
+            const MicroInstrOperand* leaOps = lea->ops(*ctx.operands);
+            if (leaOps[0].reg != cmpOps[0].reg || leaOps[2].opBits != MicroOpBits::B32 || !leaOps[1].reg.isVirtualInt() || leaOps[1].reg == leaOps[0].reg)
+                return false;
+
+            const MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(leaOps[1].reg, leaRef);
+            uint32_t                         leaValueId = 0;
+            if (!source.valid() || !ctx.ssa->defValue(leaOps[0].reg, leaRef, leaValueId) || singleDirectInstructionUse(*ctx.ssa, leaValueId) != cmpRef)
+                return false;
+
+            out.setRef  = set.instRef;
+            out.cmpRef  = cmpRef;
+            out.leaRef  = leaRef;
+            out.value   = leaOps[1].reg;
+            out.valueId = source.valueId;
+            out.low     = (0 - leaOps[3].valueU64) & 0xFFFFFFFFu;
+            out.span    = cmpOps[2].valueU64 & 0xFFFFFFFFu;
+            return true;
+        }
+
+        // The bit a range keeps constant from its low end to its high end, with
+        // every bit above it: the range is one block of values under that bit.
+        bool rangeKeepsBitsFrom(const RangeByte& range, uint32_t bit)
+        {
+            const uint64_t high = range.low + range.span;
+            return high <= 0xFFFFFFFFu && (range.low >> bit) == (high >> bit);
+        }
+    }
+
+    // Two ranges of the same span that differ in one bit, as 'a'..'z' and
+    // 'A'..'Z', are one range once that bit is cleared, as LLVM folds them:
+    //
+    //     I1 = X - 0x61; cmp I1, 25; setbe T1      I1 = X; I1 &= ~0x20; I1 -= 0x41
+    //     D = T1                             ->    cmp I1, 25; setbe T1
+    //     I2 = X - 0x41; cmp I2, 25; setbe T2      D = T1
+    //     D |= T2
+    //
+    // The second test is left to the dead-code pass.
+    bool tryFoldCaseRangePair(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].microOp != MicroOp::Or || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt() ||
+            ops[0].reg == ops[1].reg)
+            return false;
+
+        // D holds the first byte, copied or OR-ed in, and only this OR reads it.
+        const MicroSsaState::ReachingDef merged = ctx.ssa->reachingDef(ops[0].reg, ref);
+        if (!merged.valid() || merged.isPhi || !merged.inst || singleDirectInstructionUse(*ctx.ssa, merged.valueId) != ref)
+            return false;
+        const MicroInstrOperand* mergedOps = merged.inst->ops(*ctx.operands);
+        MicroReg                 firstByte;
+        if (merged.inst->op == MicroInstrOpcode::LoadRegReg && mergedOps[2].opBits == MicroOpBits::B8)
+            firstByte = mergedOps[1].reg;
+        else if (merged.inst->op == MicroInstrOpcode::OpBinaryRegReg && mergedOps[3].microOp == MicroOp::Or && mergedOps[2].opBits == MicroOpBits::B8)
+            firstByte = mergedOps[1].reg;
+        else
+            return false;
+        if (!firstByte.isVirtualInt())
+            return false;
+
+        const MicroSsaState::ReachingDef firstSet  = ctx.ssa->reachingDef(firstByte, merged.instRef);
+        const MicroSsaState::ReachingDef secondSet = ctx.ssa->reachingDef(ops[1].reg, ref);
+        RangeByte                        first;
+        RangeByte                        second;
+        if (!matchRangeByte(first, ctx, firstSet) || !matchRangeByte(second, ctx, secondSet))
+            return false;
+        if (singleDirectInstructionUse(*ctx.ssa, firstSet.valueId) != merged.instRef || singleDirectInstructionUse(*ctx.ssa, secondSet.valueId) != ref)
+            return false;
+        if (first.value != second.value || first.valueId != second.valueId || first.span != second.span)
+            return false;
+
+        const uint64_t diff = first.low ^ second.low;
+        if (!diff || (diff & (diff - 1)) != 0)
+            return false;
+        const uint32_t bit = static_cast<uint32_t>(std::countr_zero(diff));
+        if (!rangeKeepsBitsFrom(first, bit) || !rangeKeepsBitsFrom(second, bit))
+            return false;
+
+        if (ctx.isClaimed(first.leaRef) || ctx.isClaimed(first.cmpRef) || ctx.isClaimed(merged.instRef))
+            return false;
+        if (!ctx.claimAll({ref, first.leaRef, first.cmpRef, first.setRef, merged.instRef}))
+            return false;
+
+        const uint64_t    low     = std::min(first.low, second.low);
+        const MicroReg    index   = ctx.storage->ptr(first.leaRef)->ops(*ctx.operands)[0].reg;
+        MicroInstrOperand copyOps[3];
+        copyOps[0].reg    = index;
+        copyOps[1].reg    = first.value;
+        copyOps[2].opBits = MicroOpBits::B32;
+        ctx.emitRewrite(first.leaRef, MicroInstrOpcode::LoadRegReg, copyOps);
+
+        MicroInstrOperand maskOps[4];
+        maskOps[0].reg     = index;
+        maskOps[1].opBits  = MicroOpBits::B32;
+        maskOps[2].microOp = MicroOp::And;
+        maskOps[3].setImmediateValue(ApInt(~diff & 0xFFFFFFFFu, 32));
+        ctx.emitInsertBefore(first.cmpRef, MicroInstrOpcode::OpBinaryRegImm, maskOps);
+        if (low)
+        {
+            MicroInstrOperand subOps[4];
+            subOps[0].reg     = index;
+            subOps[1].opBits  = MicroOpBits::B32;
+            subOps[2].microOp = MicroOp::Subtract;
+            subOps[3].setImmediateValue(ApInt(low, 32));
+            ctx.emitInsertBefore(first.cmpRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+        }
+
+        ctx.emitErase(ref);
         return true;
     }
 

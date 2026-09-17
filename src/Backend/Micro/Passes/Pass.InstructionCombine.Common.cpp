@@ -159,7 +159,24 @@ namespace InstructionCombine
             case MicroInstrOpcode::OpUnaryReg:
                 return partialDestination(useOps[1].opBits);
 
+            // A shift or a rotation reads the low byte of its count: the
+            // processor masks it, and a count outside the width is unspecified.
             case MicroInstrOpcode::OpBinaryRegReg:
+                if (useOps[1].reg == reg && useOps[0].reg != reg && reg.isAnyInt())
+                {
+                    switch (useOps[3].microOp)
+                    {
+                        case MicroOp::ShiftLeft:
+                        case MicroOp::ShiftArithmeticLeft:
+                        case MicroOp::ShiftRight:
+                        case MicroOp::ShiftArithmeticRight:
+                        case MicroOp::RotateLeft:
+                        case MicroOp::RotateRight:
+                            return MicroOpBits::B8;
+                        default:
+                            break;
+                    }
+                }
                 return partialDestination(useOps[2].opBits);
 
             case MicroInstrOpcode::LoadCondRegReg:

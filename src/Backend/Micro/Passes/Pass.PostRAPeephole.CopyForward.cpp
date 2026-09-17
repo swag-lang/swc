@@ -2163,7 +2163,9 @@ namespace PostRaPeephole
         if (!firstOp || firstOp->op != MicroInstrOpcode::OpBinaryRegReg || !first ||
             first[0].reg != result || !first[1].reg.isInt() ||
             (first[2].opBits != MicroOpBits::B32 && first[2].opBits != MicroOpBits::B64) ||
-            (first[3].microOp != MicroOp::Add && first[3].microOp != MicroOp::Subtract && first[3].microOp != MicroOp::Xor) ||
+            (first[3].microOp != MicroOp::Add && first[3].microOp != MicroOp::Subtract &&
+             first[3].microOp != MicroOp::And && first[3].microOp != MicroOp::Or && first[3].microOp != MicroOp::Xor &&
+             first[3].microOp != MicroOp::MultiplySigned && first[3].microOp != MicroOp::MultiplyUnsigned) ||
             getNumBits(copy[2].opBits) < getNumBits(first[2].opBits))
             return false;
         const MicroReg firstVarying = first[1].reg;

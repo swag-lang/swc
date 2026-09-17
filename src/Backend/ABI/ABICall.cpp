@@ -687,9 +687,19 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
     }
 
     if (valueIsLValue)
+    {
         loadCanonicalIntFromMemToReg(builder, conv.intReturn, valueReg, 0, ret.numBits, ret.isSigned);
-    else
-        loadCanonicalIntToReg(builder, conv.intReturn, valueReg, ret.numBits, ret.isSigned);
+        return;
+    }
+
+    // Every call site canonicalizes the returned integer again, and a foreign
+    // caller never reads past the value's width, so the callee only moves the
+    // value's own bits: the copy then vanishes when the value already sits in
+    // the return register, as a `u8` or `s32` result does in clang's code. A
+    // byte or word moves as a whole register, which the allocator merges; a
+    // dword keeps its zero-extending move, which 32-bit results make free.
+    const MicroOpBits valueBits = canonicalIntBits(ret.numBits);
+    builder.emitLoadRegReg(conv.intReturn, valueReg, valueBits == MicroOpBits::B32 ? MicroOpBits::B32 : MicroOpBits::B64);
 }
 
 void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)

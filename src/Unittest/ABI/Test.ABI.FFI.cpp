@@ -84,6 +84,63 @@ SWC_TEST_BEGIN(ABI_AddressedNarrowIntegerHomeUsesNarrowLoad)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // The only instruction a builder holds, or nullptr.
+    const MicroInstr* singleInstruction(const MicroBuilder& builder)
+    {
+        const MicroInstr* found = nullptr;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (found)
+                return nullptr;
+            found = &inst;
+        }
+        return found;
+    }
+}
+
+// A callee moves a narrow result into the return register without extending
+// it: every call site canonicalizes it again. Bytes and words move as a whole
+// register, dwords with their zero-extending move.
+SWC_TEST_BEGIN(ABI_ReturnedNarrowIntegerMovesWithoutExtension)
+{
+    constexpr MicroReg value = MicroReg::virtualIntReg(100);
+    for (const auto& [numBits, moveBits] : {std::pair{uint8_t{8}, MicroOpBits::B64}, std::pair{uint8_t{16}, MicroOpBits::B64}, std::pair{uint8_t{32}, MicroOpBits::B32}})
+    {
+        MicroBuilder                           builder(ctx);
+        const ABITypeNormalize::NormalizedType ret{.isVoid = false, .isSigned = true, .numBits = numBits};
+        ABICall::materializeValueToReturnRegs(builder, CallConvKind::Swag, value, false, ret);
+
+        const MicroInstr* inst = singleInstruction(builder);
+        if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
+            return Result::Error;
+        const MicroInstrOperand* ops = inst->ops(builder.operands());
+        if (ops[0].reg != CallConv::get(CallConvKind::Swag).intReturn || ops[1].reg != value || ops[2].opBits != moveBits)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The call site extends what it receives, which the callee relies on.
+SWC_TEST_BEGIN(ABI_ReceivedNarrowIntegerIsCanonicalized)
+{
+    constexpr MicroReg                     result = MicroReg::virtualIntReg(100);
+    MicroBuilder                           builder(ctx);
+    const ABITypeNormalize::NormalizedType ret{.isVoid = false, .isSigned = true, .numBits = 16};
+    ABICall::materializeReturnToReg(builder, result, CallConvKind::Swag, ret);
+
+    const MicroInstr* inst = singleInstruction(builder);
+    if (!inst || inst->op != MicroInstrOpcode::LoadSignedExtRegReg)
+        return Result::Error;
+    const MicroInstrOperand* ops = inst->ops(builder.operands());
+    if (ops[0].reg != result || ops[2].opBits != MicroOpBits::B64 || ops[3].opBits != MicroOpBits::B16)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ABI_SwagSimdArgsUseExtendedRegistersThenWideStackSlots)
 {
     const CallConv&                         swag       = CallConv::swag();

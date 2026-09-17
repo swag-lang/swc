@@ -1,6 +1,6 @@
 function,baseline_instructions,baseline_bytes,final_instructions,final_bytes,llvm_instructions,llvm_bytes
 loadPair,3,8,3,8,3,8
-loadRepeated,4,11,4,11,3,9
+loadRepeated,4,11,3,9,3,9
 loadScaled,3,8,3,8,3,8
 loadScaledOffset,3,9,3,9,3,9
 loadNarrow,3,8,3,8,3,8

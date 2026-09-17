@@ -2228,7 +2228,7 @@
       "code": [
         [
           3,
-          "movzx\teax, cx"
+          "mov\trax, rcx"
         ],
         [
           4,

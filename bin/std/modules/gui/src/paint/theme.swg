@@ -146,12 +146,15 @@ private func defaultThemeImages()->*ThemeImages
 
 // Returns the shared widgets atlas rasterized at `scale` device pixels per authored texel.
 //
-// The atlas is rasterized through `renderer`, which is the single most expensive step of
-// a GUI startup: on a GPU backend the supersampled buffer is filled and downsampled by
-// the hardware that will later sample it, instead of one core walking sixteen million
-// pixels. Each parsed document caches rasterizations by scale, independently of the renderer.
-// Embedded art shares that cache across themes; disk overrides keep a cache owned by their theme.
-private func themeWidgetsImage(cache: *ThemeImages, renderer: IRenderer, scale: f32)->*Image
+// The atlas is rasterized on the processor, whatever renderer the application draws with. The
+// banded software rasterizer fills the supersampled buffer in a few hundred milliseconds, while
+// the OpenGL path reads every tile back across the bus and took seconds on a busy adapter. It
+// also ran before the first window was shown, on that window's own context, and an OpenGL
+// window whose context did that heavy offscreen work while hidden could come up with none of
+// its frames ever reaching the compositor: an empty window, on a display chained through a
+// DisplayLink adapter. Each parsed document caches rasterizations by scale. Embedded art shares
+// that cache across themes; disk overrides keep a cache owned by their theme.
+private func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
 {
     Sync.scopedLock(&cache.lock)
 
@@ -169,7 +172,7 @@ private func themeWidgetsImage(cache: *ThemeImages, renderer: IRenderer, scale: 
     while ss > 1 and w * cast(s32) ss > 4096 do
         ss /= 2
 
-    return &cache.widgetsRasters.add(key, cache.widgets.rasterize(renderer, w, h, ss)).value
+    return &cache.widgetsRasters.add(key, cache.widgets.rasterize(w, h, ss)).value
 }
 
 // A theme with disk art owns its parsed documents. Another bundle, or a later theme created
@@ -452,7 +455,7 @@ impl Theme
         if .res.atlasScale > 0 do
             renderer.removeTexture(&.res.imgWidgets)
 
-        let image = themeWidgetsImage(.images orelse defaultThemeImages(), renderer, wanted)
+        let image = themeWidgetsImage(.images orelse defaultThemeImages(), wanted)
         .res.imgWidgets = renderer.addImage(image[])
         .res.atlasScale = wanted
     }

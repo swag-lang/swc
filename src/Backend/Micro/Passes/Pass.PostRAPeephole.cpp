@@ -83,6 +83,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalCascadeResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalChainResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalResultCopy);

@@ -212,8 +212,11 @@ namespace InstructionCombine
         if (!opOps || opOps[0].reg != value || !valueHasSingleUse(*ctx.ssa, value, opRef))
             return false;
 
-        const bool immediateUpdate = op->op == MicroInstrOpcode::OpBinaryRegImm;
-        bool       unaryUpdate     = false;
+        const bool  immediateUpdate   = op->op == MicroInstrOpcode::OpBinaryRegImm;
+        bool        unaryUpdate       = false;
+        MicroOpBits immediateFoldBits = loadOps[3].opBits;
+        uint64_t    immediateFoldValue = 0;
+        uint64_t    immediateFoldOffset = loadOps[6].valueU64;
         if (immediateUpdate)
         {
             if ((opOps[2].microOp != MicroOp::Add && opOps[2].microOp != MicroOp::Subtract &&
@@ -227,10 +230,36 @@ namespace InstructionCombine
             if (opOps[1].opBits != loadOps[3].opBits && !widenedAnd)
                 return false;
 
-            const bool immediateFits = opOps[1].opBits == MicroOpBits::B8 ? immediate <= 0xFF || immediate >= 0xFFFFFFFFFFFFFF80 :
-                                       opOps[1].opBits == MicroOpBits::B16 ? immediate <= 0xFFFF || immediate >= 0xFFFFFFFFFFFF8000 :
-                                       opOps[1].opBits == MicroOpBits::B32 ? immediate <= 0xFFFFFFFF :
-                                       immediate <= 0x7FFFFFFF || immediate >= 0xFFFFFFFF80000000;
+            immediateFoldValue = immediate;
+            if (opOps[2].microOp == MicroOp::Or || opOps[2].microOp == MicroOp::Xor)
+            {
+                const uint64_t widthMask = opOps[1].opBits == MicroOpBits::B8 ? 0xFF :
+                                           opOps[1].opBits == MicroOpBits::B16 ? 0xFFFF :
+                                           opOps[1].opBits == MicroOpBits::B32 ? 0xFFFFFFFF : UINT64_MAX;
+                const uint64_t masked = immediate & widthMask;
+                uint32_t       nonzeroBytes = 0;
+                uint32_t       byteIndex    = 0;
+                for (uint32_t i = 0; i < getNumBytes(opOps[1].opBits); ++i)
+                {
+                    if (((masked >> (i * 8)) & 0xFF) == 0)
+                        continue;
+                    byteIndex = i;
+                    ++nonzeroBytes;
+                }
+
+                const int64_t narrowedOffset = static_cast<int64_t>(loadOps[6].valueU64) + byteIndex;
+                if (nonzeroBytes == 1 && narrowedOffset >= INT32_MIN && narrowedOffset <= INT32_MAX)
+                {
+                    immediateFoldBits   = MicroOpBits::B8;
+                    immediateFoldValue  = (masked >> (byteIndex * 8)) & 0xFF;
+                    immediateFoldOffset = static_cast<uint64_t>(narrowedOffset);
+                }
+            }
+
+            const bool immediateFits = immediateFoldBits == MicroOpBits::B8 ? immediateFoldValue <= 0xFF :
+                                       immediateFoldBits == MicroOpBits::B16 ? immediateFoldValue <= 0xFFFF :
+                                       immediateFoldBits == MicroOpBits::B32 ? immediateFoldValue <= 0xFFFFFFFF :
+                                       immediateFoldValue <= 0x7FFFFFFF || immediateFoldValue >= 0xFFFFFFFF80000000;
             if (!immediateFits)
                 return false;
 
@@ -286,11 +315,11 @@ namespace InstructionCombine
         }
         else if (immediateUpdate)
         {
-            update[2] = loadOps[3];
+            update[2].opBits = immediateFoldBits;
             update[3] = loadOps[4];
             update[4] = loadOps[5];
-            update[5] = loadOps[6];
-            update[6] = opOps[3];
+            update[5].valueU64 = immediateFoldOffset;
+            update[6].valueU64 = immediateFoldValue;
             update[7] = opOps[2];
             ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryAmcMemImm, update, /*allocNewBlock=*/true);
         }

@@ -149,6 +149,8 @@ After the final two batches, build 875 passed all 3,379 native tests and the
 three expected-failure recovery probes. Build 877 then rebuilt the combined
 compiler, passed both indexed variable-shift and multiplication tests, and
 preserved LLVM-equal code sizes for all five functions in that final corpus.
+The final integrated binary also passed the independent zero-extended boolean
+comparison test and the repository integrity check.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

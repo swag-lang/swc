@@ -63,6 +63,7 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractSignBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryClearBeforeSetCondition);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryHoistNarrowZeroExtendAcrossUnary);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldNarrowUnsignedAverage);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);

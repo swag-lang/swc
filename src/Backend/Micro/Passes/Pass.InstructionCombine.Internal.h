@@ -174,6 +174,7 @@ namespace InstructionCombine
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryNarrowSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCaseRangePair(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowByteRangeCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

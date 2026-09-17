@@ -2396,9 +2396,9 @@ namespace
     }
 }
 
-// A byte selected on two paths and read back only as a byte is moved at 32
-// bits on both.
-SWC_TEST_BEGIN(InstCombine_ByteSelectReadAsByte_WidensToDword)
+// A byte selected on two paths and read back only as a byte is moved whole:
+// the copy writes the full register, the constant a dword.
+SWC_TEST_BEGIN(InstCombine_ByteSelectReadAsByte_WidensToWholeRegister)
 {
     constexpr MicroReg base   = MicroReg::virtualIntReg(1);
     constexpr MicroReg value  = MicroReg::virtualIntReg(2);
@@ -2422,7 +2422,7 @@ SWC_TEST_BEGIN(InstCombine_ByteSelectReadAsByte_WidensToDword)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (!hasLoadRegRegBits(builder, merged, MicroOpBits::B32))
+    if (!hasLoadRegRegBits(builder, merged, MicroOpBits::B64))
         return Result::Error;
     bool wideImmediate = false;
     for (const MicroInstr& inst : builder.instructions().view())
@@ -3367,6 +3367,67 @@ SWC_TEST_BEGIN(InstCombine_DwordSumSignExtend_Kept)
     SWC_RESULT(runInstCombinePass(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // cmp; cmov (qword) D, S; then D read at `readBits` and stored.
+    void emitWideSelect(MicroBuilder& builder, MicroOpBits readBits)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg right = MicroReg::virtualIntReg(3);
+        constexpr MicroReg wide  = MicroReg::virtualIntReg(4);
+
+        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(right, base, 8, MicroOpBits::B64);
+        builder.emitCmpRegImm(left, ApInt(uint64_t{0}, 64), MicroOpBits::B32);
+        builder.emitLoadCondRegReg(left, right, MicroCond::GreaterOrEqual, MicroOpBits::B64);
+        if (readBits == MicroOpBits::B32)
+            builder.emitLoadSignedExtendRegReg(wide, left, MicroOpBits::B64, MicroOpBits::B32);
+        else
+            builder.emitLoadRegReg(wide, left, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 16, wide, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    MicroOpBits firstSelectBits(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadCondRegReg)
+                return inst.ops(builder.operands())[3].opBits;
+        }
+        return MicroOpBits::Zero;
+    }
+}
+
+// A qword select read as a dword selects dwords.
+SWC_TEST_BEGIN(InstCombine_SelectReadAsDword_Narrows)
+{
+    MicroBuilder builder(ctx);
+    emitWideSelect(builder, MicroOpBits::B32);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (firstSelectBits(builder) != MicroOpBits::B32)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Read whole, it stays a qword select.
+SWC_TEST_BEGIN(InstCombine_SelectReadWhole_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitWideSelect(builder, MicroOpBits::B64);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (firstSelectBits(builder) != MicroOpBits::B64)
         return Result::Error;
     return Result::Continue;
 }

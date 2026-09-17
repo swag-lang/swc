@@ -17,6 +17,8 @@ namespace InstructionCombine
     namespace
     {
         constexpr uint32_t K_MAX_DEMAND_DEPTH = 4;
+        // A chain of selects, one per `if`, passes its value through each.
+        constexpr uint32_t K_MAX_SELECT_DEPTH = 24;
 
         // The width of a byte or word operation that updates `reg` in place, or
         // 0: such an operation reads its own bits and carries the rest of the
@@ -93,6 +95,17 @@ namespace InstructionCombine
                     if (!resultInfo)
                         return 64;
                     bits = std::max(partialBits, demandedBits(ssa, storage, operands, *resultInfo, reg, depth + 1, visitedPhis));
+                }
+                // A select carries the value it keeps through, at its width.
+                if (useInst->op == MicroInstrOpcode::LoadCondRegReg && useOps[0].reg == reg && useOps[1].reg != reg && depth < K_MAX_SELECT_DEPTH)
+                {
+                    uint32_t resultValueId = 0;
+                    if (!ssa.defValue(reg, useSite.instRef, resultValueId))
+                        return 64;
+                    const auto* resultInfo = ssa.valueInfo(resultValueId);
+                    if (!resultInfo)
+                        return 64;
+                    bits = std::min(getNumBits(useOps[3].opBits), demandedBits(ssa, storage, operands, *resultInfo, reg, depth + 1, visitedPhis));
                 }
                 if (useInst->op == MicroInstrOpcode::LoadRegReg && useOps[1].reg == reg && useOps[0].reg != reg &&
                     useOps[0].reg.isVirtual() && depth < K_MAX_DEMAND_DEPTH)
@@ -668,6 +681,57 @@ namespace InstructionCombine
         return true;
     }
 
+    // A 64-bit select whose result is only read on its low 32 bits selects at
+    // 32 bits: a branch turned into a select takes the width of its widest
+    // arm, and the narrower arm then needs a zero-extending copy the dword
+    // select no longer asks for.
+    bool tryNarrowSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].opBits != MicroOpBits::B64 || !ops[0].reg.isVirtualInt() || !ops[1].reg.isAnyInt())
+            return false;
+
+        uint32_t valueId = 0;
+        if (!ctx.ssa->defValue(ops[0].reg, ref, valueId))
+            return false;
+        const auto* valueInfo = ctx.ssa->valueInfo(valueId);
+        if (!valueInfo || valueInfo->uses.empty())
+            return false;
+        SmallVector<uint32_t> visitedPhis;
+        if (demandedBits(*ctx.ssa, *ctx.storage, *ctx.operands, *valueInfo, ops[0].reg, 0, visitedPhis) > 32)
+            return false;
+
+        // The readers keep reading no more than the low half during the sweep.
+        // A reading select narrows by this same rule, from the same demand, so
+        // a chain of them narrows in one sweep.
+        const auto isSelect = [&](MicroInstrRef useRef) {
+            const MicroInstr* useInst = ctx.storage->ptr(useRef);
+            return useInst && useInst->op == MicroInstrOpcode::LoadCondRegReg;
+        };
+        for (const auto& useSite : valueInfo->uses)
+        {
+            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction && !isSelect(useSite.instRef) && ctx.isClaimed(useSite.instRef))
+                return false;
+        }
+        if (!ctx.claimAll({ref}))
+            return false;
+        for (const auto& useSite : valueInfo->uses)
+        {
+            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction && !isSelect(useSite.instRef))
+                ctx.claimed.insert(useSite.instRef.get());
+        }
+
+        MicroInstrOperand narrowOps[4];
+        for (size_t i = 0; i < 4; ++i)
+            narrowOps[i] = ops[i];
+        narrowOps[3].opBits = MicroOpBits::B32;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadCondRegReg, narrowOps);
+        return true;
+    }
+
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa)
@@ -788,7 +852,10 @@ namespace InstructionCombine
         MicroInstrOperand moveOps[3];
         moveOps[0].reg    = dst;
         moveOps[1].reg    = src;
-        moveOps[2].opBits = partial ? MicroOpBits::B32 : MicroOpBits::B64;
+        // A byte or word copy read on at most 32 bits moves the whole register at
+        // once: both widths write all of it, and the full move is the one copy
+        // elimination merges, a sweep earlier.
+        moveOps[2].opBits = MicroOpBits::B64;
         ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, moveOps);
         return true;
     }

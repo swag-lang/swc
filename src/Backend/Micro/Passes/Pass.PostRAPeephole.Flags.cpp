@@ -490,6 +490,117 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Select between `a + b` and `a - b` by selecting the sign of `b`, then
+    // adding `a` once. The masked flag and `a` must both die with the select
+    // because the shorter sequence keeps their original values until then.
+    bool tryFoldConditionalAddSubtract(Context& ctx, const MicroInstrRef maskRef, const MicroInstr& maskInst)
+    {
+        if (ctx.isClaimed(maskRef) || !ctx.encoder || maskInst.op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const auto* mask = maskInst.ops(*ctx.operands);
+        if (!mask || !mask[0].reg.isInt() || ctx.isPrivateFrameBase(mask[0].reg) ||
+            (mask[1].opBits != MicroOpBits::B32 && mask[1].opBits != MicroOpBits::B64) ||
+            mask[2].microOp != MicroOp::And || mask[3].hasWideImmediateValue() || mask[3].valueU64 != 1)
+            return false;
+        const MicroReg    flag = mask[0].reg;
+        const MicroOpBits bits = mask[1].opBits;
+
+        const MicroInstrRef sumRef = ctx.nextRef(maskRef);
+        const MicroInstr*   sum    = ctx.instruction(sumRef);
+        const auto*         summed = sum ? sum->ops(*ctx.operands) : nullptr;
+        if (!sum || sum->op != MicroInstrOpcode::LoadAddrAmcRegMem || !summed ||
+            !summed[0].reg.isInt() || !summed[1].reg.isInt() || !summed[2].reg.isInt() ||
+            summed[3].opBits != bits || summed[4].opBits != MicroOpBits::B64 ||
+            summed[5].hasWideImmediateValue() || summed[5].valueU64 != 1 ||
+            summed[6].hasWideImmediateValue() || summed[6].valueU64 != 0)
+            return false;
+        const MicroReg result = summed[0].reg;
+
+        const MicroInstrRef differenceRef = ctx.nextRef(sumRef);
+        const MicroInstr*   difference    = ctx.instruction(differenceRef);
+        const auto*         sub           = difference ? difference->ops(*ctx.operands) : nullptr;
+        if (!difference || difference->op != MicroInstrOpcode::OpBinaryRegReg || !sub ||
+            !sub[0].reg.isInt() || !sub[1].reg.isInt() || sub[2].opBits != bits || sub[3].microOp != MicroOp::Subtract ||
+            !((summed[1].reg == sub[0].reg && summed[2].reg == sub[1].reg) ||
+              (summed[1].reg == sub[1].reg && summed[2].reg == sub[0].reg)))
+            return false;
+        const MicroReg left  = sub[0].reg;
+        const MicroReg right = sub[1].reg;
+        if (result == left || result == right || result == flag || left == flag || right == flag ||
+            ctx.isPrivateFrameBase(result) || ctx.isPrivateFrameBase(left) || ctx.isPrivateFrameBase(right))
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(differenceRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         compared   = compare ? compare->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef selectRef  = ctx.nextRef(compareRef);
+        const MicroInstr*   select     = ctx.instruction(selectRef);
+        const auto*         selected   = select ? select->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegImm || !compared ||
+            compared[0].reg != flag || compared[1].opBits != bits ||
+            compared[2].hasWideImmediateValue() || compared[2].valueU64 != 0 ||
+            !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != left ||
+            selected[2].cpuCond != MicroCond::Equal || selected[3].opBits != bits ||
+            !ctx.isRegDeadAfter(left, ctx.instructionIndex + 4) ||
+            !ctx.isRegDeadAfter(flag, ctx.instructionIndex + 4) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand copy[3] = {};
+        copy[0].reg               = result;
+        copy[1].reg               = right;
+        copy[2].opBits            = bits;
+        MicroInstr copyProbe;
+        copyProbe.op          = MicroInstrOpcode::LoadRegReg;
+        copyProbe.numOperands = 3;
+        MicroInstrOperand negate[3] = {};
+        negate[0].reg               = result;
+        negate[1].opBits            = bits;
+        negate[2].microOp           = MicroOp::Negate;
+        MicroInstr negateProbe;
+        negateProbe.op          = MicroInstrOpcode::OpUnaryReg;
+        negateProbe.numOperands = 3;
+        MicroInstrOperand test[3] = {};
+        test[0].reg               = flag;
+        test[1].opBits            = MicroOpBits::B8;
+        test[2].valueU64          = 1;
+        MicroInstr testProbe;
+        testProbe.op          = MicroInstrOpcode::TestRegImm;
+        testProbe.numOperands = 3;
+        MicroInstrOperand choose[4] = {};
+        choose[0].reg               = result;
+        choose[1].reg               = right;
+        choose[2].cpuCond           = MicroCond::NotEqual;
+        choose[3].opBits            = bits;
+        MicroInstr chooseProbe;
+        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands = 4;
+        MicroInstrOperand add[4] = {};
+        add[0].reg               = result;
+        add[1].reg               = left;
+        add[2].opBits            = bits;
+        add[3].microOp           = MicroOp::Add;
+        MicroInstr addProbe;
+        addProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        addProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, copyProbe, copy) ||
+            ctx.encoder->queryConformanceIssue(issue, negateProbe, negate) ||
+            ctx.encoder->queryConformanceIssue(issue, testProbe, test) ||
+            ctx.encoder->queryConformanceIssue(issue, chooseProbe, choose) ||
+            ctx.encoder->queryConformanceIssue(issue, addProbe, add) ||
+            !ctx.claimAll({maskRef, sumRef, differenceRef, compareRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(maskRef, copyProbe.op, copy);
+        ctx.emitRewrite(sumRef, negateProbe.op, negate);
+        ctx.emitRewrite(differenceRef, testProbe.op, test);
+        ctx.emitRewrite(compareRef, chooseProbe.op, choose);
+        ctx.emitRewrite(selectRef, addProbe.op, add);
+        return true;
+    }
+
     namespace
     {
         // ALU ops that set ZF/SF/PF from their register result exactly as

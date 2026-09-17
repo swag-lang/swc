@@ -41,6 +41,7 @@ namespace
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldCarryMask);
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldZeroComparisonMask);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldZeroBooleanProduct);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldUnsignedAverage);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCarryArithmetic);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCarryComparisonSum);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldZeroTestBooleanSum);

@@ -2562,6 +2562,55 @@ SWC_TEST_BEGIN(InstCombine_BooleanMergeCopy_KeepsByteWidth)
 }
 SWC_TEST_END()
 
+// cmp's left operand loaded just before it: the compare reads memory.
+SWC_TEST_BEGIN(InstCombine_LeftCompareLoad_FoldsIntoMemoryCompare)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    constexpr MicroReg flag  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(right, base, 8, MicroOpBits::B8);
+    builder.emitLoadRegMem(left, base, 2, MicroOpBits::B8);
+    builder.emitCmpRegReg(left, right, MicroOpBits::B8);
+    builder.emitSetCondReg(flag, MicroCond::Less);
+    builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemReg) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Folding the right operand would reverse the compare: it stays a register.
+SWC_TEST_BEGIN(InstCombine_RightCompareLoad_Kept)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    constexpr MicroReg flag  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegReg(left, base, MicroOpBits::B64);
+    builder.emitLoadRegMem(right, base, 8, MicroOpBits::B64);
+    builder.emitCmpRegReg(left, right, MicroOpBits::B64);
+    builder.emitSetCondReg(flag, MicroCond::Less);
+    builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

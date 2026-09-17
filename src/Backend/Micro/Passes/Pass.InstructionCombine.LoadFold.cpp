@@ -150,6 +150,73 @@ namespace InstructionCombine
         return false;
     }
 
+    // The left operand of a register compare loaded just before it compares
+    // in place, as `cmp byte [rcx + 2], dl` does in a struct equality:
+    //
+    //     LoadRegMem vt, [base + disp]         CmpMemReg [base + disp], rhs
+    //     CmpRegReg  vt, rhs              ->
+    //
+    // The operands keep their order, so the flags mean the same thing.
+    bool tryFoldLoadIntoRegCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+
+        // LoadRegMem: [dst, base, loadBits, offset].
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroReg    base     = loadOps[1].reg;
+        const MicroOpBits loadBits = loadOps[2].opBits;
+        if (!vt.isVirtualInt() || !base.isAnyInt() || base == vt || keepAccessScalar(ctx, loadRef, base))
+            return false;
+        if (!valueHasSingleUse(*ctx.ssa, vt, loadRef))
+            return false;
+
+        MicroStorage::Iterator walker;
+        if (!findAnchorPosition(walker, *ctx.storage, loadRef))
+            return false;
+        ++walker;
+
+        const auto endIt = ctx.storage->view().end();
+        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
+        {
+            const MicroInstr& w = *walker;
+            if (isControlOrCall(w) || writesMemory(w))
+                return false;
+
+            const auto* useDef = ctx.ssa->instrUseDef(walker.current);
+            if (!useDef || microRegSpanContains(useDef->defs, base))
+                return false;
+            if (!microRegSpanContains(useDef->uses, vt) && !microRegSpanContains(useDef->defs, vt))
+                continue;
+
+            // CmpRegReg: [lhs, rhs, opBits].
+            const MicroInstrOperand* wOps = w.ops(*ctx.operands);
+            if (w.op != MicroInstrOpcode::CmpRegReg || !wOps || wOps[0].reg != vt || wOps[1].reg == vt || !wOps[1].reg.isAnyInt() ||
+                wOps[2].opBits != loadBits)
+                return false;
+
+            const MicroInstrRef cmpRef = walker.current;
+            if (!ctx.claimAll({loadRef, cmpRef}))
+                return false;
+
+            // CmpMemReg: [base, reg, opBits, offset].
+            MicroInstrOperand newOps[4];
+            newOps[0].reg      = base;
+            newOps[1].reg      = wOps[1].reg;
+            newOps[2].opBits   = loadBits;
+            newOps[3].valueU64 = loadOps[3].valueU64;
+            ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpMemReg, newOps, /*allocNewBlock=*/true);
+            ctx.emitErase(loadRef);
+            return true;
+        }
+
+        return false;
+    }
+
     // Fuse a plain load feeding a widening of the loaded bits into one
     // extending load, as the indexed forms below do for arrays:
     //

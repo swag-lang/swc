@@ -77,7 +77,7 @@ namespace InstructionCombine
         // Note: shifts are NOT foldable here (no `shl reg, [mem]` form), but
         // MultiplySigned IS (`imul reg, [mem]`), unlike the memory-destination
         // set covered by isMemFoldableOp.
-        bool isRegMemFoldableOp(MicroOp op)
+        bool isRegMemFoldableOp(MicroOp op, MicroOpBits opBits)
         {
             switch (op)
             {
@@ -90,7 +90,7 @@ namespace InstructionCombine
                 case MicroOp::PopCount:
                 case MicroOp::LeadingZeroCount:
                 case MicroOp::TrailingZeroCount:
-                    return true;
+                    return opBits != MicroOpBits::B8;
                 default:
                     return false;
             }
@@ -178,7 +178,7 @@ namespace InstructionCombine
 
             if (rhsReg != vt || dstReg == vt)
                 return false;
-            if (opBits != loadBits || !isRegMemFoldableOp(microOp))
+            if (opBits != loadBits || !isRegMemFoldableOp(microOp, opBits))
                 return false;
 
             const MicroInstrRef opRef = walker.current;
@@ -269,7 +269,7 @@ namespace InstructionCombine
 
             const MicroInstrOperand* wOps = w.ops(*ctx.operands);
             if (w.op != MicroInstrOpcode::OpBinaryRegReg || !wOps || wOps[1].reg != vt || wOps[0].reg == vt ||
-                wOps[2].opBits != loadOps[2].opBits || !isRegMemFoldableOp(wOps[3].microOp) ||
+                wOps[2].opBits != loadOps[2].opBits || !isRegMemFoldableOp(wOps[3].microOp, wOps[2].opBits) ||
                 (wOps[3].microOp == MicroOp::MultiplySigned && wOps[2].opBits == MicroOpBits::B8))
                 return false;
 
@@ -342,7 +342,7 @@ namespace InstructionCombine
 
             const MicroInstrOperand* wOps = w.ops(*ctx.operands);
             if (w.op != MicroInstrOpcode::OpBinaryRegReg || !wOps || wOps[1].reg != vt || wOps[0].reg == vt ||
-                wOps[2].opBits != loadBits || !isRegMemFoldableOp(wOps[3].microOp) ||
+                wOps[2].opBits != loadBits || !isRegMemFoldableOp(wOps[3].microOp, wOps[2].opBits) ||
                 (wOps[3].microOp == MicroOp::MultiplySigned && loadBits == MicroOpBits::B8))
                 return false;
 

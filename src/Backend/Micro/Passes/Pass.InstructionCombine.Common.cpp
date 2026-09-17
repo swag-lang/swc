@@ -198,6 +198,15 @@ namespace InstructionCombine
             case MicroInstrOpcode::LoadZeroExtRegReg:
                 return useOps[1].reg == reg ? useOps[3].opBits : MicroOpBits::Zero;
 
+            // An address computed at 32 bits is truncated to them, so only the
+            // low half of its base and index reaches the result. A memory
+            // access above reads them whole: the address it forms is not.
+            case MicroInstrOpcode::LoadAddrRegMem:
+                return useOps[1].reg == reg ? useOps[2].opBits : MicroOpBits::Zero;
+
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                return useOps[1].reg == reg || useOps[2].reg == reg ? useOps[3].opBits : MicroOpBits::Zero;
+
             default:
                 return MicroOpBits::Zero;
         }

@@ -175,6 +175,12 @@ namespace InstructionCombine
         if (!addressOps || addressOps[0].reg != address || addressOps[3].opBits != MicroOpBits::B64 || addressOps[4].opBits != MicroOpBits::B64)
             return false;
 
+        // A memory operand only scales by 1, 2, 4 or 8: the address of a wider
+        // element stays a separate computation the legalizer can split.
+        const uint64_t scale = addressOps[5].valueU64;
+        if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
+            return false;
+
         const MicroReg base  = addressOps[1].reg;
         const MicroReg index = addressOps[2].reg;
         const auto     baseAtAddress  = ctx.ssa->reachingDef(base, reaching.instRef);

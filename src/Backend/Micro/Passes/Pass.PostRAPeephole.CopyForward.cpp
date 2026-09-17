@@ -853,6 +853,134 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Keep a two-step narrow min/max cascade in its zero-extended input
+    // registers instead of copying each selected value through a temporary.
+    bool tryRetargetNarrowSelectCascade(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
+    {
+        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* extend = extendInst.ops(*ctx.operands);
+        if (!extend || extend[2].opBits != MicroOpBits::B64 ||
+            (extend[3].opBits != MicroOpBits::B8 && extend[3].opBits != MicroOpBits::B16) ||
+            !extend[0].reg.isInt() || !extend[1].reg.isInt() || extend[0].reg == extend[1].reg)
+            return false;
+        const MicroReg    result = extend[0].reg;
+        const MicroReg    final  = extend[1].reg;
+        const MicroOpBits bits   = extend[3].opBits;
+        if (!ctx.isRegDeadAfterCurrent(final))
+            return false;
+
+        const MicroInstrRef secondSelectRef = ctx.previousRef(extendRef);
+        const MicroInstr*   secondSelect    = ctx.instruction(secondSelectRef);
+        const auto*         secondSelected  = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef secondCmpRef    = ctx.previousRef(secondSelectRef);
+        const MicroInstr*   secondCmp       = ctx.instruction(secondCmpRef);
+        const auto*         secondCompared = secondCmp ? secondCmp->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef finalCopyRef    = ctx.previousRef(secondCmpRef);
+        const MicroInstr*   finalCopy       = ctx.instruction(finalCopyRef);
+        const auto*         finalCopied     = finalCopy ? finalCopy->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef thirdLoadRef    = ctx.previousRef(finalCopyRef);
+        const MicroInstr*   thirdLoad       = ctx.instruction(thirdLoadRef);
+        const auto*         thirdLoaded     = thirdLoad ? thirdLoad->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstSelectRef  = ctx.previousRef(thirdLoadRef);
+        const MicroInstr*   firstSelect     = ctx.instruction(firstSelectRef);
+        const auto*         firstSelected   = firstSelect ? firstSelect->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstCmpRef     = ctx.previousRef(firstSelectRef);
+        const MicroInstr*   firstCmp        = ctx.instruction(firstCmpRef);
+        const auto*         firstCompared  = firstCmp ? firstCmp->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstCopyRef    = ctx.previousRef(firstCmpRef);
+        const MicroInstr*   firstCopy       = ctx.instruction(firstCopyRef);
+        const auto*         firstCopied     = firstCopy ? firstCopy->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef otherLoadRef    = ctx.previousRef(firstCopyRef);
+        const MicroInstr*   otherLoad       = ctx.instruction(otherLoadRef);
+        const auto*         otherLoaded     = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstLoadRef    = ctx.previousRef(otherLoadRef);
+        const MicroInstr*   firstLoad       = ctx.instruction(firstLoadRef);
+        const auto*         firstLoaded     = firstLoad ? firstLoad->ops(*ctx.operands) : nullptr;
+        if (!secondSelect || secondSelect->op != MicroInstrOpcode::LoadCondRegReg || !secondSelected ||
+            secondSelected[0].reg != final || secondSelected[3].opBits != MicroOpBits::B32 ||
+            !secondCmp || secondCmp->op != MicroInstrOpcode::CmpRegReg || !secondCompared ||
+            secondCompared[0].reg != result || secondCompared[2].opBits != bits ||
+            !finalCopy || finalCopy->op != MicroInstrOpcode::LoadRegReg || !finalCopied ||
+            finalCopied[0].reg != final || finalCopied[1].reg != result || finalCopied[2].opBits != MicroOpBits::B64 ||
+            !thirdLoad || thirdLoad->op != MicroInstrOpcode::LoadAmcRegMem || !thirdLoaded ||
+            thirdLoaded[0].reg != result || thirdLoaded[3].opBits != bits || thirdLoaded[4].opBits != MicroOpBits::B64 ||
+            !firstSelect || firstSelect->op != MicroInstrOpcode::LoadCondRegReg || !firstSelected ||
+            firstSelected[3].opBits != MicroOpBits::B32 ||
+            !firstCmp || firstCmp->op != MicroInstrOpcode::CmpRegReg || !firstCompared ||
+            firstCompared[0].reg != result || firstCompared[2].opBits != bits ||
+            !firstCopy || firstCopy->op != MicroInstrOpcode::LoadRegReg || !firstCopied ||
+            firstCopied[1].reg != result || firstCopied[2].opBits != MicroOpBits::B64 ||
+            !otherLoad || otherLoad->op != MicroInstrOpcode::LoadAmcRegMem || !otherLoaded ||
+            otherLoaded[3].opBits != bits || otherLoaded[4].opBits != MicroOpBits::B64 ||
+            !firstLoad || firstLoad->op != MicroInstrOpcode::LoadAmcRegMem || !firstLoaded ||
+            firstLoaded[0].reg != result || firstLoaded[3].opBits != bits || firstLoaded[4].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg temporary = firstCopied[0].reg;
+        const MicroReg other     = otherLoaded[0].reg;
+        if (!temporary.isInt() || !other.isInt() || temporary == result || temporary == other || other == result ||
+            firstCompared[1].reg != other || firstSelected[0].reg != temporary || firstSelected[1].reg != other ||
+            secondCompared[1].reg != temporary || secondSelected[1].reg != temporary ||
+            !ctx.isRegDeadAfterCurrent(temporary))
+            return false;
+
+        MicroInstrOperand widenedFirstLoad[7];
+        MicroInstrOperand widenedOtherLoad[7];
+        MicroInstrOperand widenedThirdLoad[7];
+        std::copy_n(firstLoaded, 7, widenedFirstLoad);
+        std::copy_n(otherLoaded, 7, widenedOtherLoad);
+        std::copy_n(thirdLoaded, 7, widenedThirdLoad);
+        for (MicroInstrOperand* loadOps : {widenedFirstLoad, widenedOtherLoad, widenedThirdLoad})
+        {
+            loadOps[3].opBits = MicroOpBits::B32;
+            loadOps[4].opBits = bits;
+        }
+        widenedThirdLoad[0].reg = final;
+        MicroInstr loadProbe;
+        loadProbe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        loadProbe.numOperands = 7;
+
+        MicroInstrOperand rewrittenFirstSelect[4] = {firstSelected[0], firstSelected[1], firstSelected[2], firstSelected[3]};
+        rewrittenFirstSelect[0].reg               = result;
+        rewrittenFirstSelect[1].reg               = other;
+        MicroInstrOperand rewrittenSecondCmp[3] = {secondCompared[0], secondCompared[1], secondCompared[2]};
+        rewrittenSecondCmp[0].reg               = final;
+        rewrittenSecondCmp[1].reg               = result;
+        MicroInstrOperand rewrittenSecondSelect[4] = {secondSelected[0], secondSelected[1], secondSelected[2], secondSelected[3]};
+        rewrittenSecondSelect[0].reg               = result;
+        rewrittenSecondSelect[1].reg               = final;
+        switch (secondSelected[2].cpuCond)
+        {
+            case MicroCond::Above: rewrittenSecondSelect[2].cpuCond = MicroCond::Below; break;
+            case MicroCond::Below: rewrittenSecondSelect[2].cpuCond = MicroCond::Above; break;
+            case MicroCond::AboveOrEqual: rewrittenSecondSelect[2].cpuCond = MicroCond::BelowOrEqual; break;
+            case MicroCond::BelowOrEqual: rewrittenSecondSelect[2].cpuCond = MicroCond::AboveOrEqual; break;
+            default: return false;
+        }
+
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedFirstLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedOtherLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedThirdLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, *firstSelect, rewrittenFirstSelect) ||
+            ctx.encoder->queryConformanceIssue(issue, *secondCmp, rewrittenSecondCmp) ||
+            ctx.encoder->queryConformanceIssue(issue, *secondSelect, rewrittenSecondSelect) ||
+            !ctx.claimAll({firstLoadRef, otherLoadRef, firstCopyRef, firstCmpRef, firstSelectRef, thirdLoadRef,
+                           finalCopyRef, secondCmpRef, secondSelectRef, extendRef}))
+            return false;
+        ctx.emitRewrite(firstLoadRef, loadProbe.op, widenedFirstLoad, true);
+        ctx.emitRewrite(otherLoadRef, loadProbe.op, widenedOtherLoad, true);
+        ctx.emitErase(firstCopyRef);
+        ctx.emitRewrite(firstSelectRef, firstSelect->op, rewrittenFirstSelect);
+        ctx.emitRewrite(thirdLoadRef, loadProbe.op, widenedThirdLoad, true);
+        ctx.emitErase(finalCopyRef);
+        ctx.emitRewrite(secondCmpRef, secondCmp->op, rewrittenSecondCmp);
+        ctx.emitRewrite(secondSelectRef, secondSelect->op, rewrittenSecondSelect);
+        ctx.emitErase(extendRef);
+        return true;
+    }
+
     // Retarget a two-step add/multiply computation as one unit so forwarding
     // cannot reintroduce its removed result copy on the next sweep.
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

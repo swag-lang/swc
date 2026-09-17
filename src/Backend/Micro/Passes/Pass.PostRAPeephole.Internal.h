@@ -111,6 +111,7 @@ namespace PostRaPeephole
     bool tryHoistNarrowZeroExtendAcrossUnary(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryRetargetNarrowZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryRetargetNarrowAbsoluteDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryRetargetNarrowSelectCascade(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     void eraseRedundantUpperHalfClears(Context& ctx);
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

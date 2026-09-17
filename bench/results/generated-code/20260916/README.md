@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 927 (3ca20d5a4) are
+corpus. Focused continuation measurements through build 931 (a0c992d14) are
 recorded below.
 
 ## Machine-code measurements
@@ -58,13 +58,15 @@ baseline.
 | 874 | Indexed variable shifts | 3 | 54 | 32 | 32 |
 | 875 | Indexed multiplication | 2 | 24 | 20 | 20 |
 
-Six later exploratory rounds added 62 small scalar functions. They cover bit
+Seven later exploratory rounds added 70 small scalar functions. They cover bit
 counts, power-of-two tests, min/max/clamp chains, median-of-three selections,
 overflow-safe averages, saturating arithmetic, rotates, narrow signed returns
-and byte/word result handling. The measured Swag total is smaller than LLVM in
-three rounds and equal in one. The other two round totals are larger only
-because Swag canonicalizes signed `s32` returns. The only other larger function
-is the `u16` median-of-three at 46 bytes versus LLVM's 45.
+and byte/word result handling. Through round 24, the measured Swag total is
+smaller than LLVM in three rounds and equal in one. The other two round totals
+are larger only because Swag canonicalizes signed `s32` returns. The only other
+larger function there is the `u16` median-of-three at 46 bytes versus LLVM's 45.
+Round 25 deliberately probes branch-heavy `u8` expressions and records the
+remaining gaps for later work.
 
 | Round | Measured build | Functions | Swag bytes | LLVM bytes | Larger / equal / smaller |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -74,6 +76,7 @@ is the `u16` median-of-three at 46 bytes versus LLVM's 45.
 | 22 | 918 | 9 | 268 | 263 | 2 / 7 / 0 |
 | 23 | 919 | 11 | 272 | 268 | 4 / 4 / 3 |
 | 24 | 927 | 10 | 213 | 215 | 1 / 7 / 2 |
+| 25 | 931 | 8 | 232 | 191 | 4 / 3 / 1 |
 
 Notable late reductions include unsigned and signed `median3` chains, repeated
 comparison reuse, direct narrow conditional results, and widened overflow-safe
@@ -86,6 +89,7 @@ The narrow-result continuation reduces `u16` floor and ceiling averages from
 28 bytes to 14 and 16, saturating add from 31 to 21, saturating subtract from
 21 to 17, absolute difference from 25 to 21, and median-of-three from 60 to
 46. Rotations, byte swaps and three-value min/max chains now match LLVM.
+The `u8` saturating-add follow-up reduces 29 bytes to 22; LLVM emits 20.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware

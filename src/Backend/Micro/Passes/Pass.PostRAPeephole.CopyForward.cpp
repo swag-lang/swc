@@ -607,6 +607,79 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A byte or word rotate/byte-swap preserves every bit above its operand.
+    // Zero-extend the source load instead, so those preserved bits are already
+    // clear and the final self-extension has nothing left to do.
+    //
+    //     load16       R, [base + index*2]
+    //     rotate16     R, 5
+    //     zero_extend  R, R, b64 <- b16
+    //   ->
+    //     zero_load    R, [base + index*2], b64 <- b16
+    //     rotate16     R, 5
+    bool tryHoistNarrowZeroExtendAcrossUnary(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
+    {
+        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* extend = extendInst.ops(*ctx.operands);
+        if (!extend || extend[0].reg != extend[1].reg || !extend[0].reg.isInt() ||
+            (extend[2].opBits != MicroOpBits::B32 && extend[2].opBits != MicroOpBits::B64) ||
+            (extend[3].opBits != MicroOpBits::B8 && extend[3].opBits != MicroOpBits::B16))
+            return false;
+
+        const MicroReg      reg      = extend[0].reg;
+        const MicroOpBits   bits     = extend[3].opBits;
+        const MicroInstrRef unaryRef = ctx.previousRef(extendRef);
+        const MicroInstr*   unary    = ctx.instruction(unaryRef);
+        const auto*         unaryOps = unary ? unary->ops(*ctx.operands) : nullptr;
+        if (!unaryOps || unaryOps[0].reg != reg || unaryOps[1].opBits != bits)
+            return false;
+        if (unary->op == MicroInstrOpcode::OpBinaryRegImm)
+        {
+            if ((unaryOps[2].microOp != MicroOp::RotateLeft && unaryOps[2].microOp != MicroOp::RotateRight) ||
+                unaryOps[3].hasWideImmediateValue())
+                return false;
+        }
+        else if (unary->op != MicroInstrOpcode::OpUnaryReg || unaryOps[2].microOp != MicroOp::ByteSwap)
+            return false;
+
+        const MicroInstrRef loadRef = ctx.previousRef(unaryRef);
+        const MicroInstr*   load    = ctx.instruction(loadRef);
+        const auto*         loadOps = load ? load->ops(*ctx.operands) : nullptr;
+        if (!loadOps || loadOps[0].reg != reg)
+            return false;
+
+        MicroInstrOperand widened[8] = {};
+        MicroInstr        probe;
+        if (load->op == MicroInstrOpcode::LoadRegMem && loadOps[2].opBits == bits)
+        {
+            widened[0] = loadOps[0];
+            widened[1] = loadOps[1];
+            widened[2] = extend[2];
+            widened[3] = extend[3];
+            widened[4] = loadOps[3];
+            probe.op          = MicroInstrOpcode::LoadZeroExtRegMem;
+            probe.numOperands = 5;
+        }
+        else if (load->op == MicroInstrOpcode::LoadAmcRegMem && loadOps[3].opBits == bits && loadOps[4].opBits == MicroOpBits::B64)
+        {
+            std::copy_n(loadOps, 8, widened);
+            widened[3] = extend[2];
+            widened[4] = extend[3];
+            probe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+            probe.numOperands = 8;
+        }
+        else
+            return false;
+
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, widened) || !ctx.claimAll({loadRef, extendRef}))
+            return false;
+        ctx.emitRewrite(loadRef, probe.op, std::span{widened, probe.numOperands}, true);
+        ctx.emitErase(extendRef);
+        return true;
+    }
+
     // Retarget a two-step add/multiply computation as one unit so forwarding
     // cannot reintroduce its removed result copy on the next sweep.
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

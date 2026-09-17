@@ -215,15 +215,15 @@ namespace
         builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
     }
 
-    // A value loaded from memory goes straight into its lane when its address
-    // is a virtual register: the allocator keeps that address out of every
-    // lane loaded before it, as it does for a direct value.
+    // An integer loaded from memory goes straight into its lane when its
+    // address is pinned to that lane, as the call lowering pins it: no other
+    // lane's load can overwrite the address first.
     bool requiresRegisterArgHomeSlot(const ABICall::PreparedArg& arg)
     {
         if (arg.isFloat && arg.numBits == 128)
             return false;
         if (arg.isAddressed)
-            return !arg.srcReg.isVirtualInt();
+            return arg.isFloat || !arg.constrainToArgLane || !arg.srcReg.isVirtualInt();
         if (arg.isFloat)
             return !arg.srcReg.isVirtualFloat();
         return !arg.srcReg.isVirtualInt();

@@ -813,8 +813,22 @@ namespace
                 continue;
             }
 
-            if (arg.kind != ABICall::PreparedArgKind::Direct || arg.isAddressed)
+            if (arg.kind != ABICall::PreparedArgKind::Direct)
                 continue;
+
+            // An integer read from memory loads straight into its lane, through
+            // an address pinned to that lane like an interface's.
+            if (arg.isAddressed)
+            {
+                if (arg.isFloat || !arg.srcReg.isVirtualInt())
+                    continue;
+                const MicroReg argLaneAddressReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(argLaneAddressReg, arg.srcReg, MicroOpBits::B64);
+                builder.preserveVirtualCopy(argLaneAddressReg);
+                arg.srcReg             = argLaneAddressReg;
+                arg.constrainToArgLane = true;
+                continue;
+            }
 
             MicroReg argLaneSourceReg = MicroReg::invalid();
             if (arg.isFloat)

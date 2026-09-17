@@ -51,7 +51,7 @@ func conditionalNot64(value, flag: u64)->u64 => flag != 0 ? ~value : value
             Swag.assert(mask32(a, b) == (bit == 0 ? 0 : ~0'u32))
             Swag.assert(multipleUses(a, b) == ((bit << 32) | ((1 - bit) << 63)))
             Swag.assert(conditionalNot64(a, b) == (b == 0 ? a : ~a))
-            Swag.assert(conditionalNot32(cast(u32) a, cast(u32) b) == (cast(u32) b == 0 ? cast(u32) a : ~cast(u32) a))
+            Swag.assert(conditionalNot32(cast #wrap (u32) a, cast #wrap (u32) b) == (cast #wrap (u32) b == 0 ? cast #wrap (u32) a : ~cast #wrap (u32) a))
         }
     }
     Swag.assert(signedMask(-0x7FFFFFFFFFFFFFFF - 1, 0x7FFFFFFFFFFFFFFF) == -1)

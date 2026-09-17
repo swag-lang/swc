@@ -283,7 +283,8 @@ namespace InstructionCombine
                  (opOps[3].microOp != MicroOp::Add && opOps[3].microOp != MicroOp::Subtract &&
                   opOps[3].microOp != MicroOp::And && opOps[3].microOp != MicroOp::Or && opOps[3].microOp != MicroOp::Xor &&
                   opOps[3].microOp != MicroOp::ShiftLeft && opOps[3].microOp != MicroOp::ShiftArithmeticLeft &&
-                  opOps[3].microOp != MicroOp::ShiftRight && opOps[3].microOp != MicroOp::ShiftArithmeticRight))
+                  opOps[3].microOp != MicroOp::ShiftRight && opOps[3].microOp != MicroOp::ShiftArithmeticRight &&
+                  opOps[3].microOp != MicroOp::MultiplySigned))
         {
             return false;
         }
@@ -312,8 +313,33 @@ namespace InstructionCombine
             storeOps[3].opBits != loadOps[4].opBits || storeOps[4].opBits != loadOps[3].opBits ||
             storeOps[5].valueU64 != loadOps[5].valueU64 || storeOps[6].valueU64 != loadOps[6].valueU64)
             return false;
+
+        const bool registerMultiply = !immediateUpdate && !directUnaryUpdate && opOps[3].microOp == MicroOp::MultiplySigned;
+        if (registerMultiply && (copyRef.isValid() || loadOps[3].opBits == MicroOpBits::B8 || ctx.ssa->isRegUsedAfter(opOps[1].reg, opRef)))
+            return false;
         if (copyRef.isValid() ? !ctx.claimAll({loadRef, opRef, copyRef, storeRef}) : !ctx.claimAll({loadRef, opRef, storeRef}))
             return false;
+
+        if (registerMultiply)
+        {
+            // IMUL has a register destination and an indexed memory source.
+            // Reuse the dead right operand as that destination, then store it.
+            MicroInstrOperand multiply[8] = {};
+            multiply[0]                   = opOps[1];
+            multiply[1]                   = loadOps[1];
+            multiply[2]                   = loadOps[2];
+            multiply[3]                   = loadOps[3];
+            multiply[4]                   = loadOps[4];
+            multiply[5]                   = loadOps[5];
+            multiply[6]                   = loadOps[6];
+            multiply[7]                   = opOps[3];
+            MicroInstrOperand rewrittenStore[7] = {storeOps[0], storeOps[1], storeOps[2], storeOps[3], storeOps[4], storeOps[5], storeOps[6]};
+            rewrittenStore[2]                   = opOps[1];
+            ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegAmcMem, multiply, /*allocNewBlock=*/true);
+            ctx.emitRewrite(storeRef, MicroInstrOpcode::LoadAmcMemReg, rewrittenStore, /*allocNewBlock=*/true);
+            ctx.emitErase(loadRef);
+            return true;
+        }
 
         MicroInstrOperand update[8] = {};
         update[0]                   = loadOps[1];

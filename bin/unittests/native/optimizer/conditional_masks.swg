@@ -29,6 +29,12 @@ func multipleUses(a, b: u64)->u64
     return first | second
 }
 
+#[Swag.NoInline]
+func conditionalNot32(value, flag: u32)->u32 => flag != 0 ? ~value : value
+
+#[Swag.NoInline]
+func conditionalNot64(value, flag: u64)->u64 => flag != 0 ? ~value : value
+
 #test
 {
     let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
@@ -44,6 +50,8 @@ func multipleUses(a, b: u64)->u64
             Swag.assert(mask64(a, b) == (bit == 0 ? 0 : ~0'u64))
             Swag.assert(mask32(a, b) == (bit == 0 ? 0 : ~0'u32))
             Swag.assert(multipleUses(a, b) == ((bit << 32) | ((1 - bit) << 63)))
+            Swag.assert(conditionalNot64(a, b) == (b == 0 ? a : ~a))
+            Swag.assert(conditionalNot32(cast(u32) a, cast(u32) b) == (cast(u32) b == 0 ? cast(u32) a : ~cast(u32) a))
         }
     }
     Swag.assert(signedMask(-0x7FFFFFFFFFFFFFFF - 1, 0x7FFFFFFFFFFFFFFF) == -1)

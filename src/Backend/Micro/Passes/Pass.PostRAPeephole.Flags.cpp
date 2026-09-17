@@ -407,6 +407,89 @@ namespace PostRaPeephole
         }
     }
 
+    // Turn `flag != 0 ? ~value : value` into a zero/nonzero mask. NEG exposes
+    // nonzero as carry, SBB materializes the mask, and XOR applies it.
+    bool tryFoldConditionalBitwiseNot(Context& ctx, const MicroInstrRef compareRef, const MicroInstr& compareInst)
+    {
+        if (ctx.isClaimed(compareRef) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic() ||
+            compareInst.op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const auto* compared = compareInst.ops(*ctx.operands);
+        if (!compared || !compared[0].reg.isInt() || ctx.isPrivateFrameBase(compared[0].reg) ||
+            (compared[1].opBits != MicroOpBits::B32 && compared[1].opBits != MicroOpBits::B64) ||
+            compared[2].hasWideImmediateValue() || compared[2].valueU64 != 0)
+            return false;
+        const MicroReg    flag = compared[0].reg;
+        const MicroOpBits bits = compared[1].opBits;
+
+        const MicroInstrRef copyRef = ctx.nextRef(compareRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        const auto*         copied  = copy ? copy->ops(*ctx.operands) : nullptr;
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copied ||
+            !copied[0].reg.isInt() || !copied[1].reg.isInt() || copied[0].reg == copied[1].reg ||
+            copied[0].reg == flag || copied[1].reg == flag || ctx.isPrivateFrameBase(copied[0].reg) ||
+            (copied[2].opBits != bits && !(copied[2].opBits == MicroOpBits::B64 && bits == MicroOpBits::B32)))
+            return false;
+        const MicroReg result = copied[0].reg;
+        const MicroReg value  = copied[1].reg;
+
+        const MicroInstrRef notRef = ctx.nextRef(copyRef);
+        const MicroInstr*   bitNot = ctx.instruction(notRef);
+        const auto*         negated = bitNot ? bitNot->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef selectRef = ctx.nextRef(notRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!bitNot || bitNot->op != MicroInstrOpcode::OpUnaryReg || !negated ||
+            negated[0].reg != result || negated[1].opBits != bits || negated[2].microOp != MicroOp::BitwiseNot ||
+            !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != value || selected[2].cpuCond != MicroCond::Equal ||
+            selected[3].opBits != bits || !ctx.isRegDeadAfter(flag, ctx.instructionIndex + 3) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = result;
+        clear[1].opBits            = bits;
+        MicroInstr clearProbe;
+        clearProbe.op          = MicroInstrOpcode::ClearReg;
+        clearProbe.numOperands = 2;
+        MicroInstrOperand negate[3] = {};
+        negate[0].reg               = flag;
+        negate[1].opBits            = bits;
+        negate[2].microOp           = MicroOp::Negate;
+        MicroInstr negateProbe;
+        negateProbe.op          = MicroInstrOpcode::OpUnaryReg;
+        negateProbe.numOperands = 3;
+        MicroInstrOperand subtract[3] = {};
+        subtract[0].reg               = result;
+        subtract[1].reg               = result;
+        subtract[2].opBits            = bits;
+        MicroInstr subtractProbe;
+        subtractProbe.op          = MicroInstrOpcode::SubtractBorrowRegReg;
+        subtractProbe.numOperands = 3;
+        MicroInstrOperand apply[4] = {};
+        apply[0].reg               = result;
+        apply[1].reg               = value;
+        apply[2].opBits            = bits;
+        apply[3].microOp           = MicroOp::Xor;
+        MicroInstr applyProbe;
+        applyProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        applyProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, clearProbe, clear) ||
+            ctx.encoder->queryConformanceIssue(issue, negateProbe, negate) ||
+            ctx.encoder->queryConformanceIssue(issue, subtractProbe, subtract) ||
+            ctx.encoder->queryConformanceIssue(issue, applyProbe, apply) ||
+            !ctx.claimAll({compareRef, copyRef, notRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(compareRef, clearProbe.op, clear);
+        ctx.emitRewrite(copyRef, negateProbe.op, negate);
+        ctx.emitRewrite(notRef, subtractProbe.op, subtract);
+        ctx.emitRewrite(selectRef, applyProbe.op, apply);
+        return true;
+    }
+
     namespace
     {
         // ALU ops that set ZF/SF/PF from their register result exactly as

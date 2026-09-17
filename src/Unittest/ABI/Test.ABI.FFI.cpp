@@ -123,6 +123,32 @@ SWC_TEST_BEGIN(ABI_ReturnedNarrowIntegerMovesWithoutExtension)
 }
 SWC_TEST_END()
 
+// A register argument read through a virtual address loads straight into its
+// lane: no home slot is written.
+SWC_TEST_BEGIN(ABI_AddressedRegisterArgumentLoadsIntoItsLane)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(100);
+    const std::array   args    = {
+        ABICall::PreparedArg{.srcReg = MicroReg::virtualIntReg(101), .numBits = 64},
+        ABICall::PreparedArg{.srcReg = address, .isAddressed = true, .numBits = 8},
+    };
+
+    MicroBuilder builder(ctx);
+    ABICall::prepareArgs(builder, CallConvKind::Swag, args);
+
+    bool loaded = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadMemReg)
+            return Result::Error;
+        if (inst.op == MicroInstrOpcode::LoadZeroExtRegMem && ops[0].reg == CallConv::get(CallConvKind::Swag).intArgRegs[1] && ops[1].reg == address)
+            loaded = true;
+    }
+    return loaded ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // A C callee gets its narrow result extended, as the platform ABI has it.
 SWC_TEST_BEGIN(ABI_CReturnedNarrowIntegerIsExtended)
 {

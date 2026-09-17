@@ -1247,7 +1247,8 @@ namespace PostRaPeephole
         if (ctx.isClaimed(copyRef))
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
-        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+        if (!copy || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
             copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
             !ctx.isRegDeadAfterCurrent(copy[1].reg))
             return false;
@@ -1256,7 +1257,10 @@ namespace PostRaPeephole
         const MicroInstr*   select    = ctx.instruction(selectRef);
         const auto*         ops       = select ? select->ops(*ctx.operands) : nullptr;
         if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !ops ||
-            ops[0].reg != copy[1].reg || ops[1].reg != copy[0].reg || ops[3].opBits != copy[2].opBits)
+            ops[0].reg != copy[1].reg || ops[1].reg != copy[0].reg ||
+            (ops[3].opBits != copy[2].opBits &&
+             !(ops[3].opBits == MicroOpBits::B32 && copy[2].opBits == MicroOpBits::B64 &&
+               ctx.isUpperHalfZeroBefore(copyRef, copy[1].reg))))
             return false;
 
         MicroCond inverted;

@@ -35,6 +35,12 @@ func branch(a: u64, b: u32)->u64
     return cast(u64) (cast(u32) (a & 0xFFFFFFFF) + b)
 }
 
+#[Swag.NoInline]
+func maximumXor(a, b, c: u32)->u32 => Swag.max(a, b) ^ c
+
+#[Swag.NoInline]
+func minimumAdd(a, b, c: u32)->u32 => Swag.min(a, b) + c
+
 #test
 {
     let signedValues = [-2147483648's32, -2147483647, -65537, -9, -8, -7, -1, 0, 1, 7, 8, 9, 65537, 2147483647]
@@ -56,5 +62,11 @@ func branch(a: u64, b: u32)->u64
         }
         for count in [0'u32, 1, 7, 16, 31] do
             Swag.assert(shift(a, count) == (a ^ (low >> count)))
+    }
+    let narrowValues = [0'u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
+    for a in narrowValues do for b in narrowValues do for c in narrowValues
+    {
+        Swag.assert(maximumXor(a, b, c) == (a > b ? a : b) ^ c)
+        Swag.assert(minimumAdd(a, b, c) == (a < b ? a : b) + c)
     }
 }

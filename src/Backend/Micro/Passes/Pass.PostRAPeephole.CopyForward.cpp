@@ -502,6 +502,20 @@ namespace PostRaPeephole
             if (!regInList(useDef.uses.span(), copy[0].reg) && !regInList(useDef.defs.span(), copy[0].reg))
                 continue;
             const auto* ops = current->ops(*ctx.operands);
+            if (useDef.defs.empty())
+            {
+                MicroOpBits readBits = MicroOpBits::Zero;
+                if (ops && (current->op == MicroInstrOpcode::CmpRegReg || current->op == MicroInstrOpcode::TestRegReg))
+                    readBits = ops[2].opBits;
+                else if (ops && (current->op == MicroInstrOpcode::CmpRegImm || current->op == MicroInstrOpcode::TestRegImm))
+                    readBits = ops[1].opBits;
+                if (readBits == MicroOpBits::B32)
+                    continue;
+                return false;
+            }
+            if (current->op == MicroInstrOpcode::LoadCondRegReg && ops && ops[0].reg == copy[0].reg &&
+                ops[3].opBits == MicroOpBits::B32)
+                continue;
             if (!ops || ops[0].reg != copy[0].reg || useDef.defs.size() != 1 || useDef.defs[0] != copy[0].reg)
                 return false;
             const bool regReg = current->op == MicroInstrOpcode::OpBinaryRegReg;

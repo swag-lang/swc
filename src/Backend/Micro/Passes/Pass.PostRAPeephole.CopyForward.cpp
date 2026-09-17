@@ -2688,14 +2688,15 @@ namespace PostRaPeephole
         MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
         rewrittenSelect[0].reg               = firstVarying;
         rewrittenSelect[1].reg               = secondVarying;
+        const MicroOpBits resultBits          = bits == MicroOpBits::B16 ? MicroOpBits::B32 : bits;
         MicroInstrOperand finalOps[8]        = {};
         MicroInstr        finalProbe;
-        if (operation == MicroOp::Add && bits != MicroOpBits::B16)
+        if (operation == MicroOp::Add)
         {
             finalOps[0].reg       = result;
             finalOps[1].reg       = common;
             finalOps[2].reg       = firstVarying;
-            finalOps[3].opBits    = bits;
+            finalOps[3].opBits    = resultBits;
             finalOps[4].opBits    = MicroOpBits::B64;
             finalOps[5].valueU64  = 1;
             finalProbe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
@@ -2706,20 +2707,21 @@ namespace PostRaPeephole
             finalOps[0]            = first[0];
             finalOps[1]            = first[1];
             finalOps[2]            = first[2];
+            finalOps[2].opBits     = resultBits;
             finalOps[3]            = first[3];
             finalProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
             finalProbe.numOperands = 4;
         }
         MicroInstrOperand narrowedCopy[3] = {copy[0], copy[1], copy[2]};
-        narrowedCopy[2].opBits            = bits == MicroOpBits::B16 ? MicroOpBits::B32 : bits;
+        narrowedCopy[2].opBits            = resultBits;
         MicroConformanceIssue issue;
         if (ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
             ctx.encoder->queryConformanceIssue(issue, finalProbe, finalOps) ||
-            ((operation != MicroOp::Add || bits == MicroOpBits::B16) && ctx.encoder->queryConformanceIssue(issue, copyInst, narrowedCopy)) ||
+            (operation != MicroOp::Add && ctx.encoder->queryConformanceIssue(issue, copyInst, narrowedCopy)) ||
             !ctx.claimAll({copyRef, firstOpRef, secondOpRef, compareRef, selectRef}))
             return false;
 
-        if (operation == MicroOp::Add && bits != MicroOpBits::B16)
+        if (operation == MicroOp::Add)
             ctx.emitErase(copyRef);
         else
             ctx.emitRewrite(copyRef, copyInst.op, narrowedCopy);

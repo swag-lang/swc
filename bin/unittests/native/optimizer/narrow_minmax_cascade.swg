@@ -12,6 +12,12 @@ func minimum8(values: const [*]u8, index: u64)->u8 => Swag.min(values[index], Sw
 #[Swag.NoInline]
 func maximum8(values: const [*]u8, index: u64)->u8 => Swag.max(values[index], Swag.max(values[index + 1], values[index + 2]))
 
+#[Swag.NoInline]
+func minimum32(values: const [*]u32, index: u64)->u32 => Swag.min(values[index], Swag.min(values[index + 1], values[index + 2]))
+
+#[Swag.NoInline]
+func maximum32(values: const [*]u32, index: u64)->u32 => Swag.max(values[index], Swag.max(values[index + 1], values[index + 2]))
+
 #test
 {
     let values16 = [9'u16, 4, 7, 0, 0xFFFF, 23, 8, 8, 8]
@@ -27,4 +33,10 @@ func maximum8(values: const [*]u8, index: u64)->u8 => Swag.max(values[index], Sw
     Swag.assert(maximum8(&values8[0], 0) == 9)
     Swag.assert(minimum8(&values8[0], 3) == 0)
     Swag.assert(maximum8(&values8[0], 3) == 0xFF)
+
+    let values32 = [9'u32, 4, 7, 0, 0xFFFFFFFF, 23]
+    Swag.assert(minimum32(&values32[0], 0) == 4)
+    Swag.assert(maximum32(&values32[0], 0) == 9)
+    Swag.assert(minimum32(&values32[0], 3) == 0)
+    Swag.assert(maximum32(&values32[0], 3) == 0xFFFFFFFF)
 }

@@ -95,6 +95,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage64);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetSelectedValueCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetSelectedIntermediate);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalCascadeResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalChainResultCopy);

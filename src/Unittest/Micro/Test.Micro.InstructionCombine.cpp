@@ -3230,7 +3230,8 @@ namespace
 {
     // T = a; T -= b; D = T; U = b; U -= a; [extra]; cmp a, b; cmovbe D, U.
     // `readT` reads T again before the compare; `changeLeft` writes a there.
-    void emitAbsoluteDifference(MicroBuilder& builder, bool readT, bool changeLeft)
+    // The subtractions and the compare run at `bits`.
+    void emitAbsoluteDifference(MicroBuilder& builder, bool readT, bool changeLeft, MicroOpBits bits = MicroOpBits::B32)
     {
         constexpr MicroReg base  = MicroReg::virtualIntReg(1);
         constexpr MicroReg left  = MicroReg::virtualIntReg(2);
@@ -3242,15 +3243,15 @@ namespace
         builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
         builder.emitLoadRegMem(right, base, 4, MicroOpBits::B32);
         builder.emitLoadRegReg(ahead, left, MicroOpBits::B64);
-        builder.emitOpBinaryRegReg(ahead, right, MicroOp::Subtract, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(ahead, right, MicroOp::Subtract, bits);
         builder.emitLoadRegReg(copy, ahead, MicroOpBits::B64);
         builder.emitLoadRegReg(back, right, MicroOpBits::B64);
-        builder.emitOpBinaryRegReg(back, left, MicroOp::Subtract, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(back, left, MicroOp::Subtract, bits);
         if (readT)
             builder.emitLoadMemReg(base, 12, ahead, MicroOpBits::B32);
         if (changeLeft)
             builder.emitOpBinaryRegImm(left, ApInt(1, 64), MicroOp::Add, MicroOpBits::B32);
-        builder.emitCmpRegReg(left, right, MicroOpBits::B32);
+        builder.emitCmpRegReg(left, right, bits);
         builder.emitLoadCondRegReg(copy, back, MicroCond::BelowOrEqual, MicroOpBits::B32);
         builder.emitLoadMemReg(base, 8, copy, MicroOpBits::B32);
         builder.emitRet();
@@ -3276,6 +3277,20 @@ SWC_TEST_BEGIN(InstCombine_AbsoluteDifference_ReusesSubtractionFlags)
             lastSubtracted = ops[1].reg;
     }
     return lastSubtracted == MicroReg::virtualIntReg(3) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A byte subtraction gives the flags of the byte compare.
+SWC_TEST_BEGIN(InstCombine_ByteAbsoluteDifference_ReusesSubtractionFlags)
+{
+    MicroBuilder builder(ctx);
+    emitAbsoluteDifference(builder, false, false, MicroOpBits::B8);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
 }
 SWC_TEST_END()
 

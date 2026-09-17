@@ -255,6 +255,7 @@
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.FloatOrderedCompare.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.CommuteConst.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp"/>
+        <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.Compare.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.InstructionCombine.ConstProp.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.Legalize.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.PostRAPeephole.cpp"/>

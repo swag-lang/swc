@@ -3226,6 +3226,87 @@ SWC_TEST_BEGIN(InstCombine_ByteCopyReadByIndexedCompare_Widened)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // T = a; T -= b; D = T; U = b; U -= a; [extra]; cmp a, b; cmovbe D, U.
+    // `readT` reads T again before the compare; `changeLeft` writes a there.
+    void emitAbsoluteDifference(MicroBuilder& builder, bool readT, bool changeLeft)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg right = MicroReg::virtualIntReg(3);
+        constexpr MicroReg ahead = MicroReg::virtualIntReg(4);
+        constexpr MicroReg copy  = MicroReg::virtualIntReg(5);
+        constexpr MicroReg back  = MicroReg::virtualIntReg(6);
+
+        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
+        builder.emitLoadRegMem(right, base, 4, MicroOpBits::B32);
+        builder.emitLoadRegReg(ahead, left, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(ahead, right, MicroOp::Subtract, MicroOpBits::B32);
+        builder.emitLoadRegReg(copy, ahead, MicroOpBits::B64);
+        builder.emitLoadRegReg(back, right, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(back, left, MicroOp::Subtract, MicroOpBits::B32);
+        if (readT)
+            builder.emitLoadMemReg(base, 12, ahead, MicroOpBits::B32);
+        if (changeLeft)
+            builder.emitOpBinaryRegImm(left, ApInt(1, 64), MicroOp::Add, MicroOpBits::B32);
+        builder.emitCmpRegReg(left, right, MicroOpBits::B32);
+        builder.emitLoadCondRegReg(copy, back, MicroCond::BelowOrEqual, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 8, copy, MicroOpBits::B32);
+        builder.emitRet();
+    }
+}
+
+// The subtraction a - b gives the flags of cmp a, b: the compare goes.
+SWC_TEST_BEGIN(InstCombine_AbsoluteDifference_ReusesSubtractionFlags)
+{
+    MicroBuilder builder(ctx);
+    emitAbsoluteDifference(builder, false, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0)
+        return Result::Error;
+    // The last subtraction before the select is the a - b one.
+    MicroReg lastSubtracted;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[3].microOp == MicroOp::Subtract)
+            lastSubtracted = ops[1].reg;
+    }
+    return lastSubtracted == MicroReg::virtualIntReg(3) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// T read in between cannot move.
+SWC_TEST_BEGIN(InstCombine_SubtractionReadBeforeCompare_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitAbsoluteDifference(builder, true, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A compare of a changed value is not the subtraction's.
+SWC_TEST_BEGIN(InstCombine_SubtractionOfStaleValue_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitAbsoluteDifference(builder, false, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

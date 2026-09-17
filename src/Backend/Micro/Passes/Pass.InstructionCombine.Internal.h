@@ -151,6 +151,7 @@ namespace InstructionCombine
     bool tryFactorReloadedProduct(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcAddressedLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldAmcLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldVecLoadIntoWiden(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryBuildVectorFromStores(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoSignExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);

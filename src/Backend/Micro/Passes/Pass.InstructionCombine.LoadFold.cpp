@@ -245,6 +245,78 @@ namespace InstructionCombine
         return false;
     }
 
+    // Fold an already canonical indexed load into the right operand of an
+    // integer operation. This complements tryFoldAmcAddressedLoadIntoRegOp:
+    // later combine sweeps have often replaced the separate address and load
+    // with LoadAmcRegMem before the consumer becomes foldable.
+    bool tryFoldAmcLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa || loadInst.op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroReg    base     = loadOps[1].reg;
+        const MicroReg    index    = loadOps[2].reg;
+        const MicroOpBits loadBits = loadOps[3].opBits;
+        if (!vt.isVirtualInt() || base == vt || index == vt || loadOps[4].opBits != MicroOpBits::B64 ||
+            keepAccessScalar(ctx, loadRef, base) || !valueHasSingleUse(*ctx.ssa, vt, loadRef))
+            return false;
+
+        const uint64_t scale = loadOps[5].valueU64;
+        if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
+            return false;
+
+        MicroStorage::Iterator walker;
+        if (!findAnchorPosition(walker, *ctx.storage, loadRef))
+            return false;
+        ++walker;
+
+        const auto endIt = ctx.storage->view().end();
+        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
+        {
+            const MicroInstr& w = *walker;
+            if (isControlOrCall(w) || writesMemory(w))
+                return false;
+
+            const auto* useDef = ctx.ssa->instrUseDef(walker.current);
+            if (!useDef || microRegSpanContains(useDef->defs, base) || microRegSpanContains(useDef->defs, index))
+                return false;
+            const bool defsVt = microRegSpanContains(useDef->defs, vt);
+            const bool usesVt = microRegSpanContains(useDef->uses, vt);
+            if (!defsVt && !usesVt)
+                continue;
+
+            const MicroInstrOperand* wOps = w.ops(*ctx.operands);
+            if (w.op != MicroInstrOpcode::OpBinaryRegReg || !wOps || wOps[1].reg != vt || wOps[0].reg == vt ||
+                wOps[2].opBits != loadBits || !isRegMemFoldableOp(wOps[3].microOp) ||
+                (wOps[3].microOp == MicroOp::MultiplySigned && loadBits == MicroOpBits::B8))
+                return false;
+
+            const MicroInstrRef opRef = walker.current;
+            if (!ctx.claimAll({loadRef, opRef}))
+                return false;
+
+            MicroInstrOperand newOps[8] = {};
+            newOps[0].reg               = wOps[0].reg;
+            newOps[1].reg               = base;
+            newOps[2].reg               = index;
+            newOps[3].opBits            = loadBits;
+            newOps[4]                   = loadOps[4];
+            newOps[5].valueU64          = scale;
+            newOps[6].valueU64          = loadOps[6].valueU64;
+            newOps[7].microOp           = wOps[3].microOp;
+            ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegAmcMem, newOps, /*allocNewBlock=*/true);
+            ctx.emitErase(loadRef);
+            return true;
+        }
+
+        return false;
+    }
+
     // The left operand of a register compare loaded just before it compares
     // in place, as `cmp byte [rcx + 2], dl` does in a struct equality:
     //

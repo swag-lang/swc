@@ -1700,6 +1700,147 @@ SWC_TEST_BEGIN(BranchSimplify_SignDiamondWithOtherValueKept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // switch on a loaded key: `values[i]` for `keys[i]`, the default otherwise.
+    // `returns` makes every arm return; otherwise they join after loading.
+    void emitConstantSwitch(MicroBuilder& builder, std::span<const uint64_t> keys, std::span<const uint64_t> values, uint64_t fallback, bool returns, bool readArm, MicroOpBits keyBits = MicroOpBits::B32)
+    {
+        const MicroReg base   = MicroReg::virtualIntReg(9);
+        const MicroReg key    = MicroReg::virtualIntReg(10);
+        const MicroReg result = returns ? CallConv::get(CallConvKind::Swag).intReturn : MicroReg::virtualIntReg(11);
+        SmallVector<MicroLabelRef> arms;
+        for (size_t i = 0; i < keys.size(); ++i)
+            arms.push_back(builder.createLabel());
+        const auto fallbackLabel = builder.createLabel();
+        const auto end           = builder.createLabel();
+
+        builder.emitLoadRegMem(key, base, 0, keyBits);
+        if (!returns)
+            builder.emitLoadRegImm(result, ApInt(fallback, 64), MicroOpBits::B32);
+        for (size_t i = 0; i < keys.size(); ++i)
+        {
+            builder.emitCmpRegImm(key, ApInt(keys[i], 64), keyBits);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, arms[i]);
+        }
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, returns ? fallbackLabel : end);
+        for (size_t i = 0; i < keys.size(); ++i)
+        {
+            builder.placeLabel(arms[i]);
+            if (readArm && i == 1)
+                builder.emitLoadRegMem(result, base, 4, MicroOpBits::B32);
+            else
+                builder.emitLoadRegImm(result, ApInt(values[i], 64), MicroOpBits::B32);
+            if (returns)
+                builder.emitRet();
+            else if (i + 1 < keys.size())
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, end);
+        }
+        if (returns)
+        {
+            builder.placeLabel(fallbackLabel);
+            builder.emitLoadRegImm(result, ApInt(fallback, 64), MicroOpBits::B32);
+            builder.emitRet();
+        }
+        builder.placeLabel(end);
+        if (!returns)
+            builder.emitLoadMemReg(base, 8, result, MicroOpBits::B32);
+        builder.emitRet();
+    }
+
+    uint32_t countSelects(const MicroBuilder& builder)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadCondRegReg)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// Returning a small constant per case reads a table packed into a register.
+SWC_TEST_BEGIN(BranchSimplify_ReturningSwitchBecomesPackedTable)
+{
+    MicroBuilder                  builder(ctx);
+    const std::array<uint64_t, 3> keys   = {0, 1, 2};
+    const std::array<uint64_t, 3> values = {1, 4, 9};
+    emitConstantSwitch(builder, keys, values, 16, true, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1 || countLoadImmValue(builder, 0x82481) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Cases that join after their loads take the default from before the chain;
+// the negative entries are sign-extended from their packed width.
+SWC_TEST_BEGIN(BranchSimplify_JoiningSwitchBecomesPackedTable)
+{
+    MicroBuilder                  builder(ctx);
+    const std::array<uint64_t, 4> keys   = {0x30, 0x31, 0x35, 0x37};
+    const std::array<uint64_t, 4> values = {0, 1, 5, 70};
+    emitConstantSwitch(builder, keys, values, 0xFFFFFFFF, false, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An arm that loads from memory is no table entry.
+SWC_TEST_BEGIN(BranchSimplify_SwitchWithLoadedArmKept)
+{
+    MicroBuilder                  builder(ctx);
+    const std::array<uint64_t, 3> keys   = {0, 1, 2};
+    const std::array<uint64_t, 3> values = {1, 4, 9};
+    emitConstantSwitch(builder, keys, values, 16, true, true);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countSelects(builder) != 0 || countConditionalJumps(builder) == 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Keys spread over the whole word are no table, even when their span wraps.
+SWC_TEST_BEGIN(BranchSimplify_WholeWordSwitchKept)
+{
+    MicroBuilder                  builder(ctx);
+    const std::array<uint64_t, 3> keys   = {0, 1, 0xFFFFFFFFFFFFFFFF};
+    const std::array<uint64_t, 3> values = {1, 2, 3};
+    emitConstantSwitch(builder, keys, values, 0, true, false, MicroOpBits::B64);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countSelects(builder) != 0 || countConditionalJumps(builder) == 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Entries too wide for one register keep the chain.
+SWC_TEST_BEGIN(BranchSimplify_WideSwitchTableKept)
+{
+    MicroBuilder                  builder(ctx);
+    const std::array<uint64_t, 4> keys   = {0, 1, 2, 3};
+    const std::array<uint64_t, 4> values = {0x10000, 0x20000, 0x30000, 0x40000};
+    emitConstantSwitch(builder, keys, values, 0x50000, true, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countSelects(builder) != 0 || countConditionalJumps(builder) == 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

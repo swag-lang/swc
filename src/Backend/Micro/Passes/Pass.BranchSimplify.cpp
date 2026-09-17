@@ -1804,6 +1804,444 @@ namespace
         return changed;
     }
 
+    // A switch that only picks a constant, as `switch k { case .A: return 1
+    // case .B: return 4 ... default: return 16 }`, is a dispatch chain whose
+    // targets each load one immediate into the same register:
+    //
+    //     cmp X, C0; je .L0                 I = X - LO
+    //     cmp X, C1; je .L1                 cmp I, N - 1; cmova I, DEFAULT
+    //     ...                               I *= W
+    //     jmp .LD                     ->    T = PACKED >> I
+    //   .L0: D = V0; ret                    T = low W bits of T
+    //     ...                               D = T
+    //   .LD: D = VD; ret                    ret
+    //
+    // LLVM's SwitchToLookupTable packs such a table into a register when its
+    // entries fit (a bitmap table): one shift reads every value and the chain
+    // of branches goes. An index past the cases is clamped to an entry that
+    // holds the default, a hole or entry N, which also keeps the shift inside
+    // the register. The cases may also join after their loads, the default
+    // then being what D held before the chain.
+    bool convertSwitchesToPackedTables(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        constexpr size_t   K_MIN_CASES    = 3;
+        constexpr uint64_t K_MAX_ENTRIES  = 63;
+        constexpr size_t   K_MAX_LOOKBACK = 4;
+
+        if (!context.builder)
+            return false;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+        }
+
+        std::unordered_set<uint32_t> relocated;
+        for (const MicroRelocation& reloc : context.builder->codeRelocations())
+        {
+            if (reloc.instructionRef.isValid())
+                relocated.insert(reloc.instructionRef.get());
+        }
+
+        const size_t count  = layout.order.size();
+        const auto   instAt = [&](size_t index) -> const MicroInstr* {
+            return index < count ? storage.ptr(layout.order[index]) : nullptr;
+        };
+        const auto isUnconditionalJump = [&](const MicroInstr* inst) {
+            return inst && inst->op == MicroInstrOpcode::JumpCond && inst->ops(operands)[0].cpuCond == MicroCond::Unconditional;
+        };
+
+        struct Arm
+        {
+            size_t   labelAt = 0;
+            uint64_t value   = 0;
+            bool     falls   = false;
+        };
+
+        bool     changed                = false;
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        for (size_t start = 0; start < count; ++start)
+        {
+            const MicroInstr* first = instAt(start);
+            if (!first || first->op != MicroInstrOpcode::CmpRegImm)
+                continue;
+            const MicroReg    key     = first->ops(operands)[0].reg;
+            const MicroOpBits keyBits = first->ops(operands)[1].opBits;
+            if (!key.isVirtualInt())
+                continue;
+
+            // The chain: compares of the key, each taking its case on equality.
+            SmallVector<std::pair<uint64_t, uint32_t>, 16> cases;
+            std::unordered_map<uint32_t, uint32_t>         chainJumps;
+            size_t                                         at = start;
+            while (true)
+            {
+                const MicroInstr* cmp  = instAt(at);
+                const MicroInstr* jump = instAt(at + 1);
+                if (!cmp || !jump || cmp->op != MicroInstrOpcode::CmpRegImm || jump->op != MicroInstrOpcode::JumpCond)
+                    break;
+                const MicroInstrOperand* cmpOps  = cmp->ops(operands);
+                const MicroInstrOperand* jumpOps = jump->ops(operands);
+                uint32_t                 target  = 0;
+                if (cmpOps[0].reg != key || cmpOps[1].opBits != keyBits || cmpOps[2].hasWideImmediateValue() || jumpOps[0].cpuCond != MicroCond::Equal ||
+                    !tryGetJumpTargetLabelId(target, *jump, jumpOps))
+                    break;
+                cases.push_back({cmpOps[2].valueU64 & getBitsMask(keyBits), target});
+                ++chainJumps[target];
+                at += 2;
+            }
+            if (cases.size() < K_MIN_CASES)
+                continue;
+
+            const size_t      tailAt    = at;
+            const MicroInstr* tail      = instAt(tailAt);
+            uint32_t          defaultId = 0;
+            if (!isUnconditionalJump(tail) || !tryGetJumpTargetLabelId(defaultId, *tail, tail->ops(operands)))
+                continue;
+
+            // Every case loads one immediate into the same register, then
+            // returns, or joins at one label.
+            MicroReg                          result;
+            MicroOpBits                       resultBits = MicroOpBits::Zero;
+            bool                              returns    = false;
+            bool                              joins      = false;
+            uint32_t                          endId      = 0;
+            const auto                        matchArm   = [&](uint32_t labelId, Arm& arm) {
+                const auto found = layout.labelOrdinalById.find(labelId);
+                if (found == layout.labelOrdinalById.end() || found->second == 0)
+                    return false;
+                const size_t      labelAt = found->second;
+                const MicroInstr* before  = instAt(labelAt - 1);
+                const MicroInstr* load    = instAt(labelAt + 1);
+                const MicroInstr* exit    = instAt(labelAt + 2);
+                if (!before || !load || !exit || (before->op != MicroInstrOpcode::Ret && !isUnconditionalJump(before)))
+                    return false;
+                if (load->op != MicroInstrOpcode::LoadRegImm || (labelAt >= start && labelAt <= tailAt))
+                    return false;
+                const MicroInstrOperand* loadOps = load->ops(operands);
+                if (loadOps[2].hasWideImmediateValue() || !loadOps[0].reg.isAnyInt() || loadOps[0].reg == key)
+                    return false;
+                if (!result.isValid())
+                {
+                    result     = loadOps[0].reg;
+                    resultBits = loadOps[1].opBits;
+                }
+                else if (loadOps[0].reg != result || loadOps[1].opBits != resultBits)
+                    return false;
+                if (relocated.contains(layout.order[labelAt + 1].get()) || relocated.contains(layout.order[labelAt + 2].get()))
+                    return false;
+
+                arm.labelAt = labelAt;
+                arm.value   = loadOps[2].valueU64 & getBitsMask(resultBits);
+                arm.falls   = false;
+                if (exit->op == MicroInstrOpcode::Ret)
+                {
+                    returns = true;
+                    return !joins;
+                }
+
+                uint32_t exitId = 0;
+                if (isUnconditionalJump(exit))
+                {
+                    if (!tryGetJumpTargetLabelId(exitId, *exit, exit->ops(operands)))
+                        return false;
+                }
+                else if (tryGetLabelId(exitId, *exit, exit->ops(operands)))
+                    arm.falls = true;
+                else
+                    return false;
+                if (returns || (joins && exitId != endId))
+                    return false;
+                joins = true;
+                endId = exitId;
+                return true;
+            };
+
+            std::unordered_map<uint32_t, Arm> arms;
+            bool                              valid = true;
+            for (const auto& [caseValue, labelId] : cases)
+            {
+                if (arms.contains(labelId))
+                    continue;
+                Arm arm;
+                if (!matchArm(labelId, arm) || labelReferences[labelId] != chainJumps[labelId])
+                {
+                    valid = false;
+                    break;
+                }
+                arms[labelId] = arm;
+            }
+            if (!valid || arms.contains(defaultId))
+                continue;
+
+            // The default: its own constant arm, or what D held before the chain
+            // when the chain's last jump goes straight to the join.
+            uint64_t defaultValue = 0;
+            Arm      defaultArm;
+            bool     defaultIsArm = false;
+            if (joins && defaultId == endId)
+            {
+                bool found = false;
+                for (size_t back = 1; back <= K_MAX_LOOKBACK && back <= start && !found; ++back)
+                {
+                    const MicroInstr* inst = instAt(start - back);
+                    if (!inst)
+                        break;
+                    const MicroInstrFlags flags = MicroInstr::info(inst->op).flags;
+                    if (inst->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                        flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
+                        break;
+                    const MicroInstrOperand* ops = inst->ops(operands);
+                    if (inst->op == MicroInstrOpcode::LoadRegImm && ops[0].reg == result && ops[1].opBits == resultBits && !ops[2].hasWideImmediateValue())
+                    {
+                        defaultValue = ops[2].valueU64 & getBitsMask(resultBits);
+                        found        = true;
+                        break;
+                    }
+                    SmallVector<MicroInstrRegOperandRef> regOperands;
+                    inst->collectRegOperands(operands, regOperands, nullptr);
+                    bool touches = false;
+                    for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                        touches |= regOperand.reg && *regOperand.reg == result;
+                    if (touches)
+                        break;
+                }
+                if (!found)
+                    continue;
+            }
+            else
+            {
+                if (!matchArm(defaultId, defaultArm) || labelReferences[defaultId] != 1)
+                    continue;
+                defaultValue = defaultArm.value;
+                defaultIsArm = true;
+            }
+            if (!result.isValid() || (!returns && !joins))
+                continue;
+            if (joins && !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, layout.order[tailAt]))
+                continue;
+
+            // The table: a hole holds the default already, else entry N does,
+            // and the entries must fit a register.
+            uint64_t low  = UINT64_MAX;
+            uint64_t high = 0;
+            for (const auto& [caseValue, labelId] : cases)
+            {
+                low  = std::min(low, caseValue);
+                high = std::max(high, caseValue);
+            }
+            // The span first: the keys may cover the whole word.
+            if (high - low >= K_MAX_ENTRIES)
+                continue;
+            const uint64_t entries = high - low + 1;
+
+            SmallVector<uint64_t, 64> table;
+            SmallVector<uint8_t, 64>  isSet;
+            table.resize(entries + 1, defaultValue);
+            isSet.resize(entries + 1, 0);
+            for (const auto& [caseValue, labelId] : cases)
+            {
+                const uint64_t index = caseValue - low;
+                if (isSet[index])
+                    continue;
+                table[index] = arms[labelId].value;
+                isSet[index] = 1;
+            }
+
+            uint64_t clampIndex = entries;
+            for (uint64_t index = 0; index < entries; ++index)
+            {
+                if (!isSet[index])
+                {
+                    clampIndex = index;
+                    table.resize(entries);
+                    break;
+                }
+            }
+
+            const uint32_t resultWidth = getNumBits(resultBits);
+            uint32_t       unsignedWidth = 1;
+            uint32_t       signedWidth   = 1;
+            for (const uint64_t entry : table)
+            {
+                const int64_t signedEntry = static_cast<int64_t>(entry << (64 - resultWidth)) >> (64 - resultWidth);
+                unsignedWidth             = std::max(unsignedWidth, static_cast<uint32_t>(64 - std::countl_zero(entry | 1)));
+                const uint64_t magnitude  = signedEntry < 0 ? ~static_cast<uint64_t>(signedEntry) : static_cast<uint64_t>(signedEntry);
+                signedWidth               = std::max(signedWidth, static_cast<uint32_t>(65 - std::countl_zero(magnitude)));
+            }
+            const bool     isSigned = signedWidth < unsignedWidth;
+            const uint32_t width    = isSigned ? signedWidth : unsignedWidth;
+            if (width >= resultWidth || static_cast<uint64_t>(width) * table.size() > 64)
+                continue;
+
+            uint64_t packed = 0;
+            for (size_t index = 0; index < table.size(); ++index)
+                packed |= (table[index] & ((1ULL << width) - 1)) << (index * width);
+
+            // Emit before the chain, then drop the chain and its arms.
+            const MicroInstrRef anchor    = layout.order[start];
+            const MicroOpBits   indexBits = keyBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
+            const MicroReg      index     = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg      clamp     = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg      bits      = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const auto          insert    = [&](MicroInstrOpcode op, std::span<const MicroInstrOperand> ops) {
+                storage.insertDerivedBefore(operands, anchor, op, ops);
+            };
+
+            if (keyBits == MicroOpBits::B8 || keyBits == MicroOpBits::B16)
+            {
+                MicroInstrOperand ops[4];
+                ops[0].reg    = index;
+                ops[1].reg    = key;
+                ops[2].opBits = MicroOpBits::B32;
+                ops[3].opBits = keyBits;
+                insert(MicroInstrOpcode::LoadZeroExtRegReg, ops);
+            }
+            else
+            {
+                MicroInstrOperand ops[3];
+                ops[0].reg    = index;
+                ops[1].reg    = key;
+                ops[2].opBits = indexBits;
+                insert(MicroInstrOpcode::LoadRegReg, ops);
+            }
+            if (low)
+            {
+                MicroInstrOperand ops[4];
+                ops[0].reg     = index;
+                ops[1].opBits  = indexBits;
+                ops[2].microOp = MicroOp::Subtract;
+                ops[3].setImmediateValue(ApInt(low, getNumBits(indexBits)));
+                insert(MicroInstrOpcode::OpBinaryRegImm, ops);
+            }
+            {
+                MicroInstrOperand loadOps[3];
+                loadOps[0].reg    = clamp;
+                loadOps[1].opBits = indexBits;
+                loadOps[2].setImmediateValue(ApInt(clampIndex, getNumBits(indexBits)));
+                insert(MicroInstrOpcode::LoadRegImm, loadOps);
+                MicroInstrOperand cmpOps[3];
+                cmpOps[0].reg    = index;
+                cmpOps[1].opBits = indexBits;
+                cmpOps[2].setImmediateValue(ApInt(entries - 1, getNumBits(indexBits)));
+                insert(MicroInstrOpcode::CmpRegImm, cmpOps);
+                MicroInstrOperand moveOps[4];
+                moveOps[0].reg     = index;
+                moveOps[1].reg     = clamp;
+                moveOps[2].cpuCond = MicroCond::Above;
+                moveOps[3].opBits  = indexBits;
+                insert(MicroInstrOpcode::LoadCondRegReg, moveOps);
+            }
+            if (width > 1)
+            {
+                MicroInstrOperand ops[4];
+                ops[0].reg = index;
+                ops[1].opBits = indexBits;
+                if (std::has_single_bit(width))
+                {
+                    ops[2].microOp = MicroOp::ShiftLeft;
+                    ops[3].setImmediateValue(ApInt(std::countr_zero(width), getNumBits(indexBits)));
+                }
+                else
+                {
+                    ops[2].microOp = MicroOp::MultiplySigned;
+                    ops[3].setImmediateValue(ApInt(width, getNumBits(indexBits)));
+                }
+                insert(MicroInstrOpcode::OpBinaryRegImm, ops);
+            }
+            {
+                MicroInstrOperand loadOps[3];
+                loadOps[0].reg    = bits;
+                loadOps[1].opBits = MicroOpBits::B64;
+                loadOps[2].setImmediateValue(ApInt(packed, 64));
+                insert(MicroInstrOpcode::LoadRegImm, loadOps);
+                MicroInstrOperand shiftOps[4];
+                shiftOps[0].reg     = bits;
+                shiftOps[1].reg     = index;
+                shiftOps[2].opBits  = MicroOpBits::B64;
+                shiftOps[3].microOp = MicroOp::ShiftRight;
+                insert(MicroInstrOpcode::OpBinaryRegReg, shiftOps);
+            }
+            if (isSigned && (width == 8 || width == 16 || width == 32))
+            {
+                MicroInstrOperand ops[4];
+                ops[0].reg    = bits;
+                ops[1].reg    = bits;
+                ops[2].opBits = MicroOpBits::B64;
+                ops[3].opBits = width == 8 ? MicroOpBits::B8 : width == 16 ? MicroOpBits::B16 : MicroOpBits::B32;
+                insert(MicroInstrOpcode::LoadSignedExtRegReg, ops);
+            }
+            else if (isSigned)
+            {
+                for (const MicroOp op : {MicroOp::ShiftLeft, MicroOp::ShiftArithmeticRight})
+                {
+                    MicroInstrOperand ops[4];
+                    ops[0].reg     = bits;
+                    ops[1].opBits  = MicroOpBits::B64;
+                    ops[2].microOp = op;
+                    ops[3].setImmediateValue(ApInt(64 - width, 64));
+                    insert(MicroInstrOpcode::OpBinaryRegImm, ops);
+                }
+            }
+            else
+            {
+                MicroInstrOperand ops[4];
+                ops[0].reg     = bits;
+                ops[1].opBits  = MicroOpBits::B64;
+                ops[2].microOp = MicroOp::And;
+                ops[3].setImmediateValue(ApInt((1ULL << width) - 1, 64));
+                insert(MicroInstrOpcode::OpBinaryRegImm, ops);
+            }
+            {
+                MicroInstrOperand ops[3];
+                ops[0].reg    = result;
+                ops[1].reg    = bits;
+                ops[2].opBits = resultBits;
+                insert(MicroInstrOpcode::LoadRegReg, ops);
+            }
+            // The chain's last jump leaves for the join; returning arms return here.
+            if (returns)
+            {
+                storage.insertDerivedBefore(operands, anchor, MicroInstrOpcode::Ret, std::span<const MicroInstrOperand>{});
+                storage.erase(layout.order[tailAt]);
+            }
+            else
+                storage.ptr(layout.order[tailAt])->ops(operands)[2].valueU64 = endId;
+
+            for (size_t chainAt = start; chainAt < tailAt; ++chainAt)
+                storage.erase(layout.order[chainAt]);
+
+            const auto eraseArm = [&](const Arm& arm) {
+                storage.erase(layout.order[arm.labelAt]);
+                storage.erase(layout.order[arm.labelAt + 1]);
+                if (!arm.falls)
+                    storage.erase(layout.order[arm.labelAt + 2]);
+            };
+            for (const auto& [labelId, arm] : arms)
+                eraseArm(arm);
+            if (defaultIsArm)
+                eraseArm(defaultArm);
+
+            changed = true;
+            break;
+        }
+
+        if (changed)
+            context.builder->invalidateControlFlowGraph();
+        return changed;
+    }
+
     // A range test lowered as two exits to the same label:
     //
     //     cmp  X, LO                      T = X
@@ -3987,6 +4425,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     changed |= convertEqualityChainsToBitTests(storage, operands, context);
+    changed |= convertSwitchesToPackedTables(storage, operands, context);
     changed |= foldRangeChecks(storage, operands, context);
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

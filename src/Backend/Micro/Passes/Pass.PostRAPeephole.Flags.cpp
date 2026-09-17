@@ -1286,6 +1286,50 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Move a zero initialization before the comparison whose flags feed the
+    // following conditional move. This exposes XOR zeroing without changing
+    // the selected value or letting XOR replace the comparison flags.
+    bool tryClearZeroBeforeSelect(Context& ctx, const MicroInstrRef zeroRef, const MicroInstr& zeroInst)
+    {
+        if (ctx.isClaimed(zeroRef) || zeroInst.op != MicroInstrOpcode::LoadRegImm)
+            return false;
+        const auto* zero = zeroInst.ops(*ctx.operands);
+        if (!zero || !zero[0].reg.isInt() || zero[2].hasWideImmediateValue() || zero[2].valueU64 != 0 ||
+            (zero[1].opBits != MicroOpBits::B32 && zero[1].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef cmpRef = ctx.previousRef(zeroRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
+            return false;
+        const MicroInstrUseDef cmpUseDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
+        if (std::ranges::find(cmpUseDef.uses, zero[0].reg) != cmpUseDef.uses.end() ||
+            std::ranges::find(cmpUseDef.defs, zero[0].reg) != cmpUseDef.defs.end())
+            return false;
+
+        const MicroInstrRef selectRef = ctx.nextRef(zeroRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != zero[0].reg || selected[3].opBits != zero[1].opBits)
+            return false;
+
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = zero[0].reg;
+        clear[1].opBits            = zero[1].opBits;
+        MicroInstr clearProbe;
+        clearProbe.op          = MicroInstrOpcode::ClearReg;
+        clearProbe.numOperands = 2;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, clearProbe, clear) ||
+            !ctx.claimAll({cmpRef, zeroRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(cmpRef, clearProbe.op, clear);
+        ctx.emitRewrite(zeroRef, cmp->op, std::span{cmp->ops(*ctx.operands), cmp->numOperands}, true);
+        return true;
+    }
+
     // Initialize a value-or-zero selection with XOR before its compare.
     // Postpone the old zero load until after CMOV so both registers retain
     // their original final values, even when it overwrites the input.

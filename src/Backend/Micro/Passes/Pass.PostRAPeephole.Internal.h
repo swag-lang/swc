@@ -86,6 +86,7 @@ namespace PostRaPeephole
     bool tryFoldZeroExtendedBooleanCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldSubtractBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryInvertZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryClearZeroBeforeSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryExtractHighByte(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowTruncatedRightShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryExtractSignBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

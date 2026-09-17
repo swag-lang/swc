@@ -10,6 +10,9 @@ func atLeast128(a: u64)->u64 => a < 128 ? 0 : a
 func below32(a: u32)->u32 => a < 128 ? a : 0
 
 #[Swag.NoInline]
+func atLeast32(a, b: u32)->u32 => a < b ? 0 : a
+
+#[Swag.NoInline]
 func positive(a: s64)->s64 => a > 0 ? a : 0
 
 #[Swag.NoInline]
@@ -32,6 +35,8 @@ func sharedInput(a, b: u64)->u64
         Swag.assert(below32(narrow) == (narrow < 128 ? narrow : 0))
         for b in values
         {
+            let narrowB = cast(u32) (b & 0xFFFFFFFF)
+            Swag.assert(atLeast32(narrow, narrowB) == (narrow < narrowB ? 0 : narrow))
             var selected = 0'u64
             if a < b do selected = a
             Swag.assert(sharedInput(a, b) == (selected ^ a ^ b))

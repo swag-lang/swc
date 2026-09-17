@@ -1468,6 +1468,65 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsConditionalUpdateWithGuardedLoad)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp v, C; sete t; r = t; je .end ... for each constant, the last one falling into .end
+    void emitEqualityChain(MicroBuilder& builder, std::span<const uint64_t> constants)
+    {
+        const MicroReg base   = MicroReg::virtualIntReg(9);
+        const MicroReg value  = MicroReg::virtualIntReg(10);
+        const MicroReg result = MicroReg::virtualIntReg(11);
+        const auto     end    = builder.createLabel();
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B32);
+        for (size_t i = 0; i < constants.size(); ++i)
+        {
+            const MicroReg flag = MicroReg::virtualIntReg(static_cast<uint32_t>(20 + i));
+            builder.emitCmpRegImm(value, ApInt(constants[i], 64), MicroOpBits::B32);
+            builder.emitSetCondReg(flag, MicroCond::Equal);
+            builder.emitLoadRegReg(result, flag, MicroOpBits::B8);
+            if (i + 1 < constants.size())
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, end);
+        }
+        builder.placeLabel(end);
+        builder.emitLoadZeroExtendRegReg(CallConv::get(CallConvKind::Swag).intReturn, result, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(BranchSimplify_EqualityChainBecomesBitTest)
+{
+    MicroBuilder             builder(ctx);
+    const std::array<uint64_t, 4> constants = {32, 9, 10, 13};
+    emitEqualityChain(builder, constants);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countLoadImmValue(builder, (1ULL << 32) | (1ULL << 9) | (1ULL << 10) | (1ULL << 13)) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Constants farther apart than a word are no bit test.
+SWC_TEST_BEGIN(BranchSimplify_WideEqualityChainKept)
+{
+    MicroBuilder             builder(ctx);
+    const std::array<uint64_t, 3> constants = {1, 40, 200};
+    emitEqualityChain(builder, constants);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) == 0)
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.ops(builder.operands())[3].microOp == MicroOp::ShiftRight)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

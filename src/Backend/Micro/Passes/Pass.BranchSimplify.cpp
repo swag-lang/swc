@@ -1118,6 +1118,244 @@ namespace
         return changed;
     }
 
+    // A chain of equality tests of one value against constants, as `c == ' '
+    // or c == '\t' or c == '\n'` leaves it once its exits are threaded:
+    //
+    //     cmp X, C1; sete T1; D = T1; je .END        I = X [- LO]
+    //     cmp X, C2; sete T2; D = T2; je .END        cmp I, HI - LO; setbe R
+    //     ...                                  ->    M = MASK; M >>= I
+    //     cmp X, Cn; sete Tn; D = Tn                 R &= M
+    //     .END:                                      D = R
+    //
+    // is one bit test when the constants span less than a word, as LLVM's
+    // SimplifyBranchOnICmpChain and switch bit-test lowering produce. The
+    // dual `c != C1 and c != C2 ...` (setne, the same exits) is its complement.
+    bool convertEqualityChainsToBitTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        constexpr uint32_t K_MIN_CHAIN = 3;
+        constexpr uint32_t K_MAX_CHAIN = 64;
+
+        if (!context.builder)
+            return false;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        std::unordered_map<uint32_t, uint32_t> mentions;
+        SmallVector<MicroInstrRegOperandRef>   regOperands;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+            regOperands.clear();
+            inst->collectRegOperands(operands, regOperands, nullptr);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (regOperand.reg && regOperand.reg->isVirtualInt())
+                    ++mentions[regOperand.reg->index()];
+            }
+        }
+
+        std::unordered_set<uint32_t> relocated;
+        for (const MicroRelocation& reloc : context.builder->codeRelocations())
+        {
+            if (reloc.instructionRef.isValid())
+                relocated.insert(reloc.instructionRef.get());
+        }
+
+        struct Link
+        {
+            uint32_t cmp   = 0;
+            uint64_t value = 0;
+        };
+
+        bool     changed                = false;
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        size_t   ordinal                = 0;
+        while (ordinal < layout.order.size())
+        {
+            const size_t start = ordinal++;
+
+            // One link: cmp X, C; setcc T; D = T; then a je to the end or the end label itself.
+            MicroReg             value;
+            MicroReg             result;
+            MicroOpBits          bits    = MicroOpBits::Zero;
+            MicroCond            setCond = MicroCond::Unconditional;
+            uint32_t             endId   = 0;
+            bool                 hasEnd  = false;
+            bool                 closed  = false;
+            SmallVector<Link, 8> links;
+            SmallVector<size_t>  body;
+            size_t               at = start;
+            while (at + 3 < layout.order.size() && links.size() < K_MAX_CHAIN)
+            {
+                // A link may test a copy of the value made for it alone.
+                MicroReg          alias;
+                const MicroInstr* first = storage.ptr(layout.order[at]);
+                if (first && first->op == MicroInstrOpcode::LoadRegReg && at + 4 < layout.order.size())
+                {
+                    const MicroInstrOperand* aliasOps = first->ops(operands);
+                    if (links.empty() || aliasOps[1].reg != value || !aliasOps[0].reg.isVirtualInt() ||
+                        getNumBits(aliasOps[2].opBits) < getNumBits(bits) || mentions[aliasOps[0].reg.index()] != 2)
+                        break;
+                    alias = aliasOps[0].reg;
+                    body.push_back(at);
+                    ++at;
+                }
+
+                const MicroInstr* cmp  = storage.ptr(layout.order[at]);
+                const MicroInstr* set  = storage.ptr(layout.order[at + 1]);
+                const MicroInstr* copy = storage.ptr(layout.order[at + 2]);
+                const MicroInstr* next = storage.ptr(layout.order[at + 3]);
+                if (!cmp || !set || !copy || !next || cmp->op != MicroInstrOpcode::CmpRegImm || set->op != MicroInstrOpcode::SetCondReg ||
+                    copy->op != MicroInstrOpcode::LoadRegReg)
+                    break;
+                const MicroInstrOperand* cmpOps  = cmp->ops(operands);
+                const MicroInstrOperand* setOps  = set->ops(operands);
+                const MicroInstrOperand* copyOps = copy->ops(operands);
+                if (alias.isValid() && cmpOps[0].reg != alias)
+                    break;
+                const MicroReg tested = alias.isValid() ? value : cmpOps[0].reg;
+                if (!cmpOps[0].reg.isVirtualInt() || cmpOps[2].hasWideImmediateValue() ||
+                    (setOps[1].cpuCond != MicroCond::Equal && setOps[1].cpuCond != MicroCond::NotEqual) ||
+                    !setOps[0].reg.isVirtualInt() || copyOps[1].reg != setOps[0].reg || copyOps[2].opBits != MicroOpBits::B8 ||
+                    !copyOps[0].reg.isVirtualInt() || copyOps[0].reg == tested || mentions[setOps[0].reg.index()] != 2)
+                    break;
+                if (links.empty())
+                {
+                    value   = tested;
+                    bits    = cmpOps[1].opBits;
+                    setCond = setOps[1].cpuCond;
+                    result  = copyOps[0].reg;
+                }
+                else if (tested != value || cmpOps[1].opBits != bits || setOps[1].cpuCond != setCond || copyOps[0].reg != result)
+                    break;
+
+                const uint64_t mask = getNumBits(bits) == 64 ? UINT64_MAX : (1ULL << getNumBits(bits)) - 1;
+                links.push_back({.cmp = static_cast<uint32_t>(at), .value = cmpOps[2].valueU64 & mask});
+                body.push_back(at);
+                body.push_back(at + 1);
+                body.push_back(at + 2);
+
+                uint32_t labelId = 0;
+                if (next->op == MicroInstrOpcode::JumpCond)
+                {
+                    const MicroInstrOperand* jumpOps = next->ops(operands);
+                    if (jumpOps[0].cpuCond != MicroCond::Equal || !tryGetJumpTargetLabelId(labelId, *next, jumpOps) || (hasEnd && labelId != endId))
+                        break;
+                    endId  = labelId;
+                    hasEnd = true;
+                    body.push_back(at + 3);
+                    at += 4;
+                    continue;
+                }
+                if (tryGetLabelId(labelId, *next, next->ops(operands)) && hasEnd && labelId == endId)
+                    closed = true;
+                break;
+            }
+            if (!closed || links.size() < K_MIN_CHAIN || labelReferences[endId] != links.size() - 1 ||
+                relocated.contains(layout.order[body.back() + 1].get()))
+                continue;
+
+            uint64_t lo = UINT64_MAX;
+            uint64_t hi = 0;
+            for (const Link& link : links)
+            {
+                lo = std::min(lo, link.value);
+                hi = std::max(hi, link.value);
+            }
+            if (hi < 64)
+                lo = 0;
+            if (hi - lo >= 64)
+                continue;
+            const MicroInstrRef lastRef = layout.order[body.back()];
+            if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, lastRef))
+                continue;
+
+            uint64_t bitMask = 0;
+            for (const Link& link : links)
+                bitMask |= 1ULL << (link.value - lo);
+
+            const MicroInstrRef firstRef = layout.order[links.front().cmp];
+            MicroReg            index    = value;
+            if (lo)
+            {
+                index = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                MicroInstrOperand copyOps[3];
+                copyOps[0].reg    = index;
+                copyOps[1].reg    = value;
+                copyOps[2].opBits = bits;
+                storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::LoadRegReg, copyOps);
+                MicroInstrOperand subOps[4];
+                subOps[0].reg     = index;
+                subOps[1].opBits  = bits;
+                subOps[2].microOp = MicroOp::Subtract;
+                subOps[3].setImmediateValue(ApInt(lo, getNumBits(bits)));
+                storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+            }
+
+            const MicroReg    inRange = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            MicroInstrOperand cmpOps[3];
+            cmpOps[0].reg = index;
+            cmpOps[1].opBits = bits;
+            cmpOps[2].setImmediateValue(ApInt(hi - lo, getNumBits(bits)));
+            storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::CmpRegImm, cmpOps);
+            MicroInstrOperand setOps[2];
+            setOps[0].reg     = inRange;
+            setOps[1].cpuCond = MicroCond::BelowOrEqual;
+            storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::SetCondReg, setOps);
+
+            const MicroReg    table = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            MicroInstrOperand tableOps[3];
+            tableOps[0].reg = table;
+            tableOps[1].opBits = MicroOpBits::B64;
+            tableOps[2].setImmediateValue(ApInt(bitMask, 64));
+            storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::LoadRegImm, tableOps);
+            MicroInstrOperand shiftOps[4];
+            shiftOps[0].reg     = table;
+            shiftOps[1].reg     = index;
+            shiftOps[2].opBits  = MicroOpBits::B64;
+            shiftOps[3].microOp = MicroOp::ShiftRight;
+            storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::OpBinaryRegReg, shiftOps);
+            MicroInstrOperand andOps[4];
+            andOps[0].reg     = inRange;
+            andOps[1].reg     = table;
+            andOps[2].opBits  = MicroOpBits::B8;
+            andOps[3].microOp = MicroOp::And;
+            storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::OpBinaryRegReg, andOps);
+            if (setCond == MicroCond::NotEqual)
+            {
+                MicroInstrOperand flipOps[4];
+                flipOps[0].reg     = inRange;
+                flipOps[1].opBits  = MicroOpBits::B8;
+                flipOps[2].microOp = MicroOp::Xor;
+                flipOps[3].setImmediateValue(ApInt(1, 8));
+                storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, flipOps);
+            }
+            MicroInstrOperand resultOps[3];
+            resultOps[0].reg    = result;
+            resultOps[1].reg    = inRange;
+            resultOps[2].opBits = MicroOpBits::B8;
+            storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::LoadRegReg, resultOps);
+
+            for (const size_t index2 : body)
+                storage.erase(layout.order[index2]);
+            changed = true;
+            ordinal = body.back() + 1;
+        }
+
+        if (changed)
+            context.builder->invalidateControlFlowGraph();
+        return changed;
+    }
+
     // A range test lowered as two exits to the same label:
     //
     //     cmp  X, LO                      T = X
@@ -3132,6 +3370,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     }
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
+    changed |= convertEqualityChainsToBitTests(storage, operands, context);
     changed |= foldRangeChecks(storage, operands, context);
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

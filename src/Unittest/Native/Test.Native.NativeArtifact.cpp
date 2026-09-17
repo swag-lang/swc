@@ -5,6 +5,7 @@
 
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Debug/DebugRecordCollector.h"
+#include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/LinkDebugMerge.h"
 #include "Backend/Micro/MachineCode.h"
@@ -836,6 +837,50 @@ SWC_TEST_BEGIN(NativeArtifact_LinkMergesArchiveMemberDebugInfo)
         return failNativeArtifactTest(K_TEST_NAME, "a repeated member did not merge");
     if (debugInfo.tpiIndexEnd != typeCount || debugInfo.udts.size() != udtCount || debugInfo.functions.size() != 2 || debugInfo.objectNames.size() != 1)
         return failNativeArtifactTest(K_TEST_NAME, "a repeated member duplicated its types or its compiland");
+}
+SWC_TEST_END()
+
+// Every archive member names its functions for the runtime, whatever the configuration. A program that
+// links the member folds those names into its own table, so its stack traces keep the library's frames.
+SWC_TEST_BEGIN(NativeArtifact_ArchiveMemberNamesItsFunctions)
+{
+    static constexpr auto K_TEST_NAME = "NativeArtifact_ArchiveMemberNamesItsFunctions";
+
+    const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
+
+    MachineCode code;
+    code.bytes.pushBack(std::byte{0x90});
+    code.bytes.pushBack(std::byte{0xC3});
+
+    NativeFunctionInfo   info{.symbol = makeTestFunction(*fixture.compilerCtx, "named_function"), .machineCode = &code, .symbolName = "__named_function", .debugName = "Named.function"};
+    NativeObjDescription description;
+    description.objPath = "named.obj";
+    description.functions.push_back(&info);
+
+    const auto writer = NativeObjFileWriter::create(*fixture.nativeBuilder);
+    ByteArray  bytes;
+    SWC_RESULT(writer->buildObjectFile(bytes, description));
+    Diagnostic diag;
+    CoffObject object;
+    if (!readCoffObject(object, diag, bytes))
+        return failNativeArtifactTest(K_TEST_NAME, "the object does not read back");
+
+    const auto fragment = std::ranges::find(object.sections, Utf8(SymbolTable::OBJECT_SECTION), &CoffInputSection::name);
+    if (fragment == object.sections.end())
+        return failNativeArtifactTest(K_TEST_NAME, "the object carries no symbol fragment");
+    if (!(fragment->characteristics & IMAGE_SCN_LNK_REMOVE))
+        return failNativeArtifactTest(K_TEST_NAME, "the symbol fragment would reach an image another linker writes");
+
+    std::vector<SymbolTable::Relocation> relocations;
+    for (const CoffInputReloc& reloc : fragment->relocs)
+        relocations.push_back({.offset = reloc.offset, .symbolName = reloc.symbolName});
+
+    std::vector<SymbolTable::Entry> symbols;
+    if (!SymbolTable::read(symbols, fragment->bytes.span(), relocations) || symbols.size() != 1)
+        return failNativeArtifactTest(K_TEST_NAME, "the symbol fragment does not read back");
+    const SymbolTable::Entry& symbol = symbols.front();
+    if (symbol.symbolName != info.symbolName || symbol.name != info.debugName || symbol.size != code.bytes.size())
+        return failNativeArtifactTest(K_TEST_NAME, "the symbol fragment lost the function's name or size");
 }
 SWC_TEST_END()
 

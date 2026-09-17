@@ -202,28 +202,17 @@ private func verifyNativeTestRecovery(context: *Context, options: *Options, buil
         command.add(["test", "--file", sourcePath.toString(), "--build-cfg", buildCfg])
         command.add(["--out-dir", Path.combine(scratch.toString(), "output").toString(), "--work-dir", Path.combine(scratch.toString(), "work").toString()])
         options.appendExtra(&command)
-        var hasCoreBound = false
-        for option in options.extra.values
-        {
-            let value = option.toString()
-            if value == "--num-cores" or value == "-j" or Utf8.startsWith(value, "--num-cores=") or Utf8.startsWith(value, "-j=") do
-                hasCoreBound = true
-        }
-
-        if not hasCoreBound do
-            command.add(["--num-cores", "6"])
         command.add(["--run-timeout", "3"])
-        let arguments = joinArguments(command.toSlice())
-        var process   = try Env.runProcess(Env.StartInfo{fileName: context.compiler.toString(), arguments: arguments.toString(), environment: &context.childEnv, standardOutput: .Pipe, standardError: .Pipe})
-        var output    = String.from(process.standardOutput())
-        output.append(process.standardError())
+
+        var output: String
+        let exitCode = try context.captureCompilerReport(&output, command)
         Console.println("Expected native test failure: ", scenario)
         Console.print(output.toString())
 
         let stopped      = Utf8.contains(output.toString(), "#test cannot resume while submitted work is unfinished")
         let continued    = Utf8.contains(output.toString(), "native recovery continued")
         let expectedStop = scenario != "idle"
-        if process.exitCode() == 0 or Utf8.contains(output.toString(), "did not finish within") or stopped != expectedStop or continued == expectedStop
+        if exitCode == 0 or Utf8.contains(output.toString(), "did not finish within") or stopped != expectedStop or continued == expectedStop
         {
             Console.println("native test recovery did not stop or continue at the task lifetime boundary")
             return 1
@@ -721,6 +710,32 @@ private func verifyWorkspaceDebugVariant(context: *Context, options: *Options, w
     return 0
 }
 
+// An executable takes its dependencies' code in, and its stack traces name their frames as they name
+// its own: a panic raised inside a dependency reports the dependency's function.
+private func verifyWorkspaceDependencyStackTrace(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+{
+    var command = workspaceModuleCommand("run", workspace, "standalone_exe", buildCfg)
+    command.add(["--run-arg", "workspace.panic-in-dependency"])
+    options.appendExtra(&command)
+
+    var output: String
+    let exitCode = try context.captureCompilerReport(&output, command)
+    Console.print(output.toString())
+    if exitCode == 0 or not Utf8.contains(output.toString(), "raised by a dependency")
+    {
+        Console.println("A panic inside a linked dependency did not stop the executable with its report.")
+        return 1
+    }
+
+    if not Utf8.contains(output.toString(), "ctxSharedPanic")
+    {
+        Console.println("The stack trace of a panic inside a linked dependency did not name the dependency's frame.")
+        return 1
+    }
+
+    return 0
+}
+
 // Emits a scratch-only writer without standard-module imports. The replacement is source text
 // for an ordinary string literal, so its quotes and newlines are already escaped by the caller.
 private func workspaceSourceRewrite(path, replacement: string)->String
@@ -1166,6 +1181,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let debugVariantCode = try verifyWorkspaceDebugVariant(context, options, workspace.toString(), buildCfg)
     if debugVariantCode != 0 do
         return debugVariantCode
+
+    let stackTraceCode = try verifyWorkspaceDependencyStackTrace(context, options, workspace.toString(), buildCfg)
+    if stackTraceCode != 0 do
+        return stackTraceCode
 
     let sourceEditCode = try verifyWorkspaceSourceEditDuringBuild(context, options, workspace.toString(), buildCfg)
     if sourceEditCode != 0 do

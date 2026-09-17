@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Backend/Debug/SymbolTable.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 #include "Support/Report/Diagnostic.h"
@@ -287,8 +288,10 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
         for (size_t s = 0; s < object.sections.size(); ++s)
         {
             const CoffInputSection& section = object.sections[s];
-            if (section.name.view().starts_with(".debug"))
-                continue; // CodeView debug info is replaced by the embedded symbolizer table
+            // CodeView goes to the PDB and the symbol fragment to the image's own table, both through
+            // the linker; neither is a section of the image.
+            if (section.name.view().starts_with(".debug") || section.name.view() == SymbolTable::OBJECT_SECTION)
+                continue;
 
             uint32_t   mergedIdx = 0;
             const auto it        = sectionByName.find(section.name);

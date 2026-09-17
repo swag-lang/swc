@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/PEWriter.h"
+#include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Main/Version.h"
@@ -15,11 +16,8 @@ namespace
     constexpr uint32_t SECTION_ALIGNMENT = 0x1000;
     constexpr uint32_t FILE_ALIGNMENT    = 0x200;
 
-    constexpr uint32_t SWAG_DEBUG_MAGIC              = 0x42445753u;
-    constexpr uint32_t SWAG_DEBUG_VERSION_PLAIN      = 1;
-    constexpr uint32_t SWAG_DEBUG_VERSION_COMPRESSED = 2;
-    constexpr USHORT   K_COMPRESSION_FORMAT_LZNT1    = 0x0002;
-    constexpr USHORT   K_COMPRESSION_ENGINE_MAXIMUM  = 0x0100;
+    constexpr USHORT K_COMPRESSION_FORMAT_LZNT1   = 0x0002;
+    constexpr USHORT K_COMPRESSION_ENGINE_MAXIMUM = 0x0100;
 
     using RtlGetCompressionWorkSpaceSizeFn = LONG(WINAPI*)(USHORT compressionFormatAndEngine, ULONG* compressBufferWorkSpaceSize, ULONG* compressFragmentWorkSpaceSize);
     using RtlCompressBufferFn              = LONG(WINAPI*)(USHORT compressionFormatAndEngine, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG uncompressedChunkSize, ULONG* finalCompressedSize, PVOID workSpace);
@@ -60,8 +58,8 @@ namespace
 
         outBytes.clear();
         outBytes.reserve(16 + compressedSize);
-        outBytes.appendLe32(SWAG_DEBUG_MAGIC);
-        outBytes.appendLe32(SWAG_DEBUG_VERSION_COMPRESSED);
+        outBytes.appendLe32(SymbolTable::MAGIC);
+        outBytes.appendLe32(SymbolTable::VERSION_PACKED);
         outBytes.appendLe32(static_cast<uint32_t>(source.size()));
         outBytes.appendLe32(compressedSize);
         outBytes.append(std::span{compressed.data(), compressedSize});
@@ -650,9 +648,9 @@ void PEWriter::compressEmbeddedDebugTable()
 {
     for (OutSection& section : sections_)
     {
-        if (section.name != ".swagdbg" || section.bytes.size() < 16)
+        if (section.name.view() != SymbolTable::IMAGE_SECTION || section.bytes.size() < SymbolTable::HEADER_SIZE)
             continue;
-        if (section.bytes.readLe32(0) != SWAG_DEBUG_MAGIC || section.bytes.readLe32(4) != SWAG_DEBUG_VERSION_PLAIN)
+        if (section.bytes.readLe32(0) != SymbolTable::MAGIC || section.bytes.readLe32(4) != SymbolTable::VERSION_PLAIN)
             continue;
 
         ByteArray compressed;

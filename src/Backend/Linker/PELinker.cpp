@@ -2,6 +2,7 @@
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
+#include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/LinkDebugMerge.h"
@@ -68,6 +69,12 @@ namespace
         return name.view().starts_with(".debug");
     }
 
+    // A section the linker consumes itself instead of placing it in the image.
+    bool isLinkerMetadataSection(const Utf8& name)
+    {
+        return isDebugSectionName(name) || name.view() == SymbolTable::OBJECT_SECTION;
+    }
+
     uint32_t alignmentFromCharacteristics(const uint32_t characteristics)
     {
         const uint32_t field = (characteristics & 0x00F00000u) >> 20;
@@ -95,7 +102,7 @@ namespace
     {
         for (const CoffInputSection& section : object.sections)
         {
-            if (isDebugSectionName(section.name))
+            if (isLinkerMetadataSection(section.name))
                 continue;
             for (const CoffInputReloc& reloc : section.relocs)
             {
@@ -147,7 +154,7 @@ namespace
                 continue;
             }
 
-            if (!section.name.view().starts_with(".debug") && (!section.bytes.empty() || section.isBss))
+            if (!isLinkerMetadataSection(section.name) && (!section.bytes.empty() || section.isBss))
                 return false;
         }
 
@@ -323,7 +330,8 @@ namespace
         {
             for (const CoffInputSection& section : object.sections)
             {
-                if (section.name == ".pdata")
+                // Unwind records and the runtime name of a function do not take its address.
+                if (section.name == ".pdata" || section.name.view() == SymbolTable::OBJECT_SECTION)
                     continue;
                 for (const CoffInputReloc& relocation : section.relocs)
                 {
@@ -420,18 +428,36 @@ namespace
         objects.resize(retainedCount);
     }
 
-    void dropFoldedDebugFunctions(LinkDebugInfo& debugInfo, const std::vector<LinkSymbolAlias>& functionAliases)
+    // A folded function has no code of its own left: its name now resolves to the survivor, which
+    // already describes that code, and a second description at that address would only make a
+    // debugger or a stack trace pick one at random.
+    void dropFoldedFunctions(LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& symbols, const std::vector<LinkSymbolAlias>& functionAliases)
     {
-        if (functionAliases.empty() || debugInfo.functions.empty())
+        if (functionAliases.empty())
             return;
 
-        // A folded function has no code of its own left: its name now resolves to the survivor, and a
-        // second procedure at that address would only make the debugger pick one at random.
         std::unordered_set<std::string_view> folded;
         folded.reserve(functionAliases.size());
         for (const LinkSymbolAlias& alias : functionAliases)
             folded.insert(alias.name.view());
         std::erase_if(debugInfo.functions, [&folded](const LinkDebugFunction& function) { return folded.contains(function.symbolName.view()); });
+        std::erase_if(symbols, [&folded](const SymbolTable::Entry& entry) { return folded.contains(entry.symbolName.view()); });
+    }
+
+    // A pulled member names its functions for the runtime; they join the image's own table.
+    void appendMemberSymbols(std::vector<SymbolTable::Entry>& ioSymbols, const CoffObject& object)
+    {
+        for (const CoffInputSection& section : object.sections)
+        {
+            if (section.name.view() != SymbolTable::OBJECT_SECTION)
+                continue;
+
+            std::vector<SymbolTable::Relocation> relocations;
+            relocations.reserve(section.relocs.size());
+            for (const CoffInputReloc& reloc : section.relocs)
+                relocations.push_back({.offset = reloc.offset, .symbolName = reloc.symbolName});
+            SymbolTable::read(ioSymbols, section.bytes.span(), relocations);
+        }
     }
 
     void collectUndefined(std::unordered_set<Utf8>& outUndefined, const LinkImage& image, const std::unordered_set<Utf8>& defined)
@@ -746,14 +772,8 @@ namespace
         std::unordered_set<Utf8>           definedNames_;
     };
 
-    struct DebugTableBuild
-    {
-        LinkSection section;
-        bool        hasSection = false;
-    };
-
     void   collectPeLibrarySearch(NativeBackendBuilder& builder, std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs);
-    void   buildLinkDebugTable(NativeBackendBuilder& builder, DebugTableBuild& outDebugTable);
+    void   collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols);
     Result collectLinkWin32ApplicationConfig(NativeBackendBuilder& builder, LinkWin32ApplicationConfig& outConfig);
     bool   shouldCollectLinkDebugInfo(const NativeBackendBuilder& builder);
     void   collectLinkDebugInfo(NativeBackendBuilder& builder, LinkJob& outJob);
@@ -796,13 +816,13 @@ namespace
         ArchiveLoadItem* item_ = nullptr;
     };
 
-    class DebugTableJob final : public LinkPrepareJobBase
+    class SymbolTableJob final : public LinkPrepareJobBase
     {
     public:
-        DebugTableJob(const TaskContext& ctx, NativeBackendBuilder& builder, DebugTableBuild& outDebugTable) :
+        SymbolTableJob(const TaskContext& ctx, NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols) :
             LinkPrepareJobBase(ctx),
             builder_(&builder),
-            outDebugTable_(&outDebugTable)
+            outSymbols_(&outSymbols)
         {
         }
 
@@ -810,14 +830,14 @@ namespace
         {
             ctx().state().setNone();
             SWC_ASSERT(builder_ != nullptr);
-            SWC_ASSERT(outDebugTable_ != nullptr);
-            buildLinkDebugTable(*builder_, *outDebugTable_);
+            SWC_ASSERT(outSymbols_ != nullptr);
+            collectLinkSymbols(*builder_, *outSymbols_);
             return JobResult::Done;
         }
 
     private:
-        NativeBackendBuilder* builder_       = nullptr;
-        DebugTableBuild*      outDebugTable_ = nullptr;
+        NativeBackendBuilder*            builder_    = nullptr;
+        std::vector<SymbolTable::Entry>* outSymbols_ = nullptr;
     };
 
     class StaticArchiveMemberJob final : public LinkPrepareJobBase
@@ -931,7 +951,7 @@ Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
     return loadArchivesFromSearch(outArchives, libNames, dirs);
 }
 
-Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<Archive>& archives) const
+Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& ioSymbols, std::vector<Archive>& archives) const
 {
     // A member's debug records follow its code into the image. An archive built without debug
     // information has none to give, and the program keeps no debug information for that code.
@@ -1027,6 +1047,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
             // still links, and only its debug information stays behind.
             if (debugMerger)
                 debugMerger->appendObject(pulled, Utf8(archive.sourcePath()));
+            appendMemberSymbols(ioSymbols, pulled);
 
             pulledObjects.push_back(std::move(pulled));
             break;
@@ -1036,7 +1057,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     Diagnostic                   diag;
     std::vector<LinkSymbolAlias> functionAliases;
     foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliases, functionAliases);
-    dropFoldedDebugFunctions(debugInfo, functionAliases);
+    dropFoldedFunctions(debugInfo, ioSymbols, functionAliases);
     if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);
     addLinkSymbolAliases(image, readOnlyDataAliases);
@@ -1047,124 +1068,36 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
 
 namespace
 {
-    struct DebugStringTable
+    // Emits the self-contained `.swagdbg` table (function name and source location per function, keyed
+    // by image-relative address) so the runtime can symbolize stack traces without a PDB or dbghelp.
+    // The start addresses are Rva32 relocations the PE writer resolves.
+    void appendSymbolTable(LinkImage& image, const std::span<const SymbolTable::Entry> symbols)
     {
-        uint32_t insert(const Utf8& value)
-        {
-            if (value.empty())
-                return 0;
-            const auto it = offsets.find(value);
-            if (it != offsets.end())
-                return it->second;
-
-            const uint32_t offset = blobBase + static_cast<uint32_t>(bytes.size());
-            offsets.emplace(value, offset);
-            bytes.appendCString(value.view());
-            return offset;
-        }
-
-        uint32_t                           blobBase = 0;
-        ByteArray                          bytes;
-        std::unordered_map<Utf8, uint32_t> offsets;
-    };
-
-    struct DebugTableEntry
-    {
-        Utf8     symbolName;
-        Utf8     name;
-        Utf8     file;
-        uint32_t line = 0;
-        uint32_t size = 0;
-    };
-
-    void appendDebugTable(LinkImage& image, DebugTableBuild& debugTable)
-    {
-        if (!debugTable.hasSection)
+        LinkSection                          section;
+        std::vector<SymbolTable::Relocation> relocations;
+        SymbolTable::build(section.bytes, relocations, symbols);
+        if (section.bytes.empty())
             return;
 
+        section.name                = Utf8(SymbolTable::IMAGE_SECTION);
+        section.align               = 4;
         const uint32_t sectionIndex = static_cast<uint32_t>(image.sections.size());
-        for (LinkReloc& reloc : debugTable.section.relocs)
-            reloc.sectionIndex = sectionIndex;
-        image.sections.push_back(std::move(debugTable.section));
-        debugTable.hasSection = false;
+        section.relocs.reserve(relocations.size());
+        for (SymbolTable::Relocation& relocation : relocations)
+            section.relocs.push_back({.sectionIndex = sectionIndex, .offset = relocation.offset, .symbolName = std::move(relocation.symbolName), .kind = LinkRelocKind::Rva32});
+        image.sections.push_back(std::move(section));
     }
 
-    void buildLinkDebugTable(NativeBackendBuilder& builder, DebugTableBuild& outDebugTable)
+    void collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols)
     {
-        outDebugTable = {};
-
-        std::vector<DebugTableEntry> entries;
-        entries.reserve(builder.functionInfos.size());
+        outSymbols.reserve(outSymbols.size() + builder.functionInfos.size());
         for (const NativeFunctionInfo& info : builder.functionInfos)
         {
-            if (!info.machineCode)
-                continue;
-
-            DebugTableEntry entry;
-            entry.symbolName = info.symbolName;
-            entry.name       = info.debugName.empty() ? info.symbolName : info.debugName;
-            entry.size       = static_cast<uint32_t>(info.machineCode->bytes.size());
-
-            MachineCode::ResolvedDebugSourceRange resolved;
-            if (info.machineCode->tryResolveDebugSourceRangeAtOffset(builder.ctx(), resolved, 0) && resolved.source.sourceFile)
-            {
-                entry.file = Utf8(resolved.source.sourceFile->path());
-                entry.line = resolved.source.codeRange.line;
-            }
-            entries.push_back(std::move(entry));
+            SymbolTable::Entry entry;
+            if (SymbolTable::makeEntry(entry, builder.ctx(), info))
+                outSymbols.push_back(std::move(entry));
         }
-
-        if (entries.empty())
-            return;
-
-        constexpr uint32_t headerSize = 16;
-        constexpr uint32_t entrySize  = 20;
-
-        DebugStringTable strings;
-        strings.blobBase = headerSize + static_cast<uint32_t>(entries.size()) * entrySize;
-
-        LinkSection section;
-        section.name  = ".swagdbg";
-        section.align = 4;
-
-        section.bytes.appendLe32(0x42445753u); // 'SWDB'
-        section.bytes.appendLe32(1);           // version
-        section.bytes.appendLe32(static_cast<uint32_t>(entries.size()));
-        section.bytes.appendLe32(strings.blobBase);
-
-        for (const DebugTableEntry& entry : entries)
-        {
-            const uint32_t nameOff = strings.insert(entry.name);
-            const uint32_t fileOff = strings.insert(entry.file);
-
-            LinkReloc reloc;
-            reloc.offset     = static_cast<uint32_t>(section.bytes.size());
-            reloc.symbolName = entry.symbolName;
-            reloc.kind       = LinkRelocKind::Rva32;
-            section.relocs.push_back(std::move(reloc));
-
-            section.bytes.appendLe32(0); // rva, filled by the writer
-            section.bytes.appendLe32(entry.size);
-            section.bytes.appendLe32(nameOff);
-            section.bytes.appendLe32(fileOff);
-            section.bytes.appendLe32(entry.line);
-        }
-
-        section.bytes.append(strings.bytes);
-        outDebugTable.section    = std::move(section);
-        outDebugTable.hasSection = true;
     }
-}
-
-// Emits a self-contained `.swagdbg` symbol table (function name + source location per function, keyed
-// by image-relative address) so the runtime can symbolize stack traces without a PDB or dbghelp. The
-// function addresses are written as Rva32 relocations resolved by the PE writer.
-void PELinker::buildDebugTable(LinkImage& image) const
-{
-    SWC_ASSERT(builder_ != nullptr);
-    DebugTableBuild debugTable;
-    buildLinkDebugTable(*builder_, debugTable);
-    appendDebugTable(image, debugTable);
 }
 
 void PELinker::collectExports(LinkImage& image) const
@@ -1251,12 +1184,13 @@ Result PELinker::buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const
 
     SWC_RESULT(buildNativeImage(image));
 
+    std::vector<SymbolTable::Entry> symbols;
+    collectLinkSymbols(*builder_, symbols);
+
     std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
-    SWC_RESULT(resolveSymbols(image, debugInfo, archives));
-
-    // Emit the embedded `.swagdbg` symbol table consumed by the runtime self-symbolizer.
-    buildDebugTable(image);
+    SWC_RESULT(resolveSymbols(image, debugInfo, symbols, archives));
+    appendSymbolTable(image, symbols);
 
     LinkWin32ApplicationConfig win32Config;
     SWC_RESULT(collectWin32ApplicationConfig(win32Config));
@@ -1325,18 +1259,18 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
     for (ArchiveLoadItem& item : archiveItems)
         enqueueJob(std::make_unique<ArchiveLoadJob>(builder_->ctx(), item));
 
-    const Result               imageResult = buildNativeImage(outJob.image);
-    DebugTableBuild            debugTable;
-    LinkWin32ApplicationConfig win32Config;
-    Result                     configResult = Result::Continue;
+    const Result                    imageResult = buildNativeImage(outJob.image);
+    std::vector<SymbolTable::Entry> symbols;
+    LinkWin32ApplicationConfig      win32Config;
+    Result                          configResult = Result::Continue;
     if (imageResult == Result::Continue)
     {
-        enqueueJob(std::make_unique<DebugTableJob>(builder_->ctx(), *builder_, debugTable));
+        enqueueJob(std::make_unique<SymbolTableJob>(builder_->ctx(), *builder_, symbols));
         configResult = collectWin32ApplicationConfig(win32Config);
     }
 
-    // The jobs borrow archiveItems and debugTable. Drain them before either a foreground
-    // failure or a worker failure can unwind their storage.
+    // The jobs borrow archiveItems and symbols. Drain them before either a foreground failure or a
+    // worker failure can unwind their storage.
     jobMgr.waitAll(clientId);
     SWC_RESULT(imageResult);
     SWC_RESULT(configResult);
@@ -1350,8 +1284,8 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
             archives.push_back(std::move(item.archive));
 
     collectDebugInfo(outJob);
-    SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, archives));
-    appendDebugTable(outJob.image, debugTable);
+    SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, symbols, archives));
+    appendSymbolTable(outJob.image, symbols);
     finishImage(outJob.image, std::move(win32Config));
     return Result::Continue;
 }

@@ -130,6 +130,7 @@ bool MicroPassHelpers::instructionActuallyDefinesCpuFlags(const MicroInstr& inst
             return microOpWritesCpuFlags(ops[3].microOp);
         case MicroInstrOpcode::OpBinaryRegAmcMem:
         case MicroInstrOpcode::OpBinaryAmcMemReg:
+        case MicroInstrOpcode::OpUnaryAmcMem:
             return microOpWritesCpuFlags(ops[7].microOp);
         default:
             return true;
@@ -168,6 +169,10 @@ bool MicroPassHelpers::instructionOverwritesCpuFlags(const MicroInstr& inst, con
             op   = ops[7].microOp;
             bits = ops[inst.op == MicroInstrOpcode::OpBinaryRegAmcMem ? 3 : 4].opBits;
             break;
+        case MicroInstrOpcode::OpUnaryAmcMem:
+            // The unary Add/Subtract forms encode INC/DEC. They preserve CF,
+            // so they never overwrite the complete abstract flags value.
+            return false;
         default:
             return true;
     }
@@ -925,6 +930,7 @@ bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
         case MicroInstrOpcode::LoadAmcMemReg:
         case MicroInstrOpcode::LoadAmcMemImm:
         case MicroInstrOpcode::OpBinaryAmcMemReg:
+        case MicroInstrOpcode::OpUnaryAmcMem:
             out.baseIdx  = 0;
             out.indexIdx = 1;
             return true;

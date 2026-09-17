@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -205,16 +206,28 @@ namespace InstructionCombine
 
         const MicroInstrRef opRef = ctx.storage->findNextInstructionRef(loadRef);
         const MicroInstr*   op    = ctx.storage->ptr(opRef);
-        if (!op || op->op != MicroInstrOpcode::OpBinaryRegReg)
+        if (!op || (op->op != MicroInstrOpcode::OpBinaryRegReg && op->op != MicroInstrOpcode::OpBinaryRegImm))
             return false;
         const MicroInstrOperand* opOps = op->ops(*ctx.operands);
-        if (!opOps || opOps[0].reg != value || !opOps[1].reg.isVirtualInt() ||
-            opOps[1].reg == value || opOps[1].reg == base || opOps[1].reg == index ||
-            opOps[2].opBits != loadOps[3].opBits || opOps[2].opBits != loadOps[4].opBits ||
-            (opOps[3].microOp != MicroOp::Add && opOps[3].microOp != MicroOp::Subtract &&
-             opOps[3].microOp != MicroOp::And && opOps[3].microOp != MicroOp::Or && opOps[3].microOp != MicroOp::Xor) ||
-            !valueHasSingleUse(*ctx.ssa, value, opRef))
+        if (!opOps || opOps[0].reg != value || !valueHasSingleUse(*ctx.ssa, value, opRef))
             return false;
+
+        const bool unaryUpdate = op->op == MicroInstrOpcode::OpBinaryRegImm;
+        if (unaryUpdate)
+        {
+            if (opOps[1].opBits != loadOps[3].opBits || opOps[1].opBits != loadOps[4].opBits ||
+                (opOps[2].microOp != MicroOp::Add && opOps[2].microOp != MicroOp::Subtract) ||
+                opOps[3].hasWideImmediateValue() || opOps[3].valueU64 != 1 ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder))
+                return false;
+        }
+        else if (!opOps[1].reg.isVirtualInt() || opOps[1].reg == value || opOps[1].reg == base || opOps[1].reg == index ||
+                 opOps[2].opBits != loadOps[3].opBits || opOps[2].opBits != loadOps[4].opBits ||
+                 (opOps[3].microOp != MicroOp::Add && opOps[3].microOp != MicroOp::Subtract &&
+                  opOps[3].microOp != MicroOp::And && opOps[3].microOp != MicroOp::Or && opOps[3].microOp != MicroOp::Xor))
+        {
+            return false;
+        }
 
         const MicroInstrRef storeRef = ctx.storage->findNextInstructionRef(opRef);
         const MicroInstr*   store    = ctx.storage->ptr(storeRef);
@@ -230,13 +243,21 @@ namespace InstructionCombine
         MicroInstrOperand update[8] = {};
         update[0]                   = loadOps[1];
         update[1]                   = loadOps[2];
-        update[2]                   = opOps[1];
         update[3]                   = loadOps[3];
         update[4]                   = loadOps[4];
         update[5]                   = loadOps[5];
         update[6]                   = loadOps[6];
-        update[7]                   = opOps[3];
-        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryAmcMemReg, update, /*allocNewBlock=*/true);
+        if (unaryUpdate)
+        {
+            update[7] = opOps[2];
+            ctx.emitRewrite(opRef, MicroInstrOpcode::OpUnaryAmcMem, update, /*allocNewBlock=*/true);
+        }
+        else
+        {
+            update[2] = opOps[1];
+            update[7] = opOps[3];
+            ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryAmcMemReg, update, /*allocNewBlock=*/true);
+        }
         ctx.emitErase(loadRef);
         ctx.emitErase(storeRef);
         return true;

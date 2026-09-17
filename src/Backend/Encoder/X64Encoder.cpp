@@ -1173,6 +1173,7 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
                    ops[3].microOp == MicroOp::MultiplyHighSigned || ops[3].microOp == MicroOp::MultiplyHighUnsigned;
 
         case MicroInstrOpcode::OpBinaryAmcMemReg:
+        case MicroInstrOpcode::OpUnaryAmcMem:
             // This form is only built for native integer register operations.
             return false;
 
@@ -1328,6 +1329,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         return requireStandardIntOpBits(outIssue, ops[3].opBits, 3);
 
     if (inst.op == MicroInstrOpcode::OpBinaryAmcMemReg)
+        return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
+
+    if (inst.op == MicroInstrOpcode::OpUnaryAmcMem)
         return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
 
     ///////////////////////////////////////////
@@ -2881,6 +2885,46 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     {
         SWC_INTERNAL_ERROR();
     }
+}
+
+void X64Encoder::encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regBase.isInt() && regMul.isInt());
+    SWC_ASSERT(op == MicroOp::Add || op == MicroOp::Subtract);
+    SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+
+    auto baseX64 = microRegToX64Reg(regBase);
+    auto mulX64  = microRegToX64Reg(regMul);
+    if (mulX64 == X64Reg::Rsp)
+    {
+        SWC_ASSERT(mulValue == 1);
+        std::swap(regBase, regMul);
+        baseX64 = microRegToX64Reg(regBase);
+        mulX64  = microRegToX64Reg(regMul);
+    }
+
+    if (opBits == MicroOpBits::B16)
+        store_.pushU8(0x66);
+
+    const bool indexExtended = isExtendedReg(mulX64);
+    const bool baseExtended  = isExtendedReg(baseX64);
+    if (opBits == MicroOpBits::B64 || indexExtended || baseExtended)
+        store_.pushU8(getRex(opBits == MicroOpBits::B64, false, indexExtended, baseExtended));
+
+    // In this unary instruction family Add/Subtract mean INC/DEC. The fold
+    // creating them proves that CF and the other result flags are dead.
+    emitSpecCpuOp(store_, opBits == MicroOpBits::B8 ? 0xFE : 0xFF, opBits);
+
+    const bool forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
+    const auto mod                 = forcedDisplacement || addValue != 0
+                                         ? (canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32)
+                                         : ModRmMode::Memory;
+    emitModRm(store_, mod, op == MicroOp::Add ? MODRM_REG_0 : MODRM_REG_1, MODRM_RM_SIB);
+
+    SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
+    emitSib(store_, static_cast<uint8_t>(log2(mulValue)), encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
+    if (forcedDisplacement || addValue != 0)
+        emitValue(store_, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
 }
 
 void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)

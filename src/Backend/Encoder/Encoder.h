@@ -161,6 +161,7 @@ protected:
     virtual void encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)                                                                                = 0;
     virtual void encodeClearReg(MicroReg reg, MicroOpBits opBits)                                                                                                                             = 0;
     virtual void encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                                                        = 0;
+    virtual void encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits)                                                = 0;
     virtual void encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)                                                                                                               = 0;
     virtual void encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)                                                                                       = 0;
     virtual void encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                                   = 0;

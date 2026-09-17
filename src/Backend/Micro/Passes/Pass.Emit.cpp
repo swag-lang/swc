@@ -373,6 +373,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::OpUnaryMem:
             encoder.encodeOpUnaryMem(ops[0].reg, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
             break;
+        case MicroInstrOpcode::OpUnaryAmcMem:
+            encoder.encodeOpUnaryAmcMem(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[7].microOp, ops[4].opBits);
+            break;
         case MicroInstrOpcode::OpUnaryReg:
             encoder.encodeOpUnaryReg(ops[0].reg, ops[2].microOp, ops[1].opBits);
             break;

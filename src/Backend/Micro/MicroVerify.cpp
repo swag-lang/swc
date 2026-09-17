@@ -268,6 +268,7 @@ namespace
             case MicroInstrOpcode::VecUnaryAmcRegMem:
             case MicroInstrOpcode::OpBinaryRegAmcMem:
             case MicroInstrOpcode::OpBinaryAmcMemReg:
+            case MicroInstrOpcode::OpUnaryAmcMem:
                 return 8;
 
             default:

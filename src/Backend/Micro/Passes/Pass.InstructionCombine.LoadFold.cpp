@@ -87,6 +87,9 @@ namespace InstructionCombine
                 case MicroOp::Or:
                 case MicroOp::Xor:
                 case MicroOp::MultiplySigned:
+                case MicroOp::PopCount:
+                case MicroOp::LeadingZeroCount:
+                case MicroOp::TrailingZeroCount:
                     return true;
                 default:
                     return false;

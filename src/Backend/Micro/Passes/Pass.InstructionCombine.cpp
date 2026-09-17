@@ -37,6 +37,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryDropFloatOrderedGuard);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryBypassShiftCountMask);
         r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryBypassShiftCountMask);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldAbsoluteValueSignMask);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryOpBinaryRegReg);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstantLhs);
@@ -117,6 +118,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseCompareOperandForSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldThreeWaySelects);
         // Narrowing the masked operation keeps the extend's work in a 32-bit

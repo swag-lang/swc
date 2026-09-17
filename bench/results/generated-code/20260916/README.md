@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 877 (41b8144f5) are
+corpus. Focused continuation measurements through build 919 (d41dc7da7) are
 recorded below.
 
 ## Machine-code measurements
@@ -57,6 +57,30 @@ baseline.
 | 870–871 | Indexed register comparisons | 4 | 54 | 40 | 40 |
 | 874 | Indexed variable shifts | 3 | 54 | 32 | 32 |
 | 875 | Indexed multiplication | 2 | 24 | 20 | 20 |
+
+Five later exploratory rounds added 52 small scalar functions. They cover bit
+counts, power-of-two tests, min/max/clamp chains, median-of-three selections,
+overflow-safe averages, saturating arithmetic, rotates and narrow signed
+returns. The measured Swag total is smaller than LLVM in two rounds and equal
+in one. The other two round totals are larger only because Swag canonicalizes
+signed `s32` returns. Every remaining larger signed `s32` function is explained
+by Swag's canonical 64-bit sign extension at return; no unexplained larger
+function remains in these rounds.
+
+| Round | Measured build | Functions | Swag bytes | LLVM bytes | Larger / equal / smaller |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 19 | 900 | 12 | 160 | 262 | 0 / 8 / 4 |
+| 20 | 903 | 10 | 221 | 221 | 0 / 10 / 0 |
+| 21 | 906 | 10 | 249 | 258 | 0 / 6 / 4 |
+| 22 | 918 | 9 | 268 | 263 | 2 / 7 / 0 |
+| 23 | 919 | 11 | 272 | 268 | 4 / 4 / 3 |
+
+Notable late reductions include unsigned and signed `median3` chains, repeated
+comparison reuse, direct narrow conditional results, and widened overflow-safe
+averages. Unsigned `median3` is 37 bytes versus LLVM's 39; signed floor and
+ceiling averages are 16/16 and 19/19; saturating unsigned add and subtract are
+19/19 and 15/15. The signed clamp is 21 bytes versus LLVM's 18 solely because
+of its final three-byte `movsxd`.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -151,6 +175,12 @@ compiler, passed both indexed variable-shift and multiplication tests, and
 preserved LLVM-equal code sizes for all five functions in that final corpus.
 The final integrated binary also passed the indexed-register and independent
 zero-extended boolean comparison tests, plus the repository integrity check.
+
+Build 900 passed all 3,398 native tests. Build 919 passed all 3,411 native tests
+plus the three expected-failure recovery probes after the later comparison,
+selection, average and saturation batches. Focused Release tests rotated among
+bit counts, address arithmetic, selection chains, signed and unsigned averages,
+saturating arithmetic, data integrity and the concurrent division changes.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

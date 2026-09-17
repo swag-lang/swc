@@ -4027,21 +4027,18 @@ namespace
             loadBefore[0].reg = loaded;
             for (uint32_t i = 1; i < 7; ++i)
                 loadBefore[i] = loadOps[i];
-            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadAmcRegMem, loadBefore);
 
             MicroInstrOperand regCmp[3];
             regCmp[0].reg      = loaded;
             regCmp[1]          = cmpOps[2];
             regCmp[2]          = cmpOps[6];
-            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::CmpRegImm, regCmp);
 
+            MicroInstrOperand immediateOps[3];
             if (hasFallbackImmediate)
             {
-                MicroInstrOperand immediateOps[3];
                 immediateOps[0].reg = fallback;
                 immediateOps[1]     = fallthroughOps[1];
                 immediateOps[2]     = fallthroughOps[2];
-                storage.insertDerivedBefore(operands, joinLabelRef, MicroInstrOpcode::LoadRegImm, immediateOps);
             }
 
             MicroInstrOperand selectOps[4];
@@ -4049,6 +4046,11 @@ namespace
             selectOps[1].reg     = fallback;
             selectOps[2].cpuCond = fallbackCond;
             selectOps[3].opBits  = loadOps[3].opBits;
+
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadAmcRegMem, loadBefore);
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::CmpRegImm, regCmp);
+            if (hasFallbackImmediate)
+                storage.insertDerivedBefore(operands, joinLabelRef, MicroInstrOpcode::LoadRegImm, immediateOps);
             storage.insertDerivedBefore(operands, joinLabelRef, MicroInstrOpcode::LoadCondRegReg, selectOps);
 
             storage.erase(cmpRef);

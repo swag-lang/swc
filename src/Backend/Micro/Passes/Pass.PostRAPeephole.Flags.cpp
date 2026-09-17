@@ -240,6 +240,83 @@ namespace PostRaPeephole
         return true;
     }
 
+    // (a == 0) * (b == 0) is (a | b) == 0. At this late stage the first
+    // source may be destroyed only when physical liveness proves that it is
+    // dead after the original product.
+    bool tryFoldZeroBooleanProduct(Context& ctx, MicroInstrRef multiplyRef, const MicroInstr& multiplyInst)
+    {
+        if (ctx.isClaimed(multiplyRef) || multiplyInst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* product = multiplyInst.ops(*ctx.operands);
+        if (!product || product[3].microOp != MicroOp::MultiplySigned)
+            return false;
+
+        const MicroInstrRef extSecondRef = ctx.previousRef(multiplyRef);
+        const MicroInstr*   extSecond    = ctx.instruction(extSecondRef);
+        const MicroInstrRef extFirstRef  = ctx.previousRef(extSecondRef);
+        const MicroInstr*   extFirst     = ctx.instruction(extFirstRef);
+        const MicroInstrRef setSecondRef = ctx.previousRef(extFirstRef);
+        const MicroInstr*   setSecond    = ctx.instruction(setSecondRef);
+        const MicroInstrRef cmpSecondRef = ctx.previousRef(setSecondRef);
+        const MicroInstr*   cmpSecond    = ctx.instruction(cmpSecondRef);
+        const MicroInstrRef setFirstRef  = ctx.previousRef(cmpSecondRef);
+        const MicroInstr*   setFirst     = ctx.instruction(setFirstRef);
+        const MicroInstrRef cmpFirstRef  = ctx.previousRef(setFirstRef);
+        const MicroInstr*   cmpFirst     = ctx.instruction(cmpFirstRef);
+        if (!cmpFirst || !setFirst || !cmpSecond || !setSecond || !extFirst || !extSecond ||
+            cmpFirst->op != MicroInstrOpcode::CmpRegImm || setFirst->op != MicroInstrOpcode::SetCondReg ||
+            cmpSecond->op != MicroInstrOpcode::CmpRegImm ||
+            setSecond->op != MicroInstrOpcode::SetCondReg ||
+            extFirst->op != MicroInstrOpcode::LoadZeroExtRegReg || extSecond->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+
+        const auto* firstCmp  = cmpFirst->ops(*ctx.operands);
+        const auto* firstSet  = setFirst->ops(*ctx.operands);
+        const auto* secondCmp = cmpSecond->ops(*ctx.operands);
+        const auto* secondSet = setSecond->ops(*ctx.operands);
+        const auto* firstExt  = extFirst->ops(*ctx.operands);
+        const auto* secondExt = extSecond->ops(*ctx.operands);
+        if (!firstCmp || !firstSet || !secondCmp || !secondSet || !firstExt || !secondExt ||
+            !firstCmp[0].reg.isInt() || !secondCmp[0].reg.isInt() || secondCmp[0].reg == firstCmp[0].reg ||
+            firstCmp[2].hasWideImmediateValue() || firstCmp[2].valueU64 != 0 ||
+            (firstCmp[1].opBits != MicroOpBits::B32 && firstCmp[1].opBits != MicroOpBits::B64) ||
+            secondCmp[2].hasWideImmediateValue() || secondCmp[2].valueU64 != 0 || secondCmp[1].opBits != firstCmp[1].opBits ||
+            firstSet[0].reg != firstExt[0].reg || firstExt[0].reg != firstExt[1].reg ||
+            secondSet[0].reg != secondExt[0].reg || secondExt[0].reg != secondExt[1].reg ||
+            (firstSet[1].cpuCond != MicroCond::Equal && firstSet[1].cpuCond != MicroCond::Zero) ||
+            (secondSet[1].cpuCond != MicroCond::Equal && secondSet[1].cpuCond != MicroCond::Zero) ||
+            firstExt[3].opBits != MicroOpBits::B8 || secondExt[3].opBits != MicroOpBits::B8 ||
+            firstExt[2].opBits != secondExt[2].opBits ||
+            (firstExt[2].opBits != MicroOpBits::B32 && firstExt[2].opBits != MicroOpBits::B64) ||
+            product[0].reg != firstExt[0].reg || product[1].reg != secondExt[0].reg ||
+            product[2].opBits != firstExt[2].opBits ||
+            firstExt[0].reg == firstCmp[0].reg || firstExt[0].reg == secondCmp[0].reg ||
+            !ctx.isRegDeadAfterCurrent(firstCmp[0].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, multiplyRef, ctx.builder) ||
+            !ctx.claimAll({cmpFirstRef, setFirstRef, cmpSecondRef, setSecondRef, extFirstRef, extSecondRef, multiplyRef}))
+            return false;
+
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = firstExt[0].reg;
+        clear[1].opBits            = MicroOpBits::B32;
+        MicroInstrOperand either[4] = {};
+        either[0].reg               = firstCmp[0].reg;
+        either[1].reg               = secondCmp[0].reg;
+        either[2].opBits            = firstCmp[1].opBits;
+        either[3].microOp           = MicroOp::Or;
+        MicroInstrOperand set[2] = {};
+        set[0].reg               = firstExt[0].reg;
+        set[1].cpuCond           = MicroCond::Equal;
+        ctx.emitRewrite(cmpFirstRef, MicroInstrOpcode::ClearReg, clear);
+        ctx.emitRewrite(setFirstRef, MicroInstrOpcode::OpBinaryRegReg, either, true);
+        ctx.emitRewrite(cmpSecondRef, MicroInstrOpcode::SetCondReg, set);
+        ctx.emitErase(setSecondRef);
+        ctx.emitErase(extFirstRef);
+        ctx.emitErase(extSecondRef);
+        ctx.emitErase(multiplyRef);
+        return true;
+    }
+
     namespace
     {
         struct CarryBoolean

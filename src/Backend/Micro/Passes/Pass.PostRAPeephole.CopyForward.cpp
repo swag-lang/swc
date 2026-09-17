@@ -747,6 +747,57 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Keep the original value in the temporary and negate the final register:
+    // `mov A, B; neg A; cmovCC A, B; mov B, A` becomes
+    // `mov A, B; neg B; cmovCC B, A`. NEG produces identical flags because
+    // both registers held the same value, and the temporary dies at the copy.
+    bool tryRetargetNegatedConditionalResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* result = copyInst.ops(*ctx.operands);
+        if (!result || result[2].opBits != MicroOpBits::B64 || !result[0].reg.isInt() || !result[1].reg.isInt() ||
+            result[0].reg == result[1].reg || ctx.isPrivateFrameBase(result[0].reg) || ctx.isPrivateFrameBase(result[1].reg) ||
+            !ctx.isRegDeadAfterCurrent(result[1].reg))
+            return false;
+
+        const MicroInstrRef selectRef = ctx.previousRef(copyRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result[1].reg || selected[1].reg != result[0].reg || selected[3].opBits != result[2].opBits)
+            return false;
+
+        const MicroInstrRef negateRef = ctx.previousRef(selectRef);
+        const MicroInstr*   negate    = ctx.instruction(negateRef);
+        const auto*         negated   = negate ? negate->ops(*ctx.operands) : nullptr;
+        if (!negate || negate->op != MicroInstrOpcode::OpUnaryReg || !negated ||
+            negated[0].reg != result[1].reg || negated[1].opBits != result[2].opBits || negated[2].microOp != MicroOp::Negate)
+            return false;
+
+        const MicroInstrRef initialRef = ctx.previousRef(negateRef);
+        const MicroInstr*   initial    = ctx.instruction(initialRef);
+        const auto*         copied     = initial ? initial->ops(*ctx.operands) : nullptr;
+        if (!initial || initial->op != MicroInstrOpcode::LoadRegReg || !copied ||
+            copied[0].reg != result[1].reg || copied[1].reg != result[0].reg || copied[2].opBits != result[2].opBits)
+            return false;
+
+        MicroInstrOperand rewrittenNegate[3] = {negated[0], negated[1], negated[2]};
+        rewrittenNegate[0].reg               = result[0].reg;
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[0].reg               = result[0].reg;
+        rewrittenSelect[1].reg               = result[1].reg;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *negate, rewrittenNegate) ||
+                             ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect))) ||
+            !ctx.claimAll({initialRef, negateRef, selectRef, copyRef}))
+            return false;
+        ctx.emitRewrite(negateRef, negate->op, rewrittenNegate);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // Move a dying unary result into its final register before the operation.
     // This exposes preceding arithmetic to the input-copy folds on the next sweep.
     bool tryRetargetUnaryResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

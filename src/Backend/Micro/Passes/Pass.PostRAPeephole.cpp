@@ -82,6 +82,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetNegatedConditionalResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopySource);
         r.add(MicroInstrOpcode::LoadRegReg, tryCoalesceLocalCopyChain);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);

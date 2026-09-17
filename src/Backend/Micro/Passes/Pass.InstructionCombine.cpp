@@ -58,6 +58,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryMemoryFoldAmcTriple);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryReuseAmcLoadForClearLowestBit);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoWiden);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoWiden);

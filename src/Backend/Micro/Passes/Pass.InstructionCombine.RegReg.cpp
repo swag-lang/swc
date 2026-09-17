@@ -309,6 +309,7 @@ namespace InstructionCombine
                 MicroInstrRef countRef = negative.instRef;
                 MicroInstrRef zeroRef;
                 MicroInstrRef inputCopy;
+                // `width - n` counts like `0 - n`: the shift masks its count to the width.
                 if (negative.inst->op == MicroInstrOpcode::OpBinaryRegReg && negOps && negOps[3].microOp == MicroOp::Subtract &&
                     getNumBits(negOps[2].opBits) >= 32)
                 {
@@ -319,7 +320,7 @@ namespace InstructionCombine
                     if (!zeroOps || (zero.inst->op != MicroInstrOpcode::ClearReg && zero.inst->op != MicroInstrOpcode::LoadRegImm) ||
                         getNumBits(zeroOps[1].opBits) < 32 ||
                         (zero.inst->op != MicroInstrOpcode::ClearReg &&
-                         (zero.inst->op != MicroInstrOpcode::LoadRegImm || zeroOps[2].hasWideImmediateValue() || zeroOps[2].valueU64 != 0)))
+                         (zero.inst->op != MicroInstrOpcode::LoadRegImm || zeroOps[2].hasWideImmediateValue() || zeroOps[2].valueU64 % getNumBits(bits) != 0)))
                         continue;
                     zeroRef = zero.instRef;
                     count   = negOps[1].reg;
@@ -1792,6 +1793,204 @@ namespace InstructionCombine
         newOps[4].microOp = op;
         ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegRegReg, std::span<const MicroInstrOperand>(newOps, 5), true);
         ctx.emitErase(reaching.instRef);
+        return true;
+    }
+    namespace
+    {
+        constexpr uint32_t K_MAX_BSWAP_DEPTH = 10;
+        constexpr int8_t   K_BIT_ZERO        = -1;
+
+        // Where each bit of a value comes from: a bit of one leaf value, or
+        // zero. LLVM's recognizeBSwapOrBitReverseIdiom tracks the same thing.
+        struct BitSources
+        {
+            uint32_t leafValue = 0;
+            MicroReg leafReg   = MicroReg::invalid();
+            bool     hasLeaf   = false;
+            int8_t   bits[64]  = {};
+        };
+
+        bool mergeLeaf(BitSources& into, const BitSources& from)
+        {
+            if (!from.hasLeaf)
+                return true;
+            if (into.hasLeaf && into.leafValue != from.leafValue)
+                return false;
+            into.hasLeaf   = true;
+            into.leafValue = from.leafValue;
+            into.leafReg   = from.leafReg;
+            return true;
+        }
+
+        bool traceBitSources(const Context& ctx, const MicroReg reg, const MicroInstrRef atRef, const uint32_t depth, BitSources& out)
+        {
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (!def.valid())
+                return false;
+
+            const auto leaf = [&] {
+                out.hasLeaf   = true;
+                out.leafValue = def.valueId;
+                out.leafReg   = reg;
+                for (int8_t i = 0; i < 64; ++i)
+                    out.bits[i] = i;
+                return true;
+            };
+            if (def.isPhi || !def.inst || depth >= K_MAX_BSWAP_DEPTH)
+                return leaf();
+
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            if (!ops || ops[0].reg != reg)
+                return leaf();
+
+            switch (def.inst->op)
+            {
+                case MicroInstrOpcode::LoadRegReg:
+                {
+                    if (!ops[1].reg.isVirtualInt() || (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+                        return leaf();
+                    if (!traceBitSources(ctx, ops[1].reg, def.instRef, depth + 1, out))
+                        return false;
+                    if (ops[2].opBits == MicroOpBits::B32)
+                    {
+                        for (uint32_t i = 32; i < 64; ++i)
+                            out.bits[i] = K_BIT_ZERO;
+                    }
+                    return true;
+                }
+
+                case MicroInstrOpcode::OpBinaryRegImm:
+                {
+                    const MicroOpBits bits = ops[1].opBits;
+                    const MicroOp     op   = ops[2].microOp;
+                    if ((bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || ops[3].hasWideImmediateValue() ||
+                        (op != MicroOp::ShiftRight && op != MicroOp::ShiftLeft && op != MicroOp::And))
+                        return leaf();
+                    const uint32_t width = getNumBits(bits);
+                    const uint64_t imm   = ops[3].valueU64;
+                    if (op != MicroOp::And && imm >= width)
+                        return leaf();
+
+                    BitSources input;
+                    if (!traceBitSources(ctx, reg, def.instRef, depth + 1, input))
+                        return false;
+                    out = input;
+                    for (uint32_t i = 0; i < 64; ++i)
+                    {
+                        int8_t source = K_BIT_ZERO;
+                        if (i < width)
+                        {
+                            if (op == MicroOp::ShiftRight)
+                                source = i + imm < width ? input.bits[i + imm] : K_BIT_ZERO;
+                            else if (op == MicroOp::ShiftLeft)
+                                source = i >= imm ? input.bits[i - imm] : K_BIT_ZERO;
+                            else
+                                source = (imm >> i) & 1 ? input.bits[i] : K_BIT_ZERO;
+                        }
+                        out.bits[i] = source;
+                    }
+                    return true;
+                }
+
+                case MicroInstrOpcode::OpBinaryRegReg:
+                {
+                    const MicroOpBits bits = ops[2].opBits;
+                    if (ops[3].microOp != MicroOp::Or || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || !ops[1].reg.isVirtualInt())
+                        return leaf();
+                    BitSources left;
+                    BitSources right;
+                    if (!traceBitSources(ctx, reg, def.instRef, depth + 1, left) ||
+                        !traceBitSources(ctx, ops[1].reg, def.instRef, depth + 1, right))
+                        return false;
+                    const uint32_t width = getNumBits(bits);
+                    out                  = BitSources{};
+                    for (uint32_t i = 0; i < 64; ++i)
+                    {
+                        if (i >= width)
+                        {
+                            out.bits[i] = K_BIT_ZERO;
+                            continue;
+                        }
+                        if (left.bits[i] != K_BIT_ZERO && right.bits[i] != K_BIT_ZERO)
+                            return false;
+                        out.bits[i] = left.bits[i] != K_BIT_ZERO ? left.bits[i] : right.bits[i];
+                    }
+                    // Only the sides that contribute a bit name the leaf.
+                    bool leftUsed  = false;
+                    bool rightUsed = false;
+                    for (uint32_t i = 0; i < width; ++i)
+                    {
+                        leftUsed |= left.bits[i] != K_BIT_ZERO;
+                        rightUsed |= right.bits[i] != K_BIT_ZERO;
+                    }
+                    return (!leftUsed || mergeLeaf(out, left)) && (!rightUsed || mergeLeaf(out, right));
+                }
+
+                default:
+                    return leaf();
+            }
+        }
+    }
+
+    // The bytes of a value reassembled in reverse order by shifts, masks and
+    // ors are its byte swap, as LLVM's bswap idiom recognizer finds:
+    //
+    //     (x >> 24) | ((x >> 8) & 0xFF00) | ((x << 8) & 0xFF0000) | (x << 24)
+    //   ->
+    //     t = x; bswap t
+    //
+    // Every bit of the result must come from the one source the byte swap
+    // puts there, and that source must still hold its value at the root.
+    bool tryRecognizeByteSwap(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].microOp != MicroOp::Or || (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroReg dst = ops[0].reg;
+        if (!dst.isVirtualInt() || !ops[1].reg.isVirtualInt())
+            return false;
+
+        BitSources left;
+        BitSources right;
+        if (!traceBitSources(ctx, dst, ref, 1, left) || !traceBitSources(ctx, ops[1].reg, ref, 1, right))
+            return false;
+        if (!left.hasLeaf || !right.hasLeaf || left.leafValue != right.leafValue)
+            return false;
+
+        const uint32_t width = getNumBits(ops[2].opBits);
+        const uint32_t bytes = width / 8;
+        BitSources     sources = left;
+        for (uint32_t i = 0; i < width; ++i)
+        {
+            if (left.bits[i] != K_BIT_ZERO && right.bits[i] != K_BIT_ZERO)
+                return false;
+            sources.bits[i] = left.bits[i] != K_BIT_ZERO ? left.bits[i] : right.bits[i];
+            const uint32_t expected = (bytes - 1 - i / 8) * 8 + i % 8;
+            if (sources.bits[i] != static_cast<int8_t>(expected))
+                return false;
+        }
+
+        const MicroSsaState::ReachingDef leafAtRoot = ctx.ssa->reachingDef(sources.leafReg, ref);
+        if (!leafAtRoot.valid() || leafAtRoot.valueId != sources.leafValue || sources.leafReg == dst)
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        MicroInstrOperand copy[3];
+        copy[0].reg    = dst;
+        copy[1].reg    = sources.leafReg;
+        copy[2].opBits = ops[2].opBits;
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copy);
+
+        MicroInstrOperand swap[3];
+        swap[0].reg     = dst;
+        swap[1].opBits  = ops[2].opBits;
+        swap[2].microOp = MicroOp::ByteSwap;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, swap);
         return true;
     }
 }

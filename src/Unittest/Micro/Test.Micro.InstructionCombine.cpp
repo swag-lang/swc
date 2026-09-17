@@ -2562,6 +2562,113 @@ SWC_TEST_BEGIN(InstCombine_BooleanMergeCopy_KeepsByteWidth)
 }
 SWC_TEST_END()
 
+// cmp's left operand loaded just before it: the compare reads memory.
+SWC_TEST_BEGIN(InstCombine_LeftCompareLoad_FoldsIntoMemoryCompare)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    constexpr MicroReg flag  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(right, base, 8, MicroOpBits::B8);
+    builder.emitLoadRegMem(left, base, 2, MicroOpBits::B8);
+    builder.emitCmpRegReg(left, right, MicroOpBits::B8);
+    builder.emitSetCondReg(flag, MicroCond::Less);
+    builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemReg) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Folding the right operand would reverse the compare: it stays a register.
+SWC_TEST_BEGIN(InstCombine_RightCompareLoad_Kept)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    constexpr MicroReg flag  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegReg(left, base, MicroOpBits::B64);
+    builder.emitLoadRegMem(right, base, 8, MicroOpBits::B64);
+    builder.emitCmpRegReg(left, right, MicroOpBits::B64);
+    builder.emitSetCondReg(flag, MicroCond::Less);
+    builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // (x >> 24) | ((x >> 8) & 0xFF00) | ((x << 8) & middle) | (x << 24)
+    void emitDwordSwap(MicroBuilder& builder, uint64_t middleMask)
+    {
+        constexpr MicroReg base = MicroReg::virtualIntReg(1);
+        constexpr MicroReg x    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg a    = MicroReg::virtualIntReg(3);
+        constexpr MicroReg b    = MicroReg::virtualIntReg(4);
+        constexpr MicroReg c    = MicroReg::virtualIntReg(5);
+        constexpr MicroReg d    = MicroReg::virtualIntReg(6);
+
+        builder.emitLoadRegMem(x, base, 0, MicroOpBits::B32);
+        builder.emitLoadRegReg(a, x, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(a, ApInt(24, 64), MicroOp::ShiftRight, MicroOpBits::B32);
+        builder.emitLoadRegReg(b, x, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(b, ApInt(8, 64), MicroOp::ShiftRight, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(b, ApInt(0xFF00, 64), MicroOp::And, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(a, b, MicroOp::Or, MicroOpBits::B32);
+        builder.emitLoadRegReg(c, x, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(c, ApInt(8, 64), MicroOp::ShiftLeft, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(c, ApInt(middleMask, 64), MicroOp::And, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(a, c, MicroOp::Or, MicroOpBits::B32);
+        builder.emitLoadRegReg(d, x, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(d, ApInt(24, 64), MicroOp::ShiftLeft, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(a, d, MicroOp::Or, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 8, a, MicroOpBits::B32);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_ByteSwapIdiom_BecomesByteSwap)
+{
+    MicroBuilder builder(ctx);
+    emitDwordSwap(builder, 0xFF0000);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countUnaryMicroOp(builder, MicroOp::ByteSwap) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The third byte is masked off: not a byte swap.
+SWC_TEST_BEGIN(InstCombine_ByteSwapWithMissingByte_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitDwordSwap(builder, 0xFF00000);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countUnaryMicroOp(builder, MicroOp::ByteSwap) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

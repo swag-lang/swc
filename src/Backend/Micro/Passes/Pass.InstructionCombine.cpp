@@ -46,6 +46,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCopyAddIntoAddress);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryThreeOperandShift);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryRecognizeByteSwap);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldComplementPlusOne);
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldComplementOfDecrement);
@@ -71,6 +72,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldMemoryAddressing);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoExtend);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegCompare);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoSignExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoZeroExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoCompare);

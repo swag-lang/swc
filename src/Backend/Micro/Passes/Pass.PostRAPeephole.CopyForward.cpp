@@ -833,7 +833,9 @@ namespace PostRaPeephole
             // then leaves a value in the wrong register).
             const bool binary = next->op == MicroInstrOpcode::OpBinaryRegReg && next->ops(*ctx.operands)[3].microOp != MicroOp::Exchange;
             const bool three  = next->op == MicroInstrOpcode::OpBinaryRegRegReg;
-            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary || three)
+            // A store or a memory update reads its value operand; the base stays.
+            const bool memory = next->op == MicroInstrOpcode::LoadMemReg || next->op == MicroInstrOpcode::OpBinaryMemReg;
+            if (extends || conditional || compareRegs || compareImm || address || next->op == MicroInstrOpcode::LoadRegReg || binary || three || memory)
             {
                 const MicroInstrOperand* ops = next->ops(*ctx.operands);
                 if (!ops)

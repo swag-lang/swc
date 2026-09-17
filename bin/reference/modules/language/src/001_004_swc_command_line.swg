@@ -95,6 +95,14 @@ Neither configuration emits debug information by default. Add '--debug' to a
 'test', 'build', or 'run' command when a debugger needs symbols, types,
 and source line mappings. The option does not change optimization or guard policy.
 
+'--debug' covers the whole program, not only the module being built: every
+dependency the program takes in is built with debug information too, and its
+symbols reach the program's own debug file. A debug build keeps what a debugger
+needs, such as a stack copy of each parameter, so it is a different program and
+lives beside the plain one instead of replacing it: its artifacts go under the
+configuration name followed by '-debug', as in 'devmode-debug'. Alternating
+between the two rebuilds neither.
+
 The target architecture currently exposed by '--arch' is 'x86_64'. Select the
 artifact with '--artifact-kind' ('-ak'): 'executable', 'shared-library',
 'static-library', or 'export'.

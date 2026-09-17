@@ -6,6 +6,27 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.053 — CodeView type records repeat every structure a module reaches
+
+- Recorded: 2026-09-17 08:42
+- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
+- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) writes a 12.2 MB PDB
+  whose TPI stream holds 38,154 records, 5,178 of them `LF_STRUCTURE`. Full definitions repeat:
+  `Surface` 28 times, `interface` 26, `Wnd` 24, `Application` 22. The repeated `interface`
+  records are byte-for-byte equal apart from the field list they name, and those field lists are
+  equal too: `TypeTableBuilder` shares a record only per `TypeRef`, so every interface type emits
+  its own copy of the same synthetic structure. Named structures differ for another reason: a
+  pointer names the forward declaration while the structure is being built and the definition
+  afterwards, so the same type comes out as different bytes depending on emission order, and the
+  link cannot merge the copies archive members bring.
+- Constraint: forward references now resolve, since the TPI hash files a definition under its
+  name (`Pdb_DbgHelpResolvesNamesAndLines` watches it), so a pointer can always name the forward
+  declaration, as MSVC does.
+- Next: hash-cons every record `TypeTableBuilder` emits, point pointers at forward declarations,
+  and compare the swagscope PDB size and link time before and after.
+- Complete when: every structure has one definition per distinct layout in a linked PDB, the
+  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
+
 ### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
 
 - Recorded: 2026-09-16 19:54

@@ -4,6 +4,7 @@
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Backend/Linker/LinkDebugMerge.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -419,6 +420,20 @@ namespace
         objects.resize(retainedCount);
     }
 
+    void dropFoldedDebugFunctions(LinkDebugInfo& debugInfo, const std::vector<LinkSymbolAlias>& functionAliases)
+    {
+        if (functionAliases.empty() || debugInfo.functions.empty())
+            return;
+
+        // A folded function has no code of its own left: its name now resolves to the survivor, and a
+        // second procedure at that address would only make the debugger pick one at random.
+        std::unordered_set<std::string_view> folded;
+        folded.reserve(functionAliases.size());
+        for (const LinkSymbolAlias& alias : functionAliases)
+            folded.insert(alias.name.view());
+        std::erase_if(debugInfo.functions, [&folded](const LinkDebugFunction& function) { return folded.contains(function.symbolName.view()); });
+    }
+
     void collectUndefined(std::unordered_set<Utf8>& outUndefined, const LinkImage& image, const std::unordered_set<Utf8>& defined)
     {
         for (const LinkSection& section : image.sections)
@@ -473,6 +488,7 @@ namespace
         Diagnostic diag; // a non-archive candidate is silently skipped
         if (archive.load(diag, std::move(bytes)))
         {
+            archive.setSourcePath(item.path);
             item.archive = std::move(archive);
             item.loaded  = true;
         }
@@ -915,8 +931,14 @@ Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
     return loadArchivesFromSearch(outArchives, libNames, dirs);
 }
 
-Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives) const
+Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<Archive>& archives) const
 {
+    // A member's debug records follow its code into the image. An archive built without debug
+    // information has none to give, and the program keeps no debug information for that code.
+    std::optional<LinkDebugMerger> debugMerger;
+    if (debugInfo.enabled)
+        debugMerger.emplace(debugInfo);
+
     std::unordered_set<Utf8> defined;
     collectDefined(defined, image);
 
@@ -1001,6 +1023,11 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives
                 });
             }
 
+            // An object another toolchain wrote can carry CodeView the merger does not read. Its code
+            // still links, and only its debug information stays behind.
+            if (debugMerger)
+                debugMerger->appendObject(pulled, Utf8(archive.sourcePath()));
+
             pulledObjects.push_back(std::move(pulled));
             break;
         }
@@ -1009,6 +1036,7 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives
     Diagnostic                   diag;
     std::vector<LinkSymbolAlias> functionAliases;
     foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliases, functionAliases);
+    dropFoldedDebugFunctions(debugInfo, functionAliases);
     if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);
     addLinkSymbolAliases(image, readOnlyDataAliases);
@@ -1217,7 +1245,7 @@ Result PELinker::collectWin32ApplicationConfig(LinkWin32ApplicationConfig& outCo
     return collectLinkWin32ApplicationConfig(*builder_, outConfig);
 }
 
-Result PELinker::buildImage(LinkImage& image) const
+Result PELinker::buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
@@ -1225,7 +1253,7 @@ Result PELinker::buildImage(LinkImage& image) const
 
     std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
-    SWC_RESULT(resolveSymbols(image, archives));
+    SWC_RESULT(resolveSymbols(image, debugInfo, archives));
 
     // Emit the embedded `.swagdbg` symbol table consumed by the runtime self-symbolizer.
     buildDebugTable(image);
@@ -1267,9 +1295,10 @@ Result PELinker::prepareImageLink(LinkJob& outJob, const LinkJob::Output output)
     if (canPrepareLinkInParallel())
         return prepareImageLinkParallel(outJob);
 
-    SWC_RESULT(buildImage(outJob.image));
+    // The module's own debug records come first: the archive members the link pulls in are
+    // merged into them.
     collectDebugInfo(outJob);
-    return Result::Continue;
+    return buildImage(outJob.image, outJob.debugInfo);
 }
 
 Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
@@ -1320,10 +1349,10 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
         if (item.loaded)
             archives.push_back(std::move(item.archive));
 
-    SWC_RESULT(resolveSymbols(outJob.image, archives));
+    collectDebugInfo(outJob);
+    SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, archives));
     appendDebugTable(outJob.image, debugTable);
     finishImage(outJob.image, std::move(win32Config));
-    collectDebugInfo(outJob);
     return Result::Continue;
 }
 
@@ -1407,7 +1436,7 @@ namespace
             entry.path = path;
             if (sourceFile)
             {
-                const std::array<uint8_t, 32> hash = DebugInfo::sourceFileChecksum(builder.ctx(), *sourceFile);
+                const std::array<uint8_t, 32> hash = builder.compiler().sourceFileChecksum(*sourceFile);
                 entry.checksum.assign(hash.begin(), hash.end());
                 entry.checksumKind = 3; // CV_SourceChksum_SHA256
             }

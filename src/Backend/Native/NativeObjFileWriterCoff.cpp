@@ -78,8 +78,10 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
         sections.push_back(std::move(section));
     }
 
+    // The object that owns the writable data also describes it. In an archive that is object 0, which
+    // leaves the read-only data to objects of their own: global records address '.data' and '.bss' only.
     CollectedDebugRecords debugRecords;
-    collectDebugRecords(*builder_, description.functions, description.startup, description.includeData && description.includeMergedRData, debugRecords);
+    collectDebugRecords(*builder_, description.functions, description.startup, description.includeData, debugRecords);
 
     DebugInfoObjectResult        debugInfoResult;
     const DebugInfoObjectRequest debugInfoRequest = {

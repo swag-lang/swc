@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/PdbWriter.h"
+#include "Backend/Debug/CodeViewLeaf.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -443,6 +444,48 @@ namespace
 
     // ---- TPI / IPI ----------------------------------------------------------------------------------
 
+    constexpr uint16_t K_LF_CLASS            = 0x1504;
+    constexpr uint16_t K_LF_STRUCTURE        = 0x1505;
+    constexpr uint16_t K_LF_INTERFACE        = 0x1519;
+    constexpr uint16_t K_CV_PROP_FORWARD_REF = 0x0080;
+    constexpr uint16_t K_CV_PROP_SCOPED      = 0x0100;
+    constexpr size_t   K_CV_CLASS_SIZE       = 20; // numeric size leaf, then the name
+
+    // MSVC's hashBufv8: a CRC-32 started from zero and left uninverted.
+    uint32_t hashBufferV8(const std::span<const std::byte> bytes)
+    {
+        uint32_t crc = 0;
+        for (const std::byte value : bytes)
+        {
+            crc ^= static_cast<uint8_t>(value);
+            for (int bit = 0; bit < 8; ++bit)
+                crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
+        }
+        return crc;
+    }
+
+    // A debugger resolves a forward reference by hashing the type's name and looking for the
+    // definition in that bucket, so a complete structure is filed under its name. Everything else,
+    // forward references included, is filed under its bytes. The writer emits no scoped or
+    // uniquely-named structure, which are the other cases MSVC files by name.
+    uint32_t tpiRecordHash(const std::span<const std::byte> record)
+    {
+        uint16_t kind = 0;
+        std::memcpy(&kind, record.data() + sizeof(uint16_t), sizeof(kind));
+        if (kind != K_LF_CLASS && kind != K_LF_STRUCTURE && kind != K_LF_INTERFACE)
+            return hashBufferV8(record);
+
+        uint16_t properties = 0;
+        std::memcpy(&properties, record.data() + 6, sizeof(properties));
+        const size_t sizeLeaf = CodeViewLeaf::numericSize(record, K_CV_CLASS_SIZE);
+        if ((properties & (K_CV_PROP_FORWARD_REF | K_CV_PROP_SCOPED)) || !sizeLeaf)
+            return hashBufferV8(record);
+
+        const size_t nameOffset = K_CV_CLASS_SIZE + sizeLeaf;
+        const auto*  name       = reinterpret_cast<const char*>(record.data() + nameOffset);
+        return hashStringV1({name, strnlen(name, record.size() - nameOffset)});
+    }
+
     // Builds a TPI/IPI stream. When records is non-empty a hash stream is required (otherwise debuggers
     // fault resolving a type index); its bytes are returned in outHash and referenced by hashStreamIndex.
     Bytes buildTpiStream(const Bytes& records, const uint32_t indexEnd, const uint16_t hashStreamIndex, Bytes& outHash)
@@ -463,16 +506,12 @@ namespace
 
         if (hasHash)
         {
-            // Hash value buffer: one bucket index per record (content hash; sufficient for index-based
-            // type resolution, which is what local/global type display uses).
+            // Hash value buffer: one bucket index per record.
             for (uint32_t i = 0; i < numRecords; ++i)
             {
                 const uint32_t begin = recordOffsets[i];
                 const uint32_t end   = i + 1 < numRecords ? recordOffsets[i + 1] : static_cast<uint32_t>(records.size());
-                uint32_t       hash  = 2166136261u;
-                for (uint32_t b = begin; b < end; ++b)
-                    hash = (hash ^ static_cast<uint8_t>(records[b])) * 16777619u;
-                outHash.appendLe32(hash % K_TPI_HASH_BUCKETS);
+                outHash.appendLe32(tpiRecordHash(records.span().subspan(begin, end - begin)) % K_TPI_HASH_BUCKETS);
             }
             // Index-offset map: (type index, record offset) for every record.
             for (uint32_t i = 0; i < numRecords; ++i)
@@ -586,9 +625,14 @@ void PdbWriter::build(ByteArray&                         outBytes,
 
     for (const LinkDebugGlobal& g : debugInfo.globals)
     {
-        const PdbSymbolAddress addr = resolver.resolveSection(g.sectionName, g.sectionOffset);
+        PdbSymbolAddress addr = g.symbolName.empty() ? resolver.resolveSection(g.sectionName, g.sectionOffset) : resolver.resolve(g.symbolName);
         if (!addr.found)
             continue;
+        if (!g.symbolName.empty())
+        {
+            addr.offset += g.sectionOffset;
+            addr.rva += g.sectionOffset;
+        }
 
         Bytes payload;
         payload.appendLe32(g.typeIndex);
@@ -1024,7 +1068,8 @@ void PdbWriter::build(ByteArray&                         outBytes,
     const uint16_t tpiHashStreamIndex    = static_cast<uint16_t>(sectionHdrStreamIndex + 1);
     const uint16_t ipiHashStreamIndex    = static_cast<uint16_t>(tpiHashStreamIndex + 1);
 
-    // Edit-and-continue substream: a minimal but valid empty string table.
+    // Edit-and-continue substream: a minimal but valid empty string table. Readers parse exactly the
+    // size the header declares as a string table, so it carries no alignment padding.
     Bytes ecSubstream;
     {
         ecSubstream.appendLe32(0xEFFEEFFEu);
@@ -1034,7 +1079,6 @@ void PdbWriter::build(ByteArray&                         outBytes,
         ecSubstream.appendLe32(1); // bucket count
         ecSubstream.appendLe32(0); // bucket[0]
         ecSubstream.appendLe32(0); // name count
-        ecSubstream.align(4);
     }
 
     Bytes optDbgHeader;

@@ -27,6 +27,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/LookupTable.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Math/Sha256.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
@@ -1439,6 +1440,25 @@ bool CompilerInstance::tryGetGeneratedSourceContent(const fs::path& path, std::s
         }
     }
     return false;
+}
+
+std::array<uint8_t, 32> CompilerInstance::sourceFileChecksum(const SourceFile& file) const
+{
+    const fs::path path = file.path();
+    {
+        const std::shared_lock lock(sourceChecksumsMutex_);
+        const auto             it = sourceChecksums_.find(path);
+        if (it != sourceChecksums_.end())
+            return it->second;
+    }
+
+    std::string_view content;
+    if (!file.hasFlag(FileFlagsE::CustomSrc) || !tryGetGeneratedSourceContent(path, content))
+        content = file.sourceView();
+    const std::array<uint8_t, 32> checksum = sha256(std::span{reinterpret_cast<const std::byte*>(content.data()), content.size()});
+
+    const std::unique_lock lock(sourceChecksumsMutex_);
+    return sourceChecksums_.try_emplace(path, checksum).first->second;
 }
 
 Result CompilerInstance::flushGeneratedSourceDumps(TaskContext& ctx)

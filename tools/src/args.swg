@@ -19,6 +19,7 @@ public struct Options
     command:        String           // The command, when the tool accepts more than one.
     module:         String           // The module, suite, or script that was named.
     buildCfg:       String           // The configuration to build and run in.
+    debug:          bool             // Whether every artifact, dependencies included, carries debug information.
     allConfigs:     bool             // Whether to repeat an aggregate tool in both configurations.
     wantHelp:       bool             // Whether the tool was asked to print its usage.
     targetArch:     String           // The architecture every output path is keyed on.
@@ -81,6 +82,13 @@ public impl Options
         arguments.addAll(.test)
     }
 
+    // Returns the name of the output directory a build in this configuration writes to.
+    //
+    // A build with '--debug' is a different program, and the compiler keeps it apart from the
+    // plain one under the configuration name followed by '-debug'. A tool that locates an
+    // artifact follows the same rule.
+    mtd const artifactConfiguration()->String => .debug ? Format.toString("%-debug", .buildCfg) : .buildCfg
+
     // Returns the configurations this invocation asks for.
     mtd const configurations()->Array'String
     {
@@ -111,6 +119,7 @@ private struct Grammar
     buildCfg: String     // The configuration to build and run in.
 
     allCfg:         bool     // Repeat an aggregate tool in both configurations.
+    debug:          bool     // Build every artifact with debug information, forwarded too.
     toolRelaunched: bool     // Internal marker consumed here, never forwarded to the compiler.
 
     #[CommandLine.ArgParams("m")]
@@ -194,6 +203,12 @@ public func parseOptions(acceptedCommands: const [..] string, tokens: const [..]
     result.toolRelaunched = grammar.toolRelaunched
     result.runAsync       = grammar.runAsync
     result.runArguments   = grammar.runArg
+
+    if grammar.debug
+    {
+        result.debug = true
+        result.extra.add(["--debug"])
+    }
 
     if parsed.isSet.targetArch
     {

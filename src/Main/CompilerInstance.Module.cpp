@@ -184,7 +184,7 @@ namespace
             result /= "test";
         else
             result /= fs::path(backendKindName(backendKind).c_str());
-        result /= fs::path(cmdLine.buildCfg.c_str());
+        result /= fs::path(artifactConfigurationName(cmdLine).c_str());
         result /= fs::path(targetArchName(cmdLine.targetArch).c_str());
         return result.lexically_normal();
     }
@@ -596,7 +596,8 @@ namespace
 
     Utf8 dependencyConfigurationLabel(const CommandLine& cmdLine)
     {
-        return std::format("build-cfg '{}' and arch '{}'", cmdLine.buildCfg.c_str(), targetArchName(cmdLine.targetArch).c_str());
+        const std::string_view debugInfo = cmdLine.debugInfo ? " with debug information" : "";
+        return std::format("build-cfg '{}'{} and arch '{}'", cmdLine.buildCfg.c_str(), debugInfo, targetArchName(cmdLine.targetArch).c_str());
     }
 
     struct DependencyConfigCandidate
@@ -681,7 +682,7 @@ namespace
         if (FileSystem::resolveExistingFolder(resolvedModuleDir, outBecause) != Result::Continue)
             return Result::Error;
 
-        const auto      buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
+        const auto      buildCfgDir = fs::path(artifactConfigurationName(cmdLine).c_str());
         const auto      archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
         std::error_code ec;
         for (fs::directory_iterator it(resolvedModuleDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
@@ -949,7 +950,7 @@ namespace
         fs::file_time_type                     inputsReadTime{};
         fs::file_time_type                     dependenciesReadTime{};
         std::map<fs::path, fs::file_time_type> apiReadTimes;
-        bool                                   debugInfo = false;
+        Utf8                                   configuration;
         Utf8                                   tagsFingerprint;
     };
 
@@ -974,6 +975,15 @@ namespace
         }
         const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()});
         return bytesToLowerHex(digest);
+    }
+
+    // What a command line changes in a module's code without changing where its artifacts go.
+    // The configuration, the artifact kind and the architecture already name the output
+    // directory; an artifact built with anything listed here set differently is another program.
+    Utf8 workspaceArtifactConfiguration(const CompilerInstance& compiler)
+    {
+        const Runtime::BuildCfgBackend& backend = compiler.buildCfg().backend;
+        return std::format("debug-info:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
     }
 
     // Each build mode keeps its own manifest, so alternating `test` and `run` does
@@ -1279,7 +1289,7 @@ namespace
     fs::path moduleSetupCachePath(const CommandLine& cmdLine, const Utf8& moduleName)
     {
         fs::path result = moduleWorkDirectory(cmdLine, moduleName);
-        result /= fs::path(std::format("{}-{}{}", K_MODULE_SETUP_CACHE_FILE, cmdLine.buildCfg, artifactModeSuffix(cmdLine)));
+        result /= fs::path(std::format("{}-{}{}", K_MODULE_SETUP_CACHE_FILE, artifactConfigurationName(cmdLine), artifactModeSuffix(cmdLine)));
         return result.lexically_normal();
     }
 
@@ -1524,7 +1534,7 @@ namespace
 
         auto   currentSection          = Section::None;
         bool   validVersion            = false;
-        bool   hasDebugInfo            = false;
+        bool   hasConfiguration        = false;
         bool   hasTags                 = false;
         bool   hasInputsReadTime       = false;
         bool   hasDependenciesReadTime = false;
@@ -1547,7 +1557,7 @@ namespace
                 continue;
             }
 
-            if (line == "version=7")
+            if (line == "version=8")
             {
                 validVersion = true;
                 if (end == content.size())
@@ -1556,10 +1566,10 @@ namespace
                 continue;
             }
 
-            if (line == "debug-info=0" || line == "debug-info=1")
+            if (line.starts_with("configuration="))
             {
-                outManifest.debugInfo = line.back() == '1';
-                hasDebugInfo          = true;
+                outManifest.configuration = line.substr(14);
+                hasConfiguration          = true;
                 if (end == content.size())
                     break;
                 start = end + 1;
@@ -1668,12 +1678,12 @@ namespace
         normalizeWorkspacePathsLexically(outManifest.apiInputs);
         normalizeWorkspacePathsLexically(outManifest.dependencyDirs);
         normalizeWorkspacePathsLexically(outManifest.artifacts);
-        return validVersion && hasDebugInfo && hasTags && hasInputsReadTime && hasDependenciesReadTime;
+        return validVersion && hasConfiguration && hasTags && hasInputsReadTime && hasDependenciesReadTime;
     }
 
     Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
     {
-        Utf8 content = std::format("version=7\ndebug-info={}\ntags={}\ninputs-read-at={}\ndependencies-read-at={}\n[inputs]\n", manifest.debugInfo ? 1 : 0, manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count(), manifest.dependenciesReadTime.time_since_epoch().count());
+        Utf8 content = std::format("version=8\nconfiguration={}\ntags={}\ninputs-read-at={}\ndependencies-read-at={}\n[inputs]\n", manifest.configuration.view(), manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count(), manifest.dependenciesReadTime.time_since_epoch().count());
         for (const fs::path& path : manifest.inputs)
         {
             content += Utf8(path);
@@ -1741,9 +1751,9 @@ namespace
         return false;
     }
 
-    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const bool debugInfo, const std::span<const Utf8> tags)
+    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const Utf8& configuration, const std::span<const Utf8> tags)
     {
-        if (manifest.debugInfo != debugInfo || manifest.tagsFingerprint != workspaceTagsFingerprint(tags))
+        if (manifest.configuration != configuration || manifest.tagsFingerprint != workspaceTagsFingerprint(tags))
             return false;
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
@@ -3707,7 +3717,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         const bool                hasUnexpectedPdb = !unexpectedPdbPath.empty() && fs::exists(unexpectedPdbPath, unexpectedPdbError);
         if (!hasUnexpectedPdb && !unexpectedPdbError &&
             readWorkspaceArtifactManifest(manifest, manifestPath) &&
-            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, probeCompiler.buildCfg().backend.debugInfo, moduleCmdLine.tags))
+            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, workspaceArtifactConfiguration(probeCompiler), moduleCmdLine.tags))
         {
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
@@ -3804,7 +3814,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 manifest.nativeReadTimes      = moduleCompiler->moduleNativeReadTimes_;
                 manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
                 normalizeWorkspacePathsLexically(manifest.apiInputs);
-                manifest.debugInfo       = moduleCompiler->buildCfg().backend.debugInfo;
+                manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);
                 manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles());
                 if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
@@ -3835,7 +3845,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             link->manifest.nativeReadTimes      = moduleCompiler->moduleNativeReadTimes_;
             link->manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
             normalizeWorkspacePathsLexically(link->manifest.apiInputs);
-            link->manifest.debugInfo       = moduleCompiler->buildCfg().backend.debugInfo;
+            link->manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);
             link->manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles());
             if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, link->manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)

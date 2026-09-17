@@ -6,6 +6,7 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Backend/Linker/LinkDebugMerge.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -147,6 +148,32 @@ namespace
 
         std::memcpy(&outRecord, bytes.data() + offset, sizeof(T));
         return true;
+    }
+
+    // Answers the kind of the type record at a type index, or 0 when the stream holds no such record.
+    uint16_t tpiRecordKind(const ByteArray& records, const uint32_t typeIndex)
+    {
+        uint32_t index = 0x1000;
+        for (size_t pos = 0; pos + 4 <= records.size(); pos += sizeof(uint16_t) + records.readLe16(pos), ++index)
+        {
+            if (index == typeIndex)
+                return records.readLe16(pos + sizeof(uint16_t));
+        }
+
+        return 0;
+    }
+
+    size_t tpiRecordCount(const ByteArray& records, const std::span<const std::byte> record)
+    {
+        size_t count = 0;
+        for (size_t pos = 0; pos + 4 <= records.size(); pos += sizeof(uint16_t) + records.readLe16(pos))
+        {
+            const size_t size = sizeof(uint16_t) + records.readLe16(pos);
+            if (std::ranges::equal(records.span().subspan(pos, size), record))
+                ++count;
+        }
+
+        return count;
     }
 
     SymbolFunction* makeTestFunction(TaskContext& ctx, std::string_view name)
@@ -699,6 +726,116 @@ SWC_TEST_BEGIN(NativeArtifact_UnwindRecordsDoNotRequireCodeViewMetadata)
             if (lean->relocs[i].offset != full->relocs[i].offset || lean->relocs[i].type != full->relocs[i].type || lean->relocs[i].symbolName != full->relocs[i].symbolName)
                 return Result::Error;
     }
+}
+SWC_TEST_END()
+
+// A program takes its dependencies' code from their archives, and each member brings the debug records
+// its own compilation wrote. The link carries them over: the member's types join the image's stream with
+// one copy of each, and its functions, locals and globals follow. A member whose type records cannot be
+// read leaves nothing behind.
+SWC_TEST_BEGIN(NativeArtifact_LinkMergesArchiveMemberDebugInfo)
+{
+    static constexpr auto     K_TEST_NAME      = "NativeArtifact_LinkMergesArchiveMemberDebugInfo";
+    static constexpr auto     K_COMPILAND      = "C:\\lib\\member.lib";
+    static constexpr uint16_t K_LF_POINTER     = 0x1002;
+    static constexpr uint16_t K_LF_PROCEDURE   = 0x1008;
+    static constexpr uint16_t K_LF_CLASS       = 0x1504;
+    static constexpr uint16_t K_LF_STRUCTURE   = 0x1505;
+    static constexpr uint32_t K_T_CHAR         = 0x0070;
+    static constexpr uint32_t K_PTR_NEAR64     = 0x000C;
+    static constexpr uint32_t K_FIRST_TYPE     = 0x1000;
+
+    CommandLine cmdLine = makeNativeArtifactCmdLine();
+    cmdLine.debugInfo   = true;
+    const NativeArtifactTestFixture fixture(ctx.global(), cmdLine);
+    const TypeRef                   stringType = fixture.compiler->typeMgr().typeString();
+
+    MachineCode code;
+    code.bytes.pushBack(std::byte{0xC3});
+
+    auto* function  = makeTestFunction(*fixture.compilerCtx, "member_function");
+    auto* parameter = makeTestGlobal(*fixture.compilerCtx, "member_parameter", stringType);
+    parameter->setDebugStackSlotSize(16);
+    parameter->setDebugStackSlotOffset(8);
+    function->parameters().push_back(parameter);
+    function->setDebugStackFrameSize(32);
+    function->setDebugStackBaseReg(MicroReg::intReg(4));
+    auto* global = makeTestGlobal(*fixture.compilerCtx, "member_global", stringType);
+    global->setGlobalStorage(DataSegmentKind::GlobalInit, 16);
+    fixture.nativeBuilder->regularGlobals.push_back(global);
+
+    // Object 0 of an archive: it owns the writable data, and the read-only data lives elsewhere.
+    NativeFunctionInfo   info{.symbol = function, .machineCode = &code, .symbolName = "__member_function", .debugName = "member_function"};
+    NativeObjDescription description;
+    description.objPath     = "member.obj";
+    description.includeData = true;
+    description.functions.push_back(&info);
+
+    const auto writer = NativeObjFileWriter::create(*fixture.nativeBuilder);
+    ByteArray  bytes;
+    SWC_RESULT(writer->buildObjectFile(bytes, description));
+    Diagnostic diag;
+    CoffObject member;
+    if (!readCoffObject(member, diag, bytes))
+        return failNativeArtifactTest(K_TEST_NAME, "the member object does not read back");
+
+    // The image already holds the pointer the member's string type is made of.
+    LinkDebugInfo debugInfo;
+    debugInfo.enabled = true;
+    debugInfo.tpiRecords.appendLe16(10);
+    debugInfo.tpiRecords.appendLe16(K_LF_POINTER);
+    debugInfo.tpiRecords.appendLe32(K_T_CHAR);
+    debugInfo.tpiRecords.appendLe32(K_PTR_NEAR64);
+    debugInfo.tpiIndexEnd = K_FIRST_TYPE + 1;
+    const ByteArray imagePointer = debugInfo.tpiRecords;
+
+    LinkDebugMerger merger(debugInfo);
+
+    CoffObject foreign  = member;
+    const auto typeData = std::ranges::find(foreign.sections, Utf8(".debug$T"), &CoffInputSection::name);
+    if (typeData == foreign.sections.end())
+        return failNativeArtifactTest(K_TEST_NAME, "the member carries no type records");
+    typeData->bytes.appendLe16(2);
+    typeData->bytes.appendLe16(K_LF_CLASS);
+    if (merger.appendObject(foreign, "C:\\lib\\foreign.lib") || debugInfo.tpiIndexEnd != K_FIRST_TYPE + 1 || !debugInfo.functions.empty() || !debugInfo.objectNames.empty())
+        return failNativeArtifactTest(K_TEST_NAME, "a member with an unreadable type record left debug information behind");
+
+    if (!merger.appendObject(member, K_COMPILAND))
+        return failNativeArtifactTest(K_TEST_NAME, "the member's debug records did not merge");
+    if (debugInfo.objectNames.size() != 1 || debugInfo.objectNames.front() != K_COMPILAND)
+        return failNativeArtifactTest(K_TEST_NAME, "the member did not join the compiland of its archive");
+    if (debugInfo.functions.size() != 1)
+        return failNativeArtifactTest(K_TEST_NAME, "the member's function did not merge");
+
+    const LinkDebugFunction& merged = debugInfo.functions.front();
+    if (merged.symbolName != info.symbolName || merged.displayName != info.debugName || merged.objIndex != 0 || merged.frameSize != 32)
+        return failNativeArtifactTest(K_TEST_NAME, "the merged function lost its name, compiland, or frame");
+    if (tpiRecordKind(debugInfo.tpiRecords, merged.procTypeIndex) != K_LF_PROCEDURE)
+        return failNativeArtifactTest(K_TEST_NAME, "the merged function does not name its procedure type");
+
+    const auto local = std::ranges::find(merged.locals, Utf8("member_parameter"), &LinkDebugLocal::name);
+    if (local == merged.locals.end() || local->typeIndex < K_FIRST_TYPE || local->frameOffset != 8 || local->cvRegister == 0)
+        return failNativeArtifactTest(K_TEST_NAME, "the merged function lost its parameter");
+
+    if (tpiRecordCount(debugInfo.tpiRecords, imagePointer.span()) != 1)
+        return failNativeArtifactTest(K_TEST_NAME, "a member type record equal to an image record was copied");
+
+    const Utf8 dataBase = nativeScopedSectionBaseSymbol(*fixture.compiler, K_DATA_BASE_SYMBOL);
+    if (debugInfo.globals.size() != 1)
+        return failNativeArtifactTest(K_TEST_NAME, "the member's global did not merge");
+    const LinkDebugGlobal& mergedGlobal = debugInfo.globals.front();
+    if (mergedGlobal.displayName != "member_global" || mergedGlobal.symbolName != dataBase || mergedGlobal.sectionOffset != 16)
+        return failNativeArtifactTest(K_TEST_NAME, "the merged global is not addressed from its module's data");
+    if (tpiRecordKind(debugInfo.tpiRecords, mergedGlobal.typeIndex) != K_LF_STRUCTURE)
+        return failNativeArtifactTest(K_TEST_NAME, "the merged global lost its type");
+
+    // Another member repeating the same types adds its function and nothing else.
+    const uint32_t typeCount = debugInfo.tpiIndexEnd;
+    const size_t   udtCount  = debugInfo.udts.size();
+    if (!merger.appendObject(member, K_COMPILAND))
+        return failNativeArtifactTest(K_TEST_NAME, "a repeated member did not merge");
+    if (debugInfo.tpiIndexEnd != typeCount || debugInfo.udts.size() != udtCount || debugInfo.functions.size() != 2 || debugInfo.objectNames.size() != 1)
+        return failNativeArtifactTest(K_TEST_NAME, "a repeated member duplicated its types or its compiland");
 }
 SWC_TEST_END()
 

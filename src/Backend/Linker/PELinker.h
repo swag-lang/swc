@@ -21,7 +21,7 @@ public:
     Result prepareLink(LinkJob& outJob) override;
 
 private:
-    Result buildImage(LinkImage& image) const;
+    Result buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const;
     Result buildNativeImage(LinkImage& image) const;
     Result prepareImageLink(LinkJob& outJob, LinkJob::Output output) const;
     Result prepareImageLinkParallel(LinkJob& outJob) const;
@@ -30,7 +30,7 @@ private:
     Result collectArchiveMembers(std::vector<LinkArchiveMember>& outMembers) const;
     Result loadArchives(std::vector<Archive>& outArchives) const;
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;
-    Result resolveSymbols(LinkImage& image, std::vector<Archive>& archives) const;
+    Result resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<Archive>& archives) const;
     void   collectExports(LinkImage& image) const;
     Result collectWin32ApplicationConfig(LinkWin32ApplicationConfig& outConfig) const;
     void   finishImage(LinkImage& image, LinkWin32ApplicationConfig&& win32Config) const;

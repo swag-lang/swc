@@ -637,6 +637,90 @@ private func verifyWorkspaceTagCache(context: *Context, options: *Options, works
     return 0
 }
 
+// A build with '--debug' is another program. It lives beside the plain build under
+// '<config>-debug', takes in dependencies built the same way, and alternating the two rebuilds
+// neither. An explicit optimization level changes the program without changing its directory, so a
+// reused artifact has to match it too.
+private func verifyWorkspaceDebugVariant(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+{
+    var plain = workspaceModuleCommand("build", workspace, "standalone_exe", buildCfg)
+    options.appendExtra(&plain)
+    var debug = workspaceModuleCommand("build", workspace, "standalone_exe", buildCfg)
+    debug.add(["--debug"])
+    options.appendExtra(&debug)
+
+    let plainCode = try context.runCompiler(plain)
+    if plainCode != 0 do
+        return plainCode
+    let debugCode = try context.runCompiler(debug)
+    if debugCode != 0 do
+        return debugCode
+
+    let debugCfg       = Format.toString("%-debug", buildCfg)
+    let targetArch     = options.targetArch.toString()
+    let plainDirectory = Path.combine(workspace, ".output", "standalone_exe", "executable", buildCfg, targetArch)
+    let debugDirectory = Path.combine(workspace, ".output", "standalone_exe", "executable", debugCfg.toString(), targetArch)
+    if File.exists(Path.combine(plainDirectory.toString(), "standalone_exe.pdb").toString())
+    {
+        Console.println("A plain workspace build published debug information.")
+        return 1
+    }
+
+    if not File.exists(Path.combine(debugDirectory.toString(), "standalone_exe.pdb").toString())
+    {
+        Console.println("A '--debug' workspace build did not publish its PDB under '", debugCfg.toString(), "'.")
+        return 1
+    }
+
+    let coreDebug = Path.combine(context.workspaceOutput("std").toString(), "core", "static-library", debugCfg.toString(), targetArch)
+    if not Directory.exists(coreDebug.toString())
+    {
+        Console.println("A '--debug' workspace build did not take in a standard library built with debug information.")
+        return 1
+    }
+
+    for 2
+    {
+        let plainOutput = try context.captureCompiler(plain)
+        Console.print(plainOutput.toString())
+        let debugOutput = try context.captureCompiler(debug)
+        Console.print(debugOutput.toString())
+        if not artifactReportedUpToDate(plainOutput.toString(), "standalone_exe.exe") or not artifactReportedUpToDate(debugOutput.toString(), "standalone_exe.exe")
+        {
+            Console.println("Alternating a plain and a '--debug' workspace build rebuilt one of them.")
+            return 1
+        }
+    }
+
+    var unoptimized = workspaceModuleCommand("build", workspace, "tag_cache", buildCfg)
+    unoptimized.add(["--optim-level", "0"])
+    options.appendExtra(&unoptimized)
+    var optimized = workspaceModuleCommand("build", workspace, "tag_cache", buildCfg)
+    options.appendExtra(&optimized)
+
+    let optimizedCode = try context.runCompiler(optimized)
+    if optimizedCode != 0 do
+        return optimizedCode
+
+    let unoptimizedOutput = try context.captureCompiler(unoptimized)
+    Console.print(unoptimizedOutput.toString())
+    if artifactReportedUpToDate(unoptimizedOutput.toString(), "tag_cache.exe")
+    {
+        Console.println("A workspace build reused an artifact built at another optimization level.")
+        return 1
+    }
+
+    let repeatedOutput = try context.captureCompiler(unoptimized)
+    Console.print(repeatedOutput.toString())
+    if not artifactReportedUpToDate(repeatedOutput.toString(), "tag_cache.exe")
+    {
+        Console.println("An unchanged workspace build at an explicit optimization level rebuilt its artifact.")
+        return 1
+    }
+
+    return 0
+}
+
 // Emits a scratch-only writer without standard-module imports. The replacement is source text
 // for an ordinary string literal, so its quotes and newlines are already escaped by the caller.
 private func workspaceSourceRewrite(path, replacement: string)->String
@@ -1078,6 +1162,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let tagCacheCode = try verifyWorkspaceTagCache(context, options, workspace.toString(), buildCfg)
     if tagCacheCode != 0 do
         return tagCacheCode
+
+    let debugVariantCode = try verifyWorkspaceDebugVariant(context, options, workspace.toString(), buildCfg)
+    if debugVariantCode != 0 do
+        return debugVariantCode
 
     let sourceEditCode = try verifyWorkspaceSourceEditDuringBuild(context, options, workspace.toString(), buildCfg)
     if sourceEditCode != 0 do

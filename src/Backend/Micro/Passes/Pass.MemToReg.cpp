@@ -1193,8 +1193,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                         usable = false;
                         break;
                     }
+                    // A float field is moved out of the word by movd, or movq
+                    // for a double filling it.
                     const MicroReg valueReg = slotValueRegister(read->op, read->ops(operands));
-                    if (valueReg.isValid() && !valueReg.isAnyInt())
+                    if (valueReg.isValid() && !valueReg.isAnyInt() &&
+                        !(valueReg.isVirtualFloat() && (acc.bits == MicroOpBits::B32 || (acc.bits == MicroOpBits::B64 && other == offset))))
                     {
                         usable = false;
                         break;
@@ -1270,8 +1273,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         const MicroInstrRef                    afterWrite = storage.findNextInstructionRef(split.writeRef);
         std::unordered_map<uint64_t, MicroReg> fields;
+        std::unordered_map<uint64_t, MicroReg> floatFields;
         fields[0] = word;
-        for (const SlotAccess& acc : split.reads)
+        // Low fields first: the word's last reader is then the copy that
+        // shifts it, which the allocator can make the word itself.
+        SmallVector<SlotAccess> reads = split.reads;
+        std::ranges::stable_sort(reads, [](const SlotAccess& a, const SlotAccess& b) { return a.offset < b.offset; });
+        for (const SlotAccess& acc : reads)
         {
             const uint64_t shift = (acc.offset - split.offset) * 8;
             auto           found = fields.find(shift);
@@ -1291,7 +1299,28 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
                 found = fields.emplace(shift, field).first;
             }
-            rewriteSlotAccess(storage, operands, acc, found->second);
+
+            const MicroInstr* read     = storage.ptr(acc.ref);
+            const MicroReg    valueReg = read ? slotValueRegister(read->op, read->ops(operands)) : MicroReg::invalid();
+            if (!valueReg.isVirtualFloat())
+            {
+                rewriteSlotAccess(storage, operands, acc, found->second);
+                continue;
+            }
+
+            const uint64_t floatKey  = shift * 2 + (acc.bits == MicroOpBits::B64 ? 1 : 0);
+            auto           floatIt   = floatFields.find(floatKey);
+            if (floatIt == floatFields.end())
+            {
+                const MicroReg    floatField = MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++);
+                MicroInstrOperand moveOps[3];
+                moveOps[0].reg    = floatField;
+                moveOps[1].reg    = found->second;
+                moveOps[2].opBits = acc.bits;
+                storage.insertDerivedBefore(operands, afterWrite, MicroInstrOpcode::LoadRegReg, moveOps);
+                floatIt = floatFields.emplace(floatKey, floatField).first;
+            }
+            rewriteSlotAccess(storage, operands, acc, floatIt->second);
         }
     }
 

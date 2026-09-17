@@ -1507,8 +1507,52 @@ SWC_TEST_BEGIN(BranchSimplify_EqualityChainBecomesBitTest)
 }
 SWC_TEST_END()
 
-// Constants farther apart than a word are no bit test.
-SWC_TEST_BEGIN(BranchSimplify_WideEqualityChainKept)
+namespace
+{
+    uint32_t countBinaryRegRegOps(const MicroBuilder& builder, MicroOp op)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.ops(builder.operands())[3].microOp == op)
+                ++count;
+        }
+        return count;
+    }
+
+    // `c - '0' <= 9 or c - 'a' <= 5 or c - 'A' <= 5` once its ranges fold.
+    // `storeInSecond` makes the second link write memory.
+    void emitRangeChain(MicroBuilder& builder, bool storeInSecond)
+    {
+        constexpr uint64_t lows[]  = {0x30, 0x61, 0x41};
+        constexpr uint64_t spans[] = {9, 5, 5};
+        const MicroReg     base    = MicroReg::virtualIntReg(9);
+        const MicroReg     value   = MicroReg::virtualIntReg(10);
+        const MicroReg     result  = MicroReg::virtualIntReg(11);
+        const auto         end     = builder.createLabel();
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B32);
+        for (uint32_t i = 0; i < 3; ++i)
+        {
+            const MicroReg index = MicroReg::virtualIntReg(20 + i);
+            const MicroReg flag  = MicroReg::virtualIntReg(30 + i);
+            builder.emitLoadAddressRegMem(index, value, (0 - lows[i]), MicroOpBits::B32);
+            if (storeInSecond && i == 1)
+                builder.emitLoadMemReg(base, 8, index, MicroOpBits::B32);
+            builder.emitCmpRegImm(index, ApInt(spans[i], 64), MicroOpBits::B32);
+            builder.emitSetCondReg(flag, MicroCond::BelowOrEqual);
+            builder.emitLoadRegReg(result, flag, MicroOpBits::B8);
+            if (i < 2)
+                builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, end);
+        }
+        builder.placeLabel(end);
+        builder.emitLoadZeroExtendRegReg(CallConv::get(CallConvKind::Swag).intReturn, result, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+// Constants farther apart than a word are no bit test, but the short chain of
+// compares still folds into one byte OR.
+SWC_TEST_BEGIN(BranchSimplify_WideEqualityChainBecomesOr)
 {
     MicroBuilder             builder(ctx);
     const std::array<uint64_t, 3> constants = {1, 40, 200};
@@ -1516,13 +1560,36 @@ SWC_TEST_BEGIN(BranchSimplify_WideEqualityChainKept)
 
     SWC_RESULT(runBranchSimplifyPass(builder));
 
+    if (countConditionalJumps(builder) != 0 || countBinaryRegRegOps(builder, MicroOp::Or) != 2 || countBinaryRegRegOps(builder, MicroOp::ShiftRight) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Range tests OR-ed by early exits run unconditionally.
+SWC_TEST_BEGIN(BranchSimplify_RangeChainBecomesBranchless)
+{
+    MicroBuilder builder(ctx);
+    emitRangeChain(builder, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || countBinaryRegRegOps(builder, MicroOp::Or) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A link that writes memory must not run on the path that already left.
+SWC_TEST_BEGIN(BranchSimplify_RangeChainWithStoreKept)
+{
+    MicroBuilder builder(ctx);
+    emitRangeChain(builder, true);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
     if (countConditionalJumps(builder) == 0)
         return Result::Error;
-    for (const MicroInstr& inst : builder.instructions().view())
-    {
-        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.ops(builder.operands())[3].microOp == MicroOp::ShiftRight)
-            return Result::Error;
-    }
     return Result::Continue;
 }
 SWC_TEST_END()

@@ -2791,6 +2791,39 @@ SWC_TEST_BEGIN(InstCombine_WideMaskByteExtend_Kept)
 }
 SWC_TEST_END()
 
+// A 16-byte element has no scaled memory operand: its load stays behind the
+// address computation instead of folding into the addition.
+SWC_TEST_BEGIN(InstCombine_WideScaleIndexedLoad_NotFoldedIntoOp)
+{
+    constexpr MicroReg frame   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg index   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg address = MicroReg::virtualIntReg(4);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(5);
+    constexpr MicroReg sum     = MicroReg::virtualIntReg(6);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(base, frame, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(index, frame, 8, MicroOpBits::B64);
+    builder.emitLoadRegMem(sum, frame, 16, MicroOpBits::B32);
+    builder.emitLoadAddressAmcRegMem(address, MicroOpBits::B64, base, index, 16, 12, MicroOpBits::B64);
+    builder.emitLoadRegMem(value, address, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B32);
+    builder.emitLoadMemReg(frame, 24, sum, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegAmcMem && ops[5].valueU64 != 1 && ops[5].valueU64 != 2 && ops[5].valueU64 != 4 && ops[5].valueU64 != 8)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -312,7 +312,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedDivideMagicFixup)
 }
 SWC_TEST_END()
 
-// idiv v1, 8 -> sign-bias sequence: sar 63, shr 61, add, sar 3.
+// idiv v1, 8 -> selected rounding bias: add 7, cmp, cmovge, sar 3.
 SWC_TEST_BEGIN(StrengthReduction_SignedDividePow2)
 {
     constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
@@ -327,7 +327,33 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDividePow2)
         return Result::Error;
     if (!hasBinaryRegImm(builder, MicroOp::ShiftArithmeticRight, 3))
         return Result::Error;
-    if (!hasBinaryRegImm(builder, MicroOp::ShiftRight, 61))
+    if (!hasBinaryRegImm(builder, MicroOp::Add, 7))
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::LoadCondRegReg && inst.ops(builder.operands())[2].cpuCond == MicroCond::GreaterOrEqual)
+            return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
+// idiv v1, 2 -> sign-bit bias: shr 31, add, sar 1.
+SWC_TEST_BEGIN(StrengthReduction_SignedDivideByTwo)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitOpBinaryRegImm(v1, ApInt(2, 64), MicroOp::DivideSigned, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 0)
+        return Result::Error;
+    if (!hasBinaryRegImm(builder, MicroOp::ShiftArithmeticRight, 1) || !hasBinaryRegImm(builder, MicroOp::ShiftRight, 31))
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
         return Result::Error;
 
     return Result::Continue;

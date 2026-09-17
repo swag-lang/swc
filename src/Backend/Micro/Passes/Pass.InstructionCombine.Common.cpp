@@ -144,6 +144,18 @@ namespace InstructionCombine
             case MicroInstrOpcode::TestRegImm:
                 return useOps[1].opBits;
 
+            case MicroInstrOpcode::CmpMemReg:
+                return useOps[0].reg == reg ? MicroOpBits::B64 : useOps[2].opBits;
+
+            // Indexed memory: [base, index, value, address bits, value bits, ...].
+            // The address registers are read whole, the value at its width.
+            case MicroInstrOpcode::LoadAmcMemReg:
+            case MicroInstrOpcode::CmpAmcReg:
+            case MicroInstrOpcode::OpBinaryAmcMemReg:
+                if (useOps[0].reg == reg || useOps[1].reg == reg)
+                    return MicroOpBits::B64;
+                return useOps[2].reg == reg ? useOps[4].opBits : MicroOpBits::Zero;
+
             // A left shift by a constant pushes the top bits out: only the
             // bits that stay are read.
             case MicroInstrOpcode::OpBinaryRegImm:

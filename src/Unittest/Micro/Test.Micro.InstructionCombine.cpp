@@ -3184,6 +3184,48 @@ SWC_TEST_BEGIN(InstCombine_OverwrittenCompare_Dropped)
 }
 SWC_TEST_END()
 
+// A byte copy compared against indexed memory at 8 bits becomes a whole
+// copy the allocator can merge with its source.
+SWC_TEST_BEGIN(InstCombine_ByteCopyReadByIndexedCompare_Widened)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value = MicroReg::virtualIntReg(3);
+    constexpr MicroReg copy  = MicroReg::virtualIntReg(4);
+    constexpr MicroReg flag  = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(index, base, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+    builder.emitLoadRegReg(copy, value, MicroOpBits::B8);
+    builder.emitSetCondReg(flag, MicroCond::Equal);
+    const MicroInstrRef setRef = builder.instructions().lastInstructionRef();
+
+    // No builder emits the indexed compare: [base, index, value, address bits, value bits, scale, offset].
+    MicroInstrOperand compareOps[7];
+    compareOps[0].reg      = base;
+    compareOps[1].reg      = index;
+    compareOps[2].reg      = copy;
+    compareOps[3].opBits   = MicroOpBits::B64;
+    compareOps[4].opBits   = MicroOpBits::B8;
+    compareOps[5].valueU64 = 1;
+    compareOps[6].valueU64 = 16;
+    builder.instructions().insertDerivedBefore(builder.operands(), setRef, MicroInstrOpcode::CmpAmcReg, compareOps);
+    builder.emitLoadMemReg(base, 24, flag, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == copy && ops[2].opBits == MicroOpBits::B8)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

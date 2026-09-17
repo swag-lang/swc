@@ -3106,6 +3106,126 @@ namespace
         return true;
     }
 
+    // A comparison already reads this exact cell on every path, so reusing a
+    // register load for the arm cannot introduce a fault:
+    //
+    //     cmp [base+index*scale], 0        result = [base+index*scale]
+    //     jcc .Lload                 ->    cmp result, 0
+    //     result = fallback                cmov!cc result, fallback
+    //     jmp .Ljoin
+    //   .Lload:
+    //     result = [base+index*scale]
+    //   .Ljoin:
+    //
+    // This is the common `cell == 0 ? fallback : cell` shape. General diamond
+    // conversion deliberately cannot speculate loads, while this one is safe
+    // because the preceding memory compare performed the same access.
+    bool convertComparedLoadDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstrRef cmpRef = it.current;
+            const MicroInstr&   cmp    = *it;
+            if (cmp.op != MicroInstrOpcode::CmpAmcImm || scan.relocated.contains(cmpRef.get()))
+                continue;
+            const MicroInstrOperand* cmpOps = cmp.ops(operands);
+            if (!cmpOps || cmpOps[6].hasWideImmediateValue() || cmpOps[6].valueU64 != 0)
+                continue;
+
+            const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
+            const MicroInstr*   jump    = storage.ptr(jumpRef);
+            const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
+            if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
+                jumpOps[0].cpuCond == MicroCond::Unconditional || !conditionSupportsConditionalMove(jumpOps[0].cpuCond) ||
+                scan.relocated.contains(jumpRef.get()))
+                continue;
+
+            const MicroInstrRef fallthroughRef = storage.findNextInstructionRef(jumpRef);
+            const MicroInstr*   fallthrough    = storage.ptr(fallthroughRef);
+            const auto*         fallthroughOps = fallthrough ? fallthrough->ops(operands) : nullptr;
+            const bool          hasFallbackCopy = fallthrough && fallthrough->op == MicroInstrOpcode::LoadRegReg &&
+                                         fallthroughOps && !scan.relocated.contains(fallthroughRef.get());
+            if (!hasFallbackCopy)
+                continue;
+            const MicroInstrRef joinJumpRef = hasFallbackCopy ? storage.findNextInstructionRef(fallthroughRef) : fallthroughRef;
+            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
+            const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                continue;
+
+            uint32_t armLabelId  = 0;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
+                !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
+                continue;
+            const auto armReferences = scan.labelReferences.find(armLabelId);
+            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+                continue;
+
+            const MicroInstrRef armLabelRef = storage.findNextInstructionRef(joinJumpRef);
+            const MicroInstr*   armLabel    = storage.ptr(armLabelRef);
+            uint32_t            foundLabelId = 0;
+            if (!armLabel || scan.relocated.contains(armLabelRef.get()) ||
+                !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
+                continue;
+
+            const MicroInstrRef loadRef = storage.findNextInstructionRef(armLabelRef);
+            const MicroInstr*   load    = storage.ptr(loadRef);
+            const auto*         loadOps = load ? load->ops(operands) : nullptr;
+            if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loadOps || scan.relocated.contains(loadRef.get()) ||
+                loadOps[1].reg != cmpOps[0].reg || loadOps[2].reg != cmpOps[1].reg ||
+                loadOps[3].opBits != cmpOps[2].opBits || loadOps[4].opBits != cmpOps[3].opBits ||
+                loadOps[5].valueU64 != cmpOps[4].valueU64 || loadOps[6].valueU64 != cmpOps[5].valueU64)
+                continue;
+            if (fallthroughOps[0].reg != loadOps[0].reg || fallthroughOps[2].opBits != loadOps[3].opBits)
+                continue;
+
+            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(loadRef);
+            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            if (!joinLabel || !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
+                continue;
+
+            MicroCond fallbackCond;
+            if (!MicroPassHelpers::invertCondition(fallbackCond, jumpOps[0].cpuCond) || !conditionSupportsConditionalMove(fallbackCond))
+                continue;
+
+            const MicroReg loaded = loadOps[0].reg;
+
+            MicroInstrOperand loadBefore[7];
+            loadBefore[0].reg = loaded;
+            for (uint32_t i = 1; i < 7; ++i)
+                loadBefore[i] = loadOps[i];
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::LoadAmcRegMem, loadBefore);
+
+            MicroInstrOperand regCmp[3];
+            regCmp[0].reg      = loaded;
+            regCmp[1]          = cmpOps[2];
+            regCmp[2].valueU64 = 0;
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::CmpRegImm, regCmp);
+
+            MicroInstrOperand selectOps[4];
+            selectOps[0].reg     = loaded;
+            selectOps[1].reg     = fallthroughOps[1].reg;
+            selectOps[2].cpuCond = fallbackCond;
+            selectOps[3].opBits  = loadOps[3].opBits;
+            storage.insertDerivedBefore(operands, joinLabelRef, MicroInstrOpcode::LoadCondRegReg, selectOps);
+
+            storage.erase(cmpRef);
+            storage.erase(jumpRef);
+            storage.erase(fallthroughRef);
+            storage.erase(joinJumpRef);
+            storage.erase(armLabelRef);
+            storage.erase(loadRef);
+            return true;
+        }
+        return false;
+    }
+
     // Select one of two adjacent cells through an index, so exactly the chosen
     // address is read without retaining the diamond's two loads and jumps.
     bool convertAdjacentLoadDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
@@ -4052,6 +4172,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
+    }
+    if (convertComparedLoadDiamond(storage, operands, context))
+    {
+        changed = true;
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        localSsaState.invalidate();
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
     }
     if (convertAdjacentLoadDiamond(storage, operands, context))
     {

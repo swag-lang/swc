@@ -1087,6 +1087,9 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         case MicroInstrOpcode::OpBinaryMemReg:
             microOp = ops[3].microOp;
             break;
+        case MicroInstrOpcode::OpBinaryAmcMemReg:
+            microOp = ops[7].microOp;
+            break;
         case MicroInstrOpcode::OpBinaryRegImm:
         case MicroInstrOpcode::OpBinaryMemImm:
             microOp = ops[2].microOp;
@@ -1107,6 +1110,8 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             shiftUsesFixedCount = ops[1].reg == rcxReg;
         else if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
             shiftUsesFixedCount = ops[1].reg == rcxReg;
+        else if (inst.op == MicroInstrOpcode::OpBinaryAmcMemReg)
+            shiftUsesFixedCount = ops[2].reg == rcxReg;
     }
 
     switch (microOp)
@@ -1173,6 +1178,7 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
                    ops[3].microOp == MicroOp::MultiplyHighSigned || ops[3].microOp == MicroOp::MultiplyHighUnsigned;
 
         case MicroInstrOpcode::OpBinaryAmcMemReg:
+            return isShiftImmediateOp(ops[7].microOp);
         case MicroInstrOpcode::OpUnaryAmcMem:
         case MicroInstrOpcode::OpBinaryAmcMemImm:
         case MicroInstrOpcode::CmpAmcReg:
@@ -1331,7 +1337,22 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         return requireStandardIntOpBits(outIssue, ops[3].opBits, 3);
 
     if (inst.op == MicroInstrOpcode::OpBinaryAmcMemReg)
-        return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
+    {
+        if (requireStandardIntOpBits(outIssue, ops[4].opBits, 4))
+            return true;
+        SWC_ASSERT(supportsOpBinaryMemReg(ops[7].microOp));
+        if (isShiftImmediateOp(ops[7].microOp))
+        {
+            const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
+            if (ops[2].reg != rcxReg)
+            {
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex = 2;
+                outIssue.requiredReg  = rcxReg;
+                return true;
+            }
+        }
+    }
 
     if (inst.op == MicroInstrOpcode::OpUnaryAmcMem)
         return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
@@ -2237,6 +2258,7 @@ namespace
         }
 
         // Opcode
+        uint8_t modRmReg = encodeReg(regX64) & 0b111;
         switch (op)
         {
             case MicroOp::Add:
@@ -2247,6 +2269,19 @@ namespace
             case MicroOp::Compare:
                 SWC_ASSERT(!reg.isFloat());
                 emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
+                break;
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+                SWC_ASSERT(mr && !reg.isFloat() && regX64 == X64Reg::Rcx);
+                emitSpecCpuOp(store, 0xD3, opBitsReg);
+                if (op == MicroOp::ShiftLeft || op == MicroOp::ShiftArithmeticLeft)
+                    modRmReg = MODRM_REG_4;
+                else if (op == MicroOp::ShiftRight)
+                    modRmReg = MODRM_REG_5;
+                else
+                    modRmReg = MODRM_REG_7;
                 break;
             case MicroOp::MultiplySigned:
                 SWC_ASSERT(!mr && !reg.isFloat() && opBitsReg != MicroOpBits::B8);
@@ -2300,11 +2335,11 @@ namespace
 
         // ModRM
         if (needsForcedDisplacement)
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, reg, MODRM_RM_SIB);
+            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, modRmReg, MODRM_RM_SIB);
         else if (addValue == 0 || baseIsNoBase)
-            emitModRm(store, ModRmMode::Memory, reg, MODRM_RM_SIB);
+            emitModRm(store, ModRmMode::Memory, modRmReg, MODRM_RM_SIB);
         else
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, reg, MODRM_RM_SIB);
+            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, modRmReg, MODRM_RM_SIB);
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);

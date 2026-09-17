@@ -919,6 +919,62 @@ namespace
         removeInstruction(context, instRef);
     }
 
+    void applyRewriteAmcMemRegOperandToFixedReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
+    {
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryAmcMemReg);
+        SWC_ASSERT(issue.operandIndex == 2);
+
+        const MicroReg requiredReg = issue.requiredReg;
+        SWC_ASSERT(requiredReg.isValid());
+
+        MicroReg rewrittenBase  = ops[0].reg;
+        MicroReg rewrittenIndex = ops[1].reg;
+        const MicroReg source   = ops[2].reg;
+        addVirtualForbiddenRegIfNeeded(context, rewrittenBase, requiredReg);
+        addVirtualForbiddenRegIfNeeded(context, rewrittenIndex, requiredReg);
+
+        MicroReg savedRequiredReg = MicroReg::invalid();
+        if (mustPreserveRegAfterInstruction(context, instRef, requiredReg))
+        {
+            savedRequiredReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+            addVirtualForbiddenReg(context, savedRequiredReg, requiredReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, savedRequiredReg);
+            insertMoveRegReg(context, instRef, savedRequiredReg, requiredReg, MicroOpBits::B64);
+        }
+
+        if (rewrittenBase == requiredReg)
+        {
+            rewrittenBase = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+            addVirtualForbiddenReg(context, rewrittenBase, requiredReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, rewrittenBase);
+            insertMoveRegReg(context, instRef, rewrittenBase, requiredReg, MicroOpBits::B64);
+        }
+        if (rewrittenIndex == requiredReg)
+        {
+            if (ops[1].reg == ops[0].reg)
+                rewrittenIndex = rewrittenBase;
+            else
+            {
+                rewrittenIndex = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+                addVirtualForbiddenReg(context, rewrittenIndex, requiredReg);
+                addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, rewrittenIndex);
+                insertMoveRegReg(context, instRef, rewrittenIndex, requiredReg, MicroOpBits::B64);
+            }
+        }
+
+        insertMoveRegReg(context, instRef, requiredReg, source, MicroOpBits::B64);
+        MicroInstrOperand rewritten[8] = {ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], ops[6], ops[7]};
+        rewritten[0].reg                = rewrittenBase;
+        rewritten[1].reg                = rewrittenIndex;
+        rewritten[2].reg                = requiredReg;
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryAmcMemReg, rewritten);
+
+        if (savedRequiredReg.isValid())
+            insertMoveRegReg(context, instRef, requiredReg, savedRequiredReg, MicroOpBits::B64);
+        removeInstruction(context, instRef);
+    }
+
     void applyRewriteTernaryOperandToFixedReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
@@ -1113,6 +1169,8 @@ namespace
                     applyRewriteRegMemOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 else if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
                     applyRewriteMemRegOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                else if (inst.op == MicroInstrOpcode::OpBinaryAmcMemReg)
+                    applyRewriteAmcMemRegOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 else if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg || inst.op == MicroInstrOpcode::CompareExchangeRegMemReg)
                     applyRewriteTernaryOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 else

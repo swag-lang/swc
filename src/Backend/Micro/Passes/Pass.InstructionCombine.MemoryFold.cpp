@@ -281,7 +281,9 @@ namespace InstructionCombine
         else if (!opOps[1].reg.isVirtualInt() || opOps[1].reg == value || opOps[1].reg == base || opOps[1].reg == index ||
                  opOps[2].opBits != loadOps[3].opBits ||
                  (opOps[3].microOp != MicroOp::Add && opOps[3].microOp != MicroOp::Subtract &&
-                  opOps[3].microOp != MicroOp::And && opOps[3].microOp != MicroOp::Or && opOps[3].microOp != MicroOp::Xor))
+                  opOps[3].microOp != MicroOp::And && opOps[3].microOp != MicroOp::Or && opOps[3].microOp != MicroOp::Xor &&
+                  opOps[3].microOp != MicroOp::ShiftLeft && opOps[3].microOp != MicroOp::ShiftArithmeticLeft &&
+                  opOps[3].microOp != MicroOp::ShiftRight && opOps[3].microOp != MicroOp::ShiftArithmeticRight))
         {
             return false;
         }

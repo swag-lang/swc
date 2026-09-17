@@ -166,9 +166,14 @@ namespace InstructionCombine
     //     cmp left, right       ->        cmov!CC right, left
     //     cmovCC result, right
     //
-    // Rename the selected value's consumers to `right`. SSA proves that its
-    // previous value has no observer other than this compare/select pair and
-    // that the register is not redefined before any renamed consumer.
+    //                                   result = right
+    //
+    // SSA proves that right's previous value has no observer other than this
+    // compare/select pair and that the register is not redefined before any
+    // consumer of the result, so copy elimination then renames them to
+    // `right`. Renaming them here would miss a reader another rule of the
+    // same sweep forwards onto `result`, which would then read the register
+    // the erased copy no longer writes.
     bool tryReuseCompareOperandForSelect(Context& ctx, MicroInstrRef selectRef, const MicroInstr& selectInst)
     {
         if (ctx.isClaimed(selectRef) || !ctx.ssa || selectInst.op != MicroInstrOpcode::LoadCondRegReg)
@@ -249,42 +254,24 @@ namespace InstructionCombine
                 return false;
         }
 
-        MicroCond inverted = MicroCond::Unconditional;
-        if (!MicroPassHelpers::invertCondition(inverted, selectOps[2].cpuCond) || !ctx.claimAll({copyRef, cmpRef, selectRef}))
+        const MicroInstrRef nextRef = ctx.storage->findNextInstructionRef(selectRef);
+        MicroCond           inverted = MicroCond::Unconditional;
+        if (!nextRef.isValid() || !MicroPassHelpers::invertCondition(inverted, selectOps[2].cpuCond) ||
+            !ctx.claimAll({copyRef, cmpRef, selectRef, nextRef}))
             return false;
-        for (const MicroInstrRef useRef : uses)
-            ctx.claimed.insert(useRef.get());
 
         MicroInstrOperand rewrittenSelect[4];
         rewrittenSelect[0].reg     = right;
         rewrittenSelect[1].reg     = left;
         rewrittenSelect[2].cpuCond = inverted;
         rewrittenSelect[3].opBits  = bits;
+        MicroInstrOperand resultCopy[3];
+        resultCopy[0].reg    = result;
+        resultCopy[1].reg    = right;
+        resultCopy[2].opBits = MicroOpBits::B64;
         ctx.emitErase(copyRef);
         ctx.emitRewrite(selectRef, MicroInstrOpcode::LoadCondRegReg, rewrittenSelect);
-
-        for (const MicroInstrRef useRef : uses)
-        {
-            const MicroInstr*        useInst = ctx.storage->ptr(useRef);
-            const MicroInstrOperand* useOps  = useInst->ops(*ctx.operands);
-            MicroInstrOperand        rewritten[Action::K_MAX_OPS];
-            std::ranges::copy(std::span{useOps, useInst->numOperands}, rewritten);
-
-            MicroInstr* mutableUse = ctx.storage->ptr(useRef);
-            SmallVector<MicroInstrRegOperandRef> regOperands;
-            mutableUse->collectRegOperands(*ctx.operands, regOperands, nullptr);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
-            {
-                if (!regOperand.reg || *regOperand.reg != result || !regOperand.use)
-                    continue;
-                size_t index = 0;
-                while (index < useInst->numOperands && &useOps[index].reg != regOperand.reg)
-                    ++index;
-                SWC_ASSERT(index < useInst->numOperands);
-                rewritten[index].reg = right;
-            }
-            ctx.emitRewrite(useRef, useInst->op, std::span{rewritten, useInst->numOperands});
-        }
+        ctx.emitInsertBefore(nextRef, MicroInstrOpcode::LoadRegReg, resultCopy);
         return true;
     }
 

@@ -2621,6 +2621,80 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A factored byte multiply has already selected its varying input, but
+    // legalization may copy the second byte through a temporary and then copy
+    // AL through the common-value register before returning it. The multiply
+    // already leaves the typed byte result in the ABI accumulator.
+    bool tryFoldByteMultiplySelectCopies(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroReg chosen = copy[0].reg;
+
+        const MicroInstrRef temporaryCopyRef = ctx.nextRef(copyRef);
+        const MicroInstr*   temporaryCopy    = ctx.instruction(temporaryCopyRef);
+        const auto* temporaryCopyOps = temporaryCopy ? temporaryCopy->ops(*ctx.operands) : nullptr;
+        if (!temporaryCopy || temporaryCopy->op != MicroInstrOpcode::LoadRegReg || !temporaryCopyOps ||
+            temporaryCopyOps[2].opBits != MicroOpBits::B8 || temporaryCopyOps[0].reg == temporaryCopyOps[1].reg)
+            return false;
+        const MicroReg temporary = temporaryCopyOps[0].reg;
+
+        const MicroInstrRef selectRef = ctx.nextRef(temporaryCopyRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != chosen || selected[1].reg != temporary || selected[3].opBits != MicroOpBits::B32)
+            return false;
+
+        const MicroInstrRef accumulatorCopyRef = ctx.nextRef(selectRef);
+        const MicroInstr*   accumulatorCopy    = ctx.instruction(accumulatorCopyRef);
+        const auto* accumulatorCopyOps = accumulatorCopy ? accumulatorCopy->ops(*ctx.operands) : nullptr;
+        if (!accumulatorCopy || accumulatorCopy->op != MicroInstrOpcode::LoadRegReg || !accumulatorCopyOps ||
+            accumulatorCopyOps[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg accumulator = accumulatorCopyOps[0].reg;
+        const MicroReg carrier     = accumulatorCopyOps[1].reg;
+
+        const MicroInstrRef multiplyRef = ctx.nextRef(accumulatorCopyRef);
+        const MicroInstr*   multiply    = ctx.instruction(multiplyRef);
+        const auto*         multiplied  = multiply ? multiply->ops(*ctx.operands) : nullptr;
+        if (!multiply || multiply->op != MicroInstrOpcode::OpBinaryRegReg || !multiplied ||
+            multiplied[0].reg != accumulator || multiplied[1].reg != chosen || multiplied[2].opBits != MicroOpBits::B8 ||
+            (multiplied[3].microOp != MicroOp::MultiplySigned && multiplied[3].microOp != MicroOp::MultiplyUnsigned))
+            return false;
+
+        const MicroInstrRef resultByteRef = ctx.nextRef(multiplyRef);
+        const MicroInstr*   resultByte    = ctx.instruction(resultByteRef);
+        const auto*         resultByteOps = resultByte ? resultByte->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef returnCopyRef = ctx.nextRef(resultByteRef);
+        const MicroInstr*   returnCopy    = ctx.instruction(returnCopyRef);
+        const auto*         returnCopyOps = returnCopy ? returnCopy->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef returnRef     = ctx.nextRef(returnCopyRef);
+        const MicroInstr*   returnInst    = ctx.instruction(returnRef);
+        if (!resultByte || resultByte->op != MicroInstrOpcode::LoadRegReg || !resultByteOps ||
+            resultByteOps[0].reg != carrier || resultByteOps[1].reg != accumulator || resultByteOps[2].opBits != MicroOpBits::B8 ||
+            !returnCopy || returnCopy->op != MicroInstrOpcode::LoadRegReg || !returnCopyOps ||
+            returnCopyOps[0].reg != accumulator || returnCopyOps[1].reg != carrier || returnCopyOps[2].opBits != MicroOpBits::B64 ||
+            !returnInst || returnInst->op != MicroInstrOpcode::Ret)
+            return false;
+
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[1].reg               = temporaryCopyOps[1].reg;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            !ctx.claimAll({temporaryCopyRef, selectRef, resultByteRef, returnCopyRef}))
+            return false;
+
+        ctx.emitErase(temporaryCopyRef);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        ctx.emitErase(resultByteRef);
+        ctx.emitErase(returnCopyRef);
+        return true;
+    }
+
     // Select the varying operand before applying a shared binary operation:
     // `R = A op B; A = A op C; cmovCC R, A` becomes
     // `cmovCC B, C; R = A op B`. B and A must die with the original select

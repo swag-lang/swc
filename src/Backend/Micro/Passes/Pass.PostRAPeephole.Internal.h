@@ -138,6 +138,7 @@ namespace PostRaPeephole
     bool tryFactorNarrowConditionalShift(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldByteMultiplySelectCopies(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldIndexedByteAverage(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldIndexedByteSaturatingAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFactorCommonConditionalBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldSelectedIntegerAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopySource(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

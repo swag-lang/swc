@@ -380,6 +380,27 @@ namespace
         sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
     }
 
+    // A detached copy of an analysed function literal, as the home of an inline
+    // binding, inherits the source's completed function. Analysing the copy's
+    // body again would make a second function sharing the source's locals, and
+    // the two would race on their stack placement in codegen.
+    SymbolFunction* inheritedFunctionExprSymbol(Sema& sema)
+    {
+        Symbol* sym = sema.curViewSymbol().sym();
+        if (!sym || !sym->isFunction())
+            return nullptr;
+
+        auto& symFunc = sym->cast<SymbolFunction>();
+        if (symFunc.declNodeRef() == sema.curNodeRef() || !symFunc.isSemaCompleted())
+            return nullptr;
+        return &symFunc;
+    }
+
+    bool isInheritedFunctionExpr(Sema& sema, const SymbolFunction& sym)
+    {
+        return sym.declNodeRef() != sema.curNodeRef();
+    }
+
 }
 
 Result Sema::completeLazyGenericFunction(SymbolFunction& calledFn)
@@ -525,7 +546,12 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
 Result AstFunctionExpr::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
+    const SymbolFunction* inherited = sema.enteringState() ? inheritedFunctionExprSymbol(sema) : nullptr;
+    if (inherited)
+    {
+        SemaHelpers::addCurrentFunctionCallDependency(sema, inherited);
+    }
+    else if (sema.enteringState())
     {
         TaskContext& ctx = sema.ctx();
         auto*        sym = Symbol::make<SymbolFunction>(ctx, this, tokRef(), SemaHelpers::getUniqueIdentifier(sema, "__lambda"), sema.frame().flagsForCurrentAccess());
@@ -553,12 +579,17 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
     // A nested function body must not inherit the enclosing body's flow-narrowing facts.
     frame.clearNarrowFacts();
     sema.pushFramePopOnPostNode(frame);
-    return Result::Continue;
+    return inherited ? Result::SkipChildren : Result::Continue;
 }
 
 Result AstClosureExpr::semaPreNode(Sema& sema) const
 {
-    if (sema.enteringState())
+    const SymbolFunction* inherited = sema.enteringState() ? inheritedFunctionExprSymbol(sema) : nullptr;
+    if (inherited)
+    {
+        SemaHelpers::addCurrentFunctionCallDependency(sema, inherited);
+    }
+    else if (sema.enteringState())
     {
         TaskContext& ctx = sema.ctx();
         auto*        sym = Symbol::make<SymbolFunction>(ctx, this, tokRef(), SemaHelpers::getUniqueIdentifier(sema, "__closure"), sema.frame().flagsForCurrentAccess());
@@ -1657,10 +1688,12 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    if (isInheritedFunctionExpr(sema, sym))
+        return sema.node(childRef).is(AstNodeId::ClosureArgument) ? Result::Continue : Result::SkipChildren;
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    auto& sym = functionExprSymbol(sema, sema.curNodeRef());
     SWC_RESULT(prepareFunctionExprSignature(sema, *this, sym));
     SWC_RESULT(buildClosureCaptureSymbols(sema, *this, sym));
 
@@ -1844,6 +1877,8 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 Result AstFunctionExpr::semaPostNode(Sema& sema) const
 {
     auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    if (isInheritedFunctionExpr(sema, sym))
+        return Result::Continue;
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
@@ -1864,6 +1899,8 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
 Result AstClosureExpr::semaPostNode(Sema& sema) const
 {
     auto& sym = functionExprSymbol(sema, sema.curNodeRef());
+    if (isInheritedFunctionExpr(sema, sym))
+        return attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym);
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 

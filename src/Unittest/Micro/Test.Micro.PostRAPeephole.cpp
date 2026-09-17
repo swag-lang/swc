@@ -1627,6 +1627,63 @@ SWC_TEST_BEGIN(PostRAPeephole_ZeroTestNegativeOffset_AddsDwordImmediate)
 }
 SWC_TEST_END()
 
+// mov rax, rcx ; imul rax, K becomes the three-operand multiply.
+SWC_TEST_BEGIN(PostRAPeephole_CopyIntoIntegerMultiply_TakesThreeOperands)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(rax, rcx, bits);
+        builder.emitOpBinaryRegImm(rax, ApInt(16843010, 64), MicroOp::MultiplySigned, bits);
+        builder.emitLoadMemReg(r8, 0, rax, bits);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        bool folded = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadRegReg)
+                return Result::Error;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegImm && ops[0].reg == rax && ops[1].reg == rcx &&
+                ops[2].opBits == bits && ops[4].valueU64 == 16843010)
+                folded = true;
+        }
+        if (!folded)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An immediate past a signed dword has no three-operand form.
+SWC_TEST_BEGIN(PostRAPeephole_WideMultiplyImmediate_Kept)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(rax, rcx, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rax, ApInt(0x123456789ull, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+    builder.emitLoadMemReg(r8, 0, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegImm) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -88,6 +88,7 @@ namespace
         r.add(MicroInstrOpcode::LoadMemReg, tryForwardStoredValueToReload);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerMultiply);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);

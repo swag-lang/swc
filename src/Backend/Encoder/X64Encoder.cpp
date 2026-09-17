@@ -4250,6 +4250,24 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
 
 void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, uint64_t value)
 {
+    ///////////////////////////////////////////
+    // imul r16/32/64, r/m, imm (69 /r id, or 6B /r ib for a signed byte): the
+    // one integer arithmetic form that names its destination separately.
+    if (op == MicroOp::MultiplySigned && regDst.isInt())
+    {
+        SWC_ASSERT(regSrc.isInt());
+        SWC_ASSERT(opBits == MicroOpBits::B16 || opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+        SWC_INTERNAL_CHECK(canEncodeOpImmediate(value, opBits));
+        const bool small = canEncodeSigned8(value);
+        if (opBits == MicroOpBits::B16)
+            emitCpuOp(store_, 0x66);
+        emitRex(store_, opBits, regDst, regSrc);
+        emitCpuOp(store_, small ? 0x6B : 0x69);
+        emitModRm(store_, regDst, regSrc);
+        emitValue(store_, value, small ? MicroOpBits::B8 : std::min(opBits, MicroOpBits::B32));
+        return;
+    }
+
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
     SWC_ASSERT(value <= 0xFF);
 

@@ -21,6 +21,7 @@ namespace PostRaPeephole
                 case MicroInstrOpcode::CmpRegImm:
                 case MicroInstrOpcode::CmpMemReg:
                 case MicroInstrOpcode::CmpMemImm:
+                case MicroInstrOpcode::CmpAmcImm:
                     return true;
 
                 default:
@@ -362,6 +363,41 @@ namespace PostRaPeephole
                    (clearOps[1].opBits == MicroOpBits::B32 || clearOps[1].opBits == MicroOpBits::B64);
         }
 
+        bool findZeroBoolean(const Context& ctx, MicroInstrRef ref, CarryBoolean& out)
+        {
+            if (!ctx.encoder || !ctx.encoder->supportsCarryArithmetic())
+                return false;
+            out.setRef            = ctx.previousRef(ref);
+            const MicroInstr* set = ctx.instruction(out.setRef);
+            if (!set || set->op != MicroInstrOpcode::SetCondReg)
+                return false;
+            const auto* setOps = set->ops(*ctx.operands);
+            if (!setOps || !setOps[0].reg.isInt() ||
+                (setOps[1].cpuCond != MicroCond::Equal && setOps[1].cpuCond != MicroCond::Zero))
+                return false;
+            out.reg     = setOps[0].reg;
+            out.inverse = false;
+            if (ctx.isPrivateFrameBase(out.reg))
+                return false;
+
+            out.compareRef            = ctx.previousRef(out.setRef);
+            const MicroInstr* compare = ctx.instruction(out.compareRef);
+            if (!compare || compare->op != MicroInstrOpcode::CmpRegImm)
+                return false;
+            const auto* compareOps = compare->ops(*ctx.operands);
+            if (!compareOps || !compareOps[0].reg.isInt() || compareOps[0].reg == out.reg ||
+                compareOps[2].hasWideImmediateValue() || compareOps[2].valueU64 != 0)
+                return false;
+
+            out.clearRef            = ctx.previousRef(out.compareRef);
+            const MicroInstr* clear = ctx.instruction(out.clearRef);
+            if (!clear || clear->op != MicroInstrOpcode::ClearReg)
+                return false;
+            const auto* clearOps = clear->ops(*ctx.operands);
+            return clearOps && clearOps[0].reg == out.reg &&
+                   (clearOps[1].opBits == MicroOpBits::B32 || clearOps[1].opBits == MicroOpBits::B64);
+        }
+
         bool claimCarryBoolean(Context& ctx, MicroInstrRef ref, const CarryBoolean& value)
         {
             return MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) &&
@@ -634,6 +670,52 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Compute a bitwise operation before widening two byte values. The final
+    // flags differ for arbitrary values because B8 and B32/B64 have different
+    // sign bits, so only fold when those flags are dead.
+    bool tryNarrowBitwiseZeroExtensions(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* binary = inst.ops(*ctx.operands);
+        if (!binary || (binary[3].microOp != MicroOp::And && binary[3].microOp != MicroOp::Or && binary[3].microOp != MicroOp::Xor) ||
+            (binary[2].opBits != MicroOpBits::B32 && binary[2].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef extSecondRef = ctx.previousRef(ref);
+        const MicroInstr*   extSecond    = ctx.instruction(extSecondRef);
+        const MicroInstrRef extFirstRef  = ctx.previousRef(extSecondRef);
+        const MicroInstr*   extFirst     = ctx.instruction(extFirstRef);
+        if (!extFirst || !extSecond || extFirst->op != MicroInstrOpcode::LoadZeroExtRegReg ||
+            extSecond->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* first  = extFirst->ops(*ctx.operands);
+        const auto* second = extSecond->ops(*ctx.operands);
+        if (!first || !second || first[0].reg != binary[0].reg || second[0].reg != binary[1].reg ||
+            first[0].reg != first[1].reg || second[0].reg != second[1].reg || first[0].reg == second[0].reg ||
+            first[2].opBits != binary[2].opBits || second[2].opBits != binary[2].opBits ||
+            first[3].opBits != MicroOpBits::B8 || second[3].opBits != MicroOpBits::B8 ||
+            !ctx.isRegDeadAfterCurrent(second[0].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({extFirstRef, extSecondRef, ref}))
+            return false;
+
+        MicroInstrOperand narrow[4] = {};
+        narrow[0].reg               = second[0].reg;
+        narrow[1].reg               = first[0].reg;
+        narrow[2].opBits            = MicroOpBits::B8;
+        narrow[3].microOp           = binary[3].microOp;
+        MicroInstrOperand extend[4] = {};
+        extend[0].reg               = first[0].reg;
+        extend[1].reg               = second[0].reg;
+        extend[2].opBits            = binary[2].opBits;
+        extend[3].opBits            = MicroOpBits::B8;
+        ctx.emitRewrite(extFirstRef, MicroInstrOpcode::OpBinaryRegReg, narrow);
+        ctx.emitRewrite(extSecondRef, MicroInstrOpcode::LoadZeroExtRegReg, extend);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     bool tryFoldCarryOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const auto* ops = inst.ops(*ctx.operands);
@@ -659,7 +741,24 @@ namespace PostRaPeephole
         if ((signedOffset & getBitsMask(bits)) != (offset & getBitsMask(bits)))
             return false;
         CarryBoolean value;
-        if (!findCarryBoolean(ctx, ref, value) || value.inverse || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
+        if (!findCarryBoolean(ctx, ref, value))
+        {
+            if (!findZeroBoolean(ctx, ref, value) || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
+                return false;
+            const MicroInstr* compare = ctx.instruction(value.compareRef);
+            const auto*       cmpOps  = compare->ops(*ctx.operands);
+            MicroInstrOperand compareOne[3] = {cmpOps[0], cmpOps[1], cmpOps[2]};
+            compareOne[2].valueU64           = 1;
+            MicroInstrOperand add[3]         = {};
+            add[0].reg                       = ops[0].reg;
+            add[1].opBits                    = bits;
+            add[2].valueU64                  = offset;
+            ctx.emitRewrite(value.compareRef, compare->op, compareOne, true);
+            ctx.emitRewrite(value.setRef, MicroInstrOpcode::AddCarryRegImm, add);
+            ctx.emitErase(ref);
+            return true;
+        }
+        if (value.inverse || value.reg != ops[0].reg || !claimCarryBoolean(ctx, ref, value))
             return false;
         MicroInstrOperand add[3] = {};
         add[0].reg               = ops[0].reg;
@@ -667,6 +766,42 @@ namespace PostRaPeephole
         add[2].valueU64          = signedOffset;
         ctx.emitRewrite(ref, MicroInstrOpcode::AddCarryRegImm, add);
         ctx.emitErase(value.setRef);
+        return true;
+    }
+
+    // A SETcc result is zero or one. After a preceding clear, shifting it by
+    // at most 31 bits fits in a dword, whose write still defines the same
+    // zero-extended 64-bit result.
+    bool tryNarrowShiftedBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const auto* shift = inst.ops(*ctx.operands);
+        if (!shift || !shift[0].reg.isInt() || ctx.isPrivateFrameBase(shift[0].reg) ||
+            shift[1].opBits != MicroOpBits::B64 || shift[2].microOp != MicroOp::ShiftLeft ||
+            shift[3].hasWideImmediateValue() || shift[3].valueU64 == 0 || shift[3].valueU64 > 31 ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        const MicroInstrRef cmpRef = ctx.previousRef(setRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        const MicroInstrRef clearRef = ctx.previousRef(cmpRef);
+        const MicroInstr*   clear    = ctx.instruction(clearRef);
+        if (!set || !cmp || !clear || set->op != MicroInstrOpcode::SetCondReg ||
+            clear->op != MicroInstrOpcode::ClearReg || !instructionActuallyDefinesCpuFlags(*cmp, cmp->ops(*ctx.operands)))
+            return false;
+        const auto* setOps   = set->ops(*ctx.operands);
+        const auto* clearOps = clear->ops(*ctx.operands);
+        if (!setOps || !clearOps || setOps[0].reg != shift[0].reg || clearOps[0].reg != shift[0].reg ||
+            (clearOps[1].opBits != MicroOpBits::B32 && clearOps[1].opBits != MicroOpBits::B64) ||
+            !ctx.claimAll({clearRef, cmpRef, setRef, ref}))
+            return false;
+
+        MicroInstrOperand narrow[4] = {shift[0], shift[1], shift[2], shift[3]};
+        narrow[1].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, narrow);
         return true;
     }
 
@@ -1115,12 +1250,12 @@ namespace PostRaPeephole
         const auto* cmpOps = cmp->ops(*ctx.operands);
         if (!cmpOps || !cmpOps[0].reg.isInt())
             return false;
-        if (cmp->op == MicroInstrOpcode::CmpRegReg)
+        if (isCompareInstruction(cmp->op))
         {
-            if (!cmpOps[1].reg.isInt())
+            if (!canMoveComparisonForSelect(*cmp, cmpOps))
                 return false;
         }
-        else if (cmp->op != MicroInstrOpcode::CmpRegImm)
+        else
         {
             // These integer ALU producers overwrite the incoming flags and
             // read their destination, so the use check also protects its result.

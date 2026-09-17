@@ -284,6 +284,64 @@ namespace
             storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, ops);
         }
 
+        // dst = (zext(src) * multiplier) >> shift, the 64-bit product of a
+        // 32-bit value and a 32-bit multiplier, which cannot overflow.
+        void emitWideHigh32(MicroReg dst, MicroReg src, uint64_t multiplier, uint32_t shift) const
+        {
+            const MicroReg wideReg  = allocVirtualReg();
+            const MicroReg magicReg = allocVirtualReg();
+            emitCopy(wideReg, src);
+            MicroInstrOperand loadOps[3];
+            loadOps[0].reg    = magicReg;
+            loadOps[1].opBits = MicroOpBits::B64;
+            loadOps[2].setImmediateValue(ApInt(multiplier, 64));
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadRegImm, loadOps);
+            MicroInstrOperand mulOps[4];
+            mulOps[0].reg     = wideReg;
+            mulOps[1].reg     = magicReg;
+            mulOps[2].opBits  = MicroOpBits::B64;
+            mulOps[3].microOp = MicroOp::MultiplySigned;
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, mulOps);
+            MicroInstrOperand shiftOps[4];
+            shiftOps[0].reg     = wideReg;
+            shiftOps[1].opBits  = MicroOpBits::B64;
+            shiftOps[2].microOp = MicroOp::ShiftRight;
+            shiftOps[3].setImmediateValue(ApInt(shift, 64));
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+            emitCopy(dst, wideReg);
+        }
+
+        // dst = (sext(dst) * sext(multiplier)) >> shift, arithmetic, in 64 bits.
+        void emitWideSignedHigh32(MicroReg dst, uint64_t multiplier, uint32_t shift) const
+        {
+            const MicroReg wideReg  = allocVirtualReg();
+            const MicroReg magicReg = allocVirtualReg();
+            MicroInstrOperand extendOps[4];
+            extendOps[0].reg    = wideReg;
+            extendOps[1].reg    = dst;
+            extendOps[2].opBits = MicroOpBits::B64;
+            extendOps[3].opBits = MicroOpBits::B32;
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadSignedExtRegReg, extendOps);
+            MicroInstrOperand loadOps[3];
+            loadOps[0].reg    = magicReg;
+            loadOps[1].opBits = MicroOpBits::B64;
+            loadOps[2].setImmediateValue(ApInt(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(multiplier))), 64));
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadRegImm, loadOps);
+            MicroInstrOperand mulOps[4];
+            mulOps[0].reg     = wideReg;
+            mulOps[1].reg     = magicReg;
+            mulOps[2].opBits  = MicroOpBits::B64;
+            mulOps[3].microOp = MicroOp::MultiplySigned;
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, mulOps);
+            MicroInstrOperand shiftOps[4];
+            shiftOps[0].reg     = wideReg;
+            shiftOps[1].opBits  = MicroOpBits::B64;
+            shiftOps[2].microOp = MicroOp::ShiftArithmeticRight;
+            shiftOps[3].setImmediateValue(ApInt(shift, 64));
+            storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
+            emitCopy(dst, wideReg);
+        }
+
         // dst = dst / C for a non-power-of-two unsigned constant.
         // With the fixup: q = ((n - mulhi(n, M)) >> 1 + mulhi(n, M)) >> (shift - 1).
         void emitUnsignedDivide(MicroReg dst, const UnsignedDivisionMagic& magic) const
@@ -291,29 +349,26 @@ namespace
             // A 32-bit dividend times a 32-bit multiplier fits in 64 bits: the
             // plain 64-bit product shifted down is the high half, as LLVM emits
             // it, and needs neither rax nor rdx.
-            if (!magic.addFixup && opBits == MicroOpBits::B32)
+            if (opBits == MicroOpBits::B32)
             {
-                const MicroReg wideReg  = allocVirtualReg();
-                const MicroReg magicReg = allocVirtualReg();
-                emitCopy(wideReg, dst);
-                MicroInstrOperand loadOps[3];
-                loadOps[0].reg    = magicReg;
-                loadOps[1].opBits = MicroOpBits::B64;
-                loadOps[2].setImmediateValue(ApInt(magic.multiplier, 64));
-                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::LoadRegImm, loadOps);
-                MicroInstrOperand mulOps[4];
-                mulOps[0].reg     = wideReg;
-                mulOps[1].reg     = magicReg;
-                mulOps[2].opBits  = MicroOpBits::B64;
-                mulOps[3].microOp = MicroOp::MultiplySigned;
-                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, mulOps);
-                MicroInstrOperand shiftOps[4];
-                shiftOps[0].reg     = wideReg;
-                shiftOps[1].opBits  = MicroOpBits::B64;
-                shiftOps[2].microOp = MicroOp::ShiftRight;
-                shiftOps[3].setImmediateValue(ApInt(32 + magic.shift, 64));
-                storage->insertDerivedBefore(*operands, beforeRef, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
-                emitCopy(dst, wideReg);
+                if (!magic.addFixup)
+                {
+                    emitWideHigh32(dst, dst, magic.multiplier, 32 + magic.shift);
+                    return;
+                }
+
+                SWC_ASSERT(magic.shift >= 1);
+                const MicroReg dividendReg = allocVirtualReg();
+                emitCopy(dividendReg, dst);
+                emitWideHigh32(dst, dividendReg, magic.multiplier, 32);
+                const MicroReg fixupReg = allocVirtualReg();
+                emitCopy(fixupReg, dividendReg);
+                emitOpRegReg(fixupReg, dst, MicroOp::Subtract);
+                emitOpRegImm(fixupReg, MicroOp::ShiftRight, 1);
+                emitOpRegReg(fixupReg, dst, MicroOp::Add);
+                if (magic.shift > 1)
+                    emitOpRegImm(fixupReg, MicroOp::ShiftRight, magic.shift - 1);
+                emitCopy(dst, fixupReg);
                 return;
             }
 
@@ -379,13 +434,30 @@ namespace
         {
             const uint32_t bits          = getNumBits(opBits);
             const bool     negativeMagic = (magic.multiplier >> (bits - 1)) & 1;
-            const MicroReg magicReg      = allocVirtualReg();
-            emitLoadImm(magicReg, magic.multiplier);
-            emitOpRegReg(dst, magicReg, MicroOp::MultiplyHighSigned);
-            if (negativeMagic)
-                emitOpRegReg(dst, dividendReg, MicroOp::Add);
-            if (magic.shift)
-                emitOpRegImm(dst, MicroOp::ShiftArithmeticRight, magic.shift);
+            if (opBits == MicroOpBits::B32)
+            {
+                // The 64-bit product of two sign-extended 32-bit values holds
+                // the signed high half; with a positive multiplier the magic
+                // shift folds into the one that extracts it.
+                const uint32_t shift = negativeMagic ? 32 : 32 + magic.shift;
+                emitWideSignedHigh32(dst, magic.multiplier, shift);
+                if (negativeMagic)
+                {
+                    emitOpRegReg(dst, dividendReg, MicroOp::Add);
+                    if (magic.shift)
+                        emitOpRegImm(dst, MicroOp::ShiftArithmeticRight, magic.shift);
+                }
+            }
+            else
+            {
+                const MicroReg magicReg = allocVirtualReg();
+                emitLoadImm(magicReg, magic.multiplier);
+                emitOpRegReg(dst, magicReg, MicroOp::MultiplyHighSigned);
+                if (negativeMagic)
+                    emitOpRegReg(dst, dividendReg, MicroOp::Add);
+                if (magic.shift)
+                    emitOpRegImm(dst, MicroOp::ShiftArithmeticRight, magic.shift);
+            }
             const MicroReg signReg = allocVirtualReg();
             emitCopy(signReg, dst);
             emitOpRegImm(signReg, MicroOp::ShiftRight, bits - 1);

@@ -268,8 +268,9 @@ SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideUsesWideProduct)
 }
 SWC_TEST_END()
 
-// A 32-bit divisor whose multiplier needs the fixup keeps the high multiply.
-SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideFixupKeepsHighMultiply)
+// A 32-bit divisor whose multiplier needs the fixup takes its high half from
+// the wide product too.
+SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideFixupUsesWideProduct)
 {
     constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
     MicroBuilder       builder(ctx);
@@ -279,7 +280,8 @@ SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideFixupKeepsHighMultiply)
 
     SWC_RESULT(runStrengthReductionPass(builder));
 
-    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 1)
+    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1 ||
+        countBinaryRegRegOp(builder, MicroOp::Subtract) != 1 || !hasBinaryRegImm(builder, MicroOp::ShiftRight, 32))
         return Result::Error;
 
     return Result::Continue;
@@ -346,6 +348,26 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivideMagic)
     if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 0)
         return Result::Error;
     if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighSigned) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A 32-bit idiv v1, 7 multiplies the sign-extended dividend at 64 bits.
+SWC_TEST_BEGIN(StrengthReduction_DwordSignedDivideUsesWideProduct)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::DivideSigned, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighSigned) != 0 || countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadSignedExtRegReg) != 1)
         return Result::Error;
 
     return Result::Continue;

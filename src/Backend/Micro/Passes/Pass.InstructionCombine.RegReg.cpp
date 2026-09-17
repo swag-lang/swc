@@ -309,6 +309,7 @@ namespace InstructionCombine
                 MicroInstrRef countRef = negative.instRef;
                 MicroInstrRef zeroRef;
                 MicroInstrRef inputCopy;
+                // `width - n` counts like `0 - n`: the shift masks its count to the width.
                 if (negative.inst->op == MicroInstrOpcode::OpBinaryRegReg && negOps && negOps[3].microOp == MicroOp::Subtract &&
                     getNumBits(negOps[2].opBits) >= 32)
                 {
@@ -319,7 +320,7 @@ namespace InstructionCombine
                     if (!zeroOps || (zero.inst->op != MicroInstrOpcode::ClearReg && zero.inst->op != MicroInstrOpcode::LoadRegImm) ||
                         getNumBits(zeroOps[1].opBits) < 32 ||
                         (zero.inst->op != MicroInstrOpcode::ClearReg &&
-                         (zero.inst->op != MicroInstrOpcode::LoadRegImm || zeroOps[2].hasWideImmediateValue() || zeroOps[2].valueU64 != 0)))
+                         (zero.inst->op != MicroInstrOpcode::LoadRegImm || zeroOps[2].hasWideImmediateValue() || zeroOps[2].valueU64 % getNumBits(bits) != 0)))
                         continue;
                     zeroRef = zero.instRef;
                     count   = negOps[1].reg;

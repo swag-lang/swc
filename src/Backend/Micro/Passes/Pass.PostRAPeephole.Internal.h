@@ -111,6 +111,8 @@ namespace PostRaPeephole
     bool tryHoistNarrowZeroExtendAcrossUnary(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryRetargetNarrowZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryRetargetNarrowAbsoluteDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryRetargetNarrowSelectCascade(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryWidenNarrowSelectGraph(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     void eraseRedundantUpperHalfClears(Context& ctx);
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
@@ -119,6 +121,7 @@ namespace PostRaPeephole
     bool tryFoldUnsignedCeilAverage64(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldUnsignedCeilAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryRetargetSelectedIntermediate(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryRetargetSelectedValueCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldConditionalCascadeResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldConditionalChainResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldConditionalResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

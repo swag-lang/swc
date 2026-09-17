@@ -15,6 +15,28 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.042 — A range-guarded select remains a branch cascade
+
+- Recorded: 2026-09-17 21:43
+- Area: compiler/backend, branch simplification
+- Evidence: Release build 959 emits 34 bytes for
+  `x >= low and x <= high ? inside : outside` on `u32`, against LLVM's 18. After
+  branch simplification, the Micro stream is two comparisons whose conditional jumps both target
+  the `outside` arm, followed by the two-move result diamond. LLVM loads `outside`, conditionally
+  replaces `inside` after the upper-bound comparison, then conditionally selects that candidate
+  after the lower-bound comparison: two comparisons and two `cmov`, with no branch.
+- Boundary: eight build-959 probes cover signed and unsigned 32- and 64-bit values, a half-open
+  range, reversed comparison order, and the equivalent outside-range `or`. Swag totals 278 bytes
+  against LLVM's 150; every variant retains the same branch-cascade family, at 15 to 17 bytes
+  over LLVM. The transform must preserve short-circuit semantics for arms that cannot be
+  speculated and must not generalize beyond a pure result diamond.
+- Next: add a pre-RA if-conversion that recognizes same-target comparison guards feeding a short,
+  pure select diamond and builds the result with a conditional-move chain. Reuse the existing
+  diamond speculation, flag-liveness, and single-result checks rather than duplicating weaker
+  safety rules.
+- Complete when: the eight range variants are branchless and match LLVM within the Swag ABI's
+  required return extension, with focused Micro coverage and varied native boundary-value tests.
+
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13

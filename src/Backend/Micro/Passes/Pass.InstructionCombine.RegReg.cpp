@@ -1194,6 +1194,104 @@ namespace InstructionCombine
             return false;
         }
 
+        // q + (a - 3q) is a - 2q. Strength reduction commonly exposes this
+        // shape when quotient and remainder by three are combined. Keep the
+        // subtraction in place and reduce its single-use address product.
+        bool tryReduceAddedScaledDifference(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Add || ops[2].opBits != MicroOpBits::B64 || !ops[1].reg.isVirtualInt())
+                return false;
+
+            for (uint32_t quotientSide = 0; quotientSide < 2; ++quotientSide)
+            {
+                MicroReg      quotient    = ops[quotientSide].reg;
+                auto          quotientDef = ctx.ssa->reachingDef(quotient, ref);
+                MicroInstrRef quotientCopy = MicroInstrRef::invalid();
+                if (quotientDef.valid() && !quotientDef.isPhi && quotientDef.inst && quotientDef.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = quotientDef.inst->ops(*ctx.operands);
+                    if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[1].reg.isVirtualInt() ||
+                        ctx.ssa->transitiveInstructionUseCount(quotientDef.valueId, 2) != 1)
+                        continue;
+                    quotientCopy = quotientDef.instRef;
+                    quotient     = copy[1].reg;
+                    quotientDef  = ctx.ssa->reachingDef(quotient, quotientCopy);
+                }
+                if (!quotientDef.valid())
+                    continue;
+
+                const MicroReg remainder    = ops[1 - quotientSide].reg;
+                const auto     remainderDef = ctx.ssa->reachingDef(remainder, ref);
+                if (!remainderDef.valid() || remainderDef.isPhi || !remainderDef.inst || remainderDef.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
+                    ctx.ssa->transitiveInstructionUseCount(remainderDef.valueId, 2) != 1)
+                    continue;
+                const auto* subtract = remainderDef.inst->ops(*ctx.operands);
+                if (!subtract || subtract[0].reg != remainder || subtract[2].opBits != MicroOpBits::B64 || subtract[3].microOp != MicroOp::Subtract)
+                    continue;
+
+                const auto productDef = ctx.ssa->reachingDef(subtract[1].reg, remainderDef.instRef);
+                if (!productDef.valid() || productDef.isPhi || !productDef.inst || productDef.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem ||
+                    ctx.ssa->transitiveInstructionUseCount(productDef.valueId, 2) != 1)
+                    continue;
+                const auto* product = productDef.inst->ops(*ctx.operands);
+                if (!product || product[1].reg != quotient || product[2].reg != quotient ||
+                    product[3].opBits != MicroOpBits::B64 || product[4].opBits != MicroOpBits::B64 ||
+                    product[5].valueU64 != 2 || product[6].valueU64 != 0)
+                    continue;
+                const auto productQuotient = ctx.ssa->reachingDef(quotient, productDef.instRef);
+                if (!productQuotient.valid() || productQuotient.valueId != quotientDef.valueId ||
+                    ctx.ssa->reachingDef(quotient, ref).valueId != quotientDef.valueId)
+                    continue;
+
+                bool                       foldLogicalHalf = false;
+                const MicroInstrOperand*   shift           = nullptr;
+                const MicroSsaState::ValueInfo* quotientInfo = ctx.ssa->valueInfo(quotientDef.valueId);
+                if (!quotientDef.isPhi && quotientDef.inst && quotientDef.inst->op == MicroInstrOpcode::OpBinaryRegImm && quotientInfo)
+                {
+                    shift = quotientDef.inst->ops(*ctx.operands);
+                    foldLogicalHalf = shift && shift[0].reg == quotient && shift[1].opBits == MicroOpBits::B64 &&
+                                      shift[2].microOp == MicroOp::ShiftRight && !shift[3].hasWideImmediateValue() && shift[3].valueU64 == 1;
+                    for (const auto& use : quotientInfo->uses)
+                    {
+                        foldLogicalHalf &= use.kind == MicroSsaState::UseSite::Kind::Instruction &&
+                                           (use.instRef == productDef.instRef || use.instRef == quotientCopy);
+                    }
+                    foldLogicalHalf &= MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, quotientDef.instRef, ctx.builder);
+                }
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, remainderDef.instRef, ctx.builder) ||
+                    !ctx.claimAll({ref, remainderDef.instRef, productDef.instRef, quotientCopy.isValid() ? quotientCopy : ref,
+                                   foldLogicalHalf ? quotientDef.instRef : ref}))
+                    continue;
+
+                if (foldLogicalHalf)
+                {
+                    MicroInstrOperand masked[4];
+                    std::copy_n(shift, 4, masked);
+                    masked[2].microOp = MicroOp::And;
+                    masked[3].setImmediateValue(ApInt(UINT64_MAX - 1, 64));
+                    ctx.emitRewrite(quotientDef.instRef, MicroInstrOpcode::OpBinaryRegImm, masked);
+                    const MicroInstrOperand productCopy[3] = {product[0], product[1], product[3]};
+                    ctx.emitRewrite(productDef.instRef, MicroInstrOpcode::LoadRegReg, productCopy);
+                }
+                else
+                {
+                    MicroInstrOperand reducedProduct[8];
+                    std::copy_n(product, 8, reducedProduct);
+                    reducedProduct[5].valueU64 = 1;
+                    ctx.emitRewrite(productDef.instRef, MicroInstrOpcode::LoadAddrAmcRegMem, reducedProduct, true);
+                }
+
+                MicroInstrOperand copy[3];
+                copy[0].reg    = ops[0].reg;
+                copy[1].reg    = remainder;
+                copy[2].opBits = MicroOpBits::B64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
+                return true;
+            }
+            return false;
+        }
+
         struct ProductBit
         {
             MicroReg      reg      = MicroReg::invalid();
@@ -1693,7 +1791,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldNegatedLhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldBitwiseDifference(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || trySelectLowBitProduct(ctx, ref, ops) || tryFactorSingleProduct(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldNegatedLhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldBitwiseDifference(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryReduceAddedScaledDifference(ctx, ref, ops) || trySelectLowBitProduct(ctx, ref, ops) || tryFactorSingleProduct(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

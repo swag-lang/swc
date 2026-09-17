@@ -222,10 +222,10 @@ GUI campaign also passed all 85 tests, including the HTML view cases that had
 exposed the attempted regression.
 
 Build 945 passed all 3,423 native tests plus the three expected recovery
-failures. After the guard, conditional-operation, shift, multiplication and
-indexed-average batches, build 957 passed all 3,432 native tests plus the same
-three expected recovery failures. Focused validation varied between branch
-diamonds, short-circuit booleans, count boundaries, narrow return copies,
+failures. After the guard, conditional-operation, shift, multiplication,
+indexed-average and saturating-add batches, build 959 passed all 3,432 native
+tests plus the same three expected recovery failures. Focused validation varied
+between branch diamonds, short-circuit booleans, count boundaries, narrow return copies,
 implicit multiplication, carry handling and indexed averages.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB

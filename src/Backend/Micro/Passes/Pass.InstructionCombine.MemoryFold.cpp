@@ -206,13 +206,14 @@ namespace InstructionCombine
 
         const MicroInstrRef opRef = ctx.storage->findNextInstructionRef(loadRef);
         const MicroInstr*   op    = ctx.storage->ptr(opRef);
-        if (!op || (op->op != MicroInstrOpcode::OpBinaryRegReg && op->op != MicroInstrOpcode::OpBinaryRegImm))
+        if (!op || (op->op != MicroInstrOpcode::OpBinaryRegReg && op->op != MicroInstrOpcode::OpBinaryRegImm && op->op != MicroInstrOpcode::OpUnaryReg))
             return false;
         const MicroInstrOperand* opOps = op->ops(*ctx.operands);
         if (!opOps || opOps[0].reg != value || !valueHasSingleUse(*ctx.ssa, value, opRef))
             return false;
 
         const bool  immediateUpdate   = op->op == MicroInstrOpcode::OpBinaryRegImm;
+        const bool  directUnaryUpdate = op->op == MicroInstrOpcode::OpUnaryReg;
         bool        unaryUpdate       = false;
         MicroOpBits immediateFoldBits = loadOps[3].opBits;
         uint64_t    immediateFoldValue = 0;
@@ -271,6 +272,12 @@ namespace InstructionCombine
             unaryUpdate = immediate == 1 && (opOps[2].microOp == MicroOp::Add || opOps[2].microOp == MicroOp::Subtract) &&
                           MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder);
         }
+        else if (directUnaryUpdate)
+        {
+            if (opOps[1].opBits != loadOps[3].opBits ||
+                (opOps[2].microOp != MicroOp::BitwiseNot && opOps[2].microOp != MicroOp::Negate))
+                return false;
+        }
         else if (!opOps[1].reg.isVirtualInt() || opOps[1].reg == value || opOps[1].reg == base || opOps[1].reg == index ||
                  opOps[2].opBits != loadOps[3].opBits ||
                  (opOps[3].microOp != MicroOp::Add && opOps[3].microOp != MicroOp::Subtract &&
@@ -286,7 +293,7 @@ namespace InstructionCombine
         if (maybeCopy && maybeCopy->op == MicroInstrOpcode::LoadRegReg)
         {
             const MicroInstrOperand* copyOps = maybeCopy->ops(*ctx.operands);
-            const MicroOpBits        opBits  = immediateUpdate ? opOps[1].opBits : opOps[2].opBits;
+            const MicroOpBits        opBits  = immediateUpdate || directUnaryUpdate ? opOps[1].opBits : opOps[2].opBits;
             if (!copyOps || copyOps[1].reg != value || copyOps[2].opBits != opBits || !copyOps[0].reg.isVirtualInt() ||
                 copyOps[0].reg == base || copyOps[0].reg == index || !valueHasSingleUse(*ctx.ssa, copyOps[0].reg, storeRef))
                 return false;
@@ -309,7 +316,7 @@ namespace InstructionCombine
         MicroInstrOperand update[8] = {};
         update[0]                   = loadOps[1];
         update[1]                   = loadOps[2];
-        if (unaryUpdate)
+        if (unaryUpdate || directUnaryUpdate)
         {
             update[3] = loadOps[4];
             update[4] = loadOps[3];

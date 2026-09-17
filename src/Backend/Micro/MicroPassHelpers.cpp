@@ -178,7 +178,11 @@ bool MicroPassHelpers::instructionOverwritesCpuFlags(const MicroInstr& inst, con
         case MicroInstrOpcode::OpUnaryAmcMem:
             // The unary Add/Subtract forms encode INC/DEC. They preserve CF,
             // so they never overwrite the complete abstract flags value.
-            return false;
+            op   = ops[7].microOp;
+            bits = ops[4].opBits;
+            if (op == MicroOp::Add || op == MicroOp::Subtract)
+                return false;
+            break;
         default:
             return true;
     }

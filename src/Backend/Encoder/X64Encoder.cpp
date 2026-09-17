@@ -2928,7 +2928,7 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
 void X64Encoder::encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits)
 {
     SWC_ASSERT(regBase.isInt() && regMul.isInt());
-    SWC_ASSERT(op == MicroOp::Add || op == MicroOp::Subtract);
+    SWC_ASSERT(op == MicroOp::Add || op == MicroOp::Subtract || op == MicroOp::BitwiseNot || op == MicroOp::Negate);
     SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
 
     auto baseX64 = microRegToX64Reg(regBase);
@@ -2949,15 +2949,22 @@ void X64Encoder::encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t
     if (opBits == MicroOpBits::B64 || indexExtended || baseExtended)
         store_.pushU8(getRex(opBits == MicroOpBits::B64, false, indexExtended, baseExtended));
 
+    const bool increment = op == MicroOp::Add || op == MicroOp::Subtract;
     // In this unary instruction family Add/Subtract mean INC/DEC. The fold
     // creating them proves that CF and the other result flags are dead.
-    emitSpecCpuOp(store_, opBits == MicroOpBits::B8 ? 0xFE : 0xFF, opBits);
+    if (increment)
+        emitSpecCpuOp(store_, opBits == MicroOpBits::B8 ? 0xFE : 0xFF, opBits);
+    else
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
 
     const bool forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
     const auto mod                 = forcedDisplacement || addValue != 0
                                          ? (canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32)
                                          : ModRmMode::Memory;
-    emitModRm(store_, mod, op == MicroOp::Add ? MODRM_REG_0 : MODRM_REG_1, MODRM_RM_SIB);
+    const uint8_t group = op == MicroOp::Add ? MODRM_REG_0 :
+                          op == MicroOp::Subtract ? MODRM_REG_1 :
+                          op == MicroOp::BitwiseNot ? MODRM_REG_2 : MODRM_REG_3;
+    emitModRm(store_, mod, group, MODRM_RM_SIB);
 
     SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
     emitSib(store_, static_cast<uint8_t>(log2(mulValue)), encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);

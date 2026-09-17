@@ -53,9 +53,26 @@ namespace PostRaPeephole
         if (addBits != bits || addOp != MicroOp::Add)
             return false;
 
-        const MicroInstrRef copyRef = ctx.previousRef(addRef);
+        MicroInstrRef       copyRef = ctx.previousRef(addRef);
         const MicroInstr*   copy    = ctx.instruction(copyRef);
-        const auto*         copied  = copy ? copy->ops(*ctx.operands) : nullptr;
+        MicroInstrRef       middleLoadRef;
+        if (copy && copy->op != MicroInstrOpcode::LoadRegReg)
+        {
+            const auto* middleOps = copy->ops(*ctx.operands);
+            const MicroInstrUseDef useDef = copy->collectUseDef(*ctx.operands, ctx.encoder);
+            if (add->op != MicroInstrOpcode::OpBinaryRegReg || !middleOps ||
+                (copy->op != MicroInstrOpcode::LoadRegMem && copy->op != MicroInstrOpcode::LoadAmcRegMem) ||
+                middleOps[0].reg != addOps[1].reg ||
+                std::ranges::find(useDef.uses, sum) != useDef.uses.end() ||
+                std::ranges::find(useDef.uses, original) != useDef.uses.end() ||
+                std::ranges::find(useDef.defs, sum) != useDef.defs.end() ||
+                std::ranges::find(useDef.defs, original) != useDef.defs.end())
+                return false;
+            middleLoadRef = copyRef;
+            copyRef       = ctx.previousRef(middleLoadRef);
+            copy          = ctx.instruction(copyRef);
+        }
+        const auto* copied = copy ? copy->ops(*ctx.operands) : nullptr;
         if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copied ||
             copied[0].reg != sum || copied[1].reg != original || getNumBits(copied[2].opBits) < getNumBits(bits))
             return false;
@@ -103,10 +120,21 @@ namespace PostRaPeephole
             rewrittenLoad[3].opBits    = MicroOpBits::B32;
             rewrittenLoad[4].opBits    = bits;
         }
-        const std::array refs = {loadRef, copyRef, addRef, cmpRef, fallbackRef, selectRef, extendRef};
+        std::array<MicroInstrRef, 8> refs;
+        size_t                       numRefs = 0;
+        refs[numRefs++]                      = loadRef;
+        refs[numRefs++]                      = copyRef;
+        if (middleLoadRef.isValid())
+            refs[numRefs++] = middleLoadRef;
+        refs[numRefs++] = addRef;
+        refs[numRefs++] = cmpRef;
+        refs[numRefs++] = fallbackRef;
+        refs[numRefs++] = selectRef;
+        if (narrow)
+            refs[numRefs++] = extendRef;
         MicroConformanceIssue issue;
         if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, loadProbe, rewrittenLoad)) ||
-            !ctx.claimAll(std::span{refs.data(), narrow ? 7u : 6u}))
+            !ctx.claimAll(std::span{refs.data(), numRefs}))
             return false;
         if (narrow)
             ctx.emitRewrite(loadRef, loadProbe.op, std::span{rewrittenLoad, 7}, true);
@@ -1371,6 +1399,50 @@ namespace PostRaPeephole
         MicroInstrOperand rewritten[4] = {ops[0], ops[1], ops[2], ops[3]};
         rewritten[1].opBits            = MicroOpBits::B32;
         ctx.emitRewrite(ref, inst.op, rewritten);
+        return true;
+    }
+
+    // Move a zero initialization before the comparison whose flags feed the
+    // following conditional move. This exposes XOR zeroing without changing
+    // the selected value or letting XOR replace the comparison flags.
+    bool tryClearZeroBeforeSelect(Context& ctx, const MicroInstrRef zeroRef, const MicroInstr& zeroInst)
+    {
+        if (ctx.isClaimed(zeroRef) || zeroInst.op != MicroInstrOpcode::LoadRegImm)
+            return false;
+        const auto* zero = zeroInst.ops(*ctx.operands);
+        if (!zero || !zero[0].reg.isInt() || zero[2].hasWideImmediateValue() || zero[2].valueU64 != 0 ||
+            (zero[1].opBits != MicroOpBits::B32 && zero[1].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef cmpRef = ctx.previousRef(zeroRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
+            return false;
+        const MicroInstrUseDef cmpUseDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
+        if (std::ranges::find(cmpUseDef.uses, zero[0].reg) != cmpUseDef.uses.end() ||
+            std::ranges::find(cmpUseDef.defs, zero[0].reg) != cmpUseDef.defs.end())
+            return false;
+
+        const MicroInstrRef selectRef = ctx.nextRef(zeroRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != zero[0].reg || selected[3].opBits != zero[1].opBits)
+            return false;
+
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = zero[0].reg;
+        clear[1].opBits            = zero[1].opBits;
+        MicroInstr clearProbe;
+        clearProbe.op          = MicroInstrOpcode::ClearReg;
+        clearProbe.numOperands = 2;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, clearProbe, clear) ||
+            !ctx.claimAll({cmpRef, zeroRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(cmpRef, clearProbe.op, clear);
+        ctx.emitRewrite(zeroRef, cmp->op, std::span{cmp->ops(*ctx.operands), cmp->numOperands}, true);
         return true;
     }
 

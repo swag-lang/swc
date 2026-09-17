@@ -20,6 +20,45 @@ information.
 5. Inspect the complete app, its tests, external resources, licenses, workspace scripts, generated
    artifact layout, and every repository reference before choosing the migration boundary.
 
+## Make Standard Applications Language Showcases
+
+An application shipped with the compiler is executable language documentation. Its source must
+show how a substantial Swag program composes ownership, controls, callbacks, failure, and cleanup
+without hiding those contracts behind framework ceremony.
+
+- Make a main `create` function read as the ordered outline of the surface: initialize the root,
+  create each named visual region, connect cross-region routing, apply derived state, and return.
+  When one region's construction and signal wiring interrupts that outline, move it to a private
+  receiver method or give the region a real component type.
+- Let each extracted construction method own one coherent visual region and its local callbacks.
+  Name it for the thing it creates (`createCommandBar`, `createFilePanel`), not for a vague phase
+  such as `setupUi`, `buildControls`, or `initializePart`.
+- Do not split one window type across `*.layout.swg`, `*.events.swg`, or other aspect files to make
+  a large file look smaller. Extract a component, model, operation, or lifecycle owner when it has
+  a contract of its own; otherwise keep the receiver's methods in its type file, as required by
+  `write-idiomatic-swag-code`.
+- Use data-driven construction only for genuinely homogeneous repetitions whose data fully states
+  their behavior, such as menu entries or a registry of equivalent choices. A short toolbar whose
+  buttons have distinct fields, enablement, toggle rules, callbacks, and ownership is clearer as
+  typed Swag code. Do not replace those contracts with identifiers, casts, callback switches, or
+  a generic property bag merely to reduce line count.
+- Treat precedent as evidence, not permission. Another standard application's long constructor or
+  broad window type may be the same debt; compare contracts and improve the pattern instead of
+  copying its shape.
+- Prefer ordinary language features in the public example: typed fields, receiver methods, `with`
+  construction, contextual conversion, direct returns, and scope-bound cleanup. Add a builder,
+  declarative schema, or reflection layer only when it makes ownership and failure more explicit
+  across several real consumers.
+- Treat application work as a probe of `bin/std`. Start from the standard module that should own
+  the interaction or presentation. If a clean implementation requires an app-local workaround,
+  copied control behavior, access to internals, or repeated glue that other applications would
+  also need, improve that module's public contract and tests first, then make the application its
+  reference consumer. Do not preserve a weak standard API merely to keep the application diff
+  local; do not generalize a product-specific policy that has no coherent module-level contract.
+- Protect the composition at both boundaries: structural tests assert parentage, order, alignment,
+  and visibility; a focused golden proves the resulting hierarchy reads correctly. A refactor of
+  construction must preserve both unless the intended surface changes.
+
 ## Name The Product Once
 
 - Give every shipped application a two-word display name: the family name `Swag`, followed by one

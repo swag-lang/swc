@@ -28,7 +28,7 @@ func memory(p: *u32, a: u32)->u32 => p[] * a + p[]
 #[Swag.NoInline]
 func retainHigh(a: u64, b: u32)->u64
 {
-    let low = cast(u32) (a & 0xFFFFFFFF)
+    let low         = cast(u32) (a & 0xFFFFFFFF)
     let result: u32 = low * b + low
     return cast(u64) result ^ a
 }
@@ -56,7 +56,7 @@ func indexedWrap(a: u32)->u64
     let values = [0'u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFE, 0xFFFFFFFF]
     for a in values
     {
-        let added: u32 = a + 1
+        let added:   u32 = a + 1
         let removed: u32 = a - 1
         Swag.assert(plus(a) == cast(u64) added)
         Swag.assert(minus(a) == cast(u64) removed)
@@ -69,7 +69,7 @@ func indexedWrap(a: u32)->u64
             Swag.assert(subtract(a, b) == product - a)
             var cell = a
             Swag.assert(memory(&cell, b) == product + a)
-            let wide = cast(u64) a | 0xFEDCBA9800000000
+            let wide     = cast(u64) a | 0xFEDCBA9800000000
             let sum: u32 = product + a
             Swag.assert(retainHigh(wide, b) == (cast(u64) sum ^ wide))
         }

@@ -6,7 +6,7 @@ func combine(a, b, mask: u64)->u64 => b ^ ((a ^ b) & mask)
 #[Swag.NoInline]
 func changeSource(a, b: u64)->u64
 {
-    var current = b
+    var current  = b
     let snapshot = current
     current ^= 0x55
     return (a ^ snapshot) & current

@@ -316,12 +316,12 @@ func checkBacklogAllocationHistory(root: string) fail
 // This store has no native handles and cannot read or change the real user environment.
 struct SetupMemoryEnvironment
 {
-    userPath: Tool.Setup.PathValue
-    swagPath: String
-    pathWrites: u32
-    swagWrites: u32
-    notifications: u32
-    rejectRead: bool
+    userPath:        Tool.Setup.PathValue
+    swagPath:        String
+    pathWrites:      u32
+    swagWrites:      u32
+    notifications:   u32
+    rejectRead:      bool
     rejectPathWrite: bool
     rejectSwagWrite: bool
 }
@@ -401,7 +401,7 @@ func checkSetupPath() fail
         longPath += ";C:\\工具\\directory"
     Swag.assert(longPath.count > 2048)
     let unicodeDirectory = "C:\\Swag é\\bin"
-    let expected = Format.toString("%;%", longPath.toString(), unicodeDirectory)
+    let expected         = Format.toString("%;%", longPath.toString(), unicodeDirectory)
     try checkSetupPathCase(longPath.toString(), unicodeDirectory, expected.toString(), true)
 
     var unreadable: SetupMemoryEnvironment

@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 919 (d41dc7da7) are
+corpus. Focused continuation measurements through build 931 (a0c992d14) are
 recorded below.
 
 ## Machine-code measurements
@@ -58,14 +58,15 @@ baseline.
 | 874 | Indexed variable shifts | 3 | 54 | 32 | 32 |
 | 875 | Indexed multiplication | 2 | 24 | 20 | 20 |
 
-Five later exploratory rounds added 52 small scalar functions. They cover bit
+Seven later exploratory rounds added 70 small scalar functions. They cover bit
 counts, power-of-two tests, min/max/clamp chains, median-of-three selections,
-overflow-safe averages, saturating arithmetic, rotates and narrow signed
-returns. The measured Swag total is smaller than LLVM in two rounds and equal
-in one. The other two round totals are larger only because Swag canonicalizes
-signed `s32` returns. Every remaining larger signed `s32` function is explained
-by Swag's canonical 64-bit sign extension at return; no unexplained larger
-function remains in these rounds.
+overflow-safe averages, saturating arithmetic, rotates, narrow signed returns
+and byte/word result handling. Through round 24, the measured Swag total is
+smaller than LLVM in three rounds and equal in one. The other two round totals
+are larger only because Swag canonicalizes signed `s32` returns. The only other
+larger function there is the `u16` median-of-three at 46 bytes versus LLVM's 45.
+Round 25 deliberately probes branch-heavy `u8` expressions and records the
+remaining gaps for later work.
 
 | Round | Measured build | Functions | Swag bytes | LLVM bytes | Larger / equal / smaller |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -74,6 +75,8 @@ function remains in these rounds.
 | 21 | 906 | 10 | 249 | 258 | 0 / 6 / 4 |
 | 22 | 918 | 9 | 268 | 263 | 2 / 7 / 0 |
 | 23 | 919 | 11 | 272 | 268 | 4 / 4 / 3 |
+| 24 | 927 | 10 | 213 | 215 | 1 / 7 / 2 |
+| 25 | 931 | 8 | 232 | 191 | 4 / 3 / 1 |
 
 Notable late reductions include unsigned and signed `median3` chains, repeated
 comparison reuse, direct narrow conditional results, and widened overflow-safe
@@ -81,6 +84,17 @@ averages. Unsigned `median3` is 37 bytes versus LLVM's 39; signed floor and
 ceiling averages are 16/16 and 19/19; saturating unsigned add and subtract are
 19/19 and 15/15. The signed clamp is 21 bytes versus LLVM's 18 solely because
 of its final three-byte `movsxd`.
+
+The narrow-result continuation reduces `u16` floor and ceiling averages from
+28 bytes to 14 and 16, saturating add from 31 to 21, saturating subtract from
+21 to 17, absolute difference from 25 to 21, and median-of-three from 60 to
+46. Rotations, byte swaps and three-value min/max chains now match LLVM.
+The `u8` saturating-add follow-up reduces 29 bytes to 22; LLVM emits 20.
+Two supplementary `u8` probes isolate the larger branch-heavy gaps: spelling
+the loaded operands once as locals reduces saturating subtract from 32 to 18
+bytes (LLVM 19) and absolute difference from 46 to 19 (LLVM 22). Future work
+there should target repeated memory-expression reuse and branch formation,
+rather than the final post-allocation sequences.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -181,6 +195,10 @@ plus the three expected-failure recovery probes after the later comparison,
 selection, average and saturation batches. Focused Release tests rotated among
 bit counts, address arithmetic, selection chains, signed and unsigned averages,
 saturating arithmetic, data integrity and the concurrent division changes.
+Build 927 passed all 3,418 native tests plus the same three recovery probes.
+After rejecting an unsafe follow-up during exploration, the focused Release
+GUI campaign also passed all 85 tests, including the HTML view cases that had
+exposed the attempted regression.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

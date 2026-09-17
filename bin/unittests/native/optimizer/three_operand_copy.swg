@@ -15,7 +15,7 @@ func shared(a, b: u32)->u32 => (a << (b & 31)) ^ a ^ b
 func changedSource(a, b: u32)->u32
 {
     var current = a
-    let old = current
+    let old     = current
     current += b
     return (old << (b & 31)) ^ current
 }

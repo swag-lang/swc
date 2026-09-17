@@ -40,7 +40,7 @@ func reusedXor(a, b: u64)->u64
 #[Swag.NoInline]
 func changedInput(a, b: u64)->u64
 {
-    let first = a & b
+    let first   = a & b
     let changed = a ^ 0xFF00FF00FF00FF00
     return first | changed
 }

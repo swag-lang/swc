@@ -102,18 +102,18 @@ struct MovedField { value: Vector3 }
 #test
 {
     var source = Vector3{1, 2, 3}
-    let field = MovedField{#move source}
+    let field  = MovedField{#move source}
     Swag.assert(source.x == 666)
     Swag.assert(field.value.x > 1)
 
-    var first = Vector3{10, 20, 30}
+    var first  = Vector3{10, 20, 30}
     var second = Vector3{40, 50, 60}
     let values = [#move first, #move second]
     Swag.assert(first.x == 666 and second.x == 666)
     Swag.assert(values[0].x > 10 and values[1].x > 40)
 
-    var left = Vector3{100, 200, 300}
-    var right = Vector3{400, 500, 600}
+    var left     = Vector3{100, 200, 300}
+    var right    = Vector3{400, 500, 600}
     let selected = left.x < right.x ? #move left : #move right
     Swag.assert(left.x == 666)
     Swag.assert(right.x == 400)

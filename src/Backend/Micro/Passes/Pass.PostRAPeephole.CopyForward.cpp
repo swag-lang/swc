@@ -502,6 +502,20 @@ namespace PostRaPeephole
             if (!regInList(useDef.uses.span(), copy[0].reg) && !regInList(useDef.defs.span(), copy[0].reg))
                 continue;
             const auto* ops = current->ops(*ctx.operands);
+            if (useDef.defs.empty())
+            {
+                MicroOpBits readBits = MicroOpBits::Zero;
+                if (ops && (current->op == MicroInstrOpcode::CmpRegReg || current->op == MicroInstrOpcode::TestRegReg))
+                    readBits = ops[2].opBits;
+                else if (ops && (current->op == MicroInstrOpcode::CmpRegImm || current->op == MicroInstrOpcode::TestRegImm))
+                    readBits = ops[1].opBits;
+                if (readBits == MicroOpBits::B32)
+                    continue;
+                return false;
+            }
+            if (current->op == MicroInstrOpcode::LoadCondRegReg && ops && ops[0].reg == copy[0].reg &&
+                ops[3].opBits == MicroOpBits::B32)
+                continue;
             if (!ops || ops[0].reg != copy[0].reg || useDef.defs.size() != 1 || useDef.defs[0] != copy[0].reg)
                 return false;
             const bool regReg = current->op == MicroInstrOpcode::OpBinaryRegReg;
@@ -982,9 +996,9 @@ namespace PostRaPeephole
     }
 
     // Widen the straight-line select graph emitted by a narrow median-of-three
-    // expression. Once its three inputs are zero-extended, every copy, compare
-    // and conditional move can use dwords and the ordinary dword copy rules can
-    // coalesce the graph on the following sweep.
+    // expression. The common register layout can also keep the maximum in the
+    // return register, which removes the copies used to shuttle both partial
+    // results through separately allocated temporaries.
     bool tryWidenNarrowSelectGraph(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
     {
         if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
@@ -1083,6 +1097,83 @@ namespace PostRaPeephole
         }
         if (!isKnown(extend[1].reg))
             return false;
+
+        const MicroReg first        = rewritten[0][0].reg;
+        const MicroReg second       = rewritten[1][0].reg;
+        const MicroReg third        = rewritten[2][0].reg;
+        const MicroReg secondCopy   = rewritten[3][0].reg;
+        const MicroReg minimum      = rewritten[4][0].reg;
+        const MicroReg maximum      = rewritten[7][0].reg;
+        const MicroReg bounded      = rewritten[9][0].reg;
+        const MicroReg final        = rewritten[12][0].reg;
+        MicroCond      invertedLast = MicroCond::Unconditional;
+        const bool isMedianGraph =
+            rewritten[3][1].reg == second &&
+            rewritten[4][1].reg == first &&
+            rewritten[5][0].reg == first &&
+            (rewritten[5][1].reg == second || rewritten[5][1].reg == secondCopy) &&
+            rewritten[6][0].reg == minimum &&
+            (rewritten[6][1].reg == second || rewritten[6][1].reg == secondCopy) &&
+            (rewritten[6][2].cpuCond == MicroCond::Above || rewritten[6][2].cpuCond == MicroCond::AboveOrEqual) &&
+            rewritten[7][1].reg == first && maximum == secondCopy &&
+            rewritten[8][0].reg == maximum && rewritten[8][1].reg == second &&
+            (rewritten[8][2].cpuCond == MicroCond::Below || rewritten[8][2].cpuCond == MicroCond::BelowOrEqual) &&
+            rewritten[9][1].reg == maximum && bounded == first &&
+            rewritten[10][0].reg == maximum && rewritten[10][1].reg == third &&
+            rewritten[11][0].reg == bounded && rewritten[11][1].reg == third &&
+            (rewritten[11][2].cpuCond == MicroCond::Above || rewritten[11][2].cpuCond == MicroCond::AboveOrEqual) &&
+            rewritten[12][1].reg == minimum && final == third &&
+            rewritten[13][0].reg == minimum && rewritten[13][1].reg == bounded &&
+            rewritten[14][0].reg == final && rewritten[14][1].reg == bounded &&
+            (rewritten[14][2].cpuCond == MicroCond::Below || rewritten[14][2].cpuCond == MicroCond::BelowOrEqual) &&
+            extend[0].reg == first && extend[1].reg == final &&
+            MicroPassHelpers::invertCondition(invertedLast, rewritten[14][2].cpuCond);
+
+        if (isMedianGraph)
+        {
+            std::array<bool, expected.size()> erase = {};
+            erase[3] = true;
+            erase[7] = true;
+            erase[9] = true;
+            erase[12] = true;
+
+            rewritten[5][1].reg      = second;
+            rewritten[6][1].reg      = second;
+            rewritten[8][0].reg      = first;
+            rewritten[10][0].reg     = first;
+            rewritten[11][0].reg     = first;
+            rewritten[13][1].reg     = first;
+            rewritten[14][0].reg     = first;
+            rewritten[14][1].reg     = minimum;
+            rewritten[14][2].cpuCond = invertedLast;
+
+            MicroConformanceIssue issue;
+            for (size_t i = 0; i < expected.size(); ++i)
+            {
+                if (erase[i])
+                    continue;
+                MicroInstr probe = *ctx.instruction(refs[i]);
+                probe.op          = opcodes[i];
+                probe.numOperands = counts[i];
+                if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten[i].data()))
+                    return false;
+            }
+
+            std::array<MicroInstrRef, expected.size() + 1> claimed;
+            std::copy(refs.begin(), refs.end(), claimed.begin());
+            claimed.back() = extendRef;
+            if (!ctx.claimAll(claimed))
+                return false;
+            for (size_t i = 0; i < expected.size(); ++i)
+            {
+                if (erase[i])
+                    ctx.emitErase(refs[i]);
+                else
+                    ctx.emitRewrite(refs[i], opcodes[i], std::span{rewritten[i].data(), counts[i]}, allocate[i]);
+            }
+            ctx.emitErase(extendRef);
+            return true;
+        }
 
         MicroConformanceIssue issue;
         for (size_t i = 0; i < expected.size(); ++i)

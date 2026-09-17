@@ -7,7 +7,7 @@ using Core, Win32
 // The unexpanded user PATH and its registry string type.
 struct PathValue
 {
-    text: String
+    text:    String
     expands: bool = true
 }
 
@@ -36,6 +36,7 @@ func pathContainsDirectory(path, directory: string)->bool
     for entry in Tokenize.split(path, ";")
     {
         let normalized = Utf16.toZeroTerminated(comparableDirectory(entry).toString())
+
         // Windows ordinal casing preserves Unicode identity; bytewise folding does not.
         if CompareStringOrdinal(normalized.buffer, -1, wanted.buffer, -1, TRUE) == CSTR_EQUAL do
             return true
@@ -48,9 +49,9 @@ func pathContainsDirectory(path, directory: string)->bool
 // Returns whether PATH changed. A later error can leave an earlier successful write in place.
 func configureEnvironment(store: IEnvironmentStore, directory: string)->bool fail
 {
-    var path = try store.readUserPath()
+    var path    = try store.readUserPath()
     let changed = not pathContainsDirectory(path.text.toString(), directory)
-    var wrote = false
+    var wrote   = false
     defer
     {
         if wrote do
@@ -89,9 +90,9 @@ private func writeUserEnvironment(name, value: string, kind: DWORD) fail
     try checkRegistry(RegCreateKeyExW(HKEY_CURRENT_USER, nativeKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &key, null), "open the user environment for writing")
     defer RegCloseKey(key)
 
-    let nativeName = Utf16.toZeroTerminated(name)
+    let nativeName  = Utf16.toZeroTerminated(name)
     let nativeValue = Utf16.toZeroTerminated(value)
-    let bytes = cast(u32) (nativeValue.count * #sizeof(u16))
+    let bytes       = cast(u32) (nativeValue.count * #sizeof(u16))
     try checkRegistry(RegSetValueExW(key, nativeName.buffer, 0, kind, cast(const *u8?) nativeValue.buffer, bytes), Format.toString("write user environment variable '%'", name).toString())
 }
 
@@ -101,13 +102,14 @@ impl IEnvironmentStore for WindowsEnvironmentStore
     {
         let nativeKey = Utf16.toZeroTerminated("Environment")
         var key: HKEY
-        let opened = RegOpenKeyExW(HKEY_CURRENT_USER, nativeKey.buffer, 0, KEY_QUERY_VALUE, &key)
+        let opened    = RegOpenKeyExW(HKEY_CURRENT_USER, nativeKey.buffer, 0, KEY_QUERY_VALUE, &key)
         if opened == ERROR_FILE_NOT_FOUND do
             return {}
         try checkRegistry(opened, "open the user environment for reading")
         defer RegCloseKey(key)
 
         let name = Utf16.toZeroTerminated("PATH")
+
         // The value can grow between the size query and the read. Retry with its new size.
         for 4
         {

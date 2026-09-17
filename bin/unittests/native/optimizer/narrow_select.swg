@@ -35,7 +35,7 @@ func manhattan(ax, ay, bx, by: s32)->s32
     Swag.assert(pickWide(0x1_0000_0005, -3, false) == -3)
     for v in 0 until 256
     {
-        let c = cast(u8) v
+        let c        = cast(u8) v
         let expected = c >= 'a' and c <= 'z' ? c - 32 : c
         Swag.assert(upper(c) == expected)
     }

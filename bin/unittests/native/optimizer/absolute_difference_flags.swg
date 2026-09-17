@@ -41,13 +41,13 @@ func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
     {
         for b in values
         {
-            let ua = cast #wrap (u32) a
-            let ub = cast #wrap (u32) b
+            let ua         = cast #wrap (u32) a
+            let ub         = cast #wrap (u32) b
             let expected32 = ua > ub ? ua - ub : ub - ua
             Swag.assert(distance32(ua, ub) == expected32)
             Swag.assert(distance64(a, b) == slowDistance(a, b))
-            let sa = cast #wrap (s32) a
-            let sb = cast #wrap (s32) b
+            let sa        = cast #wrap (s32) a
+            let sb        = cast #wrap (s32) b
             let expectedS = sa < sb ? cast #wrap (s32) (cast(s64) sb - cast(s64) sa) : cast #wrap (s32) (cast(s64) sa - cast(s64) sb)
             Swag.assert(lowerDistance(sa, sb) == expectedS)
         }

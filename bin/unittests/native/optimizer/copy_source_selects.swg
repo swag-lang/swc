@@ -12,7 +12,7 @@ func signedMinimum(a, b: s32)->s32 => a < b ? a : b
 #[Swag.NoInline]
 func twoSelections(a, b, c: u64)->u64
 {
-    let first = a < b ? a : b
+    let first  = a < b ? a : b
     let second = b > c ? b : c
     return first ^ second ^ b
 }
@@ -20,7 +20,7 @@ func twoSelections(a, b, c: u64)->u64
 #[Swag.NoInline]
 func retainOriginal(a, b: u64)->u64
 {
-    let saved = b
+    let saved   = b
     var changed = b
     changed ^= 0xABCD
     return (a < changed ? a : saved) ^ changed

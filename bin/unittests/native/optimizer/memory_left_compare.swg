@@ -29,11 +29,11 @@ func ticksBelow(a: const *Stamp, t: s32)->s32 => a.ticks <= t ? 1 : 2
 #test
 {
     var a: Stamp = {year: 2026, month: 9, day: -3, ticks: -100, size: 0x8000000000000001}
-    var b = a
+    var b        = a
     Swag.assert(same(&a, &b))
     b.day = 4
     Swag.assert(not same(&a, &b))
-    b = a
+    b      = a
     b.size += 1
     Swag.assert(not same(&a, &b))
 

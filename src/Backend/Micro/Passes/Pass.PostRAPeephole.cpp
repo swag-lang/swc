@@ -69,11 +69,13 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryRetargetNarrowAbsoluteDifference);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryRetargetNarrowSelectCascade);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryWidenNarrowSelectGraph);
+        r.add(MicroInstrOpcode::LoadRegImm, tryClearZeroBeforeSelect);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseRedundantStoreReload);
         r.add(MicroInstrOpcode::LoadMemReg, tryForwardStoredValueToReload);

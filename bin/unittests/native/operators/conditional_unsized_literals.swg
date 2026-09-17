@@ -3,7 +3,7 @@
 #[Swag.NoInline]
 func wideSelection(a, b: u64)->u64
 {
-    let first = a < b ? 0x100000000 : 0
+    let first  = a < b ? 0x100000000 : 0
     let second = a < b ? 0 : 0x8000000000000000
     #assert(#sizeof(first) == 8)
     #assert(#sizeof(second) == 8)

@@ -1,16 +1,16 @@
 #global private
 
 #[Swag.NoInline]
-func equal64(values: [*] u64, index, value: u64)->u64 => cast(u64)(values[index] == value)
+func equal64(values: [*] u64, index, value: u64)->u64 => cast(u64) (values[index] == value)
 
 #[Swag.NoInline]
-func notEqual32(values: [*] u32, index: u64, value: u32)->u32 => cast(u32)(values[index] != value)
+func notEqual32(values: [*] u32, index: u64, value: u32)->u32 => cast(u32) (values[index] != value)
 
 #[Swag.NoInline]
-func below64(values: [*] u64, index, value: u64)->u64 => cast(u64)(values[index] < value)
+func below64(values: [*] u64, index, value: u64)->u64 => cast(u64) (values[index] < value)
 
 #[Swag.NoInline]
-func lessSigned32(values: [*] s32, index: u64, value: s32)->u32 => cast(u32)(values[index] < value)
+func lessSigned32(values: [*] s32, index: u64, value: s32)->u32 => cast(u32) (values[index] < value)
 
 #test
 {

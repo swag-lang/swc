@@ -25,8 +25,9 @@ func median8(values: const [*]u8, index: u64)->u8
     for result, index in results16 do
         Swag.assert(median16(&values16[0], index * 3) == result)
 
-    let values8 = [1'u8, 3, 2, 0xFF, 0, 17, 8, 8, 9]
-    let results8 = [2'u8, 17, 8]
+    let values8 = [1'u8, 2, 3, 1, 3, 2, 2, 1, 3, 2, 3, 1, 3, 1, 2, 3, 2, 1,
+                   0, 0xFF, 17, 8, 8, 9, 8, 9, 8, 9, 8, 8]
+    let results8 = [2'u8, 2, 2, 2, 2, 2, 17, 8, 8, 8]
     for result, index in results8 do
         Swag.assert(median8(&values8[0], index * 3) == result)
 }

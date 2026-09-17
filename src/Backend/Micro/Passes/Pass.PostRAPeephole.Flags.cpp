@@ -634,6 +634,52 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Compute a bitwise operation before widening two byte values. The final
+    // flags differ for arbitrary values because B8 and B32/B64 have different
+    // sign bits, so only fold when those flags are dead.
+    bool tryNarrowBitwiseZeroExtensions(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const auto* binary = inst.ops(*ctx.operands);
+        if (!binary || (binary[3].microOp != MicroOp::And && binary[3].microOp != MicroOp::Or && binary[3].microOp != MicroOp::Xor) ||
+            (binary[2].opBits != MicroOpBits::B32 && binary[2].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef extSecondRef = ctx.previousRef(ref);
+        const MicroInstr*   extSecond    = ctx.instruction(extSecondRef);
+        const MicroInstrRef extFirstRef  = ctx.previousRef(extSecondRef);
+        const MicroInstr*   extFirst     = ctx.instruction(extFirstRef);
+        if (!extFirst || !extSecond || extFirst->op != MicroInstrOpcode::LoadZeroExtRegReg ||
+            extSecond->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* first  = extFirst->ops(*ctx.operands);
+        const auto* second = extSecond->ops(*ctx.operands);
+        if (!first || !second || first[0].reg != binary[0].reg || second[0].reg != binary[1].reg ||
+            first[0].reg != first[1].reg || second[0].reg != second[1].reg || first[0].reg == second[0].reg ||
+            first[2].opBits != binary[2].opBits || second[2].opBits != binary[2].opBits ||
+            first[3].opBits != MicroOpBits::B8 || second[3].opBits != MicroOpBits::B8 ||
+            !ctx.isRegDeadAfterCurrent(second[0].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({extFirstRef, extSecondRef, ref}))
+            return false;
+
+        MicroInstrOperand narrow[4] = {};
+        narrow[0].reg               = second[0].reg;
+        narrow[1].reg               = first[0].reg;
+        narrow[2].opBits            = MicroOpBits::B8;
+        narrow[3].microOp           = binary[3].microOp;
+        MicroInstrOperand extend[4] = {};
+        extend[0].reg               = first[0].reg;
+        extend[1].reg               = second[0].reg;
+        extend[2].opBits            = binary[2].opBits;
+        extend[3].opBits            = MicroOpBits::B8;
+        ctx.emitRewrite(extFirstRef, MicroInstrOpcode::OpBinaryRegReg, narrow);
+        ctx.emitRewrite(extSecondRef, MicroInstrOpcode::LoadZeroExtRegReg, extend);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     bool tryFoldCarryOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const auto* ops = inst.ops(*ctx.operands);

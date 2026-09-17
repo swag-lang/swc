@@ -86,10 +86,10 @@ round. Round 26's sole larger function is the still branch-heavy
 | Round | Measured build | Functions | Swag bytes | LLVM bytes | Larger / equal / smaller |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 25 | 959 | 8 | 244 | 191 | 6 / 0 / 2 |
-| 26 | 944 | 16 | 201 | 201 | 1 / 9 / 6 |
-| 27 | 958 | 18 | 229 | 233 | 0 / 15 / 3 |
-| 28 | 948 | 14 | 182 | 192 | 0 / 12 / 2 |
-| 29 | 957 | 16 | 220 | 235 | 0 / 11 / 5 |
+| 26 | 959 | 16 | 203 | 201 | 1 / 10 / 5 |
+| 27 | 959 | 18 | 229 | 233 | 0 / 15 / 3 |
+| 28 | 959 | 14 | 180 | 192 | 0 / 11 / 3 |
+| 29 | 959 | 16 | 220 | 235 | 0 / 11 / 5 |
 
 Notable measured results include paired range guards at 17 bytes (equal to
 LLVM), conditional signed 64-bit shifts at 13 bytes (LLVM 16), conditional

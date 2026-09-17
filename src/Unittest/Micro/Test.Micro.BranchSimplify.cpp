@@ -490,6 +490,84 @@ SWC_TEST_END()
 
 namespace
 {
+    // cmp a, b; setb t; r = t; jae .join; <rhs>; .join: cmp r, 0; jne .exit;
+    // <fall-through, reading the flags first when `readsFlags`>; .exit: ret
+    // The join falls through on the early exit, where r is zero.
+    void emitFallThroughJoin(MicroBuilder& builder, MicroLabelRef join, MicroLabelRef exit, bool readsFlags)
+    {
+        const MicroReg vA = MicroReg::virtualIntReg(10);
+        const MicroReg vB = MicroReg::virtualIntReg(11);
+        const MicroReg vC = MicroReg::virtualIntReg(12);
+        const MicroReg vT = MicroReg::virtualIntReg(13);
+        const MicroReg vR = MicroReg::virtualIntReg(14);
+        const MicroReg vF = MicroReg::virtualIntReg(15);
+
+        builder.emitCmpRegReg(vA, vB, MicroOpBits::B64);
+        builder.emitSetCondReg(vT, MicroCond::Below);
+        builder.emitLoadRegReg(vR, vT, MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, join);
+        builder.emitCmpRegImm(vC, ApInt(0x2C, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(vT, MicroCond::NotEqual);
+        builder.emitLoadRegReg(vR, vT, MicroOpBits::B8);
+        builder.placeLabel(join);
+        builder.emitCmpRegImm(vR, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, exit);
+        if (readsFlags)
+            builder.emitSetCondReg(vF, MicroCond::Equal);
+        builder.emitOpBinaryRegImm(vA, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.placeLabel(exit);
+        builder.emitLoadMemReg(vB, 0, vR, MicroOpBits::B8);
+        builder.emitRet();
+    }
+
+    uint64_t earlyExitTarget(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::JumpCond && ops[0].cpuCond == MicroCond::AboveOrEqual)
+                return ops[2].valueU64;
+        }
+        return UINT64_MAX;
+    }
+}
+
+// The early exit of an `and` whose join falls through for it goes past the
+// join's test.
+SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExitPastJoin)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef join = builder.createLabel();
+    const MicroLabelRef exit = builder.createLabel();
+    emitFallThroughJoin(builder, join, exit, false);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    const uint64_t target = earlyExitTarget(builder);
+    if (target == UINT64_MAX || target == join.get() || target == exit.get())
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A fall-through that reads the join's flags keeps the exit on the join.
+SWC_TEST_BEGIN(BranchSimplify_KeepsShortCircuitExitWhenFallThroughReadsFlags)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef join = builder.createLabel();
+    const MicroLabelRef exit = builder.createLabel();
+    emitFallThroughJoin(builder, join, exit, true);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (earlyExitTarget(builder) != join.get())
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
     // cmp a, b; setge t; r = t; jl .join; <rhs>; .join: o = r; cmp r, 0; je .exit
     void emitNestedShortCircuit(MicroBuilder& builder, MicroLabelRef join, MicroLabelRef exit, bool rhsReadsOuter)
     {

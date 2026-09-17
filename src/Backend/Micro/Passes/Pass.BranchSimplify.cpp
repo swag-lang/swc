@@ -709,7 +709,11 @@ namespace
     // the join's own target, as LLVM's jump threading does. Once the threaded
     // edge no longer reaches the join, the remaining single-definition chain
     // is the shape fuseMaterializedBoolBranches folds, and a chain of `and`s
-    // ends up as plain compare-and-branch pairs.
+    // ends up as plain compare-and-branch pairs. When the pinned value makes
+    // the join fall through instead, as the `and` inside `(a and b) or c`
+    // does, the jump goes past the join's test, to a label placed there if
+    // none is, provided the fall-through redefines the flags before reading
+    // them and is no link the branchless `or` conversion would take.
     // The low bits of each register known to hold the boolean: a setcc
     // writes eight, a 32-bit move clears the upper half, a narrower one keeps
     // the destination's own upper bits.
@@ -1022,12 +1026,37 @@ namespace
         return changed;
     }
 
-    bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands)
+    bool isPureChainInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
+
+    // Whether the link a join falls into holds only what the branchless `or`
+    // conversion runs unconditionally: that conversion reads the join as it
+    // stands, possibly a sweep later, so the join is left to it.
+    bool fallsIntoBranchlessLink(const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, size_t ordinal)
+    {
+        constexpr size_t K_MAX_LINK = 8;
+
+        for (size_t step = 0; step < K_MAX_LINK && ordinal + step < layout.order.size(); ++step)
+        {
+            const MicroInstr* inst = storage.ptr(layout.order[ordinal + step]);
+            if (!inst)
+                return false;
+            if (inst->op == MicroInstrOpcode::SetCondReg)
+                return true;
+            if (!isPureChainInstruction(*inst, inst->ops(operands)))
+                return false;
+        }
+        return false;
+    }
+
+    bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
     {
         constexpr uint32_t K_MAX_CHAIN = 6;
 
         ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
+
+        // Labels placed past a join's test, by the join's jump.
+        std::unordered_map<uint32_t, uint32_t> fallThroughLabels;
 
         bool changed = false;
         for (size_t ordinal = 0; ordinal < layout.order.size(); ++ordinal)
@@ -1105,8 +1134,42 @@ namespace
             const MicroCond joinCond        = joinJumpOps[0].cpuCond;
             const bool      joinTakenOnZero = joinCond == MicroCond::Equal || joinCond == MicroCond::Zero;
             const bool      joinTakenOnOne  = joinCond == MicroCond::NotEqual || joinCond == MicroCond::NotZero;
-            if (!(boolOne ? joinTakenOnOne : joinTakenOnZero))
+            if (!joinTakenOnZero && !joinTakenOnOne)
                 continue;
+            if (boolOne ? joinTakenOnZero : joinTakenOnOne)
+            {
+                // The join falls through on this edge.
+                if (!builder || joinOrdinal + 2 >= layout.order.size() ||
+                    !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, joinJumpRef) ||
+                    fallsIntoBranchlessLink(layout, storage, operands, joinOrdinal + 2))
+                    continue;
+                uint32_t   pastLabelId = 0;
+                const auto known       = fallThroughLabels.find(joinJumpRef.get());
+                if (known != fallThroughLabels.end())
+                {
+                    pastLabelId = known->second;
+                }
+                else
+                {
+                    const MicroInstrRef pastRef = layout.order[joinOrdinal + 2];
+                    const MicroInstr*   past    = storage.ptr(pastRef);
+                    if (!past)
+                        continue;
+                    if (!tryGetLabelId(pastLabelId, *past, past->ops(operands)))
+                    {
+                        pastLabelId = builder->createLabel().get();
+                        MicroInstrOperand labelOps[1];
+                        labelOps[0].valueU64 = pastLabelId;
+                        storage.insertDerivedBefore(operands, pastRef, MicroInstrOpcode::Label, labelOps);
+                    }
+                    fallThroughLabels.emplace(joinJumpRef.get(), pastLabelId);
+                }
+                if (pastLabelId == joinLabelId)
+                    continue;
+                storage.ptr(jumpRef)->ops(operands)[2].valueU64 = pastLabelId;
+                changed = true;
+                continue;
+            }
 
             uint32_t joinTargetId = 0;
             if (!tryGetJumpTargetLabelId(joinTargetId, *joinJump, joinJumpOps) || joinTargetId == joinLabelId)
@@ -5156,7 +5219,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
         roundChanged |= coalesceShortCircuitResults(storage, operands, context);
-        roundChanged |= threadShortCircuitExits(storage, operands);
+        roundChanged |= threadShortCircuitExits(storage, operands, context.builder);
         roundChanged |= eraseUnreferencedLabels(storage, operands, context);
         if (!roundChanged)
             break;

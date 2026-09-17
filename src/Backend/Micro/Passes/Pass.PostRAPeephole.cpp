@@ -60,6 +60,7 @@ namespace
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryEraseBooleanRecanonicalization);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractHighByte);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowTruncatedRightShift);

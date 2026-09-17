@@ -1797,6 +1797,56 @@ namespace PostRaPeephole
         return true;
     }
 
+    // SETcc produces 0 or 1, so an 8-bit AND/OR/XOR of two SETcc values is
+    // already a canonical boolean. A following SETNE only reproduces it.
+    bool tryEraseBooleanRecanonicalization(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* widened = inst.ops(*ctx.operands);
+        if (!widened || widened[0].reg != widened[1].reg || widened[3].opBits != MicroOpBits::B8 ||
+            (widened[2].opBits != MicroOpBits::B32 && widened[2].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef canonicalRef = ctx.previousRef(ref);
+        const MicroInstr*   canonical    = ctx.instruction(canonicalRef);
+        const auto*         canonicalOps = canonical ? canonical->ops(*ctx.operands) : nullptr;
+        if (!canonical || canonical->op != MicroInstrOpcode::SetCondReg || !canonicalOps ||
+            canonicalOps[0].reg != widened[0].reg ||
+            (canonicalOps[1].cpuCond != MicroCond::NotEqual && canonicalOps[1].cpuCond != MicroCond::NotZero))
+            return false;
+
+        const MicroInstrRef binaryRef = ctx.previousRef(canonicalRef);
+        const MicroInstr*   binary    = ctx.instruction(binaryRef);
+        const auto*         binaryOps = binary ? binary->ops(*ctx.operands) : nullptr;
+        if (!binary || binary->op != MicroInstrOpcode::OpBinaryRegReg || !binaryOps ||
+            binaryOps[0].reg != widened[0].reg || !binaryOps[1].reg.isInt() || binaryOps[2].opBits != MicroOpBits::B8 ||
+            (binaryOps[3].microOp != MicroOp::And && binaryOps[3].microOp != MicroOp::Or && binaryOps[3].microOp != MicroOp::Xor))
+            return false;
+
+        const MicroInstrRef secondSetRef = ctx.previousRef(binaryRef);
+        const MicroInstr*   secondSet    = ctx.instruction(secondSetRef);
+        const auto*         secondOps    = secondSet ? secondSet->ops(*ctx.operands) : nullptr;
+        if (!secondSet || secondSet->op != MicroInstrOpcode::SetCondReg || !secondOps ||
+            secondOps[0].reg != binaryOps[1].reg)
+            return false;
+        const MicroInstrRef secondCompareRef = ctx.previousRef(secondSetRef);
+        const MicroInstr*   secondCompare    = ctx.instruction(secondCompareRef);
+        if (!secondCompare ||
+            (secondCompare->op != MicroInstrOpcode::CmpRegReg && secondCompare->op != MicroInstrOpcode::CmpRegImm &&
+             secondCompare->op != MicroInstrOpcode::TestRegReg && secondCompare->op != MicroInstrOpcode::TestRegImm))
+            return false;
+        const MicroInstrRef firstSetRef = ctx.previousRef(secondCompareRef);
+        const MicroInstr*   firstSet    = ctx.instruction(firstSetRef);
+        const auto*         firstOps    = firstSet ? firstSet->ops(*ctx.operands) : nullptr;
+        if (!firstSet || firstSet->op != MicroInstrOpcode::SetCondReg || !firstOps ||
+            firstOps[0].reg != binaryOps[0].reg || !ctx.claimAll({canonicalRef, ref}))
+            return false;
+
+        ctx.emitErase(canonicalRef);
+        return true;
+    }
+
     // Fold zero-extend; compare; SETcc; zero-extend into a narrow compare
     // with a pre-cleared boolean destination. Unsigned/equality conditions
     // survive narrowing when the immediate fits the source width.

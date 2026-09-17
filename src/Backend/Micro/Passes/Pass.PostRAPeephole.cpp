@@ -67,6 +67,7 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryRetargetNarrowZeroSelect);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryRetargetNarrowAbsoluteDifference);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryRetargetNarrowSelectCascade);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryWidenNarrowSelectGraph);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);

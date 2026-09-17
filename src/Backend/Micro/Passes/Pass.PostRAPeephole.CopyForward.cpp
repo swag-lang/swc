@@ -981,6 +981,139 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Widen the straight-line select graph emitted by a narrow median-of-three
+    // expression. Once its three inputs are zero-extended, every copy, compare
+    // and conditional move can use dwords and the ordinary dword copy rules can
+    // coalesce the graph on the following sweep.
+    bool tryWidenNarrowSelectGraph(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
+    {
+        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* extend = extendInst.ops(*ctx.operands);
+        if (!extend || extend[2].opBits != MicroOpBits::B64 ||
+            (extend[3].opBits != MicroOpBits::B8 && extend[3].opBits != MicroOpBits::B16) ||
+            !extend[0].reg.isInt() || !extend[1].reg.isInt())
+            return false;
+        const MicroOpBits bits = extend[3].opBits;
+
+        constexpr std::array expected = {
+            MicroInstrOpcode::LoadAmcRegMem,
+            MicroInstrOpcode::LoadAmcRegMem,
+            MicroInstrOpcode::LoadAmcRegMem,
+            MicroInstrOpcode::LoadRegReg,
+            MicroInstrOpcode::LoadRegReg,
+            MicroInstrOpcode::CmpRegReg,
+            MicroInstrOpcode::LoadCondRegReg,
+            MicroInstrOpcode::LoadRegReg,
+            MicroInstrOpcode::LoadCondRegReg,
+            MicroInstrOpcode::LoadRegReg,
+            MicroInstrOpcode::CmpRegReg,
+            MicroInstrOpcode::LoadCondRegReg,
+            MicroInstrOpcode::LoadRegReg,
+            MicroInstrOpcode::CmpRegReg,
+            MicroInstrOpcode::LoadCondRegReg,
+        };
+        std::array<MicroInstrRef, expected.size()> refs;
+        MicroInstrRef cursor = ctx.previousRef(extendRef);
+        for (size_t i = expected.size(); i > 0; --i)
+        {
+            if (!cursor.isValid())
+                return false;
+            refs[i - 1] = cursor;
+            cursor      = ctx.previousRef(cursor);
+        }
+
+        std::array<MicroReg, 16> known = {};
+        size_t                   numKnown = 0;
+        const auto isKnown = [&](const MicroReg reg) {
+            return std::find(known.begin(), known.begin() + numKnown, reg) != known.begin() + numKnown;
+        };
+        auto markKnown = [&](const MicroReg reg) {
+            if (!isKnown(reg))
+                known[numKnown++] = reg;
+        };
+
+        std::array<std::array<MicroInstrOperand, Action::K_MAX_OPS>, expected.size()> rewritten = {};
+        std::array<uint8_t, expected.size()>                                          counts    = {};
+        std::array<MicroInstrOpcode, expected.size()>                                 opcodes   = {};
+        std::array<bool, expected.size()>                                             allocate  = {};
+        for (size_t i = 0; i < expected.size(); ++i)
+        {
+            const MicroInstr* inst = ctx.instruction(refs[i]);
+            const auto*       ops  = inst ? inst->ops(*ctx.operands) : nullptr;
+            if (!inst || inst->op != expected[i] || !ops || ctx.isClaimed(refs[i]))
+                return false;
+            opcodes[i] = inst->op;
+            counts[i]  = inst->numOperands;
+            std::copy_n(ops, inst->numOperands, rewritten[i].begin());
+
+            if (inst->op == MicroInstrOpcode::LoadAmcRegMem)
+            {
+                if (ops[3].opBits != bits || ops[4].opBits != MicroOpBits::B64 || !ops[0].reg.isInt())
+                    return false;
+                opcodes[i]                = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                counts[i]                 = 7;
+                allocate[i]               = true;
+                rewritten[i][3].opBits    = MicroOpBits::B32;
+                rewritten[i][4].opBits    = bits;
+                markKnown(ops[0].reg);
+            }
+            else if (inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                if (!ops[0].reg.isInt() || !isKnown(ops[1].reg))
+                    return false;
+                rewritten[i][2].opBits = MicroOpBits::B32;
+                markKnown(ops[0].reg);
+            }
+            else if (inst->op == MicroInstrOpcode::CmpRegReg)
+            {
+                if (ops[2].opBits != bits || !isKnown(ops[0].reg) || !isKnown(ops[1].reg))
+                    return false;
+                rewritten[i][2].opBits = MicroOpBits::B32;
+            }
+            else
+            {
+                const MicroCond cond = ops[2].cpuCond;
+                if (ops[3].opBits != MicroOpBits::B32 || !isKnown(ops[0].reg) || !isKnown(ops[1].reg) ||
+                    (cond != MicroCond::Above && cond != MicroCond::AboveOrEqual &&
+                     cond != MicroCond::Below && cond != MicroCond::BelowOrEqual))
+                    return false;
+                markKnown(ops[0].reg);
+            }
+        }
+        if (!isKnown(extend[1].reg))
+            return false;
+
+        MicroConformanceIssue issue;
+        for (size_t i = 0; i < expected.size(); ++i)
+        {
+            MicroInstr probe = *ctx.instruction(refs[i]);
+            probe.op          = opcodes[i];
+            probe.numOperands = counts[i];
+            if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten[i].data()))
+                return false;
+        }
+        MicroInstrOperand resultCopy[3] = {};
+        resultCopy[0]                   = extend[0];
+        resultCopy[1]                   = extend[1];
+        resultCopy[2].opBits            = MicroOpBits::B32;
+        MicroInstr copyProbe;
+        copyProbe.op          = MicroInstrOpcode::LoadRegReg;
+        copyProbe.numOperands = 3;
+        if (ctx.encoder->queryConformanceIssue(issue, copyProbe, resultCopy))
+            return false;
+
+        std::array<MicroInstrRef, expected.size() + 1> claimed;
+        std::copy(refs.begin(), refs.end(), claimed.begin());
+        claimed.back() = extendRef;
+        if (!ctx.claimAll(claimed))
+            return false;
+        for (size_t i = 0; i < expected.size(); ++i)
+            ctx.emitRewrite(refs[i], opcodes[i], std::span{rewritten[i].data(), counts[i]}, allocate[i]);
+        ctx.emitRewrite(extendRef, copyProbe.op, resultCopy, true);
+        return true;
+    }
+
     // Retarget a two-step add/multiply computation as one unit so forwarding
     // cannot reintroduce its removed result copy on the next sweep.
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

@@ -111,6 +111,7 @@ namespace PostRaPeephole
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldSignedFloorAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldSignedCeilAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldUnsignedCeilAverage64(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldUnsignedCeilAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryRetargetSelectedIntermediate(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

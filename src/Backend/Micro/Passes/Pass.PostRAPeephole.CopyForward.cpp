@@ -710,6 +710,118 @@ namespace PostRaPeephole
         return true;
     }
 
+    // The signed ceiling-average identity can use a widened sum plus one when
+    // both dword inputs come straight from indexed loads:
+    //
+    //     M = A; M |= B                 A = sx(load A), b64
+    //     A ^= B; A >>= 1, b32   ->     B = sx(load B), b64
+    //     M -= A; A = sx(M)              A += B; A += 1; A >>= 1, b64
+    bool tryFoldSignedCeilAverage(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroReg merged = copy[0].reg;
+        const MicroReg result = copy[1].reg;
+
+        const MicroInstrRef orRef = ctx.nextRef(copyRef);
+        const MicroInstr*   orInst = ctx.instruction(orRef);
+        const auto*         orOps  = orInst ? orInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef xorRef = ctx.nextRef(orRef);
+        const MicroInstr*   xorInst = ctx.instruction(xorRef);
+        const auto*         xorOps  = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        if (!orInst || orInst->op != MicroInstrOpcode::OpBinaryRegReg || !orOps ||
+            orOps[0].reg != merged || orOps[2].opBits != MicroOpBits::B32 || orOps[3].microOp != MicroOp::Or ||
+            !xorInst || xorInst->op != MicroInstrOpcode::OpBinaryRegReg || !xorOps ||
+            xorOps[0].reg != result || xorOps[1].reg != orOps[1].reg ||
+            xorOps[2].opBits != MicroOpBits::B32 || xorOps[3].microOp != MicroOp::Xor)
+            return false;
+        const MicroReg other = orOps[1].reg;
+        if (!other.isInt() || other == merged || other == result)
+            return false;
+
+        const MicroInstrRef shiftRef = ctx.nextRef(xorRef);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        const auto*         shifted  = shift ? shift->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef subtractRef = ctx.nextRef(shiftRef);
+        const MicroInstr*   subtract    = ctx.instruction(subtractRef);
+        const auto*         sub         = subtract ? subtract->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef extendRef   = ctx.nextRef(subtractRef);
+        const MicroInstr*   extend      = ctx.instruction(extendRef);
+        const auto*         extended    = extend ? extend->ops(*ctx.operands) : nullptr;
+        if (!shift || shift->op != MicroInstrOpcode::OpBinaryRegImm || !shifted ||
+            shifted[0].reg != result || shifted[1].opBits != MicroOpBits::B32 ||
+            shifted[2].microOp != MicroOp::ShiftArithmeticRight || shifted[3].hasWideImmediateValue() || shifted[3].valueU64 != 1 ||
+            !subtract || subtract->op != MicroInstrOpcode::OpBinaryRegReg || !sub ||
+            sub[0].reg != merged || sub[1].reg != result || sub[2].opBits != MicroOpBits::B32 || sub[3].microOp != MicroOp::Subtract ||
+            !extend || extend->op != MicroInstrOpcode::LoadSignedExtRegReg || !extended ||
+            extended[0].reg != result || extended[1].reg != merged ||
+            extended[2].opBits != MicroOpBits::B64 || extended[3].opBits != MicroOpBits::B32 ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subtractRef, ctx.builder))
+            return false;
+
+        const MicroInstrRef otherLoadRef  = ctx.previousRef(copyRef);
+        const MicroInstr*   otherLoad     = ctx.instruction(otherLoadRef);
+        const auto*         otherLoadOps  = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef resultLoadRef = ctx.previousRef(otherLoadRef);
+        const MicroInstr*   resultLoad    = ctx.instruction(resultLoadRef);
+        const auto*         resultLoadOps = resultLoad ? resultLoad->ops(*ctx.operands) : nullptr;
+        if (!otherLoad || otherLoad->op != MicroInstrOpcode::LoadAmcRegMem || !otherLoadOps ||
+            otherLoadOps[0].reg != other || otherLoadOps[3].opBits != MicroOpBits::B32 ||
+            !resultLoad || resultLoad->op != MicroInstrOpcode::LoadAmcRegMem || !resultLoadOps ||
+            resultLoadOps[0].reg != result || resultLoadOps[3].opBits != MicroOpBits::B32 ||
+            result == otherLoadOps[1].reg || result == otherLoadOps[2].reg)
+            return false;
+
+        MicroInstrOperand signedResultLoad[7];
+        MicroInstrOperand signedOtherLoad[7];
+        std::copy_n(resultLoadOps, 7, signedResultLoad);
+        std::copy_n(otherLoadOps, 7, signedOtherLoad);
+        signedResultLoad[3].opBits = MicroOpBits::B64;
+        signedResultLoad[4].opBits = MicroOpBits::B32;
+        signedOtherLoad[3].opBits  = MicroOpBits::B64;
+        signedOtherLoad[4].opBits  = MicroOpBits::B32;
+        MicroInstrOperand widenedAdd[4] = {xorOps[0], xorOps[1], xorOps[2], {}};
+        widenedAdd[2].opBits            = MicroOpBits::B64;
+        widenedAdd[3].microOp           = MicroOp::Add;
+        MicroInstrOperand increment[3];
+        increment[0].reg     = result;
+        increment[1].opBits  = MicroOpBits::B64;
+        increment[2].microOp = MicroOp::Add;
+        MicroInstrOperand widenedShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
+        widenedShift[1].opBits            = MicroOpBits::B64;
+
+        MicroInstr signedLoadProbe;
+        signedLoadProbe.op          = MicroInstrOpcode::LoadSignedExtAmcRegMem;
+        signedLoadProbe.numOperands = 7;
+        MicroInstr addProbe;
+        addProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        addProbe.numOperands = 4;
+        MicroInstr incrementProbe;
+        incrementProbe.op          = MicroInstrOpcode::OpUnaryReg;
+        incrementProbe.numOperands = 3;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, signedLoadProbe, signedResultLoad) ||
+                             ctx.encoder->queryConformanceIssue(issue, signedLoadProbe, signedOtherLoad) ||
+                             ctx.encoder->queryConformanceIssue(issue, addProbe, widenedAdd) ||
+                             ctx.encoder->queryConformanceIssue(issue, incrementProbe, increment) ||
+                             ctx.encoder->queryConformanceIssue(issue, *shift, widenedShift))) ||
+            !ctx.claimAll({resultLoadRef, otherLoadRef, copyRef, orRef, xorRef, shiftRef, subtractRef, extendRef}))
+            return false;
+        ctx.emitRewrite(resultLoadRef, signedLoadProbe.op, signedResultLoad, true);
+        ctx.emitRewrite(otherLoadRef, signedLoadProbe.op, signedOtherLoad, true);
+        ctx.emitErase(copyRef);
+        ctx.emitRewrite(orRef, addProbe.op, widenedAdd);
+        ctx.emitRewrite(xorRef, incrementProbe.op, increment);
+        ctx.emitRewrite(shiftRef, shift->op, widenedShift);
+        ctx.emitErase(subtractRef);
+        ctx.emitErase(extendRef);
+        return true;
+    }
+
     // The signed floor-average identity can use a widened sum when both dword
     // inputs come straight from indexed loads. Fusing sign extension into the
     // loads both avoids overflow and leaves the signed return value canonical:

@@ -82,6 +82,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCommutativeAddressCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryCommuteBinaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowShiftCountCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldSignedCeilAverage);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldSignedFloorAverage);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);

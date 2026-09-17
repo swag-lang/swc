@@ -3717,8 +3717,7 @@ namespace
     }
 }
 
-// A qword doubling that costs a copy becomes an address computation; a dword
-// one keeps its shift, whose input reads no more than its own width.
+// A doubling that costs a copy becomes an address computation, at both widths.
 SWC_TEST_BEGIN(InstCombine_LiveShiftByOne_BecomesAddress)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
@@ -3728,7 +3727,7 @@ SWC_TEST_BEGIN(InstCombine_LiveShiftByOne_BecomesAddress)
 
         SWC_RESULT(runInstCombinePass(builder));
 
-        if (hasScaledAddress(builder, 1, true) != (bits == MicroOpBits::B64))
+        if (!hasScaledAddress(builder, 1, true))
             return Result::Error;
     }
     return Result::Continue;

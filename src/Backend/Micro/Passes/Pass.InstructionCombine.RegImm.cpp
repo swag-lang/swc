@@ -235,13 +235,11 @@ namespace InstructionCombine
         // The copy the two-address shift needs goes with it, as x86 doubles a
         // live value with `lea rax, [rcx + rcx]` rather than a move and a
         // shift. Shifts of one keep the base form, which encodes shorter.
-        // Only at 64 bits: an address reads its index whole, which would keep
-        // a narrower input from dropping its own widening move.
         bool tryShiftToAddress(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
         {
             if (op != MicroOp::ShiftLeft || imm < 1 || imm > 3 || !ctx.ssa)
                 return false;
-            if (opBits != MicroOpBits::B64)
+            if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
                 return false;
 
             // Only a shift that costs a copy: in place it is already one

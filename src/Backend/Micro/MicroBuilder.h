@@ -147,6 +147,7 @@ public:
     void emitOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
+    void emitOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOp op, MicroOpBits opBits);

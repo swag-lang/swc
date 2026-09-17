@@ -147,8 +147,11 @@ namespace InstructionCombine
     bool tryOpBinaryRegReg(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFuseInPlaceUpdate(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryMemoryFoldAmcTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFactorReloadedProduct(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldAmcAddressedLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldAmcLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldVecLoadIntoWiden(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryBuildVectorFromStores(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoSignExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
@@ -169,6 +172,7 @@ namespace InstructionCombine
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryWidenCopyWithNarrowReaders(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLoadIntoExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
@@ -178,6 +182,7 @@ namespace InstructionCombine
     bool tryFoldComplementOfDecrement(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool isValueZeroExtended32(const Context& ctx, uint32_t valueId);
     bool tryNarrowMaskedArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryWidenMaskedNarrowValue(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryDropRangeProvedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);

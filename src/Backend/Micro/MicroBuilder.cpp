@@ -843,6 +843,20 @@ void MicroBuilder::emitOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     ops[4].valueU64         = memOffset;
 }
 
+void MicroBuilder::emitOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegAmcMem, 8);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = regDst;
+    ops[1].reg              = regBase;
+    ops[2].reg              = regMul;
+    ops[3].opBits           = opBits;
+    ops[4].opBits           = MicroOpBits::B64;
+    ops[5].valueU64         = mulValue;
+    ops[6].valueU64         = addValue;
+    ops[7].microOp          = op;
+}
+
 void MicroBuilder::emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryMemReg, 5);

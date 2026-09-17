@@ -312,6 +312,55 @@ namespace InstructionCombine
         emitExtendAsCopy(ctx, ref, dst, src);
         return true;
     }
+
+    // A byte or word masked by a constant of its width, then widened, is the
+    // same mask applied at 32 bits: the bits above the byte are cleared by the
+    // mask instead of the extension, as LLVM's `zext(and x, C)` becomes
+    // `and (zext x), C`. `popcount`-style `(x >> i) & 1` sums lose a move per
+    // bit.
+    bool tryWidenMaskedNarrowValue(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt() || getNumBits(ops[2].opBits) < 32 ||
+            (ops[3].opBits != MicroOpBits::B8 && ops[3].opBits != MicroOpBits::B16))
+            return false;
+
+        const MicroReg dst = ops[0].reg;
+        const MicroReg src = ops[1].reg;
+
+        const MicroSsaState::ReachingDef reaching = ctx.ssa->reachingDef(src, ref);
+        if (!reaching.valid() || reaching.isPhi || !reaching.inst || ctx.isClaimed(reaching.instRef) ||
+            reaching.inst->op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+
+        const MicroInstrOperand* andOps = reaching.inst->ops(*ctx.operands);
+        if (!andOps || andOps[0].reg != src || andOps[1].opBits != ops[3].opBits || andOps[2].microOp != MicroOp::And ||
+            andOps[3].hasWideImmediateValue() || (andOps[3].valueU64 & ~getBitsMask(ops[3].opBits)) != 0)
+            return false;
+
+        if (singleDirectInstructionUse(*ctx.ssa, reaching.valueId) != ref)
+            return false;
+
+        // The wider mask sets the sign flag from another bit.
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reaching.instRef, ctx.builder))
+            return false;
+
+        if (!ctx.claimAll({reaching.instRef, ref}))
+            return false;
+
+        MicroInstrOperand wideOps[4];
+        for (uint8_t i = 0; i < 4; ++i)
+            wideOps[i] = andOps[i];
+        wideOps[1].opBits = MicroOpBits::B32;
+        wideOps[3].setImmediateValue(ApInt(andOps[3].valueU64, 32));
+        ctx.emitRewrite(reaching.instRef, MicroInstrOpcode::OpBinaryRegImm, wideOps);
+
+        emitExtendAsCopy(ctx, ref, dst, src);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

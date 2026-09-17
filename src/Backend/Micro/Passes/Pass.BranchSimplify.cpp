@@ -1356,6 +1356,255 @@ namespace
         return changed;
     }
 
+    // A chain of byte tests joined by early exits, as `(c >= 'a' and c <= 'z')
+    // or (c >= 'A' and c <= 'Z') or ...` leaves it once its ranges fold:
+    //
+    //     <B1> setcc T1; D = T1; jcc .END          <B1> setcc T1; D = T1
+    //     <B2> setcc T2; D = T2; jcc .END    ->    <B2> setcc T2; D |= T2
+    //     <B3> setcc T3; D = T3                    <B3> setcc T3; D |= T3
+    //     .END:                                    .END:
+    //
+    // Each jcc tests the flags its setcc read, so it leaves exactly when that
+    // byte is 1 and D is already the OR of the bytes so far. The links after
+    // the first are a few register-only instructions that cannot fault and
+    // whose results only the link reads, so running them on every path is
+    // unobservable, and the branches go, as SimplifyCFG folds branches to a
+    // common destination into one `or`.
+    bool isPureChainInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::CmpRegImm:
+            case MicroInstrOpcode::CmpRegReg:
+                return true;
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadAddrRegMem:
+                return ops[0].reg.isVirtualInt();
+            case MicroInstrOpcode::OpBinaryRegImm:
+                if (!ops[0].reg.isVirtualInt())
+                    return false;
+                switch (ops[2].microOp)
+                {
+                    case MicroOp::Add:
+                    case MicroOp::Subtract:
+                    case MicroOp::And:
+                    case MicroOp::Or:
+                    case MicroOp::Xor:
+                        return true;
+                    default:
+                        return false;
+                }
+            default:
+                return false;
+        }
+    }
+
+    bool isChainCompare(const MicroInstr* inst)
+    {
+        return inst && (inst->op == MicroInstrOpcode::CmpRegImm || inst->op == MicroInstrOpcode::CmpRegReg);
+    }
+
+    bool convertOrChainsToBranchless(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        constexpr uint32_t K_MAX_LINKS = 4;
+        constexpr uint32_t K_MAX_BODY  = 3;
+
+        if (!context.builder)
+            return false;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        std::unordered_map<uint32_t, uint32_t> mentions;
+        SmallVector<MicroInstrRegOperandRef>   regOperands;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+            regOperands.clear();
+            inst->collectRegOperands(operands, regOperands, nullptr);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (regOperand.reg && regOperand.reg->isVirtualInt())
+                    ++mentions[regOperand.reg->index()];
+            }
+        }
+
+        struct Link
+        {
+            size_t merge   = 0;
+            size_t jump    = 0;
+            bool   hasJump = false;
+        };
+
+        const size_t count  = layout.order.size();
+        const auto   instAt = [&](size_t index) -> const MicroInstr* {
+            return index < count ? storage.ptr(layout.order[index]) : nullptr;
+        };
+
+        bool changed = false;
+        for (size_t start = 1; start < count; ++start)
+        {
+            const MicroInstr* firstSet = instAt(start);
+            if (!firstSet || firstSet->op != MicroInstrOpcode::SetCondReg || !isChainCompare(instAt(start - 1)))
+                continue;
+
+            MicroReg             result;
+            uint32_t             endId  = 0;
+            bool                 hasEnd = false;
+            bool                 closed = false;
+            SmallVector<Link, 4> links;
+            size_t               at = start;
+            while (links.size() < K_MAX_LINKS)
+            {
+                // The body of a later link, then the compare its setcc reads.
+                size_t setAt = at;
+                while (!links.empty() && setAt < count && setAt - at < K_MAX_BODY)
+                {
+                    const MicroInstr* inst = instAt(setAt);
+                    if (!inst || inst->op == MicroInstrOpcode::SetCondReg || !isPureChainInstruction(*inst, inst->ops(operands)))
+                        break;
+                    ++setAt;
+                }
+
+                const MicroInstr* set  = instAt(setAt);
+                const MicroInstr* copy = instAt(setAt + 1);
+                if (!set || !copy || setAt == 0 || set->op != MicroInstrOpcode::SetCondReg || copy->op != MicroInstrOpcode::LoadRegReg ||
+                    !isChainCompare(instAt(setAt - 1)) || (!links.empty() && setAt == at))
+                    break;
+                const MicroInstrOperand* setOps  = set->ops(operands);
+                const MicroInstrOperand* copyOps = copy->ops(operands);
+                if (!setOps[0].reg.isVirtualInt() || copyOps[1].reg != setOps[0].reg || copyOps[2].opBits != MicroOpBits::B8)
+                    break;
+
+                // T reaches D directly or through one more byte.
+                Link   link;
+                size_t next = setAt + 2;
+                link.merge  = setAt + 1;
+                if (links.empty())
+                    result = copyOps[0].reg;
+                if (!result.isVirtualInt())
+                    break;
+                if (copyOps[0].reg != result)
+                {
+                    const MicroInstr* second = instAt(next);
+                    if (!second || second->op != MicroInstrOpcode::LoadRegReg)
+                        break;
+                    const MicroInstrOperand* secondOps = second->ops(operands);
+                    if (secondOps[1].reg != copyOps[0].reg || secondOps[0].reg != result)
+                        break;
+                    link.merge = next++;
+                }
+
+                // What a later link defines, other than D, only that link reads.
+                if (!links.empty())
+                {
+                    std::unordered_map<uint32_t, uint32_t> inside;
+                    for (size_t index = at; index <= link.merge; ++index)
+                    {
+                        regOperands.clear();
+                        instAt(index)->collectRegOperands(operands, regOperands, nullptr);
+                        for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                        {
+                            if (regOperand.reg && regOperand.reg->isVirtualInt())
+                                ++inside[regOperand.reg->index()];
+                        }
+                    }
+
+                    bool local = inside[result.index()] == 1;
+                    for (size_t index = at; index <= link.merge && local; ++index)
+                    {
+                        const MicroInstr* inst = instAt(index);
+                        if (isChainCompare(inst))
+                            continue;
+                        const MicroReg defined = inst->ops(operands)[0].reg;
+                        if (defined == result && index == link.merge)
+                            continue;
+                        if (!defined.isVirtualInt() || defined == result || inside[defined.index()] != mentions[defined.index()])
+                            local = false;
+                    }
+                    if (!local)
+                        break;
+                }
+
+                const MicroInstr* exit    = instAt(next);
+                uint32_t          labelId = 0;
+                if (exit && exit->op == MicroInstrOpcode::JumpCond)
+                {
+                    const MicroInstrOperand* jumpOps = exit->ops(operands);
+                    if (jumpOps[0].cpuCond != setOps[1].cpuCond || !tryGetJumpTargetLabelId(labelId, *exit, jumpOps) || (hasEnd && labelId != endId))
+                        break;
+                    endId        = labelId;
+                    hasEnd       = true;
+                    link.jump    = next;
+                    link.hasJump = true;
+                    links.push_back(link);
+                    at = next + 1;
+                    continue;
+                }
+
+                if (exit && hasEnd && tryGetLabelId(labelId, *exit, exit->ops(operands)) && labelId == endId)
+                {
+                    links.push_back(link);
+                    closed = true;
+                }
+                break;
+            }
+
+            if (!closed || links.size() < 2 || labelReferences[endId] != links.size() - 1)
+                continue;
+
+            // D leaves the chain as a byte, read once right after the join.
+            const size_t      endAt  = links.back().merge + 1;
+            const MicroInstr* reader = instAt(endAt + 1);
+            if (!reader || mentions[result.index()] != links.size() + 1)
+                continue;
+            const MicroInstrOperand* readerOps = reader->ops(operands);
+            const bool               byteRead  = (reader->op == MicroInstrOpcode::LoadZeroExtRegReg && readerOps[3].opBits == MicroOpBits::B8) ||
+                                   (reader->op == MicroInstrOpcode::LoadRegReg && readerOps[2].opBits == MicroOpBits::B8);
+            if (!byteRead || readerOps[1].reg != result || readerOps[0].reg == result)
+                continue;
+
+            if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, layout.order[links.back().merge]))
+                continue;
+
+            for (size_t index = 0; index < links.size(); ++index)
+            {
+                const Link& link = links[index];
+                if (index)
+                {
+                    const MicroInstrRef mergeRef = layout.order[link.merge];
+                    MicroInstrOperand   orOps[4];
+                    orOps[0].reg     = result;
+                    orOps[1].reg     = storage.ptr(mergeRef)->ops(operands)[1].reg;
+                    orOps[2].opBits  = MicroOpBits::B8;
+                    orOps[3].microOp = MicroOp::Or;
+                    storage.insertDerivedBefore(operands, mergeRef, MicroInstrOpcode::OpBinaryRegReg, orOps);
+                    storage.erase(mergeRef);
+                }
+                if (link.hasJump)
+                    storage.erase(layout.order[link.jump]);
+            }
+
+            changed = true;
+            start   = endAt;
+        }
+
+        if (changed)
+            context.builder->invalidateControlFlowGraph();
+        return changed;
+    }
+
     // A range test lowered as two exits to the same label:
     //
     //     cmp  X, LO                      T = X
@@ -3542,6 +3791,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     changed |= foldRangeChecks(storage, operands, context);
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
+    // A whole `or` chain goes at once, before the two-link form takes its tail.
+    changed |= convertOrChainsToBranchless(storage, operands, context);
     changed |= convertShortCircuitBooleans(storage, operands, context);
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

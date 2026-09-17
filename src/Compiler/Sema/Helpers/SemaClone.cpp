@@ -697,6 +697,10 @@ namespace
         // Inline clones must build fresh callable symbols so captures bind to the cloned locals.
         if (cloneContext.sourceAst)
             return;
+        // A copy with substitutions has a body of its own, so it builds a fresh symbol
+        // too. A plain copy is the source function again, and sema reuses it.
+        if (!cloneContext.bindings.empty() || !cloneContext.replacements.empty())
+            return;
 
         const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         if (storedView.hasSymbol())

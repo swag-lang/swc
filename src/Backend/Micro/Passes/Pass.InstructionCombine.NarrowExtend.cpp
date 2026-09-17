@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 
 // Zero/sign extend whose upper bits are never read. Collapses to a plain
 // LoadRegReg at srcBits, or an erase when dst == src.
@@ -73,6 +74,78 @@ namespace InstructionCombine
             }
             return widest;
         }
+
+        // Whether `reg`, read at 32 bits where `atRef` reads it, is a boolean:
+        // a setcc byte zero-extended to at least 32 bits, possibly copied.
+        bool isExtendedBooleanByte(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+        {
+            constexpr uint32_t K_MAX_COPY_CHAIN = 4;
+            for (uint32_t depth = 0; depth < K_MAX_COPY_CHAIN; ++depth)
+            {
+                const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+                if (!def.valid() || def.isPhi || !def.inst)
+                    return false;
+
+                const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+                if (def.inst->op == MicroInstrOpcode::LoadRegReg && ops[1].reg.isVirtualInt() && getNumBits(ops[2].opBits) >= 32)
+                {
+                    reg   = ops[1].reg;
+                    atRef = def.instRef;
+                    continue;
+                }
+
+                if (def.inst->op != MicroInstrOpcode::LoadZeroExtRegReg || ops[3].opBits != MicroOpBits::B8 || getNumBits(ops[2].opBits) < 32 ||
+                    !ops[1].reg.isVirtualInt())
+                    return false;
+                const MicroSsaState::ReachingDef set = ctx.ssa->reachingDef(ops[1].reg, def.instRef);
+                return set.valid() && !set.isPhi && set.inst && set.inst->op == MicroInstrOpcode::SetCondReg;
+            }
+
+            return false;
+        }
+    }
+
+    // `a <=> b` lowers to zext(a > b) - zext(a < b) at 32 bits, sign-extended
+    // into the result. The difference of two booleans fits a byte, so the
+    // subtraction and the extension take the bytes, as LLVM narrows it, and
+    // the two zero-extensions die.
+    bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[1].reg.isVirtualInt() || ops[3].opBits != MicroOpBits::B32 || getNumBits(ops[2].opBits) < 32)
+            return false;
+
+        const MicroSsaState::ReachingDef sub = ctx.ssa->reachingDef(ops[1].reg, ref);
+        if (!sub.valid() || sub.isPhi || !sub.inst || sub.inst->op != MicroInstrOpcode::OpBinaryRegReg || ctx.isClaimed(sub.instRef))
+            return false;
+
+        const MicroInstrOperand* subOps = sub.inst->ops(*ctx.operands);
+        if (subOps[3].microOp != MicroOp::Subtract || subOps[2].opBits != MicroOpBits::B32 || !subOps[1].reg.isVirtualInt() || subOps[0].reg == subOps[1].reg)
+            return false;
+        if (singleDirectInstructionUse(*ctx.ssa, sub.valueId) != ref)
+            return false;
+        if (!isExtendedBooleanByte(ctx, subOps[0].reg, sub.instRef) || !isExtendedBooleanByte(ctx, subOps[1].reg, sub.instRef))
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, sub.instRef, ctx.builder))
+            return false;
+        if (!ctx.claimAll({ref, sub.instRef}))
+            return false;
+
+        MicroInstrOperand narrowOps[4];
+        for (size_t idx = 0; idx < 4; ++idx)
+            narrowOps[idx] = subOps[idx];
+        narrowOps[2].opBits = MicroOpBits::B8;
+        ctx.emitRewrite(sub.instRef, MicroInstrOpcode::OpBinaryRegReg, narrowOps);
+
+        MicroInstrOperand extendOps[4];
+        for (size_t idx = 0; idx < 4; ++idx)
+            extendOps[idx] = ops[idx];
+        extendOps[3].opBits = MicroOpBits::B8;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadSignedExtRegReg, extendOps);
+        return true;
     }
 
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

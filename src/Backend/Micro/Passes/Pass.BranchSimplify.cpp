@@ -3175,6 +3175,128 @@ namespace
         return changed;
     }
 
+    // A byte multiply is lowered through the implicit accumulator, so the
+    // generic diamond conversion cannot join two multiplied arms with a byte
+    // conditional move. Select the varying operand while it is still a
+    // virtual register and keep one multiply:
+    //
+    //     if CC: R = A * C       T = B
+    //     else:  R = A * B   ->  T = C if CC
+    //                            R = A * T
+    bool factorByteMultiplyDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        for (const MicroInstr& inst : storage.view())
+        {
+            if (inst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, inst, inst.ops(operands)))
+                ++labelReferences[labelId];
+        }
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            if (it->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* branchOps = it->ops(operands);
+            uint32_t armLabelId = 0;
+            if (!branchOps || branchOps[0].cpuCond == MicroCond::Unconditional ||
+                !tryGetJumpTargetLabelId(armLabelId, *it, branchOps) || labelReferences[armLabelId] != 1)
+                continue;
+
+            const MicroInstrRef fallCopyRef = storage.findNextInstructionRef(it.current);
+            const MicroInstr*   fallCopy    = storage.ptr(fallCopyRef);
+            const auto*         fallCopyOps = fallCopy ? fallCopy->ops(operands) : nullptr;
+            const MicroInstrRef fallOpRef   = storage.findNextInstructionRef(fallCopyRef);
+            const MicroInstr*   fallOp      = storage.ptr(fallOpRef);
+            const auto*         fallOpOps   = fallOp ? fallOp->ops(operands) : nullptr;
+            const MicroInstrRef fallMergeRef = storage.findNextInstructionRef(fallOpRef);
+            const MicroInstr*   fallMerge    = storage.ptr(fallMergeRef);
+            const auto*         fallMergeOps = fallMerge ? fallMerge->ops(operands) : nullptr;
+            const MicroInstrRef joinJumpRef  = storage.findNextInstructionRef(fallMergeRef);
+            const MicroInstr*   joinJump     = storage.ptr(joinJumpRef);
+            const auto*         joinJumpOps  = joinJump ? joinJump->ops(operands) : nullptr;
+            if (!fallCopy || fallCopy->op != MicroInstrOpcode::LoadRegReg || !fallCopyOps ||
+                !fallOp || fallOp->op != MicroInstrOpcode::OpBinaryRegReg || !fallOpOps ||
+                fallOpOps[0].reg != fallCopyOps[0].reg || fallOpOps[2].opBits != MicroOpBits::B8 ||
+                (fallOpOps[3].microOp != MicroOp::MultiplySigned && fallOpOps[3].microOp != MicroOp::MultiplyUnsigned) ||
+                !fallMerge || fallMerge->op != MicroInstrOpcode::LoadRegReg || !fallMergeOps ||
+                fallMergeOps[1].reg != fallOpOps[0].reg ||
+                !joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional)
+                continue;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || labelReferences[joinLabelId] != 1)
+                continue;
+
+            const MicroInstrRef armLabelRef = storage.findNextInstructionRef(joinJumpRef);
+            const MicroInstr*   armLabel    = storage.ptr(armLabelRef);
+            uint32_t foundArmLabelId = 0;
+            if (!armLabel || !tryGetLabelId(foundArmLabelId, *armLabel, armLabel->ops(operands)) || foundArmLabelId != armLabelId)
+                continue;
+            const MicroInstrRef jumpCopyRef = storage.findNextInstructionRef(armLabelRef);
+            const MicroInstr*   jumpCopy    = storage.ptr(jumpCopyRef);
+            const auto*         jumpCopyOps = jumpCopy ? jumpCopy->ops(operands) : nullptr;
+            const MicroInstrRef jumpOpRef   = storage.findNextInstructionRef(jumpCopyRef);
+            const MicroInstr*   jumpOp      = storage.ptr(jumpOpRef);
+            const auto*         jumpOpOps   = jumpOp ? jumpOp->ops(operands) : nullptr;
+            const MicroInstrRef jumpMergeRef = storage.findNextInstructionRef(jumpOpRef);
+            const MicroInstr*   jumpMerge    = storage.ptr(jumpMergeRef);
+            const auto*         jumpMergeOps = jumpMerge ? jumpMerge->ops(operands) : nullptr;
+            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(jumpMergeRef);
+            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            uint32_t foundJoinLabelId = 0;
+            if (!jumpCopy || jumpCopy->op != MicroInstrOpcode::LoadRegReg || !jumpCopyOps ||
+                jumpCopyOps[1].reg != fallCopyOps[1].reg ||
+                !jumpOp || jumpOp->op != MicroInstrOpcode::OpBinaryRegReg || !jumpOpOps ||
+                jumpOpOps[0].reg != jumpCopyOps[0].reg || jumpOpOps[2].opBits != MicroOpBits::B8 ||
+                jumpOpOps[3].microOp != fallOpOps[3].microOp ||
+                !jumpMerge || jumpMerge->op != MicroInstrOpcode::LoadRegReg || !jumpMergeOps ||
+                jumpMergeOps[0].reg != fallMergeOps[0].reg || jumpMergeOps[1].reg != jumpOpOps[0].reg ||
+                !joinLabel || !tryGetLabelId(foundJoinLabelId, *joinLabel, joinLabel->ops(operands)) ||
+                foundJoinLabelId != joinLabelId ||
+                !fallCopyOps[0].reg.isVirtualInt() || !jumpCopyOps[0].reg.isVirtualInt() ||
+                !fallMergeOps[0].reg.isVirtualInt() || !fallOpOps[1].reg.isVirtualInt() || !jumpOpOps[1].reg.isVirtualInt() ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, joinLabelRef, context.builder))
+                continue;
+
+            const MicroReg chosen = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
+            MicroInstrOperand chooseCopy[3] = {};
+            chooseCopy[0].reg                = chosen;
+            chooseCopy[1].reg                = fallOpOps[1].reg;
+            chooseCopy[2].opBits             = MicroOpBits::B64;
+            MicroInstrOperand choose[4] = {};
+            choose[0].reg               = chosen;
+            choose[1].reg               = jumpOpOps[1].reg;
+            choose[2].cpuCond           = branchOps[0].cpuCond;
+            choose[3].opBits            = MicroOpBits::B32;
+            MicroInstrOperand resultCopy[3] = {};
+            resultCopy[0].reg                = fallMergeOps[0].reg;
+            resultCopy[1].reg                = fallCopyOps[1].reg;
+            resultCopy[2].opBits             = MicroOpBits::B64;
+            MicroInstrOperand multiply[4] = {};
+            multiply[0].reg                = fallMergeOps[0].reg;
+            multiply[1].reg                = chosen;
+            multiply[2].opBits             = MicroOpBits::B8;
+            multiply[3].microOp            = fallOpOps[3].microOp;
+
+            storage.insertDerivedBefore(operands, fallCopyRef, MicroInstrOpcode::LoadRegReg, chooseCopy);
+            storage.insertDerivedBefore(operands, fallCopyRef, MicroInstrOpcode::LoadCondRegReg, choose);
+            storage.insertDerivedBefore(operands, fallCopyRef, MicroInstrOpcode::LoadRegReg, resultCopy);
+            storage.insertDerivedBefore(operands, fallCopyRef, MicroInstrOpcode::OpBinaryRegReg, multiply);
+            for (const MicroInstrRef ref : {it.current, fallCopyRef, fallOpRef, fallMergeRef, joinJumpRef, armLabelRef,
+                                            jumpCopyRef, jumpOpRef, jumpMergeRef, joinLabelRef})
+                storage.erase(ref);
+            context.builder->invalidateControlFlowGraph();
+            return true;
+        }
+        return false;
+    }
+
     // Two pure guards that return one only when both pass need no control
     // flow. Materialize each passing condition, combine the bytes, then
     // restore the original full-width boolean result.
@@ -5871,6 +5993,13 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         }
 
         changed |= structuralChanged;
+    }
+
+    if (factorByteMultiplyDiamond(storage, operands, context))
+    {
+        changed = true;
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
     }
 
     if (convertBooleanGuardPairs(storage, operands, context))

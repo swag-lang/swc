@@ -3683,6 +3683,90 @@ SWC_TEST_BEGIN(InstCombine_MinSelect_ReusesDeadCompareOperand)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // v = load ; T = v ; T <<= shift ; store T ; store v (v stays live)
+    void emitLiveShift(MicroBuilder& builder, uint64_t shift, MicroOpBits bits, bool copied)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        constexpr MicroReg temp  = MicroReg::virtualIntReg(3);
+
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+        const MicroReg shifted = copied ? temp : value;
+        if (copied)
+            builder.emitLoadRegReg(temp, value, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(shifted, ApInt(shift, 64), MicroOp::ShiftLeft, bits);
+        builder.emitLoadMemReg(base, 8, shifted, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    bool hasScaledAddress(const MicroBuilder& builder, uint64_t scale, bool baseIsSource)
+    {
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (ops[2].reg == value && ops[5].valueU64 == scale && (baseIsSource ? ops[1].reg == value : ops[1].reg.isNoBase()))
+                return true;
+        }
+        return false;
+    }
+}
+
+// A qword doubling that costs a copy becomes an address computation; a dword
+// one keeps its shift, whose input reads no more than its own width.
+SWC_TEST_BEGIN(InstCombine_LiveShiftByOne_BecomesAddress)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        emitLiveShift(builder, 1, bits, true);
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        if (hasScaledAddress(builder, 1, true) != (bits == MicroOpBits::B64))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Shifts of two and three scale an index with no base.
+SWC_TEST_BEGIN(InstCombine_LiveShiftByThree_BecomesScaledAddress)
+{
+    MicroBuilder builder(ctx);
+    emitLiveShift(builder, 3, MicroOpBits::B64, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (!hasScaledAddress(builder, 8, false))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A shift in place is already one instruction, and a shift of four has no
+// address form.
+SWC_TEST_BEGIN(InstCombine_ShiftsKeptAsShifts)
+{
+    for (const bool copied : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        emitLiveShift(builder, copied ? 4 : 3, MicroOpBits::B64, copied);
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrAmcRegMem) != 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

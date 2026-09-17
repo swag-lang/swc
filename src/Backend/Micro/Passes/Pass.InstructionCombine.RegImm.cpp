@@ -227,6 +227,53 @@ namespace InstructionCombine
             return true;
         }
 
+        // A small left shift of a value that is still read afterwards is one
+        // address computation:
+        //
+        //     dst = src ; dst <<= k        ->        lea dst, [src * (1 << k)]
+        //
+        // The copy the two-address shift needs goes with it, as x86 doubles a
+        // live value with `lea rax, [rcx + rcx]` rather than a move and a
+        // shift. Shifts of one keep the base form, which encodes shorter.
+        // Only at 64 bits: an address reads its index whole, which would keep
+        // a narrower input from dropping its own widening move.
+        bool tryShiftToAddress(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
+        {
+            if (op != MicroOp::ShiftLeft || imm < 1 || imm > 3 || !ctx.ssa)
+                return false;
+            if (opBits != MicroOpBits::B64)
+                return false;
+
+            // Only a shift that costs a copy: in place it is already one
+            // instruction, and a shorter one.
+            const auto def = ctx.ssa->reachingDef(dst, ref);
+            if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegReg)
+                return false;
+            const MicroInstrOperand* copy = def.inst->ops(*ctx.operands);
+            if (!copy || copy[0].reg != dst || !copy[1].reg.isVirtualInt() || copy[1].reg == dst ||
+                getNumBits(copy[2].opBits) < getNumBits(opBits))
+                return false;
+            const MicroReg source     = copy[1].reg;
+            const auto     sourceAtCopy = ctx.ssa->reachingDef(source, def.instRef);
+            if (!sourceAtCopy.valid() || ctx.ssa->reachingDef(source, ref).valueId != sourceAtCopy.valueId)
+                return false;
+
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                return false;
+            if (!ctx.claimAll({ref, def.instRef}))
+                return false;
+
+            MicroInstrOperand address[8] = {};
+            address[0].reg               = dst;
+            address[1].reg               = imm == 1 ? source : MicroReg::noBase();
+            address[2].reg               = source;
+            address[3].opBits            = opBits;
+            address[4].opBits            = MicroOpBits::B64;
+            address[5].valueU64          = imm == 1 ? 1 : 1ull << imm;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, address, true);
+            return true;
+        }
+
         bool tryReassociateWithPrevious(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
         {
             MicroReg      source   = dst;
@@ -523,6 +570,8 @@ namespace InstructionCombine
         if (ctx.ssa && tryReassociateWithPrevious(ctx, ref, dst, opBits, op, imm))
             return true;
 
+        if (tryShiftToAddress(ctx, ref, dst, opBits, op, imm))
+            return true;
         return tryMultiplyToAddress(ctx, ref, dst, opBits, op, imm);
     }
 

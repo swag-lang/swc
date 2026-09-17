@@ -226,6 +226,37 @@ namespace InstructionCombine
             return def.valid() ? valueUpperBound(ctx, def.valueId, visited, depth + 1) : K_UNBOUNDED;
         }
 
+        // The whole register a dword or qword constant load leaves, through
+        // dword and qword copies.
+        bool regConstant(const Context& ctx, MicroReg reg, MicroInstrRef atRef, uint64_t& outValue)
+        {
+            constexpr uint32_t K_MAX_COPIES = 4;
+
+            uint64_t mask = UINT64_MAX;
+            for (uint32_t step = 0; step <= K_MAX_COPIES && reg.isVirtualInt(); ++step)
+            {
+                const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+                if (!def.valid() || def.isPhi || !def.inst)
+                    return false;
+                const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+                if (!ops)
+                    return false;
+                if (def.inst->op == MicroInstrOpcode::LoadRegImm)
+                {
+                    if (ops[2].hasWideImmediateValue() || (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
+                        return false;
+                    outValue = ops[2].valueU64 & getBitsMask(ops[1].opBits) & mask;
+                    return true;
+                }
+                if (def.inst->op != MicroInstrOpcode::LoadRegReg || (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+                    return false;
+                mask &= getBitsMask(ops[2].opBits);
+                reg   = ops[1].reg;
+                atRef = def.instRef;
+            }
+            return false;
+        }
+
         uint64_t valueUpperBound(const Context& ctx, uint32_t valueId, SmallVector<uint32_t>& visited, uint32_t depth)
         {
             if (depth >= K_MAX_PHI_DEPTH)
@@ -340,6 +371,15 @@ namespace InstructionCombine
                         case MicroOp::Add:
                             bound = boundedAdd(left, right);
                             break;
+                        // `C - x` stays in 0..C when x cannot pass C.
+                        case MicroOp::Subtract:
+                        {
+                            uint64_t constant = 0;
+                            if (!regConstant(ctx, ops[0].reg, value->instRef, constant) || right > (constant & mask))
+                                return K_UNBOUNDED;
+                            bound = constant & mask;
+                            break;
+                        }
                         case MicroOp::Or:
                         case MicroOp::Xor:
                             bound = fillBelow(std::max(left, right));
@@ -361,6 +401,58 @@ namespace InstructionCombine
                 default:
                     return K_UNBOUNDED;
             }
+        }
+
+        // The definitions valueIsZeroExtended32 relied on for `valueId`.
+        void collectZeroExtendDefinitions(const Context& ctx, uint32_t valueId, SmallVector<MicroInstrRef>& outRefs, SmallVector<uint32_t>& visited, uint32_t depth)
+        {
+            if (depth >= K_MAX_PHI_DEPTH || std::ranges::find(visited, valueId) != visited.end())
+                return;
+            visited.push_back(valueId);
+            const MicroSsaState::ValueInfo* value = ctx.ssa->valueInfo(valueId);
+            if (!value)
+                return;
+            if (value->isPhi())
+            {
+                if (const MicroSsaState::PhiInfo* phi = ctx.ssa->phiInfo(value->phiIndex))
+                {
+                    for (const uint32_t incoming : phi->incomingValueIds)
+                        collectZeroExtendDefinitions(ctx, incoming, outRefs, visited, depth + 1);
+                }
+                return;
+            }
+
+            outRefs.push_back(value->instRef);
+            const MicroInstr* inst = ctx.storage->ptr(value->instRef);
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
+                return;
+            const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+            if (!ops || ops[2].opBits != MicroOpBits::B64)
+                return;
+            const MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(ops[1].reg, value->instRef);
+            if (source.valid())
+                collectZeroExtendDefinitions(ctx, source.valueId, outRefs, visited, depth + 1);
+        }
+
+        // Claims `ref` and what keeps the upper half of `valueId` clear: a
+        // rewrite that reads the whole register must not meet a definition
+        // widened in the same sweep because its readers only asked for the
+        // low half. The low half itself keeps every bit its readers read.
+        bool claimWithZeroExtendDefinitions(Context& ctx, MicroInstrRef ref, uint32_t valueId)
+        {
+            SmallVector<MicroInstrRef> refs;
+            SmallVector<uint32_t>      visited;
+            collectZeroExtendDefinitions(ctx, valueId, refs, visited, 0);
+            for (const MicroInstrRef defRef : refs)
+            {
+                if (ctx.isClaimed(defRef) || ctx.isRelocated(defRef))
+                    return false;
+            }
+            if (!ctx.claimAll({ref}))
+                return false;
+            for (const MicroInstrRef defRef : refs)
+                ctx.claimed.insert(defRef.get());
+            return true;
         }
 
         void emitExtendAsCopy(Context& ctx, const MicroInstrRef ref, const MicroReg dst, const MicroReg src)
@@ -441,6 +533,93 @@ namespace InstructionCombine
         if (!ctx.claimAll({ref}))
             return false;
         emitExtendAsCopy(ctx, ref, ops[0].reg, ops[1].reg);
+        return true;
+    }
+
+    // An unsigned division by a constant of a dividend with a known bound,
+    // held in a register whose upper half is clear, needs only a multiply by
+    // a dword constant and a shift, as LLVM picks the magic number from the
+    // dividend's known bits: `(a * x + b * y) / 255` takes
+    // `imul r, r, 16843010; shr r, 32`. With M = ceil(2^k / d) and
+    // e = M * d - 2^k, `x * M >> k` is `x / d` for every x with x * e < 2^k.
+    // The divisor may still sit in a register the first sweep has not folded.
+    bool tryDivideBoundedByConstant(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+        const bool        immediate = inst.op == MicroInstrOpcode::OpBinaryRegImm;
+        const MicroOpBits bits      = immediate ? ops[1].opBits : ops[2].opBits;
+        const MicroOp     op        = immediate ? ops[2].microOp : ops[3].microOp;
+        if (op != MicroOp::DivideUnsigned || !ops[0].reg.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+            return false;
+
+        uint64_t divisor = 0;
+        if (immediate)
+        {
+            if (ops[3].hasWideImmediateValue())
+                return false;
+            divisor = ops[3].valueU64;
+        }
+        else if (ops[1].reg == ops[0].reg || !regConstant(ctx, ops[1].reg, ref, divisor))
+        {
+            return false;
+        }
+        divisor &= getBitsMask(bits);
+        if (divisor < 3 || std::has_single_bit(divisor) || divisor > 0xFFFFFFFFu)
+            return false;
+
+        const MicroSsaState::ReachingDef reaching = ctx.ssa->reachingDef(ops[0].reg, ref);
+        if (!reaching.valid())
+            return false;
+        SmallVector<uint32_t> visited;
+        if (!valueIsZeroExtended32(ctx, reaching.valueId, visited, 0))
+            return false;
+        visited.clear();
+        const uint64_t bound = valueUpperBound(ctx, reaching.valueId, visited, 0);
+        if (bound > 0xFFFFFFFFu)
+            return false;
+
+        uint32_t shift      = 0;
+        uint64_t multiplier = 0;
+        for (uint32_t k = 32; k < 64; ++k)
+        {
+            const uint64_t power     = 1ULL << k;
+            const uint64_t candidate = power / divisor + (power % divisor ? 1 : 0);
+            if (candidate > 0x7FFFFFFFu)
+                break;
+            const uint64_t error = candidate * divisor - power;
+            if (error * bound < power)
+            {
+                shift      = k;
+                multiplier = candidate;
+                break;
+            }
+        }
+        if (!shift)
+            return false;
+
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+        if (!claimWithZeroExtendDefinitions(ctx, ref, reaching.valueId))
+            return false;
+
+        MicroInstrOperand mulOps[4];
+        mulOps[0].reg     = ops[0].reg;
+        mulOps[1].opBits  = MicroOpBits::B64;
+        mulOps[2].microOp = MicroOp::MultiplySigned;
+        mulOps[3].setImmediateValue(ApInt(multiplier, 64));
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, mulOps);
+
+        MicroInstrOperand shiftOps[4];
+        shiftOps[0].reg     = ops[0].reg;
+        shiftOps[1].opBits  = MicroOpBits::B64;
+        shiftOps[2].microOp = MicroOp::ShiftRight;
+        shiftOps[3].setImmediateValue(ApInt(shift, 64));
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, shiftOps);
         return true;
     }
 

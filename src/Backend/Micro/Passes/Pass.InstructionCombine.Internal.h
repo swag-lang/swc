@@ -147,6 +147,7 @@ namespace InstructionCombine
     bool tryOpBinaryRegReg(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldAbsoluteValueSignMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFuseInPlaceUpdate(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
+    bool tryReadCopyInSelfOperation(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryMemoryFoldAmcTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryReuseAmcLoadForClearLowestBit(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
@@ -193,6 +194,7 @@ namespace InstructionCombine
     bool isValueZeroExtended32(const Context& ctx, uint32_t valueId);
     bool tryNarrowMaskedArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropNonNegativeSignExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryDivideBoundedByConstant(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryWidenMaskedNarrowValue(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryFoldConstCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);

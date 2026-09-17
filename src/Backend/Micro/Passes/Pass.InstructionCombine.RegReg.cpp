@@ -2431,6 +2431,88 @@ namespace InstructionCombine
         ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, swap);
         return true;
     }
+
+    // A square lowers to a copy of x and a product with x, which keeps x
+    // alive across the product and stops copy elimination from merging the
+    // two registers. When nothing else reads x, the product can run on x
+    // itself and the copy take its result:
+    //
+    //     T = x ; T *= x        ->        x *= x ; T = x
+    //
+    // Copy elimination then merges T into x, as LLVM squares in place with
+    // `imul r8d, r8d`. Reading the copy instead (`T *= T`) would not do: copy
+    // elimination forwards that read back to x.
+    bool tryReadCopyInSelfOperation(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+        const MicroReg    dst  = ops[0].reg;
+        const MicroReg    src  = ops[1].reg;
+        const MicroOpBits bits = ops[2].opBits;
+        const MicroOp     op   = ops[3].microOp;
+        if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+            return false;
+        if (op != MicroOp::MultiplySigned && op != MicroOp::MultiplyUnsigned && op != MicroOp::Add)
+            return false;
+
+        // T holds x, for the product alone.
+        const MicroSsaState::ReachingDef dstDef = ctx.ssa->reachingDef(dst, ref);
+        if (!dstDef.valid() || dstDef.isPhi || !dstDef.inst || dstDef.inst->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrOperand* copyOps = dstDef.inst->ops(*ctx.operands);
+        if (!copyOps || copyOps[0].reg != dst || copyOps[1].reg != src || getNumBits(copyOps[2].opBits) < getNumBits(bits))
+            return false;
+        const MicroSsaState::ValueInfo* copyValue = ctx.ssa->valueInfo(dstDef.valueId);
+        if (!copyValue || copyValue->uses.size() != 1 || copyValue->uses[0].kind != MicroSsaState::UseSite::Kind::Instruction ||
+            copyValue->uses[0].instRef != ref)
+            return false;
+
+        // x keeps its value from the copy to the product, which are its only
+        // readers: the product may overwrite it.
+        const MicroSsaState::ReachingDef srcAtCopy = ctx.ssa->reachingDef(src, dstDef.instRef);
+        const MicroSsaState::ReachingDef srcAtOp   = ctx.ssa->reachingDef(src, ref);
+        if (!srcAtCopy.valid() || !srcAtOp.valid() || srcAtCopy.valueId != srcAtOp.valueId)
+            return false;
+        const MicroSsaState::ValueInfo* srcValue = ctx.ssa->valueInfo(srcAtOp.valueId);
+        if (!srcValue)
+            return false;
+        bool readByCopy = false;
+        bool readByOp   = false;
+        for (const MicroSsaState::UseSite& use : srcValue->uses)
+        {
+            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+                return false;
+            if (use.instRef == dstDef.instRef)
+                readByCopy = true;
+            else if (use.instRef == ref)
+                readByOp = true;
+            else
+                return false;
+        }
+        if (!readByCopy || !readByOp)
+            return false;
+
+        if (!ctx.claimAll({dstDef.instRef, ref}))
+            return false;
+
+        MicroInstrOperand selfOps[4];
+        selfOps[0].reg     = src;
+        selfOps[1].reg     = src;
+        selfOps[2].opBits  = bits;
+        selfOps[3].microOp = op;
+        MicroInstrOperand resultOps[3];
+        resultOps[0].reg    = dst;
+        resultOps[1].reg    = src;
+        resultOps[2].opBits = MicroOpBits::B64;
+        ctx.emitErase(dstDef.instRef);
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, selfOps);
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, resultOps);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

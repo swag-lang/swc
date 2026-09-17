@@ -3433,6 +3433,193 @@ SWC_TEST_BEGIN(InstCombine_SelectReadWhole_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    enum class Dividend : uint8_t
+    {
+        ByteProduct,
+        ByteComplement,
+        Dword,
+    };
+
+    // A dividend of the given shape divided by `divisor`, an immediate or a
+    // register holding it.
+    void emitBoundedDivide(MicroBuilder& builder, uint64_t divisor, Dividend dividend, bool divisorInRegister)
+    {
+        constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+        constexpr MicroReg left    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg right   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg divider = MicroReg::virtualIntReg(4);
+
+        switch (dividend)
+        {
+            case Dividend::ByteProduct:
+                builder.emitLoadZeroExtendRegMem(left, base, 0, MicroOpBits::B32, MicroOpBits::B8);
+                builder.emitLoadZeroExtendRegMem(right, base, 1, MicroOpBits::B32, MicroOpBits::B8);
+                builder.emitOpBinaryRegReg(left, right, MicroOp::MultiplySigned, MicroOpBits::B32);
+                break;
+            case Dividend::ByteComplement:
+                builder.emitLoadZeroExtendRegMem(right, base, 0, MicroOpBits::B32, MicroOpBits::B8);
+                builder.emitLoadRegImm(left, ApInt(uint64_t{255}, 64), MicroOpBits::B64);
+                builder.emitOpBinaryRegReg(left, right, MicroOp::Subtract, MicroOpBits::B32);
+                break;
+            case Dividend::Dword:
+                builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
+                break;
+        }
+        if (divisorInRegister)
+        {
+            builder.emitLoadRegImm(divider, ApInt(divisor, 64), MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(left, divider, MicroOp::DivideUnsigned, MicroOpBits::B32);
+        }
+        else
+        {
+            builder.emitOpBinaryRegImm(left, ApInt(divisor, 64), MicroOp::DivideUnsigned, MicroOpBits::B32);
+        }
+        builder.emitLoadMemReg(base, 8, left, MicroOpBits::B32);
+        builder.emitRet();
+    }
+
+    bool hasDivide(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if ((inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::DivideUnsigned) ||
+                (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[3].microOp == MicroOp::DivideUnsigned))
+                return true;
+        }
+        return false;
+    }
+}
+
+// A product of two bytes divided by 255 multiplies by 2^32 / 255 rounded up.
+SWC_TEST_BEGIN(InstCombine_BoundedDivideBy255_UsesSmallMultiplier)
+{
+    MicroBuilder builder(ctx);
+    emitBoundedDivide(builder, 255, Dividend::ByteProduct, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (hasDivide(builder))
+        return Result::Error;
+    bool multiplier = false;
+    bool shift      = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
+            continue;
+        multiplier |= ops[2].microOp == MicroOp::MultiplySigned && ops[3].valueU64 == 16843010;
+        shift |= ops[2].microOp == MicroOp::ShiftRight && ops[3].valueU64 == 32;
+    }
+    return multiplier && shift ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// `255 - byte` stays a byte: divided by 3 through a register, it multiplies
+// by 2^32 / 3 rounded up.
+SWC_TEST_BEGIN(InstCombine_BoundedDifferenceDivide_UsesSmallMultiplier)
+{
+    MicroBuilder builder(ctx);
+    emitBoundedDivide(builder, 3, Dividend::ByteComplement, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (hasDivide(builder))
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::MultiplySigned && ops[3].valueU64 == 0x55555556)
+            return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
+// A whole dword has no small multiplier for 10.
+SWC_TEST_BEGIN(InstCombine_UnboundedDivide_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitBoundedDivide(builder, 10, Dividend::Dword, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (!hasDivide(builder))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // T = x ; T op= x, the copy and the operation at the given widths; x is
+    // stored again afterwards when `readAgain`.
+    void emitSquare(MicroBuilder& builder, MicroOpBits copyBits, bool readAgain)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        constexpr MicroReg temp  = MicroReg::virtualIntReg(3);
+
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(temp, value, copyBits);
+        builder.emitOpBinaryRegReg(temp, value, MicroOp::MultiplySigned, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 8, temp, MicroOpBits::B64);
+        if (readAgain)
+            builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    bool squaresInPlace(const MicroBuilder& builder)
+    {
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                return ops[0].reg == value && ops[1].reg == value;
+        }
+        return false;
+    }
+}
+
+// A dword square runs on x once nothing else reads it.
+SWC_TEST_BEGIN(InstCombine_Square_RunsInPlace)
+{
+    MicroBuilder builder(ctx);
+    emitSquare(builder, MicroOpBits::B32, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    return squaresInPlace(builder) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// x read after the product keeps its value.
+SWC_TEST_BEGIN(InstCombine_SquareOfLiveValue_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitSquare(builder, MicroOpBits::B32, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    return squaresInPlace(builder) ? Result::Error : Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte copy does not hold the dword the product reads.
+SWC_TEST_BEGIN(InstCombine_NarrowCopySquare_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitSquare(builder, MicroOpBits::B8, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    return squaresInPlace(builder) ? Result::Error : Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

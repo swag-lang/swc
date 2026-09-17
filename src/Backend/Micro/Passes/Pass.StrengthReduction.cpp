@@ -113,6 +113,143 @@ namespace
     }
 
     ///////////////////////////////////////////
+    // `x % C == 0` -> divisibility test.
+
+    // The flag reader of `cmp`, when it only asks for equality.
+    MicroInstr* findEqualityReader(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef cmpRef, MicroInstrRef& outRef, MicroCond*& outCond)
+    {
+        outRef             = storage.findNextInstructionRef(cmpRef);
+        MicroInstr* reader = outRef.isValid() ? storage.ptr(outRef) : nullptr;
+        if (!reader)
+            return nullptr;
+        MicroInstrOperand* readerOps = reader->ops(operands);
+        switch (reader->op)
+        {
+            case MicroInstrOpcode::SetCondReg:
+                outCond = &readerOps[1].cpuCond;
+                break;
+            case MicroInstrOpcode::JumpCond:
+                outCond = &readerOps[0].cpuCond;
+                break;
+            case MicroInstrOpcode::LoadCondRegReg:
+                outCond = &readerOps[2].cpuCond;
+                break;
+            default:
+                return nullptr;
+        }
+        return *outCond == MicroCond::Equal || *outCond == MicroCond::NotEqual ? reader : nullptr;
+    }
+
+    // The inverse of an odd value modulo 2^64, by Newton's iteration: each step
+    // doubles the correct low bits, from the three an odd value starts with.
+    uint64_t oddInverse(uint64_t value)
+    {
+        uint64_t inverse = value;
+        for (uint32_t step = 0; step < 5; ++step)
+            inverse *= 2 - value * inverse;
+        return inverse;
+    }
+
+    // An unsigned remainder by a constant only compared with zero is a
+    // divisibility test, as LLVM's urem-seteq fold builds it:
+    //
+    //     r = x % C; cmp r, 0; sete      ->    x *= inv(C0); x = rotr(x, k)
+    //                                          cmp x, (2^N - 1) / C; setbe
+    //
+    // with C = C0 * 2^k and C0 odd. Multiplying by the inverse maps the
+    // multiples of C0 onto [0, (2^N - 1) / C0], and the rotation also sends
+    // anything with a low bit set among the k low bits above the limit.
+    bool tryReduceUnsignedModuloEquality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState* ssaState, MicroInstrRef instRef, MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
+    {
+        const MicroOpBits opBits  = ops[1].opBits;
+        const uint32_t    bits    = getNumBits(opBits);
+        const uint64_t    mask    = getBitsMask(opBits);
+        const uint64_t    divisor = ops[3].valueU64 & mask;
+        const MicroReg    value   = ops[0].reg;
+        if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || divisor < 3 || Math::isPowerOfTwo(divisor) || !value.isVirtualInt() || !ssaState ||
+            !ssaState->isValid())
+            return false;
+
+        // The compare may follow a few moves that leave the flags alone, as
+        // the zero it reads being loaded.
+        constexpr uint32_t K_MAX_MOVES = 3;
+        MicroInstrRef      cmpRef      = storage.findNextInstructionRef(instRef);
+        const MicroInstr*  cmp         = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
+        for (uint32_t step = 0; step < K_MAX_MOVES && cmp && (cmp->op == MicroInstrOpcode::LoadRegImm || cmp->op == MicroInstrOpcode::LoadRegReg); ++step)
+        {
+            if (cmp->ops(operands)[0].reg == value)
+                return false;
+            cmpRef = storage.findNextInstructionRef(cmpRef);
+            cmp    = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
+        }
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        MicroInstrOperand* cmpOps = cmp->ops(operands);
+        if (cmpOps[0].reg != value || cmpOps[1].opBits != opBits || cmpOps[2].hasWideImmediateValue() || (cmpOps[2].valueU64 & mask) != 0)
+            return false;
+
+        MicroInstrRef readerRef;
+        MicroCond*    cond = nullptr;
+        if (!findEqualityReader(storage, operands, cmpRef, readerRef, cond))
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, readerRef, context.builder))
+            return false;
+        // The compare is the remainder's only reader.
+        uint32_t remainderId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState->defValue(value, instRef, remainderId) || ssaState->transitiveInstructionUseCount(remainderId, 2) != 1)
+            return false;
+
+        const uint32_t shift   = static_cast<uint32_t>(std::countr_zero(divisor));
+        const uint64_t odd     = divisor >> shift;
+        const uint64_t inverse = oddInverse(odd) & mask;
+        const uint64_t limit   = mask / divisor;
+        if (opBits == MicroOpBits::B64 && limit > static_cast<uint64_t>(std::numeric_limits<int32_t>::max()))
+            return false;
+
+        if (opBits == MicroOpBits::B32)
+        {
+            ops[2].microOp = MicroOp::MultiplySigned;
+            ops[3].setImmediateValue(ApInt(inverse, 32));
+        }
+        else
+        {
+            if (!nextVirtualIntRegIndex)
+                nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+            const MicroReg    inverseReg = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            MicroInstrOperand loadOps[3];
+            loadOps[0].reg    = inverseReg;
+            loadOps[1].opBits = MicroOpBits::B64;
+            loadOps[2].setImmediateValue(ApInt(inverse, 64));
+            storage.insertDerivedBefore(operands, instRef, MicroInstrOpcode::LoadRegImm, loadOps);
+            MicroInstrOperand mulOps[4];
+            mulOps[0].reg     = value;
+            mulOps[1].reg     = inverseReg;
+            mulOps[2].opBits  = MicroOpBits::B64;
+            mulOps[3].microOp = MicroOp::MultiplySigned;
+            storage.insertDerivedBefore(operands, instRef, MicroInstrOpcode::OpBinaryRegReg, mulOps);
+            storage.erase(instRef);
+        }
+
+        if (shift)
+        {
+            MicroInstrOperand rotateOps[4];
+            rotateOps[0].reg     = value;
+            rotateOps[1].opBits  = opBits;
+            rotateOps[2].microOp = MicroOp::RotateRight;
+            rotateOps[3].setImmediateValue(ApInt(shift, bits));
+            storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::OpBinaryRegImm, rotateOps);
+        }
+
+        cmp                = storage.ptr(cmpRef);
+        cmpOps             = cmp->ops(operands);
+        cmpOps[2].setImmediateValue(ApInt(limit, bits));
+        MicroInstrRef ignored;
+        findEqualityReader(storage, operands, cmpRef, ignored, cond);
+        *cond = *cond == MicroCond::Equal ? MicroCond::BelowOrEqual : MicroCond::Above;
+        return true;
+    }
+
+    ///////////////////////////////////////////
     // Division by constant -> multiply-high expansion.
 
     struct UnsignedDivisionMagic
@@ -649,7 +786,14 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
             case MicroOp::ModuloUnsigned:
                 if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
                     break;
-                changed = tryReduceUnsignedModuloToMask(ops, opBits, immediate) ||
+                if (tryReduceUnsignedModuloToMask(ops, opBits, immediate))
+                {
+                    changed = true;
+                    break;
+                }
+                if (!ssaState)
+                    ssaState = MicroSsaState::ensureFor(context, localSsaState);
+                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, instRef, ops, nextVirtualIntRegIndex) ||
                           tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 

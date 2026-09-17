@@ -129,6 +129,7 @@ bool MicroPassHelpers::instructionActuallyDefinesCpuFlags(const MicroInstr& inst
         case MicroInstrOpcode::OpBinaryMemReg:
             return microOpWritesCpuFlags(ops[3].microOp);
         case MicroInstrOpcode::OpBinaryRegAmcMem:
+        case MicroInstrOpcode::OpBinaryAmcMemReg:
             return microOpWritesCpuFlags(ops[7].microOp);
         default:
             return true;
@@ -163,8 +164,9 @@ bool MicroPassHelpers::instructionOverwritesCpuFlags(const MicroInstr& inst, con
             bits = ops[2].opBits;
             break;
         case MicroInstrOpcode::OpBinaryRegAmcMem:
+        case MicroInstrOpcode::OpBinaryAmcMemReg:
             op   = ops[7].microOp;
-            bits = ops[3].opBits;
+            bits = ops[inst.op == MicroInstrOpcode::OpBinaryRegAmcMem ? 3 : 4].opBits;
             break;
         default:
             return true;
@@ -922,6 +924,7 @@ bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
             return true;
         case MicroInstrOpcode::LoadAmcMemReg:
         case MicroInstrOpcode::LoadAmcMemImm:
+        case MicroInstrOpcode::OpBinaryAmcMemReg:
             out.baseIdx  = 0;
             out.indexIdx = 1;
             return true;

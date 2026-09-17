@@ -74,6 +74,7 @@ namespace PostRaPeephole
     bool tryFoldCarryMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroComparisonMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldCarryComparisonSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroTestBooleanSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -89,6 +90,7 @@ namespace PostRaPeephole
     bool tryUseTestForDeadMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
+    bool tryFoldZeroBooleanProduct(Context& ctx, MicroInstrRef multiplyRef, const MicroInstr& multiplyInst);
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyRoundTrip(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryRetargetUnaryResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

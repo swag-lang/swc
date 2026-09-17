@@ -183,6 +183,64 @@ namespace InstructionCombine
 
         return false;
     }
+
+    // The indexed form of the same load/modify/store fold. Its address is
+    // already one atomic Micro operand, so matching the load and store exactly
+    // proves that the single x64 read-modify-write touches the same bytes.
+    bool tryMemoryFoldAmcTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps || loadInst.op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+
+        const MicroReg value = loadOps[0].reg;
+        const MicroReg base  = loadOps[1].reg;
+        const MicroReg index = loadOps[2].reg;
+        if (!value.isVirtualInt() || !base.isVirtualInt() || !index.isVirtualInt() ||
+            value == base || value == index || ctx.isInsideLoop(loadRef) || keepAccessScalar(ctx, loadRef, base) ||
+            !valueHasSingleUse(*ctx.ssa, value, loadRef))
+            return false;
+
+        const MicroInstrRef opRef = ctx.storage->findNextInstructionRef(loadRef);
+        const MicroInstr*   op    = ctx.storage->ptr(opRef);
+        if (!op || op->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const MicroInstrOperand* opOps = op->ops(*ctx.operands);
+        if (!opOps || opOps[0].reg != value || !opOps[1].reg.isVirtualInt() ||
+            opOps[1].reg == value || opOps[1].reg == base || opOps[1].reg == index ||
+            opOps[2].opBits != loadOps[3].opBits || opOps[2].opBits != loadOps[4].opBits ||
+            (opOps[3].microOp != MicroOp::Add && opOps[3].microOp != MicroOp::Subtract &&
+             opOps[3].microOp != MicroOp::And && opOps[3].microOp != MicroOp::Or && opOps[3].microOp != MicroOp::Xor) ||
+            !valueHasSingleUse(*ctx.ssa, value, opRef))
+            return false;
+
+        const MicroInstrRef storeRef = ctx.storage->findNextInstructionRef(opRef);
+        const MicroInstr*   store    = ctx.storage->ptr(storeRef);
+        if (!store || store->op != MicroInstrOpcode::LoadAmcMemReg)
+            return false;
+        const MicroInstrOperand* storeOps = store->ops(*ctx.operands);
+        if (!storeOps || storeOps[0].reg != base || storeOps[1].reg != index || storeOps[2].reg != value ||
+            storeOps[3].opBits != loadOps[3].opBits || storeOps[4].opBits != loadOps[4].opBits ||
+            storeOps[5].valueU64 != loadOps[5].valueU64 || storeOps[6].valueU64 != loadOps[6].valueU64 ||
+            !ctx.claimAll({loadRef, opRef, storeRef}))
+            return false;
+
+        MicroInstrOperand update[8] = {};
+        update[0]                   = loadOps[1];
+        update[1]                   = loadOps[2];
+        update[2]                   = opOps[1];
+        update[3]                   = loadOps[3];
+        update[4]                   = loadOps[4];
+        update[5]                   = loadOps[5];
+        update[6]                   = loadOps[6];
+        update[7]                   = opOps[3];
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryAmcMemReg, update, /*allocNewBlock=*/true);
+        ctx.emitErase(loadRef);
+        ctx.emitErase(storeRef);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

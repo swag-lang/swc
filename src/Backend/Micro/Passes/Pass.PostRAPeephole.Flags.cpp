@@ -769,6 +769,42 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A SETcc result is zero or one. After a preceding clear, shifting it by
+    // at most 31 bits fits in a dword, whose write still defines the same
+    // zero-extended 64-bit result.
+    bool tryNarrowShiftedBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const auto* shift = inst.ops(*ctx.operands);
+        if (!shift || !shift[0].reg.isInt() || ctx.isPrivateFrameBase(shift[0].reg) ||
+            shift[1].opBits != MicroOpBits::B64 || shift[2].microOp != MicroOp::ShiftLeft ||
+            shift[3].hasWideImmediateValue() || shift[3].valueU64 == 0 || shift[3].valueU64 > 31 ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+
+        const MicroInstrRef setRef = ctx.previousRef(ref);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        const MicroInstrRef cmpRef = ctx.previousRef(setRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        const MicroInstrRef clearRef = ctx.previousRef(cmpRef);
+        const MicroInstr*   clear    = ctx.instruction(clearRef);
+        if (!set || !cmp || !clear || set->op != MicroInstrOpcode::SetCondReg ||
+            clear->op != MicroInstrOpcode::ClearReg || !instructionActuallyDefinesCpuFlags(*cmp, cmp->ops(*ctx.operands)))
+            return false;
+        const auto* setOps   = set->ops(*ctx.operands);
+        const auto* clearOps = clear->ops(*ctx.operands);
+        if (!setOps || !clearOps || setOps[0].reg != shift[0].reg || clearOps[0].reg != shift[0].reg ||
+            (clearOps[1].opBits != MicroOpBits::B32 && clearOps[1].opBits != MicroOpBits::B64) ||
+            !ctx.claimAll({clearRef, cmpRef, setRef, ref}))
+            return false;
+
+        MicroInstrOperand narrow[4] = {shift[0], shift[1], shift[2], shift[3]};
+        narrow[1].opBits            = MicroOpBits::B32;
+        ctx.emitRewrite(ref, inst.op, narrow);
+        return true;
+    }
+
     // With one input already in the result register, ADD is one byte shorter
     // than an unscaled LEA. The newly written flags must be unobserved.
     bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

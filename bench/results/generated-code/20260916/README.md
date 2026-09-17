@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 875 (2d1b5a3f4) are
+corpus. Focused continuation measurements through build 877 (41b8144f5) are
 recorded below.
 
 ## Machine-code measurements
@@ -115,6 +115,8 @@ comparison instead of zero-extended afterward.
 Variable indexed shifts now encode their memory destination directly while the
 legalizer moves an address away from the required `CL` register. Indexed
 multiplication reuses a dead multiplier as the `imul reg,mem` destination.
+The final integrated legalizer copies the indexed instruction operands before
+inserting those moves, since insertion can grow and relocate operand storage.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -144,7 +146,9 @@ zero-extended boolean comparison test. Each batch was validated before its
 merge into local master.
 
 After the final two batches, build 875 passed all 3,379 native tests and the
-three expected-failure recovery probes.
+three expected-failure recovery probes. Build 877 then rebuilt the combined
+compiler, passed both indexed variable-shift and multiplication tests, and
+preserved LLVM-equal code sizes for all five functions in that final corpus.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

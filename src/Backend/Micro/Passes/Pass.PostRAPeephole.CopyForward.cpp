@@ -2621,6 +2621,291 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A factored byte multiply has already selected its varying input, but
+    // legalization may copy the second byte through a temporary and then copy
+    // AL through the common-value register before returning it. The multiply
+    // already leaves the typed byte result in the ABI accumulator.
+    bool tryFoldByteMultiplySelectCopies(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroReg chosen = copy[0].reg;
+
+        const MicroInstrRef temporaryCopyRef = ctx.nextRef(copyRef);
+        const MicroInstr*   temporaryCopy    = ctx.instruction(temporaryCopyRef);
+        const auto* temporaryCopyOps = temporaryCopy ? temporaryCopy->ops(*ctx.operands) : nullptr;
+        if (!temporaryCopy || temporaryCopy->op != MicroInstrOpcode::LoadRegReg || !temporaryCopyOps ||
+            temporaryCopyOps[2].opBits != MicroOpBits::B8 || temporaryCopyOps[0].reg == temporaryCopyOps[1].reg)
+            return false;
+        const MicroReg temporary = temporaryCopyOps[0].reg;
+
+        const MicroInstrRef selectRef = ctx.nextRef(temporaryCopyRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != chosen || selected[1].reg != temporary || selected[3].opBits != MicroOpBits::B32)
+            return false;
+
+        const MicroInstrRef accumulatorCopyRef = ctx.nextRef(selectRef);
+        const MicroInstr*   accumulatorCopy    = ctx.instruction(accumulatorCopyRef);
+        const auto* accumulatorCopyOps = accumulatorCopy ? accumulatorCopy->ops(*ctx.operands) : nullptr;
+        if (!accumulatorCopy || accumulatorCopy->op != MicroInstrOpcode::LoadRegReg || !accumulatorCopyOps ||
+            accumulatorCopyOps[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg accumulator = accumulatorCopyOps[0].reg;
+        const MicroReg carrier     = accumulatorCopyOps[1].reg;
+
+        const MicroInstrRef multiplyRef = ctx.nextRef(accumulatorCopyRef);
+        const MicroInstr*   multiply    = ctx.instruction(multiplyRef);
+        const auto*         multiplied  = multiply ? multiply->ops(*ctx.operands) : nullptr;
+        if (!multiply || multiply->op != MicroInstrOpcode::OpBinaryRegReg || !multiplied ||
+            multiplied[0].reg != accumulator || multiplied[1].reg != chosen || multiplied[2].opBits != MicroOpBits::B8 ||
+            (multiplied[3].microOp != MicroOp::MultiplySigned && multiplied[3].microOp != MicroOp::MultiplyUnsigned))
+            return false;
+
+        const MicroInstrRef resultByteRef = ctx.nextRef(multiplyRef);
+        const MicroInstr*   resultByte    = ctx.instruction(resultByteRef);
+        const auto*         resultByteOps = resultByte ? resultByte->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef returnCopyRef = ctx.nextRef(resultByteRef);
+        const MicroInstr*   returnCopy    = ctx.instruction(returnCopyRef);
+        const auto*         returnCopyOps = returnCopy ? returnCopy->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef returnRef     = ctx.nextRef(returnCopyRef);
+        const MicroInstr*   returnInst    = ctx.instruction(returnRef);
+        if (!resultByte || resultByte->op != MicroInstrOpcode::LoadRegReg || !resultByteOps ||
+            resultByteOps[0].reg != carrier || resultByteOps[1].reg != accumulator || resultByteOps[2].opBits != MicroOpBits::B8 ||
+            !returnCopy || returnCopy->op != MicroInstrOpcode::LoadRegReg || !returnCopyOps ||
+            returnCopyOps[0].reg != accumulator || returnCopyOps[1].reg != carrier || returnCopyOps[2].opBits != MicroOpBits::B64 ||
+            !returnInst || returnInst->op != MicroInstrOpcode::Ret)
+            return false;
+
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[1].reg               = temporaryCopyOps[1].reg;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            !ctx.claimAll({temporaryCopyRef, selectRef, resultByteRef, returnCopyRef}))
+            return false;
+
+        ctx.emitErase(temporaryCopyRef);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        ctx.emitErase(resultByteRef);
+        ctx.emitErase(returnCopyRef);
+        return true;
+    }
+
+    // Once byte inputs come directly from memory, the overflow-safe identity
+    // `(a & b) + ((a ^ b) >> 1)` is shorter as a widened add and shift.
+    bool tryFoldIndexedByteAverage(Context& ctx, const MicroInstrRef firstLoadRef, const MicroInstr& firstLoadInst)
+    {
+        if (ctx.isClaimed(firstLoadRef) || !ctx.encoder || firstLoadInst.op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+        const auto* firstLoad = firstLoadInst.ops(*ctx.operands);
+        if (!firstLoad || firstLoad[3].opBits != MicroOpBits::B8 || firstLoad[4].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg first = firstLoad[0].reg;
+
+        const MicroInstrRef secondLoadRef = ctx.nextRef(firstLoadRef);
+        const MicroInstr*   secondLoadInst = ctx.instruction(secondLoadRef);
+        const auto* secondLoad = secondLoadInst ? secondLoadInst->ops(*ctx.operands) : nullptr;
+        if (!secondLoadInst || secondLoadInst->op != MicroInstrOpcode::LoadAmcRegMem || !secondLoad ||
+            secondLoad[3].opBits != MicroOpBits::B8 || secondLoad[4].opBits != MicroOpBits::B64 ||
+            secondLoad[0].reg == first)
+            return false;
+        const MicroReg second = secondLoad[0].reg;
+
+        const MicroInstrRef copyRef = ctx.nextRef(secondLoadRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        const auto*         copyOps = copy ? copy->ops(*ctx.operands) : nullptr;
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
+            copyOps[1].reg != first || copyOps[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg work = copyOps[0].reg;
+
+        const MicroInstrRef andRef = ctx.nextRef(copyRef);
+        const MicroInstr*   andInst = ctx.instruction(andRef);
+        const auto*         andOps = andInst ? andInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef xorRef = ctx.nextRef(andRef);
+        const MicroInstr*   xorInst = ctx.instruction(xorRef);
+        const auto*         xorOps = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef shiftRef = ctx.nextRef(xorRef);
+        const MicroInstr*   shiftInst = ctx.instruction(shiftRef);
+        const auto*         shiftOps = shiftInst ? shiftInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef addRef = ctx.nextRef(shiftRef);
+        const MicroInstr*   addInst = ctx.instruction(addRef);
+        const auto*         addOps = addInst ? addInst->ops(*ctx.operands) : nullptr;
+        if (!andInst || andInst->op != MicroInstrOpcode::OpBinaryRegReg || !andOps ||
+            andOps[0].reg != work || andOps[1].reg != second || andOps[2].opBits != MicroOpBits::B8 ||
+            (andOps[3].microOp != MicroOp::And && andOps[3].microOp != MicroOp::Or) ||
+            !xorInst || xorInst->op != MicroInstrOpcode::OpBinaryRegReg || !xorOps ||
+            xorOps[0].reg != first || xorOps[1].reg != second || xorOps[2].opBits != MicroOpBits::B8 || xorOps[3].microOp != MicroOp::Xor ||
+            !shiftInst || shiftInst->op != MicroInstrOpcode::OpBinaryRegImm || !shiftOps ||
+            shiftOps[0].reg != first || shiftOps[1].opBits != MicroOpBits::B8 || shiftOps[2].microOp != MicroOp::ShiftRight ||
+            shiftOps[3].hasWideImmediateValue() || shiftOps[3].valueU64 != 1 ||
+            !addInst || addInst->op != MicroInstrOpcode::OpBinaryRegReg || !addOps ||
+            addOps[0].reg != work || addOps[1].reg != first || addOps[2].opBits != MicroOpBits::B8)
+            return false;
+        const bool ceil = andOps[3].microOp == MicroOp::Or;
+        if (addOps[3].microOp != (ceil ? MicroOp::Subtract : MicroOp::Add))
+            return false;
+
+        const MicroInstrRef resultCopyRef = ctx.nextRef(addRef);
+        const MicroInstr*   resultCopy    = ctx.instruction(resultCopyRef);
+        const auto* resultCopyOps = resultCopy ? resultCopy->ops(*ctx.operands) : nullptr;
+        MicroInstrRef returnRef = ctx.nextRef(resultCopyRef);
+        const MicroInstr* returnInst = ctx.instruction(returnRef);
+        if (returnInst && returnInst->op == MicroInstrOpcode::OpBinaryRegImm)
+        {
+            const auto* epilogOps = returnInst->ops(*ctx.operands);
+            if (!epilogOps || epilogOps[0].reg != ctx.stackPointer || epilogOps[2].microOp != MicroOp::Add)
+                return false;
+            returnRef  = ctx.nextRef(returnRef);
+            returnInst = ctx.instruction(returnRef);
+        }
+        if (!resultCopy || resultCopy->op != MicroInstrOpcode::LoadRegReg || !resultCopyOps ||
+            resultCopyOps[0].reg != first || resultCopyOps[1].reg != work || resultCopyOps[2].opBits != MicroOpBits::B64 ||
+            !returnInst || returnInst->op != MicroInstrOpcode::Ret)
+            return false;
+
+        MicroInstrOperand widenedFirst[8];
+        MicroInstrOperand widenedSecond[8];
+        std::copy_n(firstLoad, 8, widenedFirst);
+        std::copy_n(secondLoad, 8, widenedSecond);
+        widenedFirst[3].opBits  = MicroOpBits::B32;
+        widenedFirst[4].opBits  = MicroOpBits::B8;
+        widenedSecond[3].opBits = MicroOpBits::B32;
+        widenedSecond[4].opBits = MicroOpBits::B8;
+        MicroInstr loadProbe;
+        loadProbe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        loadProbe.numOperands = 8;
+        MicroInstrOperand sum[4] = {};
+        sum[0].reg                = first;
+        sum[1].reg                = second;
+        sum[2].opBits             = MicroOpBits::B32;
+        sum[3].microOp            = MicroOp::Add;
+        MicroInstr sumProbe;
+        sumProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        sumProbe.numOperands = 4;
+        MicroInstrOperand shift[4] = {};
+        shift[0].reg                = first;
+        shift[1].opBits             = MicroOpBits::B32;
+        shift[2].microOp            = MicroOp::ShiftRight;
+        shift[3].valueU64           = 1;
+        MicroInstr shiftProbe;
+        shiftProbe.op          = MicroInstrOpcode::OpBinaryRegImm;
+        shiftProbe.numOperands = 4;
+        MicroInstrOperand increment[4] = {};
+        increment[0].reg                = first;
+        increment[1].opBits             = MicroOpBits::B32;
+        increment[2].microOp            = MicroOp::Add;
+        increment[3].valueU64           = 1;
+        MicroInstr incrementProbe;
+        incrementProbe.op          = MicroInstrOpcode::OpBinaryRegImm;
+        incrementProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedFirst) ||
+            ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedSecond) ||
+            ctx.encoder->queryConformanceIssue(issue, sumProbe, sum) ||
+            ctx.encoder->queryConformanceIssue(issue, shiftProbe, shift) ||
+            (ceil && ctx.encoder->queryConformanceIssue(issue, incrementProbe, increment)) ||
+            !ctx.claimAll({firstLoadRef, secondLoadRef, copyRef, andRef, xorRef, shiftRef, addRef, resultCopyRef}))
+            return false;
+
+        ctx.emitRewrite(firstLoadRef, loadProbe.op, widenedFirst, true);
+        ctx.emitRewrite(secondLoadRef, loadProbe.op, widenedSecond, true);
+        ctx.emitRewrite(copyRef, sumProbe.op, sum);
+        ctx.emitRewrite(andRef, ceil ? incrementProbe.op : shiftProbe.op, ceil ? std::span{increment, 4} : std::span{shift, 4});
+        if (ceil)
+            ctx.emitRewrite(xorRef, shiftProbe.op, shift);
+        else
+            ctx.emitErase(xorRef);
+        ctx.emitErase(shiftRef);
+        ctx.emitErase(addRef);
+        ctx.emitErase(resultCopyRef);
+        return true;
+    }
+
+    // A wrapping byte sum followed by `sum >= original` tests the inverse of
+    // the carry the addition already produced. Keep that carry live while the
+    // byte result is widened for the final saturating select.
+    bool tryFoldIndexedByteSaturatingAdd(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroReg sum      = copy[0].reg;
+        const MicroReg original = copy[1].reg;
+        const MicroInstrRef loadRef = ctx.previousRef(copyRef);
+        const MicroInstr*   load    = ctx.instruction(loadRef);
+        const auto*         loadOps = load ? load->ops(*ctx.operands) : nullptr;
+        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loadOps ||
+            loadOps[0].reg != original || loadOps[3].opBits != MicroOpBits::B8)
+            return false;
+
+        const MicroInstrRef addRef = ctx.nextRef(copyRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        const auto*         addOps = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegAmcMem || !addOps ||
+            addOps[0].reg != sum || addOps[3].opBits != MicroOpBits::B8 || addOps[7].microOp != MicroOp::Add)
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(addRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         compared   = compare ? compare->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !compared ||
+            compared[0].reg != sum || compared[1].reg != original || compared[2].opBits != MicroOpBits::B8)
+            return false;
+
+        const MicroInstrRef constantRef = ctx.nextRef(compareRef);
+        const MicroInstr*   constant    = ctx.instruction(constantRef);
+        const auto*         constantOps = constant ? constant->ops(*ctx.operands) : nullptr;
+        if (!constant || constant->op != MicroInstrOpcode::LoadRegImm || !constantOps ||
+            constantOps[1].opBits != MicroOpBits::B32 || constantOps[2].hasWideImmediateValue() || constantOps[2].valueU64 != 0xFF)
+            return false;
+        const MicroReg result = constantOps[0].reg;
+
+        const MicroInstrRef selectRef = ctx.nextRef(constantRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != sum || selected[2].cpuCond != MicroCond::AboveOrEqual ||
+            selected[3].opBits != MicroOpBits::B32)
+            return false;
+        const MicroReg widened = addOps[1].reg;
+        if (!widened.isInt() || widened == original || widened == result ||
+            !ctx.isRegDeadAfter(widened, ctx.instructionIndex + 4))
+            return false;
+
+        MicroInstrOperand rewrittenAdd[8];
+        std::copy_n(addOps, 8, rewrittenAdd);
+        rewrittenAdd[0].reg = original;
+        MicroInstrOperand extend[4] = {};
+        extend[0].reg                = widened;
+        extend[1].reg                = original;
+        extend[2].opBits             = MicroOpBits::B32;
+        extend[3].opBits             = MicroOpBits::B8;
+        MicroInstr extendProbe;
+        extendProbe.op          = MicroInstrOpcode::LoadZeroExtRegReg;
+        extendProbe.numOperands = 4;
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[1].reg               = widened;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *add, rewrittenAdd) ||
+            ctx.encoder->queryConformanceIssue(issue, extendProbe, extend) ||
+            ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            !ctx.claimAll({copyRef, addRef, compareRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(copyRef, add->op, rewrittenAdd, true);
+        ctx.emitRewrite(addRef, extendProbe.op, extend);
+        ctx.emitErase(compareRef);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        return true;
+    }
+
     // Select the varying operand before applying a shared binary operation:
     // `R = A op B; A = A op C; cmovCC R, A` becomes
     // `cmovCC B, C; R = A op B`. B and A must die with the original select

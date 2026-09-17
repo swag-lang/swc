@@ -83,6 +83,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLoadIntoBinary);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedByteAverage);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseRedundantStoreReload);
         r.add(MicroInstrOpcode::LoadMemReg, tryForwardStoredValueToReload);
@@ -94,6 +95,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetUnaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldIndexedByteSaturatingAdd);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldByteMultiplySelectCopies);
         r.add(MicroInstrOpcode::LoadRegReg, tryFactorNarrowConditionalShift);
         r.add(MicroInstrOpcode::LoadRegReg, tryFactorCommonConditionalShift);
         r.add(MicroInstrOpcode::LoadRegReg, tryFactorCommonConditionalBinary);

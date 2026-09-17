@@ -797,6 +797,81 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Keep a selected intermediate in the copied source when its next use is
+    // another selection. The source's old value must die at that point, while
+    // the temporary must be dead after the consumer:
+    //
+    //     mov     T, R                 cmovCC R, A
+    //     cmovCC  T, A                 cmp     R, B
+    //     cmp     T, B        ->       cmovDD  B, R
+    //     cmovDD  B, T
+    bool tryRetargetSelectedIntermediate(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
+            !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
+            return false;
+        const MicroReg temporary = copy[0].reg;
+        const MicroReg result    = copy[1].reg;
+
+        const MicroInstrRef firstSelectRef = ctx.nextRef(copyRef);
+        const MicroInstr*   firstSelect    = ctx.instruction(firstSelectRef);
+        const auto*         first          = firstSelect ? firstSelect->ops(*ctx.operands) : nullptr;
+        if (!firstSelect || firstSelect->op != MicroInstrOpcode::LoadCondRegReg || !first ||
+            first[0].reg != temporary || first[1].reg == temporary || first[1].reg == result ||
+            first[3].opBits != copy[2].opBits)
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(firstSelectRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         cmp        = compare ? compare->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !cmp || cmp[2].opBits != copy[2].opBits)
+            return false;
+        MicroReg other;
+        if (cmp[0].reg == temporary)
+            other = cmp[1].reg;
+        else if (cmp[1].reg == temporary)
+            other = cmp[0].reg;
+        else
+            return false;
+        if (!other.isInt() || other == temporary || other == result)
+            return false;
+
+        const MicroInstrRef secondSelectRef = ctx.nextRef(compareRef);
+        const MicroInstr*   secondSelect    = ctx.instruction(secondSelectRef);
+        const auto*         second          = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
+        if (!secondSelect || secondSelect->op != MicroInstrOpcode::LoadCondRegReg || !second ||
+            second[0].reg != other || second[1].reg != temporary || second[3].opBits != copy[2].opBits ||
+            !regIsDeadAfter(ctx, secondSelectRef, result) ||
+            !ctx.isRegDeadAfter(temporary, ctx.instructionIndex + 3))
+            return false;
+
+        MicroInstrOperand rewrittenFirst[4] = {first[0], first[1], first[2], first[3]};
+        rewrittenFirst[0].reg               = result;
+        MicroInstrOperand rewrittenCompare[3] = {cmp[0], cmp[1], cmp[2]};
+        if (rewrittenCompare[0].reg == temporary)
+            rewrittenCompare[0].reg = result;
+        else
+            rewrittenCompare[1].reg = result;
+        MicroInstrOperand rewrittenSecond[4] = {second[0], second[1], second[2], second[3]};
+        rewrittenSecond[1].reg              = result;
+
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *firstSelect, rewrittenFirst) ||
+                             ctx.encoder->queryConformanceIssue(issue, *compare, rewrittenCompare) ||
+                             ctx.encoder->queryConformanceIssue(issue, *secondSelect, rewrittenSecond))) ||
+            !ctx.claimAll({copyRef, firstSelectRef, compareRef, secondSelectRef}))
+            return false;
+        ctx.emitErase(copyRef);
+        ctx.emitRewrite(firstSelectRef, firstSelect->op, rewrittenFirst);
+        ctx.emitRewrite(compareRef, compare->op, rewrittenCompare);
+        ctx.emitRewrite(secondSelectRef, secondSelect->op, rewrittenSecond);
+        return true;
+    }
+
     // A pair of nested selections can stay in the final register throughout:
     //
     //     mov     A, L                 ; R already holds the other arm

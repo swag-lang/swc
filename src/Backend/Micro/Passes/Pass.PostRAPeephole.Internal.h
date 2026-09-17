@@ -93,9 +93,11 @@ namespace PostRaPeephole
     bool tryUseTestForDeadMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseRepeatedCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryReuseAddFlagsForUnsignedWrap(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryFoldZeroBooleanProduct(Context& ctx, MicroInstrRef multiplyRef, const MicroInstr& multiplyInst);
     bool tryFoldUnsignedAverage(Context& ctx, MicroInstrRef addRef, const MicroInstr& addInst);
+    bool tryFoldNarrowUnsignedAverage(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyRoundTrip(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryRetargetUnaryResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
@@ -106,9 +108,13 @@ namespace PostRaPeephole
     bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowCopyBefore32BitWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryHoistNarrowZeroExtendAcrossUnary(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryRetargetNarrowZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     void eraseRedundantUpperHalfClears(Context& ctx);
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldSignedFloorAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldSignedCeilAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldUnsignedCeilAverage64(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldUnsignedCeilAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryRetargetSelectedIntermediate(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

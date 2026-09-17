@@ -34,6 +34,7 @@ namespace
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegImm, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::CmpRegReg, tryReuseAddFlagsForUnsignedWrap);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseRepeatedCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
@@ -61,6 +62,9 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowTruncatedRightShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractSignBoolean);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryClearBeforeSetCondition);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryHoistNarrowZeroExtendAcrossUnary);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldNarrowUnsignedAverage);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryRetargetNarrowZeroSelect);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);
@@ -81,6 +85,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCommutativeAddressCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryCommuteBinaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowShiftCountCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldSignedCeilAverage);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldSignedFloorAverage);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);

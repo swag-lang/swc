@@ -7,6 +7,118 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    // An unsigned modular sum is at least its original left operand exactly
+    // when the addition did not carry. Keep the ADD flags across a fallback
+    // constant load and let the conditional move consume CF directly:
+    //
+    //     mov S, A                 mov S, A
+    //     add S, B                 add S, B
+    //     cmp S, A        ->
+    //     mov R, fallback          mov R, fallback
+    //     cmovae R, S              cmovae R, S
+    bool tryReuseAddFlagsForUnsignedWrap(Context& ctx, const MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const auto* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || (cmp[2].opBits != MicroOpBits::B8 && cmp[2].opBits != MicroOpBits::B16 &&
+                     cmp[2].opBits != MicroOpBits::B32 && cmp[2].opBits != MicroOpBits::B64) ||
+            !cmp[0].reg.isInt() || !cmp[1].reg.isInt() || cmp[0].reg == cmp[1].reg)
+            return false;
+        const MicroReg    sum      = cmp[0].reg;
+        const MicroReg    original = cmp[1].reg;
+        const MicroOpBits bits     = cmp[2].opBits;
+
+        const MicroInstrRef addRef = ctx.previousRef(cmpRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        const auto*         addOps = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || !addOps || addOps[0].reg != sum)
+            return false;
+        MicroOpBits addBits;
+        MicroOp     addOp;
+        switch (add->op)
+        {
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegMem:
+                addBits = addOps[2].opBits;
+                addOp   = addOps[3].microOp;
+                break;
+            case MicroInstrOpcode::OpBinaryRegAmcMem:
+                addBits = addOps[3].opBits;
+                addOp   = addOps[7].microOp;
+                break;
+            default:
+                return false;
+        }
+        if (addBits != bits || addOp != MicroOp::Add)
+            return false;
+
+        const MicroInstrRef copyRef = ctx.previousRef(addRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        const auto*         copied  = copy ? copy->ops(*ctx.operands) : nullptr;
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copied ||
+            copied[0].reg != sum || copied[1].reg != original || getNumBits(copied[2].opBits) < getNumBits(bits))
+            return false;
+        const MicroInstrRef loadRef = ctx.previousRef(copyRef);
+        const MicroInstr*   load    = ctx.instruction(loadRef);
+        const auto*         loaded  = load ? load->ops(*ctx.operands) : nullptr;
+        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loaded || loaded[0].reg != original ||
+            loaded[3].opBits != bits || load->numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrRef fallbackRef = ctx.nextRef(cmpRef);
+        const MicroInstr*   fallback    = ctx.instruction(fallbackRef);
+        const auto*         fallbackOps = fallback ? fallback->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef selectRef   = ctx.nextRef(fallbackRef);
+        const MicroInstr*   select      = ctx.instruction(selectRef);
+        const auto*         selected    = select ? select->ops(*ctx.operands) : nullptr;
+        const bool narrow = bits == MicroOpBits::B8 || bits == MicroOpBits::B16;
+        if (!fallback || fallback->op != MicroInstrOpcode::LoadRegImm || !fallbackOps ||
+            !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != fallbackOps[0].reg || selected[1].reg != sum ||
+            selected[2].cpuCond != MicroCond::AboveOrEqual || selected[3].opBits != (narrow ? MicroOpBits::B32 : bits) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+
+        MicroInstrRef extendRef;
+        if (narrow)
+        {
+            extendRef               = ctx.nextRef(selectRef);
+            const MicroInstr* extend = ctx.instruction(extendRef);
+            const auto*       ext    = extend ? extend->ops(*ctx.operands) : nullptr;
+            if (!extend || extend->op != MicroInstrOpcode::LoadZeroExtRegReg || !ext ||
+                ext[0].reg != selected[0].reg || ext[1].reg != selected[0].reg ||
+                ext[2].opBits != MicroOpBits::B64 || ext[3].opBits != bits)
+                return false;
+        }
+
+        MicroInstrOperand rewrittenLoad[Action::K_MAX_OPS] = {};
+        std::copy_n(loaded, load->numOperands, rewrittenLoad);
+        rewrittenLoad[0].reg = sum;
+        MicroInstr loadProbe = *load;
+        if (narrow)
+        {
+            loadProbe.op               = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+            loadProbe.numOperands      = 7;
+            rewrittenLoad[3].opBits    = MicroOpBits::B32;
+            rewrittenLoad[4].opBits    = bits;
+        }
+        const std::array refs = {loadRef, copyRef, addRef, cmpRef, fallbackRef, selectRef, extendRef};
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, loadProbe, rewrittenLoad)) ||
+            !ctx.claimAll(std::span{refs.data(), narrow ? 7u : 6u}))
+            return false;
+        if (narrow)
+            ctx.emitRewrite(loadRef, loadProbe.op, std::span{rewrittenLoad, 7}, true);
+        else
+            ctx.emitRewrite(loadRef, loadProbe.op, std::span{rewrittenLoad, load->numOperands});
+        ctx.emitErase(copyRef);
+        ctx.emitErase(cmpRef);
+        if (narrow)
+            ctx.emitErase(extendRef);
+        return true;
+    }
+
     // Reuse a nearby identical register comparison across instructions that
     // preserve both its operands and the CPU flags. Conditional moves are the
     // common case: they consume the first comparison without changing it, so
@@ -118,6 +230,117 @@ namespace PostRaPeephole
         ctx.emitErase(xorRef);
         ctx.emitRewrite(shiftRef, shift->op, widenedShift);
         ctx.emitErase(addRef);
+        return true;
+    }
+
+    // A byte/word overflow-safe average can add in a dword once both indexed
+    // loads zero-extend. The widened sum cannot overflow, and its low result
+    // is the same value as the original bitwise identity. The ceiling form
+    // similarly becomes `(A + B + 1) >> 1`.
+    bool tryFoldNarrowUnsignedAverage(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
+    {
+        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* extend = extendInst.ops(*ctx.operands);
+        if (!extend || extend[2].opBits != MicroOpBits::B64 ||
+            (extend[3].opBits != MicroOpBits::B8 && extend[3].opBits != MicroOpBits::B16) ||
+            !extend[0].reg.isInt() || !extend[1].reg.isInt() || extend[0].reg == extend[1].reg)
+            return false;
+        const MicroOpBits bits   = extend[3].opBits;
+        const MicroReg    result = extend[0].reg;
+        const MicroReg    merged = extend[1].reg;
+
+        const MicroInstrRef combineRef = ctx.previousRef(extendRef);
+        const MicroInstr*   combine    = ctx.instruction(combineRef);
+        const auto*         combined   = combine ? combine->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef shiftRef   = ctx.previousRef(combineRef);
+        const MicroInstr*   shift      = ctx.instruction(shiftRef);
+        const auto*         shifted    = shift ? shift->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef xorRef     = ctx.previousRef(shiftRef);
+        const MicroInstr*   xorInst    = ctx.instruction(xorRef);
+        const auto*         xorOps     = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef mergeRef   = ctx.previousRef(xorRef);
+        const MicroInstr*   merge      = ctx.instruction(mergeRef);
+        const auto*         mergeOps   = merge ? merge->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef copyRef    = ctx.previousRef(mergeRef);
+        const MicroInstr*   copy       = ctx.instruction(copyRef);
+        const auto*         copyOps    = copy ? copy->ops(*ctx.operands) : nullptr;
+        if (!combine || combine->op != MicroInstrOpcode::OpBinaryRegReg || !combined ||
+            combined[0].reg != merged || combined[1].reg != result || combined[2].opBits != bits ||
+            (combined[3].microOp != MicroOp::Add && combined[3].microOp != MicroOp::Subtract) ||
+            !shift || shift->op != MicroInstrOpcode::OpBinaryRegImm || !shifted || shifted[0].reg != result ||
+            shifted[1].opBits != bits || shifted[2].microOp != MicroOp::ShiftRight || shifted[3].hasWideImmediateValue() || shifted[3].valueU64 != 1 ||
+            !xorInst || xorInst->op != MicroInstrOpcode::OpBinaryRegReg || !xorOps || xorOps[0].reg != result ||
+            xorOps[2].opBits != bits || xorOps[3].microOp != MicroOp::Xor ||
+            !merge || merge->op != MicroInstrOpcode::OpBinaryRegReg || !mergeOps || mergeOps[0].reg != merged ||
+            mergeOps[1].reg != xorOps[1].reg || mergeOps[2].opBits != bits ||
+            !copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps || copyOps[0].reg != merged ||
+            copyOps[1].reg != result || copyOps[2].opBits != MicroOpBits::B64 ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, combineRef, ctx.builder))
+            return false;
+        const bool floor = mergeOps[3].microOp == MicroOp::And && combined[3].microOp == MicroOp::Add;
+        const bool ceil  = mergeOps[3].microOp == MicroOp::Or && combined[3].microOp == MicroOp::Subtract;
+        if ((!floor && !ceil) || !xorOps[1].reg.isInt() || xorOps[1].reg == result || xorOps[1].reg == merged)
+            return false;
+        const MicroReg other = xorOps[1].reg;
+
+        const MicroInstrRef otherLoadRef  = ctx.previousRef(copyRef);
+        const MicroInstr*   otherLoad     = ctx.instruction(otherLoadRef);
+        const auto*         otherLoadOps  = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef resultLoadRef = ctx.previousRef(otherLoadRef);
+        const MicroInstr*   resultLoad    = ctx.instruction(resultLoadRef);
+        const auto*         resultLoadOps = resultLoad ? resultLoad->ops(*ctx.operands) : nullptr;
+        if (!otherLoad || otherLoad->op != MicroInstrOpcode::LoadAmcRegMem || !otherLoadOps ||
+            otherLoadOps[0].reg != other || otherLoadOps[3].opBits != bits || otherLoadOps[4].opBits != MicroOpBits::B64 ||
+            !resultLoad || resultLoad->op != MicroInstrOpcode::LoadAmcRegMem || !resultLoadOps ||
+            resultLoadOps[0].reg != result || resultLoadOps[3].opBits != bits || resultLoadOps[4].opBits != MicroOpBits::B64)
+            return false;
+
+        MicroInstrOperand widenedResultLoad[7];
+        MicroInstrOperand widenedOtherLoad[7];
+        std::copy_n(resultLoadOps, 7, widenedResultLoad);
+        std::copy_n(otherLoadOps, 7, widenedOtherLoad);
+        widenedResultLoad[3].opBits = MicroOpBits::B32;
+        widenedResultLoad[4].opBits = bits;
+        widenedOtherLoad[3].opBits  = MicroOpBits::B32;
+        widenedOtherLoad[4].opBits  = bits;
+        MicroInstrOperand widenedAdd[4] = {mergeOps[0], mergeOps[1], mergeOps[2], mergeOps[3]};
+        widenedAdd[0].reg               = result;
+        widenedAdd[2].opBits            = MicroOpBits::B32;
+        widenedAdd[3].microOp           = MicroOp::Add;
+        MicroInstrOperand widenedShift[4] = {shifted[0], shifted[1], shifted[2], shifted[3]};
+        widenedShift[1].opBits            = MicroOpBits::B32;
+        MicroInstrOperand increment[3]    = {};
+        increment[0].reg                  = result;
+        increment[1].opBits               = MicroOpBits::B32;
+        increment[2].microOp              = MicroOp::Add;
+
+        MicroInstr loadProbe;
+        loadProbe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        loadProbe.numOperands = 7;
+        MicroInstr incrementProbe;
+        incrementProbe.op          = MicroInstrOpcode::OpUnaryReg;
+        incrementProbe.numOperands = 3;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedResultLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedOtherLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, *merge, widenedAdd) ||
+            ctx.encoder->queryConformanceIssue(issue, *shift, widenedShift) ||
+            (ceil && ctx.encoder->queryConformanceIssue(issue, incrementProbe, increment)) ||
+            !ctx.claimAll({resultLoadRef, otherLoadRef, copyRef, mergeRef, xorRef, shiftRef, combineRef, extendRef}))
+            return false;
+
+        ctx.emitRewrite(resultLoadRef, loadProbe.op, widenedResultLoad, true);
+        ctx.emitRewrite(otherLoadRef, loadProbe.op, widenedOtherLoad, true);
+        ctx.emitErase(copyRef);
+        ctx.emitRewrite(mergeRef, merge->op, widenedAdd);
+        if (ceil)
+            ctx.emitRewrite(xorRef, incrementProbe.op, increment);
+        else
+            ctx.emitErase(xorRef);
+        ctx.emitRewrite(shiftRef, shift->op, widenedShift);
+        ctx.emitErase(combineRef);
+        ctx.emitErase(extendRef);
         return true;
     }
 

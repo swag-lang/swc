@@ -3552,6 +3552,74 @@ SWC_TEST_BEGIN(InstCombine_UnboundedDivide_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // T = x ; T op= x, the copy and the operation at the given widths; x is
+    // stored again afterwards when `readAgain`.
+    void emitSquare(MicroBuilder& builder, MicroOpBits copyBits, bool readAgain)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        constexpr MicroReg temp  = MicroReg::virtualIntReg(3);
+
+        builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(temp, value, copyBits);
+        builder.emitOpBinaryRegReg(temp, value, MicroOp::MultiplySigned, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 8, temp, MicroOpBits::B64);
+        if (readAgain)
+            builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    bool squaresInPlace(const MicroBuilder& builder)
+    {
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                return ops[0].reg == value && ops[1].reg == value;
+        }
+        return false;
+    }
+}
+
+// A dword square runs on x once nothing else reads it.
+SWC_TEST_BEGIN(InstCombine_Square_RunsInPlace)
+{
+    MicroBuilder builder(ctx);
+    emitSquare(builder, MicroOpBits::B32, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    return squaresInPlace(builder) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// x read after the product keeps its value.
+SWC_TEST_BEGIN(InstCombine_SquareOfLiveValue_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitSquare(builder, MicroOpBits::B32, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    return squaresInPlace(builder) ? Result::Error : Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte copy does not hold the dword the product reads.
+SWC_TEST_BEGIN(InstCombine_NarrowCopySquare_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitSquare(builder, MicroOpBits::B8, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    return squaresInPlace(builder) ? Result::Error : Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

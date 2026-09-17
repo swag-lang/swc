@@ -1193,7 +1193,47 @@ namespace InstructionCombine
             return false;
         }
 
-        // A low-bit mask is a zero/one multiplier. Select the other input
+        struct ProductBit
+        {
+            MicroReg      reg      = MicroReg::invalid();
+            uint32_t      index    = 0;
+            MicroInstrRef shiftRef = MicroInstrRef::invalid();
+            MicroInstrRef copyRef  = MicroInstrRef::invalid();
+        };
+
+        // Recover the original bit when its shifted value is used only by
+        // this mask. Other consumers retain the shift and its existing value.
+        void recoverProductBit(const Context& ctx, ProductBit& bit, MicroInstrRef inputRef, MicroInstrRef productRef)
+        {
+            const auto shifted = ctx.ssa->reachingDef(bit.reg, inputRef);
+            if (!shifted.valid() || shifted.isPhi || !shifted.inst || shifted.inst->op != MicroInstrOpcode::OpBinaryRegImm)
+                return;
+            const auto* shift = shifted.inst->ops(*ctx.operands);
+            if (!shift || (shift[2].microOp != MicroOp::ShiftRight && shift[2].microOp != MicroOp::ShiftArithmeticRight) ||
+                (shift[1].opBits != MicroOpBits::B32 && shift[1].opBits != MicroOpBits::B64) || shift[3].hasWideImmediateValue())
+                return;
+            const uint32_t index = static_cast<uint32_t>(shift[3].valueU64 & (getNumBits(shift[1].opBits) - 1));
+            // TEST can reach the low dword with an immediate, or the top bit
+            // of the full register through its sign flag.
+            if ((index >= 32 && index != 63) || ctx.ssa->transitiveInstructionUseCount(shifted.valueId, 2) != 1)
+                return;
+            const auto initial = ctx.ssa->reachingDef(bit.reg, shifted.instRef);
+            if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)
+                return;
+            const auto* copy = initial.inst->ops(*ctx.operands);
+            if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) <= index)
+                return;
+            const auto source = ctx.ssa->reachingDef(copy[1].reg, initial.instRef);
+            if (!source.valid() || ctx.ssa->reachingDef(copy[1].reg, productRef).valueId != source.valueId ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, shifted.instRef, ctx.builder))
+                return;
+            bit.reg      = copy[1].reg;
+            bit.index    = index;
+            bit.shiftRef = shifted.instRef;
+            bit.copyRef  = initial.instRef;
+        }
+
+        // A single extracted bit is a zero/one multiplier. Select the other input
         // directly and leave the original mask input available to other users.
         bool trySelectLowBitProduct(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
         {
@@ -1220,8 +1260,12 @@ namespace InstructionCombine
                 if (!mask.valid() || mask.isPhi || !mask.inst || mask.inst->op != MicroInstrOpcode::OpBinaryRegImm)
                     continue;
                 const auto* masked = mask.inst->ops(*ctx.operands);
-                if (!masked || masked[2].microOp != MicroOp::And || masked[3].hasWideImmediateValue() || masked[3].valueU64 != 1 ||
+                if (!masked || masked[3].hasWideImmediateValue() ||
                     (masked[1].opBits != MicroOpBits::B32 && masked[1].opBits != MicroOpBits::B64))
+                    continue;
+                const uint32_t topBit   = getNumBits(masked[1].opBits) - 1;
+                const bool     topShift = masked[2].microOp == MicroOp::ShiftRight && (masked[3].valueU64 & topBit) == topBit;
+                if (!topShift && (masked[2].microOp != MicroOp::And || masked[3].valueU64 != 1))
                     continue;
                 if (ctx.ssa->transitiveInstructionUseCount(mask.valueId, 2) != 1 ||
                     (maskCopy.isValid() && ctx.ssa->transitiveInstructionUseCount(maskCopyValue, 2) != 1))
@@ -1230,7 +1274,7 @@ namespace InstructionCombine
                 if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)
                     continue;
                 const auto* copied = initial.inst->ops(*ctx.operands);
-                if (!copied || !copied[1].reg.isVirtualInt())
+                if (!copied || !copied[1].reg.isVirtualInt() || (topShift && getNumBits(copied[2].opBits) <= topBit))
                     continue;
                 // A single-use computed factor can already carry the product
                 // in its own result register. A zero plus CMOV then adds work.
@@ -1251,10 +1295,13 @@ namespace InstructionCombine
                     !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, mask.instRef, ctx.builder) ||
                     !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                     continue;
+                ProductBit bit{.reg = input, .index = topShift ? topBit : 0};
+                if (!topShift)
+                    recoverProductBit(ctx, bit, initial.instRef, ref);
                 if (!ctx.nextVirtualFloatRegIndex)
                     MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
                 if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
-                    !ctx.claimAll({ref, mask.instRef, initial.instRef, maskCopy.isValid() ? maskCopy : ref}))
+                    !ctx.claimAll({ref, mask.instRef, initial.instRef, maskCopy.isValid() ? maskCopy : ref, bit.shiftRef.isValid() ? bit.shiftRef : ref, bit.copyRef.isValid() ? bit.copyRef : ref}))
                     continue;
 
                 const MicroReg    temporary = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
@@ -1262,15 +1309,28 @@ namespace InstructionCombine
                 clear[0].reg                = temporary;
                 clear[1].opBits             = MicroOpBits::B32;
                 ctx.emitInsertBefore(ref, MicroInstrOpcode::ClearReg, clear);
-                MicroInstrOperand test[3] = {};
-                test[0].reg               = input;
-                test[1].opBits            = MicroOpBits::B8;
-                test[2].valueU64          = 1;
-                ctx.emitInsertBefore(ref, MicroInstrOpcode::TestRegImm, test);
+                const bool        sign     = bit.index == 7 || bit.index == 15 || bit.index == 31 || bit.index == 63;
+                const MicroOpBits testBits = sign ? microOpBitsFromBitWidth(bit.index + 1) : bit.index < 8 ? MicroOpBits::B8
+                                                                                         : bit.index < 16  ? MicroOpBits::B16
+                                                                                                           : MicroOpBits::B32;
+                MicroInstrOperand test[3]  = {};
+                test[0].reg                = bit.reg;
+                if (sign)
+                {
+                    test[1].reg    = bit.reg;
+                    test[2].opBits = testBits;
+                    ctx.emitInsertBefore(ref, MicroInstrOpcode::TestRegReg, test);
+                }
+                else
+                {
+                    test[1].opBits   = testBits;
+                    test[2].valueU64 = 1ull << bit.index;
+                    ctx.emitInsertBefore(ref, MicroInstrOpcode::TestRegImm, test);
+                }
                 MicroInstrOperand select[4] = {};
                 select[0].reg               = temporary;
                 select[1]                   = ops[1 - side];
-                select[2].cpuCond           = MicroCond::NotZero;
+                select[2].cpuCond           = sign ? MicroCond::Sign : MicroCond::NotZero;
                 select[3].opBits            = bits;
                 ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadCondRegReg, select);
                 MicroInstrOperand copy[3] = {};
@@ -1279,6 +1339,8 @@ namespace InstructionCombine
                 copy[2]                   = ops[2];
                 ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, copy);
                 ctx.emitErase(mask.instRef);
+                if (bit.shiftRef.isValid())
+                    ctx.emitErase(bit.shiftRef);
                 if (maskCopy.isValid())
                     ctx.emitErase(maskCopy);
                 return true;

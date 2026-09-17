@@ -133,6 +133,7 @@ namespace InstructionCombine
         {
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::CmpRegReg:
+            case MicroInstrOpcode::TestRegReg:
                 return useOps[2].opBits;
 
             // The base of the store is a whole address.
@@ -140,6 +141,7 @@ namespace InstructionCombine
                 return useOps[0].reg == reg ? MicroOpBits::B64 : useOps[2].opBits;
 
             case MicroInstrOpcode::CmpRegImm:
+            case MicroInstrOpcode::TestRegImm:
                 return useOps[1].opBits;
 
             case MicroInstrOpcode::OpBinaryRegImm:

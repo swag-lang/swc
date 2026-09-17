@@ -4,7 +4,7 @@
 func add16(values: const [*]u16, index: u64)->u16
 {
     let left = values[index]
-    let sum  = left + values[index + 1]
+    let sum  = left + #wrap values[index + 1]
     return sum < left ? 0xFFFF : sum
 }
 
@@ -12,7 +12,7 @@ func add16(values: const [*]u16, index: u64)->u16
 func add8(values: const [*]u8, index: u64)->u8
 {
     let left = values[index]
-    let sum  = left + values[index + 1]
+    let sum  = left + #wrap values[index + 1]
     return sum < left ? 0xFF : sum
 }
 

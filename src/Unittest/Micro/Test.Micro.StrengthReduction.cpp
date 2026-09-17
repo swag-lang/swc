@@ -374,6 +374,64 @@ SWC_TEST_BEGIN(StrengthReduction_DwordSignedDivideUsesWideProduct)
 }
 SWC_TEST_END()
 
+// A remainder only compared with zero becomes a divisibility test.
+SWC_TEST_BEGIN(StrengthReduction_DwordRemainderEqualityBecomesDivisibilityTest)
+{
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(v1, ApInt(100, 64), MicroOp::ModuloUnsigned, MicroOpBits::B32);
+    builder.emitCmpRegImm(v1, ApInt(uint64_t{0}, 64), MicroOpBits::B32);
+    builder.emitSetCondReg(v2, MicroCond::Equal);
+    builder.emitLoadMemReg(base, 8, v2, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    if (countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || !hasBinaryRegImm(builder, MicroOp::RotateRight, 2))
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::SetCondReg && ops[1].cpuCond != MicroCond::BelowOrEqual)
+            return Result::Error;
+        if (inst.op == MicroInstrOpcode::CmpRegImm && ops[2].valueU64 != 0xFFFFFFFFu / 100)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A remainder read after the compare keeps its full expansion.
+SWC_TEST_BEGIN(StrengthReduction_RemainderReadAfterCompareKept)
+{
+    constexpr MicroReg v1   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg v2   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(v1, base, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(v1, ApInt(10, 64), MicroOp::ModuloUnsigned, MicroOpBits::B32);
+    builder.emitCmpRegImm(v1, ApInt(uint64_t{0}, 64), MicroOpBits::B32);
+    builder.emitSetCondReg(v2, MicroCond::NotEqual);
+    builder.emitLoadMemReg(base, 8, v1, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::SetCondReg && ops[1].cpuCond != MicroCond::NotEqual)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // mod_u v1, 10 -> divide expansion followed by r = n - q * 10.
 SWC_TEST_BEGIN(StrengthReduction_UnsignedModuloMagic)
 {

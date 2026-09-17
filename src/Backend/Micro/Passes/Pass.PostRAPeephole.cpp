@@ -30,12 +30,16 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
         r.add(MicroInstrOpcode::CmpRegImm, tryFoldConditionalBitwiseNot);
+        r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftNoCopy);
+        r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftBare);
         r.add(MicroInstrOpcode::CmpRegImm, tryReuseFlagsForCompare);
         r.add(MicroInstrOpcode::TestMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryReuseAddFlagsForUnsignedWrap);
+        r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftNoCopy);
+        r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftBare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseRepeatedCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);

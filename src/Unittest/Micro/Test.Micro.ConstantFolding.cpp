@@ -506,6 +506,42 @@ SWC_TEST_BEGIN(ConstantFolding_LazyAddressesKeepFilteredRelocationOrder)
 }
 SWC_TEST_END()
 
-SWC_END_NAMESPACE();
+// A chain of address steps from a constant, as an unrolled counter leaves it,
+// folds whole in one run.
+SWC_TEST_BEGIN(ConstantFolding_AddressChainFromConstantFolds)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg start = MicroReg::virtualIntReg(2);
+    constexpr MicroReg count = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
 
+    builder.emitLoadRegImm(start, ApInt(10, 64), MicroOpBits::B32);
+    builder.emitLoadRegReg(count, start, MicroOpBits::B32);
+    for (uint32_t i = 0; i < 20; ++i)
+    {
+        const MicroReg step = MicroReg::virtualIntReg(10 + i);
+        builder.emitLoadAddressRegMem(step, count, 1, MicroOpBits::B32);
+        builder.emitLoadRegReg(count, step, MicroOpBits::B32);
+    }
+    builder.emitLoadMemReg(base, 0, count, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runConstantFoldingPass(builder));
+
+    uint32_t steps = 0;
+    bool     last  = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
+            ++steps;
+        if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg == MicroReg::virtualIntReg(29) && ops[2].valueU64 == 30)
+            last = true;
+    }
+    return steps == 0 && last ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+SWC_END_NAMESPACE();
+
 #endif

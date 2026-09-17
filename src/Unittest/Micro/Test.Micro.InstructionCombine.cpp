@@ -3061,6 +3061,129 @@ SWC_TEST_BEGIN(InstCombine_WidenedByteSignedRange_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // D = 0; cmov(first) D, firstValue; E = D; cmp; cmov(second) E, secondValue.
+    // `otherRight` makes the second compare test another value.
+    void emitTwoSelects(MicroBuilder& builder, MicroCond first, uint64_t firstValue, MicroCond second, uint64_t secondValue, bool otherRight)
+    {
+        constexpr MicroReg base       = MicroReg::virtualIntReg(1);
+        constexpr MicroReg left       = MicroReg::virtualIntReg(2);
+        constexpr MicroReg right      = MicroReg::virtualIntReg(3);
+        constexpr MicroReg other      = MicroReg::virtualIntReg(4);
+        constexpr MicroReg inner      = MicroReg::virtualIntReg(5);
+        constexpr MicroReg innerValue = MicroReg::virtualIntReg(6);
+        constexpr MicroReg outer      = MicroReg::virtualIntReg(7);
+        constexpr MicroReg outerValue = MicroReg::virtualIntReg(8);
+
+        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
+        builder.emitLoadRegMem(right, base, 4, MicroOpBits::B32);
+        builder.emitLoadRegMem(other, base, 8, MicroOpBits::B32);
+        builder.emitCmpRegReg(left, right, MicroOpBits::B32);
+        builder.emitLoadRegImm(inner, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(innerValue, ApInt(firstValue, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(inner, innerValue, first, MicroOpBits::B64);
+        builder.emitLoadRegReg(outer, inner, MicroOpBits::B64);
+        builder.emitCmpRegReg(left, otherRight ? other : right, MicroOpBits::B32);
+        builder.emitLoadRegImm(outerValue, ApInt(secondValue, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(outer, outerValue, second, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 16, outer, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    uint32_t countByteSignExtends(const MicroBuilder& builder)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadSignedExtRegReg && inst.ops(builder.operands())[3].opBits == MicroOpBits::B8)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// `if a < b return -1; if a > b return 1; return 0` is the three-way sign.
+SWC_TEST_BEGIN(InstCombine_ThreeWaySelects_BecomeByteDifference)
+{
+    MicroBuilder builder(ctx);
+    emitTwoSelects(builder, MicroCond::Greater, 1, MicroCond::Less, 0xFFFFFFFFFFFFFFFF, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countByteSignExtends(builder) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The other order of the tests, unsigned, is the same sign.
+SWC_TEST_BEGIN(InstCombine_UnsignedThreeWaySelectsReversed_BecomeByteDifference)
+{
+    MicroBuilder builder(ctx);
+    emitTwoSelects(builder, MicroCond::Below, 0xFFFFFFFFFFFFFFFF, MicroCond::Above, 1, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countByteSignExtends(builder) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Selects that read different compares are not one sign.
+SWC_TEST_BEGIN(InstCombine_SelectsOfTwoComparesKept)
+{
+    MicroBuilder builder(ctx);
+    emitTwoSelects(builder, MicroCond::Greater, 1, MicroCond::Less, 0xFFFFFFFFFFFFFFFF, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countByteSignExtends(builder) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Mixed signedness is not a sign either.
+SWC_TEST_BEGIN(InstCombine_MixedSignednessSelectsKept)
+{
+    MicroBuilder builder(ctx);
+    emitTwoSelects(builder, MicroCond::Above, 1, MicroCond::Less, 0xFFFFFFFFFFFFFFFF, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countByteSignExtends(builder) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A compare whose flags the next compare overwrites is dropped.
+SWC_TEST_BEGIN(InstCombine_OverwrittenCompare_Dropped)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg right = MicroReg::virtualIntReg(3);
+    constexpr MicroReg flag  = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
+    builder.emitLoadRegMem(right, base, 4, MicroOpBits::B32);
+    builder.emitCmpRegReg(left, right, MicroOpBits::B32);
+    builder.emitCmpRegImm(left, ApInt(7, 64), MicroOpBits::B32);
+    builder.emitSetCondReg(flag, MicroCond::Less);
+    builder.emitLoadMemReg(base, 8, flag, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

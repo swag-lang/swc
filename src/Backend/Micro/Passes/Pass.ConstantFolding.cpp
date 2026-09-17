@@ -480,6 +480,23 @@ namespace
                 return true;
             }
 
+            // An address computed from a known base is a known value: an
+            // unrolled loop's counter steps through a chain of them, which one
+            // sweep settles instead of one step per sweep.
+            case MicroInstrOpcode::LoadAddrRegMem:
+            {
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
+                    return false;
+
+                KnownValue base;
+                if (!tryGetKnownReachingValue(base, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                    return false;
+
+                outValue.value  = (base.value + ops[3].valueU64) & getBitsMask(ops[2].opBits);
+                outValue.opBits = ops[2].opBits;
+                return true;
+            }
+
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
             {
@@ -525,6 +542,28 @@ namespace
         inst.op          = MicroInstrOpcode::LoadRegImm;
         ops[1].opBits    = sourceValue.opBits;
         ops[2].valueU64  = sourceValue.value;
+        inst.numOperands = 3;
+        return true;
+    }
+
+    bool tryFoldAddressFromKnown(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    {
+        if (inst.op != MicroInstrOpcode::LoadAddrRegMem || !ops || !ops[0].reg.isVirtualInt())
+            return false;
+
+        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+        if (!ssaState.defValue(ops[0].reg, instRef, valueId))
+            return false;
+
+        KnownValue resultValue;
+        if (!tryGetSsaValue<KnownValue, KnownValueTraits>(resultValue, knownValues, knownFlags, valueId))
+            return false;
+
+        // An address computation leaves the flags alone, as a load does.
+        const MicroOpBits bits = ops[2].opBits;
+        inst.op                = MicroInstrOpcode::LoadRegImm;
+        ops[1].opBits          = bits;
+        ops[2].setImmediateValue(ApInt(resultValue.value, getNumBits(bits)));
         inst.numOperands = 3;
         return true;
     }
@@ -863,6 +902,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
         MicroInstrOperand*  ops     = inst.ops(operands);
 
         const bool changed = tryFoldCopyFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
+                             tryFoldAddressFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
                              tryFoldBinaryRegImm(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
                              tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
                              tryFoldExtend(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||

@@ -2682,7 +2682,7 @@ namespace
 
             const MicroInstrRef firstLoadRef = storage.findNextInstructionRef(it.current);
             const MicroInstr*   firstLoad    = storage.ptr(firstLoadRef);
-            if (!firstLoad || firstLoad->op != MicroInstrOpcode::LoadRegMem || scan.relocated.contains(firstLoadRef.get()))
+            if (!firstLoad || (firstLoad->op != MicroInstrOpcode::LoadRegMem && firstLoad->op != MicroInstrOpcode::LoadAmcRegMem) || scan.relocated.contains(firstLoadRef.get()))
                 continue;
             const MicroInstrOperand* firstOps = firstLoad->ops(operands);
 
@@ -2708,13 +2708,64 @@ namespace
 
             const MicroInstrRef secondLoadRef = storage.findNextInstructionRef(armLabelRef);
             const MicroInstr*   secondLoad    = storage.ptr(secondLoadRef);
-            if (!secondLoad || secondLoad->op != MicroInstrOpcode::LoadRegMem || scan.relocated.contains(secondLoadRef.get()))
+            if (!secondLoad || secondLoad->op != firstLoad->op || scan.relocated.contains(secondLoadRef.get()))
                 continue;
             const MicroInstrOperand* secondOps = secondLoad->ops(operands);
 
             const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(secondLoadRef);
             const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
             if (!joinLabel || !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
+                continue;
+
+            uint32_t selectedOperand = UINT32_MAX;
+            if (firstOps && secondOps && firstOps[0].reg == secondOps[0].reg)
+            {
+                if (firstLoad->op == MicroInstrOpcode::LoadRegMem && firstOps[2].opBits == secondOps[2].opBits &&
+                    firstOps[3].valueU64 == secondOps[3].valueU64 && firstOps[1].reg != secondOps[1].reg &&
+                    firstOps[1].reg.isVirtualInt() && secondOps[1].reg.isVirtualInt())
+                    selectedOperand = 1;
+                else if (firstLoad->op == MicroInstrOpcode::LoadAmcRegMem && firstOps[1].reg == secondOps[1].reg &&
+                         firstOps[3].opBits == secondOps[3].opBits && firstOps[4].opBits == secondOps[4].opBits &&
+                         firstOps[5].valueU64 == secondOps[5].valueU64 && firstOps[6].valueU64 == secondOps[6].valueU64 &&
+                         firstOps[2].reg != secondOps[2].reg && firstOps[2].reg.isVirtualInt() && secondOps[2].reg.isVirtualInt())
+                    selectedOperand = 2;
+            }
+
+            if (selectedOperand != UINT32_MAX)
+            {
+                const MicroInstrOpcode loadOp      = firstLoad->op;
+                const uint32_t         numOperands = firstLoad->numOperands;
+                const MicroReg         firstSource  = firstOps[selectedOperand].reg;
+                const MicroReg         secondSource = secondOps[selectedOperand].reg;
+                MicroInstrOperand      selectedLoad[8];
+                std::copy_n(firstOps, numOperands, selectedLoad);
+                const MicroReg selected = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
+
+                MicroInstrOperand copyOps[3];
+                copyOps[0].reg    = selected;
+                copyOps[1].reg    = firstSource;
+                copyOps[2].opBits = MicroOpBits::B64;
+                storage.insertDerivedBefore(operands, flagsRef, MicroInstrOpcode::LoadRegReg, copyOps);
+
+                MicroInstrOperand selectOps[4];
+                selectOps[0].reg     = selected;
+                selectOps[1].reg     = secondSource;
+                selectOps[2].cpuCond = jumpOps[0].cpuCond;
+                selectOps[3].opBits  = MicroOpBits::B64;
+                storage.insertDerivedBefore(operands, it.current, MicroInstrOpcode::LoadCondRegReg, selectOps);
+
+                selectedLoad[selectedOperand].reg = selected;
+                storage.insertDerivedBefore(operands, firstLoadRef, loadOp, std::span<const MicroInstrOperand>(selectedLoad, numOperands));
+
+                storage.erase(it.current);
+                storage.erase(firstLoadRef);
+                storage.erase(joinJumpRef);
+                storage.erase(armLabelRef);
+                storage.erase(secondLoadRef);
+                return true;
+            }
+
+            if (firstLoad->op != MicroInstrOpcode::LoadRegMem)
                 continue;
 
             if (!firstOps || !secondOps || firstOps[0].reg != secondOps[0].reg || firstOps[1].reg != secondOps[1].reg || firstOps[2].opBits != secondOps[2].opBits)

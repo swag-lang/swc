@@ -221,6 +221,65 @@ namespace InstructionCombine
                 if (cursor != ref)
                     return false;
             }
+
+            const bool leftShift0 = shifts[0][2].microOp == MicroOp::ShiftLeft || shifts[0][2].microOp == MicroOp::ShiftArithmeticLeft;
+            const bool leftShift1 = shifts[1][2].microOp == MicroOp::ShiftLeft || shifts[1][2].microOp == MicroOp::ShiftArithmeticLeft;
+            if (leftOnly && leftShift0 && leftShift1 && shifts[0][3].valueU64 != shifts[1][3].valueU64)
+            {
+                std::array<MicroSsaState::ReachingDef, 2> initial;
+                std::array<const MicroInstrOperand*, 2>   initialCopies;
+                for (uint32_t i = 0; i < 2; ++i)
+                {
+                    initial[i] = ctx.ssa->reachingDef(regs[i], defs[i].instRef);
+                    if (!initial[i].valid() || initial[i].isPhi || !initial[i].inst || initial[i].inst->op != MicroInstrOpcode::LoadRegReg)
+                        return false;
+                    initialCopies[i] = initial[i].inst->ops(*ctx.operands);
+                    if (!initialCopies[i] || !initialCopies[i][1].reg.isVirtualInt() || initialCopies[i][2].opBits != bits)
+                        return false;
+                }
+
+                const MicroReg source = initialCopies[0][1].reg;
+                const auto     sourceValue = ctx.ssa->reachingDef(source, initial[0].instRef);
+                if (source != initialCopies[1][1].reg || !sourceValue.valid() ||
+                    ctx.ssa->reachingDef(source, initial[1].instRef).valueId != sourceValue.valueId ||
+                    ctx.ssa->reachingDef(source, ref).valueId != sourceValue.valueId)
+                    return false;
+
+                const uint64_t shift0 = shifts[0][3].valueU64;
+                const uint64_t shift1 = shifts[1][3].valueU64;
+                const uint32_t lowSide = shift0 < shift1 ? 0 : 1;
+                const uint64_t delta = shift0 > shift1 ? shift0 - shift1 : shift1 - shift0;
+                uint64_t       factor = 0;
+                if (delta <= 3)
+                {
+                    if (outer == MicroOp::Add)
+                        factor = (1ull << delta) + 1;
+                    else if (shift0 > shift1)
+                        factor = (1ull << delta) - 1;
+                }
+                if ((factor != 2 && factor != 3 && factor != 5 && factor != 9) ||
+                    ctx.ssa->reachingDef(regs[lowSide], ref).valueId != defs[lowSide].valueId ||
+                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                    !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
+                                   copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
+                    return false;
+
+                MicroInstrOperand combined[8] = {};
+                combined[0]                   = ops[0];
+                combined[1].reg               = regs[lowSide];
+                combined[2].reg               = regs[lowSide];
+                combined[3].opBits            = bits;
+                combined[4].opBits            = MicroOpBits::B64;
+                combined[5].valueU64          = factor - 1;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, combined, true);
+                ctx.emitErase(defs[1 - lowSide].instRef);
+                if (copies[0].isValid())
+                    ctx.emitErase(copies[0]);
+                if (copies[1].isValid())
+                    ctx.emitErase(copies[1]);
+                return true;
+            }
+
             if (defs[0].instRef == defs[1].instRef || shifts[0][2].microOp != shifts[1][2].microOp ||
                 shifts[0][3].valueU64 != shifts[1][3].valueU64 ||
                 !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||

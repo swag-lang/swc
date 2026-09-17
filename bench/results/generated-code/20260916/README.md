@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 871 (abd921e01) are
+corpus. Focused continuation measurements through build 875 (2d1b5a3f4) are
 recorded below.
 
 ## Machine-code measurements
@@ -40,8 +40,9 @@ against their build-827 baseline and three retain their size.
 
 The final continuation compared 18 additional scalar/indexed functions in one
 round, then isolated five immediate updates, four sparse bitwise updates, five
-constant shifts, four unary updates and four register comparisons. The initial
-18 all match LLVM. The later 22 also all match LLVM after the corresponding
+constant shifts, four unary updates, four register comparisons, three variable
+shifts and two multiplications. The initial 18 all match LLVM. The later 27 also
+all match LLVM after the corresponding
 batch; aggregate byte counts below use each round's pre-batch build as its own
 baseline.
 
@@ -54,6 +55,8 @@ baseline.
 | 868 | Indexed constant shifts | 5 | 57 | 26 | 26 |
 | 869 | Indexed NOT/NEG | 4 | 42 | 18 | 18 |
 | 870–871 | Indexed register comparisons | 4 | 54 | 40 | 40 |
+| 874 | Indexed variable shifts | 3 | 54 | 32 | 32 |
+| 875 | Indexed multiplication | 2 | 24 | 20 | 20 |
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -109,6 +112,9 @@ immediate arithmetic and bitwise updates, sparse-width OR/XOR, constant shifts,
 NOT/NEG and comparisons against registers. A post-allocation rewrite restores a
 coalesced comparison source so 32-bit SETcc results can be cleared before the
 comparison instead of zero-extended afterward.
+Variable indexed shifts now encode their memory destination directly while the
+legalizer moves an address away from the required `CL` register. Indexed
+multiplication reuses a dead multiplier as the `imul reg,mem` destination.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -137,10 +143,14 @@ booleans. Each later batch used a different focused optimizer context; build
 zero-extended boolean comparison test. Each batch was validated before its
 merge into local master.
 
-Continuation core-workspace measurements ranged from 1.90 to 3.47 seconds and
-314.62 to 328.32 MiB peak working set. Build 871 measured 3.16 seconds and
-314.88 MiB. Shared-machine variation is larger than these differences, so they
-are admission and regression evidence rather than a claimed speedup.
+After the final two batches, build 875 passed all 3,379 native tests and the
+three expected-failure recovery probes.
+
+Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
+peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under
+heavier concurrent load, at 310.33 and 303.89 MiB. Shared-machine variation is
+larger than these differences, so they are admission and regression evidence
+rather than a claimed speedup.
 
 The full repository campaign, DevMode compiler and C++ unit tests were not run
 by this worktree during this session. Concurrent contributors performed separate

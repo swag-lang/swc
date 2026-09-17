@@ -7,6 +7,90 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    // An unsigned modular sum is at least its original left operand exactly
+    // when the addition did not carry. Keep the ADD flags across a fallback
+    // constant load and let the conditional move consume CF directly:
+    //
+    //     mov S, A                 mov S, A
+    //     add S, B                 add S, B
+    //     cmp S, A        ->
+    //     mov R, fallback          mov R, fallback
+    //     cmovae R, S              cmovae R, S
+    bool tryReuseAddFlagsForUnsignedWrap(Context& ctx, const MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const auto* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || (cmp[2].opBits != MicroOpBits::B32 && cmp[2].opBits != MicroOpBits::B64) ||
+            !cmp[0].reg.isInt() || !cmp[1].reg.isInt() || cmp[0].reg == cmp[1].reg)
+            return false;
+        const MicroReg    sum      = cmp[0].reg;
+        const MicroReg    original = cmp[1].reg;
+        const MicroOpBits bits     = cmp[2].opBits;
+
+        const MicroInstrRef addRef = ctx.previousRef(cmpRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        const auto*         addOps = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || !addOps || addOps[0].reg != sum)
+            return false;
+        MicroOpBits addBits;
+        MicroOp     addOp;
+        switch (add->op)
+        {
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegMem:
+                addBits = addOps[2].opBits;
+                addOp   = addOps[3].microOp;
+                break;
+            case MicroInstrOpcode::OpBinaryRegAmcMem:
+                addBits = addOps[3].opBits;
+                addOp   = addOps[7].microOp;
+                break;
+            default:
+                return false;
+        }
+        if (addBits != bits || addOp != MicroOp::Add)
+            return false;
+
+        const MicroInstrRef copyRef = ctx.previousRef(addRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        const auto*         copied  = copy ? copy->ops(*ctx.operands) : nullptr;
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copied ||
+            copied[0].reg != sum || copied[1].reg != original || getNumBits(copied[2].opBits) < getNumBits(bits))
+            return false;
+        const MicroInstrRef loadRef = ctx.previousRef(copyRef);
+        const MicroInstr*   load    = ctx.instruction(loadRef);
+        const auto*         loaded  = load ? load->ops(*ctx.operands) : nullptr;
+        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || !loaded || loaded[0].reg != original ||
+            loaded[3].opBits != bits || load->numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrRef fallbackRef = ctx.nextRef(cmpRef);
+        const MicroInstr*   fallback    = ctx.instruction(fallbackRef);
+        const auto*         fallbackOps = fallback ? fallback->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef selectRef   = ctx.nextRef(fallbackRef);
+        const MicroInstr*   select      = ctx.instruction(selectRef);
+        const auto*         selected    = select ? select->ops(*ctx.operands) : nullptr;
+        if (!fallback || fallback->op != MicroInstrOpcode::LoadRegImm || !fallbackOps ||
+            !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != fallbackOps[0].reg || selected[1].reg != sum ||
+            selected[2].cpuCond != MicroCond::AboveOrEqual || selected[3].opBits != bits ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand rewrittenLoad[Action::K_MAX_OPS] = {};
+        std::copy_n(loaded, load->numOperands, rewrittenLoad);
+        rewrittenLoad[0].reg = sum;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *load, rewrittenLoad)) ||
+            !ctx.claimAll({loadRef, copyRef, addRef, cmpRef, fallbackRef, selectRef}))
+            return false;
+        ctx.emitRewrite(loadRef, load->op, std::span{rewrittenLoad, load->numOperands});
+        ctx.emitErase(copyRef);
+        ctx.emitErase(cmpRef);
+        return true;
+    }
+
     // Reuse a nearby identical register comparison across instructions that
     // preserve both its operands and the CPU flags. Conditional moves are the
     // common case: they consume the first comparison without changing it, so

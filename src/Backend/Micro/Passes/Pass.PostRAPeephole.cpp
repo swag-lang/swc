@@ -34,6 +34,7 @@ namespace
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegImm, tryEraseDeadCompare);
+        r.add(MicroInstrOpcode::CmpRegReg, tryReuseAddFlagsForUnsignedWrap);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseRepeatedCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);

@@ -2273,7 +2273,7 @@ namespace PostRaPeephole
         const auto*         first      = firstOp ? firstOp->ops(*ctx.operands) : nullptr;
         if (!firstOp || firstOp->op != MicroInstrOpcode::OpBinaryRegReg || !first ||
             first[0].reg != result || !first[1].reg.isInt() ||
-            (first[2].opBits != MicroOpBits::B32 && first[2].opBits != MicroOpBits::B64) ||
+            (first[2].opBits != MicroOpBits::B16 && first[2].opBits != MicroOpBits::B32 && first[2].opBits != MicroOpBits::B64) ||
             (first[3].microOp != MicroOp::Add && first[3].microOp != MicroOp::Subtract &&
              first[3].microOp != MicroOp::And && first[3].microOp != MicroOp::Or && first[3].microOp != MicroOp::Xor &&
              first[3].microOp != MicroOp::MultiplySigned && first[3].microOp != MicroOp::MultiplyUnsigned) ||
@@ -2310,7 +2310,8 @@ namespace PostRaPeephole
         const MicroInstr*   select    = ctx.instruction(selectRef);
         const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
         if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
-            selected[0].reg != result || selected[1].reg != common || selected[3].opBits != bits ||
+            selected[0].reg != result || selected[1].reg != common ||
+            (selected[3].opBits != bits && !(bits == MicroOpBits::B16 && selected[3].opBits == MicroOpBits::B32)) ||
             !ctx.isRegDeadAfter(firstVarying, ctx.instructionIndex + 4) ||
             !ctx.isRegDeadAfter(common, ctx.instructionIndex + 4) ||
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
@@ -2321,7 +2322,7 @@ namespace PostRaPeephole
         rewrittenSelect[1].reg               = secondVarying;
         MicroInstrOperand finalOps[8]        = {};
         MicroInstr        finalProbe;
-        if (operation == MicroOp::Add)
+        if (operation == MicroOp::Add && bits != MicroOpBits::B16)
         {
             finalOps[0].reg       = result;
             finalOps[1].reg       = common;
@@ -2342,15 +2343,15 @@ namespace PostRaPeephole
             finalProbe.numOperands = 4;
         }
         MicroInstrOperand narrowedCopy[3] = {copy[0], copy[1], copy[2]};
-        narrowedCopy[2].opBits            = bits;
+        narrowedCopy[2].opBits            = bits == MicroOpBits::B16 ? MicroOpBits::B32 : bits;
         MicroConformanceIssue issue;
         if (ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
             ctx.encoder->queryConformanceIssue(issue, finalProbe, finalOps) ||
-            (operation != MicroOp::Add && ctx.encoder->queryConformanceIssue(issue, copyInst, narrowedCopy)) ||
+            ((operation != MicroOp::Add || bits == MicroOpBits::B16) && ctx.encoder->queryConformanceIssue(issue, copyInst, narrowedCopy)) ||
             !ctx.claimAll({copyRef, firstOpRef, secondOpRef, compareRef, selectRef}))
             return false;
 
-        if (operation == MicroOp::Add)
+        if (operation == MicroOp::Add && bits != MicroOpBits::B16)
             ctx.emitErase(copyRef);
         else
             ctx.emitRewrite(copyRef, copyInst.op, narrowedCopy);

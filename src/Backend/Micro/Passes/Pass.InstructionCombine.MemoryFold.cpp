@@ -379,6 +379,65 @@ namespace InstructionCombine
         ctx.emitErase(storeRef);
         return true;
     }
+
+    // Reuse an indexed value when clearing its lowest set bit:
+    //
+    //     a = [address]; a -= 1
+    //     b = [address]; b &= a
+    // ->
+    //     b = [address]
+    //     a = b - 1 (LEA); b &= a
+    //
+    // LEA preserves the original value in b, so the second read disappears.
+    bool tryReuseAmcLoadForClearLowestBit(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa || loadInst.op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps || !loadOps[0].reg.isVirtualInt() ||
+            (loadOps[3].opBits != MicroOpBits::B32 && loadOps[3].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef decrementRef = ctx.storage->findNextInstructionRef(loadRef);
+        const MicroInstr*   decrement    = ctx.storage->ptr(decrementRef);
+        const auto*         decrementOps = decrement && decrement->op == MicroInstrOpcode::OpBinaryRegImm ? decrement->ops(*ctx.operands) : nullptr;
+        if (!decrementOps || decrementOps[0].reg != loadOps[0].reg || decrementOps[1].opBits != loadOps[3].opBits ||
+            decrementOps[2].microOp != MicroOp::Subtract || decrementOps[3].hasWideImmediateValue() || decrementOps[3].valueU64 != 1)
+            return false;
+
+        const MicroInstrRef reloadRef = ctx.storage->findNextInstructionRef(decrementRef);
+        const MicroInstr*   reload    = ctx.storage->ptr(reloadRef);
+        const auto*         reloadOps = reload && reload->op == MicroInstrOpcode::LoadAmcRegMem ? reload->ops(*ctx.operands) : nullptr;
+        if (!reloadOps || !reloadOps[0].reg.isVirtualInt() || reloadOps[0].reg == loadOps[0].reg)
+            return false;
+        if (reloadOps[1].reg != loadOps[1].reg || reloadOps[2].reg != loadOps[2].reg ||
+            reloadOps[3].opBits != loadOps[3].opBits || reloadOps[4].opBits != loadOps[4].opBits ||
+            reloadOps[5].valueU64 != loadOps[5].valueU64 || reloadOps[6].valueU64 != loadOps[6].valueU64)
+            return false;
+
+        const MicroInstrRef andRef  = ctx.storage->findNextInstructionRef(reloadRef);
+        const MicroInstr*   andInst = ctx.storage->ptr(andRef);
+        const auto*         andOps  = andInst && andInst->op == MicroInstrOpcode::OpBinaryRegReg ? andInst->ops(*ctx.operands) : nullptr;
+        if (!andOps || andOps[0].reg != reloadOps[0].reg || andOps[1].reg != loadOps[0].reg ||
+            andOps[2].opBits != loadOps[3].opBits || andOps[3].microOp != MicroOp::And ||
+            !valueHasSingleUse(*ctx.ssa, loadOps[0].reg, loadRef) ||
+            !valueHasSingleUse(*ctx.ssa, loadOps[0].reg, decrementRef) ||
+            !valueHasSingleUse(*ctx.ssa, reloadOps[0].reg, reloadRef) ||
+            !ctx.claimAll({loadRef, decrementRef, reloadRef, andRef}))
+            return false;
+
+        MicroInstrOperand reusedLoad[7] = {loadOps[0], loadOps[1], loadOps[2], loadOps[3], loadOps[4], loadOps[5], loadOps[6]};
+        reusedLoad[0]                   = reloadOps[0];
+        MicroInstrOperand decrementLea[4] = {};
+        decrementLea[0]                   = loadOps[0];
+        decrementLea[1]                   = reloadOps[0];
+        decrementLea[2]                   = loadOps[3];
+        decrementLea[3].valueU64          = UINT64_MAX;
+        ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadAmcRegMem, reusedLoad, /*allocNewBlock=*/true);
+        ctx.emitRewrite(decrementRef, MicroInstrOpcode::LoadAddrRegMem, decrementLea, /*allocNewBlock=*/true);
+        ctx.emitErase(reloadRef);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

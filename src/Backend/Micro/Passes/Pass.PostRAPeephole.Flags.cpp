@@ -1251,6 +1251,40 @@ namespace PostRaPeephole
         const auto* cmpOps = cmp->ops(*ctx.operands);
         if (!cmpOps || !cmpOps[0].reg.isInt())
             return false;
+
+        // Register allocation can coalesce the compare source with the SETcc
+        // result and leave a copy immediately before an indexed comparison:
+        //
+        //     copy result, source
+        //     cmp  [base + index*scale], result
+        //     setcc result
+        //     movzx result, result.byte
+        //
+        // Restore the original compare source so the copy's slot can clear the
+        // result before CMP. This is the same three-instruction boolean idiom as
+        // the generic case below, despite the post-RA coalescing.
+        if (cmp->op == MicroInstrOpcode::CmpAmcReg && cmpOps[2].reg == ext[0].reg &&
+            cmpOps[0].reg != ext[0].reg && cmpOps[1].reg != ext[0].reg)
+        {
+            const MicroInstrRef copyRef = ctx.previousRef(cmpRef);
+            const MicroInstr*   copy    = ctx.instruction(copyRef);
+            const auto*         copyOps = copy && copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
+            if (copyOps && copyOps[0].reg == ext[0].reg && copyOps[1].reg.isInt() && copyOps[1].reg != ext[0].reg &&
+                copyOps[2].opBits == cmpOps[4].opBits && !ctx.isPrivateFrameBase(copyOps[1].reg) &&
+                ctx.claimAll({copyRef, cmpRef, setRef, ref}))
+            {
+                MicroInstrOperand clear[2] = {};
+                clear[0].reg               = ext[0].reg;
+                clear[1].opBits            = MicroOpBits::B32;
+                MicroInstrOperand compare[7] = {cmpOps[0], cmpOps[1], cmpOps[2], cmpOps[3], cmpOps[4], cmpOps[5], cmpOps[6]};
+                compare[2].reg               = copyOps[1].reg;
+                ctx.emitRewrite(copyRef, MicroInstrOpcode::ClearReg, clear);
+                ctx.emitRewrite(cmpRef, cmp->op, compare, true);
+                ctx.emitErase(ref);
+                return true;
+            }
+        }
+
         if (isCompareInstruction(cmp->op))
         {
             if (!canMoveComparisonForSelect(*cmp, cmpOps))

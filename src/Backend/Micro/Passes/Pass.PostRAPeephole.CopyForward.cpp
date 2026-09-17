@@ -710,6 +710,43 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A conditional move followed by a copy back into its alternative source
+    // can select directly in that final register by complementing the condition:
+    // `cmovCC A, B; mov B, A` becomes `cmov!CC B, A`. The old value of B is
+    // exactly the true arm, while A is the false arm. A must die at the copy.
+    bool tryFoldConditionalResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+
+        const MicroInstrRef selectRef = ctx.previousRef(copyRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         ops       = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !ops ||
+            ops[0].reg != copy[1].reg || ops[1].reg != copy[0].reg || ops[3].opBits != copy[2].opBits)
+            return false;
+
+        MicroCond inverted;
+        if (!MicroPassHelpers::invertCondition(inverted, ops[2].cpuCond))
+            return false;
+        MicroInstrOperand rewritten[4] = {ops[0], ops[1], ops[2], ops[3]};
+        rewritten[0].reg               = copy[0].reg;
+        rewritten[1].reg               = copy[1].reg;
+        rewritten[2].cpuCond           = inverted;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *select, rewritten)) ||
+            !ctx.claimAll({selectRef, copyRef}))
+            return false;
+        ctx.emitRewrite(selectRef, select->op, rewritten);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // Move a dying unary result into its final register before the operation.
     // This exposes preceding arithmetic to the input-copy folds on the next sweep.
     bool tryRetargetUnaryResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

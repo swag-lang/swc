@@ -2470,6 +2470,157 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Narrow shifts cannot use BMI2, so allocation emits two shifts with two
+    // moves into CL and selects their full-width result. Move the comparison
+    // ahead of this pure sequence, select the count, and shift one zero-
+    // extended value at 32 bits. Byte and word shifts use the same masked x64
+    // count; widening the input preserves their low-width result.
+    bool tryFactorNarrowConditionalShift(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroReg result = copy[0].reg;
+        const MicroReg common = copy[1].reg;
+
+        const MicroInstrRef alternateCopyRef = ctx.nextRef(copyRef);
+        const MicroInstr*   alternateCopy    = ctx.instruction(alternateCopyRef);
+        const auto* alternateCopyOps = alternateCopy ? alternateCopy->ops(*ctx.operands) : nullptr;
+        if (!alternateCopy || alternateCopy->op != MicroInstrOpcode::LoadRegReg || !alternateCopyOps ||
+            alternateCopyOps[1].reg != common || alternateCopyOps[0].reg == result || alternateCopyOps[0].reg == common)
+            return false;
+        const MicroReg alternate = alternateCopyOps[0].reg;
+
+        const MicroInstrRef firstCountMoveRef = ctx.nextRef(alternateCopyRef);
+        const MicroInstr*   firstCountMove    = ctx.instruction(firstCountMoveRef);
+        const auto* firstCountMoveOps = firstCountMove ? firstCountMove->ops(*ctx.operands) : nullptr;
+        if (!firstCountMove || firstCountMove->op != MicroInstrOpcode::LoadRegReg || !firstCountMoveOps ||
+            !firstCountMoveOps[0].reg.isInt() || !firstCountMoveOps[1].reg.isInt())
+            return false;
+        const MicroReg countReg   = firstCountMoveOps[0].reg;
+        const MicroReg firstCount = firstCountMoveOps[1].reg;
+        if (firstCount == result || firstCount == common || firstCount == alternate || firstCount == countReg)
+            return false;
+
+        const MicroInstrRef firstShiftRef = ctx.nextRef(firstCountMoveRef);
+        const MicroInstr*   firstShift    = ctx.instruction(firstShiftRef);
+        const auto*         first         = firstShift ? firstShift->ops(*ctx.operands) : nullptr;
+        if (!firstShift || firstShift->op != MicroInstrOpcode::OpBinaryRegReg || !first ||
+            first[0].reg != alternate || first[1].reg != countReg ||
+            (first[2].opBits != MicroOpBits::B8 && first[2].opBits != MicroOpBits::B16))
+            return false;
+        switch (first[3].microOp)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+                break;
+            default:
+                return false;
+        }
+        const MicroOpBits narrowBits = first[2].opBits;
+
+        const MicroInstrRef secondCountMoveRef = ctx.nextRef(firstShiftRef);
+        const MicroInstr*   secondCountMove    = ctx.instruction(secondCountMoveRef);
+        const auto* secondCountMoveOps = secondCountMove ? secondCountMove->ops(*ctx.operands) : nullptr;
+        if (!secondCountMove || secondCountMove->op != MicroInstrOpcode::LoadRegReg || !secondCountMoveOps ||
+            secondCountMoveOps[0].reg != countReg || !secondCountMoveOps[1].reg.isInt())
+            return false;
+        const MicroReg secondCount = secondCountMoveOps[1].reg;
+        if (secondCount == result || secondCount == common || secondCount == alternate ||
+            secondCount == countReg || secondCount == firstCount)
+            return false;
+
+        const MicroInstrRef secondShiftRef = ctx.nextRef(secondCountMoveRef);
+        const MicroInstr*   secondShift    = ctx.instruction(secondShiftRef);
+        const auto*         second         = secondShift ? secondShift->ops(*ctx.operands) : nullptr;
+        if (!secondShift || secondShift->op != MicroInstrOpcode::OpBinaryRegReg || !second ||
+            second[0].reg != result || second[1].reg != countReg || second[2].opBits != narrowBits ||
+            second[3].microOp != first[3].microOp)
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(secondShiftRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        if (!compare || (compare->op != MicroInstrOpcode::CmpRegImm && compare->op != MicroInstrOpcode::CmpRegReg))
+            return false;
+        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
+        for (const MicroReg reg : {result, common, alternate, countReg, firstCount, secondCount})
+        {
+            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
+                return false;
+        }
+
+        const MicroInstrRef selectRef = ctx.nextRef(compareRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != alternate || selected[3].opBits != MicroOpBits::B32 ||
+            !ctx.isRegDeadAfter(alternate, ctx.instructionIndex + 7) ||
+            !ctx.isRegDeadAfter(firstCount, ctx.instructionIndex + 7) ||
+            !ctx.isRegDeadAfter(common, ctx.instructionIndex + 7) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+        MicroCond inverted;
+        if (!MicroPassHelpers::invertCondition(inverted, selected[2].cpuCond))
+            return false;
+
+        const auto* compareOps = compare->ops(*ctx.operands);
+        MicroInstrOperand extend[4] = {};
+        extend[0].reg                = result;
+        extend[1].reg                = common;
+        extend[2].opBits             = MicroOpBits::B32;
+        extend[3].opBits             = narrowBits;
+        MicroInstr extendProbe;
+        extendProbe.op          = first[3].microOp == MicroOp::ShiftArithmeticRight ?
+                                      MicroInstrOpcode::LoadSignedExtRegReg :
+                                      MicroInstrOpcode::LoadZeroExtRegReg;
+        extendProbe.numOperands = 4;
+        MicroInstrOperand choose[4] = {};
+        choose[0].reg               = firstCount;
+        choose[1].reg               = secondCount;
+        choose[2].cpuCond           = inverted;
+        choose[3].opBits            = MicroOpBits::B32;
+        MicroInstr chooseProbe;
+        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands = 4;
+        MicroInstrOperand moveCount[3] = {};
+        moveCount[0].reg                = countReg;
+        moveCount[1].reg                = firstCount;
+        moveCount[2].opBits             = MicroOpBits::B32;
+        MicroInstr moveCountProbe;
+        moveCountProbe.op          = MicroInstrOpcode::LoadRegReg;
+        moveCountProbe.numOperands = 3;
+        MicroInstrOperand shift[4] = {};
+        shift[0].reg                = result;
+        shift[1].reg                = countReg;
+        shift[2].opBits             = MicroOpBits::B32;
+        shift[3].microOp            = first[3].microOp;
+        MicroInstr shiftProbe;
+        shiftProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        shiftProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (!compareOps || ctx.encoder->queryConformanceIssue(issue, *compare, compareOps) ||
+            ctx.encoder->queryConformanceIssue(issue, extendProbe, extend) ||
+            ctx.encoder->queryConformanceIssue(issue, chooseProbe, choose) ||
+            ctx.encoder->queryConformanceIssue(issue, moveCountProbe, moveCount) ||
+            ctx.encoder->queryConformanceIssue(issue, shiftProbe, shift) ||
+            !ctx.claimAll({copyRef, alternateCopyRef, firstCountMoveRef, firstShiftRef, secondCountMoveRef, secondShiftRef, compareRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(copyRef, compare->op, std::span{compareOps, compare->numOperands});
+        ctx.emitRewrite(alternateCopyRef, extendProbe.op, extend);
+        ctx.emitRewrite(firstCountMoveRef, chooseProbe.op, choose);
+        ctx.emitRewrite(firstShiftRef, moveCountProbe.op, moveCount);
+        ctx.emitRewrite(secondCountMoveRef, shiftProbe.op, shift);
+        ctx.emitErase(secondShiftRef);
+        ctx.emitErase(compareRef);
+        ctx.emitErase(selectRef);
+        return true;
+    }
+
     // Select the varying operand before applying a shared binary operation:
     // `R = A op B; A = A op C; cmovCC R, A` becomes
     // `cmovCC B, C; R = A op B`. B and A must die with the original select

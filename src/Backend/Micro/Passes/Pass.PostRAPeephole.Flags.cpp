@@ -806,6 +806,25 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A unit address displacement on its own register is the compact INC/DEC
+    // form. The newly written flags must be unobserved.
+    bool tryShortenAddressUnitOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isInt() || ops[0].reg != ops[1].reg ||
+            (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+            (ops[3].valueU64 != 1 && ops[3].valueU64 != UINT64_MAX) || ctx.isPrivateFrameBase(ops[0].reg) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) || !ctx.claimAll({ref}))
+            return false;
+
+        MicroInstrOperand unary[3];
+        unary[0].reg     = ops[0].reg;
+        unary[1].opBits  = ops[2].opBits;
+        unary[2].microOp = ops[3].valueU64 == 1 ? MicroOp::Add : MicroOp::Subtract;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, unary);
+        return true;
+    }
+
     // With one input already in the result register, ADD is one byte shorter
     // than an unscaled LEA. The newly written flags must be unobserved.
     bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

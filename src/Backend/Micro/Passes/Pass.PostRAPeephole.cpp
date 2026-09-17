@@ -48,6 +48,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryUseTestForDeadMask);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowShiftedBoolean);
+        r.add(MicroInstrOpcode::LoadAddrRegMem, tryShortenAddressUnitOffset);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);

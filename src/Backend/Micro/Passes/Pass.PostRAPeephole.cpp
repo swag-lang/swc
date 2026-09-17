@@ -48,6 +48,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryUseTestForDeadMask);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowShiftedBoolean);
+        r.add(MicroInstrOpcode::LoadAddrRegMem, tryShortenAddressUnitOffset);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
@@ -81,6 +82,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldConditionalResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetNegatedConditionalResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopySource);
         r.add(MicroInstrOpcode::LoadRegReg, tryCoalesceLocalCopyChain);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);

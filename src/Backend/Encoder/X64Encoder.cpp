@@ -2239,6 +2239,9 @@ namespace
         }
 
         // Prefixes
+        const bool countMemory = op == MicroOp::PopCount || op == MicroOp::LeadingZeroCount || op == MicroOp::TrailingZeroCount;
+        if (countMemory)
+            store.pushU8(0xF3);
         if (opBitsBaseMul == MicroOpBits::B32)
             store.pushU8(0x67);
         if (reg.isFloat() && opBitsReg == MicroOpBits::B128)
@@ -2287,6 +2290,13 @@ namespace
                 SWC_ASSERT(!mr && !reg.isFloat() && opBitsReg != MicroOpBits::B8);
                 emitCpuOp(store, 0x0F);
                 emitCpuOp(store, 0xAF);
+                break;
+            case MicroOp::PopCount:
+            case MicroOp::LeadingZeroCount:
+            case MicroOp::TrailingZeroCount:
+                SWC_ASSERT(!mr && !reg.isFloat() && opBitsReg != MicroOpBits::B8);
+                emitCpuOp(store, 0x0F);
+                emitCpuOp(store, op);
                 break;
             case MicroOp::LoadEffectiveAddress:
                 emitSpecCpuOp(store, MicroOp::LoadEffectiveAddress, opBitsReg);
@@ -3022,7 +3032,16 @@ void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
 {
     ///////////////////////////////////////////
 
-    if (op == MicroOp::BitwiseNot)
+    if (op == MicroOp::Add || op == MicroOp::Subtract)
+    {
+        emitRex(store_, opBits, MicroReg{}, reg);
+        emitSpecCpuOp(store_, opBits == MicroOpBits::B8 ? 0xFE : 0xFF, opBits);
+        emitModRm(store_, op == MicroOp::Add ? MODRM_REG_0 : MODRM_REG_1, reg);
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::BitwiseNot)
     {
         emitRex(store_, opBits, MicroReg{}, reg);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
@@ -3160,6 +3179,18 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
             emitCpuOp(store_, 0xAF);
             emitModRm(store_, memOffset, regDst, memReg);
         }
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::PopCount || op == MicroOp::LeadingZeroCount || op == MicroOp::TrailingZeroCount)
+    {
+        SWC_ASSERT(opBits != MicroOpBits::B8);
+        emitCpuOp(store_, 0xF3);
+        emitRex(store_, opBits, regDst, memReg);
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, op);
+        emitModRm(store_, memOffset, regDst, memReg);
     }
 
     ///////////////////////////////////////////

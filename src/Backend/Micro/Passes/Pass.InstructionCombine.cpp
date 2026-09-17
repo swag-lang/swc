@@ -110,6 +110,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegReg, tryDropDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropDeadCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
+        r.add(MicroInstrOpcode::CmpAmcReg, tryFoldConstAmcCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);

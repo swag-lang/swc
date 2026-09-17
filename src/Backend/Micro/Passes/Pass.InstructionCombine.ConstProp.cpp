@@ -465,6 +465,45 @@ namespace InstructionCombine
         return true;
     }
 
+    // CmpAmcReg [base + index*scale + disp], constant
+    // -> CmpAmcImm [base + index*scale + disp], constant.
+    //
+    // Indexed compares are formed after the load/comparison fold, so their
+    // constant operand needs the same forwarding as a plain CmpRegReg. A
+    // 64-bit x64 memory immediate is sign-extended from 32 bits; wider values
+    // stay in a register and are legalized exactly as before.
+    bool tryFoldConstAmcCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || !ctx.ssa || cmpInst.op != MicroInstrOpcode::CmpAmcReg)
+            return false;
+
+        const MicroInstrOperand* cmpOps = cmpInst.ops(*ctx.operands);
+        if (!cmpOps)
+            return false;
+
+        const MicroOpBits opBits = cmpOps[4].opBits;
+        uint64_t          rawImm = 0;
+        if (!findImmDef(rawImm, ctx, cmpOps[2].reg, cmpRef))
+            return false;
+
+        const uint64_t imm = rawImm & getBitsMask(opBits);
+        if (opBits == MicroOpBits::B64 && imm != static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(imm))))
+            return false;
+        if (!ctx.claimAll({cmpRef}))
+            return false;
+
+        MicroInstrOperand newOps[7];
+        newOps[0] = cmpOps[0];
+        newOps[1] = cmpOps[1];
+        newOps[2] = cmpOps[4];
+        newOps[3] = cmpOps[3];
+        newOps[4] = cmpOps[5];
+        newOps[5] = cmpOps[6];
+        newOps[6].setImmediateValue(ApInt(imm, getNumBits(opBits)));
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpAmcImm, newOps);
+        return true;
+    }
+
     bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst)
     {
         if (ctx.isClaimed(binRef) || !ctx.ssa)

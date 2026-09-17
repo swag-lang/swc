@@ -3747,8 +3747,8 @@ namespace
     // A comparison already reads this exact cell on every path, so reusing a
     // register load for the arm cannot introduce a fault:
     //
-    //     cmp [base+index*scale], 0        result = [base+index*scale]
-    //     jcc .Lload                 ->    cmp result, 0
+    //     cmp [base+index*scale], imm      result = [base+index*scale]
+    //     jcc .Lload                 ->    cmp result, imm
     //     result = fallback                cmov!cc result, fallback
     //     jmp .Ljoin
     //   .Lload:
@@ -3771,7 +3771,7 @@ namespace
             if (cmp.op != MicroInstrOpcode::CmpAmcImm || scan.relocated.contains(cmpRef.get()))
                 continue;
             const MicroInstrOperand* cmpOps = cmp.ops(operands);
-            if (!cmpOps || cmpOps[6].hasWideImmediateValue() || cmpOps[6].valueU64 != 0)
+            if (!cmpOps)
                 continue;
 
             const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
@@ -3785,11 +3785,13 @@ namespace
             const MicroInstrRef fallthroughRef = storage.findNextInstructionRef(jumpRef);
             const MicroInstr*   fallthrough    = storage.ptr(fallthroughRef);
             const auto*         fallthroughOps = fallthrough ? fallthrough->ops(operands) : nullptr;
-            const bool          hasFallbackCopy = fallthrough && fallthrough->op == MicroInstrOpcode::LoadRegReg &&
+            const bool hasFallbackCopy = fallthrough && fallthrough->op == MicroInstrOpcode::LoadRegReg &&
                                          fallthroughOps && !scan.relocated.contains(fallthroughRef.get());
-            if (!hasFallbackCopy)
+            const bool hasFallbackImmediate = fallthrough && fallthrough->op == MicroInstrOpcode::LoadRegImm &&
+                                              fallthroughOps && !scan.relocated.contains(fallthroughRef.get());
+            if (!hasFallbackCopy && !hasFallbackImmediate)
                 continue;
-            const MicroInstrRef joinJumpRef = hasFallbackCopy ? storage.findNextInstructionRef(fallthroughRef) : fallthroughRef;
+            const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(fallthroughRef);
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
             const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
             if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
@@ -3820,7 +3822,8 @@ namespace
                 loadOps[3].opBits != cmpOps[2].opBits || loadOps[4].opBits != cmpOps[3].opBits ||
                 loadOps[5].valueU64 != cmpOps[4].valueU64 || loadOps[6].valueU64 != cmpOps[5].valueU64)
                 continue;
-            if (fallthroughOps[0].reg != loadOps[0].reg || fallthroughOps[2].opBits != loadOps[3].opBits)
+            const MicroOpBits fallbackBits = hasFallbackCopy ? fallthroughOps[2].opBits : fallthroughOps[1].opBits;
+            if (fallthroughOps[0].reg != loadOps[0].reg || fallbackBits != loadOps[3].opBits)
                 continue;
 
             const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(loadRef);
@@ -3832,7 +3835,10 @@ namespace
             if (!MicroPassHelpers::invertCondition(fallbackCond, jumpOps[0].cpuCond) || !conditionSupportsConditionalMove(fallbackCond))
                 continue;
 
-            const MicroReg loaded = loadOps[0].reg;
+            const MicroReg result = loadOps[0].reg;
+            const MicroReg loaded = result;
+            const MicroReg fallback = hasFallbackCopy ? fallthroughOps[1].reg :
+                                                       MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
 
             MicroInstrOperand loadBefore[7];
             loadBefore[0].reg = loaded;
@@ -3843,12 +3849,21 @@ namespace
             MicroInstrOperand regCmp[3];
             regCmp[0].reg      = loaded;
             regCmp[1]          = cmpOps[2];
-            regCmp[2].valueU64 = 0;
+            regCmp[2]          = cmpOps[6];
             storage.insertDerivedBefore(operands, cmpRef, MicroInstrOpcode::CmpRegImm, regCmp);
 
+            if (hasFallbackImmediate)
+            {
+                MicroInstrOperand immediateOps[3];
+                immediateOps[0].reg = fallback;
+                immediateOps[1]     = fallthroughOps[1];
+                immediateOps[2]     = fallthroughOps[2];
+                storage.insertDerivedBefore(operands, joinLabelRef, MicroInstrOpcode::LoadRegImm, immediateOps);
+            }
+
             MicroInstrOperand selectOps[4];
-            selectOps[0].reg     = loaded;
-            selectOps[1].reg     = fallthroughOps[1].reg;
+            selectOps[0].reg     = result;
+            selectOps[1].reg     = fallback;
             selectOps[2].cpuCond = fallbackCond;
             selectOps[3].opBits  = loadOps[3].opBits;
             storage.insertDerivedBefore(operands, joinLabelRef, MicroInstrOpcode::LoadCondRegReg, selectOps);

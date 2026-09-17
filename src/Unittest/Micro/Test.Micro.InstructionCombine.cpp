@@ -3001,6 +3001,66 @@ SWC_TEST_BEGIN(InstCombine_WidenedShiftValue_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // A byte, widened, offset by 'A' and compared with 25, the test flag stored.
+    void emitByteRange(MicroBuilder& builder, MicroCond cond)
+    {
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg byte   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg wide   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg offset = MicroReg::virtualIntReg(4);
+        constexpr MicroReg flag   = MicroReg::virtualIntReg(5);
+
+        builder.emitLoadRegMem(byte, base, 0, MicroOpBits::B8);
+        builder.emitOpBinaryRegImm(byte, ApInt(1, 64), MicroOp::Xor, MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegReg(wide, byte, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitLoadAddressRegMem(offset, wide, 0 - uint64_t{65}, MicroOpBits::B32);
+        builder.emitCmpRegImm(offset, ApInt(25, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(flag, cond);
+        builder.emitLoadMemReg(base, 4, flag, MicroOpBits::B8);
+        builder.emitRet();
+    }
+
+    MicroOpBits firstCompareBits(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::CmpRegImm)
+                return inst.ops(builder.operands())[1].opBits;
+        }
+        return MicroOpBits::Zero;
+    }
+}
+
+// A range of bytes is tested on the byte itself.
+SWC_TEST_BEGIN(InstCombine_WidenedByteRange_ComparesTheByte)
+{
+    MicroBuilder builder(ctx);
+    emitByteRange(builder, MicroCond::BelowOrEqual);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (firstCompareBits(builder) != MicroOpBits::B8 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A signed test of the wide difference sees a negative value the byte has not.
+SWC_TEST_BEGIN(InstCombine_WidenedByteSignedRange_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitByteRange(builder, MicroCond::LessOrEqual);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (firstCompareBits(builder) != MicroOpBits::B32)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

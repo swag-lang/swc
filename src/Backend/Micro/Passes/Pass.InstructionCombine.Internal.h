@@ -174,6 +174,7 @@ namespace InstructionCombine
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCaseRangePair(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryNarrowByteRangeCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryWidenCopyWithNarrowReaders(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLoadIntoExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);

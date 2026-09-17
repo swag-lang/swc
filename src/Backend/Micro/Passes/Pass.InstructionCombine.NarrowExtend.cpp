@@ -332,6 +332,124 @@ namespace InstructionCombine
         return true;
     }
 
+    // `c >= 'A' and c <= 'Z'` on a byte compares the byte promoted to 32 bits:
+    //
+    //     I = zext(C)                        J = C             (byte)
+    //     J = I - LO           (lea)   ->    J -= LO           (byte)
+    //     cmp J, K                           cmp J, K          (byte)
+    //
+    // When the whole range fits a byte, the byte difference wraps exactly when
+    // the wide one leaves the range, so unsigned and equality tests read the
+    // same flags, as LLVM keeps the test at the byte's width. The widening
+    // dies once nothing else reads it.
+    bool tryNarrowByteRangeCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || !ops[0].reg.isVirtualInt() || ops[1].opBits != MicroOpBits::B32 || ops[2].hasWideImmediateValue())
+            return false;
+        const uint64_t span = ops[2].valueU64 & 0xFFFFFFFFu;
+
+        // The only reader of the flags is the next instruction, an unsigned or
+        // equality test.
+        const MicroInstrRef readerRef = ctx.storage->findNextInstructionRef(ref);
+        const MicroInstr*   reader    = readerRef.isValid() ? ctx.storage->ptr(readerRef) : nullptr;
+        if (!reader)
+            return false;
+        MicroCond cond = MicroCond::Unconditional;
+        if (reader->op == MicroInstrOpcode::SetCondReg)
+        {
+            // A byte merged into a boolean chain stays a wide range test: the
+            // chain and case-range folds read that form.
+            cond = reader->ops(*ctx.operands)[1].cpuCond;
+
+            const MicroInstrRef mergeRef = ctx.storage->findNextInstructionRef(readerRef);
+            const MicroInstr*   merge    = mergeRef.isValid() ? ctx.storage->ptr(mergeRef) : nullptr;
+            if (merge)
+            {
+                const MicroInstrOperand* mergeOps = merge->ops(*ctx.operands);
+                const MicroReg           flag     = reader->ops(*ctx.operands)[0].reg;
+                if ((merge->op == MicroInstrOpcode::LoadRegReg && mergeOps[1].reg == flag && mergeOps[2].opBits == MicroOpBits::B8) ||
+                    (merge->op == MicroInstrOpcode::OpBinaryRegReg && mergeOps[1].reg == flag && mergeOps[2].opBits == MicroOpBits::B8))
+                    return false;
+            }
+        }
+        else if (reader->op == MicroInstrOpcode::JumpCond)
+            cond = reader->ops(*ctx.operands)[0].cpuCond;
+        else
+            return false;
+        switch (cond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::NotEqual:
+            case MicroCond::Below:
+            case MicroCond::BelowOrEqual:
+            case MicroCond::Above:
+            case MicroCond::AboveOrEqual:
+                break;
+            default:
+                return false;
+        }
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, readerRef, ctx.builder))
+            return false;
+
+        // J = I - LO, read by this compare alone.
+        const MicroSsaState::ReachingDef offset = ctx.ssa->reachingDef(ops[0].reg, ref);
+        if (!offset.valid() || offset.isPhi || !offset.inst || offset.inst->op != MicroInstrOpcode::LoadAddrRegMem || ctx.isClaimed(offset.instRef) ||
+            singleDirectInstructionUse(*ctx.ssa, offset.valueId) != ref)
+            return false;
+        const MicroInstrOperand* leaOps = offset.inst->ops(*ctx.operands);
+        if (leaOps[0].reg != ops[0].reg || leaOps[2].opBits != MicroOpBits::B32 || !leaOps[1].reg.isVirtualInt())
+            return false;
+        const uint64_t low = (0 - leaOps[3].valueU64) & 0xFFFFFFFFu;
+        if (low > 0xFF || span > 0xFF - low)
+            return false;
+
+        // I = zext(C) from a byte.
+        const MicroSsaState::ReachingDef widened = ctx.ssa->reachingDef(leaOps[1].reg, offset.instRef);
+        if (!widened.valid() || widened.isPhi || !widened.inst || widened.inst->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const MicroInstrOperand* extOps = widened.inst->ops(*ctx.operands);
+        if (extOps[0].reg != leaOps[1].reg || extOps[3].opBits != MicroOpBits::B8 || getNumBits(extOps[2].opBits) < 32 || !extOps[1].reg.isAnyInt() ||
+            extOps[1].reg == extOps[0].reg)
+            return false;
+
+        // The byte still holds C where the offset reads it.
+        const MicroReg                   byteReg     = extOps[1].reg;
+        const MicroSsaState::ReachingDef atExtend    = ctx.ssa->reachingDef(byteReg, widened.instRef);
+        const MicroSsaState::ReachingDef atOffset    = ctx.ssa->reachingDef(byteReg, offset.instRef);
+        if (!byteReg.isVirtualInt() || !atExtend.valid() || !atOffset.valid() || atExtend.valueId != atOffset.valueId)
+            return false;
+
+        if (!ctx.claimAll({ref, offset.instRef}))
+            return false;
+
+        MicroInstrOperand copyOps[3];
+        copyOps[0].reg    = ops[0].reg;
+        copyOps[1].reg    = byteReg;
+        copyOps[2].opBits = MicroOpBits::B8;
+        ctx.emitRewrite(offset.instRef, MicroInstrOpcode::LoadRegReg, copyOps);
+
+        if (low)
+        {
+            MicroInstrOperand subOps[4];
+            subOps[0].reg     = ops[0].reg;
+            subOps[1].opBits  = MicroOpBits::B8;
+            subOps[2].microOp = MicroOp::Subtract;
+            subOps[3].setImmediateValue(ApInt(low, 8));
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, subOps);
+        }
+
+        MicroInstrOperand cmpOps[3];
+        cmpOps[0].reg    = ops[0].reg;
+        cmpOps[1].opBits = MicroOpBits::B8;
+        cmpOps[2].setImmediateValue(ApInt(span, 8));
+        ctx.emitRewrite(ref, MicroInstrOpcode::CmpRegImm, cmpOps);
+        return true;
+    }
+
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa)

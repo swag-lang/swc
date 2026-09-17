@@ -2569,6 +2569,189 @@ namespace
         return true;
     }
 
+    // A short-circuit RHS may compare a cell that the LHS already read. Keep
+    // that first value in a register so the RHS becomes a pure comparison and
+    // the regular boolean combiner can safely remove the branch:
+    //
+    //     cmp [address], X            value = [address]
+    //     setcc A                     cmp value, X
+    //     B = A                       setcc A
+    //     jcc .Ljoin          ->      B = A
+    //     cmp [address], K            cmp value, K
+    //     setcc C                     setcc C
+    //     B = C                       B = C
+    //
+    // The first comparison already performs the load on every path. No write
+    // or call may separate it from the repeated comparison.
+    bool forwardRepeatedMemoryCompareInShortCircuit(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        std::unordered_set<uint32_t> relocated;
+        if (context.builder)
+        {
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocated.insert(reloc.instructionRef.get());
+            }
+        }
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            if (it->op != MicroInstrOpcode::JumpCond || relocated.contains(it.current.get()))
+                continue;
+
+            const MicroInstrRef copyRef = storage.findPreviousInstructionRef(it.current);
+            const MicroInstr*   copy    = storage.ptr(copyRef);
+            if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const MicroInstrRef setRef = storage.findPreviousInstructionRef(copyRef);
+            const MicroInstr*   set    = storage.ptr(setRef);
+            if (!set || set->op != MicroInstrOpcode::SetCondReg)
+                continue;
+            const MicroInstrRef leftCmpRef = storage.findPreviousInstructionRef(setRef);
+            const MicroInstr*   leftCmp    = storage.ptr(leftCmpRef);
+            if (!leftCmp || (leftCmp->op != MicroInstrOpcode::CmpAmcReg && leftCmp->op != MicroInstrOpcode::CmpAmcImm) ||
+                relocated.contains(leftCmpRef.get()))
+                continue;
+
+            const MicroInstrRef rightCmpRef = storage.findNextInstructionRef(it.current);
+            const MicroInstr*   rightCmp    = storage.ptr(rightCmpRef);
+            if (!rightCmp || rightCmp->op != MicroInstrOpcode::CmpAmcImm || relocated.contains(rightCmpRef.get()))
+                continue;
+
+            const MicroInstrOperand* leftOps  = leftCmp->ops(operands);
+            const MicroInstrOperand* rightOps = rightCmp->ops(operands);
+            if (!leftOps || !rightOps)
+                continue;
+            const uint32_t leftBitsIndex = leftCmp->op == MicroInstrOpcode::CmpAmcReg ? 4 : 2;
+            const uint32_t leftMulIndex  = leftCmp->op == MicroInstrOpcode::CmpAmcReg ? 5 : 4;
+            const uint32_t leftAddIndex  = leftCmp->op == MicroInstrOpcode::CmpAmcReg ? 6 : 5;
+            if (leftOps[0].reg != rightOps[0].reg || leftOps[1].reg != rightOps[1].reg ||
+                leftOps[leftBitsIndex].opBits != rightOps[2].opBits || leftOps[3].opBits != rightOps[3].opBits ||
+                leftOps[leftMulIndex].valueU64 != rightOps[4].valueU64 || leftOps[leftAddIndex].valueU64 != rightOps[5].valueU64)
+                continue;
+
+            bool safe = true;
+            for (MicroInstrRef ref = storage.findNextInstructionRef(leftCmpRef); ref.isValid() && ref != rightCmpRef; ref = storage.findNextInstructionRef(ref))
+            {
+                const MicroInstr*      between = storage.ptr(ref);
+                const MicroInstrDef&   info    = MicroInstr::info(between->op);
+                const MicroInstrUseDef useDef  = between->collectUseDef(operands, context.encoder);
+                if (info.flags.has(MicroInstrFlagsE::WritesMemory) || useDef.isCall ||
+                    std::ranges::find(useDef.defs, leftOps[0].reg) != useDef.defs.end() ||
+                    std::ranges::find(useDef.defs, leftOps[1].reg) != useDef.defs.end())
+                {
+                    safe = false;
+                    break;
+                }
+            }
+            if (!safe)
+                continue;
+
+            const bool     leftHasRegister = leftCmp->op == MicroInstrOpcode::CmpAmcReg;
+            MicroInstrRef  sourceLoadRef   = MicroInstrRef::invalid();
+            const MicroInstrOperand* sourceLoadOps = nullptr;
+            MicroCond swappedSetCond  = MicroCond::Unconditional;
+            MicroCond swappedJumpCond = MicroCond::Unconditional;
+            if (leftHasRegister)
+            {
+                sourceLoadRef = storage.findPreviousInstructionRef(leftCmpRef);
+                const MicroInstr* sourceLoad = storage.ptr(sourceLoadRef);
+                sourceLoadOps = sourceLoad && sourceLoad->op == MicroInstrOpcode::LoadAmcRegMem ? sourceLoad->ops(operands) : nullptr;
+                if (!sourceLoadOps || relocated.contains(sourceLoadRef.get()) || sourceLoadOps[0].reg != leftOps[2].reg ||
+                    sourceLoadOps[3].opBits != leftOps[leftBitsIndex].opBits)
+                    continue;
+
+                uint32_t sourceMentions = 0;
+                SmallVector<MicroInstrRegOperandRef> regOperands;
+                for (MicroInstr& inst : storage.view())
+                {
+                    regOperands.clear();
+                    inst.collectRegOperands(operands, regOperands, context.encoder);
+                    for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                    {
+                        if (regOperand.reg && *regOperand.reg == sourceLoadOps[0].reg)
+                            ++sourceMentions;
+                    }
+                }
+                const auto swapCondition = [](MicroCond& out, const MicroCond in) {
+                    switch (in)
+                    {
+                        case MicroCond::Equal: out = MicroCond::Equal; return true;
+                        case MicroCond::NotEqual: out = MicroCond::NotEqual; return true;
+                        case MicroCond::Zero: out = MicroCond::Zero; return true;
+                        case MicroCond::NotZero: out = MicroCond::NotZero; return true;
+                        case MicroCond::Above: out = MicroCond::Below; return true;
+                        case MicroCond::AboveOrEqual: out = MicroCond::BelowOrEqual; return true;
+                        case MicroCond::Below: out = MicroCond::Above; return true;
+                        case MicroCond::BelowOrEqual: out = MicroCond::AboveOrEqual; return true;
+                        case MicroCond::Greater: out = MicroCond::Less; return true;
+                        case MicroCond::GreaterOrEqual: out = MicroCond::LessOrEqual; return true;
+                        case MicroCond::Less: out = MicroCond::Greater; return true;
+                        case MicroCond::LessOrEqual: out = MicroCond::GreaterOrEqual; return true;
+                        default: return false;
+                    }
+                };
+                const MicroInstrOperand* setOps  = set->ops(operands);
+                const MicroInstrOperand* jumpOps = it->ops(operands);
+                if (sourceMentions != 2 || !setOps || !jumpOps ||
+                    !swapCondition(swappedSetCond, setOps[1].cpuCond) ||
+                    !swapCondition(swappedJumpCond, jumpOps[0].cpuCond))
+                    continue;
+            }
+
+            const MicroReg value           = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
+            MicroInstrOperand loadOps[7];
+            loadOps[0].reg = value;
+            loadOps[1]     = leftOps[0];
+            loadOps[2]     = leftOps[1];
+            loadOps[3]     = leftOps[leftBitsIndex];
+            loadOps[4]     = leftOps[3];
+            loadOps[5]     = leftOps[leftMulIndex];
+            loadOps[6]     = leftOps[leftAddIndex];
+
+            MicroInstrOperand leftRegOps[7];
+            leftRegOps[0].reg = value;
+            if (leftHasRegister)
+            {
+                leftRegOps[0]     = sourceLoadOps[1];
+                leftRegOps[1]     = sourceLoadOps[2];
+                leftRegOps[2].reg = value;
+                leftRegOps[3]     = sourceLoadOps[4];
+                leftRegOps[4]     = sourceLoadOps[3];
+                leftRegOps[5]     = sourceLoadOps[5];
+                leftRegOps[6]     = sourceLoadOps[6];
+            }
+            else
+            {
+                leftRegOps[1] = leftOps[leftBitsIndex];
+                leftRegOps[2] = leftOps[6];
+            }
+
+            MicroInstrOperand rightRegOps[3];
+            rightRegOps[0].reg = value;
+            rightRegOps[1]     = rightOps[2];
+            rightRegOps[2]     = rightOps[6];
+
+            if (leftHasRegister)
+            {
+                set->ops(operands)[1].cpuCond = swappedSetCond;
+                it->ops(operands)[0].cpuCond  = swappedJumpCond;
+            }
+            storage.insertDerivedBefore(operands, leftHasRegister ? sourceLoadRef : leftCmpRef, MicroInstrOpcode::LoadAmcRegMem, loadOps);
+            storage.insertDerivedBefore(operands, leftCmpRef, leftHasRegister ? MicroInstrOpcode::CmpAmcReg : MicroInstrOpcode::CmpRegImm,
+                                        std::span<const MicroInstrOperand>(leftRegOps, leftHasRegister ? 7 : 3));
+            storage.insertDerivedBefore(operands, rightCmpRef, MicroInstrOpcode::CmpRegImm, rightRegOps);
+            if (leftHasRegister)
+                storage.erase(sourceLoadRef);
+            storage.erase(leftCmpRef);
+            storage.erase(rightCmpRef);
+            return true;
+        }
+
+        return false;
+    }
+
     bool convertShortCircuitBooleans(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
     {
         if (!context.builder)
@@ -4767,6 +4950,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // A whole `or` chain goes at once, before the two-link form takes its tail.
     changed |= convertOrChainsToBranchless(storage, operands, context);
     changed |= convertThreeWaySignDiamonds(storage, operands, context);
+    changed |= forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context);
     changed |= convertShortCircuitBooleans(storage, operands, context);
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

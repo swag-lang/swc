@@ -262,7 +262,8 @@ namespace
                     inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
                     inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
                     inst.op == MicroInstrOpcode::VecUnaryAmcRegMem ||
-                    inst.op == MicroInstrOpcode::CmpAmcImm)
+                    inst.op == MicroInstrOpcode::CmpAmcImm ||
+                    inst.op == MicroInstrOpcode::CmpAmcReg)
                     return false;
                 return true;
             }

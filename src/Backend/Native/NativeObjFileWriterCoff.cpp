@@ -2,6 +2,7 @@
 #include "Backend/Native/NativeObjFileWriterCoff.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
+#include "Backend/Debug/SymbolTable.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
@@ -78,8 +79,34 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
         sections.push_back(std::move(section));
     }
 
+    // An archive member carries the runtime names of its functions, so a program that links it keeps
+    // them in its stack traces. The linker reads the fragment; nothing else is meant to keep it.
+    std::vector<SymbolTable::Entry> runtimeNames;
+    for (const NativeFunctionInfo* info : description.functions)
+    {
+        SymbolTable::Entry entry;
+        if (info && SymbolTable::makeEntry(entry, builder_->ctx(), *info))
+            runtimeNames.push_back(std::move(entry));
+    }
+
+    if (!runtimeNames.empty())
+    {
+        CoffSectionBuild section;
+        section.data.name            = Utf8(SymbolTable::OBJECT_SECTION);
+        section.data.characteristics = IMAGE_SCN_LNK_INFO | IMAGE_SCN_LNK_REMOVE | IMAGE_SCN_ALIGN_4BYTES;
+
+        std::vector<SymbolTable::Relocation> relocations;
+        SymbolTable::build(section.data.bytes, relocations, runtimeNames);
+        for (SymbolTable::Relocation& relocation : relocations)
+            section.data.relocations.push_back({.offset = relocation.offset, .symbolName = std::move(relocation.symbolName), .type = IMAGE_REL_AMD64_ADDR32NB});
+        SWC_RESULT(applySectionRelocations(section));
+        sections.push_back(std::move(section));
+    }
+
+    // The object that owns the writable data also describes it. In an archive that is object 0, which
+    // leaves the read-only data to objects of their own: global records address '.data' and '.bss' only.
     CollectedDebugRecords debugRecords;
-    collectDebugRecords(*builder_, description.functions, description.startup, description.includeData && description.includeMergedRData, debugRecords);
+    collectDebugRecords(*builder_, description.functions, description.startup, description.includeData, debugRecords);
 
     DebugInfoObjectResult        debugInfoResult;
     const DebugInfoObjectRequest debugInfoRequest = {

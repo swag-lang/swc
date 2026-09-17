@@ -43,10 +43,15 @@ public:
     // If the member at the given offset is a short-import record, decodes it and returns true.
     bool tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const;
 
+    // The file the archive was read from. The debug records of its members are grouped under it.
+    const fs::path& sourcePath() const { return sourcePath_; }
+    void            setSourcePath(fs::path path) { sourcePath_ = std::move(path); }
+
 private:
     // Symbol names borrow the immutable byte buffer, which moves together with the index.
     ByteArray                                     bytes_;
     std::unordered_map<std::string_view, uint32_t> symbolToMember_;
+    fs::path                                       sourcePath_;
 };
 
 // Builds a COFF static library (`!<arch>`) from prepared object members: a symbol-directory linker

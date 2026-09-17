@@ -2,6 +2,7 @@
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 
+#include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/Linker.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -21,7 +22,7 @@ public:
     Result prepareLink(LinkJob& outJob) override;
 
 private:
-    Result buildImage(LinkImage& image) const;
+    Result buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const;
     Result buildNativeImage(LinkImage& image) const;
     Result prepareImageLink(LinkJob& outJob, LinkJob::Output output) const;
     Result prepareImageLinkParallel(LinkJob& outJob) const;
@@ -30,11 +31,10 @@ private:
     Result collectArchiveMembers(std::vector<LinkArchiveMember>& outMembers) const;
     Result loadArchives(std::vector<Archive>& outArchives) const;
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;
-    Result resolveSymbols(LinkImage& image, std::vector<Archive>& archives) const;
+    Result resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& ioSymbols, std::vector<Archive>& archives) const;
     void   collectExports(LinkImage& image) const;
     Result collectWin32ApplicationConfig(LinkWin32ApplicationConfig& outConfig) const;
     void   finishImage(LinkImage& image, LinkWin32ApplicationConfig&& win32Config) const;
-    void   buildDebugTable(LinkImage& image) const;
     void   collectDebugInfo(LinkJob& outJob) const;
     bool   canPrepareLinkInParallel() const;
     bool   shouldCollectDebugInfo() const;

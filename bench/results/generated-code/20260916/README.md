@@ -1,10 +1,11 @@
 # Generated-code audit - 2026-09-16
 
-This ongoing session uses the separate `swc-micro-release` worktree and Release
+This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
-is merged into local master. This checkpoint records measured builds 829
-(376fe9e1c) and 830 (e6e9d1623), identified separately for each corpus.
-Iteration continues after this checkpoint.
+was merged into local master. The persisted corpus checkpoint records measured
+builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
+corpus. Focused continuation measurements through build 871 (abd921e01) are
+recorded below.
 
 ## Machine-code measurements
 
@@ -36,6 +37,23 @@ Six functions across the third, fourth and fifth corpora remain larger than
 LLVM: one, four and one respectively.
 All fourteen extracted-bit functions match or beat LLVM's size; eleven shrink
 against their build-827 baseline and three retain their size.
+
+The final continuation compared 18 additional scalar/indexed functions in one
+round, then isolated five immediate updates, four sparse bitwise updates, five
+constant shifts, four unary updates and four register comparisons. The initial
+18 all match LLVM. The later 22 also all match LLVM after the corresponding
+batch; aggregate byte counts below use each round's pre-batch build as its own
+baseline.
+
+| Builds | Shape | Functions | Baseline bytes | Final bytes | LLVM bytes |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 864 | Indexed increment | 1 | 13 | 5 | 5 |
+| 865 | Indexed load/select | 1 | 17 | 12 | 12 |
+| 866 | Indexed immediate updates | 5 | 58 | 30 | 30 |
+| 867 | Sparse indexed OR/XOR | 4 | 42 | 22 | 22 |
+| 868 | Indexed constant shifts | 5 | 57 | 26 | 26 |
+| 869 | Indexed NOT/NEG | 4 | 42 | 18 | 18 |
+| 870–871 | Indexed register comparisons | 4 | 54 | 40 | 40 |
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -86,6 +104,11 @@ shorter x64 encodings. Recent batches factor implicit unit terms such as
 `a * b + a`, fold repeated loads into multiplication, emit true 32-bit LEA results,
 and select products directly from individual source bits. Typed TEST operands
 participate in demanded-bit analysis so unnecessary extensions disappear.
+The final batches add direct indexed memory encodings for increment/decrement,
+immediate arithmetic and bitwise updates, sparse-width OR/XOR, constant shifts,
+NOT/NEG and comparisons against registers. A post-allocation rewrite restores a
+coalesced comparison source so 32-bit SETcc results can be cleared before the
+comparison instead of zero-extended afterward.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -105,10 +128,19 @@ plus selected core, pixel, UTF-8, hashing and crypto consumers. Native regressio
 files accompany optimization families under `bin/unittests/native/optimizer`.
 
 Recent broader checks passed all 1,487 JIT tests at build 827, all 742 core tests
-at build 818, and all 3,338 native tests plus the three expected-failure recovery
-probes at build 829. Build 830 passed four integration files covering extracted
-bits, aggregate construction, floating fields and short-circuit booleans. Each
-batch was validated before its merge into local master.
+at build 818, all 3,338 native tests plus the three expected-failure recovery
+probes at build 829, and all 3,376 native tests plus the three expected-failure
+recovery probes at build 869. Build 830 passed four integration files covering
+extracted bits, aggregate construction, floating fields and short-circuit
+booleans. Each later batch used a different focused optimizer context; build
+871 additionally passed indexed register comparisons and the independent
+zero-extended boolean comparison test. Each batch was validated before its
+merge into local master.
+
+Continuation core-workspace measurements ranged from 1.90 to 3.47 seconds and
+314.62 to 328.32 MiB peak working set. Build 871 measured 3.16 seconds and
+314.88 MiB. Shared-machine variation is larger than these differences, so they
+are admission and regression evidence rather than a claimed speedup.
 
 The full repository campaign, DevMode compiler and C++ unit tests were not run
 by this worktree during this session. Concurrent contributors performed separate
@@ -132,13 +164,15 @@ COFF members before disassembling Swag libraries: LLVM's archive reader rejects
 the current Swag long-name table (`compiler.core.050`). Counted instruction byte
 sizes are preserved in each `counts.json` and `assembly.txt`.
 
-## Remaining leads
+## Closed scalar leads
 
-The measured larger cases now concern combined quotient/remainder, a negative
-signed remainder, some 32-bit register/width choices, and selecting an address
-before loading. The earlier low-bit product and repeated-load factoring gaps
-have reached LLVM's size. The required signed-return extension remains an ABI
-constraint, not an ordinary dead-copy opportunity.
+The retained build-815 gaps were remeasured at build 869. `bitTimesValue`,
+`divideAndRemainder`, `loadRepeated` and `selectLoad` now match LLVM.
+`negativeModuloTwo` and `unsignedModulo32` are smaller than LLVM. The only size
+difference in `signedModulo32` (19/16 bytes) and `signedDivide32` (30/27 bytes)
+is the required three-byte signed-return extension from the Swag ABI contract.
+The continuation therefore leaves no unexplained larger function among those
+recorded scalar and memory leads.
 
 ## Intermittent diagnostic retained for follow-up
 

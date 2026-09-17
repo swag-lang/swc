@@ -262,12 +262,15 @@ namespace
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
             case MicroInstrOpcode::CmpAmcImm:
+            case MicroInstrOpcode::CmpAmcReg:
                 return 7;
 
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::VecUnaryAmcRegMem:
             case MicroInstrOpcode::OpBinaryRegAmcMem:
             case MicroInstrOpcode::OpBinaryAmcMemReg:
+            case MicroInstrOpcode::OpUnaryAmcMem:
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
                 return 8;
 
             default:

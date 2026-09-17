@@ -130,6 +130,8 @@ bool MicroPassHelpers::instructionActuallyDefinesCpuFlags(const MicroInstr& inst
             return microOpWritesCpuFlags(ops[3].microOp);
         case MicroInstrOpcode::OpBinaryRegAmcMem:
         case MicroInstrOpcode::OpBinaryAmcMemReg:
+        case MicroInstrOpcode::OpUnaryAmcMem:
+        case MicroInstrOpcode::OpBinaryAmcMemImm:
             return microOpWritesCpuFlags(ops[7].microOp);
         default:
             return true;
@@ -167,6 +169,19 @@ bool MicroPassHelpers::instructionOverwritesCpuFlags(const MicroInstr& inst, con
         case MicroInstrOpcode::OpBinaryAmcMemReg:
             op   = ops[7].microOp;
             bits = ops[inst.op == MicroInstrOpcode::OpBinaryRegAmcMem ? 3 : 4].opBits;
+            break;
+        case MicroInstrOpcode::OpBinaryAmcMemImm:
+            op    = ops[7].microOp;
+            bits  = ops[2].opBits;
+            count = &ops[6];
+            break;
+        case MicroInstrOpcode::OpUnaryAmcMem:
+            // The unary Add/Subtract forms encode INC/DEC. They preserve CF,
+            // so they never overwrite the complete abstract flags value.
+            op   = ops[7].microOp;
+            bits = ops[4].opBits;
+            if (op == MicroOp::Add || op == MicroOp::Subtract)
+                return false;
             break;
         default:
             return true;
@@ -925,14 +940,27 @@ bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
         case MicroInstrOpcode::LoadAmcMemReg:
         case MicroInstrOpcode::LoadAmcMemImm:
         case MicroInstrOpcode::OpBinaryAmcMemReg:
+        case MicroInstrOpcode::OpUnaryAmcMem:
+        case MicroInstrOpcode::OpBinaryAmcMemImm:
             out.baseIdx  = 0;
             out.indexIdx = 1;
+            if (op == MicroInstrOpcode::OpBinaryAmcMemImm)
+            {
+                out.mulIdx = 4;
+                out.addIdx = 5;
+            }
             return true;
         case MicroInstrOpcode::CmpAmcImm:
             out.baseIdx  = 0;
             out.indexIdx = 1;
             out.mulIdx   = 4;
             out.addIdx   = 5;
+            return true;
+        case MicroInstrOpcode::CmpAmcReg:
+            out.baseIdx  = 0;
+            out.indexIdx = 1;
+            out.mulIdx   = 5;
+            out.addIdx   = 6;
             return true;
         default:
             return false;

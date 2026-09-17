@@ -1173,6 +1173,9 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
                    ops[3].microOp == MicroOp::MultiplyHighSigned || ops[3].microOp == MicroOp::MultiplyHighUnsigned;
 
         case MicroInstrOpcode::OpBinaryAmcMemReg:
+        case MicroInstrOpcode::OpUnaryAmcMem:
+        case MicroInstrOpcode::OpBinaryAmcMemImm:
+        case MicroInstrOpcode::CmpAmcReg:
             // This form is only built for native integer register operations.
             return false;
 
@@ -1329,6 +1332,25 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
 
     if (inst.op == MicroInstrOpcode::OpBinaryAmcMemReg)
         return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
+
+    if (inst.op == MicroInstrOpcode::OpUnaryAmcMem)
+        return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
+
+    if (inst.op == MicroInstrOpcode::CmpAmcReg)
+        return requireStandardIntOpBits(outIssue, ops[4].opBits, 4);
+
+    if (inst.op == MicroInstrOpcode::OpBinaryAmcMemImm)
+    {
+        if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
+            return true;
+        const bool shiftImmediate = isShiftImmediateOp(ops[7].microOp);
+        if (!supportsOpBinaryMemImm(ops[7].microOp) ||
+            (shiftImmediate ? ops[6].hasWideImmediateValue() || ops[6].valueU64 > 0x7F : !immediateFitsOperand(ops[6], ops[2].opBits)))
+        {
+            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            return true;
+        }
+    }
 
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
@@ -2074,10 +2096,9 @@ namespace
         emitValue(store, valueU64, std::min(opBitsValue, MicroOpBits::B32));
     }
 
-    // cmp [base + index*scale + disp], imm — same SIB machinery as
-    // encodeAmcImm, with the compare opcode family (0x80 /7 ib, 0x83 /7 ib,
-    // 0x81 /7 iw/id) instead of the move. Addressing is always 64-bit here.
-    void encodeAmcCmpImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOpBits opBitsValue)
+    // Group-1/2 immediate operation on [base + index*scale + disp]. Addressing
+    // is always 64-bit here.
+    void encodeAmcOpImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOp op, MicroOpBits opBitsValue)
     {
         SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
         const uint64_t valueU64 = immediateToU64(value);
@@ -2106,9 +2127,32 @@ namespace
             store.pushU8(val);
         }
 
+        uint8_t group;
+        switch (op)
+        {
+            case MicroOp::Add: group = MODRM_REG_0; break;
+            case MicroOp::Or: group = MODRM_REG_1; break;
+            case MicroOp::And:
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft: group = MODRM_REG_4; break;
+            case MicroOp::ShiftRight: group = MODRM_REG_5; break;
+            case MicroOp::Subtract: group = MODRM_REG_5; break;
+            case MicroOp::Xor: group = MODRM_REG_6; break;
+            case MicroOp::Compare:
+            case MicroOp::ShiftArithmeticRight: group = MODRM_REG_7; break;
+            default: SWC_UNREACHABLE();
+        }
+
+        const bool isShift = isShiftImmediateOp(op);
+
         // OpCode
         MicroOpBits immBits = MicroOpBits::B8;
-        if (opBitsValue == MicroOpBits::B8)
+        if (isShift)
+        {
+            SWC_ASSERT(valueU64 <= 0x7F);
+            emitSpecCpuOp(store, valueU64 == 1 ? 0xD1 : 0xC1, opBitsValue);
+        }
+        else if (opBitsValue == MicroOpBits::B8)
         {
             store.pushU8(0x80);
         }
@@ -2130,11 +2174,11 @@ namespace
 
         // ModRM
         if (needsForcedDisplacement)
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, MODRM_REG_7, MODRM_RM_SIB);
+            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, group, MODRM_RM_SIB);
         else if (addValue == 0 || baseIsNoBase)
-            emitModRm(store, ModRmMode::Memory, MODRM_REG_7, MODRM_RM_SIB);
+            emitModRm(store, ModRmMode::Memory, group, MODRM_RM_SIB);
         else
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, MODRM_REG_7, MODRM_RM_SIB);
+            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, group, MODRM_RM_SIB);
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
@@ -2151,8 +2195,10 @@ namespace
                 emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
         }
 
-        // Value
-        emitValue(store, valueU64, immBits);
+        // Value. Group-2 has no immediate byte for the dedicated count-one
+        // opcode; other counts are masked by the operand width as on x64.
+        if (!isShift || valueU64 != 1)
+            emitValue(store, isShift ? std::min(static_cast<uint32_t>(valueU64), getNumBits(opBitsValue) - 1) : valueU64, immBits);
     }
 
     void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, bool mr, MicroOpBits extendSrcBits = MicroOpBits::Zero)
@@ -2198,6 +2244,7 @@ namespace
             case MicroOp::And:
             case MicroOp::Or:
             case MicroOp::Xor:
+            case MicroOp::Compare:
                 SWC_ASSERT(!reg.isFloat());
                 emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
                 break;
@@ -2356,7 +2403,13 @@ void X64Encoder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsD
 void X64Encoder::encodeCmpAmcImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOpBits opBits)
 {
     SWC_ASSERT(!regBase.isFloat() && !regMul.isFloat());
-    return encodeAmcCmpImm(store_, regBase, regMul, mulValue, addValue, value, opBits);
+    return encodeAmcOpImm(store_, regBase, regMul, mulValue, addValue, value, MicroOp::Compare, opBits);
+}
+
+void X64Encoder::encodeCmpAmcReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroReg regSrc, MicroOpBits opBits)
+{
+    SWC_ASSERT(regBase.isInt() && regMul.isInt() && regSrc.isInt());
+    return encodeAmcReg(store_, regSrc, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::Compare, true);
 }
 
 // ============================================================================
@@ -2883,6 +2936,53 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     }
 }
 
+void X64Encoder::encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regBase.isInt() && regMul.isInt());
+    SWC_ASSERT(op == MicroOp::Add || op == MicroOp::Subtract || op == MicroOp::BitwiseNot || op == MicroOp::Negate);
+    SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+
+    auto baseX64 = microRegToX64Reg(regBase);
+    auto mulX64  = microRegToX64Reg(regMul);
+    if (mulX64 == X64Reg::Rsp)
+    {
+        SWC_ASSERT(mulValue == 1);
+        std::swap(regBase, regMul);
+        baseX64 = microRegToX64Reg(regBase);
+        mulX64  = microRegToX64Reg(regMul);
+    }
+
+    if (opBits == MicroOpBits::B16)
+        store_.pushU8(0x66);
+
+    const bool indexExtended = isExtendedReg(mulX64);
+    const bool baseExtended  = isExtendedReg(baseX64);
+    if (opBits == MicroOpBits::B64 || indexExtended || baseExtended)
+        store_.pushU8(getRex(opBits == MicroOpBits::B64, false, indexExtended, baseExtended));
+
+    const bool increment = op == MicroOp::Add || op == MicroOp::Subtract;
+    // In this unary instruction family Add/Subtract mean INC/DEC. The fold
+    // creating them proves that CF and the other result flags are dead.
+    if (increment)
+        emitSpecCpuOp(store_, opBits == MicroOpBits::B8 ? 0xFE : 0xFF, opBits);
+    else
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
+
+    const bool forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
+    const auto mod                 = forcedDisplacement || addValue != 0
+                                         ? (canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32)
+                                         : ModRmMode::Memory;
+    const uint8_t group = op == MicroOp::Add ? MODRM_REG_0 :
+                          op == MicroOp::Subtract ? MODRM_REG_1 :
+                          op == MicroOp::BitwiseNot ? MODRM_REG_2 : MODRM_REG_3;
+    emitModRm(store_, mod, group, MODRM_RM_SIB);
+
+    SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
+    emitSib(store_, static_cast<uint8_t>(log2(mulValue)), encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
+    if (forcedDisplacement || addValue != 0)
+        emitValue(store_, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
+}
+
 void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
 {
     ///////////////////////////////////////////
@@ -3045,6 +3145,12 @@ void X64Encoder::encodeOpBinaryAmcMemReg(MicroReg regBase, MicroReg regMul, uint
 {
     SWC_ASSERT(regBase.isInt() && regMul.isInt() && regSrc.isInt());
     encodeAmcReg(store_, regSrc, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, op, true);
+}
+
+void X64Encoder::encodeOpBinaryAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regBase.isInt() && regMul.isInt());
+    return encodeAmcOpImm(store_, regBase, regMul, mulValue, addValue, value, op, opBits);
 }
 
 void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)

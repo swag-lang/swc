@@ -604,9 +604,31 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 SWC_MICRO_INSTR_DEF(
+    OpUnaryAmcMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 7,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::WritesMemory,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+SWC_MICRO_INSTR_DEF(
     OpBinaryAmcMemReg,
     MicroInstrDef{
         .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 7,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::WritesMemory,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+SWC_MICRO_INSTR_DEF(
+    OpBinaryAmcMemImm,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 7,
         .callConvIndex         = 0,
@@ -708,6 +730,20 @@ SWC_MICRO_INSTR_DEF(
     CmpAmcImm,
     MicroInstrDef{
         .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
+// Indexed compare against a register:
+// [base, index, src, addrBits, cmpBits, mul, add].
+SWC_MICRO_INSTR_DEF(
+    CmpAmcReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,

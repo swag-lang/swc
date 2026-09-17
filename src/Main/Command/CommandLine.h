@@ -333,6 +333,18 @@ inline std::string_view artifactModeSuffix(const CommandLine& cmdLine)
     return ".test";
 }
 
+// A build with debug information is not the same program as one without it either: the backend
+// keeps a stack copy of every parameter for the debugger. So its artifacts live in a configuration
+// directory of their own, and the two builds coexist instead of rebuilding each other. A consumer
+// looks its dependencies up under the same name, which is what makes a debug program take in
+// debug dependencies, down to the standard library.
+inline Utf8 artifactConfigurationName(const CommandLine& cmdLine)
+{
+    if (!cmdLine.debugInfo)
+        return cmdLine.buildCfg;
+    return std::format("{}-debug", cmdLine.buildCfg.view());
+}
+
 inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cmdLine)
 {
     std::vector<Utf8> result = cmdLine.runArgs;

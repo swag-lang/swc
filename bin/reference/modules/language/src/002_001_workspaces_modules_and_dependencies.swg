@@ -97,6 +97,13 @@ A module that builds a library publishes its code twice, from one compilation:
 | '<module>/shared-library/<config>/<arch>' | the shared library, and the API every consumer compiles against |
 | '<module>/static-library/<config>/<arch>' | an archive of the same code, one function per member |
 
+'<config>' is the build configuration, followed by '-debug' when '--debug' asked
+for debug information. A consumer reads its dependencies from the directory of
+its own configuration, so a program built with '--debug' takes in dependencies
+built with '--debug' as well. The compiler builds standard modules on demand; a
+dependency imported from a 'location:' it does not build has to provide that
+directory itself.
+
 Both are needed, and they answer different questions. The compiler loads the
 shared library to run that module's code at compile time — a '#run' calling into
 'core' calls into 'core.dll'. The archive is what a program links.

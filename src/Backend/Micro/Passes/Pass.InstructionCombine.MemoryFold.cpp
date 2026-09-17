@@ -220,7 +220,9 @@ namespace InstructionCombine
         if (immediateUpdate)
         {
             if ((opOps[2].microOp != MicroOp::Add && opOps[2].microOp != MicroOp::Subtract &&
-                 opOps[2].microOp != MicroOp::And && opOps[2].microOp != MicroOp::Or && opOps[2].microOp != MicroOp::Xor) ||
+                 opOps[2].microOp != MicroOp::And && opOps[2].microOp != MicroOp::Or && opOps[2].microOp != MicroOp::Xor &&
+                 opOps[2].microOp != MicroOp::ShiftLeft && opOps[2].microOp != MicroOp::ShiftArithmeticLeft &&
+                 opOps[2].microOp != MicroOp::ShiftRight && opOps[2].microOp != MicroOp::ShiftArithmeticRight) ||
                 opOps[3].hasWideImmediateValue())
                 return false;
 
@@ -256,7 +258,10 @@ namespace InstructionCombine
                 }
             }
 
-            const bool immediateFits = immediateFoldBits == MicroOpBits::B8 ? immediateFoldValue <= 0xFF :
+            const bool shiftUpdate = opOps[2].microOp == MicroOp::ShiftLeft || opOps[2].microOp == MicroOp::ShiftArithmeticLeft ||
+                                     opOps[2].microOp == MicroOp::ShiftRight || opOps[2].microOp == MicroOp::ShiftArithmeticRight;
+            const bool immediateFits = shiftUpdate ? immediateFoldValue <= 0x7F :
+                                       immediateFoldBits == MicroOpBits::B8 ? immediateFoldValue <= 0xFF :
                                        immediateFoldBits == MicroOpBits::B16 ? immediateFoldValue <= 0xFFFF :
                                        immediateFoldBits == MicroOpBits::B32 ? immediateFoldValue <= 0xFFFFFFFF :
                                        immediateFoldValue <= 0x7FFFFFFF || immediateFoldValue >= 0xFFFFFFFF80000000;

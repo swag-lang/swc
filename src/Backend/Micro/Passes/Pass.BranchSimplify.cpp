@@ -3619,6 +3619,131 @@ namespace
         return true;
     }
 
+    // The compared value is already available in a register before the
+    // branch, so an arm that reloads the exact same cell can reuse it. This
+    // exposes an ordinary two-copy diamond to the generic if-converter:
+    //
+    //     left  = [left address]          left  = [left address]
+    //     right = [right address]         right = [right address]
+    //     cmp left, right                 cmp left, right
+    //     jcc .Lright                     jcc .Lright
+    //     result = left                   result = left
+    //     jmp .Ljoin                      jmp .Ljoin
+    //   .Lright:                        .Lright:
+    //     result = [right address]   ->    result = right
+    //   .Ljoin:                         .Ljoin:
+    //
+    // The source load must immediately feed the comparison, and no write or
+    // call may occur before the reload. Keeping these constraints local makes
+    // the memory equivalence independent of alias analysis.
+    bool forwardComparedLoadIntoDiamondArm(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstrRef cmpRef = it.current;
+            const MicroInstr&   cmp    = *it;
+            if (cmp.op != MicroInstrOpcode::CmpRegReg || scan.relocated.contains(cmpRef.get()))
+                continue;
+            const MicroInstrOperand* cmpOps = cmp.ops(operands);
+            if (!cmpOps || (cmpOps[2].opBits != MicroOpBits::B32 && cmpOps[2].opBits != MicroOpBits::B64) ||
+                !cmpOps[0].reg.isVirtualInt() || !cmpOps[1].reg.isVirtualInt())
+                continue;
+
+            const MicroInstrRef sourceLoadRef = storage.findPreviousInstructionRef(cmpRef);
+            const MicroInstr*   sourceLoad    = storage.ptr(sourceLoadRef);
+            const auto*         sourceLoadOps = sourceLoad ? sourceLoad->ops(operands) : nullptr;
+            if (!sourceLoad || sourceLoad->op != MicroInstrOpcode::LoadAmcRegMem || !sourceLoadOps ||
+                scan.relocated.contains(sourceLoadRef.get()) || sourceLoadOps[0].reg != cmpOps[1].reg ||
+                sourceLoadOps[3].opBits != cmpOps[2].opBits)
+                continue;
+
+            const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
+            const MicroInstr*   jump    = storage.ptr(jumpRef);
+            const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
+            if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
+                jumpOps[0].cpuCond == MicroCond::Unconditional || !conditionSupportsConditionalMove(jumpOps[0].cpuCond) ||
+                scan.relocated.contains(jumpRef.get()))
+                continue;
+
+            const MicroInstrRef fallthroughRef = storage.findNextInstructionRef(jumpRef);
+            const MicroInstr*   fallthrough    = storage.ptr(fallthroughRef);
+            const auto*         fallthroughOps = fallthrough ? fallthrough->ops(operands) : nullptr;
+            if (!fallthrough || fallthrough->op != MicroInstrOpcode::LoadRegReg || !fallthroughOps ||
+                fallthroughOps[1].reg != cmpOps[0].reg || fallthroughOps[2].opBits != cmpOps[2].opBits ||
+                scan.relocated.contains(fallthroughRef.get()))
+                continue;
+
+            const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(fallthroughRef);
+            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
+            const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
+                joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                continue;
+
+            uint32_t armLabelId  = 0;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
+                !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
+                continue;
+            const auto armReferences = scan.labelReferences.find(armLabelId);
+            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+                continue;
+
+            const MicroInstrRef armLabelRef = storage.findNextInstructionRef(joinJumpRef);
+            const MicroInstr*   armLabel    = storage.ptr(armLabelRef);
+            uint32_t            foundLabelId = 0;
+            if (!armLabel || scan.relocated.contains(armLabelRef.get()) ||
+                !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
+                continue;
+
+            const MicroInstrRef reloadRef = storage.findNextInstructionRef(armLabelRef);
+            const MicroInstr*   reload    = storage.ptr(reloadRef);
+            const auto*         reloadOps = reload ? reload->ops(operands) : nullptr;
+            if (!reload || reload->op != MicroInstrOpcode::LoadAmcRegMem || !reloadOps ||
+                scan.relocated.contains(reloadRef.get()) || reloadOps[0].reg != fallthroughOps[0].reg ||
+                reloadOps[1].reg != sourceLoadOps[1].reg || reloadOps[2].reg != sourceLoadOps[2].reg ||
+                reloadOps[3].opBits != sourceLoadOps[3].opBits || reloadOps[4].opBits != sourceLoadOps[4].opBits ||
+                reloadOps[5].valueU64 != sourceLoadOps[5].valueU64 || reloadOps[6].valueU64 != sourceLoadOps[6].valueU64)
+                continue;
+
+            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(reloadRef);
+            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            if (!joinLabel || !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
+                continue;
+
+            bool safe = true;
+            for (MicroInstrRef ref = storage.findNextInstructionRef(sourceLoadRef); ref.isValid() && ref != reloadRef; ref = storage.findNextInstructionRef(ref))
+            {
+                const MicroInstr*        between = storage.ptr(ref);
+                const MicroInstrDef&     info    = MicroInstr::info(between->op);
+                const MicroInstrUseDef   useDef  = between->collectUseDef(operands, context.encoder);
+                if (info.flags.has(MicroInstrFlagsE::WritesMemory) || useDef.isCall ||
+                    std::ranges::find(useDef.defs, sourceLoadOps[1].reg) != useDef.defs.end() ||
+                    std::ranges::find(useDef.defs, sourceLoadOps[2].reg) != useDef.defs.end())
+                {
+                    safe = false;
+                    break;
+                }
+            }
+            if (!safe)
+                continue;
+
+            MicroInstrOperand copyOps[3] = {};
+            copyOps[0]                   = reloadOps[0];
+            copyOps[1].reg               = cmpOps[1].reg;
+            copyOps[2]                   = reloadOps[3];
+            storage.insertDerivedBefore(operands, reloadRef, MicroInstrOpcode::LoadRegReg, copyOps);
+            storage.erase(reloadRef);
+            return true;
+        }
+
+        return false;
+    }
+
     // A comparison already reads this exact cell on every path, so reusing a
     // register load for the arm cannot introduce a fault:
     //
@@ -4697,6 +4822,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             context.builder->invalidateControlFlowGraph();
     }
     if (convertAdjacentLoadDiamond(storage, operands, context))
+    {
+        changed = true;
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        localSsaState.invalidate();
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
+    if (forwardComparedLoadIntoDiamondArm(storage, operands, context))
     {
         changed = true;
         if (context.ssaState)

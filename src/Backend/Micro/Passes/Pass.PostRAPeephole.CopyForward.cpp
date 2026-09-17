@@ -762,6 +762,97 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Select an absolute narrow difference directly in the register returned
+    // by the function. Zero-extending both input loads lets byte/word
+    // subtractions preserve clear upper bits, so no final extension is needed.
+    bool tryRetargetNarrowAbsoluteDifference(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
+    {
+        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* extend = extendInst.ops(*ctx.operands);
+        if (!extend || extend[2].opBits != MicroOpBits::B64 ||
+            (extend[3].opBits != MicroOpBits::B8 && extend[3].opBits != MicroOpBits::B16) ||
+            !extend[0].reg.isInt() || !extend[1].reg.isInt() || extend[0].reg == extend[1].reg)
+            return false;
+        const MicroReg    result    = extend[0].reg;
+        const MicroReg    temporary = extend[1].reg;
+        const MicroOpBits bits      = extend[3].opBits;
+        if (!ctx.isRegDeadAfterCurrent(temporary))
+            return false;
+
+        const MicroInstrRef selectRef = ctx.previousRef(extendRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef resultSubRef = ctx.previousRef(selectRef);
+        const MicroInstr*   resultSub    = ctx.instruction(resultSubRef);
+        const auto*         resultSubOps = resultSub ? resultSub->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef tempSubRef   = ctx.previousRef(resultSubRef);
+        const MicroInstr*   tempSub      = ctx.instruction(tempSubRef);
+        const auto*         tempSubOps   = tempSub ? tempSub->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef copyRef      = ctx.previousRef(tempSubRef);
+        const MicroInstr*   copy         = ctx.instruction(copyRef);
+        const auto*         copyOps      = copy ? copy->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != temporary || selected[1].reg != result || selected[3].opBits != MicroOpBits::B32 ||
+            !resultSub || resultSub->op != MicroInstrOpcode::OpBinaryRegReg || !resultSubOps ||
+            resultSubOps[0].reg != result || resultSubOps[2].opBits != bits || resultSubOps[3].microOp != MicroOp::Subtract ||
+            !tempSub || tempSub->op != MicroInstrOpcode::OpBinaryRegReg || !tempSubOps ||
+            tempSubOps[0].reg != temporary || tempSubOps[1].reg != result ||
+            tempSubOps[2].opBits != bits || tempSubOps[3].microOp != MicroOp::Subtract ||
+            !copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
+            copyOps[0].reg != temporary || copyOps[1].reg != resultSubOps[1].reg || copyOps[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg other = resultSubOps[1].reg;
+        if (!other.isInt() || other == result || other == temporary || tempSubOps[1].reg != result)
+            return false;
+
+        const MicroInstrRef otherLoadRef  = ctx.previousRef(copyRef);
+        const MicroInstr*   otherLoad     = ctx.instruction(otherLoadRef);
+        const auto*         otherLoadOps  = otherLoad ? otherLoad->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef resultLoadRef = ctx.previousRef(otherLoadRef);
+        const MicroInstr*   resultLoad    = ctx.instruction(resultLoadRef);
+        const auto*         resultLoadOps = resultLoad ? resultLoad->ops(*ctx.operands) : nullptr;
+        if (!otherLoad || otherLoad->op != MicroInstrOpcode::LoadAmcRegMem || !otherLoadOps ||
+            otherLoadOps[0].reg != other || otherLoadOps[3].opBits != bits || otherLoadOps[4].opBits != MicroOpBits::B64 ||
+            !resultLoad || resultLoad->op != MicroInstrOpcode::LoadAmcRegMem || !resultLoadOps ||
+            resultLoadOps[0].reg != result || resultLoadOps[3].opBits != bits || resultLoadOps[4].opBits != MicroOpBits::B64)
+            return false;
+
+        MicroInstrOperand widenedResultLoad[7];
+        MicroInstrOperand widenedOtherLoad[7];
+        std::copy_n(resultLoadOps, 7, widenedResultLoad);
+        std::copy_n(otherLoadOps, 7, widenedOtherLoad);
+        widenedResultLoad[3].opBits = MicroOpBits::B32;
+        widenedResultLoad[4].opBits = bits;
+        widenedOtherLoad[3].opBits  = MicroOpBits::B32;
+        widenedOtherLoad[4].opBits  = bits;
+        MicroInstr loadProbe;
+        loadProbe.op          = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        loadProbe.numOperands = 7;
+
+        MicroInstrOperand narrowedCopy[3] = {copyOps[0], copyOps[1], copyOps[2]};
+        narrowedCopy[2].opBits            = MicroOpBits::B32;
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[0].reg               = result;
+        rewrittenSelect[1].reg               = temporary;
+        if (!MicroPassHelpers::invertCondition(rewrittenSelect[2].cpuCond, selected[2].cpuCond))
+            return false;
+
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedResultLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, loadProbe, widenedOtherLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, *copy, narrowedCopy) ||
+            ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            !ctx.claimAll({resultLoadRef, otherLoadRef, copyRef, tempSubRef, resultSubRef, selectRef, extendRef}))
+            return false;
+        ctx.emitRewrite(resultLoadRef, loadProbe.op, widenedResultLoad, true);
+        ctx.emitRewrite(otherLoadRef, loadProbe.op, widenedOtherLoad, true);
+        ctx.emitRewrite(copyRef, copy->op, narrowedCopy);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        ctx.emitErase(extendRef);
+        return true;
+    }
+
     // Retarget a two-step add/multiply computation as one unit so forwarding
     // cannot reintroduce its removed result copy on the next sweep.
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

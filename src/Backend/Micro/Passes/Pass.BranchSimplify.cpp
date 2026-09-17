@@ -1619,7 +1619,9 @@ namespace
     //   .END:
     //
     // LLVM matches the same pair of selects as `scmp` and lowers it to the two
-    // setcc bytes. The unsigned form tests `jbe`, `seta` and `setb`.
+    // setcc bytes. The unsigned form tests `jbe`, `seta` and `setb`. The
+    // mirrored order, `x < y ? -1 : (x > y ? 1 : 0)`, branches with `jge`,
+    // loads -1 and keeps the `x > y` byte without negating it.
     bool isSameCompare(const MicroInstr& left, const MicroInstrOperand* leftOps, const MicroInstr& right, const MicroInstrOperand* rightOps)
     {
         if (left.op != right.op || leftOps[0].reg != rightOps[0].reg || leftOps[1].opBits != rightOps[1].opBits)
@@ -1667,61 +1669,78 @@ namespace
                 relocated.insert(reloc.instructionRef.get());
         }
 
-        constexpr size_t K_SHAPE = 11;
-        const size_t     count   = layout.order.size();
+        constexpr size_t K_MAX_SHAPE = 11;
+        const size_t     count       = layout.order.size();
         const auto       instAt  = [&](size_t index) -> const MicroInstr* {
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
 
         bool     changed                = false;
         uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-        for (size_t at = 0; at + K_SHAPE <= count; ++at)
+        for (size_t at = 0; at + K_MAX_SHAPE - 1 <= count; ++at)
         {
-            const MicroInstr* cmp = instAt(at);
-            if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
+            const MicroInstr* cmp    = instAt(at);
+            const MicroInstr* branch = instAt(at + 1);
+            if (!cmp || !branch || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm) ||
+                branch->op != MicroInstrOpcode::JumpCond)
                 continue;
 
-            const MicroInstr* branch  = instAt(at + 1);
+            // `jle`/`jbe` leaves the 1 for the negated `x < y` byte; `jge`/`jae`
+            // leaves the -1 for the `x > y` byte.
+            const MicroInstrOperand* branchOps = branch->ops(operands);
+            MicroCond                greater   = MicroCond::Unconditional;
+            MicroCond                less      = MicroCond::Unconditional;
+            bool                     negated   = true;
+            switch (branchOps[0].cpuCond)
+            {
+                case MicroCond::LessOrEqual:
+                    greater = MicroCond::Greater;
+                    less    = MicroCond::Less;
+                    break;
+                case MicroCond::BelowOrEqual:
+                    greater = MicroCond::Above;
+                    less    = MicroCond::Below;
+                    break;
+                case MicroCond::GreaterOrEqual:
+                    greater = MicroCond::Greater;
+                    less    = MicroCond::Less;
+                    negated = false;
+                    break;
+                case MicroCond::AboveOrEqual:
+                    greater = MicroCond::Above;
+                    less    = MicroCond::Below;
+                    negated = false;
+                    break;
+                default:
+                    continue;
+            }
+            const size_t shapeSize = negated ? K_MAX_SHAPE : K_MAX_SHAPE - 1;
+            if (at + shapeSize > count)
+                continue;
+
             const MicroInstr* one     = instAt(at + 2);
             const MicroInstr* skip    = instAt(at + 3);
             const MicroInstr* elseLbl = instAt(at + 4);
             const MicroInstr* again   = instAt(at + 5);
             const MicroInstr* set     = instAt(at + 6);
             const MicroInstr* extend  = instAt(at + 7);
-            const MicroInstr* negate  = instAt(at + 8);
-            const MicroInstr* merge   = instAt(at + 9);
-            const MicroInstr* endLbl  = instAt(at + 10);
-            if (!branch || !one || !skip || !elseLbl || !again || !set || !extend || !negate || !merge || !endLbl)
+            const MicroInstr* negate  = negated ? instAt(at + 8) : nullptr;
+            const MicroInstr* merge   = instAt(at + shapeSize - 2);
+            const MicroInstr* endLbl  = instAt(at + shapeSize - 1);
+            if (!one || !skip || !elseLbl || !again || !set || !extend || (negated && !negate) || !merge || !endLbl)
                 continue;
-            if (branch->op != MicroInstrOpcode::JumpCond || one->op != MicroInstrOpcode::LoadRegImm || skip->op != MicroInstrOpcode::JumpCond ||
-                set->op != MicroInstrOpcode::SetCondReg || extend->op != MicroInstrOpcode::LoadZeroExtRegReg || negate->op != MicroInstrOpcode::OpUnaryReg ||
+            if (one->op != MicroInstrOpcode::LoadRegImm || skip->op != MicroInstrOpcode::JumpCond || set->op != MicroInstrOpcode::SetCondReg ||
+                extend->op != MicroInstrOpcode::LoadZeroExtRegReg || (negated && negate->op != MicroInstrOpcode::OpUnaryReg) ||
                 merge->op != MicroInstrOpcode::LoadRegReg)
                 continue;
 
-            const MicroInstrOperand* cmpOps    = cmp->ops(operands);
-            const MicroInstrOperand* branchOps = branch->ops(operands);
-            const MicroInstrOperand* oneOps    = one->ops(operands);
-            const MicroInstrOperand* skipOps   = skip->ops(operands);
-            const MicroInstrOperand* setOps    = set->ops(operands);
-            const MicroInstrOperand* extOps    = extend->ops(operands);
-            const MicroInstrOperand* negOps    = negate->ops(operands);
-            const MicroInstrOperand* mergeOps  = merge->ops(operands);
+            const MicroInstrOperand* cmpOps   = cmp->ops(operands);
+            const MicroInstrOperand* oneOps   = one->ops(operands);
+            const MicroInstrOperand* skipOps  = skip->ops(operands);
+            const MicroInstrOperand* setOps   = set->ops(operands);
+            const MicroInstrOperand* extOps   = extend->ops(operands);
+            const MicroInstrOperand* mergeOps = merge->ops(operands);
             if (!isSameCompare(*cmp, cmpOps, *again, again->ops(operands)))
-                continue;
-
-            MicroCond greater = MicroCond::Unconditional;
-            MicroCond less    = MicroCond::Unconditional;
-            if (branchOps[0].cpuCond == MicroCond::LessOrEqual)
-            {
-                greater = MicroCond::Greater;
-                less    = MicroCond::Less;
-            }
-            else if (branchOps[0].cpuCond == MicroCond::BelowOrEqual)
-            {
-                greater = MicroCond::Above;
-                less    = MicroCond::Below;
-            }
-            else
                 continue;
 
             uint32_t elseId = 0;
@@ -1737,34 +1756,41 @@ namespace
             if (labelReferences[elseId] != 1 || labelReferences[endId] != 1)
                 continue;
 
-            // D = 1 on one side and D = -zext(x < y) on the other, at one width.
+            // D = 1 on one side and D = -zext(x < y) on the other, or D = -1 and
+            // D = zext(x > y), at one width.
             const MicroReg    result = oneOps[0].reg;
             const MicroOpBits bits   = oneOps[1].opBits;
+            const uint64_t    loaded = negated ? 1 : getBitsMask(bits);
             if (!result.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || oneOps[2].hasWideImmediateValue() ||
-                oneOps[2].valueU64 != 1)
+                (oneOps[2].valueU64 & getBitsMask(bits)) != loaded)
                 continue;
             const MicroReg flag  = setOps[0].reg;
             const MicroReg value = extOps[0].reg;
-            if (setOps[1].cpuCond != less || !flag.isVirtualInt() || !value.isVirtualInt() || extOps[1].reg != flag || extOps[2].opBits != bits ||
-                extOps[3].opBits != MicroOpBits::B8)
+            if (setOps[1].cpuCond != (negated ? less : greater) || !flag.isVirtualInt() || !value.isVirtualInt() || extOps[1].reg != flag ||
+                extOps[2].opBits != bits || extOps[3].opBits != MicroOpBits::B8)
                 continue;
-            if (negOps[0].reg != value || negOps[1].opBits != bits || negOps[2].microOp != MicroOp::Negate)
-                continue;
+            if (negated)
+            {
+                const MicroInstrOperand* negOps = negate->ops(operands);
+                if (negOps[0].reg != value || negOps[1].opBits != bits || negOps[2].microOp != MicroOp::Negate)
+                    continue;
+            }
             if (mergeOps[0].reg != result || mergeOps[1].reg != value || mergeOps[2].opBits != bits)
                 continue;
             if (value == result || flag == result)
                 continue;
 
             // The byte and its negation live in the arm alone.
-            const uint32_t flagInside  = flag == value ? 5 : 2;
-            const uint32_t valueInside = flag == value ? 5 : 3;
+            const uint32_t valueUses   = negated ? 3 : 2;
+            const uint32_t flagInside  = flag == value ? valueUses + 2 : 2;
+            const uint32_t valueInside = flag == value ? valueUses + 2 : valueUses;
             if (mentions[flag.index()] != flagInside || mentions[value.index()] != valueInside)
                 continue;
 
             bool hasRelocation = false;
-            for (size_t index = at + 1; index < at + K_SHAPE; ++index)
+            for (size_t index = at + 1; index < at + shapeSize; ++index)
                 hasRelocation |= relocated.contains(layout.order[index].get());
-            if (hasRelocation || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, layout.order[at + 9]))
+            if (hasRelocation || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, layout.order[at + shapeSize - 2]))
                 continue;
 
             const MicroInstrRef insertRef = layout.order[at + 1];
@@ -1792,11 +1818,11 @@ namespace
             signOps[3].opBits = MicroOpBits::B8;
             storage.insertDerivedBefore(operands, insertRef, MicroInstrOpcode::LoadSignedExtRegReg, signOps);
 
-            for (size_t index = at + 1; index < at + K_SHAPE; ++index)
+            for (size_t index = at + 1; index < at + shapeSize; ++index)
                 storage.erase(layout.order[index]);
 
             changed = true;
-            at += K_SHAPE - 1;
+            at += shapeSize - 1;
         }
 
         if (changed)

@@ -1598,7 +1598,7 @@ namespace
 {
     // x > y ? 1 : -zext(x < y), the diamond `x > y ? 1 : (x < y ? -1 : 0)`
     // leaves. `plainElse` replaces the negated byte with a loaded value.
-    void emitSignDiamond(MicroBuilder& builder, MicroCond branchCond, MicroCond lessCond, bool plainElse)
+    void emitSignDiamond(MicroBuilder& builder, MicroCond branchCond, MicroCond lessCond, bool plainElse, bool mirrored = false)
     {
         const MicroReg base   = MicroReg::virtualIntReg(9);
         const MicroReg value  = MicroReg::virtualIntReg(10);
@@ -1612,7 +1612,7 @@ namespace
         builder.emitLoadRegMem(other, base, 8, MicroOpBits::B64);
         builder.emitCmpRegReg(value, other, MicroOpBits::B64);
         builder.emitJumpToLabel(branchCond, MicroOpBits::B32, other_);
-        builder.emitLoadRegImm(result, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(result, ApInt(mirrored ? 0xFFFFFFFFFFFFFFFF : 1, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, end);
         builder.placeLabel(other_);
         builder.emitCmpRegReg(value, other, MicroOpBits::B64);
@@ -1620,7 +1620,8 @@ namespace
         builder.emitLoadZeroExtendRegReg(wide, flag, MicroOpBits::B64, MicroOpBits::B8);
         if (plainElse)
             builder.emitLoadRegMem(wide, base, 16, MicroOpBits::B64);
-        builder.emitOpUnaryReg(wide, MicroOp::Negate, MicroOpBits::B64);
+        if (!mirrored)
+            builder.emitOpUnaryReg(wide, MicroOp::Negate, MicroOpBits::B64);
         builder.emitLoadRegReg(result, wide, MicroOpBits::B64);
         builder.placeLabel(end);
         builder.emitLoadMemReg(base, 24, result, MicroOpBits::B64);
@@ -1915,6 +1916,35 @@ SWC_TEST_BEGIN(BranchSimplify_SwitchFallingIntoLastCaseBecomesPackedTable)
     SWC_RESULT(runBranchSimplifyPass(builder));
 
     if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// x < y ? -1 : (x > y ? 1 : 0) branches the other way and becomes the same
+// byte difference.
+SWC_TEST_BEGIN(BranchSimplify_MirroredSignDiamondBecomesByteDifference)
+{
+    MicroBuilder builder(ctx);
+    emitSignDiamond(builder, MicroCond::GreaterOrEqual, MicroCond::Greater, false, true);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0 || !hasSignedByteExtend(builder))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The mirrored arm must test `x > y`: `x < y` there is another function.
+SWC_TEST_BEGIN(BranchSimplify_MirroredSignDiamondWithLessKept)
+{
+    MicroBuilder builder(ctx);
+    emitSignDiamond(builder, MicroCond::GreaterOrEqual, MicroCond::Less, false, true);
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (hasSignedByteExtend(builder))
         return Result::Error;
     return Result::Continue;
 }

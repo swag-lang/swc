@@ -213,7 +213,8 @@ namespace PostRaPeephole
     // left operand is the reload.
     bool tryFoldLoadIntoBinary(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
     {
-        if (loadInst.op != MicroInstrOpcode::LoadRegMem || loadInst.numOperands < 4)
+        const bool indexed = loadInst.op == MicroInstrOpcode::LoadAmcRegMem;
+        if ((!indexed && loadInst.op != MicroInstrOpcode::LoadRegMem) || loadInst.numOperands < (indexed ? 7 : 4))
             return false;
 
         const MicroInstrOperand* loadOps = ctx.operandsFor(loadRef);
@@ -222,8 +223,10 @@ namespace PostRaPeephole
 
         const MicroReg loaded  = loadOps[0].reg;
         const MicroReg base    = loadOps[1].reg;
+        const MicroReg index   = indexed ? loadOps[2].reg : MicroReg::invalid();
         const bool     isFloat = loaded.isFloat();
-        if ((!isFloat && !loaded.isAnyInt()) || base.isFloat() || !base.isValid())
+        if ((!isFloat && !loaded.isAnyInt()) || base.isFloat() || !base.isValid() ||
+            (indexed && (!index.isValid() || index.isFloat() || isFloat)))
             return false;
 
         // An instruction-pointer-relative load reads a constant through a
@@ -238,14 +241,15 @@ namespace PostRaPeephole
         if (!isFloat && !ctx.encoder)
             return false;
 
-        const MicroOpBits opBits = loadOps[2].opBits;
+        const MicroOpBits opBits = loadOps[indexed ? 3 : 2].opBits;
         if (isFloat ? (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) : !isStandardIntBits(opBits))
             return false;
 
         constexpr uint32_t kMaxScan = 12;
 
-        MicroInstrRef     opRef  = ctx.nextRef(loadRef);
-        const MicroInstr* opInst = nullptr;
+        MicroInstrRef     opRef   = ctx.nextRef(loadRef);
+        const MicroInstr* opInst  = nullptr;
+        uint32_t          opIndex = ctx.instructionIndex + 1;
         for (uint32_t step = 0; step < kMaxScan; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(opRef);
@@ -276,7 +280,7 @@ namespace PostRaPeephole
             const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
             for (const MicroReg reg : useDef.defs)
             {
-                if (reg == loaded || reg == base)
+                if (reg == loaded || reg == base || (indexed && reg == index))
                     return false;
             }
             for (const MicroReg reg : useDef.uses)
@@ -286,6 +290,7 @@ namespace PostRaPeephole
             }
 
             opRef = ctx.nextRef(opRef);
+            ++opIndex;
         }
 
         if (!opInst)
@@ -297,11 +302,13 @@ namespace PostRaPeephole
 
         // The register only existed to carry the loaded value across; if anything
         // reads it afterwards it has to keep existing.
-        if (!regIsDeadAfter(ctx, opRef, loaded))
+        if (!regIsDeadAfter(ctx, opRef, loaded) && (!indexed || !ctx.isRegDeadAfter(loaded, opIndex)))
             return false;
 
         if (opInst->op == MicroInstrOpcode::CmpRegReg)
         {
+            if (indexed)
+                return false;
             if (consumerOps[2].opBits != opBits || !consumerOps[1].reg.isAnyInt())
                 return false;
 
@@ -326,18 +333,35 @@ namespace PostRaPeephole
         if (isFloat ? (!hasThreeOperandForm(op) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
 
-        MicroInstrOperand newOps[5] = {};
-        newOps[0].reg               = consumerOps[0].reg;
-        newOps[1].reg               = base;
-        newOps[2].opBits            = opBits;
-        newOps[3].microOp           = op;
-        newOps[4].valueU64          = loadOps[3].valueU64;
-        if (!isFloat && !encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpBinaryRegMem, std::span{newOps, 5}))
+        MicroInstrOpcode  rewrittenOp = MicroInstrOpcode::OpBinaryRegMem;
+        MicroInstrOperand newOps[8]   = {};
+        uint32_t          numOps       = 5;
+        newOps[0].reg                  = consumerOps[0].reg;
+        newOps[1].reg                  = base;
+        if (indexed)
+        {
+            rewrittenOp        = MicroInstrOpcode::OpBinaryRegAmcMem;
+            numOps             = 8;
+            newOps[2].reg      = index;
+            newOps[3].opBits   = opBits;
+            newOps[4]          = loadOps[4];
+            newOps[5]          = loadOps[5];
+            newOps[6]          = loadOps[6];
+            newOps[7].microOp  = op;
+        }
+        else
+        {
+            newOps[2].opBits   = opBits;
+            newOps[3].microOp  = op;
+            newOps[4].valueU64 = loadOps[3].valueU64;
+        }
+        const std::span rewrittenOps(newOps, numOps);
+        if (!isFloat && !encoderAcceptsAsIs(ctx, rewrittenOp, rewrittenOps))
             return false;
         if (!ctx.claimAll({loadRef, opRef}))
             return false;
 
-        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegMem, std::span{newOps, 5}, true);
+        ctx.emitRewrite(opRef, rewrittenOp, rewrittenOps, true);
         ctx.emitErase(loadRef);
         return true;
     }

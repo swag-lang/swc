@@ -456,6 +456,19 @@ namespace InstructionCombine
             return emitLoadRegImm(ctx, ref, dst, opBits, absorbed);
         }
 
+        // A non-negative signed-dword mask clears the upper half and bit 31.
+        // Encoding the AND at 32 bits therefore keeps both the 64-bit result
+        // and every defined flag while dropping the REX.W prefix.
+        if (op == MicroOp::And && opBits == MicroOpBits::B64 && imm <= 0x7FFFFFFF && ctx.claimAll({ref}))
+        {
+            MicroInstrOperand narrowOps[4];
+            for (uint8_t i = 0; i < 4; ++i)
+                narrowOps[i] = ops[i];
+            narrowOps[1].opBits = MicroOpBits::B32;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegImm, narrowOps);
+            return true;
+        }
+
         if (op == MicroOp::And && tryMaskShiftedValue(ctx, ref, dst, opBits, imm))
             return true;
 

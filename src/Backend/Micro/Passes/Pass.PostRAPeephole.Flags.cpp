@@ -21,6 +21,7 @@ namespace PostRaPeephole
                 case MicroInstrOpcode::CmpRegImm:
                 case MicroInstrOpcode::CmpMemReg:
                 case MicroInstrOpcode::CmpMemImm:
+                case MicroInstrOpcode::CmpAmcImm:
                     return true;
 
                 default:
@@ -1161,12 +1162,12 @@ namespace PostRaPeephole
         const auto* cmpOps = cmp->ops(*ctx.operands);
         if (!cmpOps || !cmpOps[0].reg.isInt())
             return false;
-        if (cmp->op == MicroInstrOpcode::CmpRegReg)
+        if (isCompareInstruction(cmp->op))
         {
-            if (!cmpOps[1].reg.isInt())
+            if (!canMoveComparisonForSelect(*cmp, cmpOps))
                 return false;
         }
-        else if (cmp->op != MicroInstrOpcode::CmpRegImm)
+        else
         {
             // These integer ALU producers overwrite the incoming flags and
             // read their destination, so the use check also protects its result.

@@ -7,6 +7,53 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    // Reuse a nearby identical register comparison across instructions that
+    // preserve both its operands and the CPU flags. Conditional moves are the
+    // common case: they consume the first comparison without changing it, so
+    // a second comparison of the same values is redundant.
+    bool tryEraseRepeatedCompare(Context& ctx, const MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const auto* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || !cmp[0].reg.isAnyInt() || !cmp[1].reg.isAnyInt())
+            return false;
+
+        constexpr uint32_t                       maxWindow = 4;
+        std::array<MicroInstrRef, maxWindow + 1> window;
+        window[0]            = cmpRef;
+        MicroInstrRef cursor = ctx.previousRef(cmpRef);
+        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.previousRef(cursor))
+        {
+            const MicroInstr* previous = ctx.instruction(cursor);
+            if (!previous || ctx.isClaimed(cursor))
+                return false;
+            window[step]                 = cursor;
+            const auto* previousOperands = previous->ops(*ctx.operands);
+            if (previous->op == MicroInstrOpcode::CmpRegReg && previousOperands &&
+                previousOperands[0].reg == cmp[0].reg && previousOperands[1].reg == cmp[1].reg &&
+                previousOperands[2].opBits == cmp[2].opBits)
+            {
+                if (!ctx.claimAll(std::span{window.data(), step + 1}))
+                    return false;
+                ctx.emitErase(cmpRef);
+                return true;
+            }
+
+            const MicroInstrDef& info = MicroInstr::info(previous->op);
+            if (previous->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                instructionActuallyDefinesCpuFlags(*previous, previousOperands))
+                return false;
+
+            const MicroInstrUseDef useDef = previous->collectUseDef(*ctx.operands, ctx.encoder);
+            if (std::ranges::find(useDef.defs, cmp[0].reg) != useDef.defs.end() ||
+                std::ranges::find(useDef.defs, cmp[1].reg) != useDef.defs.end())
+                return false;
+        }
+        return false;
+    }
+
     // The overflow-safe unsigned average idiom can use a widened add once
     // both dword inputs are known to have clear upper halves:
     //

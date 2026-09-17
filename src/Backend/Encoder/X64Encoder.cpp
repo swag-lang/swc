@@ -1320,6 +1320,10 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::OpBinaryRegAmcMem)
+        return requireStandardIntOpBits(outIssue, ops[3].opBits, 3);
+
+    ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
     {
         const MicroOp op = ops[3].microOp;
@@ -2182,6 +2186,19 @@ namespace
         // Opcode
         switch (op)
         {
+            case MicroOp::Add:
+            case MicroOp::Subtract:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+                SWC_ASSERT(!mr && !reg.isFloat());
+                emitSpecCpuOp(store, getX64RegMemOpCode(op), opBitsReg);
+                break;
+            case MicroOp::MultiplySigned:
+                SWC_ASSERT(!mr && !reg.isFloat() && opBitsReg != MicroOpBits::B8);
+                emitCpuOp(store, 0x0F);
+                emitCpuOp(store, 0xAF);
+                break;
             case MicroOp::LoadEffectiveAddress:
                 emitSpecCpuOp(store, MicroOp::LoadEffectiveAddress, opBitsReg);
                 break;
@@ -3009,6 +3026,12 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         SWC_INTERNAL_ERROR();
     }
+}
+
+void X64Encoder::encodeOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regDst.isInt() && regBase.isInt() && regMul.isInt());
+    encodeAmcReg(store_, regDst, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, op, false);
 }
 
 void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)

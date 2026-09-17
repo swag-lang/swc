@@ -70,6 +70,7 @@ namespace
         // into its consumer: an indexed access has no memory-operand form, and
         // a plain one gets both folds across two sweeps.
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldMemoryAddressing);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldAmcAddressedLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoExtend);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegCompare);
@@ -84,6 +85,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcMemReg, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadAmcMemImm, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::CmpAmcImm, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::OpBinaryRegAmcMem, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadSignedExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);
@@ -91,6 +93,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcMemReg, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadAmcMemImm, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::CmpAmcImm, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::OpBinaryRegAmcMem, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLeaConstIntoMemBase);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldLeaConstIntoMemBase);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);

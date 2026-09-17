@@ -85,6 +85,7 @@ namespace PostRaPeephole
     bool tryReuseNegationForSignSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroExtendedBooleanCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryEraseBooleanRecanonicalization(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldSubtractBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryInvertZeroSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryClearZeroBeforeSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -95,6 +96,8 @@ namespace PostRaPeephole
     bool tryUseTestForDeadMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseRepeatedCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConditionalBitwiseNot(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConditionalAddSubtract(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseAddFlagsForUnsignedWrap(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryFoldZeroBooleanProduct(Context& ctx, MicroInstrRef multiplyRef, const MicroInstr& multiplyInst);
@@ -129,6 +132,8 @@ namespace PostRaPeephole
     bool tryFoldConditionalResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryRetargetNegatedConditionalResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldCopyIntoIntegerAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFactorCommonConditionalShift(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFactorCommonConditionalBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldSelectedIntegerAdd(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopySource(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryCoalesceLocalCopyChain(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

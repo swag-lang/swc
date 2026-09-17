@@ -407,6 +407,200 @@ namespace PostRaPeephole
         }
     }
 
+    // Turn `flag != 0 ? ~value : value` into a zero/nonzero mask. NEG exposes
+    // nonzero as carry, SBB materializes the mask, and XOR applies it.
+    bool tryFoldConditionalBitwiseNot(Context& ctx, const MicroInstrRef compareRef, const MicroInstr& compareInst)
+    {
+        if (ctx.isClaimed(compareRef) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic() ||
+            compareInst.op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        const auto* compared = compareInst.ops(*ctx.operands);
+        if (!compared || !compared[0].reg.isInt() || ctx.isPrivateFrameBase(compared[0].reg) ||
+            (compared[1].opBits != MicroOpBits::B32 && compared[1].opBits != MicroOpBits::B64) ||
+            compared[2].hasWideImmediateValue() || compared[2].valueU64 != 0)
+            return false;
+        const MicroReg    flag = compared[0].reg;
+        const MicroOpBits bits = compared[1].opBits;
+
+        const MicroInstrRef copyRef = ctx.nextRef(compareRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        const auto*         copied  = copy ? copy->ops(*ctx.operands) : nullptr;
+        if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copied ||
+            !copied[0].reg.isInt() || !copied[1].reg.isInt() || copied[0].reg == copied[1].reg ||
+            copied[0].reg == flag || copied[1].reg == flag || ctx.isPrivateFrameBase(copied[0].reg) ||
+            (copied[2].opBits != bits && !(copied[2].opBits == MicroOpBits::B64 && bits == MicroOpBits::B32)))
+            return false;
+        const MicroReg result = copied[0].reg;
+        const MicroReg value  = copied[1].reg;
+
+        const MicroInstrRef notRef = ctx.nextRef(copyRef);
+        const MicroInstr*   bitNot = ctx.instruction(notRef);
+        const auto*         negated = bitNot ? bitNot->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef selectRef = ctx.nextRef(notRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const auto*         selected  = select ? select->ops(*ctx.operands) : nullptr;
+        if (!bitNot || bitNot->op != MicroInstrOpcode::OpUnaryReg || !negated ||
+            negated[0].reg != result || negated[1].opBits != bits || negated[2].microOp != MicroOp::BitwiseNot ||
+            !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != value || selected[2].cpuCond != MicroCond::Equal ||
+            selected[3].opBits != bits || !ctx.isRegDeadAfter(flag, ctx.instructionIndex + 3) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand clear[2] = {};
+        clear[0].reg               = result;
+        clear[1].opBits            = bits;
+        MicroInstr clearProbe;
+        clearProbe.op          = MicroInstrOpcode::ClearReg;
+        clearProbe.numOperands = 2;
+        MicroInstrOperand negate[3] = {};
+        negate[0].reg               = flag;
+        negate[1].opBits            = bits;
+        negate[2].microOp           = MicroOp::Negate;
+        MicroInstr negateProbe;
+        negateProbe.op          = MicroInstrOpcode::OpUnaryReg;
+        negateProbe.numOperands = 3;
+        MicroInstrOperand subtract[3] = {};
+        subtract[0].reg               = result;
+        subtract[1].reg               = result;
+        subtract[2].opBits            = bits;
+        MicroInstr subtractProbe;
+        subtractProbe.op          = MicroInstrOpcode::SubtractBorrowRegReg;
+        subtractProbe.numOperands = 3;
+        MicroInstrOperand apply[4] = {};
+        apply[0].reg               = result;
+        apply[1].reg               = value;
+        apply[2].opBits            = bits;
+        apply[3].microOp           = MicroOp::Xor;
+        MicroInstr applyProbe;
+        applyProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        applyProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, clearProbe, clear) ||
+            ctx.encoder->queryConformanceIssue(issue, negateProbe, negate) ||
+            ctx.encoder->queryConformanceIssue(issue, subtractProbe, subtract) ||
+            ctx.encoder->queryConformanceIssue(issue, applyProbe, apply) ||
+            !ctx.claimAll({compareRef, copyRef, notRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(compareRef, clearProbe.op, clear);
+        ctx.emitRewrite(copyRef, negateProbe.op, negate);
+        ctx.emitRewrite(notRef, subtractProbe.op, subtract);
+        ctx.emitRewrite(selectRef, applyProbe.op, apply);
+        return true;
+    }
+
+    // Select between `a + b` and `a - b` by selecting the sign of `b`, then
+    // adding `a` once. The masked flag and `a` must both die with the select
+    // because the shorter sequence keeps their original values until then.
+    bool tryFoldConditionalAddSubtract(Context& ctx, const MicroInstrRef maskRef, const MicroInstr& maskInst)
+    {
+        if (ctx.isClaimed(maskRef) || !ctx.encoder || maskInst.op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const auto* mask = maskInst.ops(*ctx.operands);
+        if (!mask || !mask[0].reg.isInt() || ctx.isPrivateFrameBase(mask[0].reg) ||
+            (mask[1].opBits != MicroOpBits::B32 && mask[1].opBits != MicroOpBits::B64) ||
+            mask[2].microOp != MicroOp::And || mask[3].hasWideImmediateValue() || mask[3].valueU64 != 1)
+            return false;
+        const MicroReg    flag = mask[0].reg;
+        const MicroOpBits bits = mask[1].opBits;
+
+        const MicroInstrRef sumRef = ctx.nextRef(maskRef);
+        const MicroInstr*   sum    = ctx.instruction(sumRef);
+        const auto*         summed = sum ? sum->ops(*ctx.operands) : nullptr;
+        if (!sum || sum->op != MicroInstrOpcode::LoadAddrAmcRegMem || !summed ||
+            !summed[0].reg.isInt() || !summed[1].reg.isInt() || !summed[2].reg.isInt() ||
+            summed[3].opBits != bits || summed[4].opBits != MicroOpBits::B64 ||
+            summed[5].hasWideImmediateValue() || summed[5].valueU64 != 1 ||
+            summed[6].hasWideImmediateValue() || summed[6].valueU64 != 0)
+            return false;
+        const MicroReg result = summed[0].reg;
+
+        const MicroInstrRef differenceRef = ctx.nextRef(sumRef);
+        const MicroInstr*   difference    = ctx.instruction(differenceRef);
+        const auto*         sub           = difference ? difference->ops(*ctx.operands) : nullptr;
+        if (!difference || difference->op != MicroInstrOpcode::OpBinaryRegReg || !sub ||
+            !sub[0].reg.isInt() || !sub[1].reg.isInt() || sub[2].opBits != bits || sub[3].microOp != MicroOp::Subtract ||
+            !((summed[1].reg == sub[0].reg && summed[2].reg == sub[1].reg) ||
+              (summed[1].reg == sub[1].reg && summed[2].reg == sub[0].reg)))
+            return false;
+        const MicroReg left  = sub[0].reg;
+        const MicroReg right = sub[1].reg;
+        if (result == left || result == right || result == flag || left == flag || right == flag ||
+            ctx.isPrivateFrameBase(result) || ctx.isPrivateFrameBase(left) || ctx.isPrivateFrameBase(right))
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(differenceRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         compared   = compare ? compare->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef selectRef  = ctx.nextRef(compareRef);
+        const MicroInstr*   select     = ctx.instruction(selectRef);
+        const auto*         selected   = select ? select->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegImm || !compared ||
+            compared[0].reg != flag || compared[1].opBits != bits ||
+            compared[2].hasWideImmediateValue() || compared[2].valueU64 != 0 ||
+            !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != result || selected[1].reg != left ||
+            selected[2].cpuCond != MicroCond::Equal || selected[3].opBits != bits ||
+            !ctx.isRegDeadAfter(left, ctx.instructionIndex + 4) ||
+            !ctx.isRegDeadAfter(flag, ctx.instructionIndex + 4) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand copy[3] = {};
+        copy[0].reg               = result;
+        copy[1].reg               = right;
+        copy[2].opBits            = bits;
+        MicroInstr copyProbe;
+        copyProbe.op          = MicroInstrOpcode::LoadRegReg;
+        copyProbe.numOperands = 3;
+        MicroInstrOperand negate[3] = {};
+        negate[0].reg               = result;
+        negate[1].opBits            = bits;
+        negate[2].microOp           = MicroOp::Negate;
+        MicroInstr negateProbe;
+        negateProbe.op          = MicroInstrOpcode::OpUnaryReg;
+        negateProbe.numOperands = 3;
+        MicroInstrOperand test[3] = {};
+        test[0].reg               = flag;
+        test[1].opBits            = MicroOpBits::B8;
+        test[2].valueU64          = 1;
+        MicroInstr testProbe;
+        testProbe.op          = MicroInstrOpcode::TestRegImm;
+        testProbe.numOperands = 3;
+        MicroInstrOperand choose[4] = {};
+        choose[0].reg               = result;
+        choose[1].reg               = right;
+        choose[2].cpuCond           = MicroCond::NotEqual;
+        choose[3].opBits            = bits;
+        MicroInstr chooseProbe;
+        chooseProbe.op          = MicroInstrOpcode::LoadCondRegReg;
+        chooseProbe.numOperands = 4;
+        MicroInstrOperand add[4] = {};
+        add[0].reg               = result;
+        add[1].reg               = left;
+        add[2].opBits            = bits;
+        add[3].microOp           = MicroOp::Add;
+        MicroInstr addProbe;
+        addProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        addProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, copyProbe, copy) ||
+            ctx.encoder->queryConformanceIssue(issue, negateProbe, negate) ||
+            ctx.encoder->queryConformanceIssue(issue, testProbe, test) ||
+            ctx.encoder->queryConformanceIssue(issue, chooseProbe, choose) ||
+            ctx.encoder->queryConformanceIssue(issue, addProbe, add) ||
+            !ctx.claimAll({maskRef, sumRef, differenceRef, compareRef, selectRef}))
+            return false;
+
+        ctx.emitRewrite(maskRef, copyProbe.op, copy);
+        ctx.emitRewrite(sumRef, negateProbe.op, negate);
+        ctx.emitRewrite(differenceRef, testProbe.op, test);
+        ctx.emitRewrite(compareRef, chooseProbe.op, choose);
+        ctx.emitRewrite(selectRef, addProbe.op, add);
+        return true;
+    }
+
     namespace
     {
         // ALU ops that set ZF/SF/PF from their register result exactly as
@@ -1600,6 +1794,56 @@ namespace PostRaPeephole
         ctx.emitRewrite(copyRef, MicroInstrOpcode::ClearReg, clear);
         ctx.emitRewrite(subRef, MicroInstrOpcode::CmpRegReg, compare);
         ctx.emitErase(ref);
+        return true;
+    }
+
+    // SETcc produces 0 or 1, so an 8-bit AND/OR/XOR of two SETcc values is
+    // already a canonical boolean. A following SETNE only reproduces it.
+    bool tryEraseBooleanRecanonicalization(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* widened = inst.ops(*ctx.operands);
+        if (!widened || widened[0].reg != widened[1].reg || widened[3].opBits != MicroOpBits::B8 ||
+            (widened[2].opBits != MicroOpBits::B32 && widened[2].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef canonicalRef = ctx.previousRef(ref);
+        const MicroInstr*   canonical    = ctx.instruction(canonicalRef);
+        const auto*         canonicalOps = canonical ? canonical->ops(*ctx.operands) : nullptr;
+        if (!canonical || canonical->op != MicroInstrOpcode::SetCondReg || !canonicalOps ||
+            canonicalOps[0].reg != widened[0].reg ||
+            (canonicalOps[1].cpuCond != MicroCond::NotEqual && canonicalOps[1].cpuCond != MicroCond::NotZero))
+            return false;
+
+        const MicroInstrRef binaryRef = ctx.previousRef(canonicalRef);
+        const MicroInstr*   binary    = ctx.instruction(binaryRef);
+        const auto*         binaryOps = binary ? binary->ops(*ctx.operands) : nullptr;
+        if (!binary || binary->op != MicroInstrOpcode::OpBinaryRegReg || !binaryOps ||
+            binaryOps[0].reg != widened[0].reg || !binaryOps[1].reg.isInt() || binaryOps[2].opBits != MicroOpBits::B8 ||
+            (binaryOps[3].microOp != MicroOp::And && binaryOps[3].microOp != MicroOp::Or && binaryOps[3].microOp != MicroOp::Xor))
+            return false;
+
+        const MicroInstrRef secondSetRef = ctx.previousRef(binaryRef);
+        const MicroInstr*   secondSet    = ctx.instruction(secondSetRef);
+        const auto*         secondOps    = secondSet ? secondSet->ops(*ctx.operands) : nullptr;
+        if (!secondSet || secondSet->op != MicroInstrOpcode::SetCondReg || !secondOps ||
+            secondOps[0].reg != binaryOps[1].reg)
+            return false;
+        const MicroInstrRef secondCompareRef = ctx.previousRef(secondSetRef);
+        const MicroInstr*   secondCompare    = ctx.instruction(secondCompareRef);
+        if (!secondCompare ||
+            (secondCompare->op != MicroInstrOpcode::CmpRegReg && secondCompare->op != MicroInstrOpcode::CmpRegImm &&
+             secondCompare->op != MicroInstrOpcode::TestRegReg && secondCompare->op != MicroInstrOpcode::TestRegImm))
+            return false;
+        const MicroInstrRef firstSetRef = ctx.previousRef(secondCompareRef);
+        const MicroInstr*   firstSet    = ctx.instruction(firstSetRef);
+        const auto*         firstOps    = firstSet ? firstSet->ops(*ctx.operands) : nullptr;
+        if (!firstSet || firstSet->op != MicroInstrOpcode::SetCondReg || !firstOps ||
+            firstOps[0].reg != binaryOps[0].reg || !ctx.claimAll({canonicalRef, ref}))
+            return false;
+
+        ctx.emitErase(canonicalRef);
         return true;
     }
 

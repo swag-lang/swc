@@ -29,6 +29,7 @@ namespace
         r.add(MicroInstrOpcode::Nop, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
+        r.add(MicroInstrOpcode::CmpRegImm, tryFoldConditionalBitwiseNot);
         r.add(MicroInstrOpcode::CmpRegImm, tryReuseFlagsForCompare);
         r.add(MicroInstrOpcode::TestMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
@@ -48,6 +49,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCarryComparisonSum);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldZeroTestBooleanSum);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryNarrowBitwiseZeroExtensions);
+        r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldConditionalAddSubtract);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryUseTestForDeadMask);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowShiftedBoolean);
@@ -58,6 +60,7 @@ namespace
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldSubtractBoolean);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryEraseBooleanRecanonicalization);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryFoldZeroExtendedBooleanCompare);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryExtractHighByte);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowTruncatedRightShift);
@@ -86,6 +89,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetUnaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFactorCommonConditionalShift);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFactorCommonConditionalBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldSelectedIntegerAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetAddressResultCopy);

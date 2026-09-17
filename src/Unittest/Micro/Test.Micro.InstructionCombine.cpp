@@ -2669,6 +2669,128 @@ SWC_TEST_BEGIN(InstCombine_ByteSwapWithMissingByte_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp a, b ; zext(setg) - zext(setl) at 32 bits, sign-extended to 64 and
+    // stored. `plainRight` replaces the second boolean with a loaded value.
+    void emitBooleanDifference(MicroBuilder& builder, bool plainRight)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg left  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg right = MicroReg::virtualIntReg(3);
+        constexpr MicroReg less  = MicroReg::virtualIntReg(4);
+        constexpr MicroReg more  = MicroReg::virtualIntReg(5);
+        constexpr MicroReg diff  = MicroReg::virtualIntReg(6);
+        constexpr MicroReg out   = MicroReg::virtualIntReg(7);
+
+        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B32);
+        builder.emitLoadRegMem(right, base, 4, MicroOpBits::B32);
+        builder.emitCmpRegReg(left, right, MicroOpBits::B32);
+        builder.emitSetCondReg(less, MicroCond::Less);
+        builder.emitLoadZeroExtendRegReg(less, less, MicroOpBits::B32, MicroOpBits::B8);
+        if (plainRight)
+            builder.emitLoadRegMem(less, base, 12, MicroOpBits::B32);
+        builder.emitSetCondReg(more, MicroCond::Greater);
+        builder.emitLoadZeroExtendRegReg(more, more, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitLoadRegReg(diff, more, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(diff, less, MicroOp::Subtract, MicroOpBits::B32);
+        builder.emitLoadSignedExtendRegReg(out, diff, MicroOpBits::B64, MicroOpBits::B32);
+        builder.emitLoadMemReg(base, 8, out, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    MicroOpBits signExtendSourceBits(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadSignedExtRegReg)
+                return inst.ops(builder.operands())[3].opBits;
+        }
+        return MicroOpBits::Zero;
+    }
+}
+
+// The difference of two booleans fits a byte: `a <=> b` subtracts and
+// sign-extends the bytes.
+SWC_TEST_BEGIN(InstCombine_BooleanDifference_NarrowsToByte)
+{
+    MicroBuilder builder(ctx);
+    emitBooleanDifference(builder, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (signExtendSourceBits(builder) != MicroOpBits::B8)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A 32-bit value is not a boolean: its difference keeps the 32-bit extension.
+SWC_TEST_BEGIN(InstCombine_DifferenceWithPlainValue_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitBooleanDifference(builder, true);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (signExtendSourceBits(builder) != MicroOpBits::B32)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// (x >> 3) & 1 at 8 bits, widened to 32: the mask works at 32 bits instead.
+SWC_TEST_BEGIN(InstCombine_MaskedByteExtend_WidensMask)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg bit  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg sum  = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(bit, base, 0, MicroOpBits::B8);
+    builder.emitOpBinaryRegImm(bit, ApInt(3, 64), MicroOp::ShiftRight, MicroOpBits::B8);
+    builder.emitOpBinaryRegImm(bit, ApInt(1, 64), MicroOp::And, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(bit, bit, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadRegMem(sum, base, 4, MicroOpBits::B32);
+    builder.emitOpBinaryRegReg(sum, bit, MicroOp::Add, MicroOpBits::B32);
+    builder.emitLoadMemReg(base, 4, sum, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 0)
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == MicroOp::And && ops[1].opBits != MicroOpBits::B32)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A mask wider than the byte would let bits of the byte's register through.
+SWC_TEST_BEGIN(InstCombine_WideMaskByteExtend_Kept)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg bit  = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(bit, base, 0, MicroOpBits::B8);
+    builder.emitOpBinaryRegImm(bit, ApInt(0x1FF, 64), MicroOp::And, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(bit, bit, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadMemReg(base, 4, bit, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

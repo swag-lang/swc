@@ -105,8 +105,10 @@ namespace
         // Narrowing the masked operation keeps the extend's work in a 32-bit
         // operation; dropping the extend first would leave the operation wide.
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowMaskedArithmetic);
+        r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryWidenMaskedNarrowValue);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryDropRedundantZeroExtend);
+        r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowBooleanDifference);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowExtend);
         return r;
     }

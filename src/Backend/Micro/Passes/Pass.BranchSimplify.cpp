@@ -2658,6 +2658,123 @@ namespace
         return true;
     }
 
+    // Select one of two adjacent cells through an index, so exactly the chosen
+    // address is read without retaining the diamond's two loads and jumps.
+    bool convertAdjacentLoadDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& jumpInst = *it;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond || scan.relocated.contains(it.current.get()))
+                continue;
+            const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            const MicroInstrRef flagsRef = storage.findPreviousInstructionRef(it.current);
+            const MicroInstr*   flags    = flagsRef.isValid() ? storage.ptr(flagsRef) : nullptr;
+            if (!flags || scan.relocated.contains(flagsRef.get()) || !MicroPassHelpers::instructionActuallyDefinesCpuFlags(*flags, flags->ops(operands)))
+                continue;
+
+            const MicroInstrRef firstLoadRef = storage.findNextInstructionRef(it.current);
+            const MicroInstr*   firstLoad    = storage.ptr(firstLoadRef);
+            if (!firstLoad || firstLoad->op != MicroInstrOpcode::LoadRegMem || scan.relocated.contains(firstLoadRef.get()))
+                continue;
+            const MicroInstrOperand* firstOps = firstLoad->ops(operands);
+
+            const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(firstLoadRef);
+            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
+            const auto*         joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional || scan.relocated.contains(joinJumpRef.get()))
+                continue;
+
+            uint32_t armLabelId = 0;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(armLabelId, jumpInst, jumpOps) || !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
+                continue;
+            const auto armReferences = scan.labelReferences.find(armLabelId);
+            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+                continue;
+
+            const MicroInstrRef armLabelRef = storage.findNextInstructionRef(joinJumpRef);
+            const MicroInstr*   armLabel    = storage.ptr(armLabelRef);
+            uint32_t            foundLabelId = 0;
+            if (!armLabel || scan.relocated.contains(armLabelRef.get()) || !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
+                continue;
+
+            const MicroInstrRef secondLoadRef = storage.findNextInstructionRef(armLabelRef);
+            const MicroInstr*   secondLoad    = storage.ptr(secondLoadRef);
+            if (!secondLoad || secondLoad->op != MicroInstrOpcode::LoadRegMem || scan.relocated.contains(secondLoadRef.get()))
+                continue;
+            const MicroInstrOperand* secondOps = secondLoad->ops(operands);
+
+            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(secondLoadRef);
+            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            if (!joinLabel || !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
+                continue;
+
+            if (!firstOps || !secondOps || firstOps[0].reg != secondOps[0].reg || firstOps[1].reg != secondOps[1].reg || firstOps[2].opBits != secondOps[2].opBits)
+                continue;
+            const MicroReg    resultReg  = firstOps[0].reg;
+            const MicroReg    baseReg    = firstOps[1].reg;
+            const MicroOpBits loadBits   = firstOps[2].opBits;
+            const uint32_t    cellBits   = getNumBits(firstOps[2].opBits);
+            const uint64_t    cellBytes  = cellBits / 8;
+            if (!cellBytes || cellBytes > 8 || cellBits % 8)
+                continue;
+            const uint64_t firstOffset  = firstOps[3].valueU64;
+            const uint64_t secondOffset = secondOps[3].valueU64;
+            const uint64_t lowOffset    = std::min(firstOffset, secondOffset);
+            const uint64_t highOffset   = std::max(firstOffset, secondOffset);
+            if (highOffset - lowOffset != cellBytes)
+                continue;
+
+            MicroCond indexCond = jumpOps[0].cpuCond;
+            if (secondOffset != highOffset)
+            {
+                MicroCond inverted;
+                if (!MicroPassHelpers::invertCondition(inverted, indexCond))
+                    continue;
+                indexCond = inverted;
+            }
+
+            const MicroReg indexReg = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
+            MicroInstrOperand setOps[2];
+            setOps[0].reg     = indexReg;
+            setOps[1].cpuCond = indexCond;
+            storage.insertDerivedBefore(operands, it.current, MicroInstrOpcode::SetCondReg, setOps);
+
+            MicroInstrOperand extendOps[4];
+            extendOps[0].reg    = indexReg;
+            extendOps[1].reg    = indexReg;
+            extendOps[2].opBits = MicroOpBits::B64;
+            extendOps[3].opBits = MicroOpBits::B8;
+            storage.insertDerivedBefore(operands, firstLoadRef, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+
+            MicroInstrOperand loadOps[8];
+            loadOps[0].reg      = resultReg;
+            loadOps[1].reg      = baseReg;
+            loadOps[2].reg      = indexReg;
+            loadOps[3].opBits   = loadBits;
+            loadOps[4].opBits   = MicroOpBits::B64;
+            loadOps[5].valueU64 = cellBytes;
+            loadOps[6].valueU64 = lowOffset;
+            storage.insertDerivedBefore(operands, firstLoadRef, MicroInstrOpcode::LoadAmcRegMem, loadOps);
+
+            storage.erase(it.current);
+            storage.erase(firstLoadRef);
+            storage.erase(joinJumpRef);
+            storage.erase(armLabelRef);
+            storage.erase(secondLoadRef);
+            return true;
+        }
+        return false;
+    }
+
     bool convertDiamondsToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
     {
         DiamondScan scan;
@@ -3433,6 +3550,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
+    }
+    if (convertAdjacentLoadDiamond(storage, operands, context))
+    {
+        changed = true;
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        localSsaState.invalidate();
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
     }
     if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState))
     {

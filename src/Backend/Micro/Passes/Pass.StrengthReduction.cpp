@@ -383,7 +383,7 @@ namespace
         const uint32_t bits      = getNumBits(opBits);
         const uint64_t bitsMask  = getBitsMask(opBits);
         const MicroOp  microOp   = ops[2].microOp;
-        const uint64_t immediate = ops[3].valueU64 & bitsMask;
+        uint64_t       immediate = ops[3].valueU64 & bitsMask;
         const MicroReg dstReg    = ops[0].reg;
 
         const bool isSigned = microOp == MicroOp::DivideSigned || microOp == MicroOp::ModuloSigned;
@@ -392,11 +392,16 @@ namespace
         if (immediate == 0)
             return false; // preserve the hardware divide-by-zero behavior
 
-        // Signed divisors <= 0 are rare; INT_MIN / -1 would also need trap-preserving
-        // care. Keep the hardware divide for them.
         const bool signBitSet = (immediate >> (bits - 1)) & 1;
         if (isSigned && signBitSet)
-            return false;
+        {
+            // The divisor's sign does not affect a remainder. Restrict this to
+            // power-of-two magnitudes above one so INT_MIN % -1 keeps its trap.
+            const uint64_t magnitude = (~immediate + 1) & bitsMask;
+            if (!isModulo || magnitude <= 1 || !Math::isPowerOfTwo(magnitude))
+                return false;
+            immediate = magnitude;
+        }
 
         if (nextVirtualIntRegIndex == 0)
             nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);

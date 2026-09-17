@@ -32,8 +32,10 @@ namespace
     PatternRegistry buildRegistry()
     {
         PatternRegistry r;
+        r.add(MicroInstrOpcode::OpBinaryRegImm, tryDivideBoundedByConstant);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryOpBinaryRegImm);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldRedundantMaskBeforeShift);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryDivideBoundedByConstant);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryDropFloatOrderedGuard);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryBypassShiftCountMask);
         r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryBypassShiftCountMask);

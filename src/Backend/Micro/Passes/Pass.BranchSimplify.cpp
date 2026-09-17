@@ -1605,6 +1605,205 @@ namespace
         return changed;
     }
 
+    // `x > y ? 1 : (x < y ? -1 : 0)`, the three-way sign, leaves a diamond
+    // whose other arm negates the `x < y` byte:
+    //
+    //     cmp X, Y                            cmp X, Y
+    //     jle .ELSE                           setg A
+    //     D = 1                               setl B
+    //     jmp .END                      ->    A -= B          (bytes)
+    //   .ELSE:                                D = sext(A)
+    //     cmp X, Y
+    //     setl T; Z = zext(T); neg Z
+    //     D = Z
+    //   .END:
+    //
+    // LLVM matches the same pair of selects as `scmp` and lowers it to the two
+    // setcc bytes. The unsigned form tests `jbe`, `seta` and `setb`.
+    bool isSameCompare(const MicroInstr& left, const MicroInstrOperand* leftOps, const MicroInstr& right, const MicroInstrOperand* rightOps)
+    {
+        if (left.op != right.op || leftOps[0].reg != rightOps[0].reg || leftOps[1].opBits != rightOps[1].opBits)
+            return false;
+        if (left.op == MicroInstrOpcode::CmpRegReg)
+            return leftOps[1].reg == rightOps[1].reg && leftOps[2].opBits == rightOps[2].opBits;
+        return left.op == MicroInstrOpcode::CmpRegImm && !leftOps[2].hasWideImmediateValue() && !rightOps[2].hasWideImmediateValue() &&
+               leftOps[2].valueU64 == rightOps[2].valueU64;
+    }
+
+    bool convertThreeWaySignDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        std::unordered_map<uint32_t, uint32_t> mentions;
+        SmallVector<MicroInstrRegOperandRef>   regOperands;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+            regOperands.clear();
+            inst->collectRegOperands(operands, regOperands, nullptr);
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (regOperand.reg && regOperand.reg->isVirtualInt())
+                    ++mentions[regOperand.reg->index()];
+            }
+        }
+
+        std::unordered_set<uint32_t> relocated;
+        for (const MicroRelocation& reloc : context.builder->codeRelocations())
+        {
+            if (reloc.instructionRef.isValid())
+                relocated.insert(reloc.instructionRef.get());
+        }
+
+        constexpr size_t K_SHAPE = 11;
+        const size_t     count   = layout.order.size();
+        const auto       instAt  = [&](size_t index) -> const MicroInstr* {
+            return index < count ? storage.ptr(layout.order[index]) : nullptr;
+        };
+
+        bool     changed                = false;
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        for (size_t at = 0; at + K_SHAPE <= count; ++at)
+        {
+            const MicroInstr* cmp = instAt(at);
+            if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegReg && cmp->op != MicroInstrOpcode::CmpRegImm))
+                continue;
+
+            const MicroInstr* branch  = instAt(at + 1);
+            const MicroInstr* one     = instAt(at + 2);
+            const MicroInstr* skip    = instAt(at + 3);
+            const MicroInstr* elseLbl = instAt(at + 4);
+            const MicroInstr* again   = instAt(at + 5);
+            const MicroInstr* set     = instAt(at + 6);
+            const MicroInstr* extend  = instAt(at + 7);
+            const MicroInstr* negate  = instAt(at + 8);
+            const MicroInstr* merge   = instAt(at + 9);
+            const MicroInstr* endLbl  = instAt(at + 10);
+            if (!branch || !one || !skip || !elseLbl || !again || !set || !extend || !negate || !merge || !endLbl)
+                continue;
+            if (branch->op != MicroInstrOpcode::JumpCond || one->op != MicroInstrOpcode::LoadRegImm || skip->op != MicroInstrOpcode::JumpCond ||
+                set->op != MicroInstrOpcode::SetCondReg || extend->op != MicroInstrOpcode::LoadZeroExtRegReg || negate->op != MicroInstrOpcode::OpUnaryReg ||
+                merge->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+
+            const MicroInstrOperand* cmpOps    = cmp->ops(operands);
+            const MicroInstrOperand* branchOps = branch->ops(operands);
+            const MicroInstrOperand* oneOps    = one->ops(operands);
+            const MicroInstrOperand* skipOps   = skip->ops(operands);
+            const MicroInstrOperand* setOps    = set->ops(operands);
+            const MicroInstrOperand* extOps    = extend->ops(operands);
+            const MicroInstrOperand* negOps    = negate->ops(operands);
+            const MicroInstrOperand* mergeOps  = merge->ops(operands);
+            if (!isSameCompare(*cmp, cmpOps, *again, again->ops(operands)))
+                continue;
+
+            MicroCond greater = MicroCond::Unconditional;
+            MicroCond less    = MicroCond::Unconditional;
+            if (branchOps[0].cpuCond == MicroCond::LessOrEqual)
+            {
+                greater = MicroCond::Greater;
+                less    = MicroCond::Less;
+            }
+            else if (branchOps[0].cpuCond == MicroCond::BelowOrEqual)
+            {
+                greater = MicroCond::Above;
+                less    = MicroCond::Below;
+            }
+            else
+                continue;
+
+            uint32_t elseId = 0;
+            uint32_t endId  = 0;
+            uint32_t label  = 0;
+            if (!tryGetJumpTargetLabelId(elseId, *branch, branchOps) || skipOps[0].cpuCond != MicroCond::Unconditional ||
+                !tryGetJumpTargetLabelId(endId, *skip, skipOps) || elseId == endId)
+                continue;
+            if (!tryGetLabelId(label, *elseLbl, elseLbl->ops(operands)) || label != elseId)
+                continue;
+            if (!tryGetLabelId(label, *endLbl, endLbl->ops(operands)) || label != endId)
+                continue;
+            if (labelReferences[elseId] != 1 || labelReferences[endId] != 1)
+                continue;
+
+            // D = 1 on one side and D = -zext(x < y) on the other, at one width.
+            const MicroReg    result = oneOps[0].reg;
+            const MicroOpBits bits   = oneOps[1].opBits;
+            if (!result.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || oneOps[2].hasWideImmediateValue() ||
+                oneOps[2].valueU64 != 1)
+                continue;
+            const MicroReg flag  = setOps[0].reg;
+            const MicroReg value = extOps[0].reg;
+            if (setOps[1].cpuCond != less || !flag.isVirtualInt() || !value.isVirtualInt() || extOps[1].reg != flag || extOps[2].opBits != bits ||
+                extOps[3].opBits != MicroOpBits::B8)
+                continue;
+            if (negOps[0].reg != value || negOps[1].opBits != bits || negOps[2].microOp != MicroOp::Negate)
+                continue;
+            if (mergeOps[0].reg != result || mergeOps[1].reg != value || mergeOps[2].opBits != bits)
+                continue;
+            if (value == result || flag == result)
+                continue;
+
+            // The byte and its negation live in the arm alone.
+            const uint32_t flagInside  = flag == value ? 5 : 2;
+            const uint32_t valueInside = flag == value ? 5 : 3;
+            if (mentions[flag.index()] != flagInside || mentions[value.index()] != valueInside)
+                continue;
+
+            bool hasRelocation = false;
+            for (size_t index = at + 1; index < at + K_SHAPE; ++index)
+                hasRelocation |= relocated.contains(layout.order[index].get());
+            if (hasRelocation || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, layout.order[at + 9]))
+                continue;
+
+            const MicroInstrRef insertRef = layout.order[at + 1];
+            const MicroReg      high      = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg      low       = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+
+            MicroInstrOperand highOps[2];
+            highOps[0].reg     = high;
+            highOps[1].cpuCond = greater;
+            storage.insertDerivedBefore(operands, insertRef, MicroInstrOpcode::SetCondReg, highOps);
+            MicroInstrOperand lowOps[2];
+            lowOps[0].reg     = low;
+            lowOps[1].cpuCond = less;
+            storage.insertDerivedBefore(operands, insertRef, MicroInstrOpcode::SetCondReg, lowOps);
+            MicroInstrOperand subOps[4];
+            subOps[0].reg     = high;
+            subOps[1].reg     = low;
+            subOps[2].opBits  = MicroOpBits::B8;
+            subOps[3].microOp = MicroOp::Subtract;
+            storage.insertDerivedBefore(operands, insertRef, MicroInstrOpcode::OpBinaryRegReg, subOps);
+            MicroInstrOperand signOps[4];
+            signOps[0].reg    = result;
+            signOps[1].reg    = high;
+            signOps[2].opBits = bits;
+            signOps[3].opBits = MicroOpBits::B8;
+            storage.insertDerivedBefore(operands, insertRef, MicroInstrOpcode::LoadSignedExtRegReg, signOps);
+
+            for (size_t index = at + 1; index < at + K_SHAPE; ++index)
+                storage.erase(layout.order[index]);
+
+            changed = true;
+            at += K_SHAPE - 1;
+        }
+
+        if (changed)
+            context.builder->invalidateControlFlowGraph();
+        return changed;
+    }
+
     // A range test lowered as two exits to the same label:
     //
     //     cmp  X, LO                      T = X
@@ -3793,6 +3992,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         context.builder->invalidateControlFlowGraph();
     // A whole `or` chain goes at once, before the two-link form takes its tail.
     changed |= convertOrChainsToBranchless(storage, operands, context);
+    changed |= convertThreeWaySignDiamonds(storage, operands, context);
     changed |= convertShortCircuitBooleans(storage, operands, context);
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

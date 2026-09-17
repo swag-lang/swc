@@ -710,6 +710,103 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A pair of nested selections can stay in the final register throughout:
+    //
+    //     mov     A, L                 ; R already holds the other arm
+    //     cmp     R, L                 cmp     R, L
+    //     cmovCC  A, R                 cmov!CC R, L
+    //     cmp     A, H        ->       cmp     R, H
+    //     cmovDD  H, A                 cmov!DD R, H
+    //     mov     R, H
+    bool tryFoldConditionalCascadeResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+
+        const MicroReg      result       = copy[0].reg;
+        const MicroReg      secondResult = copy[1].reg;
+        const MicroInstrRef secondSelectRef = ctx.previousRef(copyRef);
+        const MicroInstr*   secondSelect    = ctx.instruction(secondSelectRef);
+        const auto*         second          = secondSelect ? secondSelect->ops(*ctx.operands) : nullptr;
+        if (!secondSelect || secondSelect->op != MicroInstrOpcode::LoadCondRegReg || !second ||
+            second[0].reg != secondResult || !second[1].reg.isInt() || second[1].reg == result ||
+            second[1].reg == secondResult || second[3].opBits != copy[2].opBits)
+            return false;
+        const MicroReg firstResult = second[1].reg;
+        if (!ctx.isRegDeadAfterCurrent(firstResult))
+            return false;
+
+        const MicroInstrRef secondCompareRef = ctx.previousRef(secondSelectRef);
+        const MicroInstr*   secondCompare    = ctx.instruction(secondCompareRef);
+        const auto*         secondCmp        = secondCompare ? secondCompare->ops(*ctx.operands) : nullptr;
+        if (!secondCompare || secondCompare->op != MicroInstrOpcode::CmpRegReg || !secondCmp ||
+            secondCmp[2].opBits != copy[2].opBits ||
+            !((secondCmp[0].reg == firstResult && secondCmp[1].reg == secondResult) ||
+              (secondCmp[1].reg == firstResult && secondCmp[0].reg == secondResult)))
+            return false;
+
+        const MicroInstrRef firstSelectRef = ctx.previousRef(secondCompareRef);
+        const MicroInstr*   firstSelect    = ctx.instruction(firstSelectRef);
+        const auto*         first          = firstSelect ? firstSelect->ops(*ctx.operands) : nullptr;
+        if (!firstSelect || firstSelect->op != MicroInstrOpcode::LoadCondRegReg || !first ||
+            first[0].reg != firstResult || first[1].reg != result || first[3].opBits != copy[2].opBits)
+            return false;
+
+        const MicroInstrRef firstCompareRef = ctx.previousRef(firstSelectRef);
+        const MicroInstr*   firstCompare    = ctx.instruction(firstCompareRef);
+        const auto*         firstCmp        = firstCompare ? firstCompare->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef initialRef      = ctx.previousRef(firstCompareRef);
+        const MicroInstr*   initial         = ctx.instruction(initialRef);
+        const auto*         initialCopy     = initial ? initial->ops(*ctx.operands) : nullptr;
+        if (!firstCompare || firstCompare->op != MicroInstrOpcode::CmpRegReg || !firstCmp ||
+            firstCmp[2].opBits != copy[2].opBits || !initial || initial->op != MicroInstrOpcode::LoadRegReg || !initialCopy ||
+            initialCopy[0].reg != firstResult || !initialCopy[1].reg.isInt() || initialCopy[2].opBits != copy[2].opBits ||
+            !((firstCmp[0].reg == result && firstCmp[1].reg == initialCopy[1].reg) ||
+              (firstCmp[1].reg == result && firstCmp[0].reg == initialCopy[1].reg)))
+            return false;
+        const MicroReg initialAlternative = initialCopy[1].reg;
+        if (initialAlternative == result || initialAlternative == firstResult || initialAlternative == secondResult)
+            return false;
+
+        MicroCond invertedFirst;
+        MicroCond invertedSecond;
+        if (!MicroPassHelpers::invertCondition(invertedFirst, first[2].cpuCond) ||
+            !MicroPassHelpers::invertCondition(invertedSecond, second[2].cpuCond))
+            return false;
+
+        MicroInstrOperand rewrittenFirst[4] = {first[0], first[1], first[2], first[3]};
+        rewrittenFirst[0].reg               = result;
+        rewrittenFirst[1].reg               = initialAlternative;
+        rewrittenFirst[2].cpuCond           = invertedFirst;
+        MicroInstrOperand rewrittenCompare[3] = {secondCmp[0], secondCmp[1], secondCmp[2]};
+        if (rewrittenCompare[0].reg == firstResult)
+            rewrittenCompare[0].reg = result;
+        else
+            rewrittenCompare[1].reg = result;
+        MicroInstrOperand rewrittenSecond[4] = {second[0], second[1], second[2], second[3]};
+        rewrittenSecond[0].reg              = result;
+        rewrittenSecond[1].reg              = secondResult;
+        rewrittenSecond[2].cpuCond          = invertedSecond;
+
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, *firstSelect, rewrittenFirst) ||
+                             ctx.encoder->queryConformanceIssue(issue, *secondCompare, rewrittenCompare) ||
+                             ctx.encoder->queryConformanceIssue(issue, *secondSelect, rewrittenSecond))) ||
+            !ctx.claimAll({initialRef, firstCompareRef, firstSelectRef, secondCompareRef, secondSelectRef, copyRef}))
+            return false;
+        ctx.emitErase(initialRef);
+        ctx.emitRewrite(firstSelectRef, firstSelect->op, rewrittenFirst);
+        ctx.emitRewrite(secondCompareRef, secondCompare->op, rewrittenCompare);
+        ctx.emitRewrite(secondSelectRef, secondSelect->op, rewrittenSecond);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // Two selections accumulated in one temporary can start in the final
     // register instead. Complement the first condition, then carry that final
     // register through the second compare and selection:

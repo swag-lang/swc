@@ -67,6 +67,10 @@ namespace
         And,
         Or,
         Xor,
+        FloatAdd,
+        FloatSub,
+        FloatMul,
+        FloatDiv,
         ShiftLeft,
         ShiftRight,
         RotateLeft,
@@ -499,6 +503,26 @@ namespace
             case MicroOp::Xor:
                 outOp = LaneOp::Xor;
                 return true;
+            case MicroOp::FloatAdd:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::FloatAdd;
+                return true;
+            case MicroOp::FloatSubtract:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::FloatSub;
+                return true;
+            case MicroOp::FloatMultiply:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::FloatMul;
+                return true;
+            case MicroOp::FloatDivide:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::FloatDiv;
+                return true;
             default:
                 return false;
         }
@@ -708,6 +732,18 @@ namespace
                             break;
                         case LaneOp::Xor:
                             vecOp = MicroOp::VecXor;
+                            break;
+                        case LaneOp::FloatAdd:
+                            vecOp = MicroOp::VecAddF32;
+                            break;
+                        case LaneOp::FloatSub:
+                            vecOp = MicroOp::VecSubF32;
+                            break;
+                        case LaneOp::FloatMul:
+                            vecOp = MicroOp::VecMulF32;
+                            break;
+                        case LaneOp::FloatDiv:
+                            vecOp = MicroOp::VecDivF32;
                             break;
                         default:
                             return K_INVALID_ID;
@@ -997,7 +1033,7 @@ namespace
                 return false;
             }
 
-            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(*fn_->operands)) &&
                 !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(*fn_->storage, *fn_->operands, instRef))
             {
                 return false;

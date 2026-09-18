@@ -49,6 +49,48 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A scalar float argument that arrives in the ABI return register can be
+    // copied to a temporary only to receive a sign-mask XOR and be copied back
+    // for return. Retarget the XOR to the ABI register: it still reads the
+    // argument's original bits, and the two moves become dead.
+    bool tryFoldFloatReturnXorCopyChain(Context& ctx, const MicroInstrRef firstCopyRef, const MicroInstr& firstCopyInst)
+    {
+        if (ctx.isClaimed(firstCopyRef) || firstCopyInst.op != MicroInstrOpcode::LoadRegReg ||
+            !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
+            return false;
+
+        const auto* firstCopy = firstCopyInst.ops(*ctx.operands);
+        if (!firstCopy || !firstCopy[0].reg.isFloat() || firstCopy[1].reg != ctx.floatReturn ||
+            (firstCopy[2].opBits != MicroOpBits::B32 && firstCopy[2].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef xorRef      = ctx.nextRef(firstCopyRef);
+        const MicroInstrRef lastCopyRef = ctx.nextRef(xorRef);
+        const MicroInstrRef retRef      = ctx.nextRef(lastCopyRef);
+        const MicroInstr*   xorInst     = ctx.instruction(xorRef);
+        const MicroInstr*   lastCopyInst = ctx.instruction(lastCopyRef);
+        const MicroInstr*   retInst     = ctx.instruction(retRef);
+        const auto*         xorOps      = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        const auto*         lastCopy    = lastCopyInst ? lastCopyInst->ops(*ctx.operands) : nullptr;
+        if (!xorInst || !lastCopyInst || !retInst || !xorOps || !lastCopy ||
+            xorInst->op != MicroInstrOpcode::OpBinaryRegMem || xorOps[0].reg != firstCopy[0].reg ||
+            xorOps[1].reg != MicroReg::instructionPointer() || xorOps[2].opBits != firstCopy[2].opBits ||
+            xorOps[3].microOp != MicroOp::FloatXor || lastCopyInst->op != MicroInstrOpcode::LoadRegReg ||
+            lastCopy[0].reg != ctx.floatReturn || lastCopy[1].reg != firstCopy[0].reg ||
+            lastCopy[2].opBits != firstCopy[2].opBits || retInst->op != MicroInstrOpcode::Ret)
+            return false;
+
+        std::array<MicroInstrOperand, 4> rewrittenXor = {xorOps[0], xorOps[1], xorOps[2], xorOps[3]};
+        rewrittenXor[0].reg = ctx.floatReturn;
+        if (!ctx.claimAll({firstCopyRef, xorRef, lastCopyRef}))
+            return false;
+
+        ctx.emitErase(firstCopyRef);
+        ctx.emitRewrite(xorRef, xorInst->op, rewrittenXor);
+        ctx.emitErase(lastCopyRef);
+        return true;
+    }
+
     // A scalar float conditional starts with copies for both arms and joins in
     // a third register. When the true value already occupies the ABI return
     // register, branch around one direct false-value copy instead. The same

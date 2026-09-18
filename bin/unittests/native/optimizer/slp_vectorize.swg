@@ -237,6 +237,21 @@ func lanesAddFloatConstant(values: *[8] f32)
     values[][7] = values[][3] + 1.5'f32
 }
 
+struct FloatToIntLanes
+{
+    input:  [4] f32
+    output: [4] s32
+}
+
+#[Swag.Optimize(true)]
+func lanesTruncFloatToS32(values: *FloatToIntLanes)
+{
+    values.output[0] = cast(s32) values.input[0]
+    values.output[1] = cast(s32) values.input[1]
+    values.output[2] = cast(s32) values.input[2]
+    values.output[3] = cast(s32) values.input[3]
+}
+
 #test
 {
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -306,6 +321,14 @@ func lanesAddFloatConstant(values: *[8] f32)
     var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
     lanesAddFloatConstant(&values)
     Swag.assert(values[4] == 0.0'f32 and values[5] == 1.5'f32 and values[6] == 3.75'f32 and values[7] == -2.5'f32)
+}
+
+#test
+{
+    var values: FloatToIntLanes
+    values.input = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32]
+    lanesTruncFloatToS32(&values)
+    Swag.assert(values.output == [-1, 0, 2, -4])
 }
 
 #test

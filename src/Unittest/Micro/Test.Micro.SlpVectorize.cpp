@@ -205,6 +205,37 @@ SWC_TEST_BEGIN(SlpVectorize_PacksFloatSqrt)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_PacksFloatTruncToS32)
+{
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
+    MicroSsaState  ssa;
+    const MicroReg sp = encoder.stackPointerReg();
+    for (uint32_t lane = 0; lane < 4; ++lane)
+    {
+        const MicroReg input  = MicroReg::virtualFloatReg(lane + 1);
+        const MicroReg output = MicroReg::virtualIntReg(lane + 1);
+        builder.emitLoadRegMem(input, sp, 0x40 + lane * 4, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(output, input, MicroOp::ConvertFloatToInt, MicroOpBits::B32);
+        builder.emitLoadMemReg(sp, 0x80 + lane * 4, output, MicroOpBits::B32);
+    }
+    builder.emitRet();
+
+    SWC_RESULT(runSlpPass(builder, ssa, encoder));
+    uint32_t truncs = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const auto* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::VecUnaryRegReg && ops[3].microOp == MicroOp::VecTruncF32ToS32)
+            ++truncs;
+    }
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1 || truncs != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_PacksFloatAndWithScalarMask)
 {
     MicroBuilder   builder(ctx);

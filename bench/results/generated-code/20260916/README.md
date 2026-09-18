@@ -223,6 +223,9 @@ post-allocation diamond.
 Scalar `f32` relations now use the native single-precision comparison instead
 of converting both operands to `f64`. Sema has already promoted mixed operands
 to one common type, so the conversion did not change the comparison result.
+An immediately returned floating min/max ternary now becomes the matching x64
+scalar min/max instruction. The fold recognizes operand order and the unordered
+path, so equal values and NaNs continue to select the second operand.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -325,6 +328,12 @@ six `f32` relations, the three results of `<=>`, and unordered NaN behavior.
 The encoder test fixes the direct `comiss` byte sequence. In the scalar corpus,
 each `f32` min/max ternary shrinks from 41 to 24 bytes before its selection
 diamond is optimized; the corresponding `f64` functions remain unchanged.
+
+Build 981 passed all 998 C++ tests and the focused floating-copy Release test.
+The runtime cases cover both widths, min/max, and both NaN operand positions.
+Each `f32` min/max function is now one instruction plus RET, shrinking from 24
+to 5 bytes and matching LLVM. The `f64` forms shrink from 25 to 6 bytes; their
+remaining byte is the redundant REX.W prefix on the scalar SSE operation.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

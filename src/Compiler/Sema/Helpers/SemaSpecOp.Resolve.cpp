@@ -1183,18 +1183,16 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     if (candidates.empty())
         return Result::Continue;
 
-    // `#relocate`, and `#nodrop` without `#move`, write into a target that is treated as uninitialized
-    // (or moved-from): the value is moved/copied into it bitwise, then opPostMove / opPostCopy fixes it
-    // up. They must never be rerouted through a by-value `opSet`, which reads the (uninitialized or
-    // moved-from) target - its `.buffer` aliasing check and `.allocator`/buffer reuse - corrupting
-    // move-only handles such as String/Array (e.g. crashing Array.popBack's
-    // raw relocation into its result slot, or corrupting Array.insertAt
-    // when it overwrites a slot whose buffer was just raw-moved to a neighbour). A plain `#move`
-    // replaces an existing value, so it keeps its user `opSet` (move-only handles transfer ownership
-    // via the dedicated raw modifier).
-    if (tok.id == TokenId::SymEqual &&
-        (node.modifierFlags.has(AstModifierFlagsE::Relocate) ||
-         (node.modifierFlags.has(AstModifierFlagsE::NoDrop) && !node.modifierFlags.has(AstModifierFlagsE::Move))))
+    // `#relocate` and `#nodrop` write into a target that is treated as uninitialized (or
+    // moved-from), with or without `#move`: the value is moved/copied into it bitwise, then
+    // opPostMove / opPostCopy fixes it up. They must never be rerouted through a by-value `opSet`,
+    // which reads the (uninitialized or moved-from) target - its `.buffer` aliasing check and
+    // `.allocator`/buffer reuse - corrupting move-only handles such as String/Array (e.g. crashing
+    // Array.popBack's raw relocation into its result slot, or corrupting Array.insertAt when it
+    // overwrites a slot whose buffer was just raw-moved to a neighbour, and whose bytes lifecycle
+    // safety has poisoned). A plain `#move` replaces an existing value, so it keeps its user `opSet`
+    // (move-only handles transfer ownership via the dedicated raw modifier).
+    if (tok.id == TokenId::SymEqual && node.modifierFlags.hasAny({AstModifierFlagsE::Relocate, AstModifierFlagsE::NoDrop}))
         return Result::Continue;
 
     SmallVector<AstNodeRef> args;

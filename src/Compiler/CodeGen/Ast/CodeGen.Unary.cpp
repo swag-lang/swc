@@ -87,12 +87,13 @@ namespace
         {
             // XORing the scalar lane's sign bit preserves every payload bit, including
             // signed zero and NaN. The x64 bitwise forms read a complete XMM operand,
-            // so keep the mask at 16 bytes even though only its first lane is observed.
+            // so keep the mask at 16 bytes even though only its first lane is observed,
+            // and aligned to them: the legacy SSE xorps faults on an unaligned m128.
             std::array<char, 16> signMask = {};
             signMask[info.opBits == MicroOpBits::B64 ? 7 : 3] = static_cast<char>(0x80);
 
             DataSegmentRef         maskRef;
-            const std::string_view maskStorage = codeGen.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef);
+            const std::string_view maskStorage = codeGen.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef, 16);
             builder.emitOpBinaryRegMem(resultPayload.reg, MicroReg::instructionPointer(), 0, MicroOp::FloatXor, info.opBits);
             builder.addRelocation({
                 .kind           = MicroRelocation::Kind::ConstantAddress,

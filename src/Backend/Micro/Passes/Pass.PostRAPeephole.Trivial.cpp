@@ -175,7 +175,7 @@ namespace PostRaPeephole
             lastCopy[2].opBits != firstCopy[2].opBits || retInst->op != MicroInstrOpcode::Ret)
             return false;
 
-        std::array<MicroInstrOperand, 4> rewrittenXor = {xorOps[0], xorOps[1], xorOps[2], xorOps[3]};
+        std::array<MicroInstrOperand, 5> rewrittenXor = {xorOps[0], xorOps[1], xorOps[2], xorOps[3], xorOps[4]};
         rewrittenXor[0].reg = ctx.floatReturn;
         if (!ctx.claimAll({firstCopyRef, xorRef, lastCopyRef}))
             return false;

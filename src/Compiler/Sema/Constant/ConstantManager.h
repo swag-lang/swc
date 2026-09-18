@@ -29,6 +29,9 @@ public:
     ConstantRef      addMaterializedPayloadConstant(const ConstantValue& value);
     ConstantRef      addUniqueMaterializedPayloadConstant(const ConstantValue& value);
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
+    // A payload a packed instruction reads straight from memory, which the
+    // legacy SSE forms require aligned to its full width.
+    std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef, uint32_t align);
 
     ConstantRef          cstNull() const { return cstNull_; }
     ConstantRef          cstTrue() const { return cstBool_true_; }

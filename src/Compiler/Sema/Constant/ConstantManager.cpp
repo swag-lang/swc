@@ -40,6 +40,20 @@ void ConstantManager::setup(const TaskContext& ctx)
     cstS32_1_      = addS32(ctx, 1);
     cstS32_neg1_   = addS32(ctx, -1);
     cstNull_       = addConstant(ctx, ConstantValue::makeNull(ctx));
+
+    // The x64 bitwise float forms read a complete 16-byte operand, and their legacy SSE
+    // encodings fault on an unaligned one. A payload buffer is packed at byte alignment,
+    // so the two negation masks get aligned storage of their own, shared by every use.
+    const auto addSignMask = [&](const uint32_t signByte, const std::byte*& outStorage, DataSegmentRef& outRef) {
+        std::array<std::byte, 16> mask = {};
+        mask[signByte]                 = std::byte{0x80};
+        const auto [storage, offset]   = shards_[0].dataSegment.addSpan(mask, 16);
+        outStorage                     = storage.data();
+        outRef                         = {.shardIndex = 0, .offset = offset};
+    };
+
+    addSignMask(3, floatSignMask32_, floatSignMaskRef32_);
+    addSignMask(7, floatSignMask64_, floatSignMaskRef64_);
 }
 
 ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
@@ -761,6 +775,14 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, Dat
     if (outRef)
         *outRef = dataRef;
     return view;
+}
+
+// Returns the 16-byte aligned mask whose first f32 or f64 lane holds only the sign bit.
+const std::byte* ConstantManager::floatSignMask(const bool is64, DataSegmentRef& outRef) const
+{
+    SWC_ASSERT(floatSignMask32_ && floatSignMask64_);
+    outRef = is64 ? floatSignMaskRef64_ : floatSignMaskRef32_;
+    return is64 ? floatSignMask64_ : floatSignMask32_;
 }
 
 ConstantRef ConstantManager::cstS32(int32_t value) const

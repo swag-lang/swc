@@ -1,4 +1,4 @@
-﻿#global public
+#global public
 
 using Swag, Core, Ogl, Core.Math
 
@@ -265,22 +265,42 @@ private impl RenderOgl
         return Swag.makeString(bytes.buffer, bytes.count)
     }
 
-    func setShaderCompileError(shaderID: GLuint) fail
+    // Fails with the driver's log when the shader did not compile.
+    //
+    // A driver may fill the log after a successful compile too, so only the status decides.
+    func checkShaderCompiled(shaderID: GLuint) fail
     {
-        var result:        GLint
-        var infoLogLength: s32
-        var infoLog:       String
+        var status: GLint
+        glGetShaderiv(shaderID, GL_COMPILE_STATUS, &status)
+        if status do
+            return
 
-        glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result)
-        glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &infoLogLength)
-        infoLog.reserve(cast(u64) infoLogLength + 1)
-        glGetShaderInfoLog(shaderID, infoLogLength, null, infoLog.buffer)
-        if infoLogLength
-        {
-            infoLog.length = infoLogLength
-            Console.print(infoLog)
-            fail Swag.SystemError{"shader error"}
-        }
+        var logLength: GLint
+        glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logLength)
+        var log: String
+        log.reserve(cast(u64) logLength + 1)
+        var written: GLsizei
+        glGetShaderInfoLog(shaderID, logLength, &written, log.buffer)
+        log.length = cast(u64) written
+        fail Swag.SystemError{Errors.mkString(Format.toString("cannot compile a shader: %", log))}
+    }
+
+    // Fails with the driver's log when the program did not link.
+    func checkProgramLinked(programID: GLuint) fail
+    {
+        var status: GLint
+        glGetProgramiv(programID, GL_LINK_STATUS, &status)
+        if status do
+            return
+
+        var logLength: GLint
+        glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logLength)
+        var log: String
+        log.reserve(cast(u64) logLength + 1)
+        var written: GLsizei
+        glGetProgramInfoLog(programID, logLength, &written, log.buffer)
+        log.length = cast(u64) written
+        fail Swag.SystemError{Errors.mkString(Format.toString("cannot link a shader program: %", log))}
     }
 
     mtd createShaders()
@@ -1962,12 +1982,13 @@ impl RenderOgl
         var buf: String = shaderSource(vertex)
         buf.replace("#include base", shaderSource(BaseVertexShader))
 
-        let vertexShaderID      = glCreateShader(GL_VERTEX_SHADER)
+        let vertexShaderID = glCreateShader(GL_VERTEX_SHADER)
+        defer glDeleteShader(vertexShaderID)
         var vertexSourcePointer = buf.buffer
         var vertexSourceLength  = cast(GLint) buf.length
         glShaderSource(vertexShaderID, 1, &vertexSourcePointer, &vertexSourceLength)
         glCompileShader(vertexShaderID)
-        try setShaderCompileError(vertexShaderID)
+        try checkShaderCompiled(vertexShaderID)
 
         buf = shaderSource(pixel)
         var baseBuilder: StringBuilder
@@ -1977,22 +1998,22 @@ impl RenderOgl
         let baseSource = baseBuilder.moveToString()
         buf.replace("#include base", baseSource)
 
-        let fragmentShaderID   = glCreateShader(GL_FRAGMENT_SHADER)
+        let fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER)
+        defer glDeleteShader(fragmentShaderID)
         var pixelSourcePointer = buf.buffer
         var pixelSourceLength  = cast(GLint) buf.length
         glShaderSource(fragmentShaderID, 1, &pixelSourcePointer, &pixelSourceLength)
         glCompileShader(fragmentShaderID)
-        try setShaderCompileError(fragmentShaderID)
+        try checkShaderCompiled(fragmentShaderID)
 
         let progID = glCreateProgram()
+        defer #fail glDeleteProgram(progID)
         glAttachShader(progID, vertexShaderID)
         glAttachShader(progID, fragmentShaderID)
         glLinkProgram(progID)
-
         glDetachShader(progID, vertexShaderID)
         glDetachShader(progID, fragmentShaderID)
-        glDeleteShader(vertexShaderID)
-        glDeleteShader(fragmentShaderID)
+        try checkProgramLinked(progID)
 
         base.handle = cast(ShaderHandle) progID
 

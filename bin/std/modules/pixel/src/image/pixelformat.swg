@@ -1,4 +1,4 @@
-﻿#global public
+#global public
 
 using Swag
 

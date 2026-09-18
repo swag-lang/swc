@@ -66,7 +66,6 @@ const SurfaceId     = "swag.capture"
             continue
         if not Image.canLoad(arg) do
             continue
-        Console.print(arg)
         mainWnd.loadExternalImage(arg)
         break
     }

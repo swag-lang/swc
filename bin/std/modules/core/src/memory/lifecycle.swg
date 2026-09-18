@@ -144,9 +144,11 @@ internal func defaultInit(dst: *void?, type: typeinfo)
             return
         }
 
+        // Every struct gets a generated 'opInit' except one that requires explicit initialization,
+        // which has no default value to write.
         if not (concreteType.flags & TypeInfoFlags.Tuple)
         {
-            Swag.assert(false)
+            Swag.assert(false, "the type requires explicit initialization and has no default value")
             return
         }
 

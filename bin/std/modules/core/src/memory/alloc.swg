@@ -1,4 +1,4 @@
-﻿#global public
+#global public
 #global namespace Memory
 
 using Swag

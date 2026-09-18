@@ -1,4 +1,4 @@
-﻿//! Format: H.264/AVC decoder component.
+//! Format: H.264/AVC decoder component.
 //! Supported: Progressive 8-bit 4:2:0 and 4:4:4 Baseline, Main, High, and High 4:4:4 Predictive streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
 //! Not supported: Interlacing, 4:2:2 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
 //! Role: This file owns NAL-unit traversal and emulation-prevention removal.

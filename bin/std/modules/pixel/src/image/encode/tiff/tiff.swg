@@ -166,7 +166,7 @@ internal impl IImageEncoder for Encoder
         let dataPad    = storedLen & 1
         let ifdOffset  = 8 + storedLen + dataPad
         let numEntries = (hasAlpha ? 10'u32 : 9'u32) + cast(u32) hasPredictor
-        let ifdLen     = cast(u64) 2 + cast(u64) numEntries * 12 + 4
+        let ifdLen     = 2'u64 + cast(u64) numEntries * 12 + 4
         let bpsOffset  = ifdOffset + ifdLen
         if bpsOffset + cast(u64) samples * 2 > Swag.U32.Max do
             fail UnsupportedFormatError{"image is too big"}

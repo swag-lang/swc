@@ -9,8 +9,20 @@ SWC_BEGIN_NAMESPACE();
 class MicroBranchSimplifyPass final : public MicroPass
 {
 public:
-    std::string_view name() const override { return "branch-simplify"; }
+    MicroBranchSimplifyPass() = default;
+    // The late instance runs once on the converged pre-RA IR and only gives
+    // short-circuit exits the constant their branch pins: earlier, it would
+    // take chains the range and branchless folds of later sweeps still want.
+    explicit MicroBranchSimplifyPass(bool late) :
+        late_(late)
+    {
+    }
+
+    std::string_view name() const override { return late_ ? "branch-simplify-late" : "branch-simplify"; }
     Result           run(MicroPassContext& context) override;
+
+private:
+    bool late_ = false;
 };
 
 SWC_END_NAMESPACE();

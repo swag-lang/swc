@@ -106,6 +106,7 @@ private:
     std::unique_ptr<MicroSinkToUsePass>               sinkToUsePass_;
     std::unique_ptr<MicroDeadCodeEliminationPass>     deadCodeEliminationPass_;
     std::unique_ptr<MicroBranchSimplifyPass>          branchSimplifyPass_;
+    std::unique_ptr<MicroBranchSimplifyPass>          lateBranchSimplifyPass_;
     std::unique_ptr<MicroLoopUnrollPass>              loopUnrollPass_;
     std::unique_ptr<MicroSlpVectorizePass>            slpVectorizePass_;
     std::unique_ptr<MicroVecLoopPromotePass>          vecLoopPromotePass_;

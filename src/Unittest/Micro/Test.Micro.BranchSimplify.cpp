@@ -2136,6 +2136,71 @@ SWC_TEST_BEGIN(BranchSimplify_FloatSelectOnNonStrictTest_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // `links` short-circuit `and` links, each `cmp ; setge T ; D = T ; jl .J`,
+    // a last `cmp ; setl T ; D = T`, and `.J: rax = D ; ret`.
+    void emitAndChainReturn(MicroBuilder& builder, uint32_t links)
+    {
+        constexpr MicroReg result = MicroReg::virtualIntReg(1);
+        const MicroLabelRef join  = builder.createLabel();
+        for (uint32_t link = 0; link < links; ++link)
+        {
+            const MicroReg left  = MicroReg::virtualIntReg(10 + link * 3);
+            const MicroReg right = MicroReg::virtualIntReg(11 + link * 3);
+            const MicroReg flag  = MicroReg::virtualIntReg(12 + link * 3);
+            builder.emitLoadRegMem(left, MicroReg::intReg(1), link * 8, MicroOpBits::B32);
+            builder.emitLoadRegMem(right, MicroReg::intReg(1), link * 8 + 4, MicroOpBits::B32);
+            builder.emitCmpRegReg(left, right, MicroOpBits::B32);
+            builder.emitSetCondReg(flag, MicroCond::GreaterOrEqual);
+            builder.emitLoadRegReg(result, flag, MicroOpBits::B8);
+            builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, join);
+        }
+        constexpr MicroReg lastFlag = MicroReg::virtualIntReg(99);
+        builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(8), MicroOpBits::B32);
+        builder.emitSetCondReg(lastFlag, MicroCond::Less);
+        builder.emitLoadRegReg(result, lastFlag, MicroOpBits::B8);
+        builder.placeLabel(join);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+    }
+
+    Result runLateBranchSimplifyPass(MicroBuilder& builder)
+    {
+        MicroBranchSimplifyPass pass(true);
+        MicroPassManager        passManager;
+        passManager.addStartPass(pass);
+
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Swag;
+        return builder.runPasses(passManager, nullptr, passContext);
+    }
+}
+
+// Two exits pin the result to zero: they go to one block that sets it.
+SWC_TEST_BEGIN(BranchSimplify_ShortCircuitExitsTakeTheirConstant)
+{
+    MicroBuilder builder(ctx);
+    emitAndChainReturn(builder, 2);
+    SWC_RESULT(runLateBranchSimplifyPass(builder));
+    if (countLoadImmValue(builder, 0) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// One exit does not pay for the block.
+SWC_TEST_BEGIN(BranchSimplify_SingleShortCircuitExitKept)
+{
+    MicroBuilder builder(ctx);
+    emitAndChainReturn(builder, 1);
+    SWC_RESULT(runLateBranchSimplifyPass(builder));
+    if (countLoadImmValue(builder, 0) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -1,4 +1,4 @@
-﻿#global if #command == Swag.CompilerCommand.Test
+#global if #command == Swag.CompilerCommand.Test
 #global private
 
 using Core

@@ -35,9 +35,9 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
             if Latin1.isDigit(c) do
                 value += cast(u64) (c - '0'u8)
             elif c <= 'F'u8 do
-                value += cast(u64) 10 + (c - 'A'u8)
+                value += 10'u64 + (c - 'A'u8)
             else do
-                value += cast(u64) 10 + (c - 'a'u8)
+                value += 10'u64 + (c - 'a'u8)
         }
 
         buffer, cpt += 1

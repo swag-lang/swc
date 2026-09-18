@@ -1,4 +1,4 @@
-﻿//! Format: Format-neutral video decoder registry and reader.
+//! Format: Format-neutral video decoder registry and reader.
 //! Supported: Extension-based decoder selection, streamed frame decoding, metadata, seeking, and optional audio and subtitle tracks.
 //! Not supported: This file does not parse a concrete video or container format.
 //! Role: This file owns decoder registration and the public reader that delegates to concrete format subfolders.

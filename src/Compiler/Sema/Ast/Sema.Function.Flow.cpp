@@ -908,6 +908,17 @@ namespace
                 case AstNodeId::SwitchCaseBody:
                 case AstNodeId::TopLevelBlock:
                     break;
+
+                case AstNodeId::ErrorManagementStmt:
+                case AstNodeId::ErrorManagementExpr:
+                case AstNodeId::DiscardExpr:
+                    // 'expect call(args) { ... }': the prefix wraps the call, so the block
+                    // follows the wrapped statement rather than the call itself.
+                    searchRef = sema.visit().parentNodeRef(up);
+                    if (searchRef.isInvalid())
+                        return AstNodeRef::invalid();
+                    continue;
+
                 default:
                     return AstNodeRef::invalid();
             }

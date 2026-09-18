@@ -431,6 +431,35 @@ namespace
         codeGen.setVariablePayload(symVar, symbolPayload);
     }
 
+    // Whether 'materializeSingleVarFromPayload' gives the variable storage of its own, filled with
+    // a copy of the source bytes, rather than binding the variable to the source address.
+    bool variableHasOwnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (symVar.hasGlobalStorage())
+            return false;
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+            return true;
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid();
+    }
+
+    // Whether a destructured source is a named value that keeps its fields, rather than a temporary
+    // whose fields move out.
+    bool destructuringSourceIsLValue(CodeGen& codeGen, AstNodeRef initRef)
+    {
+        const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
+        if (resolvedInitRef.isInvalid())
+            return false;
+        if (codeGen.sema().isLValue(resolvedInitRef))
+            return true;
+
+        // An address-backed selection ('a ? b : c', 'a orelse b') forwards the storage of whichever
+        // operand won, possibly a named variable.
+        const AstNode& resolvedInit = codeGen.node(resolvedInitRef);
+        if (!resolvedInit.is(AstNodeId::ConditionalExpr) && !resolvedInit.is(AstNodeId::NullCoalescingExpr))
+            return false;
+        return codeGen.payload(initRef).isAddress();
+    }
+
     void materializeAggregateSourceAddress(CodeGen& codeGen, AstNodeRef storageNodeRef, TypeRef sourceTypeRef, const CodeGenNodePayload& sourcePayload, MicroReg& outAddressReg)
     {
         outAddressReg = MicroReg::invalid();
@@ -853,13 +882,24 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     const SymbolVariable* initStorageSym     = codeGen.runtimeStorageSymbol(nodeInitRef);
     const bool            movesInitTemporary = initStorageSym && codeGen.hasTemporaryDrop(*initStorageSym);
-    const auto            emitFieldPostMove  = [&codeGen, movesInitTemporary](const SymbolVariable& symVar) -> Result {
-        if (!movesInitTemporary || !codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove))
+
+    // A field that lands in storage of its own was copied bit for bit, so its lifecycle hook runs
+    // exactly as for a single declaration: a named source keeps its value and the field is a copy,
+    // while any other source is a temporary whose field moves out, whether or not the temporary
+    // carries a drop of its own. A binding that only aliases the source storage needs neither.
+    const bool copiesFromLValue = destructuringSourceIsLValue(codeGen, nodeInitRef);
+    const auto emitFieldPostMove = [&codeGen, copiesFromLValue](const SymbolVariable& symVar) -> Result {
+        if (!variableHasOwnStorage(codeGen, symVar))
+            return Result::Continue;
+
+        const CodeGen::LifecycleKind postKind = copiesFromLValue ? CodeGen::LifecycleKind::PostCopy : CodeGen::LifecycleKind::PostMove;
+        if (!codeGen.hasLifecycle(symVar.typeRef(), postKind))
             return Result::Continue;
 
         const CodeGenNodePayload symbolPayload = resolveIdentifierVariablePayload(codeGen, symVar);
         SWC_ASSERT(symbolPayload.isAddress());
-        return codeGen.emitLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove, symbolPayload.reg);
+        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), symbolPayload.reg));
+        return codeGen.emitLifecycle(symVar.typeRef(), postKind, symbolPayload.reg);
     };
 
     SmallVector<TokenRef> tokNames;

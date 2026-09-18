@@ -1710,3 +1710,69 @@ func buildSubject(rng: *Rng)->String
     // A generated suite that stops generating proves nothing, so it says how much it compared.
     Swag.assert(compared > 3000)
 }
+
+// Empty occurrences: 'grepAll' and 'replaceAll' see one at every position a non-empty occurrence
+// does not cover, and 'split' ignores them.
+#test
+{
+    var re = expect Parser.RegExp.create("a*")
+    let all = re.grepAll("baaa")
+    Swag.assert(all.count == 3 and all[0] == "" and all[1] == "aaa" and all[2] == "")
+    Swag.assert(re.replaceAll("baaac", "-") == "-b--c-")
+    let parts = re.split("baaac")
+    Swag.assert(parts.count == 2 and parts[0] == "b" and parts[1] == "c")
+
+    var empty = expect Parser.RegExp.create("")
+    Swag.assert(empty.grepAll("abc").count == 4)
+    Swag.assert(empty.replaceAll("abc", ".") == ".a.b.c.")
+
+    var comma = expect Parser.RegExp.create(",")
+    let fields = comma.split(",a,,b,")
+    Swag.assert(fields.count == 5 and fields[0] == "" and fields[1] == "a" and fields[2] == "" and fields[4] == "")
+    let none = comma.split("")
+    Swag.assert(none.count == 1 and none[0] == "")
+}
+
+// Leftmost-first alternation, lazy and counted repetition, multi-line anchors, Unicode case
+// folding, backreferences, named captures, word boundaries, and a dot that crosses lines.
+#test
+{
+    Swag.assert((expect Parser.RegExp.grep("a|ab", "ab")) == "a")
+    Swag.assert((expect Parser.RegExp.grep("a+?", "aaa")) == "a")
+    Swag.assert((expect Parser.RegExp.grep("a{2,3}", "aaaa")) == "aaa")
+    var re = expect Parser.RegExp.create("a{2,3}")
+    Swag.assert(not re.match("aaaa") and re.match("aa"))
+    let lines = expect Parser.RegExp.grepAll(#raw "(?m)^\w+$", "ab\ncd\n\nef")
+    Swag.assert(lines.count == 3 and lines[1] == "cd" and lines[2] == "ef")
+    var ci = expect Parser.RegExp.create("(?i)éa", true)
+    Swag.assert(ci.match("ÉA"))
+    var back = expect Parser.RegExp.create(#raw "(a+)b\1")
+    Swag.assert(back.match("aabaa") and not back.match("aabaaa") and not back.match("aaba"))
+    var named = expect Parser.RegExp.create(#raw "(?<year>\d{4})-(?<month>\d\d)")
+    Swag.assert(named.match("2026-09") and named.getCapture("month") == "09" and named.getCapture(1) == "2026")
+    Swag.assert(not named.match("x") and named.getCapture("month") == "")
+    var word = expect Parser.RegExp.create(#raw "\bcat\b")
+    Swag.assert(word.grep("a cat!") == "cat" and word.grep("concatenate") == null)
+    var dot = expect Parser.RegExp.create("a.c")
+    Swag.assert(dot.match("a\nc") and dot.match("a€c"))
+}
+
+// A pattern that is exponential for a backtracker stays fast.
+#test
+{
+    var subject: String
+    for 5000 do
+        subject += 'a'
+    var re = expect Parser.RegExp.create("(a*)*b")
+    Swag.assert(not re.match(subject.toString()))
+    Swag.assert(re.grep(subject.toString()) == null)
+}
+
+#test
+{
+    var re = expect Parser.RegExp.create(#raw "(\w+)@(\w+)")
+    Swag.assert(re.replaceAll("x@y and a@b", "$2@$1") == "y@x and b@a")
+    Swag.assert(re.replaceAll("x@y", "$$1 ${9}") == "$1 ")
+    let spans = re.findAll("x@y, a@b")
+    Swag.assert(spans.count == 2)
+}

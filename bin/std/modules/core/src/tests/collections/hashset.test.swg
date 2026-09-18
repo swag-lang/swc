@@ -170,3 +170,22 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.assert(not values.contains(42))
     Swag.assert(values.isEmpty())
 }
+
+// A key read from the set itself can be added back while the set grows.
+#test
+{
+    var s: HashSet'String
+    discard s.add("a key long enough to live outside the inline storage")
+    for i in 100
+    {
+        for k in s
+        {
+            discard s.add(k)
+            break
+        }
+
+        discard s.add(Format.toString("key %", i))
+    }
+
+    Swag.assert(s.count == 101 and s.contains("a key long enough to live outside the inline storage"))
+}

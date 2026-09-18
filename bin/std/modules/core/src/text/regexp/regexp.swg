@@ -368,7 +368,8 @@ public impl RegExp
     // Returns the parts of the subject that the pattern separates.
     //
     // An occurrence of the pattern is the separator, so a subject with two occurrences yields
-    // three parts, empty ones included. The returned strings point into `str`.
+    // three parts, empty ones included. An occurrence that matches nothing separates nothing:
+    // `a*` splits `baaac` into `b` and `c`. The returned strings point into `str`.
     mtd split(str: string?)->Array'(string)
     {
         var result: retval

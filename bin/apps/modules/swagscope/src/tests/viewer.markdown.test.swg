@@ -131,7 +131,8 @@ using Core, Pixel, Gui, Gui.Testing
     let previous = g_MarkdownViewerSettings
     defer g_MarkdownViewerSettings = previous
     g_MarkdownViewerSettings = {}
-    let fileName = Gui.Testing.tempFilePath("scope-markdown-statistics-", ".md")
+    // The golden shows the file name, so it is fixed rather than unique.
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "markdown-statistics.md")
     discard expect File.writeAllText(fileName.toString(), "Alpha beta\r\nthree\u00a0four\n")
     defer discard catch File.delete(fileName.toString())
 

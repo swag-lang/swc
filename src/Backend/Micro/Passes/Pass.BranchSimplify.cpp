@@ -1282,10 +1282,27 @@ namespace
             if (microRegSpanContains(thenUseDef.uses, result))
                 continue;
 
+            // Between the compare and its jump the hoisted arm must leave the
+            // flags alone: a clear is an xor, so it moves as a zero load.
             MicroInstrOperand hoisted[3] = {};
-            std::copy_n(elseOps, elseInst->numOperands, hoisted);
-            storage.insertDerivedBefore(operands, layout.order[ordinal], elseInst->op, std::span{hoisted, elseInst->numOperands});
+            MicroInstrOpcode  hoistedOp  = elseInst->op;
+            uint8_t           hoistedNum = elseInst->numOperands;
+            if (elseInst->op == MicroInstrOpcode::ClearReg)
+            {
+                hoistedOp          = MicroInstrOpcode::LoadRegImm;
+                hoistedNum         = 3;
+                hoisted[0].reg     = result;
+                hoisted[1].opBits  = elseOps[1].opBits;
+                hoisted[2].valueU64 = 0;
+            }
+            else
+            {
+                std::copy_n(elseOps, elseInst->numOperands, hoisted);
+            }
+            // Retarget before inserting: the insertion may grow the operand
+            // storage and leave branchOps dangling.
             branchOps[2].valueU64 = joinLabel;
+            storage.insertDerivedBefore(operands, layout.order[ordinal], hoistedOp, std::span{hoisted, hoistedNum});
             storage.erase(layout.order[ordinal + 2]);
             storage.erase(layout.order[ordinal + 3]);
             storage.erase(layout.order[ordinal + 4]);

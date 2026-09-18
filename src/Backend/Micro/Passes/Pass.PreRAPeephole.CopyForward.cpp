@@ -113,6 +113,8 @@ namespace PreRaPeephole
             case MicroOp::FloatSubtract:
             case MicroOp::FloatMultiply:
             case MicroOp::FloatDivide:
+            case MicroOp::FloatMin:
+            case MicroOp::FloatMax:
                 break;
             default:
                 return false;

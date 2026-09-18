@@ -19,7 +19,10 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   loop. The loop's `#relocate` poisons its sources under lifecycle safety, so the slot being
   written holds `0xFF` bytes; something in the move path reads it although `#nodrop` declares it
   uninitialized. A JIT reproduction with a hand-written inline-storage struct and a plain function
-  does not fault.
+  does not fault, even with `Swag.SafetyWhat.Lifecycle` forced on and a generic receiver: the
+  trigger needs `Core.String` (or its lifecycle) or its heap-backed array. Writing the declared
+  dynamic identity into a `#nodrop` or `#relocate` target, as `FirstInit` does, was tried and
+  does not change the fault.
 - Shipped workaround: `Array.insertAt` and `Array.add` hand the staged value over with
   `#relocate`, which is also the exact meaning wanted there (uninitialized target, abandoned local).
 - Next: rebuild the reproduction as a native unittest (generic receiver, `Core.String` or a copy

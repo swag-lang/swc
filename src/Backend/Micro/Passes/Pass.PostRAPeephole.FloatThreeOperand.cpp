@@ -539,6 +539,103 @@ namespace PostRaPeephole
         return true;
     }
 
+    // The result of a multiply by a constant can be named where it is wanted,
+    // the other way round:
+    //
+    //     imul rcx, 16843010 ; mov rax, rcx    ->    imul rax, rcx, 16843010
+    //
+    // The multiplied register must die at the copy, since it no longer holds
+    // the product afterwards.
+    bool tryFoldMultiplyIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        constexpr uint32_t K_MAX_SCAN = 8;
+
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+        const MicroOpBits copyBits = copyOps[2].opBits;
+        if (copyBits != MicroOpBits::B32 && copyBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg dst = copyOps[0].reg;
+        const MicroReg src = copyOps[1].reg;
+        if (!dst.isInt() || !src.isInt() || dst == src || ctx.isPrivateFrameBase(dst) || ctx.isPrivateFrameBase(src))
+            return false;
+        // The product only reaches the copy: anything else still reading the
+        // multiplied register would read the value it no longer gets.
+        if (!ctx.isRegDeadAfterCurrent(src))
+            return false;
+
+        // The multiply that feeds the copy, with nothing in between that
+        // touches either register.
+        MicroInstrRef     mulRef  = ctx.previousRef(copyRef);
+        const MicroInstr* mulInst = nullptr;
+        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        {
+            const MicroInstr* candidate = ctx.instruction(mulRef);
+            if (!candidate || candidate->op == MicroInstrOpcode::Label)
+                return false;
+
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegImm && candidate->numOperands >= 4)
+            {
+                const MicroInstrOperand* candidateOps = ctx.operandsFor(mulRef);
+                if (candidateOps && candidateOps[0].reg == src)
+                {
+                    mulInst = candidate;
+                    break;
+                }
+            }
+
+            const MicroInstrFlags flags = MicroInstr::info(candidate->op).flags;
+            if (flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+
+            const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+
+            mulRef = ctx.previousRef(mulRef);
+        }
+
+        if (!mulInst || ctx.isClaimed(mulRef))
+            return false;
+        const MicroInstrOperand* mulOps = ctx.operandsFor(mulRef);
+        if (!mulOps || mulOps[2].microOp != MicroOp::MultiplySigned || mulOps[1].opBits != copyBits ||
+            mulOps[3].hasWideImmediateValue())
+            return false;
+
+        // The three-operand form takes a signed dword immediate.
+        const uint64_t value       = mulOps[3].valueU64;
+        const auto     signedValue = copyBits == MicroOpBits::B32 ? static_cast<int64_t>(static_cast<int32_t>(value)) : static_cast<int64_t>(value);
+        if (signedValue < INT32_MIN || signedValue > INT32_MAX)
+            return false;
+
+        if (!ctx.claimAll({mulRef, copyRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        newOps[0].reg               = dst;
+        newOps[1].reg               = src;
+        newOps[2].opBits            = copyBits;
+        newOps[3].microOp           = MicroOp::MultiplySigned;
+        newOps[4].valueU64          = value;
+        ctx.emitRewrite(mulRef, MicroInstrOpcode::OpBinaryRegRegImm, std::span{newOps, 5}, true);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // The same fold for a packed shift by an immediate. A rotate needs its
     // source twice - once shifted left, once right - so the vectorizer copies
     // it before each destructive shift, and the register allocator was giving

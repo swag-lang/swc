@@ -1684,6 +1684,63 @@ SWC_TEST_BEGIN(PostRAPeephole_WideMultiplyImmediate_Kept)
 }
 SWC_TEST_END()
 
+// imul rcx, K ; mov rax, rcx names the product where it is wanted.
+SWC_TEST_BEGIN(PostRAPeephole_MultiplyIntoResultCopy_TakesThreeOperands)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(rcx, r8, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rcx, ApInt(16843010, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+    builder.emitLoadRegReg(rax, rcx, MicroOpBits::B64);
+    // The multiplied register is reloaded, so nothing can read the product
+    // through it and the copy cannot be forwarded away.
+    builder.emitLoadRegMem(rcx, r8, 16, MicroOpBits::B64);
+    builder.emitLoadMemReg(r8, 8, rax, MicroOpBits::B64);
+    builder.emitLoadMemReg(r8, 24, rcx, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    bool folded = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == rax && ops[1].reg == rcx)
+            return Result::Error;
+        if (inst.op == MicroInstrOpcode::OpBinaryRegRegImm && ops[0].reg == rax && ops[1].reg == rcx && ops[4].valueU64 == 16843010)
+            folded = true;
+    }
+    return folded ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A multiplied register still read afterwards keeps its product.
+SWC_TEST_BEGIN(PostRAPeephole_MultiplyStillRead_KeepsCopy)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(rcx, r8, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rcx, ApInt(16843010, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+    builder.emitLoadRegReg(rax, rcx, MicroOpBits::B64);
+    builder.emitLoadMemReg(r8, 16, rcx, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegImm) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

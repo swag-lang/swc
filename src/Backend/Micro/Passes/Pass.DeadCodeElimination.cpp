@@ -106,6 +106,24 @@ namespace
         if (isUnobservedFloatClear(storage, operands, inst, useDef, instRef, floatDefs))
             return false;
 
+        // Most floating operations share generic opcodes that advertise an
+        // EFLAGS definition, although their x64 encodings preserve EFLAGS.
+        // Keep a float clear conservative unless the guard above proved it
+        // independent: later scalar inserts can still depend on its upper
+        // lanes.
+        if (!MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(operands)))
+        {
+            if (inst.op == MicroInstrOpcode::ClearReg)
+            {
+                for (const MicroReg def : useDef.defs)
+                {
+                    if (def.isVirtualFloat())
+                        return true;
+                }
+            }
+            return false;
+        }
+
         // A dead integer compute whose only side effect is the CPU flags it
         // defines is still removable when the flags are provably redefined in
         // the same straight-line window. Duplicated two-address chains that

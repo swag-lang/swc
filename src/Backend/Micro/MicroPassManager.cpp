@@ -670,8 +670,17 @@ Result MicroPassManager::run(MicroPassContext& context) const
     // and the packed sequence itself benefits from copy elimination.
     if (!vectorizePasses_.empty())
     {
-        SWC_RESULT(runLinearPasses(context, vectorizePasses_, verifyCache));
-        if (context.passChanged)
+        // runPass resets passChanged before each pass. Keep the result of every
+        // vectorization pass here: a following no-op transform must not hide a
+        // preceding SLP rewrite and skip the scalar cleanup it requires.
+        bool vectorizeChanged = false;
+        for (MicroPass* pass : vectorizePasses_)
+        {
+            SWC_ASSERT(pass != nullptr);
+            SWC_RESULT(runPass(context, *pass, verifyCache));
+            vectorizeChanged |= context.passChanged;
+        }
+        if (vectorizeChanged)
         {
             const LoopPassSettings cleanupSettings{.maxIterations = preRaMaxIterations, .buildSsa = true, .pruneStableSuffix = true, .name = "post-vectorize-cleanup-loop"};
             SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, cleanupSettings, verifyCache));

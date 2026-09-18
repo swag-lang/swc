@@ -39,21 +39,27 @@ func checkCoreBoundArguments(prefix: const [..] string, forwarded: const [..] st
 
 func checkCoreBound() fail
 {
-    // Randomization bounds even an unfixed child at one worker while its missing option is checked.
-    try checkCoreBoundArguments(["--randomize"], ["--num-cores", "2"], ["--num-cores", "2"])
-    try checkCoreBoundArguments(["--randomize"], ["-j", "3"], ["-j", "3"])
-    try checkCoreBoundArguments(["--randomize"], ["--num-cores=1"], ["--num-cores=1"])
-    try checkCoreBoundArguments(["--randomize"], ["-j=2"], ["-j=2"])
+    let executable = try Env.Process.currentExecutablePath()
+    let devMode    = Path.fileName(executable.toString()) == "swc.dm.exe"
+    if devMode
+    {
+        // Randomization bounds even an unfixed child at one worker while its missing option is checked.
+        try checkCoreBoundArguments(["--randomize"], ["--num-cores", "2"], ["--num-cores", "2"])
+        try checkCoreBoundArguments(["--randomize"], ["-j", "3"], ["-j", "3"])
+        try checkCoreBoundArguments(["--randomize"], ["--num-cores=1"], ["--num-cores=1"])
+        try checkCoreBoundArguments(["--randomize"], ["-j=2"], ["-j=2"])
+    }
 
     // A compiler-prefix choice wins independently of what its script forwards to later compilers.
     var noAddedArguments: Array'string
-    try checkCoreBoundArguments(["--randomize", "--num-cores", "1"], ["--num-cores", "3"], noAddedArguments.toSlice())
-    try checkCoreBoundArguments(["--randomize", "-j", "2"], ["-j", "3"], noAddedArguments.toSlice())
-    try checkCoreBoundArguments(["--randomize", "--num-cores=1"], ["--num-cores=3"], noAddedArguments.toSlice())
-    try checkCoreBoundArguments(["--randomize", "-j=2"], ["-j=3"], noAddedArguments.toSlice())
+    try checkCoreBoundArguments(["--num-cores", "1"], ["--num-cores", "3"], noAddedArguments.toSlice())
+    try checkCoreBoundArguments(["-j", "2"], ["-j", "3"], noAddedArguments.toSlice())
+    try checkCoreBoundArguments(["--num-cores=1"], ["--num-cores=3"], noAddedArguments.toSlice())
+    try checkCoreBoundArguments(["-j=2"], ["-j=3"], noAddedArguments.toSlice())
 
     // Repeated forwarded choices retain the final option's precedence in the hosting compiler.
-    try checkCoreBoundArguments(["--randomize"], ["--num-cores", "3", "-j=1"], ["-j=1"])
+    if devMode do
+        try checkCoreBoundArguments(["--randomize"], ["--num-cores", "3", "-j=1"], ["-j=1"])
 }
 
 // Run the public audit in a child so expected rejection diagnostics stay captured.

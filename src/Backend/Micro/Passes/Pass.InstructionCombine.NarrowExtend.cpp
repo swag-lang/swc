@@ -446,7 +446,10 @@ namespace InstructionCombine
         if (!byteReg.isVirtualInt() || !atExtend.valid() || !atOffset.valid() || atExtend.valueId != atOffset.valueId)
             return false;
 
-        if (!ctx.claimAll({ref, offset.instRef}))
+        // The copy reads the byte past its widening: a fold of the same sweep
+        // must not absorb the byte's definition into that widening.
+        const MicroInstrRef byteDefRef = atExtend.isPhi ? widened.instRef : atExtend.instRef;
+        if (!ctx.claimAll({ref, offset.instRef, widened.instRef, byteDefRef}))
             return false;
 
         MicroInstrOperand copyOps[3];
@@ -874,8 +877,12 @@ namespace InstructionCombine
     {
         // The register a zero or sign extension of at least a byte reads, when
         // `reg` is one - possibly copied - and that source still holds the
-        // same value at `atRef`.
-        MicroReg extendedSource(const Context& ctx, MicroReg reg, MicroInstrRef atRef, bool zeroOnly, MicroOpBits& outSourceBits)
+        // same value at `atRef`. A rewrite that reads the source instead must
+        // claim `outClaims`, the extension and the source's definition: a fold
+        // of the same sweep could otherwise absorb that definition into the
+        // extension and leave the rewrite reading nothing.
+        MicroReg extendedSource(const Context& ctx, MicroReg reg, MicroInstrRef atRef, bool zeroOnly, MicroOpBits& outSourceBits,
+                                std::array<MicroInstrRef, 2>& outClaims)
         {
             MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
             if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
@@ -899,6 +906,7 @@ namespace InstructionCombine
                 return MicroReg::invalid();
 
             outSourceBits = ext[3].opBits;
+            outClaims     = {def.instRef, source.isPhi ? def.instRef : source.instRef};
             return ext[1].reg;
         }
 
@@ -975,9 +983,10 @@ namespace InstructionCombine
                 return false;
         }
 
-        MicroOpBits    sourceBits = MicroOpBits::Zero;
-        const MicroReg source     = extendedSource(ctx, ops[countIndex].reg, ref, false, sourceBits);
-        if (!source.isValid() || source == ops[0].reg || (countIndex == 2 && source == ops[1].reg) || !ctx.claimAll({ref}))
+        MicroOpBits                  sourceBits = MicroOpBits::Zero;
+        std::array<MicroInstrRef, 2> claims;
+        const MicroReg               source = extendedSource(ctx, ops[countIndex].reg, ref, false, sourceBits, claims);
+        if (!source.isValid() || source == ops[0].reg || (countIndex == 2 && source == ops[1].reg) || !ctx.claimAll({ref, claims[0], claims[1]}))
             return false;
 
         MicroInstrOperand shift[5];
@@ -1007,12 +1016,13 @@ namespace InstructionCombine
         if (!extension.valid() || extension.isPhi || !extension.inst || extension.inst->op != MicroInstrOpcode::LoadZeroExtRegReg ||
             singleDirectInstructionUse(*ctx.ssa, extension.valueId) != ref)
             return false;
-        MicroOpBits    sourceBits = MicroOpBits::Zero;
-        const MicroReg source     = extendedSource(ctx, ops[0].reg, ref, true, sourceBits);
+        MicroOpBits                  sourceBits = MicroOpBits::Zero;
+        std::array<MicroInstrRef, 2> claims;
+        const MicroReg               source = extendedSource(ctx, ops[0].reg, ref, true, sourceBits, claims);
         if (!source.isValid() || getNumBits(sourceBits) >= getNumBits(ops[1].opBits))
             return false;
         const uint64_t value = ops[2].valueU64 & getBitsMask(ops[1].opBits);
-        if (value > getBitsMask(sourceBits) || !flagsReadOnlyUnsigned(ctx, ref) || !ctx.claimAll({ref}))
+        if (value > getBitsMask(sourceBits) || !flagsReadOnlyUnsigned(ctx, ref) || !ctx.claimAll({ref, claims[0], claims[1]}))
             return false;
 
         MicroInstrOperand narrow[3] = {ops[0], ops[1], ops[2]};

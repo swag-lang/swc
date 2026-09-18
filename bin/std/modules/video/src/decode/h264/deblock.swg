@@ -26,7 +26,7 @@ private struct DeblockContext
 func deblockPicture(dec: *Decoder)
 {
     let sps       = dec.sps!
-    let laneCount = Math.min(Math.min(Swag.workerCount(), DeblockLanes), cast(u32) sps.mbHeight)
+    let laneCount = Math.min(Swag.workerCount(), DeblockLanes, cast(u32) sps.mbHeight)
     if laneCount <= 1
     {
         for mbY in sps.mbHeight

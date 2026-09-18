@@ -40,6 +40,5 @@ func day1B()
 
     let total = count[0] + count[1] + count[2]
 
-    // Console.print("total: ", total)
     Swag.assert(total == 203002)
 }

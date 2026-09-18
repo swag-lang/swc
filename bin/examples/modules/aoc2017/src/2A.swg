@@ -39,6 +39,5 @@ func day2A()
         total += max - min
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 36174)
 }

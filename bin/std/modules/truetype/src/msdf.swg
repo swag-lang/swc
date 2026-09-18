@@ -863,8 +863,8 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
         // for a handful of comparisons and no square root. A segment that cannot reach the
         // widest winner cannot win anything. Ties still go through, because it is the exact
         // distance that decides them.
-        let bx = Math.max(Math.max(s.minX - px, px - s.maxX), 0.0'f64)
-        let by = Math.max(Math.max(s.minY - py, py - s.maxY), 0.0'f64)
+        let bx = Math.max(s.minX - px, px - s.maxX, 0.0'f64)
+        let by = Math.max(s.minY - py, py - s.maxY, 0.0'f64)
         if bx * bx + by * by > best.reach2[s.color] do
             continue
 

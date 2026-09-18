@@ -111,8 +111,8 @@ impl Painter
 
     // Fills an axis-aligned ellipse.
     //
-    // The geometry is not snapped, so the fill covers exactly the outline drawn by
-    // [[Pixel.Painter.drawEllipse]] with the same arguments.
+    // The geometry is not snapped, so the fill matches the ellipse that
+    // [[Pixel.Painter.drawEllipse]] strokes with the same center and radii.
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, brush: Brush)
     {
         if radiusX == 0 or radiusY == 0 or .isInvisible(brush) do

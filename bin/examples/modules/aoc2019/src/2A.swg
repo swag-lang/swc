@@ -70,6 +70,5 @@ func day2A()
         ip += 4
     }
 
-    // Console.print("total: ", op[0])
     Swag.assert(op[0] == 5534943)
 }

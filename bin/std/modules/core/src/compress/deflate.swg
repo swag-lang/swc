@@ -609,7 +609,7 @@ impl Deflate
 
         for i in tableLen
         {
-            var rev_code = 0'u32
+            var revCode = 0'u32
             let codeSize = d.huffCodeSizes[tableNum, i]
             if codeSize == 0 do
                 continue
@@ -617,11 +617,11 @@ impl Deflate
             nextCode[codeSize] += 1
             for var l = codeSize; l > 0; l -= 1
             {
-                rev_code = (rev_code << 1) | (cde & 1)
+                revCode = (revCode << 1) | (cde & 1)
                 cde      >>= 1
             }
 
-            d.huffCodes[tableNum, i] = cast(u16) rev_code
+            d.huffCodes[tableNum, i] = cast(u16) revCode
         }
     }
 
@@ -892,9 +892,9 @@ impl Deflate
         return d.outputBufAddr < d.outputBufEndAddr
     }
 
-    mtd compressBlock(static_block: bool)->bool
+    mtd compressBlock(staticBlock: bool)->bool
     {
-        if static_block do
+        if staticBlock do
             .startStaticBlock()
         else do
             .startDynamicBlock()

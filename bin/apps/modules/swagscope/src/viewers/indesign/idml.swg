@@ -883,7 +883,7 @@ private func idmlStoryText(source: string)->String
         let contentStart = Utf8.indexOf(source, "<Content", cursor)
         let breakStart   = Utf8.indexOf(source, "<Br", cursor)
         let paragraphEnd = Utf8.indexOf(source, "</ParagraphStyleRange>", cursor)
-        let next         = Math.min(contentStart, Math.min(breakStart, paragraphEnd))
+        let next         = Math.min(contentStart, breakStart, paragraphEnd)
         if next == Swag.U64.Max do
             break
 
@@ -1294,7 +1294,7 @@ private func idmlAppendItems(fileName, source: string, colors: const *HashTable'
         let ovalStart    = Utf8.indexOf(source, "<Oval ", cursor)
         let polygonStart = Utf8.indexOf(source, "<Polygon ", cursor)
         let lineStart    = Utf8.indexOf(source, "<GraphicLine ", cursor)
-        let shapeStart   = Math.min(Math.min(rectStart, ovalStart), Math.min(polygonStart, lineStart))
+        let shapeStart   = Math.min(rectStart, ovalStart, polygonStart, lineStart)
         let start        = Math.min(textStart, shapeStart)
         if start == Swag.U64.Max do
             break

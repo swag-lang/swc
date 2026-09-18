@@ -32,7 +32,6 @@ func day3A()
             total += cast(s32) (ok == 3)
         }
 
-        // Console.print("total: ", total)
         Swag.assert(total == 869)
     }
 }

@@ -69,6 +69,5 @@ func day8A()
         lines[lip].clear()
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 1941)
 }

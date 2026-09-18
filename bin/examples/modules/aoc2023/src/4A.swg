@@ -65,6 +65,5 @@ func day4A()
         total += score / 2
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 23673)
 }

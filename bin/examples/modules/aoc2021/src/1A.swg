@@ -60,6 +60,5 @@ func day1A()
         last = cur
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 1791)
 }

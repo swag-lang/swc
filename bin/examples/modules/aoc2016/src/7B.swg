@@ -46,6 +46,5 @@ func day7B()
         }
     }
 
-    // Console.print(total)
     Swag.assert(total == 242)
 }

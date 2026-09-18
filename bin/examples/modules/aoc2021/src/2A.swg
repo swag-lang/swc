@@ -50,6 +50,5 @@ func day2A()
         }
     }
 
-    // Console.print("total: ", h*d)
     Swag.assert(h * d == 1714680)
 }

@@ -418,7 +418,7 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         masked = (masked & 0x1FE0) + floor
         while source < last
         {
-            let address = Math.min(63, Math.max(0, (psd[source] - masked) >> 5))
+            let address = Math.clamp((psd[source] - masked) >> 5, 0, 63)
             result[source - start] = BAPTAB[address]
             source += 1
         }

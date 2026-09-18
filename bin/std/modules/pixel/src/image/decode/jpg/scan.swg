@@ -344,8 +344,8 @@ impl Decoder
                 }
                 else
                 {
-                    let maxSamplingH = Math.max(.compSampH[0], Math.max(.compSampH[1], .compSampH[2]))
-                    let maxSamplingV = Math.max(.compSampV[0], Math.max(.compSampV[1], .compSampV[2]))
+                    let maxSamplingH = Math.max(.compSampH[0], .compSampH[1], .compSampH[2])
+                    let maxSamplingV = Math.max(.compSampV[0], .compSampV[1], .compSampV[2])
                     for component in 3
                     {
                         if maxSamplingH % .compSampH[component] or maxSamplingV % .compSampV[component] do
@@ -644,12 +644,12 @@ impl Decoder
             for cNum in .compsInScan
             {
                 let cid        = .compList[cNum]
-                var num_blocks = .compSampH[cid] * .compSampV[cid]
-                while num_blocks
+                var numBlocks = .compSampH[cid] * .compSampV[cid]
+                while numBlocks
                 {
                     .mcuOrg[.blocksPerMcu] = cid
                     .blocksPerMcu += 1
-                    num_blocks    -= 1
+                    numBlocks     -= 1
                 }
             }
         }

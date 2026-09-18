@@ -60,6 +60,5 @@ func day2A()
             total += gameIdx + 1
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 2369)
 }

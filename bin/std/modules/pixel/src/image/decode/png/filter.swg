@@ -527,13 +527,13 @@ impl Decoder
             {
                 for i in x
                 {
-                    let out_y   = .header.height - ((j * Adam7SpacingY[p]) + Adam7OrigY[p]) - 1
-                    let out_x   = (i * Adam7SpacingX[p]) + Adam7OrigX[p]
-                    var out_off = out_y * .header.width * pixelBytes
-                    out_off += out_x * pixelBytes
+                    let outY   = .header.height - ((j * Adam7SpacingY[p]) + Adam7OrigY[p]) - 1
+                    let outX   = (i * Adam7SpacingX[p]) + Adam7OrigX[p]
+                    var outOff = outY * .header.width * pixelBytes
+                    outOff += outX * pixelBytes
                     let dstPixels = .safeDstPixels()
                     for z in pixelBytes do
-                        dstPixels[out_off + z] = t[z]
+                        dstPixels[outOff + z] = t[z]
                     t += pixelBytes
                 }
             }

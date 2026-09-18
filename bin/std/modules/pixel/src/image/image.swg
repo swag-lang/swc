@@ -713,8 +713,7 @@ impl Image
             break
         }
 
-        Swag.assert(false)
-        return Color.fromArgb(0'u32)
+        unreachable
     }
 
     // Returns the width divided by the height.

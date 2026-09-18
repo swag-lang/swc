@@ -67,6 +67,5 @@ func day7B()
             total = val
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 942298)
 }

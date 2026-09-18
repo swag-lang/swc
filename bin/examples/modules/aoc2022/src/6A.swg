@@ -42,7 +42,6 @@ func day6A()
     {
         if str[i + 0] != str[i + 1] and str[i + 0] != str[i + 2] and str[i + 0] != str[i + 3] and str[i + 1] != str[i + 2] and str[i + 1] != str[i + 3] and str[i + 2] != str[i + 3]
         {
-            // Console.print("total: ", i+4)
             Swag.assert(i + 4 == 1848)
             break
         }

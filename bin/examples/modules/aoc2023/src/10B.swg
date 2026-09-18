@@ -220,6 +220,5 @@ func day10B()
         }
     }
 
-    // Console.print("total: ", total, " ")
     Swag.assert(total == 287)
 }

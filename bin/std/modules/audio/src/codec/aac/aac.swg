@@ -481,7 +481,7 @@ private impl AacCodec
         let offsets  = isShort ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
         let numBands = isShort ? cast(s32) NumSwbShort[.sampleRateIndex] : cast(s32) NumSwbLong[.sampleRateIndex]
         var maximum  = isShort ? cast(s32) TnsMaxBandsShort[.sampleRateIndex] : cast(s32) TnsMaxBandsLong[.sampleRateIndex]
-        maximum = Math.min(maximum, Math.min(value.maxSfb, numBands))
+        maximum = Math.min(maximum, value.maxSfb, numBands)
         let windowCount = isShort ? 8 : 1
         for window in windowCount
         {

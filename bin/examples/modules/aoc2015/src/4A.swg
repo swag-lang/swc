@@ -55,7 +55,6 @@ func day4A()
         let v = Hash.Md5.compute(day4BuildInput(buffer, index))
         if v[0] == 0 and v[1] == 0 and (v[2] & 0xF0) == 0
         {
-            // Console.print("total: ", index)
             Swag.assert(index == 282749)
             break
         }

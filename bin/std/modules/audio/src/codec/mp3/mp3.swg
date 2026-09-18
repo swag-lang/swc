@@ -692,7 +692,7 @@ impl Codec
 
             if info.longBands
             {
-                let top = Math.max(Math.max(topBand[0], topBand[1]), topBand[2])
+                let top = Math.max(topBand[0], topBand[1], topBand[2])
                 topBand[0] = top
                 topBand[1] = top
                 topBand[2] = top

@@ -137,6 +137,5 @@ func day9A()
 
     let total = run(&prg, 1)
 
-    // Console.print("total: ", total)
     Swag.assert(total == 3013554615)
 }

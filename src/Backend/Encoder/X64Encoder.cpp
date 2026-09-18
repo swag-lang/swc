@@ -3103,6 +3103,17 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
+    const auto emitMemoryOperand = [&](const uint8_t regField) {
+        if (memReg.isInstructionPointer())
+        {
+            SWC_ASSERT(memOffset == 0);
+            emitModRm(store_, ModRmMode::Memory, regField, MODRM_RM_RIP);
+            store_.pushU32(0);
+        }
+        else
+            emitModRm(store_, memOffset, regField, memReg);
+    };
+
     ///////////////////////////////////////////
     // Float arithmetic reads memory directly, exactly as the register form does
     // but with a memory ModRM. Without this the operand has to be loaded into a
@@ -3123,7 +3134,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
 
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, op);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3132,7 +3143,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3141,7 +3152,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3150,7 +3161,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3159,7 +3170,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3168,7 +3179,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3180,14 +3191,14 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
             // One-operand IMUL r/m8 from memory: AL * [mem] -> AX, OF correct for s8.
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
-            emitModRm(store_, memOffset, MODRM_REG_5, memReg);
+            emitMemoryOperand(MODRM_REG_5);
         }
         else
         {
             emitRex(store_, opBits, regDst, memReg);
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0xAF);
-            emitModRm(store_, memOffset, regDst, memReg);
+            emitMemoryOperand(encodeReg(regDst));
         }
     }
 
@@ -3200,7 +3211,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
         emitRex(store_, opBits, regDst, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, op);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Fold the copy that legacy SSE forces in front of every float binary operation
@@ -97,6 +98,13 @@ namespace PostRaPeephole
                 return false;
             if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
                 return ops[1].reg == loaded && ops[0].reg != loaded;
+            if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
+            {
+                if (ops[2].reg != loaded)
+                    return false;
+                return (ops[0].reg == ops[1].reg && ops[0].reg != loaded) ||
+                       (ops[0].reg == loaded && ops[1].reg != loaded);
+            }
             if (!isFloat && inst.op == MicroInstrOpcode::CmpRegReg && inst.numOperands >= 3)
                 return ops[0].reg == loaded && ops[1].reg != loaded;
             return false;
@@ -229,13 +237,25 @@ namespace PostRaPeephole
             (indexed && (!index.isValid() || index.isFloat() || isFloat)))
             return false;
 
-        // An instruction-pointer-relative load reads a constant through a
-        // relocation bound to this very instruction. Folding it away would
-        // strand that relocation on an erased instruction: nothing would bind
-        // its code offset, it would keep the zero it was created with, and the
-        // patch would land on the function prologue.
+        // A RIP-relative load carries the constant's relocation. The folded
+        // arithmetic instruction can carry it instead, but only when this is
+        // the one ordinary rel32 relocation the memory form expects.
+        MicroRelocation* loadRelocation = nullptr;
         if (base.isInstructionPointer())
-            return false;
+        {
+            if (!isFloat || !ctx.builder)
+                return false;
+            for (MicroRelocation& relocation : ctx.builder->codeRelocations())
+            {
+                if (relocation.instructionRef != loadRef)
+                    continue;
+                if (loadRelocation || relocation.form != MicroRelocation::Form::Relative32)
+                    return false;
+                loadRelocation = &relocation;
+            }
+            if (!loadRelocation)
+                return false;
+        }
 
         // The integer rewrite is probed against the encoder before it lands.
         if (!isFloat && !ctx.encoder)
@@ -296,17 +316,21 @@ namespace PostRaPeephole
         if (!opInst)
             return false;
 
+        if (loadRelocation)
+            for (const MicroRelocation& relocation : ctx.builder->codeRelocations())
+                if (&relocation != loadRelocation && relocation.instructionRef == opRef)
+                    return false;
+
         const MicroInstrOperand* consumerOps = ctx.operandsFor(opRef);
         if (!consumerOps)
             return false;
 
-        // The register only existed to carry the loaded value across; if anything
-        // reads it afterwards it has to keep existing.
-        if (!regIsDeadAfter(ctx, opRef, loaded) && (!indexed || !ctx.isRegDeadAfter(loaded, opIndex)))
-            return false;
-
         if (opInst->op == MicroInstrOpcode::CmpRegReg)
         {
+            // The register only existed to carry the loaded value across; if
+            // anything reads it afterwards it has to keep existing.
+            if (!regIsDeadAfter(ctx, opRef, loaded) && !ctx.isRegDeadAfter(loaded, opIndex))
+                return false;
             if (indexed)
                 return false;
             if (consumerOps[2].opBits != opBits || !consumerOps[1].reg.isAnyInt())
@@ -327,11 +351,41 @@ namespace PostRaPeephole
             return true;
         }
 
-        const MicroOp op = consumerOps[3].microOp;
-        if (consumerOps[2].opBits != opBits)
+        const bool        threeOperand = opInst->op == MicroInstrOpcode::OpBinaryRegRegReg;
+        const MicroOpBits consumerBits = consumerOps[threeOperand ? 3 : 2].opBits;
+        const MicroOp     op           = consumerOps[threeOperand ? 4 : 3].microOp;
+        if (consumerBits != opBits)
             return false;
         if (isFloat ? (!hasThreeOperandForm(op) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
+        // FloatAnd/FloatXor are packed 128-bit instructions even when the
+        // scalar value is 32 or 64 bits. A scalar constant allocation only
+        // guarantees those 4 or 8 bytes, so reading it as a memory operand can
+        // cross the allocation boundary. Keep the scalar load for those ops.
+        if (loadRelocation && (op == MicroOp::FloatAnd || op == MicroOp::FloatXor))
+            return false;
+
+        MicroInstrRef sourceCopyRef = MicroInstrRef::invalid();
+        if (threeOperand && consumerOps[0].reg == loaded)
+        {
+            // Allocation can preserve the original destination in a temporary,
+            // load the constant over the destination, then use both in a VEX
+            // operation. Removing the load restores the original destination;
+            // the temporary copy and the third operand then both disappear.
+            sourceCopyRef                     = ctx.previousRef(loadRef);
+            const MicroInstr*        copyInst = ctx.instruction(sourceCopyRef);
+            const MicroInstrOperand* copyOps  = copyInst ? copyInst->ops(*ctx.operands) : nullptr;
+            if (!copyInst || copyInst->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
+                copyOps[0].reg != consumerOps[1].reg || copyOps[1].reg != loaded || copyOps[2].opBits != opBits)
+                return false;
+            const MicroReg copied = copyOps[0].reg;
+            if (!regIsDeadAfter(ctx, opRef, copied) && !ctx.isRegDeadAfter(copied, opIndex))
+                return false;
+        }
+        else if (!regIsDeadAfter(ctx, opRef, loaded) && !ctx.isRegDeadAfter(loaded, opIndex))
+        {
+            return false;
+        }
 
         MicroInstrOpcode  rewrittenOp = MicroInstrOpcode::OpBinaryRegMem;
         MicroInstrOperand newOps[8]   = {};
@@ -358,11 +412,40 @@ namespace PostRaPeephole
         const std::span rewrittenOps(newOps, numOps);
         if (!isFloat && !encoderAcceptsAsIs(ctx, rewrittenOp, rewrittenOps))
             return false;
-        if (!ctx.claimAll({loadRef, opRef}))
-            return false;
+        MicroInstrRef clearRef = MicroInstrRef::invalid();
+        if (isFloat)
+        {
+            const MicroInstrRef      previousRef = ctx.previousRef(loadRef);
+            const MicroInstr*        previous    = ctx.instruction(previousRef);
+            const MicroInstrOperand* clearOps   = previous ? previous->ops(*ctx.operands) : nullptr;
+            if (previous && previous->op == MicroInstrOpcode::ClearReg && clearOps &&
+                clearOps[0].reg == loaded && clearOps[1].opBits == opBits)
+                clearRef = previousRef;
+        }
 
+        if (sourceCopyRef.isValid())
+        {
+            if (!ctx.claimAll({loadRef, opRef, sourceCopyRef}))
+                return false;
+        }
+        else if (clearRef.isValid())
+        {
+            if (!ctx.claimAll({loadRef, opRef, clearRef}))
+                return false;
+        }
+        else if (!ctx.claimAll({loadRef, opRef}))
+        {
+            return false;
+        }
+
+        if (loadRelocation)
+            loadRelocation->instructionRef = opRef;
         ctx.emitRewrite(opRef, rewrittenOp, rewrittenOps, true);
         ctx.emitErase(loadRef);
+        if (sourceCopyRef.isValid())
+            ctx.emitErase(sourceCopyRef);
+        if (clearRef.isValid())
+            ctx.emitErase(clearRef);
         return true;
     }
 

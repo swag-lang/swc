@@ -168,6 +168,8 @@ CSV/JSON counts, and compiler/artifact hashes in `identity.json`.
 | Memory bit test selecting one of two values | 14 | 11 | 11 |
 | 64-bit product from bit 31 | 14 | 9 | 11 |
 | 32-bit product from bit 7 | 12 | 8 | 9 |
+| `f32` multiply by `0.5` | 16 | 9 | 9 |
+| `f64` multiply by `0.5` | 17 | 9 | 9 |
 
 ## Changes
 
@@ -203,6 +205,10 @@ the shift proves the upper dword is already zero.
 Small products by 3, 5 or 9 followed immediately by an independent add can be
 formed as a scaled address in the final destination; a two-byte ADD completes
 the sum when its newly written flags are dead.
+Scalar float arithmetic can now consume a RIP-relative constant directly. The
+post-allocation fold transfers the constant relocation to the memory operation,
+removes an overwritten zero initialization, and also removes an allocator copy
+when deleting the load restores the operation's original destination value.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -273,6 +279,22 @@ half clear.
 Build 975 passed the 989 C++ tests and focused Release executions covering
 scaled copies with a surviving source and conditional arithmetic inside a
 loop. The arithmetic sample has no function larger than LLVM after this batch.
+
+Build 976 passed all 995 C++ tests plus focused Release executions covering
+repeated `f32`/`f64` literals across loop backedges and sixteen mixed binary
+operator cases. Direct multiplication by `0.5` is 9 bytes for both widths,
+matching LLVM and improving the prior 16-byte `f32` and 17-byte `f64` forms.
+An initial contextual JIT run exposed an ordinary-base ModRM encoding for the
+new RIP-relative form; the final encoder writes the dedicated RIP ModRM and the
+emitter binds its trailing displacement.
+
+The build 977 broad checkpoint caught a distinct packed-float boundary:
+`ANDPS`/`ANDPD` and their XOR forms read 128 bits even when the logical value is
+scalar, while a scalar constant allocation only guarantees 4 or 8 bytes. Those
+operations now retain their scalar load. A focused reproducer combining literal
+multiplication, degree conversion and `Swag.abs` passes in both JIT and native
+execution. The final build passed all 995 C++ tests, all 3,433 native tests and
+the three expected native recovery probes.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

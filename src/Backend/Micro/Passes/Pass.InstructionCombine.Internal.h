@@ -170,6 +170,8 @@ namespace InstructionCombine
     bool tryFoldComplementPlusOne(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldPureResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryBypassShiftCountMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryBypassShiftCountExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryNarrowCompareOfZeroExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryThreeOperandShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLeaConstIntoMemBase(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

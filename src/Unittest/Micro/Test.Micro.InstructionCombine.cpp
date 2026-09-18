@@ -3784,6 +3784,107 @@ SWC_TEST_BEGIN(InstCombine_ShiftsKeptAsShifts)
 }
 SWC_TEST_END()
 
+namespace
+{
+    constexpr MicroReg K_NARROW_BASE   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg K_NARROW_BYTE   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg K_NARROW_WIDE   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg K_NARROW_RESULT = MicroReg::virtualIntReg(4);
+    constexpr MicroReg K_NARROW_RANGE  = MicroReg::virtualIntReg(5);
+
+    // %c = byte ; %x = zext %c
+    void emitZeroExtendedByte(MicroBuilder& builder)
+    {
+        builder.emitLoadRegMem(K_NARROW_BYTE, K_NARROW_BASE, 0, MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegReg(K_NARROW_WIDE, K_NARROW_BYTE, MicroOpBits::B32, MicroOpBits::B8);
+    }
+
+    // The operand and width of the first compare against an immediate.
+    bool firstCompareImm(const MicroBuilder& builder, MicroReg& outReg, MicroOpBits& outBits)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::CmpRegImm)
+                continue;
+            outReg  = inst.ops(builder.operands())[0].reg;
+            outBits = inst.ops(builder.operands())[1].opBits;
+            return true;
+        }
+        return false;
+    }
+}
+
+// A shift reads six bits of its count: it reads them from the byte.
+SWC_TEST_BEGIN(InstCombine_ShiftCountExtension_ReadsSource)
+{
+    MicroBuilder builder(ctx);
+    emitZeroExtendedByte(builder);
+    builder.emitLoadRegMem(K_NARROW_RESULT, K_NARROW_BASE, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(K_NARROW_RESULT, K_NARROW_WIDE, MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitLoadMemReg(K_NARROW_BASE, 16, K_NARROW_RESULT, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.ops(builder.operands())[1].reg != K_NARROW_BYTE)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An unsigned test of the extended byte against a byte constant tests the
+// byte; a signed test does not.
+SWC_TEST_BEGIN(InstCombine_CompareOfZeroExtension_NarrowsUnsignedOnly)
+{
+    for (const MicroCond cond : {MicroCond::BelowOrEqual, MicroCond::LessOrEqual})
+    {
+        MicroBuilder builder(ctx);
+        emitZeroExtendedByte(builder);
+        builder.emitCmpRegImm(K_NARROW_WIDE, ApInt(32, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(K_NARROW_RESULT, cond);
+        builder.emitLoadMemReg(K_NARROW_BASE, 16, K_NARROW_RESULT, MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        MicroReg    reg  = MicroReg::invalid();
+        MicroOpBits bits = MicroOpBits::Zero;
+        if (!firstCompareImm(builder, reg, bits))
+            return Result::Error;
+        const bool narrowed = reg == K_NARROW_BYTE && bits == MicroOpBits::B8;
+        if (narrowed != (cond == MicroCond::BelowOrEqual))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A range that fits the byte is tested on the byte; one that does not is not.
+SWC_TEST_BEGIN(InstCombine_RangeOfZeroExtension_NarrowsWhenItFits)
+{
+    for (const uint64_t width : {9ull, 250ull})
+    {
+        MicroBuilder builder(ctx);
+        emitZeroExtendedByte(builder);
+        builder.emitLoadAddressRegMem(K_NARROW_RANGE, K_NARROW_WIDE, static_cast<uint64_t>(-48ll), MicroOpBits::B32);
+        builder.emitCmpRegImm(K_NARROW_RANGE, ApInt(width, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(K_NARROW_RESULT, MicroCond::BelowOrEqual);
+        builder.emitLoadMemReg(K_NARROW_BASE, 16, K_NARROW_RESULT, MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        MicroReg    reg  = MicroReg::invalid();
+        MicroOpBits bits = MicroOpBits::Zero;
+        if (!firstCompareImm(builder, reg, bits))
+            return Result::Error;
+        if ((bits == MicroOpBits::B8) != (width == 9))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

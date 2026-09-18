@@ -39,6 +39,8 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryDropFloatOrderedGuard);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryBypassShiftCountMask);
         r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryBypassShiftCountMask);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryBypassShiftCountExtension);
+        r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryBypassShiftCountExtension);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldAbsoluteValueSignMask);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryOpBinaryRegReg);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
@@ -120,6 +122,7 @@ namespace
         r.add(MicroInstrOpcode::CmpAmcReg, tryFoldConstAmcCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
+        r.add(MicroInstrOpcode::CmpRegImm, tryNarrowCompareOfZeroExtension);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseCompareOperandForSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);

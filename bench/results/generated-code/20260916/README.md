@@ -347,6 +347,17 @@ register copy, whose upper lanes are unobservable at RET. Both `f32` and `f64`
 selections shrink from 10 to 9 bytes and match LLVM; an exact encoder case
 protects the three-byte register copy.
 
+Build 984 passed all 1,000 C++ tests and the focused floating-copy Release
+test. Scalar floating negation now flips its sign bit with a 16-byte
+RIP-relative mask and directly reuses the ABI floating return register. The
+`f32` body is `xorps xmm0, [rip+disp32]; ret` (8 bytes), and the `f64` body is
+the matching `xorpd` form (9 bytes); both match LLVM. The JIT now resolves a
+segment-backed constant relocation from its `(shard, offset)` source at patch
+time, rather than trusting its auxiliary raw address, and rejects an invalid
+source instead of executing an unpatched access. The internal JIT tests cover
+that source selection and verify the patched `rel32` target in executable memory
+before executing a scalar float XOR.
+
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under
 heavier concurrent load, at 310.33 and 303.89 MiB. Shared-machine variation is

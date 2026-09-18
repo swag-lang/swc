@@ -41,6 +41,12 @@ func minimum64(a, b: f64)->f64 => a < b ? a : b
 #[Swag.Optimize(true), Swag.NoInline]
 func maximum64(a, b: f64)->f64 => a > b ? a : b
 
+#[Swag.Optimize(true), Swag.NoInline]
+func negate32(a: f32)->f32 => -a
+
+#[Swag.Optimize(true), Swag.NoInline]
+func negate64(a: f64)->f64 => -a
+
 #test
 {
     Swag.assert(lerp(1, 3, 0.5) == 2)
@@ -64,4 +70,11 @@ func maximum64(a, b: f64)->f64 => a > b ? a : b
     const maxNaN    = maximum32(2, Swag.F32.NaN)
     Swag.assert(minNumber == 2 and minNaN != minNaN)
     Swag.assert(maxNumber == 2 and maxNaN != maxNaN)
+
+    Swag.assert(negate32(1.25) == -1.25)
+    Swag.assert(negate64(-3.5) == 3.5)
+    Swag.assert(cast #bit (u32) negate32(0.0) == 0x80000000)
+    Swag.assert(cast #bit (u64) negate64(0.0) == 0x8000000000000000)
+    const negatedNaN = negate32(Swag.F32.NaN)
+    Swag.assert(negatedNaN != negatedNaN)
 }

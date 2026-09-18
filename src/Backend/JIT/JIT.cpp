@@ -765,8 +765,26 @@ namespace
         switch (reloc.kind)
         {
             case MicroRelocation::Kind::ConstantAddress:
+            {
+                // A segment-backed relocation names its canonical source. Resolve that
+                // source at patch time, matching the native backend instead of relying
+                // on the auxiliary raw target address.
+                if (reloc.hasConstantSource())
+                {
+                    if (reloc.constantShard >= ConstantManager::SHARD_COUNT)
+                        return Result::Error;
+
+                    const auto* storage = ctx.compiler().cstMgr().shardDataSegment(reloc.constantShard).ptr<std::byte>(reloc.constantOffset);
+                    if (!storage)
+                        return Result::Error;
+
+                    outTargetAddress = reinterpret_cast<uint64_t>(storage);
+                    return Result::Continue;
+                }
+
                 outTargetAddress = reloc.targetAddress;
                 return Result::Continue;
+            }
 
             case MicroRelocation::Kind::LocalFunctionAddress:
                 return resolveLocalFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr, ownerFunction, outFailure, patchContext);
@@ -1085,7 +1103,7 @@ namespace
             if (resolveResult != Result::Continue)
             {
                 if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
-                    continue;
+                    return Result::Error;
 
                 const bool isForeign = reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress;
                 if (ownerFunction)
@@ -1263,7 +1281,7 @@ void JIT::finalize(JITMemory& executableMemory)
 Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, std::span<const MicroRelocation> relocations, const ByteArray& unwindInfo, const SymbolFunction* ownerFunction)
 {
     const TaskScopedContext scopedContext(ctx);
-    prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
+    prepare(ctx, outExecutableMemory, linearCode, unwindInfo, relocations);
     SWC_RESULT(patch(ctx, outExecutableMemory, relocations, ownerFunction));
     finalize(outExecutableMemory);
     return Result::Continue;

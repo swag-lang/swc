@@ -138,7 +138,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PostRAPeephole_MultiplyShiftResultUsesCopyDestination)
 {
     constexpr MicroReg rax = MicroReg::intReg(0);
-    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg rcx = MicroReg::intReg(2);
 
     MicroBuilder builder(ctx);
     builder.emitLoadRegImm(rax, ApInt(0xAAAAAAAB, 64), MicroOpBits::B64);
@@ -185,7 +185,7 @@ SWC_TEST_BEGIN(PostRAPeephole_BooleanOrSelectUsesComparisonFlags)
 {
     const MicroReg     rsp     = CallConv::get(CallConvKind::Swag).stackPointer;
     constexpr MicroReg result  = MicroReg::intReg(0);
-    constexpr MicroReg value   = MicroReg::intReg(1);
+    constexpr MicroReg value   = MicroReg::intReg(2);
     constexpr MicroReg low     = MicroReg::intReg(3);
     constexpr MicroReg high    = MicroReg::intReg(8);
     constexpr MicroReg outside = MicroReg::intReg(9);
@@ -1532,6 +1532,74 @@ SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
     {
         const MicroInstrOperand* ops = inst.ops(builder.operands());
         if (inst.op == MicroInstrOpcode::LoadMemReg && ops && ops[1].reg == conv.intRegs[1])
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_RipFloatLoadFoldsIntoThreeOperandOp)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    const MicroReg     rip  = MicroReg::instructionPointer();
+
+    MicroBuilder builder(ctx);
+    builder.emitClearReg(xmm1, MicroOpBits::B32);
+    builder.emitLoadRegMem(xmm1, rip, 0, MicroOpBits::B32);
+
+    MicroInstrRef loadRef = MicroInstrRef::invalid();
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        if (it->op == MicroInstrOpcode::LoadRegMem)
+            loadRef = it.current;
+    if (loadRef.isInvalid())
+        return Result::Error;
+
+    builder.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = loadRef,
+        .constantShard  = 0,
+        .constantOffset = 0,
+    });
+    builder.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, MicroOp::FloatMultiply, MicroOpBits::B32);
+
+    builder.emitLoadRegReg(xmm1, xmm0, MicroOpBits::B64);
+    builder.emitLoadRegMem(xmm0, rip, 0, MicroOpBits::B64);
+    MicroInstrRef restoredLoadRef = MicroInstrRef::invalid();
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        if (it->op == MicroInstrOpcode::LoadRegMem)
+            restoredLoadRef = it.current;
+    if (restoredLoadRef.isInvalid() || restoredLoadRef == loadRef)
+        return Result::Error;
+    builder.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = restoredLoadRef,
+        .constantShard  = 0,
+        .constantOffset = 8,
+    });
+    builder.emitOpBinaryRegRegReg(xmm0, xmm1, xmm0, MicroOp::FloatMultiply, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 2)
+        return Result::Error;
+
+    for (const MicroRelocation& relocation : builder.codeRelocations())
+    {
+        const MicroInstr* relocated = builder.instructions().ptr(relocation.instructionRef);
+        if (!relocated || relocated->op != MicroInstrOpcode::OpBinaryRegMem)
+            return Result::Error;
+        const MicroInstrOperand* ops = relocated->ops(builder.operands());
+        if (!ops || ops[0].reg != xmm0 || !ops[1].reg.isInstructionPointer() ||
+            (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+            ops[3].microOp != MicroOp::FloatMultiply)
             return Result::Error;
     }
     return Result::Continue;

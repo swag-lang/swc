@@ -101,6 +101,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerMultiply);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldMultiplyShiftResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldMultiplyIntoResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatBinaryIntoResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);

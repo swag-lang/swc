@@ -1987,6 +1987,56 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatClearBeforeConversion_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // vmaxss xmm3, xmm0, xmm1 ; movss xmm0, xmm3 ; [movss [r8 + 8], xmm3] ; ret
+    void emitFloatResultCopy(MicroBuilder& builder, bool temporaryReadAfter)
+    {
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+        constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+        constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+
+        builder.emitLoadRegMem(xmm0, r8, 0, MicroOpBits::B32);
+        builder.emitLoadRegMem(xmm1, r8, 4, MicroOpBits::B32);
+        builder.emitOpBinaryRegRegReg(xmm3, xmm0, xmm1, MicroOp::FloatMax, MicroOpBits::B32);
+        builder.emitLoadRegReg(xmm0, xmm3, MicroOpBits::B32);
+        if (temporaryReadAfter)
+            builder.emitLoadMemReg(r8, 8, xmm3, MicroOpBits::B32);
+        builder.emitLoadMemReg(r8, 12, xmm0, MicroOpBits::B32);
+        builder.emitRet();
+    }
+}
+
+// The maximum is computed where it is returned.
+SWC_TEST_BEGIN(PostRAPeephole_FloatBinaryResultCopy_Folded)
+{
+    MicroBuilder builder(ctx);
+    emitFloatResultCopy(builder, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.ops(builder.operands())[0].reg != MicroReg::floatReg(0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The temporary is read again: the copy stays.
+SWC_TEST_BEGIN(PostRAPeephole_FloatBinaryResultCopyLiveTemporary_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitFloatResultCopy(builder, true);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

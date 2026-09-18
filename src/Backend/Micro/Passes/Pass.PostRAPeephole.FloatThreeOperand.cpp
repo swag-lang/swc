@@ -636,6 +636,87 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A three-operand float operation names its destination freely, so a
+    // result computed into a temporary and then copied can be computed where
+    // it is wanted:
+    //
+    //     vmaxss xmm3, xmm0, xmm1 ; movss xmm0, xmm3    ->    vmaxss xmm0, xmm0, xmm1
+    //
+    // The temporary must die at the copy. Both sources are read before the
+    // destination is written, so the destination may be one of them.
+    bool tryFoldFloatBinaryIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        constexpr uint32_t K_MAX_SCAN = 8;
+
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+        const MicroReg    dst      = copyOps[0].reg;
+        const MicroReg    src      = copyOps[1].reg;
+        const MicroOpBits copyBits = copyOps[2].opBits;
+        if (!dst.isFloat() || !src.isFloat() || dst == src || !ctx.isRegDeadAfterCurrent(src))
+            return false;
+
+        // The operation that feeds the copy, with nothing in between that
+        // touches either register.
+        MicroInstrRef     opRef  = ctx.previousRef(copyRef);
+        const MicroInstr* opInst = nullptr;
+        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        {
+            const MicroInstr* candidate = ctx.instruction(opRef);
+            if (!candidate || candidate->op == MicroInstrOpcode::Label)
+                return false;
+
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegRegReg && candidate->numOperands >= 5)
+            {
+                const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
+                if (candidateOps && candidateOps[0].reg == src)
+                {
+                    opInst = candidate;
+                    break;
+                }
+            }
+
+            const MicroInstrFlags flags = MicroInstr::info(candidate->op).flags;
+            if (flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+
+            const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+
+            opRef = ctx.previousRef(opRef);
+        }
+
+        if (!opInst || ctx.isClaimed(opRef))
+            return false;
+        const MicroInstrOperand* opOps = ctx.operandsFor(opRef);
+        if (!opOps || opOps[3].opBits != copyBits || !opOps[1].reg.isFloat() || !opOps[2].reg.isFloat())
+            return false;
+
+        if (!ctx.claimAll({opRef, copyRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        std::ranges::copy(std::span{opOps, 5}, newOps);
+        newOps[0].reg = dst;
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5});
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // Constant unsigned division can leave its magic multiply and logical
     // shift in a temporary immediately copied to the return register:
     //

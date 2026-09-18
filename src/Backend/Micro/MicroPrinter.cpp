@@ -124,6 +124,8 @@ namespace
                 return "cvtf2i";
             case MicroOp::ConvertIntToFloat:
                 return "cvti2f";
+            case MicroOp::ConvertInt64ToFloat32:
+                return "cvti64tof32";
             case MicroOp::ConvertUIntToFloat64:
                 return "cvtu2f64";
             case MicroOp::DivideSigned:
@@ -815,6 +817,7 @@ namespace
             case MicroOp::ConvertFloatToFloat:
             case MicroOp::ConvertFloatToInt:
             case MicroOp::ConvertIntToFloat:
+            case MicroOp::ConvertInt64ToFloat32:
             case MicroOp::ConvertUIntToFloat64:
                 return std::format("{} = {}({})", lhs, opName, rhs);
             default:

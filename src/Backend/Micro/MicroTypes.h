@@ -87,6 +87,7 @@ enum class MicroOp : uint8_t
     ConvertFloatToFloat,
     ConvertFloatToInt,
     ConvertIntToFloat,
+    ConvertInt64ToFloat32,
     ConvertUIntToFloat64,
     DivideSigned,
     DivideUnsigned,

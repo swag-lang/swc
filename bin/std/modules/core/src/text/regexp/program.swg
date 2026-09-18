@@ -769,10 +769,9 @@ func appendUtf8Sequences(out: *Array'ByteSequence, lowValue, highValue: rune)
     }
 
     // Split where the encoded length changes.
-    const Bounds: [4] rune = [0x7F, 0x7FF, 0xFFFF, 0x10FFFF]
-    for var i = 0; i < 3; i += 1
+    const Bounds: [3] rune = [0x7F, 0x7FF, 0xFFFF]
+    for bound in Bounds
     {
-        let bound = Bounds[i]
         if lo <= bound and hi > bound
         {
             appendUtf8Sequences(out, lo, bound)

@@ -65,7 +65,7 @@ impl RichEditCtrl
                 {
                     let pchar  = line.chars.storage()
                     let pstyle = line.styles.storage()
-                    for var i = 0; i < end.charPosInLine; i += 1
+                    for i in end.charPosInLine
                     {
                         result.text.add(pchar[i])
                         result.styles.add(pstyle[i])

@@ -54,7 +54,7 @@ impl Painter
     {
         if radius == 0 or .isInvisible(brush) do
             return
-        .sharedLinePath.setEllipse(centerX, centerY, radius, radius)
+        .sharedLinePath.setCircle(centerX, centerY, radius)
         .fillPath(&.sharedLinePath, brush)
     }
 
@@ -62,10 +62,7 @@ impl Painter
     {
         if radius == 0 or .isInvisible(color) do
             return
-
-        let brush = Brush.createSolid(color)
-        .sharedLinePath.setEllipse(centerX, centerY, radius, radius)
-        .fillPath(&.sharedLinePath, brush)
+        .fillCircle(centerX, centerY, radius, Brush.createSolid(color))
     }
 
     // Strokes the outline of an axis-aligned ellipse.
@@ -113,6 +110,9 @@ impl Painter
     }
 
     // Fills an axis-aligned ellipse.
+    //
+    // The geometry is not snapped, so the fill covers exactly the outline drawn by
+    // [[Pixel.Painter.drawEllipse]] with the same arguments.
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, brush: Brush)
     {
         if radiusX == 0 or radiusY == 0 or .isInvisible(brush) do
@@ -125,10 +125,7 @@ impl Painter
     {
         if radiusX == 0 or radiusY == 0 or .isInvisible(color) do
             return
-
-        let brush = Brush.createSolid(color)
-        .sharedLinePath.setEllipse(centerX, centerY, radiusX, radiusY)
-        .fillPath(&.sharedLinePath, brush)
+        .fillEllipse(centerX, centerY, radiusX, radiusY, Brush.createSolid(color))
     }
 
     mtd fillEllipse(rect: Math.Rectangle, brush: Brush)

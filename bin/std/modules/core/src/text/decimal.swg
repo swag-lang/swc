@@ -274,7 +274,7 @@ impl Decimal
 
     func prefixIsLessThan(b: const [..] u8, s: string)->bool
     {
-        for var i = 0; i < s.count; i += 1
+        for i in s.count
         {
             if i >= b.count do
                 return true

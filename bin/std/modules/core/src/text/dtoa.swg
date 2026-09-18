@@ -184,7 +184,7 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
     if prec > 0
     {
         dst.addNative(g_CultureInfo.numberFormat.decimalSeparator)
-        for var i = 0; i < prec; i += 1
+        for i in prec
         {
             var ch = '0'u8
             let j  = d.dp + i

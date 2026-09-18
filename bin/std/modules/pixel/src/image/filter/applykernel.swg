@@ -5,7 +5,7 @@ impl Image
     // Predefined convolution kernels for [[Pixel.Image.applyKernel]].
     //
     // Each value lists the kernel size, the normalization divisor (zero for none), then the
-    // weights row by row.
+    // weights row by row, from the top row of the picture.
     #[Swag.Incomplete]
     public enum Kernel: const [..] s32
     {
@@ -51,9 +51,10 @@ impl Image
                 let radius       = params.kernel[0] / 2
                 var coefficients = params.kernel.buffer + 2
                 var sum          = PixelValue{0, 0, 0, 0}
+                // The buffer is bottom-up, so the top kernel row reads the highest buffer row.
                 for var dy = -radius; dy <= radius; dy += 1
                 {
-                    let sourceY   = Math.clamp(y + dy, 0, image.height - 1)
+                    let sourceY   = Math.clamp(y - dy, 0, image.height - 1)
                     let sourceRow = image.pixels.storage() + cast(u64) sourceY * image.rowStride
                     for var dx = -radius; dx <= radius; dx += 1
                     {
@@ -103,9 +104,9 @@ impl Image
             // Fast case when we are not around borders
             if x >= kernelSize and x <= w - kernelSize - 1 and y >= kernelSize and y <= h - kernelSize - 1
             {
-                var p     = px + ((x - kernelSize) * b8) + ((y - kernelSize) * w8)
+                var p     = px + ((x - kernelSize) * b8) + ((y + kernelSize) * w8)
                 let kfull = (kernelSize * 2) + 1
-                let koff  = cast(u64) (w8 - (kfull * b8))
+                let koff  = cast(u64) (w8 + (kfull * b8))
                 for kfull
                 {
                     for kfull
@@ -118,7 +119,7 @@ impl Image
                         p  += b8
                     }
 
-                    p += koff     // Go to next line
+                    p -= koff     // Go to the row below
                 }
             }
 
@@ -127,7 +128,7 @@ impl Image
             {
                 for var dy = -kernelSize; dy <= kernelSize; dy += 1
                 {
-                    let ny = Math.clamp(y + dy, 0, h - 1)
+                    let ny = Math.clamp(y - dy, 0, h - 1)
                     for var dx = -kernelSize; dx <= kernelSize; dx += 1
                     {
                         let nx  = Math.clamp(x + dx, 0, w - 1)

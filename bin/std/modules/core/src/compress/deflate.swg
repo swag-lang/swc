@@ -560,10 +560,8 @@ impl Deflate
 
         if staticTable
         {
-            for var i = 0; i < tableLen; i += 1
-            {
+            for i in tableLen do
                 numCodes[d.huffCodeSizes[tableNum, i]] += 1
-            }
         }
         else
         {
@@ -609,7 +607,7 @@ impl Deflate
             nextCode[i] = j
         }
 
-        for var i = 0; i < tableLen; i += 1
+        for i in tableLen
         {
             var rev_code = 0'u32
             let codeSize = d.huffCodeSizes[tableNum, i]

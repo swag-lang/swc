@@ -557,12 +557,7 @@ public impl LinePath
         let cY = Math.round(centerY)
         let r  = 0.5 * Math.round(radius * 2)
 
-        .start(cX, cY - r)
-        .arcTo(cX, cY, r, r, 0'deg, 90'deg)
-        .arcTo(cX, cY, r, r, 90'deg, 180'deg)
-        .arcTo(cX, cY, r, r, 180'deg, 270'deg)
-        .arcTo(cX, cY, r, r, 270'deg, 360'deg)
-        .close()
+        .setEllipseRaw(cX, cY, r, r)
     }
 
     // Replaces the path with an open circular arc from `startAngle` to `endAngle`.

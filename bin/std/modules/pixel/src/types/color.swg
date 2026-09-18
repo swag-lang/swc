@@ -35,21 +35,21 @@ impl Color
 
     // Assigns a packed `0xAARRGGBB` value.
     #[FullInit, Inline, ConstExpr]
-    func opSet(me, argb: u32)
+    mtd opSet(argb: u32)
     {
         .argb = argb
     }
 
     // Assigns a named color.
     #[FullInit, Inline, Implicit, ConstExpr]
-    func opSet(me, argb: Argb)
+    mtd opSet(argb: Argb)
     {
         .argb = cast(u32) argb
     }
 
     // Assigns the named color spelled by `name`, or black when no name matches.
     #[FullInit, Inline, ConstExpr]
-    func opSet(me, name: string)
+    mtd opSet(name: string)
     {
         .argb = cast(u32) Argb.fromName(name)
     }
@@ -72,7 +72,7 @@ impl Color
 
     // Sets the four components from bytes.
     #[Inline]
-    func setArgb(me, a, r, g, b: u8)
+    mtd setArgb(a, r, g, b: u8)
     {
         .a = a
         .r = r
@@ -82,7 +82,7 @@ impl Color
 
     // Sets the four components from normalized values, clamped to [0, 1].
     #[Inline]
-    func setArgbF32(me, a, r, g, b: f32)
+    mtd setArgbF32(a, r, g, b: f32)
     {
         .a = cast() (Math.saturate(a) * 255)
         .r = cast() (Math.saturate(r) * 255)
@@ -92,7 +92,7 @@ impl Color
 
     // Sets the color components from bytes and makes the color opaque.
     #[Inline]
-    func setRgb(me, r, g, b: u8)
+    mtd setRgb(r, g, b: u8)
     {
         .a = 255
         .r = r
@@ -111,7 +111,7 @@ impl Color
 
     // Sets the color components from normalized values, clamped to [0, 1], and makes the color opaque.
     #[Inline]
-    func setRgbF32(me, r, g, b: f32)
+    mtd setRgbF32(r, g, b: f32)
     {
         .a = 255
         .r = cast() (Math.saturate(r) * 255)

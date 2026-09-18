@@ -628,7 +628,7 @@ impl Circular
     }
 
     // Configures the clockwise angular span used for the value range.
-    func setAngleRange(me, startAngle, endAngle: Math.Angle)
+    mtd setAngleRange(startAngle, endAngle: Math.Angle)
     {
         Swag.assert(endAngle.radians > startAngle.radians)
         Swag.assert((endAngle.radians - startAngle.radians) <= Math.ConstF32.TwoPi)

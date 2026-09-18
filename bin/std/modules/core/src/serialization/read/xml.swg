@@ -5,8 +5,11 @@ using Swag, Core.Errors
 
 // Reads XML whose element order matches the serialized Swag type.
 //
-// Unknown, missing, and reordered elements fail. The input slice is borrowed
-// until decoding completes.
+// Every struct field is an element named after the field, and the document root is one more
+// element around them, whatever its name, after an optional `<?xml ...?>` declaration. A
+// sequence holds native values separated by blanks.
+// Unknown, missing, and reordered elements fail. The input slice is borrowed until decoding
+// completes.
 public struct Xml
 {
     internal
@@ -55,8 +58,26 @@ public impl Xml
     {
         let tag   = try .readTag()
         let start = .stackTags.popBack()
-        if tag[1 to] != start do
+        if not Utf8.startsWith(tag, "/") or tag[1 to] != start do
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
+    }
+
+    // Reads the predefined entity after an '&' and returns the character it stands for.
+    internal mtd readEntity()->u8 fail
+    {
+        const Names = ["lt;", "gt;", "amp;", "quot;", "apos;"]
+        const Chars = "<>&\"'"
+        let rest    = .stream.remainingString()
+        for index in Names.count
+        {
+            if Utf8.startsWith(rest, Names[index])
+            {
+                .stream.advance(Names[index].count)
+                return Chars[index]
+            }
+        }
+
+        fail .getError("unknown entity, expected [[&lt;]], [[&gt;]], [[&amp;]], [[&quot;]], or [[&apos;]]")
     }
 
     internal mtd getError(val: string)->SyntaxError
@@ -90,7 +111,7 @@ public impl Xml
     }
 
     // Starts decoding from borrowed XML bytes and resets reusable state.
-    mtd startRead(input: const [..] u8)
+    mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
         .line   = 1
@@ -98,8 +119,12 @@ public impl Xml
         .stackTags.clear()
     }
 
-    // Returns whether another sequence element follows, that is, whether the next byte does not start a tag.
-    mtd toNextSequenceElement(_countElem: *u64)->bool => .stream.peekU8() != '<'
+    // Returns whether another sequence element follows, that is, whether the next non-blank byte does not start a tag.
+    mtd toNextSequenceElement(_countElem: *u64)->bool
+    {
+        .zapBlanks()
+        return .stream.peekU8() != '<'
+    }
 
     // Reads the tag that opens a section.
     mtd beginSection(_kind: SectionKind) fail
@@ -113,9 +138,19 @@ public impl Xml
         discard try .readTag()
     }
 
-    // Reads the tag that opens the document.
+    // Skips an optional XML declaration, then reads the tag that opens the document.
     mtd beginRoot() fail
     {
+        .zapBlanks()
+        let rest = .stream.remainingString()
+        if Utf8.startsWith(rest, "<?")
+        {
+            let end = Utf8.indexOf(rest, "?>")
+            if end == Swag.U64.Max do
+                fail .getError("malformed XML declaration, missing closing [[?>]]")
+            .stream.advance(end + 2)
+        }
+
         discard try .readStartTag()
     }
 
@@ -230,9 +265,12 @@ public impl Xml
             var c = .stream.peekU8()
             while c and c != '<'
             {
-                c      = .stream.readU8()
-                result += c
-                c      = .stream.peekU8()
+                .stream.advance()
+                if c == '&' do
+                    result += try .readEntity()
+                else do
+                    result += c
+                c = .stream.peekU8()
             }
 
             return result

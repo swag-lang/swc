@@ -217,6 +217,11 @@ impl Painter
         .fillRoundRect(left, top, width, height, radiusX, radiusY, brush)
     }
 
+    mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, color: Color)
+    {
+        .fillRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, color)
+    }
+
     // Fills a rounded rectangle whose corners carry their own radius.
     //
     // The radii are given clockwise from the top left, as a style sheet writes them. Corners that
@@ -271,11 +276,6 @@ impl Painter
 
         let pen = Pen.createSolid(color, penSize)
         .drawRoundRect(rect, topLeft, topRight, bottomRight, bottomLeft, pen)
-    }
-
-    mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, color: Color)
-    {
-        .fillRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, color)
     }
 
     // Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.

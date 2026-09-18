@@ -531,11 +531,7 @@ namespace InstructionCombine
         // The queue has not mutated the IR, so these are the same indices an
         // eager function scan would find. Initialize before saving the counters:
         // a rejected plan rolls back allocations without repeating the scans.
-        if (!ctx.nextVirtualFloatRegIndex)
-        {
-            SWC_ASSERT(ctx.passContext != nullptr);
-            MicroPassHelpers::computeNextVirtualRegIndices(*ctx.passContext, ctx.nextVirtualIntRegIndex, ctx.nextVirtualFloatRegIndex);
-        }
+        ctx.ensureVirtualIndices();
         const uint32_t savedFloat = ctx.nextVirtualFloatRegIndex;
         const uint32_t savedInt   = ctx.nextVirtualIntRegIndex;
         Plan           plan{ctx, laneBytes};

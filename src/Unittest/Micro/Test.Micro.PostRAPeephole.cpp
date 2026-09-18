@@ -1569,7 +1569,8 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatReturnSelectUsesAbiRegisterDirectly)
         const uint32_t jumpCount = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond);
         if (!usesFloatReturn)
         {
-            if (copyCount != 4 || jumpCount != 2)
+            // The select stays; only the jump over the jump may fold.
+            if (copyCount != 4 || jumpCount == 0 || jumpCount > 2)
                 return Result::Error;
             continue;
         }
@@ -2431,6 +2432,40 @@ SWC_TEST_BEGIN(PostRAPeephole_QwordSignTestOfDwordResultKept)
     X64Encoder encoder(ctx);
     SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
     return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// `jbe .L ; jmp .M ; .L:` is `ja .M`.
+SWC_TEST_BEGIN(PostRAPeephole_BranchOverJumpInverted)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef over = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitLoadRegMem(rax, r8, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(rax, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, over);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+    builder.placeLabel(over);
+    builder.emitLoadMemReg(r8, 8, rax, MicroOpBits::B64);
+    builder.placeLabel(done);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    uint32_t jumps = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::JumpCond)
+            continue;
+        ++jumps;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (ops[0].cpuCond != MicroCond::Above || ops[2].valueU64 != done.get())
+            return Result::Error;
+    }
+    return jumps == 1 ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

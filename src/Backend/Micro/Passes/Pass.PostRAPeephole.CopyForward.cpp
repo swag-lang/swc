@@ -3391,6 +3391,9 @@ namespace PostRaPeephole
                 case MicroOp::BitwiseNot:
                 case MicroOp::ByteSwap:
                 case MicroOp::PopCount:
+                // The conversion names one width for both sides: a dword one
+                // is cvttss2si into the dword register.
+                case MicroOp::ConvertFloatToInt:
                     return true;
                 default:
                     return false;

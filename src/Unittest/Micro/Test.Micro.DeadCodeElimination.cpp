@@ -209,6 +209,42 @@ SWC_TEST_BEGIN(DeadCodeElimination_DeferredFlagConsumerKeepsSweepsRunning)
 }
 SWC_TEST_END()
 
+// A float clear is dead once the next instruction replaces the whole register,
+// or when nothing else writes the register; a conversion that writes only the
+// low lane keeps it.
+SWC_TEST_BEGIN(DeadCodeElimination_FloatClearOnlyBeforeFullWrite)
+{
+    enum class Next : uint8_t
+    {
+        Constant,
+        Nothing,
+        Conversion,
+    };
+
+    for (const Next next : {Next::Constant, Next::Nothing, Next::Conversion})
+    {
+        constexpr MicroReg value = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg word  = MicroReg::virtualIntReg(1);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegImm(word, ApInt(3, 64), MicroOpBits::B32);
+        builder.emitClearReg(value, MicroOpBits::B32);
+        if (next == Next::Constant)
+            builder.emitLoadRegImm(value, ApInt(0x3F800000, 32), MicroOpBits::B32);
+        else if (next == Next::Conversion)
+            builder.emitOpBinaryRegReg(value, word, MicroOp::ConvertIntToFloat, MicroOpBits::B32);
+        if (next != Next::Nothing)
+            builder.emitLoadMemReg(MicroReg::intReg(2), 0, value, MicroOpBits::B32);
+        builder.emitRet();
+
+        SWC_RESULT(runDeadCodeEliminationPass(builder));
+        const uint32_t expected = next == Next::Conversion ? 1 : 0;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != expected)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

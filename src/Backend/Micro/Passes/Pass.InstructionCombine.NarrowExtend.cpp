@@ -157,16 +157,20 @@ namespace InstructionCombine
     }
 
     // `a <=> b` lowers to zext(a > b) - zext(a < b) at 32 bits, sign-extended
-    // into the result. The difference of two booleans fits a byte, so the
-    // subtraction and the extension take the bytes, as LLVM narrows it, and
-    // the two zero-extensions die.
+    // into the result or copied out as it is. The difference of two booleans
+    // fits a byte, so the subtraction and the extension take the bytes, as
+    // LLVM narrows it, and the two zero-extensions die. A dword copy of the
+    // difference becomes the sign extension itself.
     bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa)
             return false;
 
-        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || !ops[1].reg.isVirtualInt() || ops[3].opBits != MicroOpBits::B32 || getNumBits(ops[2].opBits) < 32)
+        const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+        const bool               copy = inst.op == MicroInstrOpcode::LoadRegReg;
+        if (!ops || !ops[1].reg.isVirtualInt() || ops[0].reg == ops[1].reg)
+            return false;
+        if (copy ? ops[2].opBits != MicroOpBits::B32 : (ops[3].opBits != MicroOpBits::B32 || getNumBits(ops[2].opBits) < 32))
             return false;
 
         const MicroSsaState::ReachingDef sub = ctx.ssa->reachingDef(ops[1].reg, ref);
@@ -191,11 +195,12 @@ namespace InstructionCombine
         narrowOps[2].opBits = MicroOpBits::B8;
         ctx.emitRewrite(sub.instRef, MicroInstrOpcode::OpBinaryRegReg, narrowOps);
 
-        MicroInstrOperand extendOps[4];
-        for (size_t idx = 0; idx < 4; ++idx)
-            extendOps[idx] = ops[idx];
-        extendOps[3].opBits = MicroOpBits::B8;
-        ctx.emitRewrite(ref, MicroInstrOpcode::LoadSignedExtRegReg, extendOps);
+        MicroInstrOperand extendOps[4] = {};
+        extendOps[0]                   = ops[0];
+        extendOps[1]                   = ops[1];
+        extendOps[2].opBits            = copy ? MicroOpBits::B32 : ops[2].opBits;
+        extendOps[3].opBits            = MicroOpBits::B8;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadSignedExtRegReg, extendOps, copy);
         return true;
     }
 
@@ -371,11 +376,14 @@ namespace InstructionCombine
         const MicroInstr*   reader    = readerRef.isValid() ? ctx.storage->ptr(readerRef) : nullptr;
         if (!reader)
             return false;
-        MicroCond cond = MicroCond::Unconditional;
+        MicroCond cond            = MicroCond::Unconditional;
+        bool      mergedIntoChain = false;
         if (reader->op == MicroInstrOpcode::SetCondReg)
         {
-            // A byte merged into a boolean chain stays a wide range test: the
-            // chain and case-range folds read that form.
+            // A byte merged into a boolean chain stays a wide range test when
+            // the widened byte feeds other tests: the chain and case-range
+            // folds read that form. A lone range, such as a digit test whose
+            // byte is copied out as the result, narrows.
             cond = reader->ops(*ctx.operands)[1].cpuCond;
 
             const MicroInstrRef mergeRef = ctx.storage->findNextInstructionRef(readerRef);
@@ -386,7 +394,7 @@ namespace InstructionCombine
                 const MicroReg           flag     = reader->ops(*ctx.operands)[0].reg;
                 if ((merge->op == MicroInstrOpcode::LoadRegReg && mergeOps[1].reg == flag && mergeOps[2].opBits == MicroOpBits::B8) ||
                     (merge->op == MicroInstrOpcode::OpBinaryRegReg && mergeOps[1].reg == flag && mergeOps[2].opBits == MicroOpBits::B8))
-                    return false;
+                    mergedIntoChain = true;
             }
         }
         else if (reader->op == MicroInstrOpcode::JumpCond)
@@ -424,6 +432,8 @@ namespace InstructionCombine
         const MicroSsaState::ReachingDef widened = ctx.ssa->reachingDef(leaOps[1].reg, offset.instRef);
         if (!widened.valid() || widened.isPhi || !widened.inst || widened.inst->op != MicroInstrOpcode::LoadZeroExtRegReg)
             return false;
+        if (mergedIntoChain && singleDirectInstructionUse(*ctx.ssa, widened.valueId) != offset.instRef)
+            return false;
         const MicroInstrOperand* extOps = widened.inst->ops(*ctx.operands);
         if (extOps[0].reg != leaOps[1].reg || extOps[3].opBits != MicroOpBits::B8 || getNumBits(extOps[2].opBits) < 32 || !extOps[1].reg.isAnyInt() ||
             extOps[1].reg == extOps[0].reg)
@@ -436,7 +446,10 @@ namespace InstructionCombine
         if (!byteReg.isVirtualInt() || !atExtend.valid() || !atOffset.valid() || atExtend.valueId != atOffset.valueId)
             return false;
 
-        if (!ctx.claimAll({ref, offset.instRef}))
+        // The copy reads the byte past its widening: a fold of the same sweep
+        // must not absorb the byte's definition into that widening.
+        const MicroInstrRef byteDefRef = atExtend.isPhi ? widened.instRef : atExtend.instRef;
+        if (!ctx.claimAll({ref, offset.instRef, widened.instRef, byteDefRef}))
             return false;
 
         MicroInstrOperand copyOps[3];
@@ -857,6 +870,166 @@ namespace InstructionCombine
         // elimination merges, a sweep earlier.
         moveOps[2].opBits = MicroOpBits::B64;
         ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegReg, moveOps);
+        return true;
+    }
+
+    namespace
+    {
+        // The register a zero or sign extension of at least a byte reads, when
+        // `reg` is one - possibly copied - and that source still holds the
+        // same value at `atRef`. A rewrite that reads the source instead must
+        // claim `outClaims`, the extension and the source's definition: a fold
+        // of the same sweep could otherwise absorb that definition into the
+        // extension and leave the rewrite reading nothing.
+        MicroReg extendedSource(const Context& ctx, MicroReg reg, MicroInstrRef atRef, bool zeroOnly, MicroOpBits& outSourceBits,
+                                std::array<MicroInstrRef, 2>& outClaims)
+        {
+            MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* copy = def.inst->ops(*ctx.operands);
+                if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < 32)
+                    return MicroReg::invalid();
+                def = ctx.ssa->reachingDef(copy[1].reg, def.instRef);
+            }
+            if (!def.valid() || def.isPhi || !def.inst)
+                return MicroReg::invalid();
+            const bool zero = def.inst->op == MicroInstrOpcode::LoadZeroExtRegReg;
+            if (!zero && (zeroOnly || def.inst->op != MicroInstrOpcode::LoadSignedExtRegReg))
+                return MicroReg::invalid();
+
+            const MicroInstrOperand* ext = def.inst->ops(*ctx.operands);
+            if (!ext || !ext[1].reg.isVirtualInt() || getNumBits(ext[3].opBits) < 8 || getNumBits(ext[2].opBits) <= getNumBits(ext[3].opBits))
+                return MicroReg::invalid();
+            const MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(ext[1].reg, def.instRef);
+            if (!source.valid() || ctx.ssa->reachingDef(ext[1].reg, atRef).valueId != source.valueId)
+                return MicroReg::invalid();
+
+            outSourceBits = ext[3].opBits;
+            outClaims     = {def.instRef, source.isPhi ? def.instRef : source.instRef};
+            return ext[1].reg;
+        }
+
+        bool isUnsignedOrEqualityCondition(MicroCond cond)
+        {
+            switch (cond)
+            {
+                case MicroCond::Above:
+                case MicroCond::AboveOrEqual:
+                case MicroCond::Below:
+                case MicroCond::BelowOrEqual:
+                case MicroCond::NotAbove:
+                case MicroCond::Equal:
+                case MicroCond::NotEqual:
+                case MicroCond::Zero:
+                case MicroCond::NotZero:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // Every reader of the flags `ref` sets tests an unsigned order or
+        // equality, up to the next flag write in the same block.
+        bool flagsReadOnlyUnsigned(const Context& ctx, MicroInstrRef ref)
+        {
+            for (MicroInstrRef scanRef = ctx.nextRef(ref); scanRef.isValid(); scanRef = ctx.nextRef(scanRef))
+            {
+                const MicroInstr* scan = ctx.instruction(scanRef);
+                if (!scan || scan->op == MicroInstrOpcode::Label)
+                    return false;
+                const MicroInstrOperand* scanOps = scan->ops(*ctx.operands);
+                if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*scan, scanOps))
+                {
+                    uint8_t condIndex = 0;
+                    if (!MicroPassHelpers::conditionOperandIndex(scan->op, condIndex) || !isUnsignedOrEqualityCondition(scanOps[condIndex].cpuCond))
+                        return false;
+                }
+
+                const MicroInstrFlags flags = MicroInstr::info(scan->op).flags;
+                if (flags.has(MicroInstrFlagsE::JumpInstruction))
+                    return ctx.builder && MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*ctx.builder, scanRef);
+                if (MicroPassHelpers::instructionOverwritesCpuFlags(*scan, scanOps) || flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    return true;
+            }
+            return true;
+        }
+    }
+
+    // A variable shift reads five or six bits of its count, which an
+    // extension of at least a byte leaves as they were. The shift can read
+    // the narrow source instead, as LLVM's demanded bits strip the cast from
+    // a shift amount, and the extension dies when nothing else reads it:
+    //
+    //     %x = zext %c ; %k = %k >> %x    ->    %k = %k >> %c
+    bool tryBypassShiftCountExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const MicroInstrOperand* ops        = inst.ops(*ctx.operands);
+        const uint32_t           countIndex = inst.op == MicroInstrOpcode::OpBinaryRegRegReg ? 2 : 1;
+        if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[countIndex].reg.isVirtualInt() ||
+            (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
+            return false;
+        switch (ops[countIndex + 2].microOp)
+        {
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
+                break;
+            default:
+                return false;
+        }
+
+        MicroOpBits                  sourceBits = MicroOpBits::Zero;
+        std::array<MicroInstrRef, 2> claims;
+        const MicroReg               source = extendedSource(ctx, ops[countIndex].reg, ref, false, sourceBits, claims);
+        if (!source.isValid() || source == ops[0].reg || (countIndex == 2 && source == ops[1].reg) || !ctx.claimAll({ref, claims[0], claims[1]}))
+            return false;
+
+        MicroInstrOperand shift[5];
+        std::copy_n(ops, inst.numOperands, shift);
+        shift[countIndex].reg = source;
+        ctx.emitRewrite(ref, inst.op, std::span{shift, inst.numOperands});
+        return true;
+    }
+
+    // An unsigned or equality test of a zero-extended byte or word against a
+    // constant it can hold gives the same answer on the narrow source, as
+    // LLVM's instcombine shrinks `icmp ult (zext i8 %c), 33`, and the
+    // extension dies:
+    //
+    //     %x = zext %c ; cmp %x, 32 ; setbe    ->    cmp %c (byte), 32 ; setbe
+    //
+    // Only a test that is the extension's last reader: two tests of one
+    // extended value are a range, which folds to a single one first.
+    bool tryNarrowCompareOfZeroExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[0].reg.isVirtualInt() || ops[2].hasWideImmediateValue() ||
+            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroSsaState::ReachingDef extension = ctx.ssa->reachingDef(ops[0].reg, ref);
+        if (!extension.valid() || extension.isPhi || !extension.inst || extension.inst->op != MicroInstrOpcode::LoadZeroExtRegReg ||
+            singleDirectInstructionUse(*ctx.ssa, extension.valueId) != ref)
+            return false;
+        MicroOpBits                  sourceBits = MicroOpBits::Zero;
+        std::array<MicroInstrRef, 2> claims;
+        const MicroReg               source = extendedSource(ctx, ops[0].reg, ref, true, sourceBits, claims);
+        if (!source.isValid() || getNumBits(sourceBits) >= getNumBits(ops[1].opBits))
+            return false;
+        const uint64_t value = ops[2].valueU64 & getBitsMask(ops[1].opBits);
+        if (value > getBitsMask(sourceBits) || !flagsReadOnlyUnsigned(ctx, ref) || !ctx.claimAll({ref, claims[0], claims[1]}))
+            return false;
+
+        MicroInstrOperand narrow[3] = {ops[0], ops[1], ops[2]};
+        narrow[0].reg               = source;
+        narrow[1].opBits            = sourceBits;
+        narrow[2].valueU64          = value;
+        ctx.emitRewrite(ref, MicroInstrOpcode::CmpRegImm, narrow);
         return true;
     }
 }

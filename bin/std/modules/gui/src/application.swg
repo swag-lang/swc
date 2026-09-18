@@ -404,18 +404,19 @@ private impl Application
             surface.wnd.view.setFocus()
     }
 
-    mtd sendMouseWheelEvent(z: s32)
+    mtd sendMouseWheelEvent(sourceSurface: *Surface, screenPos: Math.Point, z: s32)
     {
         var targetWnd = .mouseEnterWnd
+
+        // A progressive view can destroy the hovered child while the pointer stays still.
         if not targetWnd do
-            targetWnd = .windowAtMouse()
+            targetWnd = .windowAt(screenPos) orelse sourceSurface.windowAt(screenPos)
         targetWnd = skipDisabled(targetWnd)
         if not targetWnd do
             return
 
         var evt      = MouseEvent{kind: .Wheel}
-        let mousePos = .mouse.position()
-        evt.surfacePos = targetWnd.screenToSurface(mousePos)
+        evt.surfacePos = targetWnd.screenToSurface(screenPos)
         evt.delta.y    = z
         evt.modifiers  = .keyboard.pressedModifiers()
         targetWnd.sendEvent(&evt)

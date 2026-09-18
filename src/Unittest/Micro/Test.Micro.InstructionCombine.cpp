@@ -2672,9 +2672,10 @@ SWC_TEST_END()
 
 namespace
 {
-    // cmp a, b ; zext(setg) - zext(setl) at 32 bits, sign-extended to 64 and
-    // stored. `plainRight` replaces the second boolean with a loaded value.
-    void emitBooleanDifference(MicroBuilder& builder, bool plainRight)
+    // cmp a, b ; zext(setg) - zext(setl) at 32 bits, sign-extended to 64 (or
+    // copied out as a dword) and stored. `plainRight` replaces the second
+    // boolean with a loaded value.
+    void emitBooleanDifference(MicroBuilder& builder, bool plainRight, bool copyOut = false)
     {
         constexpr MicroReg base  = MicroReg::virtualIntReg(1);
         constexpr MicroReg left  = MicroReg::virtualIntReg(2);
@@ -2695,7 +2696,10 @@ namespace
         builder.emitLoadZeroExtendRegReg(more, more, MicroOpBits::B32, MicroOpBits::B8);
         builder.emitLoadRegReg(diff, more, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(diff, less, MicroOp::Subtract, MicroOpBits::B32);
-        builder.emitLoadSignedExtendRegReg(out, diff, MicroOpBits::B64, MicroOpBits::B32);
+        if (copyOut)
+            builder.emitLoadRegReg(out, diff, MicroOpBits::B32);
+        else
+            builder.emitLoadSignedExtendRegReg(out, diff, MicroOpBits::B64, MicroOpBits::B32);
         builder.emitLoadMemReg(base, 8, out, MicroOpBits::B64);
         builder.emitRet();
     }
@@ -2717,6 +2721,20 @@ SWC_TEST_BEGIN(InstCombine_BooleanDifference_NarrowsToByte)
 {
     MicroBuilder builder(ctx);
     emitBooleanDifference(builder, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (signExtendSourceBits(builder) != MicroOpBits::B8)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A dword copy of the difference becomes the byte's sign extension.
+SWC_TEST_BEGIN(InstCombine_BooleanDifferenceCopy_NarrowsToByte)
+{
+    MicroBuilder builder(ctx);
+    emitBooleanDifference(builder, false, true);
 
     SWC_RESULT(runInstCombinePass(builder));
 
@@ -3763,6 +3781,141 @@ SWC_TEST_BEGIN(InstCombine_ShiftsKeptAsShifts)
             return Result::Error;
     }
     return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    constexpr MicroReg K_NARROW_BASE   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg K_NARROW_BYTE   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg K_NARROW_WIDE   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg K_NARROW_RESULT = MicroReg::virtualIntReg(4);
+    constexpr MicroReg K_NARROW_RANGE  = MicroReg::virtualIntReg(5);
+
+    // %c = byte + 1 ; %x = zext %c. The byte is computed, not loaded: a
+    // loaded one folds into its widening first.
+    void emitZeroExtendedByte(MicroBuilder& builder)
+    {
+        builder.emitLoadRegMem(K_NARROW_BYTE, K_NARROW_BASE, 0, MicroOpBits::B8);
+        builder.emitOpBinaryRegImm(K_NARROW_BYTE, ApInt(1, 64), MicroOp::Add, MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegReg(K_NARROW_WIDE, K_NARROW_BYTE, MicroOpBits::B32, MicroOpBits::B8);
+    }
+
+    // The operand and width of the first compare against an immediate.
+    bool firstCompareImm(const MicroBuilder& builder, MicroReg& outReg, MicroOpBits& outBits)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::CmpRegImm)
+                continue;
+            outReg  = inst.ops(builder.operands())[0].reg;
+            outBits = inst.ops(builder.operands())[1].opBits;
+            return true;
+        }
+        return false;
+    }
+}
+
+// A shift reads six bits of its count: no widening of the byte feeds it.
+SWC_TEST_BEGIN(InstCombine_ShiftCountExtension_ReadsSource)
+{
+    MicroBuilder builder(ctx);
+    emitZeroExtendedByte(builder);
+    builder.emitLoadRegMem(K_NARROW_RESULT, K_NARROW_BASE, 8, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(K_NARROW_RESULT, K_NARROW_WIDE, MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitLoadMemReg(K_NARROW_BASE, 16, K_NARROW_RESULT, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    MicroReg count = MicroReg::invalid();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+            count = inst.ops(builder.operands())[1].reg;
+    }
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg && inst.ops(builder.operands())[0].reg == count)
+            return Result::Error;
+    }
+    return count.isValid() ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// An unsigned test of the extended byte against a byte constant tests the
+// byte; a signed test does not.
+SWC_TEST_BEGIN(InstCombine_CompareOfZeroExtension_NarrowsUnsignedOnly)
+{
+    for (const MicroCond cond : {MicroCond::BelowOrEqual, MicroCond::LessOrEqual})
+    {
+        MicroBuilder builder(ctx);
+        emitZeroExtendedByte(builder);
+        builder.emitCmpRegImm(K_NARROW_WIDE, ApInt(32, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(K_NARROW_RESULT, cond);
+        builder.emitLoadMemReg(K_NARROW_BASE, 16, K_NARROW_RESULT, MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        MicroReg    reg  = MicroReg::invalid();
+        MicroOpBits bits = MicroOpBits::Zero;
+        if (!firstCompareImm(builder, reg, bits))
+            return Result::Error;
+        const bool narrowed = reg == K_NARROW_BYTE && bits == MicroOpBits::B8;
+        if (narrowed != (cond == MicroCond::BelowOrEqual))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A range that fits the byte is tested on the byte; one that does not is not.
+SWC_TEST_BEGIN(InstCombine_RangeOfZeroExtension_NarrowsWhenItFits)
+{
+    for (const uint64_t width : {9ull, 250ull})
+    {
+        MicroBuilder builder(ctx);
+        emitZeroExtendedByte(builder);
+        builder.emitLoadAddressRegMem(K_NARROW_RANGE, K_NARROW_WIDE, static_cast<uint64_t>(-48ll), MicroOpBits::B32);
+        builder.emitCmpRegImm(K_NARROW_RANGE, ApInt(width, 64), MicroOpBits::B32);
+        builder.emitSetCondReg(K_NARROW_RESULT, MicroCond::BelowOrEqual);
+        builder.emitLoadMemReg(K_NARROW_BASE, 16, K_NARROW_RESULT, MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        MicroReg    reg  = MicroReg::invalid();
+        MicroOpBits bits = MicroOpBits::Zero;
+        if (!firstCompareImm(builder, reg, bits))
+            return Result::Error;
+        if ((bits == MicroOpBits::B8) != (width == 9))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A byte load folds into its widening in the same sweep that narrows the
+// test of that widening: the test must still read a defined register.
+SWC_TEST_BEGIN(InstCombine_CompareOfZeroExtendedLoad_ReadsDefinedRegister)
+{
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(K_NARROW_BYTE, K_NARROW_BASE, 0, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(K_NARROW_WIDE, K_NARROW_BYTE, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitCmpRegImm(K_NARROW_WIDE, ApInt(0x23, 64), MicroOpBits::B32);
+    builder.emitSetCondReg(K_NARROW_RESULT, MicroCond::NotEqual);
+    builder.emitLoadMemReg(K_NARROW_BASE, 16, K_NARROW_RESULT, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    MicroReg    reg  = MicroReg::invalid();
+    MicroOpBits bits = MicroOpBits::Zero;
+    if (!firstCompareImm(builder, reg, bits))
+        return Result::Continue;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::CmpRegImm && inst.ops(builder.operands())[0].reg == reg)
+            return Result::Continue;
+    }
+    return Result::Error;
 }
 SWC_TEST_END()
 

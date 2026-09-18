@@ -107,6 +107,110 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ScaledAddUsesAddressThenAdd)
+{
+    constexpr MicroReg result = MicroReg::intReg(0);
+    constexpr MicroReg other  = MicroReg::intReg(1);
+    constexpr MicroReg scaled = MicroReg::intReg(3);
+
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryRegImm(scaled, ApInt(5, 64), MicroOp::MultiplySigned, MicroOpBits::B32);
+    builder.emitLoadAddressAmcRegMem(result, MicroOpBits::B32, other, scaled, 1, 0, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0 ||
+        !hasBinaryRegRegDst(builder, result, MicroOp::Add, MicroOpBits::B32))
+        return Result::Error;
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadAddrAmcRegMem && ops &&
+            ops[0].reg == result && ops[1].reg == scaled && ops[2].reg == scaled && ops[5].valueU64 == 4)
+            return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_MultiplyShiftResultUsesCopyDestination)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(2);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(rax, ApInt(0xAAAAAAAB, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(rcx, rax, MicroOp::MultiplySigned, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rcx, ApInt(33, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitLoadRegReg(rax, rcx, MicroOpBits::B32);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+
+    bool retargetedMultiply = false;
+    bool retargetedShift    = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops &&
+            ops[0].reg == rax && ops[1].reg == rcx && ops[3].microOp == MicroOp::MultiplySigned)
+            retargetedMultiply = true;
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops &&
+            ops[0].reg == rax && ops[2].microOp == MicroOp::ShiftRight && ops[3].valueU64 == 33)
+            retargetedShift = true;
+    }
+    if (!retargetedMultiply || !retargetedShift)
+        return Result::Error;
+
+    // A 31-bit shift can leave bit 32 set. Keep the narrowing copy that clears
+    // the upper half instead of retargeting the 64-bit chain.
+    MicroBuilder narrow(ctx);
+    narrow.emitLoadRegImm(rax, ApInt(0xAAAAAAAB, 64), MicroOpBits::B64);
+    narrow.emitOpBinaryRegReg(rcx, rax, MicroOp::MultiplySigned, MicroOpBits::B64);
+    narrow.emitOpBinaryRegImm(rcx, ApInt(31, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+    narrow.emitLoadRegReg(rax, rcx, MicroOpBits::B32);
+    narrow.emitRet();
+    X64Encoder narrowEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(narrow, &narrowEncoder));
+    return Backend::Unittest::countOpcode(narrow, MicroInstrOpcode::LoadRegReg) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_BooleanOrSelectUsesComparisonFlags)
+{
+    const MicroReg     rsp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg result  = MicroReg::intReg(0);
+    constexpr MicroReg value   = MicroReg::intReg(2);
+    constexpr MicroReg low     = MicroReg::intReg(3);
+    constexpr MicroReg high    = MicroReg::intReg(8);
+    constexpr MicroReg outside = MicroReg::intReg(9);
+
+    MicroBuilder builder(ctx);
+    builder.emitCmpRegReg(value, low, MicroOpBits::B32);
+    builder.emitSetCondReg(result, MicroCond::Below);
+    builder.emitCmpRegReg(value, high, MicroOpBits::B32);
+    builder.emitSetCondReg(value, MicroCond::Above);
+    builder.emitOpBinaryRegReg(result, value, MicroOp::Or, MicroOpBits::B8);
+    builder.emitLoadRegMem(result, rsp, 40, MicroOpBits::B32);
+    builder.emitLoadCondRegReg(result, outside, MicroCond::NotEqual, MicroOpBits::B32);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
 {
     MicroBuilder builder(ctx);
@@ -1434,6 +1538,236 @@ SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FloatReturnSelectUsesAbiRegisterDirectly)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+    constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+    constexpr MicroReg r8   = MicroReg::intReg(4);
+
+    for (const bool usesFloatReturn : {true, false})
+    {
+        MicroBuilder builder(ctx);
+        builder.setRetUsesAbiRegs(false, usesFloatReturn);
+        const MicroLabelRef falseLabel = builder.createLabel();
+        const MicroLabelRef doneLabel  = builder.createLabel();
+        builder.emitLoadRegReg(xmm2, xmm1, MicroOpBits::B32);
+        builder.emitLoadRegReg(xmm3, xmm0, MicroOpBits::B32);
+        builder.emitCmpRegImm(r8, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(falseLabel);
+        builder.emitLoadRegReg(xmm3, xmm2, MicroOpBits::B32);
+        builder.placeLabel(doneLabel);
+        builder.emitLoadRegReg(xmm0, xmm3, MicroOpBits::B32);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const uint32_t copyCount = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
+        const uint32_t jumpCount = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond);
+        if (!usesFloatReturn)
+        {
+            if (copyCount != 4 || jumpCount != 2)
+                return Result::Error;
+            continue;
+        }
+
+        if (copyCount != 1 || jumpCount != 1 || !hasLoadRegReg(builder, xmm0, xmm1))
+            return Result::Error;
+        for (const MicroInstr& candidate : builder.instructions().view())
+        {
+            if (candidate.op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* copy = candidate.ops(builder.operands());
+                if (!copy || copy[2].opBits != MicroOpBits::B128)
+                    return Result::Error;
+            }
+            if (candidate.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jump = candidate.ops(builder.operands());
+            if (!jump || jump[0].cpuCond != MicroCond::NotEqual || jump[2].valueU64 != doneLabel.get())
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FloatReturnMinMaxUsesScalarInstruction)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+    constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool isMin : {true, false})
+        {
+            MicroBuilder builder(ctx);
+            builder.setRetUsesAbiRegs(false, true);
+            const MicroLabelRef falseLabel = builder.createLabel();
+            const MicroLabelRef doneLabel  = builder.createLabel();
+            builder.emitLoadRegReg(xmm2, xmm1, bits);
+            builder.emitLoadRegReg(xmm3, xmm0, bits);
+            builder.emitCmpRegReg(isMin ? xmm2 : xmm3, isMin ? xmm3 : xmm2, bits);
+            builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, falseLabel);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+            builder.placeLabel(falseLabel);
+            builder.emitLoadRegReg(xmm3, xmm2, bits);
+            builder.placeLabel(doneLabel);
+            builder.emitLoadRegReg(xmm0, xmm3, bits);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
+                !hasBinaryRegRegDst(builder, xmm0, isMin ? MicroOp::FloatMin : MicroOp::FloatMax, bits))
+                return Result::Error;
+
+            for (const MicroInstr& candidate : builder.instructions().view())
+            {
+                if (candidate.op != MicroInstrOpcode::OpBinaryRegReg)
+                    continue;
+                const MicroInstrOperand* op = candidate.ops(builder.operands());
+                if (!op || op[1].reg != xmm1)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ScalarReturnConversionDropsUpperLaneClear)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg rcx  = MicroReg::intReg(2);
+
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitClearReg(xmm0, bits);
+        builder.emitConvertIntToFloat(xmm0, rcx, bits, MicroOpBits::B64);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0)
+            return Result::Error;
+
+        MicroBuilder nonReturn(ctx);
+        nonReturn.emitClearReg(xmm1, bits);
+        nonReturn.emitConvertIntToFloat(xmm1, rcx, bits, MicroOpBits::B64);
+        nonReturn.emitRet();
+        X64Encoder nonReturnEncoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(nonReturn, &nonReturnEncoder));
+        if (Backend::Unittest::countOpcode(nonReturn, MicroInstrOpcode::ClearReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_RipFloatLoadFoldsIntoThreeOperandOp)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    const MicroReg     rip  = MicroReg::instructionPointer();
+
+    MicroBuilder builder(ctx);
+    builder.emitClearReg(xmm1, MicroOpBits::B32);
+    builder.emitLoadRegMem(xmm1, rip, 0, MicroOpBits::B32);
+
+    MicroInstrRef loadRef = MicroInstrRef::invalid();
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        if (it->op == MicroInstrOpcode::LoadRegMem)
+            loadRef = it.current;
+    if (loadRef.isInvalid())
+        return Result::Error;
+
+    builder.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = loadRef,
+        .constantShard  = 0,
+        .constantOffset = 0,
+    });
+    builder.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, MicroOp::FloatMultiply, MicroOpBits::B32);
+
+    builder.emitLoadRegReg(xmm1, xmm0, MicroOpBits::B64);
+    builder.emitLoadRegMem(xmm0, rip, 0, MicroOpBits::B64);
+    MicroInstrRef restoredLoadRef = MicroInstrRef::invalid();
+    for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        if (it->op == MicroInstrOpcode::LoadRegMem)
+            restoredLoadRef = it.current;
+    if (restoredLoadRef.isInvalid() || restoredLoadRef == loadRef)
+        return Result::Error;
+    builder.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = restoredLoadRef,
+        .constantShard  = 0,
+        .constantOffset = 8,
+    });
+    builder.emitOpBinaryRegRegReg(xmm0, xmm1, xmm0, MicroOp::FloatMultiply, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 2)
+        return Result::Error;
+
+    for (const MicroRelocation& relocation : builder.codeRelocations())
+    {
+        const MicroInstr* relocated = builder.instructions().ptr(relocation.instructionRef);
+        if (!relocated || relocated->op != MicroInstrOpcode::OpBinaryRegMem)
+            return Result::Error;
+        const MicroInstrOperand* ops = relocated->ops(builder.operands());
+        if (!ops || ops[0].reg != xmm0 || !ops[1].reg.isInstructionPointer() ||
+            (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+            ops[3].microOp != MicroOp::FloatMultiply)
+            return Result::Error;
+    }
+
+    // ANDPS/ANDPD read a full 128-bit memory operand while the relocated
+    // scalar constant only owns four or eight bytes. Keep its scalar load.
+    MicroBuilder bitwise(ctx);
+    bitwise.emitClearReg(xmm1, MicroOpBits::B64);
+    bitwise.emitLoadRegMem(xmm1, rip, 0, MicroOpBits::B64);
+    MicroInstrRef maskLoadRef = MicroInstrRef::invalid();
+    for (auto it = bitwise.instructions().view().begin(); it != bitwise.instructions().view().end(); ++it)
+        if (it->op == MicroInstrOpcode::LoadRegMem)
+            maskLoadRef = it.current;
+    if (maskLoadRef.isInvalid())
+        return Result::Error;
+    bitwise.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = maskLoadRef,
+        .constantShard  = 0,
+        .constantOffset = 16,
+    });
+    bitwise.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, MicroOp::FloatAnd, MicroOpBits::B64);
+    bitwise.emitRet();
+    X64Encoder bitwiseEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(bitwise, &bitwiseEncoder));
+    if (Backend::Unittest::countOpcode(bitwise, MicroInstrOpcode::LoadRegMem) != 1 ||
+        Backend::Unittest::countOpcode(bitwise, MicroInstrOpcode::OpBinaryRegRegReg) != 1 ||
+        bitwise.codeRelocations().front().instructionRef != maskLoadRef)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar float copied only as the second operand of a three-operand
 // operation: the operation reads the source.
 SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
@@ -1786,6 +2120,216 @@ SWC_TEST_BEGIN(PostRAPeephole_DifferentCompareAfterBranch_Kept)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 2)
         return Result::Error;
     return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // [add eax, ecx (dword) | add rax, rcx (qword)] ; mov eax, eax ; store rax
+    void emitSelfCopyAfter(MicroBuilder& builder, MicroOpBits writeBits)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg r8  = MicroReg::intReg(8);
+
+        builder.emitLoadRegMem(rax, r8, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(rcx, r8, 8, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(rax, rcx, MicroOp::Add, writeBits);
+        builder.emitLoadRegReg(rax, rax, MicroOpBits::B32);
+        builder.emitLoadMemReg(r8, 16, rax, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    uint32_t countSelfCopies(const MicroBuilder& builder)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == ops[1].reg)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// After a dword write the upper half is clear: `mov eax, eax` goes.
+SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterDwordWrite_Erased)
+{
+    MicroBuilder builder(ctx);
+    emitSelfCopyAfter(builder, MicroOpBits::B32);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return countSelfCopies(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// After a qword write it still clears something.
+SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterQwordWrite_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitSelfCopyAfter(builder, MicroOpBits::B64);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return countSelfCopies(builder) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // xorps xmm1, xmm1 ; [movss xmm1, [r8] | cvtsi2ss xmm1, eax] ; movss [r8 + 8], xmm1
+    void emitFloatClearBefore(MicroBuilder& builder, bool fullWrite)
+    {
+        constexpr MicroReg rax  = MicroReg::intReg(0);
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+
+        builder.emitLoadRegMem(rax, r8, 16, MicroOpBits::B32);
+        builder.emitClearReg(xmm1, MicroOpBits::B32);
+        if (fullWrite)
+            builder.emitLoadRegMem(xmm1, r8, 0, MicroOpBits::B32);
+        else
+            builder.emitOpBinaryRegReg(xmm1, rax, MicroOp::ConvertIntToFloat, MicroOpBits::B32);
+        builder.emitLoadMemReg(r8, 8, xmm1, MicroOpBits::B32);
+        builder.emitRet();
+    }
+}
+
+// A scalar load replaces the whole register the clear zeroed.
+SWC_TEST_BEGIN(PostRAPeephole_FloatClearBeforeLoad_Erased)
+{
+    MicroBuilder builder(ctx);
+    emitFloatClearBefore(builder, true);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A conversion writes only the low lane: its clear stays.
+SWC_TEST_BEGIN(PostRAPeephole_FloatClearBeforeConversion_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitFloatClearBefore(builder, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // vmaxss xmm3, xmm0, xmm1 ; movss xmm0, xmm3 ; [movss [r8 + 8], xmm3] ; ret
+    void emitFloatResultCopy(MicroBuilder& builder, bool temporaryReadAfter)
+    {
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+        constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+        constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+
+        builder.emitLoadRegMem(xmm0, r8, 0, MicroOpBits::B32);
+        builder.emitLoadRegMem(xmm1, r8, 4, MicroOpBits::B32);
+        builder.emitOpBinaryRegRegReg(xmm3, xmm0, xmm1, MicroOp::FloatMax, MicroOpBits::B32);
+        builder.emitLoadRegReg(xmm0, xmm3, MicroOpBits::B32);
+        if (temporaryReadAfter)
+            builder.emitLoadMemReg(r8, 8, xmm3, MicroOpBits::B32);
+        builder.emitLoadMemReg(r8, 12, xmm0, MicroOpBits::B32);
+        builder.emitRet();
+    }
+}
+
+// The maximum is computed where it is returned.
+SWC_TEST_BEGIN(PostRAPeephole_FloatBinaryResultCopy_Folded)
+{
+    MicroBuilder builder(ctx);
+    emitFloatResultCopy(builder, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.ops(builder.operands())[0].reg != MicroReg::floatReg(0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The temporary is read again: the copy stays.
+SWC_TEST_BEGIN(PostRAPeephole_FloatBinaryResultCopyLiveTemporary_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitFloatResultCopy(builder, true);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+namespace
+{
+    // cmp rcx, rdx ; set(less) al ; set(greater) cl ; sub cl, al ; movsx eax, cl ; ret
+    void emitThreeWayBytes(MicroBuilder& builder, MicroCond less, MicroCond greater)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg rdx = MicroReg::intReg(2);
+
+        builder.emitCmpRegReg(rcx, rdx, MicroOpBits::B64);
+        builder.emitSetCondReg(rax, less);
+        builder.emitSetCondReg(rcx, greater);
+        builder.emitOpBinaryRegReg(rcx, rax, MicroOp::Subtract, MicroOpBits::B8);
+        builder.emitLoadSignedExtendRegReg(rax, rcx, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+// The unsigned `a < b` byte is the carry: sbb subtracts it from the flags.
+SWC_TEST_BEGIN(PostRAPeephole_UnsignedThreeWayUsesBorrow)
+{
+    MicroBuilder builder(ctx);
+    emitThreeWayBytes(builder, MicroCond::Below, MicroCond::Above);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SubtractBorrowRegImm) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The signed `a < b` byte is not a flag: both bytes stay.
+SWC_TEST_BEGIN(PostRAPeephole_SignedThreeWayKeepsBytes)
+{
+    MicroBuilder builder(ctx);
+    emitThreeWayBytes(builder, MicroCond::Less, MicroCond::Greater);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SubtractBorrowRegImm) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A dword conversion writes the dword register: `mov eax, eax` after it goes.
+SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterDwordConversion_Erased)
+{
+    constexpr MicroReg rax  = MicroReg::intReg(0);
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(xmm0, r8, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegReg(rax, xmm0, MicroOp::ConvertFloatToInt, MicroOpBits::B32);
+    builder.emitLoadRegReg(rax, rax, MicroOpBits::B32);
+    builder.emitLoadMemReg(r8, 8, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) == 0 ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

@@ -352,7 +352,7 @@ namespace
 
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstReg, dstBits);
-            builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertIntToFloat, dstBits);
+            builder.emitConvertIntToFloat(dstReg, srcReg, dstBits, srcBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstBits);
             outReg = dstReg;
             return;
         }

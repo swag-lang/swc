@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Fold the copy that legacy SSE forces in front of every float binary operation
@@ -97,6 +99,13 @@ namespace PostRaPeephole
                 return false;
             if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
                 return ops[1].reg == loaded && ops[0].reg != loaded;
+            if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
+            {
+                if (ops[2].reg != loaded)
+                    return false;
+                return (ops[0].reg == ops[1].reg && ops[0].reg != loaded) ||
+                       (ops[0].reg == loaded && ops[1].reg != loaded);
+            }
             if (!isFloat && inst.op == MicroInstrOpcode::CmpRegReg && inst.numOperands >= 3)
                 return ops[0].reg == loaded && ops[1].reg != loaded;
             return false;
@@ -202,6 +211,38 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A scalar integer conversion only defines the low f32/f64 lane. The IR
+    // therefore models it as reading the destination and normally clears that
+    // register first. At an immediate scalar ABI return the upper lanes are
+    // unobservable, so the clear is pure encoding overhead.
+    bool tryEraseScalarReturnConversionClear(Context& ctx, const MicroInstrRef clearRef, const MicroInstr& clearInst)
+    {
+        if (ctx.isClaimed(clearRef) || clearInst.op != MicroInstrOpcode::ClearReg ||
+            !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
+            return false;
+        const auto* clear = clearInst.ops(*ctx.operands);
+        if (!clear || clear[0].reg != ctx.floatReturn ||
+            (clear[1].opBits != MicroOpBits::B32 && clear[1].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef convertRef = ctx.nextRef(clearRef);
+        const MicroInstr*   convert    = ctx.instruction(convertRef);
+        const auto*         convertOps = convert ? convert->ops(*ctx.operands) : nullptr;
+        if (!convert || convert->op != MicroInstrOpcode::OpBinaryRegReg || !convertOps ||
+            convertOps[0].reg != clear[0].reg || !convertOps[1].reg.isInt() ||
+            convertOps[2].opBits != clear[1].opBits ||
+            (convertOps[3].microOp != MicroOp::ConvertIntToFloat && convertOps[3].microOp != MicroOp::ConvertInt64ToFloat32))
+            return false;
+
+        const MicroInstrRef retRef = ctx.nextRef(convertRef);
+        const MicroInstr*   ret    = ctx.instruction(retRef);
+        if (!ret || ret->op != MicroInstrOpcode::Ret || !ctx.claimAll({clearRef, convertRef}))
+            return false;
+
+        ctx.emitErase(clearRef);
+        return true;
+    }
+
     // Fold an operand's reload into the operation that consumes it.
     //
     // x86 arithmetic can read one operand straight from memory, but the
@@ -229,13 +270,25 @@ namespace PostRaPeephole
             (indexed && (!index.isValid() || index.isFloat() || isFloat)))
             return false;
 
-        // An instruction-pointer-relative load reads a constant through a
-        // relocation bound to this very instruction. Folding it away would
-        // strand that relocation on an erased instruction: nothing would bind
-        // its code offset, it would keep the zero it was created with, and the
-        // patch would land on the function prologue.
+        // A RIP-relative load carries the constant's relocation. The folded
+        // arithmetic instruction can carry it instead, but only when this is
+        // the one ordinary rel32 relocation the memory form expects.
+        MicroRelocation* loadRelocation = nullptr;
         if (base.isInstructionPointer())
-            return false;
+        {
+            if (!isFloat || !ctx.builder)
+                return false;
+            for (MicroRelocation& relocation : ctx.builder->codeRelocations())
+            {
+                if (relocation.instructionRef != loadRef)
+                    continue;
+                if (loadRelocation || relocation.form != MicroRelocation::Form::Relative32)
+                    return false;
+                loadRelocation = &relocation;
+            }
+            if (!loadRelocation)
+                return false;
+        }
 
         // The integer rewrite is probed against the encoder before it lands.
         if (!isFloat && !ctx.encoder)
@@ -296,17 +349,21 @@ namespace PostRaPeephole
         if (!opInst)
             return false;
 
+        if (loadRelocation)
+            for (const MicroRelocation& relocation : ctx.builder->codeRelocations())
+                if (&relocation != loadRelocation && relocation.instructionRef == opRef)
+                    return false;
+
         const MicroInstrOperand* consumerOps = ctx.operandsFor(opRef);
         if (!consumerOps)
             return false;
 
-        // The register only existed to carry the loaded value across; if anything
-        // reads it afterwards it has to keep existing.
-        if (!regIsDeadAfter(ctx, opRef, loaded) && (!indexed || !ctx.isRegDeadAfter(loaded, opIndex)))
-            return false;
-
         if (opInst->op == MicroInstrOpcode::CmpRegReg)
         {
+            // The register only existed to carry the loaded value across; if
+            // anything reads it afterwards it has to keep existing.
+            if (!regIsDeadAfter(ctx, opRef, loaded) && !ctx.isRegDeadAfter(loaded, opIndex))
+                return false;
             if (indexed)
                 return false;
             if (consumerOps[2].opBits != opBits || !consumerOps[1].reg.isAnyInt())
@@ -327,11 +384,41 @@ namespace PostRaPeephole
             return true;
         }
 
-        const MicroOp op = consumerOps[3].microOp;
-        if (consumerOps[2].opBits != opBits)
+        const bool        threeOperand = opInst->op == MicroInstrOpcode::OpBinaryRegRegReg;
+        const MicroOpBits consumerBits = consumerOps[threeOperand ? 3 : 2].opBits;
+        const MicroOp     op           = consumerOps[threeOperand ? 4 : 3].microOp;
+        if (consumerBits != opBits)
             return false;
         if (isFloat ? (!hasThreeOperandForm(op) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
+        // FloatAnd/FloatXor are packed 128-bit instructions even when the
+        // scalar value is 32 or 64 bits. A scalar constant allocation only
+        // guarantees those 4 or 8 bytes, so reading it as a memory operand can
+        // cross the allocation boundary. Keep the scalar load for those ops.
+        if (loadRelocation && (op == MicroOp::FloatAnd || op == MicroOp::FloatXor))
+            return false;
+
+        MicroInstrRef sourceCopyRef = MicroInstrRef::invalid();
+        if (threeOperand && consumerOps[0].reg == loaded)
+        {
+            // Allocation can preserve the original destination in a temporary,
+            // load the constant over the destination, then use both in a VEX
+            // operation. Removing the load restores the original destination;
+            // the temporary copy and the third operand then both disappear.
+            sourceCopyRef                     = ctx.previousRef(loadRef);
+            const MicroInstr*        copyInst = ctx.instruction(sourceCopyRef);
+            const MicroInstrOperand* copyOps  = copyInst ? copyInst->ops(*ctx.operands) : nullptr;
+            if (!copyInst || copyInst->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
+                copyOps[0].reg != consumerOps[1].reg || copyOps[1].reg != loaded || copyOps[2].opBits != opBits)
+                return false;
+            const MicroReg copied = copyOps[0].reg;
+            if (!regIsDeadAfter(ctx, opRef, copied) && !ctx.isRegDeadAfter(copied, opIndex))
+                return false;
+        }
+        else if (!regIsDeadAfter(ctx, opRef, loaded) && !ctx.isRegDeadAfter(loaded, opIndex))
+        {
+            return false;
+        }
 
         MicroInstrOpcode  rewrittenOp = MicroInstrOpcode::OpBinaryRegMem;
         MicroInstrOperand newOps[8]   = {};
@@ -358,11 +445,40 @@ namespace PostRaPeephole
         const std::span rewrittenOps(newOps, numOps);
         if (!isFloat && !encoderAcceptsAsIs(ctx, rewrittenOp, rewrittenOps))
             return false;
-        if (!ctx.claimAll({loadRef, opRef}))
-            return false;
+        MicroInstrRef clearRef = MicroInstrRef::invalid();
+        if (isFloat)
+        {
+            const MicroInstrRef      previousRef = ctx.previousRef(loadRef);
+            const MicroInstr*        previous    = ctx.instruction(previousRef);
+            const MicroInstrOperand* clearOps   = previous ? previous->ops(*ctx.operands) : nullptr;
+            if (previous && previous->op == MicroInstrOpcode::ClearReg && clearOps &&
+                clearOps[0].reg == loaded && clearOps[1].opBits == opBits)
+                clearRef = previousRef;
+        }
 
+        if (sourceCopyRef.isValid())
+        {
+            if (!ctx.claimAll({loadRef, opRef, sourceCopyRef}))
+                return false;
+        }
+        else if (clearRef.isValid())
+        {
+            if (!ctx.claimAll({loadRef, opRef, clearRef}))
+                return false;
+        }
+        else if (!ctx.claimAll({loadRef, opRef}))
+        {
+            return false;
+        }
+
+        if (loadRelocation)
+            loadRelocation->instructionRef = opRef;
         ctx.emitRewrite(opRef, rewrittenOp, rewrittenOps, true);
         ctx.emitErase(loadRef);
+        if (sourceCopyRef.isValid())
+            ctx.emitErase(sourceCopyRef);
+        if (clearRef.isValid())
+            ctx.emitErase(clearRef);
         return true;
     }
 
@@ -632,6 +748,146 @@ namespace PostRaPeephole
         newOps[3].microOp           = MicroOp::MultiplySigned;
         newOps[4].valueU64          = value;
         ctx.emitRewrite(mulRef, MicroInstrOpcode::OpBinaryRegRegImm, std::span{newOps, 5}, true);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
+    // A three-operand float operation names its destination freely, so a
+    // result computed into a temporary and then copied can be computed where
+    // it is wanted:
+    //
+    //     vmaxss xmm3, xmm0, xmm1 ; movss xmm0, xmm3    ->    vmaxss xmm0, xmm0, xmm1
+    //
+    // The temporary must die at the copy. Both sources are read before the
+    // destination is written, so the destination may be one of them.
+    bool tryFoldFloatBinaryIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        constexpr uint32_t K_MAX_SCAN = 8;
+
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+        const MicroReg    dst      = copyOps[0].reg;
+        const MicroReg    src      = copyOps[1].reg;
+        const MicroOpBits copyBits = copyOps[2].opBits;
+        if (!dst.isFloat() || !src.isFloat() || dst == src || !ctx.isRegDeadAfterCurrent(src))
+            return false;
+
+        // The operation that feeds the copy, with nothing in between that
+        // touches either register.
+        MicroInstrRef     opRef  = ctx.previousRef(copyRef);
+        const MicroInstr* opInst = nullptr;
+        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        {
+            const MicroInstr* candidate = ctx.instruction(opRef);
+            if (!candidate || candidate->op == MicroInstrOpcode::Label)
+                return false;
+
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegRegReg && candidate->numOperands >= 5)
+            {
+                const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
+                if (candidateOps && candidateOps[0].reg == src)
+                {
+                    opInst = candidate;
+                    break;
+                }
+            }
+
+            const MicroInstrFlags flags = MicroInstr::info(candidate->op).flags;
+            if (flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+
+            const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+
+            opRef = ctx.previousRef(opRef);
+        }
+
+        if (!opInst || ctx.isClaimed(opRef))
+            return false;
+        const MicroInstrOperand* opOps = ctx.operandsFor(opRef);
+        if (!opOps || opOps[3].opBits != copyBits || !opOps[1].reg.isFloat() || !opOps[2].reg.isFloat())
+            return false;
+
+        if (!ctx.claimAll({opRef, copyRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        std::ranges::copy(std::span{opOps, 5}, newOps);
+        newOps[0].reg = dst;
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5});
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
+    // Constant unsigned division can leave its magic multiply and logical
+    // shift in a temporary immediately copied to the return register:
+    //
+    //     imul T, R        imul R, T
+    //     shr  T, K   ->   shr  R, K
+    //     mov  R, T
+    //
+    // The multiply is commutative, so the register holding the magic constant
+    // can become the product and final result. A narrowing copy may disappear
+    // only when the logical shift itself proves the upper dword is zero.
+    bool tryFoldMultiplyShiftResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
+            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+        const MicroReg dst = copy[0].reg;
+        const MicroReg src = copy[1].reg;
+
+        const MicroInstrRef shiftRef = ctx.previousRef(copyRef);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        const auto*         shiftOps = shift ? shift->ops(*ctx.operands) : nullptr;
+        if (!shift || shift->op != MicroInstrOpcode::OpBinaryRegImm || !shiftOps ||
+            shiftOps[0].reg != src || shiftOps[2].microOp != MicroOp::ShiftRight || shiftOps[3].hasWideImmediateValue() ||
+            (shiftOps[1].opBits != MicroOpBits::B32 && shiftOps[1].opBits != MicroOpBits::B64))
+            return false;
+        if (copy[2].opBits != shiftOps[1].opBits &&
+            !(copy[2].opBits == MicroOpBits::B32 && shiftOps[1].opBits == MicroOpBits::B64 && shiftOps[3].valueU64 >= 32))
+            return false;
+
+        const MicroInstrRef multiplyRef = ctx.previousRef(shiftRef);
+        const MicroInstr*   multiply    = ctx.instruction(multiplyRef);
+        const auto*         multiplyOps = multiply ? multiply->ops(*ctx.operands) : nullptr;
+        if (!multiply || multiply->op != MicroInstrOpcode::OpBinaryRegReg || !multiplyOps ||
+            multiplyOps[0].reg != src || multiplyOps[1].reg != dst ||
+            multiplyOps[2].opBits != shiftOps[1].opBits || multiplyOps[3].microOp != MicroOp::MultiplySigned)
+            return false;
+
+        MicroInstrOperand rewrittenMultiply[4] = {multiplyOps[0], multiplyOps[1], multiplyOps[2], multiplyOps[3]};
+        rewrittenMultiply[0].reg               = dst;
+        rewrittenMultiply[1].reg               = src;
+        MicroInstrOperand rewrittenShift[4]    = {shiftOps[0], shiftOps[1], shiftOps[2], shiftOps[3]};
+        rewrittenShift[0].reg                  = dst;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *multiply, rewrittenMultiply) ||
+            ctx.encoder->queryConformanceIssue(issue, *shift, rewrittenShift) ||
+            !ctx.claimAll({multiplyRef, shiftRef, copyRef}))
+            return false;
+
+        ctx.emitRewrite(multiplyRef, multiply->op, rewrittenMultiply);
+        ctx.emitRewrite(shiftRef, shift->op, rewrittenShift);
         ctx.emitErase(copyRef);
         return true;
     }

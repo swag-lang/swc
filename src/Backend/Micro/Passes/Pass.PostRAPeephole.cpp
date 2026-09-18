@@ -27,7 +27,10 @@ namespace
     {
         PatternRegistry r;
         r.add(MicroInstrOpcode::Nop, tryEraseTrivial);
+        r.add(MicroInstrOpcode::ClearReg, tryEraseScalarReturnConversionClear);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
+        r.add(MicroInstrOpcode::LoadRegReg, tryEraseZeroExtendedSelfCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatReturnSelectDiamond);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
         r.add(MicroInstrOpcode::CmpRegImm, tryFoldConditionalBitwiseNot);
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftNoCopy);
@@ -58,6 +61,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCarryComparisonSum);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldZeroTestBooleanSum);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryNarrowBitwiseZeroExtensions);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldBorrowDifference);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldConditionalAddSubtract);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryUseTestForDeadMask);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldCarryOffset);
@@ -65,6 +69,8 @@ namespace
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryShortenAddressUnitOffset);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledAdd);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanOrSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
@@ -87,6 +93,9 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
+        r.add(MicroInstrOpcode::LoadRegMem, tryEraseFloatClearBeforeFullWrite);
+        r.add(MicroInstrOpcode::ClearReg, tryEraseFloatClearBeforeFullWrite);
+        r.add(MicroInstrOpcode::LoadRegReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedByteAverage);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);
@@ -95,7 +104,9 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerMultiply);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldMultiplyShiftResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldMultiplyIntoResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatBinaryIntoResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);
@@ -171,6 +182,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     ctx.stackPointer     = conv.stackPointer;
     ctx.framePointer     = conv.framePointer;
     ctx.localStackBase   = context.debugStackBasePhysReg;
+    ctx.floatReturn      = conv.floatReturn;
     ctx.allowForwarding  = context.isFirstOptimizationSweep;
 
     eraseRedundantUpperHalfClears(ctx);

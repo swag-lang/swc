@@ -800,7 +800,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
 
         const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
         builder.emitClearReg(dstReg, dstOpBits);
-        builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
+        builder.emitConvertIntToFloat(dstReg, srcReg, dstOpBits, srcOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstOpBits);
         return dstReg;
     }
 

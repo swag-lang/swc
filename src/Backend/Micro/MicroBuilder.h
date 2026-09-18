@@ -145,6 +145,7 @@ public:
     void emitClearReg(MicroReg reg, MicroOpBits opBits);
     void emitOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
     void emitOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits);
+    void emitConvertIntToFloat(MicroReg regDst, MicroReg regSrc, MicroOpBits dstBits, MicroOpBits srcBits);
     void emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits);

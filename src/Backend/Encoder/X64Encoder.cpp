@@ -858,6 +858,7 @@ namespace
             case MicroOp::Subtract:
                 return 0x29;
             case MicroOp::ConvertIntToFloat:
+            case MicroOp::ConvertInt64ToFloat32:
                 return 0x2A;
             case MicroOp::ConvertUIntToFloat64:
                 return 0x2B;
@@ -1891,10 +1892,20 @@ void X64Encoder::encodeAddCarryRegImm(MicroReg regDst, uint64_t value, MicroOpBi
 
 void X64Encoder::encodeSubtractBorrowRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits)
 {
-    SWC_ASSERT(regDst.isInt() && (bits == MicroOpBits::B32 || bits == MicroOpBits::B64));
+    SWC_ASSERT(regDst.isInt() && (bits == MicroOpBits::B8 || bits == MicroOpBits::B32 || bits == MicroOpBits::B64));
     SWC_INTERNAL_CHECK(canEncodeOpImmediate(value, bits));
-    const bool small = canEncode8(value, bits);
     emitRex(store_, bits, MicroReg{}, regDst);
+    if (bits == MicroOpBits::B8)
+    {
+        // sbb r/m8, imm8: an unsigned three-way compare subtracts the carry
+        // from its `a > b` byte.
+        emitCpuOp(store_, 0x80);
+        emitModRm(store_, MODRM_REG_3, regDst);
+        emitValue(store_, value, MicroOpBits::B8);
+        return;
+    }
+
+    const bool small = canEncode8(value, bits);
     emitCpuOp(store_, small ? 0x83 : 0x81);
     emitModRm(store_, MODRM_REG_3, regDst);
     emitValue(store_, value, small ? MicroOpBits::B8 : MicroOpBits::B32);
@@ -3093,6 +3104,17 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
+    const auto emitMemoryOperand = [&](const uint8_t regField) {
+        if (memReg.isInstructionPointer())
+        {
+            SWC_ASSERT(memOffset == 0);
+            emitModRm(store_, ModRmMode::Memory, regField, MODRM_RM_RIP);
+            store_.pushU32(0);
+        }
+        else
+            emitModRm(store_, memOffset, regField, memReg);
+    };
+
     ///////////////////////////////////////////
     // Float arithmetic reads memory directly, exactly as the register form does
     // but with a memory ModRM. Without this the operand has to be loaded into a
@@ -3113,7 +3135,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
 
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, op);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3122,7 +3144,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3131,7 +3153,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3140,7 +3162,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3149,7 +3171,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3158,7 +3180,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3170,14 +3192,14 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
             // One-operand IMUL r/m8 from memory: AL * [mem] -> AX, OF correct for s8.
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
-            emitModRm(store_, memOffset, MODRM_REG_5, memReg);
+            emitMemoryOperand(MODRM_REG_5);
         }
         else
         {
             emitRex(store_, opBits, regDst, memReg);
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0xAF);
-            emitModRm(store_, memOffset, regDst, memReg);
+            emitMemoryOperand(encodeReg(regDst));
         }
     }
 
@@ -3190,7 +3212,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
         emitRex(store_, opBits, regDst, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, op);
-        emitModRm(store_, memOffset, regDst, memReg);
+        emitMemoryOperand(encodeReg(regDst));
     }
 
     ///////////////////////////////////////////
@@ -3248,8 +3270,17 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     ///////////////////////////////////////////
     if (regDst.isFloat() && regSrc.isInt())
     {
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, opBits, regDst, regSrc);
+        if (op == MicroOp::ConvertInt64ToFloat32)
+        {
+            SWC_ASSERT(opBits == MicroOpBits::B32);
+            emitCpuOp(store_, 0xF3);
+            emitRex(store_, MicroOpBits::B64, regDst, regSrc);
+        }
+        else
+        {
+            emitSpecF64(store_, 0xF3, opBits);
+            emitRex(store_, opBits, regDst, regSrc);
+        }
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, op);
         emitModRm(store_, regDst, regSrc);
@@ -3269,7 +3300,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
         if (op != MicroOp::FloatSqrt && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
         {
             emitSpecF64(store_, 0xF3, opBits);
-            emitRex(store_, opBits, regDst, regSrc);
+            emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
         }
         else
         {
@@ -3544,7 +3575,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
         SWC_ASSERT(value <= 0x03);
         emitCpuOp(store_, 0x66);
-        emitRex(store_, opBits, reg, reg);
+        emitRex(store_, MicroOpBits::Zero, reg, reg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x3A);
         emitCpuOp(store_, opBits == MicroOpBits::B64 ? 0x0B : 0x0A);

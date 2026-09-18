@@ -26,11 +26,84 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasObservableSideEffect(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroInstrRef instRef)
+    // How many instructions write each virtual float register, counted on
+    // first need. The SSA snapshot the fixed point shares keeps the values of
+    // instructions erased since it was built, so the stream is read instead;
+    // erasures during the fixed point only leave the counts too high.
+    struct FloatDefCounts
+    {
+        const MicroStorage*                    storage  = nullptr;
+        const MicroOperandStorage*             operands = nullptr;
+        std::unordered_map<MicroReg, uint32_t> counts;
+        bool                                   ready = false;
+
+        uint32_t countFor(MicroReg reg)
+        {
+            if (!ready)
+            {
+                for (const MicroInstr& inst : storage->view())
+                {
+                    const MicroInstrUseDef useDef = inst.collectUseDef(*operands, nullptr);
+                    for (const MicroReg def : useDef.defs)
+                    {
+                        if (def.isVirtualFloat())
+                            ++counts[def];
+                    }
+                }
+                ready = true;
+            }
+
+            const auto it = counts.find(reg);
+            return it == counts.end() ? 0 : it->second;
+        }
+    };
+
+    // A float clear zeroes the lanes that a partial write after it - cvtsi2ss,
+    // cvtsd2ss - leaves alone. The use/def model reads that write as a full
+    // definition, so the clear's value looks dead while the write still
+    // depends on it. The clear is truly dead when the next instruction
+    // replaces the whole register, or when nothing else ever writes the
+    // register: a conversion folded to a constant, or merged with an equal
+    // one, leaves the clear it needed behind.
+    bool isUnobservedFloatClear(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroInstrRef instRef, FloatDefCounts& floatDefs)
+    {
+        if (inst.op != MicroInstrOpcode::ClearReg || useDef.defs.size() != 1 || !useDef.defs[0].isVirtualFloat())
+            return false;
+        const MicroReg reg = useDef.defs[0];
+
+        const MicroInstr*        next    = storage.ptr(storage.findNextInstructionRef(instRef));
+        const MicroInstrOperand* nextOps = next ? next->ops(operands) : nullptr;
+        if (nextOps && nextOps[0].reg == reg)
+        {
+            switch (next->op)
+            {
+                case MicroInstrOpcode::ClearReg:
+                case MicroInstrOpcode::LoadRegImm:
+                    return true;
+                case MicroInstrOpcode::LoadRegMem:
+                    if (nextOps[2].opBits == MicroOpBits::B32 || nextOps[2].opBits == MicroOpBits::B64)
+                        return true;
+                    break;
+                case MicroInstrOpcode::LoadRegReg:
+                    if (nextOps[1].reg.isAnyInt())
+                        return true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return floatDefs.countFor(reg) == 1;
+    }
+
+    bool hasObservableSideEffect(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroInstrRef instRef, FloatDefCounts& floatDefs)
     {
         if (useDef.isCall)
             return true;
         if (!MicroInstrInfo::hasObservableSideEffect(inst))
+            return false;
+        // xorps leaves the flags alone.
+        if (isUnobservedFloatClear(storage, operands, inst, useDef, instRef, floatDefs))
             return false;
 
         // A dead integer compute whose only side effect is the CPU flags it
@@ -38,9 +111,9 @@ namespace
         // the same straight-line window. Duplicated two-address chains that
         // value numbering rewires leave exactly this shape behind: a
         // flag-writing arithmetic prefix whose register result no longer has
-        // a consumer. Float destinations stay untouchable: a float clear_reg
-        // is the upper-bits-zeroing half of a clear+partial-insert idiom the
-        // use/def model reads as two independent full definitions.
+        // a consumer. Other float destinations stay untouchable: a float
+        // clear_reg is the upper-bits-zeroing half of a clear+partial-insert
+        // idiom the use/def model reads as two independent full definitions.
         for (const MicroReg def : useDef.defs)
         {
             if (!def.isVirtualInt())
@@ -130,15 +203,15 @@ namespace
         return true;
     }
 
-    bool canEraseInstruction(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues, MicroInstrRef instRef)
+    bool canEraseInstruction(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues, MicroInstrRef instRef, FloatDefCounts& floatDefs)
     {
         if (!allDefsAreDeadVirtualRegs(useDef, ssaState, usedValues, instRef))
             return false;
 
-        return !hasObservableSideEffect(storage, operands, inst, useDef, instRef);
+        return !hasObservableSideEffect(storage, operands, inst, useDef, instRef, floatDefs);
     }
 
-    bool eliminateDeadInstructions(MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues, std::vector<uint32_t>* directUseCursors)
+    bool eliminateDeadInstructions(MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<uint8_t>& usedValues, std::vector<uint32_t>* directUseCursors, FloatDefCounts& floatDefs)
     {
         bool       changed = false;
         const auto view    = storage.view();
@@ -153,7 +226,7 @@ namespace
             if (!useDef)
                 continue;
 
-            if (!canEraseInstruction(storage, operands, inst, *useDef, ssaState, usedValues, instRef))
+            if (!canEraseInstruction(storage, operands, inst, *useDef, ssaState, usedValues, instRef, floatDefs))
                 continue;
 
             if (!storage.erase(instRef))
@@ -205,6 +278,9 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     std::vector<uint32_t> worklist;
     bool                  changed               = false;
     bool                  directUseCursorsReady = false;
+    FloatDefCounts        floatDefs;
+    floatDefs.storage  = &storage;
+    floatDefs.operands = &operands;
 
     // Erasing a dead definition cannot change the reaching value of a surviving
     // use. Keep this SSA graph for the entire fixed point and ignore erased
@@ -212,7 +288,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     // each level of a dead chain. Snapshot usage once per sweep to preserve the
     // original erasure order, including its CPU-flag redefinition checks.
     collectUsedValues(usedValues, worklist, storage, *ssaState);
-    while (eliminateDeadInstructions(storage, operands, *ssaState, usedValues, directUseCursorsReady ? &worklist : nullptr))
+    while (eliminateDeadInstructions(storage, operands, *ssaState, usedValues, directUseCursorsReady ? &worklist : nullptr, floatDefs))
     {
         changed = true;
         if (!ssaState->phis().empty())

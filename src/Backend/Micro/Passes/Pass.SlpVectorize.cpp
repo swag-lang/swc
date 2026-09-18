@@ -73,6 +73,9 @@ namespace
         FloatDiv,
         FloatMin,
         FloatMax,
+        FloatSqrt,
+        FloatTruncToS32,
+        FloatRound,
         ShiftLeft,
         ShiftRight,
         RotateLeft,
@@ -83,6 +86,7 @@ namespace
         Opaque,
         Const,
         Load,
+        Unary,
         BinaryRegReg,
         BinaryRegImm,
     };
@@ -131,9 +135,11 @@ namespace
             {
                 case SlpValueKind::Const:
                     return a.imm == b.imm;
-                case SlpValueKind::Load:
-                    return a.loadRootKey == b.loadRootKey && a.loadOffset == b.loadOffset && a.loadEpoch == b.loadEpoch;
-                case SlpValueKind::BinaryRegReg:
+            case SlpValueKind::Load:
+                return a.loadRootKey == b.loadRootKey && a.loadOffset == b.loadOffset && a.loadEpoch == b.loadEpoch;
+            case SlpValueKind::Unary:
+                return a.op == b.op && a.lhs == b.lhs;
+            case SlpValueKind::BinaryRegReg:
                     return a.op == b.op && a.lhs == b.lhs && a.rhs == b.rhs;
                 case SlpValueKind::BinaryRegImm:
                     return a.op == b.op && a.lhs == b.lhs && a.imm == b.imm;
@@ -255,6 +261,7 @@ namespace
             // the encoder has the VEX encodings.
             BinaryRegRegReg,
             BinaryRegRegImm,
+            VecUnary,
             Shuffle,
         };
 
@@ -477,7 +484,15 @@ namespace
     bool isLaneTransparentCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (inst.op == MicroInstrOpcode::LoadRegReg)
-            return (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64) && !ops[0].reg.isAnyFloat() && !ops[1].reg.isAnyFloat();
+        {
+            // A scalar float copy carries its low 32-bit lane unchanged. Its
+            // upper vector lanes are irrelevant to a graph made exclusively
+            // from scalar f32 operations, so it is as transparent as an
+            // integer lane copy here.
+            if (ops[2].opBits == MicroOpBits::B32)
+                return true;
+            return ops[2].opBits == MicroOpBits::B64 && !ops[0].reg.isAnyFloat() && !ops[1].reg.isAnyFloat();
+        }
         if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg)
             return ops[2].opBits == MicroOpBits::B64 && ops[3].opBits == MicroOpBits::B32;
         return false;
@@ -535,6 +550,13 @@ namespace
                     return false;
                 outOp = LaneOp::FloatMax;
                 return true;
+            // Scalar FloatAnd is a bitwise operation on the f32 bit pattern.
+            // VecAnd applies that same operation independently to every lane.
+            case MicroOp::FloatAnd:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::And;
+                return true;
             default:
                 return false;
         }
@@ -581,6 +603,13 @@ namespace
                     return false;
                 outOp  = LaneOp::RotateLeft;
                 outImm = op == MicroOp::RotateLeft ? imm : 32 - imm;
+                return true;
+
+            case MicroOp::FloatRound:
+                if (opBits != MicroOpBits::B32 || imm > 3)
+                    return false;
+                outOp  = LaneOp::FloatRound;
+                outImm = imm;
                 return true;
 
             default:
@@ -712,6 +741,33 @@ namespace
                 case SlpValueKind::Load:
                     return buildLoad(tuple, sorted, n0, n1, n2, n3);
 
+                case SlpValueKind::Unary:
+                {
+                    if (n0.op != n1.op || n0.op != n2.op || n0.op != n3.op)
+                        return K_INVALID_ID;
+                    const TupleKey input{{n0.lhs, n1.lhs, n2.lhs, n3.lhs}};
+                    const uint32_t inputReg = build(input, depth + 1);
+                    if (inputReg == K_INVALID_ID)
+                        return K_INVALID_ID;
+
+                    MicroOp vecOp = MicroOp::VecSqrtF32;
+                    switch (n0.op)
+                    {
+                        case LaneOp::FloatSqrt:
+                            break;
+                        case LaneOp::FloatTruncToS32:
+                            vecOp = MicroOp::VecTruncF32ToS32;
+                            break;
+                        default:
+                            return K_INVALID_ID;
+                    }
+                    const uint32_t dstReg = allocReg();
+                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::VecUnary, .dst = dstReg, .src = inputReg, .op = vecOp});
+                    plan_->arithmeticOps++;
+                    remember(tuple, sorted, dstReg);
+                    return dstReg;
+                }
+
                 case SlpValueKind::BinaryRegReg:
                 {
                     if (n0.op != n1.op || n0.op != n2.op || n0.op != n3.op)
@@ -842,6 +898,15 @@ namespace
                             return dstReg;
                         }
 
+                        case LaneOp::FloatRound:
+                        {
+                            const uint32_t dstReg = allocReg();
+                            plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegImm, .dst = dstReg, .src = lhsReg, .op = MicroOp::VecRoundF32, .imm = n0.imm});
+                            plan_->arithmeticOps++;
+                            remember(tuple, sorted, dstReg);
+                            return dstReg;
+                        }
+
                         case LaneOp::ShiftLeft:
                         case LaneOp::ShiftRight:
                         {
@@ -884,6 +949,26 @@ namespace
                 }
 
                 case SlpValueKind::Const:
+                {
+                    if (n0.imm != n1.imm || n0.imm != n2.imm || n0.imm != n3.imm)
+                        return K_INVALID_ID;
+
+                    const uint32_t splatValue = static_cast<uint32_t>(n0.imm);
+                    const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                    uint32_t       splatReg   = K_INVALID_ID;
+                    if (splatIt != plan_->splatRegs.end())
+                    {
+                        splatReg = splatIt->second;
+                    }
+                    else
+                    {
+                        splatReg = allocReg();
+                        plan_->splatRegs.emplace(splatValue, splatReg);
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat32, .dst = splatReg, .imm = splatValue});
+                    }
+                    remember(tuple, sorted, splatReg);
+                    return splatReg;
+                }
                 case SlpValueKind::Opaque:
                     return K_INVALID_ID;
             }
@@ -1255,6 +1340,25 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegReg:
             {
+                if (ops[3].microOp == MicroOp::FloatSqrt && ops[2].opBits == MicroOpBits::B32 && ops[0].reg == ops[1].reg)
+                {
+                    SlpValue v;
+                    v.kind = SlpValueKind::Unary;
+                    v.op   = LaneOp::FloatSqrt;
+                    v.lhs  = currentValue(scan, ops[1].reg);
+                    setValue(scan, ops[0].reg, scan.values.intern(v));
+                    return;
+                }
+                if (ops[3].microOp == MicroOp::ConvertFloatToInt && ops[2].opBits == MicroOpBits::B32 &&
+                    ops[0].reg.isVirtualInt() && ops[1].reg.isVirtualFloat())
+                {
+                    SlpValue v;
+                    v.kind = SlpValueKind::Unary;
+                    v.op   = LaneOp::FloatTruncToS32;
+                    v.lhs  = currentValue(scan, ops[1].reg);
+                    setValue(scan, ops[0].reg, scan.values.intern(v));
+                    return;
+                }
                 LaneOp laneOp{};
                 if (laneOpForBinaryRegReg(ops[3].microOp, ops[2].opBits, laneOp))
                 {
@@ -1766,6 +1870,16 @@ namespace
                     ops[3].microOp = planInstr.op;
                     ops[4].setImmediateValue(ApInt(planInstr.imm, 64));
                     fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
+                    break;
+                }
+                case PlanInstr::Kind::VecUnary:
+                {
+                    std::array<MicroInstrOperand, 4> ops;
+                    ops[0].reg     = planRegs[planInstr.dst];
+                    ops[1].reg     = planRegs[planInstr.src];
+                    ops[2].opBits  = MicroOpBits::B128;
+                    ops[3].microOp = planInstr.op;
+                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecUnaryRegReg, ops);
                     break;
                 }
                 case PlanInstr::Kind::Shuffle:

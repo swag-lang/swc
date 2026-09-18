@@ -210,6 +210,57 @@ func lanesMaxFloatPairs(values: *[12] f32)
     values[][11] = Swag.max(values[][3], values[][7])
 }
 
+#[Swag.Optimize(true)]
+func lanesSqrtFloat(values: *[8] f32)
+{
+    values[][4] = Swag.sqrt(values[][0])
+    values[][5] = Swag.sqrt(values[][1])
+    values[][6] = Swag.sqrt(values[][2])
+    values[][7] = Swag.sqrt(values[][3])
+}
+
+#[Swag.Optimize(true)]
+func lanesAbsFloat(values: *[8] f32)
+{
+    values[][4] = Swag.abs(values[][0])
+    values[][5] = Swag.abs(values[][1])
+    values[][6] = Swag.abs(values[][2])
+    values[][7] = Swag.abs(values[][3])
+}
+
+#[Swag.Optimize(true)]
+func lanesAddFloatConstant(values: *[8] f32)
+{
+    values[][4] = values[][0] + 1.5'f32
+    values[][5] = values[][1] + 1.5'f32
+    values[][6] = values[][2] + 1.5'f32
+    values[][7] = values[][3] + 1.5'f32
+}
+
+struct FloatToIntLanes
+{
+    input:  [4] f32
+    output: [4] s32
+}
+
+#[Swag.Optimize(true)]
+func lanesTruncFloatToS32(values: *FloatToIntLanes)
+{
+    values.output[0] = cast(s32) values.input[0]
+    values.output[1] = cast(s32) values.input[1]
+    values.output[2] = cast(s32) values.input[2]
+    values.output[3] = cast(s32) values.input[3]
+}
+
+#[Swag.Optimize(true)]
+func lanesFloorFloat(values: *[8] f32)
+{
+    values[][4] = Swag.floor(values[][0])
+    values[][5] = Swag.floor(values[][1])
+    values[][6] = Swag.floor(values[][2])
+    values[][7] = Swag.floor(values[][3])
+}
+
 #test
 {
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -258,6 +309,42 @@ func lanesMaxFloatPairs(values: *[12] f32)
     var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesMaxFloatPairs(&values)
     Swag.assert(values[8] == 10.0'f32 and values[9] == 20.0'f32 and values[10] == 30.0'f32 and values[11] == 40.0'f32)
+}
+
+#test
+{
+    var values: [8] f32 = [1.0'f32, 4.0'f32, 9.0'f32, 16.0'f32, 0, 0, 0, 0]
+    lanesSqrtFloat(&values)
+    Swag.assert(values[4] == 1.0'f32 and values[5] == 2.0'f32 and values[6] == 3.0'f32 and values[7] == 4.0'f32)
+}
+
+#test
+{
+    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
+    lanesAbsFloat(&values)
+    Swag.assert(values[4] == 1.5'f32 and values[5] == 0.0'f32 and values[6] == 2.25'f32 and values[7] == 4.0'f32)
+}
+
+#test
+{
+    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
+    lanesAddFloatConstant(&values)
+    Swag.assert(values[4] == 0.0'f32 and values[5] == 1.5'f32 and values[6] == 3.75'f32 and values[7] == -2.5'f32)
+}
+
+#test
+{
+    var values: FloatToIntLanes
+    values.input = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32]
+    lanesTruncFloatToS32(&values)
+    Swag.assert(values.output == [-1, 0, 2, -4])
+}
+
+#test
+{
+    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.75'f32, -4.0'f32, 0, 0, 0, 0]
+    lanesFloorFloat(&values)
+    Swag.assert(values[4] == -2.0'f32 and values[5] == 0.0'f32 and values[6] == 2.0'f32 and values[7] == -4.0'f32)
 }
 
 #test

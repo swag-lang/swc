@@ -11,9 +11,41 @@ inline argument materialization. Earlier measurements used the whole-hull alloca
 builds now use interval splitting, so those measurements identify workloads to recheck rather than
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
 the executable Micro instruction stream has no explicit phi instruction. Since build 438 a call the
+
 straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
+
+### compiler.optimization.044 — Packed unary operations cannot consume a 128-bit memory source
+
+- Recorded: 2026-09-18 19:48
+- Area: compiler/backend, instruction selection
+- Evidence: four adjacent `f32 -> s32` truncations now form `movups`, `cvttps2dq`, `movups`
+  (three body instructions plus return). LLVM reads the input directly in `cvttps2dq`, leaving
+  two body instructions. `VecUnaryRegMem` is intentionally widening-only today: its encoder
+  asserts one of the six widening operations, and `VecLoopPromote` records every such read as
+  eight bytes. Extending only the SLP rewrite would therefore lie to the encoder and memory
+  analysis about a 16-byte read.
+- Next: define the read width from the packed operation, admit full-width `VecSqrtF32` and
+  `VecTruncF32ToS32` memory forms through the encoder and dependent passes, then compare scalar
+  and packed outputs on finite values and overflow-checked casts.
+- Complete when: a full-width packed unary memory operation has correct alias, promotion and
+  encoding metadata, and the truncation fixture emits `cvttps2dq xmm, [mem]`.
+
+### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
+
+- Recorded: 2026-09-18 19:48
+- Area: compiler/backend, constant materialization
+- Evidence: four `Swag.abs(f32)` stores now form a scalar constant load, `pshufd`, packed load,
+  `andps`, packed store (five body instructions). LLVM uses a 16-byte repeated sign-mask constant
+  directly as the `andps` memory operand, for three body instructions. The scalar constant
+  allocation owns only four bytes, so reusing it as a packed memory operand is unsound; the SLP
+  pass correctly materializes a register splat instead.
+- Next: design an interned 128-bit repeated-constant allocation with an explicit relocation and
+  memory-operand legality contract; use it only where the packed operation can read all 16 bytes.
+- Complete when: the sign-mask fixture loads or consumes a verified 128-bit constant without a
+  scalar-to-vector shuffle, and relocation/JIT tests cover the allocation boundary.
+
 
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 

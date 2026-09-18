@@ -194,6 +194,72 @@ namespace PostRaPeephole
         return false;
     }
 
+    bool isComparisonOpcode(MicroInstrOpcode op)
+    {
+        switch (op)
+        {
+            case MicroInstrOpcode::CmpRegReg:
+            case MicroInstrOpcode::CmpRegImm:
+            case MicroInstrOpcode::CmpMemReg:
+            case MicroInstrOpcode::CmpMemImm:
+            case MicroInstrOpcode::CmpAmcReg:
+            case MicroInstrOpcode::CmpAmcImm:
+            case MicroInstrOpcode::TestRegReg:
+            case MicroInstrOpcode::TestRegImm:
+            case MicroInstrOpcode::TestMemReg:
+            case MicroInstrOpcode::TestMemImm:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // A comparison repeated right after the branch that read it is redundant:
+    // a conditional jump leaves the flags it tested untouched, and nothing
+    // runs between it and the instruction it falls through to.
+    //
+    //     cmp [rcx + rax], r9b ; je .L ; cmp [rcx + rax], r9b ; setae
+    //   ->
+    //     cmp [rcx + rax], r9b ; je .L ; setae
+    //
+    // A byte-by-byte comparison ends that way: the loop leaves on the first
+    // difference and the exit block asks which side was larger, which is the
+    // flags the loop's own compare left.
+    bool tryEraseCompareAfterBranch(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !isComparisonOpcode(inst.op))
+            return false;
+
+        const MicroInstrRef jumpRef = ctx.previousRef(ref);
+        const MicroInstr*   jump    = ctx.instruction(jumpRef);
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+            return false;
+        const MicroInstrOperand* jumpOps = jump->ops(*ctx.operands);
+        if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+            return false;
+
+        const MicroInstrRef earlierRef = ctx.previousRef(jumpRef);
+        const MicroInstr*   earlier    = ctx.instruction(earlierRef);
+        if (!earlier || earlier->op != inst.op || earlier->numOperands != inst.numOperands)
+            return false;
+
+        const MicroInstrOperand* repeated = inst.ops(*ctx.operands);
+        const MicroInstrOperand* original = earlier->ops(*ctx.operands);
+        if (!repeated || !original)
+            return false;
+        for (uint8_t index = 0; index < inst.numOperands; ++index)
+        {
+            if (repeated[index].valueU64 != original[index].valueU64 ||
+                repeated[index].hasWideImmediateValue() || original[index].hasWideImmediateValue())
+                return false;
+        }
+
+        if (!ctx.claimAll({earlierRef, jumpRef, ref}))
+            return false;
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // The overflow-safe unsigned average idiom can use a widened add once
     // both dword inputs are known to have clear upper halves:
     //

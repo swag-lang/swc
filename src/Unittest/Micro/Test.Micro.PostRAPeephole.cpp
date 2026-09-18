@@ -1741,6 +1741,54 @@ SWC_TEST_BEGIN(PostRAPeephole_MultiplyStillRead_KeepsCopy)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp rcx, rdx ; je .L ; [cmp again] ; setae al ; .L: ret
+    void emitCompareAroundBranch(MicroBuilder& builder, bool sameCompare)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg rdx = MicroReg::intReg(3);
+        constexpr MicroReg r8  = MicroReg::intReg(8);
+
+        const MicroLabelRef exit = builder.createLabel();
+        builder.emitCmpRegReg(rcx, rdx, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+        builder.emitCmpRegReg(rcx, sameCompare ? rdx : r8, MicroOpBits::B64);
+        builder.emitSetCondReg(rax, MicroCond::AboveOrEqual);
+        builder.placeLabel(exit);
+        builder.emitRet();
+    }
+}
+
+// The exit block reads the flags the loop's compare left.
+SWC_TEST_BEGIN(PostRAPeephole_CompareRepeatedAfterBranch_Erased)
+{
+    MicroBuilder builder(ctx);
+    emitCompareAroundBranch(builder, true);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A comparison of other values is its own.
+SWC_TEST_BEGIN(PostRAPeephole_DifferentCompareAfterBranch_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitCompareAroundBranch(builder, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -43,6 +43,11 @@ namespace
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseRepeatedCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
+        for (const MicroInstrOpcode op : {MicroInstrOpcode::CmpRegReg, MicroInstrOpcode::CmpRegImm, MicroInstrOpcode::CmpMemReg,
+                                          MicroInstrOpcode::CmpMemImm, MicroInstrOpcode::CmpAmcReg, MicroInstrOpcode::CmpAmcImm,
+                                          MicroInstrOpcode::TestRegReg, MicroInstrOpcode::TestRegImm, MicroInstrOpcode::TestMemReg,
+                                          MicroInstrOpcode::TestMemImm})
+            r.add(op, tryEraseCompareAfterBranch);
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldCarryMask);

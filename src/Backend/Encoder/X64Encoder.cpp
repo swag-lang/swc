@@ -3290,7 +3290,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
         if (op != MicroOp::FloatSqrt && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
         {
             emitSpecF64(store_, 0xF3, opBits);
-            emitRex(store_, opBits, regDst, regSrc);
+            emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
         }
         else
         {
@@ -3565,7 +3565,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
         SWC_ASSERT(value <= 0x03);
         emitCpuOp(store_, 0x66);
-        emitRex(store_, opBits, reg, reg);
+        emitRex(store_, MicroOpBits::Zero, reg, reg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x3A);
         emitCpuOp(store_, opBits == MicroOpBits::B64 ? 0x0B : 0x0A);

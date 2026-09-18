@@ -335,6 +335,12 @@ Each `f32` min/max function is now one instruction plus RET, shrinking from 24
 to 5 bytes and matching LLVM. The `f64` forms shrink from 25 to 6 bytes; their
 remaining byte is the redundant REX.W prefix on the scalar SSE operation.
 
+Build 982 passed all 998 C++ tests, all 22 native min/max intrinsic tests and
+all 23 native intrinsic-fold tests, including runtime `f64` rounding. Scalar
+SSE register operations and rounding no longer request REX.W; extended XMM
+registers retain their required REX.R/B bits. The `f64` min/max functions are
+now 5 bytes and match LLVM.
+
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under
 heavier concurrent load, at 310.33 and 303.89 MiB. Shared-machine variation is

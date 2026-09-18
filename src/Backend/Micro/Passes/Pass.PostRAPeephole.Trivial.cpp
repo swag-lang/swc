@@ -151,6 +151,7 @@ namespace PostRaPeephole
         std::array<MicroInstrOperand, 3> falseCopy = {ops[6][0], ops[6][1], ops[6][2]};
         falseCopy[0].reg = ctx.floatReturn;
         falseCopy[1].reg = falseSrc;
+        falseCopy[2].opBits = MicroOpBits::B128;
 
         if (!ctx.claimAll({refs[0], refs[1], refs[3], refs[4], refs[6], refs[8]}))
             return false;

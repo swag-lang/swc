@@ -1302,14 +1302,22 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             if (!predInst)
                 return false;
 
-            const bool fallThroughPred = p + 1 == s && !MicroInstrInfo::isTerminatorInstruction(*predInst);
-            const bool isJump          = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::JumpInstruction);
+            const bool isJump = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::JumpInstruction);
             // Conditionality lives in the operand, not the opcode: an
             // unconditional jump is a JumpCond carrying Unconditional, and it
             // has no fall-through side to protect.
             const MicroInstrOperand* predOpsEarly  = predInst->ops(*operands_);
             const bool               isConditional = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::ConditionalJump) &&
                                        predOpsEarly && predOpsEarly[0].cpuCond != MicroCond::Unconditional;
+
+            // A conditional jump falls through to the label right after it:
+            // that edge is its not-taken side, and its moves belong before the
+            // label, on that side alone. Placed before the jump, or in the
+            // taken edge's trampoline, they would run where the jump goes
+            // instead. Only a jump to that very label reaches it both ways.
+            const MicroInstrOperand* labelOps       = labelInst->ops(*operands_);
+            const bool               jumpsToLabel   = isJump && predOpsEarly && labelOps && predOpsEarly[2].valueU64 == labelOps[0].valueU64;
+            const bool               fallThroughPred = p + 1 == s && (!MicroInstrInfo::isTerminatorInstruction(*predInst) || (isConditional && !jumpsToLabel));
 
             // The insertion point: before the label for the fall-through
             // edge (jumps land past it), before the jump otherwise.
@@ -1427,7 +1435,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // trampoline for both whenever the branch can be inverted, and
             // keep the plain spot when it cannot.
             bool useTrampoline = !plainOk;
-            if (plainOk && isConditional && (loopDepth_[p] > loopDepth_[s] || edgeMoves.size() >= 2))
+            if (plainOk && isConditional && !fallThroughPred && (loopDepth_[p] > loopDepth_[s] || edgeMoves.size() >= 2))
                 useTrampoline = true;
 
             uint32_t trampJump = std::numeric_limits<uint32_t>::max();

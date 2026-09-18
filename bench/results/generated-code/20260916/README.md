@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 959 (9981c20ae) are
+corpus. Focused continuation measurements through build 964 are
 recorded below.
 
 ## Machine-code measurements
@@ -80,13 +80,14 @@ remaining gaps for later work.
 
 Five continuation rounds then concentrated on conditional code, narrow values
 and indexed byte arithmetic. The table uses the last measured build for each
-round. Round 26's sole larger function is the still branch-heavy
-`choose_between_u32`; every function in rounds 27--29 matches or beats LLVM.
+round. Round 26's sole larger function is `choose_between_u32`; its decision
+body now matches LLVM, while its fifth argument still causes a stack frame.
+Every function in rounds 27--29 matches or beats LLVM.
 
 | Round | Measured build | Functions | Swag bytes | LLVM bytes | Larger / equal / smaller |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 25 | 959 | 8 | 244 | 191 | 6 / 0 / 2 |
-| 26 | 959 | 16 | 203 | 201 | 1 / 10 / 5 |
+| 26 | 964 | 16 | 199 | 201 | 1 / 10 / 5 |
 | 27 | 959 | 18 | 229 | 233 | 0 / 15 / 3 |
 | 28 | 959 | 14 | 180 | 192 | 0 / 11 / 3 |
 | 29 | 959 | 16 | 220 | 235 | 0 / 11 / 5 |
@@ -95,6 +96,9 @@ Notable measured results include paired range guards at 17 bytes (equal to
 LLVM), conditional signed 64-bit shifts at 13 bytes (LLVM 16), conditional
 `u8` multiplication at 17 bytes (equal), conditional `u8` left shift at 15
 bytes (LLVM 20), and all four common `u16` arithmetic forms equal to LLVM.
+The range-guarded `u32` value select falls from 34 to 30 bytes: its two-compare,
+two-`cmov` body matches LLVM, with the remaining 12-byte difference coming from
+Swag's frame setup and teardown around the fifth stack argument.
 The late indexed-byte follow-up reduces floor average from 22 to 14 bytes
 (LLVM 16), ceiling average from 22 to 17 (LLVM 16), and saturating add from 24
 to 19 (LLVM 20).
@@ -224,9 +228,11 @@ exposed the attempted regression.
 Build 945 passed all 3,423 native tests plus the three expected recovery
 failures. After the guard, conditional-operation, shift, multiplication,
 indexed-average and saturating-add batches, build 959 passed all 3,432 native
-tests plus the same three expected recovery failures. Focused validation varied
-between branch diamonds, short-circuit booleans, count boundaries, narrow return copies,
-implicit multiplication, carry handling and indexed averages.
+tests plus the same three expected recovery failures. Build 964's guarded-select
+batch passed 985 C++ tests, all 3,433 native tests and the same recovery probes.
+Focused validation varied between branch diamonds, short-circuit booleans,
+count boundaries, narrow return copies, implicit multiplication, carry handling
+and indexed averages; the final repository integrity check also passed.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

@@ -15,27 +15,24 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.042 — A range-guarded select remains a branch cascade
+### compiler.optimization.042 — A leaf select pays a frame for its fifth scalar argument
 
 - Recorded: 2026-09-17 21:43
-- Area: compiler/backend, branch simplification
-- Evidence: Release build 959 emits 34 bytes for
-  `x >= low and x <= high ? inside : outside` on `u32`, against LLVM's 18. After
-  branch simplification, the Micro stream is two comparisons whose conditional jumps both target
-  the `outside` arm, followed by the two-move result diamond. LLVM loads `outside`, conditionally
-  replaces `inside` after the upper-bound comparison, then conditionally selects that candidate
-  after the lower-bound comparison: two comparisons and two `cmov`, with no branch.
-- Boundary: eight build-959 probes cover signed and unsigned 32- and 64-bit values, a half-open
-  range, reversed comparison order, and the equivalent outside-range `or`. Swag totals 278 bytes
-  against LLVM's 150; every variant retains the same branch-cascade family, at 15 to 17 bytes
-  over LLVM. The transform must preserve short-circuit semantics for arms that cannot be
-  speculated and must not generalize beyond a pure result diamond.
-- Next: add a pre-RA if-conversion that recognizes same-target comparison guards feeding a short,
-  pure select diamond and builds the result with a conditional-move chain. Reuse the existing
-  diamond speculation, flag-liveness, and single-result checks rather than duplicating weaker
-  safety rules.
-- Complete when: the eight range variants are branchless and match LLVM within the Swag ABI's
-  required return extension, with focused Micro coverage and varied native boundary-value tests.
+- Updated: 2026-09-18 06:51 — Converted the guard cascade and isolated the remaining frame overhead.
+- Area: compiler/backend, prologue and stack-argument addressing
+- Evidence: build 964 converts `x >= low and x <= high ? inside : outside` into
+  the same two comparisons and two `cmov` instructions as LLVM. The `u32` function falls from 34
+  to 30 bytes, against LLVM's 18, and round 26 falls from 203 to 199 bytes against LLVM's 201.
+  The complete 12-byte residual is the net cost of Swag's `push rbp; sub rsp; mov rbp, rsp` frame
+  and matching teardown around its fifth argument; LLVM reads that argument directly from the
+  caller's stack. Signed and unsigned 32- and 64-bit, half-open, and reversed-order variants show
+  the same boundary. The equivalent outside-range `or` already uses materialized booleans and is
+  outside this if-conversion.
+- Next: let a leaf function with no local frame or calls address incoming stack arguments relative
+  to the entry stack pointer, while preserving unwind information and every supported calling
+  convention.
+- Complete when: the range-select probes lose the otherwise empty frame without changing their
+  results, unwind metadata, stack-argument offsets, or functions that allocate locals or call out.
 
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 

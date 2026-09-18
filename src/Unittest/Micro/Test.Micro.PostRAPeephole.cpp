@@ -2394,6 +2394,46 @@ SWC_TEST_BEGIN(Legalize_LoopMultiplyHighDoesNotSaveDeadRax)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // and eax, 1 (dword) ; cmp rax, 0 (qword) ; set(cond) cl ; store
+    void emitWidenedZeroCompare(MicroBuilder& builder, MicroCond cond)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg r8  = MicroReg::intReg(8);
+
+        builder.emitLoadRegMem(rax, r8, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rax, ApInt(1, 64), MicroOp::And, MicroOpBits::B32);
+        builder.emitCmpRegImm(rax, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitSetCondReg(rcx, cond);
+        builder.emitLoadMemReg(r8, 8, rcx, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+// The dword result is its own zero extension: its ZF answers the qword test.
+SWC_TEST_BEGIN(PostRAPeephole_QwordZeroTestOfDwordResultErased)
+{
+    MicroBuilder builder(ctx);
+    emitWidenedZeroCompare(builder, MicroCond::Equal);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// Its SF is bit 31, not bit 63: a sign test keeps the compare.
+SWC_TEST_BEGIN(PostRAPeephole_QwordSignTestOfDwordResultKept)
+{
+    MicroBuilder builder(ctx);
+    emitWidenedZeroCompare(builder, MicroCond::Less);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

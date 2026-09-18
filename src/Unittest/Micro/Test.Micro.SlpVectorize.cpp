@@ -61,12 +61,16 @@ SWC_TEST_BEGIN(SlpVectorize_SplatsSharedArithmeticImmediate)
     X64Encoder     encoder(ctx);
     MicroSsaState  ssa;
     const MicroReg sp = encoder.stackPointerReg();
-    for (uint32_t lane = 0; lane < 4; ++lane)
+    for (uint32_t group = 0; group < 2; ++group)
     {
-        const MicroReg value = MicroReg::virtualIntReg(lane + 1);
-        builder.emitLoadRegMem(value, sp, 0x40 + lane * 4, MicroOpBits::B32);
-        builder.emitOpBinaryRegImm(value, ApInt(5, 32), MicroOp::Add, MicroOpBits::B32);
-        builder.emitLoadMemReg(sp, 0x60 + lane * 4, value, MicroOpBits::B32);
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg value  = MicroReg::virtualIntReg(group * 4 + lane + 1);
+            const uint64_t offset = group * 0x20 + lane * 4;
+            builder.emitLoadRegMem(value, sp, 0x40 + offset, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(value, ApInt(5, 32), MicroOp::Add, MicroOpBits::B32);
+            builder.emitLoadMemReg(sp, 0x80 + offset, value, MicroOpBits::B32);
+        }
     }
     builder.emitRet();
 
@@ -81,8 +85,8 @@ SWC_TEST_BEGIN(SlpVectorize_SplatsSharedArithmeticImmediate)
         if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[4].microOp == MicroOp::VecAdd32)
             ++adds;
     }
-    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1 ||
-        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1 || splats != 1 || adds != 1)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 2 || splats != 1 || adds != 2)
         return Result::Error;
     return Result::Continue;
 }

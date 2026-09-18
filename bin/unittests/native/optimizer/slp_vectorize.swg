@@ -95,6 +95,20 @@ func lanesAddConstant(values: *[8] u32)
     values[][7] = values[][3] + 5
 }
 
+// Two groups share the same broadcast instead of each materializing it.
+#[Swag.Optimize(true)]
+func lanesAddConstantTwice(values: *[16] u32)
+{
+    values[][8]  = values[][0] + 5
+    values[][9]  = values[][1] + 5
+    values[][10] = values[][2] + 5
+    values[][11] = values[][3] + 5
+    values[][12] = values[][4] + 5
+    values[][13] = values[][5] + 5
+    values[][14] = values[][6] + 5
+    values[][15] = values[][7] + 5
+}
+
 #[Swag.Optimize(true)]
 func lanesXorMask(values: *[8] u32)
 {
@@ -149,6 +163,14 @@ func threeLanes(values: *[8] u32)
     var values: [8] u32 = [10, 20, 30, 40, 0, 0, 0, 0]
     lanesAddConstant(&values)
     Swag.assert(values[4] == 15 and values[5] == 25 and values[6] == 35 and values[7] == 45)
+}
+
+#test
+{
+    var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
+    lanesAddConstantTwice(&values)
+    for i in 8 do
+        Swag.assert(values[i + 8] == i + 5)
 }
 
 #test

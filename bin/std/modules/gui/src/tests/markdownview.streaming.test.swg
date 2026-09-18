@@ -77,6 +77,39 @@ using Swag, Core
     Swag.assert(Math.abs(view.scroll.scrollPosition().y + view.scroll.paddedClientRect().height - view.contentHeight - view.documentStyle.bottomInset) <= 1)
 }
 
+// Reaching the streamed end replaces the block under a stationary pointer. The following wheel
+// notch must resolve its new target without requiring an intervening mouse move.
+#test
+{
+    let fileName = Testing.tempFilePath("markdown-wheel-end-", ".md")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for index in 4_000 do
+        source += Format.toString("Paragraph % gives the wheel a stable streaming destination.\n\n", index)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8) source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+    host.setReducedMotion(true)
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 480)
+    view.applyLayout()
+    for 64 where view.isLoading() do
+        host.fireTimers()
+
+    host.moveMouse({360, 240})
+    Swag.assert(host.app.mouseEnterWnd != null and host.app.mouseEnterWnd != view.scroll)
+    view.scroll.setScrollPos(0, view.scroll.scrollableClientRect().height)
+    discard host.render(view)
+    for 1_024 where view.isLoading() do
+        host.fireTimers()
+    let end = view.scroll.scrollPosition().y
+    host.app.sendMouseWheelEvent(1)
+
+    Swag.assert(view.scroll.scrollPosition().y < end)
+}
+
 // Every document key uses the scrollbar's next-paint loading path, including reversals before
 // the pending destination is painted. No loading timer is needed to expose a simple text page.
 #test

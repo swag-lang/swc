@@ -1634,6 +1634,116 @@ namespace PostRaPeephole
         return true;
     }
 
+    // An OR of two materialized comparison results, used only to select the
+    // same value, is two conditional moves driven directly by the comparisons:
+    //
+    //     cmp A, B                    mov R, kept
+    //     setcc1 T1                  cmp A, B
+    //     cmp C, D           ->       cmovcc1 R, other
+    //     setcc2 T2                  cmp C, D
+    //     or T1, T2                  cmovcc2 R, other
+    //     mov R, kept
+    //     cmovne R, other
+    //
+    // This is the post-allocation form of an outside-range value selection.
+    // Keep the match adjacent and require dead temporaries/flags because the
+    // rewrite removes the canonical boolean value produced by OR.
+    bool tryFoldBooleanOrSelect(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.encoder || inst.op != MicroInstrOpcode::LoadCondRegReg)
+            return false;
+        const auto* select = inst.ops(*ctx.operands);
+        if (!select || select[2].cpuCond != MicroCond::NotEqual ||
+            !select[0].reg.isInt() || !select[1].reg.isInt() || select[0].reg == select[1].reg ||
+            (select[3].opBits != MicroOpBits::B32 && select[3].opBits != MicroOpBits::B64))
+            return false;
+        const MicroReg result = select[0].reg;
+        const MicroReg other  = select[1].reg;
+
+        const MicroInstrRef initialRef = ctx.previousRef(ref);
+        const MicroInstr*   initial    = ctx.instruction(initialRef);
+        const auto*         initialOps = initial ? initial->ops(*ctx.operands) : nullptr;
+        if (!initial || !initialOps || initial->numOperands > Action::K_MAX_OPS)
+            return false;
+        switch (initial->op)
+        {
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                break;
+            default:
+                return false;
+        }
+        const MicroInstrUseDef initialUseDef = initial->collectUseDef(*ctx.operands, ctx.encoder);
+        if (initialUseDef.defs.size() != 1 || initialUseDef.defs[0] != result ||
+            instructionActuallyUsesCpuFlags(*initial, initialOps) || instructionActuallyDefinesCpuFlags(*initial, initialOps))
+            return false;
+
+        const MicroInstrRef orRef  = ctx.previousRef(initialRef);
+        const MicroInstr*   orInst = ctx.instruction(orRef);
+        const auto*         orOps  = orInst ? orInst->ops(*ctx.operands) : nullptr;
+        if (!orInst || orInst->op != MicroInstrOpcode::OpBinaryRegReg || !orOps ||
+            orOps[2].opBits != MicroOpBits::B8 || orOps[3].microOp != MicroOp::Or)
+            return false;
+        const MicroReg firstBool  = orOps[0].reg;
+        const MicroReg secondBool = orOps[1].reg;
+        if (!firstBool.isInt() || !secondBool.isInt() || firstBool == secondBool ||
+            firstBool == other || secondBool == other)
+            return false;
+
+        const MicroInstrRef secondSetRef = ctx.previousRef(orRef);
+        const MicroInstr*   secondSet    = ctx.instruction(secondSetRef);
+        const auto*         secondSetOps = secondSet ? secondSet->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef secondCmpRef = ctx.previousRef(secondSetRef);
+        const MicroInstr*   secondCmp    = ctx.instruction(secondCmpRef);
+        const auto*         secondCmpOps = secondCmp ? secondCmp->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstSetRef  = ctx.previousRef(secondCmpRef);
+        const MicroInstr*   firstSet     = ctx.instruction(firstSetRef);
+        const auto*         firstSetOps  = firstSet ? firstSet->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef firstCmpRef  = ctx.previousRef(firstSetRef);
+        const MicroInstr*   firstCmp     = ctx.instruction(firstCmpRef);
+        const auto*         firstCmpOps  = firstCmp ? firstCmp->ops(*ctx.operands) : nullptr;
+        if (!firstSet || firstSet->op != MicroInstrOpcode::SetCondReg || !firstSetOps || firstSetOps[0].reg != firstBool ||
+            !secondSet || secondSet->op != MicroInstrOpcode::SetCondReg || !secondSetOps || secondSetOps[0].reg != secondBool ||
+            !firstCmp || firstCmp->op != MicroInstrOpcode::CmpRegReg || !firstCmpOps ||
+            !secondCmp || secondCmp->op != MicroInstrOpcode::CmpRegReg || !secondCmpOps ||
+            firstCmp->numOperands > Action::K_MAX_OPS || secondCmp->numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrUseDef firstCmpUseDef  = firstCmp->collectUseDef(*ctx.operands, ctx.encoder);
+        const MicroInstrUseDef secondCmpUseDef = secondCmp->collectUseDef(*ctx.operands, ctx.encoder);
+        if (microRegSpanContains(firstCmpUseDef.uses.span(), result) ||
+            microRegSpanContains(secondCmpUseDef.uses.span(), result) ||
+            microRegSpanContains(secondCmpUseDef.uses.span(), firstBool) ||
+            microRegSpanContains(initialUseDef.uses.span(), firstBool) ||
+            microRegSpanContains(initialUseDef.uses.span(), secondBool))
+            return false;
+        if ((firstBool != result && !ctx.isRegDeadAfterCurrent(firstBool)) ||
+            (secondBool != result && !ctx.isRegDeadAfterCurrent(secondBool)) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+
+        MicroInstrOperand firstSelectOps[4]  = {select[0], select[1], firstSetOps[1], select[3]};
+        MicroInstrOperand secondSelectOps[4] = {select[0], select[1], secondSetOps[1], select[3]};
+        MicroInstr        selectProbe        = inst;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, selectProbe, firstSelectOps) ||
+            ctx.encoder->queryConformanceIssue(issue, selectProbe, secondSelectOps) ||
+            !ctx.claimAll({firstCmpRef, firstSetRef, secondCmpRef, secondSetRef, orRef, initialRef, ref}))
+            return false;
+
+        ctx.emitRewrite(firstCmpRef, initial->op, std::span{initialOps, initial->numOperands}, true);
+        ctx.emitRewrite(firstSetRef, firstCmp->op, std::span{firstCmpOps, firstCmp->numOperands}, true);
+        ctx.emitRewrite(secondCmpRef, inst.op, firstSelectOps, true);
+        ctx.emitRewrite(secondSetRef, secondCmp->op, std::span{secondCmpOps, secondCmp->numOperands}, true);
+        ctx.emitRewrite(orRef, inst.op, secondSelectOps, true);
+        ctx.emitErase(initialRef);
+        ctx.emitErase(ref);
+        return true;
+    }
+
     // A zero-extended byte/word shifted entirely within the low dword needs
     // no 64-bit shift. Keep flags out of the rewrite: SF/OF may differ.
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

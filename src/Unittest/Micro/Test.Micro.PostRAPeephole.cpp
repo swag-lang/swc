@@ -107,6 +107,36 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_BooleanOrSelectUsesComparisonFlags)
+{
+    const MicroReg     rsp     = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg result  = MicroReg::intReg(0);
+    constexpr MicroReg value   = MicroReg::intReg(1);
+    constexpr MicroReg low     = MicroReg::intReg(3);
+    constexpr MicroReg high    = MicroReg::intReg(8);
+    constexpr MicroReg outside = MicroReg::intReg(9);
+
+    MicroBuilder builder(ctx);
+    builder.emitCmpRegReg(value, low, MicroOpBits::B32);
+    builder.emitSetCondReg(result, MicroCond::Below);
+    builder.emitCmpRegReg(value, high, MicroOpBits::B32);
+    builder.emitSetCondReg(value, MicroCond::Above);
+    builder.emitOpBinaryRegReg(result, value, MicroOp::Or, MicroOpBits::B8);
+    builder.emitLoadRegMem(result, rsp, 40, MicroOpBits::B32);
+    builder.emitLoadCondRegReg(result, outside, MicroCond::NotEqual, MicroOpBits::B32);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
 {
     MicroBuilder builder(ctx);

@@ -1589,6 +1589,54 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatReturnSelectUsesAbiRegisterDirectly)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FloatReturnMinMaxUsesScalarInstruction)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+    constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool isMin : {true, false})
+        {
+            MicroBuilder builder(ctx);
+            builder.setRetUsesAbiRegs(false, true);
+            const MicroLabelRef falseLabel = builder.createLabel();
+            const MicroLabelRef doneLabel  = builder.createLabel();
+            builder.emitLoadRegReg(xmm2, xmm1, bits);
+            builder.emitLoadRegReg(xmm3, xmm0, bits);
+            builder.emitCmpRegReg(isMin ? xmm2 : xmm3, isMin ? xmm3 : xmm2, bits);
+            builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, falseLabel);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+            builder.placeLabel(falseLabel);
+            builder.emitLoadRegReg(xmm3, xmm2, bits);
+            builder.placeLabel(doneLabel);
+            builder.emitLoadRegReg(xmm0, xmm3, bits);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
+                !hasBinaryRegRegDst(builder, xmm0, isMin ? MicroOp::FloatMin : MicroOp::FloatMax, bits))
+                return Result::Error;
+
+            for (const MicroInstr& candidate : builder.instructions().view())
+            {
+                if (candidate.op != MicroInstrOpcode::OpBinaryRegReg)
+                    continue;
+                const MicroInstrOperand* op = candidate.ops(builder.operands());
+                if (!op || op[1].reg != xmm1)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ScalarReturnConversionDropsUpperLaneClear)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

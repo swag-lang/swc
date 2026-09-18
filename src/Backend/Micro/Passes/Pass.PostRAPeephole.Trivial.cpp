@@ -51,7 +51,8 @@ namespace PostRaPeephole
 
     // A scalar float conditional starts with copies for both arms and joins in
     // a third register. When the true value already occupies the ABI return
-    // register, branch around one direct false-value copy instead.
+    // register, branch around one direct false-value copy instead. The same
+    // return diamond around a float comparison can become MINSS/MAXSS directly.
     bool tryFoldFloatReturnSelectDiamond(Context& ctx, const MicroInstrRef firstCopyRef, const MicroInstr& firstCopyInst)
     {
         if (ctx.isClaimed(firstCopyRef) || firstCopyInst.op != MicroInstrOpcode::LoadRegReg ||
@@ -70,7 +71,7 @@ namespace PostRaPeephole
         constexpr std::array expected = {
             MicroInstrOpcode::LoadRegReg,
             MicroInstrOpcode::LoadRegReg,
-            MicroInstrOpcode::CmpRegImm,
+            MicroInstrOpcode::Nop,
             MicroInstrOpcode::JumpCond,
             MicroInstrOpcode::JumpCond,
             MicroInstrOpcode::Label,
@@ -82,7 +83,8 @@ namespace PostRaPeephole
         for (size_t index = 0; index < refs.size(); ++index)
         {
             const MicroInstr* candidate = ctx.instruction(refs[index]);
-            if (!candidate || candidate->op != expected[index] || ctx.isClaimed(refs[index]))
+            if (!candidate || ctx.isClaimed(refs[index]) ||
+                (index == 2 ? candidate->op != MicroInstrOpcode::CmpRegImm && candidate->op != MicroInstrOpcode::CmpRegReg : candidate->op != expected[index]))
                 return false;
             ops[index] = candidate->ops(*ctx.operands);
             if (!ops[index])
@@ -112,6 +114,32 @@ namespace PostRaPeephole
             ops[4][0].cpuCond != MicroCond::Unconditional || ops[4][2].valueU64 != doneLabelId ||
             countLabelReferences(ctx, falseLabelId) != 1 || countLabelReferences(ctx, doneLabelId) != 1)
             return false;
+
+        const MicroInstr* compare = ctx.instruction(refs[2]);
+        SWC_ASSERT(compare);
+        if (compare->op == MicroInstrOpcode::CmpRegReg)
+        {
+            const bool isMin = ops[2][0].reg == falseTmp && ops[2][1].reg == resultTmp;
+            const bool isMax = ops[2][0].reg == resultTmp && ops[2][1].reg == falseTmp;
+            if (ops[2][2].opBits != bits || ops[3][0].cpuCond != MicroCond::BelowOrEqual || (!isMin && !isMax))
+                return false;
+
+            std::array<MicroInstrOperand, 4> minMax = {};
+            minMax[0].reg                           = ctx.floatReturn;
+            minMax[1].reg                           = falseSrc;
+            minMax[2].opBits                        = bits;
+            minMax[3].microOp                       = isMin ? MicroOp::FloatMin : MicroOp::FloatMax;
+            if (!ctx.claimAll({refs[0], refs[1], refs[2], refs[3], refs[4], refs[6], refs[8]}))
+                return false;
+            ctx.emitRewrite(refs[0], MicroInstrOpcode::OpBinaryRegReg, minMax);
+            ctx.emitErase(refs[1]);
+            ctx.emitErase(refs[2]);
+            ctx.emitErase(refs[3]);
+            ctx.emitErase(refs[4]);
+            ctx.emitErase(refs[6]);
+            ctx.emitErase(refs[8]);
+            return true;
+        }
 
         MicroCond inverted = MicroCond::Unconditional;
         if (!MicroPassHelpers::invertCondition(inverted, ops[3][0].cpuCond))

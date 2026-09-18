@@ -1299,6 +1299,7 @@ namespace
             relocation.targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data());
             relocation.constantShard  = maskRef.shardIndex;
             relocation.constantOffset = maskRef.offset;
+            relocation.constantCopySize = static_cast<uint32_t>(absMask.size());
             context.builder->addRelocation(relocation);
 
             storage.ptr(layout.order[ordinal + 1])->ops(operands)[1].reg = absolute;

@@ -132,6 +132,129 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsJumpThroughEmptyBlock)
 }
 SWC_TEST_END()
 
+// `if n == 0 return` before a loop guarded by `n <= 0`: the guard never jumps.
+SWC_TEST_BEGIN(BranchSimplify_ErasesBranchImpliedFalseByDominatingTest)
+{
+    constexpr MicroReg  vBase = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vN    = MicroReg::virtualIntReg(2);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef labelRet  = builder.createLabel();
+    const MicroLabelRef labelSkip = builder.createLabel();
+
+    builder.emitLoadRegImm(vBase, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(vN, vBase, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(vN, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, labelRet);
+    builder.emitCmpRegImm(vN, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, labelSkip);
+    builder.emitLoadMemReg(vBase, 8, vN, MicroOpBits::B64);
+    builder.placeLabel(labelSkip);
+    builder.placeLabel(labelRet);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Taken past `n < 10` (signed), `n > 3` always holds: the test becomes a jump.
+SWC_TEST_BEGIN(BranchSimplify_JumpsOnBranchImpliedTrueByDominatingTest)
+{
+    constexpr MicroReg  vBase = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vN    = MicroReg::virtualIntReg(2);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef labelRet  = builder.createLabel();
+    const MicroLabelRef labelBody = builder.createLabel();
+
+    builder.emitLoadRegImm(vBase, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(vN, vBase, 0, MicroOpBits::B32);
+    builder.emitCmpRegImm(vN, ApInt(10, 32), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, labelRet);
+    builder.emitCmpRegImm(vN, ApInt(3, 32), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Greater, MicroOpBits::B32, labelBody);
+    builder.emitLoadMemReg(vBase, 8, vN, MicroOpBits::B32);
+    builder.emitRet();
+    builder.placeLabel(labelBody);
+    builder.emitLoadMemReg(vBase, 16, vN, MicroOpBits::B32);
+    builder.placeLabel(labelRet);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A dominating `n >= 5` says nothing of `n < 7`, and a rewritten `n` says
+// nothing at all: both tests stay.
+SWC_TEST_BEGIN(BranchSimplify_KeepsBranchesNotImplied)
+{
+    constexpr MicroReg  vBase = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vN    = MicroReg::virtualIntReg(2);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef labelRet  = builder.createLabel();
+    const MicroLabelRef labelSkip = builder.createLabel();
+
+    builder.emitLoadRegImm(vBase, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(vN, vBase, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(vN, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, labelRet);
+    builder.emitCmpRegImm(vN, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, labelSkip);
+    builder.emitLoadMemReg(vBase, 8, vN, MicroOpBits::B64);
+    builder.emitLoadRegMem(vN, vBase, 24, MicroOpBits::B64);
+    builder.emitCmpRegImm(vN, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, labelSkip);
+    builder.emitLoadMemReg(vBase, 16, vN, MicroOpBits::B64);
+    builder.placeLabel(labelSkip);
+    builder.placeLabel(labelRet);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 3)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// `a == null or b == null`: the test of `a` says nothing of `b`.
+SWC_TEST_BEGIN(BranchSimplify_KeepsBranchOnAnotherRegister)
+{
+    constexpr MicroReg  vBase = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vA    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  vB    = MicroReg::virtualIntReg(3);
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef labelRet = builder.createLabel();
+
+    builder.emitLoadRegImm(vBase, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(vA, vBase, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(vB, vBase, 8, MicroOpBits::B64);
+    builder.emitCmpRegImm(vA, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, labelRet);
+    builder.emitCmpRegImm(vB, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, labelRet);
+    builder.emitLoadMemReg(vBase, 16, vA, MicroOpBits::B64);
+    builder.placeLabel(labelRet);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 2)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // load 0 ; cmp 0 ; je Then -> keep only taken path.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownTrueBranch)
 {

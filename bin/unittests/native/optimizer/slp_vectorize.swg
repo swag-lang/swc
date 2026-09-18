@@ -252,6 +252,15 @@ func lanesTruncFloatToS32(values: *FloatToIntLanes)
     values.output[3] = cast(s32) values.input[3]
 }
 
+#[Swag.Optimize(true)]
+func lanesFloorFloat(values: *[8] f32)
+{
+    values[][4] = Swag.floor(values[][0])
+    values[][5] = Swag.floor(values[][1])
+    values[][6] = Swag.floor(values[][2])
+    values[][7] = Swag.floor(values[][3])
+}
+
 #test
 {
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -329,6 +338,13 @@ func lanesTruncFloatToS32(values: *FloatToIntLanes)
     values.input = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32]
     lanesTruncFloatToS32(&values)
     Swag.assert(values.output == [-1, 0, 2, -4])
+}
+
+#test
+{
+    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.75'f32, -4.0'f32, 0, 0, 0, 0]
+    lanesFloorFloat(&values)
+    Swag.assert(values[4] == -2.0'f32 and values[5] == 0.0'f32 and values[6] == 2.0'f32 and values[7] == -4.0'f32)
 }
 
 #test

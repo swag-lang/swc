@@ -344,8 +344,8 @@ impl Decoder
                 }
                 else
                 {
-                    let maxSamplingH = Math.max(.compSampH[0], Math.max(.compSampH[1], .compSampH[2]))
-                    let maxSamplingV = Math.max(.compSampV[0], Math.max(.compSampV[1], .compSampV[2]))
+                    let maxSamplingH = Math.max(.compSampH[0], .compSampH[1], .compSampH[2])
+                    let maxSamplingV = Math.max(.compSampV[0], .compSampV[1], .compSampV[2])
                     for component in 3
                     {
                         if maxSamplingH % .compSampH[component] or maxSamplingV % .compSampV[component] do

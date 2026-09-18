@@ -901,7 +901,7 @@ impl LinePath
         // For cubic curves, use a conservative estimate
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 3.0)
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -946,7 +946,7 @@ impl LinePath
         // So segments needed ≈ sqrt(8 * deviation / tolerance)
         let segments = Math.ceil(Math.sqrt(8.0 * deviation / tolerance))
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -1008,7 +1008,7 @@ impl LinePath
         // Use the flatness criterion: segments ≈ sqrt(maxDeviation / tolerance)
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 2.0)
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -1056,6 +1056,6 @@ impl LinePath
 
         let numSegments = Math.ceil(Math.abs(angleSpan) / maxAnglePerSegment)
 
-        return cast(u32) Math.max(1, Math.min(numSegments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(numSegments, 1, 1000)     // Reasonable bounds
     }
 }

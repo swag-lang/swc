@@ -1480,7 +1480,7 @@ internal impl CeltDecoder
             if i <= codedBands - 1
             {
                 let currBalance = balance / cast(s32) Math.min(3'u32, codedBands - i)
-                b = Math.max(0's32, Math.min(16383's32, Math.min(remainingBits + 1, .pulses[i] + currBalance)))
+                b = Math.clamp(Math.min(remainingBits + 1, .pulses[i] + currBalance), 0's32, 16383's32)
             }
 
             if (cast(s32) (M * cast(u32) CeltBands[i]) - cast(s32) n >= cast(s32) (M * cast(u32) CeltBands[.startBand]) or i == .startBand + 1) and (updateLowband or lowbandOffset == 0) do

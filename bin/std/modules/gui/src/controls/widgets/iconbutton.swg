@@ -362,7 +362,7 @@ impl IWnd for IconButton
         {
             // The rule stops short of both ends of the edge it runs along, so it reads as a
             // mark placed against the cell rather than as a bar filling one of its sides.
-            let thickness = Math.min(metrics.activeRail_Size, Math.min(clientRect.width, clientRect.height))
+            let thickness = Math.min(metrics.activeRail_Size, clientRect.width, clientRect.height)
             var rail      = clientRect
             switch .checkIndicator
             {

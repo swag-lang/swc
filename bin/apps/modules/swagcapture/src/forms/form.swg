@@ -122,7 +122,7 @@ impl BaseForm
             let stroke = base.borderSize
             let beg    = Painter.capStyleRadius(line.beginCap, stroke, line.startSize)
             let end    = Painter.capStyleRadius(line.endCap, stroke, line.endSize)
-            extent = Math.max(stroke * 1.5, Math.max(beg, end)) + line.outlineSize
+            extent = Math.max(stroke * 1.5, beg, end) + line.outlineSize
         }
         elif type == FormDraw
         {

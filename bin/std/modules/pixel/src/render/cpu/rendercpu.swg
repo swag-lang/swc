@@ -497,13 +497,13 @@ private impl RenderCpu
 
     func blendLuminosity(color: Math.Vector3)->f32 => 0.3 * color.x + 0.59 * color.y + 0.11 * color.z
 
-    func blendSaturation(color: Math.Vector3)->f32 => Math.max(color.x, Math.max(color.y, color.z)) - Math.min(color.x, Math.min(color.y, color.z))
+    func blendSaturation(color: Math.Vector3)->f32 => Math.max(color.x, color.y, color.z) - Math.min(color.x, color.y, color.z)
 
     func clipBlendColor(color: Math.Vector3)->Math.Vector3
     {
         let luminosity = blendLuminosity(color)
-        let minValue   = Math.min(color.x, Math.min(color.y, color.z))
-        let maxValue   = Math.max(color.x, Math.max(color.y, color.z))
+        let minValue   = Math.min(color.x, color.y, color.z)
+        let maxValue   = Math.max(color.x, color.y, color.z)
         var result     = color
 
         if minValue < 0 do
@@ -521,7 +521,7 @@ private impl RenderCpu
         if currentSaturation == 0 do
             return Math.Vector3.Zero
 
-        let minValue = Math.min(color.x, Math.min(color.y, color.z))
+        let minValue = Math.min(color.x, color.y, color.z)
         return (color - minValue) * saturation / currentSaturation
     }
 
@@ -1364,10 +1364,10 @@ private impl RenderCpu
             area = -area
         }
 
-        let minX = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.x, Math.min(p1.x, p2.x))), 0, batch.width - 1), batch.clipMinX)
-        let minY = Math.max(Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, Math.min(p1.y, p2.y))), 0, batch.height - 1), bandMinY), batch.clipMinY)
-        let maxX = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, Math.max(p1.x, p2.x))) - 1, 0, batch.width - 1), batch.clipMaxX)
-        let maxY = Math.min(Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, Math.max(p1.y, p2.y))) - 1, 0, batch.height - 1), bandMaxY), batch.clipMaxY)
+        let minX = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.x, p1.x, p2.x)), 0, batch.width - 1), batch.clipMinX)
+        let minY = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, p1.y, p2.y)), 0, batch.height - 1), bandMinY, batch.clipMinY)
+        let maxX = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, p1.x, p2.x)) - 1, 0, batch.width - 1), batch.clipMaxX)
+        let maxY = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, p1.y, p2.y)) - 1, 0, batch.height - 1), bandMaxY, batch.clipMaxY)
         if minX > maxX or minY > maxY do
             return
 

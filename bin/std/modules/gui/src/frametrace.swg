@@ -90,7 +90,7 @@ internal impl FrameTrace
     // wraps rather than bouncing so every frame of a run costs the same.
     mtd const movingBox(size: Math.Point)->Math.Rectangle
     {
-        let side  = Math.min(.boxSide, Math.min(size.x, size.y))
+        let side  = Math.min(.boxSide, size.x, size.y)
         let spanX = Math.max(size.x - side, 1.0'f32)
         let spanY = Math.max(size.y - side, 1.0'f32)
         let step  = cast(f32) (.frames + .warmedUp)

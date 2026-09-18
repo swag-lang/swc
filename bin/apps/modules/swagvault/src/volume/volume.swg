@@ -2033,7 +2033,7 @@ impl Volume
                 {
                     let mapping       = validNode.blocks[search.index]
                     let mappingOffset = logical - mapping.logical
-                    let batchBlocks   = Math.min(Math.min(remainingBlocks, mapping.count - mappingOffset), MaximumIoBatchBlocks)
+                    let batchBlocks   = Math.min(remainingBlocks, mapping.count - mappingOffset, MaximumIoBatchBlocks)
                     let batchBytes    = batchBlocks * BlockSize
                     try .readPhysicalRun(mapping.physical + mappingOffset, destination[done until done + batchBytes])
                     done += batchBytes

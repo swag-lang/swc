@@ -410,7 +410,7 @@ impl PopupListCtrl
 
         let pt  = .parent!.surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
-        pos.width  = Math.max(width, Math.max(.minimumWidth, 0))
+        pos.width  = Math.max(width, .minimumWidth, 0)
         pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))
         pos.height += .padding.y + .padding.w
         .setPosition(pos)

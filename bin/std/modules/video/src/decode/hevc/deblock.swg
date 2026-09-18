@@ -89,7 +89,7 @@ impl Decoder
         let stepX     = vertical ? 8'u32 : 4'u32
         let stepY     = vertical ? 4'u32 : 8'u32
         let bandCount = (sps.height + stepY - 1) / stepY
-        let laneCount = Math.min(Math.min(Swag.workerCount(), DeblockLanes), bandCount)
+        let laneCount = Math.min(Swag.workerCount(), DeblockLanes, bandCount)
 
         if laneCount > 1
         {

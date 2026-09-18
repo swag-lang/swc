@@ -178,7 +178,7 @@ private
                 let deltaR        = Math.abs(cast(s32) expectedColor.r - actualColor.r)
                 let deltaG        = Math.abs(cast(s32) expectedColor.g - actualColor.g)
                 let deltaB        = Math.abs(cast(s32) expectedColor.b - actualColor.b)
-                let delta         = Math.max(Math.max(deltaA, deltaR), Math.max(deltaG, deltaB))
+                let delta         = Math.max(deltaA, deltaR, deltaG, deltaB)
                 result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8) delta)
                 if delta <= options.maxChannelDelta do
                     continue

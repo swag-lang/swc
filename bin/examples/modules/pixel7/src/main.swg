@@ -94,7 +94,7 @@ func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = fa
     {
         for x in result.width
         {
-            let edgeDistance = Math.min(Math.min(x, result.width - x - 1), Math.min(y, result.height - y - 1))
+            let edgeDistance = Math.min(x, result.width - x - 1, y, result.height - y - 1)
             let borderAlpha  = cast(u8) Math.min(edgeDistance * AlphaFadeStep, 255)
             pixel[3] = cast(u8) ((cast(u16) pixel[3] * borderAlpha + 127) / 255)
             pixel    += 4
@@ -118,7 +118,7 @@ func paletteVariant(source: Image, withAlpha: bool)->Image
             pixel[2] = (pixel[2] >> 6) * 85
             if withAlpha
             {
-                let edgeDistance = Math.min(Math.min(x, result.width - x - 1), Math.min(y, result.height - y - 1))
+                let edgeDistance = Math.min(x, result.width - x - 1, y, result.height - y - 1)
                 if edgeDistance < borderWidth do
                     pixel[3] = 0
             }

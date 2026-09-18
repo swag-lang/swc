@@ -1779,8 +1779,8 @@ internal impl View
         // union of where it was, where it is, and the anchor is what the drag touches.
         let previous = .selCaret
         .selCaret = {hit.view, hit.offset}
-        let low  = Math.min(Math.min(previous.view, hit.view), .selAnchor.view)
-        let high = Math.max(Math.max(previous.view, hit.view), .selAnchor.view)
+        let low  = Math.min(previous.view, hit.view, .selAnchor.view)
+        let high = Math.max(previous.view, hit.view, .selAnchor.view)
         .invalidateInlines(low, high)
     }
 

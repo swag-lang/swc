@@ -184,8 +184,8 @@ impl Image
             let rs     = p.r / 255.0
             let gs     = p.g / 255.0
             let bs     = p.b / 255.0
-            let maxC   = Math.max(Math.max(rs, gs), bs)
-            let minC   = Math.min(Math.min(rs, gs), bs)
+            let maxC   = Math.max(rs, gs, bs)
+            let minC   = Math.min(rs, gs, bs)
             let eps    = 1e-6'f32
             let satBuf = params.sat.storage()
             satBuf[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
@@ -604,7 +604,7 @@ impl Image
             }
         }
 
-        let refineRange = Math.max(1, Math.min(3, stride / 2))
+        let refineRange = Math.clamp(stride / 2, 1, 3)
         let rx0         = Math.clamp(bestX - refineRange, 0, maxX)
         let ry0         = Math.clamp(bestY - refineRange, 0, maxY)
         let rx1         = Math.clamp(bestX + refineRange, 0, maxX)

@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 964 are
+corpus. Focused continuation measurements through build 969 are
 recorded below.
 
 ## Machine-code measurements
@@ -87,7 +87,7 @@ Every function in rounds 27--29 matches or beats LLVM.
 | Round | Measured build | Functions | Swag bytes | LLVM bytes | Larger / equal / smaller |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 25 | 959 | 8 | 244 | 191 | 6 / 0 / 2 |
-| 26 | 964 | 16 | 199 | 201 | 1 / 10 / 5 |
+| 26 | 969 | 16 | 199 | 201 | 1 / 10 / 5 |
 | 27 | 959 | 18 | 229 | 233 | 0 / 15 / 3 |
 | 28 | 959 | 14 | 180 | 192 | 0 / 11 / 3 |
 | 29 | 959 | 16 | 220 | 235 | 0 / 11 / 5 |

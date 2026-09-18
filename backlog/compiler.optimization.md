@@ -20,7 +20,7 @@ block, and the hot path keeps the register.
 - Recorded: 2026-09-17 21:43
 - Updated: 2026-09-18 06:51 — Converted the guard cascade and isolated the remaining frame overhead.
 - Area: compiler/backend, prologue and stack-argument addressing
-- Evidence: build 964 converts `x >= low and x <= high ? inside : outside` into
+- Evidence: integrated build 969 converts `x >= low and x <= high ? inside : outside` into
   the same two comparisons and two `cmov` instructions as LLVM. The `u32` function falls from 34
   to 30 bytes, against LLVM's 18, and round 26 falls from 203 to 199 bytes against LLVM's 201.
   The complete 12-byte residual is the net cost of Swag's `push rbp; sub rsp; mov rbp, rsp` frame

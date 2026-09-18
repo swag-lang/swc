@@ -386,7 +386,7 @@ func vp8ParseQuant(decoder: *Vp8Decoder)
         decoder.quant[i].y1[0] = VP8_DEQUANT_DC[y1Dc]
         decoder.quant[i].y1[1] = VP8_DEQUANT_AC[y1Ac]
         decoder.quant[i].y2[0] = VP8_DEQUANT_DC[y2Dc] * 2
-        decoder.quant[i].y2[1] = Math.max(cast(u16) 8, cast(u16) (VP8_DEQUANT_AC[y2Ac] * 155 / 100))
+        decoder.quant[i].y2[1] = Math.max(8'u16, cast(u16) (VP8_DEQUANT_AC[y2Ac] * 155 / 100))
         decoder.quant[i].uv[0] = VP8_DEQUANT_DC[uvDc]
         decoder.quant[i].uv[1] = VP8_DEQUANT_AC[uvAc]
     }

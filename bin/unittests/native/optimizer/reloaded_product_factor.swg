@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 #global #[Swag.Safety(.Overflow, false)]
 
 #[Swag.NoInline]

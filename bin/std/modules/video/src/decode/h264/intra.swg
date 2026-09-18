@@ -1,4 +1,4 @@
-﻿#global namespace H264
+#global namespace H264
 #global internal
 
 //! Format: H.264/AVC decoder component.

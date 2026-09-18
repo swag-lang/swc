@@ -213,7 +213,7 @@ impl Decoder
         // Parse the first IFD
         var ifd: Ifd
         let numEntries = rd16(base + ifdOffset, le)
-        try checkBuffer(base + ifdOffset, last, cast(u64) 2 + cast(u64) numEntries * 12)
+        try checkBuffer(base + ifdOffset, last, 2'u64 + cast(u64) numEntries * 12)
         for i in numEntries
         {
             let ep = base + ifdOffset + 2 + cast(u64) i * 12

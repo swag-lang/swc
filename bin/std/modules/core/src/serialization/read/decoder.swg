@@ -232,8 +232,8 @@ impl Decoder
             }
 
             // A structure with an implementation of ISerialize
-            let idecoder = cast(IDecoder) me[]
-            let itf      = Swag.makeInterface(data, type, ISerialize)
+            let idecoder: IDecoder = me
+            let itf               = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
                 if try itf.read(idecoder) do

@@ -909,7 +909,7 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array'
         var offset: u64
         while offset < pixels.count
         {
-            let paletteOffset = cast(u64) 4 * data[offset + 1]
+            let paletteOffset = 4'u64 * data[offset + 1]
             data[offset + 0] = transform.pixels[paletteOffset + 0]
             data[offset + 1] = transform.pixels[paletteOffset + 1]
             data[offset + 2] = transform.pixels[paletteOffset + 2]
@@ -939,7 +939,7 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array'
     }
 
     var decoded: Array'u8
-    decoded.resize(cast(u64) 4 * transform.oldWidth * height)
+    decoded.resize(4'u64 * transform.oldWidth * height)
     var sourceOffset:      u64
     var destinationOffset: u64
     var packedValue:       u32

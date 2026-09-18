@@ -1,4 +1,4 @@
-﻿//! Format: DirectDraw Surface encoder.
+//! Format: DirectDraw Surface encoder.
 //! Supported: One uncompressed 2D surface in grayscale or RGB(A), as 8/16-bit normalized, half, or full float.
 //! Not supported: Block compression, mipmap generation, texture arrays, cubemaps, or volumes.
 //! Role: This file serializes Pixel images using legacy DDS masks or explicit DX10 formats.

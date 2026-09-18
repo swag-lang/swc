@@ -297,7 +297,7 @@ impl Encoder
             let itf = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
-                if try itf.write(cast(IEncoder) me[]) do
+                if try itf.write(me) do
                     return
             }
 
@@ -318,7 +318,7 @@ impl Encoder
             let plan = try planFor(structType)
             for &pf in plan.fields
             {
-                if not itf or not (try itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, cast(IEncoder) me[]))
+                if not itf or not (try itf.writeElement(pf.value, cast(const [*] u8?) data + pf.value.offset, me))
                 {
                     try .writeTypeValue(pf.value, cast(const [*] u8?) data + pf.value.offset)
                 }

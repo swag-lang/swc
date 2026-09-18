@@ -57,8 +57,8 @@ func makeLegacyImage()->LegacyImage
 
     var meta: LegacyImageMetaData
     meta.sig = 0xCAFE
-    meta.tag.add(cast(u8) 1)
-    meta.value.add(cast(u8) 2)
+    meta.tag.add(1'u8)
+    meta.value.add(2'u8)
     result.metaDatas.add(meta)
     return result
 }

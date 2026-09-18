@@ -911,7 +911,10 @@ namespace PostRaPeephole
         MicroOpBits prodBits;
         if (!flagSettingResultDef(*prev, prev->ops(*ctx.operands), prodReg, prodBits))
             return false;
-        if (prodReg != cmpReg || prodBits != cmpBits)
+        // A dword result is its own zero extension: a qword compare of it
+        // with zero sets the same ZF and PF, though not the same SF.
+        const bool widened = prodBits == MicroOpBits::B32 && cmpBits == MicroOpBits::B64 && prodReg.isInt();
+        if (prodReg != cmpReg || (prodBits != cmpBits && !widened))
             return false;
 
         // Validate every consumer that observes our flags before they are
@@ -933,6 +936,8 @@ namespace PostRaPeephole
                 MicroCond cond;
                 MicroCond signCond;
                 if (!flagConsumerCond(*scanInst, scanOps, cond))
+                    return false;
+                if (widened && (cond == MicroCond::Sign || cond == MicroCond::NotSign || signConditionAgainstZero(cond, signCond)))
                     return false;
                 if (signConditionAgainstZero(cond, signCond))
                     signReaders.push_back(scanRef);

@@ -132,6 +132,7 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryDropRedundantZeroExtend);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowBooleanDifference);
+        r.add(MicroInstrOpcode::LoadRegReg, tryNarrowBooleanDifference);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryDropNonNegativeSignExtend);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryNarrowExtend);
         return r;

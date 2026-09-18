@@ -157,16 +157,20 @@ namespace InstructionCombine
     }
 
     // `a <=> b` lowers to zext(a > b) - zext(a < b) at 32 bits, sign-extended
-    // into the result. The difference of two booleans fits a byte, so the
-    // subtraction and the extension take the bytes, as LLVM narrows it, and
-    // the two zero-extensions die.
+    // into the result or copied out as it is. The difference of two booleans
+    // fits a byte, so the subtraction and the extension take the bytes, as
+    // LLVM narrows it, and the two zero-extensions die. A dword copy of the
+    // difference becomes the sign extension itself.
     bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa)
             return false;
 
-        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || !ops[1].reg.isVirtualInt() || ops[3].opBits != MicroOpBits::B32 || getNumBits(ops[2].opBits) < 32)
+        const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+        const bool               copy = inst.op == MicroInstrOpcode::LoadRegReg;
+        if (!ops || !ops[1].reg.isVirtualInt() || ops[0].reg == ops[1].reg)
+            return false;
+        if (copy ? ops[2].opBits != MicroOpBits::B32 : (ops[3].opBits != MicroOpBits::B32 || getNumBits(ops[2].opBits) < 32))
             return false;
 
         const MicroSsaState::ReachingDef sub = ctx.ssa->reachingDef(ops[1].reg, ref);
@@ -191,11 +195,12 @@ namespace InstructionCombine
         narrowOps[2].opBits = MicroOpBits::B8;
         ctx.emitRewrite(sub.instRef, MicroInstrOpcode::OpBinaryRegReg, narrowOps);
 
-        MicroInstrOperand extendOps[4];
-        for (size_t idx = 0; idx < 4; ++idx)
-            extendOps[idx] = ops[idx];
-        extendOps[3].opBits = MicroOpBits::B8;
-        ctx.emitRewrite(ref, MicroInstrOpcode::LoadSignedExtRegReg, extendOps);
+        MicroInstrOperand extendOps[4] = {};
+        extendOps[0]                   = ops[0];
+        extendOps[1]                   = ops[1];
+        extendOps[2].opBits            = copy ? MicroOpBits::B32 : ops[2].opBits;
+        extendOps[3].opBits            = MicroOpBits::B8;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadSignedExtRegReg, extendOps, copy);
         return true;
     }
 

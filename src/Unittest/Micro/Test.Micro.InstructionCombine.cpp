@@ -2672,9 +2672,10 @@ SWC_TEST_END()
 
 namespace
 {
-    // cmp a, b ; zext(setg) - zext(setl) at 32 bits, sign-extended to 64 and
-    // stored. `plainRight` replaces the second boolean with a loaded value.
-    void emitBooleanDifference(MicroBuilder& builder, bool plainRight)
+    // cmp a, b ; zext(setg) - zext(setl) at 32 bits, sign-extended to 64 (or
+    // copied out as a dword) and stored. `plainRight` replaces the second
+    // boolean with a loaded value.
+    void emitBooleanDifference(MicroBuilder& builder, bool plainRight, bool copyOut = false)
     {
         constexpr MicroReg base  = MicroReg::virtualIntReg(1);
         constexpr MicroReg left  = MicroReg::virtualIntReg(2);
@@ -2695,7 +2696,10 @@ namespace
         builder.emitLoadZeroExtendRegReg(more, more, MicroOpBits::B32, MicroOpBits::B8);
         builder.emitLoadRegReg(diff, more, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(diff, less, MicroOp::Subtract, MicroOpBits::B32);
-        builder.emitLoadSignedExtendRegReg(out, diff, MicroOpBits::B64, MicroOpBits::B32);
+        if (copyOut)
+            builder.emitLoadRegReg(out, diff, MicroOpBits::B32);
+        else
+            builder.emitLoadSignedExtendRegReg(out, diff, MicroOpBits::B64, MicroOpBits::B32);
         builder.emitLoadMemReg(base, 8, out, MicroOpBits::B64);
         builder.emitRet();
     }
@@ -2717,6 +2721,20 @@ SWC_TEST_BEGIN(InstCombine_BooleanDifference_NarrowsToByte)
 {
     MicroBuilder builder(ctx);
     emitBooleanDifference(builder, false);
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (signExtendSourceBits(builder) != MicroOpBits::B8)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A dword copy of the difference becomes the byte's sign extension.
+SWC_TEST_BEGIN(InstCombine_BooleanDifferenceCopy_NarrowsToByte)
+{
+    MicroBuilder builder(ctx);
+    emitBooleanDifference(builder, false, true);
 
     SWC_RESULT(runInstCombinePass(builder));
 

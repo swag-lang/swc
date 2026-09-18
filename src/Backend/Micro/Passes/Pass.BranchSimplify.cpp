@@ -7,6 +7,8 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Main/TaskContext.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Report/Assert.h"
 
@@ -2494,12 +2496,23 @@ namespace
             }
             const bool     isSigned = signedWidth < unsignedWidth;
             const uint32_t width    = isSigned ? signedWidth : unsignedWidth;
-            if (width >= resultWidth || static_cast<uint64_t>(width) * table.size() > 64)
+
+            // Wider than a flag, the entries go to a constant table read at the
+            // index, as LLVM's SwitchToLookupTable does once they do not fit a
+            // register: an address and one load, against a scaled shift, a
+            // 64-bit immediate and an extraction for the packed form.
+            const uint32_t entryBytes  = width <= 8 ? 1 : width <= 16 ? 2 : width <= 32 ? 4 : 8;
+            const bool     memoryTable = width > 1 && entryBytes * 8 <= resultWidth && table.size() <= 256 && context.taskContext &&
+                                     context.taskContext->hasCompiler();
+            if (!memoryTable && (width >= resultWidth || static_cast<uint64_t>(width) * table.size() > 64))
                 continue;
 
             uint64_t packed = 0;
-            for (size_t index = 0; index < table.size(); ++index)
-                packed |= (table[index] & ((1ULL << width) - 1)) << (index * width);
+            if (!memoryTable)
+            {
+                for (size_t index = 0; index < table.size(); ++index)
+                    packed |= (table[index] & ((1ULL << width) - 1)) << (index * width);
+            }
 
             // Emit before the chain, then drop the chain and its arms.
             const MicroInstrRef anchor    = layout.order[start];
@@ -2555,7 +2568,55 @@ namespace
                 moveOps[3].opBits  = indexBits;
                 insert(MicroInstrOpcode::LoadCondRegReg, moveOps);
             }
-            if (width > 1)
+            if (memoryTable)
+            {
+                // Eight-byte slots: the JIT copies whole slots into its
+                // constant island.
+                std::string payload((table.size() * entryBytes + 7) & ~size_t{7}, '\0');
+                for (size_t entry = 0; entry < table.size(); ++entry)
+                    std::memcpy(payload.data() + entry * entryBytes, &table[entry], entryBytes);
+                DataSegmentRef         segmentRef;
+                const std::string_view stored = context.taskContext->cstMgr().addPayloadBuffer(payload, &segmentRef);
+
+                const MicroReg    tableReg = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                MicroInstrOperand addressOps[3];
+                addressOps[0].reg              = tableReg;
+                addressOps[1].opBits           = MicroOpBits::B64;
+                addressOps[2].valueU64         = reinterpret_cast<uint64_t>(stored.data());
+                const MicroInstrRef addressRef = storage.insertDerivedBefore(operands, anchor, MicroInstrOpcode::LoadRegPtrReloc, addressOps);
+
+                MicroRelocation relocation;
+                relocation.kind           = MicroRelocation::Kind::ConstantAddress;
+                relocation.instructionRef = addressRef;
+                relocation.targetAddress  = reinterpret_cast<uint64_t>(stored.data());
+                relocation.constantShard  = segmentRef.shardIndex;
+                relocation.constantOffset = segmentRef.offset;
+                context.builder->addRelocation(relocation);
+
+                const MicroOpBits entryBits = entryBytes == 1 ? MicroOpBits::B8 : entryBytes == 2 ? MicroOpBits::B16 : entryBytes == 4 ? MicroOpBits::B32 : MicroOpBits::B64;
+                MicroInstrOperand loadOps[7];
+                loadOps[0].reg      = bits;
+                loadOps[1].reg      = tableReg;
+                loadOps[2].reg      = index;
+                loadOps[5].valueU64 = entryBytes;
+                loadOps[6].valueU64 = 0;
+                // Loaded at the result's width, at least a dword: a narrower
+                // entry extends into it, and a dword write clears the rest.
+                const MicroOpBits loadBits = resultWidth >= 32 ? resultBits : MicroOpBits::B32;
+                if (entryBits == loadBits || (!isSigned && entryBits == MicroOpBits::B32))
+                {
+                    loadOps[3].opBits = entryBits;
+                    loadOps[4].opBits = MicroOpBits::B64;
+                    insert(MicroInstrOpcode::LoadAmcRegMem, loadOps);
+                }
+                else
+                {
+                    loadOps[3].opBits = isSigned ? loadBits : MicroOpBits::B32;
+                    loadOps[4].opBits = entryBits;
+                    insert(isSigned ? MicroInstrOpcode::LoadSignedExtAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem, loadOps);
+                }
+            }
+            if (!memoryTable && width > 1)
             {
                 MicroInstrOperand ops[4];
                 ops[0].reg = index;
@@ -2572,6 +2633,7 @@ namespace
                 }
                 insert(MicroInstrOpcode::OpBinaryRegImm, ops);
             }
+            if (!memoryTable)
             {
                 MicroInstrOperand loadOps[3];
                 loadOps[0].reg    = bits;
@@ -2585,7 +2647,10 @@ namespace
                 shiftOps[3].microOp = MicroOp::ShiftRight;
                 insert(MicroInstrOpcode::OpBinaryRegReg, shiftOps);
             }
-            if (isSigned && (width == 8 || width == 16 || width == 32))
+            if (memoryTable)
+            {
+            }
+            else if (isSigned && (width == 8 || width == 16 || width == 32))
             {
                 MicroInstrOperand ops[4];
                 ops[0].reg    = bits;

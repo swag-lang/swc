@@ -40,6 +40,17 @@ namespace
         return count;
     }
 
+    uint32_t countTableAddresses(const MicroBuilder& builder)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadRegPtrReloc)
+                ++count;
+        }
+        return count;
+    }
+
     uint32_t countLoadImmValue(const MicroBuilder& builder, const uint64_t value)
     {
         uint32_t count = 0;
@@ -1880,8 +1891,8 @@ namespace
     }
 }
 
-// Returning a small constant per case reads a table packed into a register.
-SWC_TEST_BEGIN(BranchSimplify_ReturningSwitchBecomesPackedTable)
+// Returning a small constant per case reads a constant table at the index.
+SWC_TEST_BEGIN(BranchSimplify_ReturningSwitchBecomesLookupTable)
 {
     MicroBuilder                  builder(ctx);
     const std::array<uint64_t, 3> keys   = {0, 1, 2};
@@ -1890,7 +1901,7 @@ SWC_TEST_BEGIN(BranchSimplify_ReturningSwitchBecomesPackedTable)
 
     SWC_RESULT(runBranchSimplifyPass(builder));
 
-    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1 || countLoadImmValue(builder, 0x82481) != 1)
+    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1 || countTableAddresses(builder) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -1945,8 +1956,8 @@ SWC_TEST_BEGIN(BranchSimplify_WholeWordSwitchKept)
 }
 SWC_TEST_END()
 
-// Entries too wide for one register keep the chain.
-SWC_TEST_BEGIN(BranchSimplify_WideSwitchTableKept)
+// Entries too wide for one register still make a table, in memory.
+SWC_TEST_BEGIN(BranchSimplify_WideSwitchBecomesLookupTable)
 {
     MicroBuilder                  builder(ctx);
     const std::array<uint64_t, 4> keys   = {0, 1, 2, 3};
@@ -1955,7 +1966,7 @@ SWC_TEST_BEGIN(BranchSimplify_WideSwitchTableKept)
 
     SWC_RESULT(runBranchSimplifyPass(builder));
 
-    if (countSelects(builder) != 0 || countConditionalJumps(builder) == 0)
+    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1 || countTableAddresses(builder) != 1)
         return Result::Error;
     return Result::Continue;
 }

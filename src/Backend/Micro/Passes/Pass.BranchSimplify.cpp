@@ -1048,6 +1048,137 @@ namespace
         return false;
     }
 
+    // A short-circuit chain whose join hands the boolean on - to the return
+    // register, typically - rather than testing it again:
+    //
+    //     cmp ; setge T ; D = T ; jl .JOIN          cmp ; jl .ZERO
+    //     cmp ; setl  T ; D = T                     cmp ; setl T ; D = T
+    //     .JOIN: R = D ; ret                  ->    .JOIN: R = D ; ret
+    //                                               .ZERO: D = 0 ; jmp .JOIN
+    //
+    // On the taken edge the boolean is pinned by the branch condition, so
+    // that edge carries a constant, as the `false` incoming value of LLVM's
+    // phi does. The edge goes to a block past the function's end that sets
+    // it, and the setcc and copy before the jump die on both paths: clang's
+    // `and` chains test and branch, and only the last link materializes.
+    // The block costs a move and a jump, so it needs two edges to pay.
+    bool threadShortCircuitReturnValues(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
+    {
+        constexpr uint32_t K_MAX_CHAIN = 6;
+
+        if (!builder)
+            return false;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        struct ConstantEdge
+        {
+            uint32_t      joinLabelId = 0;
+            MicroReg      reg;
+            bool          value = false;
+            MicroLabelRef label;
+            uint32_t      edges = 0;
+        };
+        SmallVector<ConstantEdge, 4>                         blocks;
+        SmallVector<std::pair<MicroInstrRef, uint32_t>, 8> jumps;
+        for (size_t ordinal = 0; ordinal < layout.order.size(); ++ordinal)
+        {
+            const MicroInstrRef jumpRef  = layout.order[ordinal];
+            MicroInstr*         jumpInst = storage.ptr(jumpRef);
+            if (!jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
+                continue;
+            MicroInstrOperand* jumpOps = jumpInst->ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(joinLabelId, *jumpInst, jumpOps))
+                continue;
+
+            // The copies right before the jump back to their setcc; the last
+            // copy's destination is the value the join receives.
+            SmallVector<MicroInstrRef, K_MAX_CHAIN> chain;
+            MicroInstrRef                            setRef  = storage.findPreviousInstructionRef(jumpRef);
+            const MicroInstr*                        setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+            while (setInst && setInst->op != MicroInstrOpcode::SetCondReg && chain.size() < K_MAX_CHAIN &&
+                   (setInst->op == MicroInstrOpcode::LoadRegReg || setInst->op == MicroInstrOpcode::LoadZeroExtRegReg))
+            {
+                chain.push_back(setRef);
+                setRef  = storage.findPreviousInstructionRef(setRef);
+                setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+            }
+            if (chain.empty() || !setInst || setInst->op != MicroInstrOpcode::SetCondReg)
+                continue;
+            const MicroInstrOperand* setOps = setInst->ops(operands);
+            if (!setOps || !setOps[0].reg.isVirtualInt())
+                continue;
+
+            BoolBits bits;
+            setBoolBits(bits, setOps[0].reg, 8);
+            bool chainOk = true;
+            for (size_t i = chain.size(); i > 0 && chainOk; --i)
+            {
+                const MicroInstr* step = storage.ptr(chain[i - 1]);
+                chainOk                = step && applyBoolChainStep(bits, *step, step->ops(operands));
+            }
+            if (!chainOk)
+                continue;
+            const MicroReg value = storage.ptr(chain[0])->ops(operands)[0].reg;
+
+            const MicroCond setCond = setOps[1].cpuCond;
+            MicroCond       invCond = MicroCond::Unconditional;
+            bool            boolOne = false;
+            if (setCond == jumpOps[0].cpuCond)
+                boolOne = true;
+            else if (!MicroPassHelpers::invertCondition(invCond, setCond) || invCond != jumpOps[0].cpuCond)
+                continue;
+
+            // The join copies the value on, reading no more than the boolean.
+            const auto labelIt = layout.labelOrdinalById.find(joinLabelId);
+            if (labelIt == layout.labelOrdinalById.end() || labelIt->second + 1 >= layout.order.size())
+                continue;
+            const MicroInstr* joinInst = storage.ptr(layout.order[labelIt->second + 1]);
+            if (!joinInst || joinInst->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const MicroInstrOperand* joinOps = joinInst->ops(operands);
+            if (!joinOps || joinOps[1].reg != value || boolBitsOf(bits, value) < getNumBits(joinOps[2].opBits))
+                continue;
+
+            uint32_t blockIndex = 0;
+            while (blockIndex < blocks.size() &&
+                   (blocks[blockIndex].joinLabelId != joinLabelId || blocks[blockIndex].reg != value || blocks[blockIndex].value != boolOne))
+                ++blockIndex;
+            if (blockIndex == blocks.size())
+                blocks.push_back({joinLabelId, value, boolOne, MicroLabelRef{}, 0});
+            ++blocks[blockIndex].edges;
+            jumps.push_back({jumpRef, blockIndex});
+        }
+
+        bool changed = false;
+        for (ConstantEdge& block : blocks)
+        {
+            if (block.edges >= 2)
+                block.label = builder->createLabel();
+        }
+        for (const auto& [jumpRef, blockIndex] : jumps)
+        {
+            if (blocks[blockIndex].edges < 2)
+                continue;
+            storage.ptr(jumpRef)->ops(operands)[2].valueU64 = blocks[blockIndex].label.get();
+            changed                                         = true;
+        }
+
+        for (const ConstantEdge& block : blocks)
+        {
+            if (block.edges < 2)
+                continue;
+            builder->placeLabel(block.label);
+            builder->emitLoadRegImm(block.reg, ApInt(block.value ? 1 : 0, 64), MicroOpBits::B32);
+            builder->emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, MicroLabelRef{block.joinLabelId});
+        }
+        return changed;
+    }
+
     bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
     {
         constexpr uint32_t K_MAX_CHAIN = 6;
@@ -6182,6 +6313,18 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
+
+    if (late_)
+    {
+        if (threadShortCircuitReturnValues(storage, operands, context.builder))
+        {
+            context.passChanged = true;
+            context.builder->invalidateControlFlowGraph();
+            if (context.ssaState)
+                context.ssaState->invalidate();
+        }
+        return Result::Continue;
+    }
 
     MicroSsaState        localSsaState;
     const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);

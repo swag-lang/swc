@@ -26,7 +26,7 @@ private struct DeblockContext
 func deblockPicture(dec: *Decoder)
 {
     let sps       = dec.sps!
-    let laneCount = Math.min(Math.min(Swag.workerCount(), DeblockLanes), cast(u32) sps.mbHeight)
+    let laneCount = Math.min(Swag.workerCount(), DeblockLanes, cast(u32) sps.mbHeight)
     if laneCount <= 1
     {
         for mbY in sps.mbHeight
@@ -505,10 +505,7 @@ private func within(a, b, limit: Simd.U8x16)->Simd.U8x16
 
 // The exact half-sum of two bytes: the rounding average less the bit it rounded away.
 #[Swag.Inline]
-private func halfSum(a, b: Simd.U8x16)->Simd.U8x16
-{
-    return Simd.subSaturating(Simd.average(a, b), (a ^ b) & Simd.splat(1'u8))
-}
+private func halfSum(a, b: Simd.U8x16)->Simd.U8x16 => Simd.subSaturating(Simd.average(a, b), (a ^ b) & Simd.splat(1'u8))
 
 // The correction one edge applies to its two nearest samples, section 8.7.2.3, carried around a
 // bias of 161.

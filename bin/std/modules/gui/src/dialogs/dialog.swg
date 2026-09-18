@@ -7,7 +7,7 @@ struct Dialog
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        // Called before a button result closes the dialog; return false to keep it open.
+        // Runs before a result closes the dialog; returning false keeps the dialog open.
         validateResult: (func||(*Dialog, WndId)->bool)?
 
         readonly
@@ -49,7 +49,7 @@ impl Dialog
         return dlg
     }
 
-    // Returns the control the box opens the keyboard on, or null to take the reading order.
+    // Returns the control the box opens the keyboard on, or `null` to take the reading order.
     //
     // A box with something to fill in opens on that, and its default action still answers Enter,
     // because a field hands the key on rather than consuming it. Anything the reader would *act*
@@ -69,8 +69,7 @@ impl Dialog
         return .surface.defaultButton
     }
 
-    // Returns the button Escape and the close cross stand for, or null when the box offers
-    // no way out other than answering it.
+    // Returns the button Escape and the close cross stand for, or `null` when the box offers no way out other than answering it.
     mtd const cancelButton()->*PushButton?
     {
         for btn in .buttons where btn.id == BtnCancel or btn.id == BtnNo do
@@ -92,6 +91,7 @@ impl Dialog
         // there to say the same thing. Offered without one it is ambiguous — the reader
         // cannot tell what closing the window will have decided — so `addButton` is what
         // puts it on, and a caller asking for it here is ignored.
+        //
         // A modal box sits on an application cut from the same ink. Without an edge of its
         // own it reads as part of the surface underneath it, so every dialog is outlined.
         let captionFlags = flags.has(.LargeCaption) ? SurfaceFlags.LargeCaption : SurfaceFlags.SmallCaption
@@ -100,8 +100,7 @@ impl Dialog
         srf.wnd.view.backgroundStyle = .Dialog
 
         let metrics = .themeMetrics()
-        var h       = metrics.btnPush_Height
-        h += 2 * metrics.dialog_BtnPadding
+        let h       = metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding
         with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", {0, 0, 0, h})
         {
             .spacing         = metrics.dialog_BtnPadding
@@ -115,10 +114,7 @@ impl Dialog
     }
 
     // Returns the content view above the action bar.
-    mtd view()->*Wnd
-    {
-        return .surface!.wnd.view
-    }
+    mtd view()->*Wnd => .surface!.wnd.view
 
     // Creates the common body used by the predefined dialog family.
     //
@@ -150,10 +146,7 @@ impl Dialog
     // smaller than it asked for — and a box fitted to the exact extent of its own content then
     // clips the very content it was fitted to. Rounding out costs at most one pixel and is what
     // makes a fitted box hold what it measured.
-    internal mtd const physicalRoom(logical: f32)->f32
-    {
-        return Math.ceil(Math.ceil(logical) * .surface!.dpiScale)
-    }
+    internal mtd const physicalRoom(logical: f32)->f32 => Math.ceil(Math.ceil(logical) * .surface!.dpiScale)
 
     // Gives the surface exactly the vertical room needed by its standard body.
     //
@@ -168,9 +161,9 @@ impl Dialog
         let surface = .surface!
         var height  = contentHeight + 2 * metrics.dialog_Padding
         height += .buttonBar.position.height + 2 * metrics.wnd_BorderSize
-        if surface.flags & .SmallCaption do
+        if surface.flags.has(.SmallCaption) do
             height += metrics.wnd_SmallCaptionCY
-        elif surface.flags & .LargeCaption do
+        elif surface.flags.has(.LargeCaption) do
             height += metrics.wnd_BigCaptionCY
         height += 2 * surface.shadowMargin()
 
@@ -201,6 +194,10 @@ impl Dialog
     }
 
     // Adds an action button and optionally makes it the default keyboard action.
+    //
+    // Pressing the button submits `id` through [[Gui.Dialog.closeWithResult]]. A `BtnCancel` or `BtnNo` button
+    // also becomes the Escape action of the surface and puts the close cross on its caption,
+    // and a new default button demotes the previous one.
     #[Swag.Discardable]
     mtd addButton(str: string, id: WndId, isDefault: bool = false)->*PushButton
     {

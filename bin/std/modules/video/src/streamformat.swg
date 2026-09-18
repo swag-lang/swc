@@ -31,7 +31,7 @@ struct StreamFormat
 
 impl StreamFormat
 {
-    // Reports whether this format claims `fileName`, by its extension alone.
+    // Returns whether this format claims `fileName`, by its extension alone.
     //
     // The comparison is case-insensitive; no file is opened and no content is read. An empty
     // name, or a name without an extension, matches nothing rather than being an error: a file

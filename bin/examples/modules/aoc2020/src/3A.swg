@@ -21,6 +21,5 @@ func day3A()
         total += lines[y][x] == '#' ? 1 : 0
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 211)
 }

@@ -79,6 +79,7 @@ private struct IdmlTextStyle
     bullet:          bool
 }
 
+// One page of an IDML document, with the positioned items of its scene.
 struct IdmlPage
 {
     name:           String
@@ -96,6 +97,7 @@ private struct IdmlMaster
 
 impl IdmlPage
 {
+    // Returns the number of image frames whose picture could not be resolved.
     mtd const missingImageCount()->u64
     {
         var result: retval
@@ -104,8 +106,10 @@ impl IdmlPage
         return result
     }
 
-    // Builds one offline page scene from positioned IDML items. The HTML engine is used solely as
-    // the local paint and text-layout backend; all package parsing and scene construction are Swag.
+    // Builds one offline page scene from positioned IDML items, at `scale` clamped to 0.25..3.
+    //
+    // The HTML engine is used solely as the local paint and text-layout backend; all package
+    // parsing and scene construction are Swag.
     mtd const html(scale: f32)->String
     {
         var result: retval
@@ -128,7 +132,7 @@ impl IdmlPage
                                       item.clipPath,
                                       item.imageFrame ? "padding:0" : "",
                                       idmlTextFramePaddingCss(item, factor).toString())
-            if item.image.count
+            if not item.image.isEmpty()
             {
                 let imageBounds = item.imageHasBounds ? &item.imageBounds : &item.bounds
                 result += Format.toString("<img class=\"idml-image\" style=\"left:%px;top:%px;width:%px;height:%px\" src=\"%\">",
@@ -152,8 +156,10 @@ impl IdmlPage
     }
 }
 
+// Returns the CSS radii of a frame's rounded corners, or an empty string when every corner is square.
+//
 // InDesign may give each corner a different treatment. Rounded corners are directly representable
-// by the local painter, so retain the four radii rather than flattening a visibly rounded frame.
+// by the local painter, so the four radii are retained rather than flattened.
 private func idmlCornerCss(item: const *IdmlItem, factor: f32)->String
 {
     if item.cornerTopLeft <= 0 and item.cornerTopRight <= 0 and item.cornerBottomRight <= 0 and item.cornerBottomLeft <= 0 do
@@ -170,12 +176,14 @@ private func idmlTextFramePaddingCss(item: const *IdmlItem, factor: f32)->String
     return Format.toString("padding:%px %px %px %px", item.textInsetTop * factor, item.textInsetRight * factor, item.textInsetBottom * factor, item.textInsetLeft * factor)
 }
 
-// The HTML painter does not make arbitrary text into columns. Preserve the IDML geometry with
-// sibling clipping rectangles and allocate complete paragraph blocks to each one, so a malformed
-// story never leaves unmatched markup in the page scene.
+// Appends the story text of a frame to `html`, laid out in the frame's columns.
+//
+// The HTML painter does not flow arbitrary text into columns. The IDML geometry is preserved with
+// sibling clipping rectangles, each receiving complete paragraph blocks, so a malformed story never
+// leaves unmatched markup in the page scene.
 private func idmlAppendTextColumns(html: *String, item: const *IdmlItem, factor: f32)
 {
-    if not item.text.count do
+    if item.text.isEmpty() do
         return
     if not item.hasTextFrameLayout or item.textColumns <= 1
     {
@@ -225,22 +233,16 @@ struct IdmlDocument
     pages:    Array'IdmlPage
 }
 
-private func idmlFindEntry(archive: const *ZipArchive, path: string)->const *ZipEntry?
-{
-    for entry in archive.entries where entry.path == path do
-        return entry
-    return null
-}
-
+// Returns the text of the package entry stored at `path`, failing when it is missing or not UTF-8.
 private func idmlReadEntry(fileName: string, archive: const *ZipArchive, path: string)->String fail
 {
-    let entry = idmlFindEntry(archive, path)
+    let entry = archive.tryFindEntry(path)
     if not entry or entry.isDirectory do
         fail InvalidFormatError{Errors.mkString(Format.toString("IDML package is missing '%'", path).toString())}
     let bytes = try loadZipEntry(fileName, entry)
     if not Utf8.isValid(bytes.toSlice()) do
         fail InvalidFormatError{Errors.mkString(Format.toString("IDML entry '%' is not UTF-8 XML", path).toString())}
-    return String.from(Swag.makeString(bytes.storage(), bytes.count))
+    return String.from(cast(string) bytes.toSlice())
 }
 
 private func idmlAttribute(tag: string, name: string)->string
@@ -269,8 +271,10 @@ private func idmlNumber(text: string)->{ value: f32, valid: bool }
     return {parsed.value, true}
 }
 
-// A per-corner declaration overrides the legacy all-corners value. Do not round a corner whose
-// explicit option is not RoundedCorner: bevelled and inverse corners need path rendering instead.
+// Returns the radius of one rounded frame corner, or zero when that corner is not rounded.
+//
+// A per-corner declaration overrides the legacy all-corners value. A corner whose explicit option
+// is not RoundedCorner stays square: bevelled and inverse corners need path rendering instead.
 private func idmlRoundedCornerRadius(tag, corner: string)->f32
 {
     let cornerOption = idmlAttribute(tag, Format.toString("%CornerOption", corner).toString())
@@ -303,7 +307,7 @@ private func idmlFirstOpenTag(source, name: string)->String
 private func idmlElementContents(source, name: string)->String
 {
     let opening = idmlFirstOpenTag(source, name)
-    if not opening.count do
+    if opening.isEmpty() do
         return {}
     let start = Utf8.indexOf(source, opening.toString())
     let body  = start + opening.count
@@ -319,7 +323,7 @@ private func idmlTextFrameInsets(preference: string, item: *IdmlItem)
 {
     let insetTag = idmlFirstOpenTag(preference, "InsetSpacing")
     let contents = idmlElementContents(preference, "InsetSpacing")
-    if not insetTag.count or not contents.count do
+    if insetTag.isEmpty() or contents.isEmpty() do
         return
     if idmlAttribute(insetTag.toString(), "type") == "unit"
     {
@@ -363,7 +367,7 @@ private func idmlTextFrameInsets(preference: string, item: *IdmlItem)
 private func idmlTextFrameLayout(content: string, item: *IdmlItem)
 {
     let preference = idmlFirstOpenTag(content, "TextFramePreference")
-    if not preference.count do
+    if preference.isEmpty() do
         return
     item.hasTextFrameLayout = true
     let columns = idmlNumber(idmlAttribute(preference.toString(), "TextColumnCount"))
@@ -474,8 +478,10 @@ private func idmlBoundsFromPath(item: string, transform: const *IdmlTransform, r
     return true
 }
 
-// An image's transform is independent from its enclosing frame. Keep the axis-aligned cases as a
-// local image rectangle so a crop or proportional fit does not become a stretched frame fill.
+// Reports whether the image of a frame has axis-aligned placed bounds, and stores them in `result`.
+//
+// An image's transform is independent from its enclosing frame. The axis-aligned cases are kept as
+// a local image rectangle so a crop or proportional fit does not become a stretched frame fill.
 // Rotated, sheared, and reflected images remain on the conservative frame fallback until the scene
 // renderer can preserve their orientation.
 private func idmlBoundsFromGraphic(item: string, parent: const *IdmlTransform, result: *IdmlBounds)->bool
@@ -547,8 +553,10 @@ private func idmlPolygonClipPath(item: string, transform: const *IdmlTransform)-
     return result
 }
 
-// A graphic line is an oriented stroke, not its axis-aligned bounding rectangle. Build its
-// painted silhouette in the local page space so the HTML painter retains both direction and
+// Returns the CSS clip path that paints a graphic line and its arrowheads inside `bounds`.
+//
+// A graphic line is an oriented stroke, not its axis-aligned bounding rectangle. Its painted
+// silhouette is built in the local page space so the HTML painter retains both direction and
 // triangular InDesign arrowheads without relying on an external SVG implementation.
 private func idmlLineClipPath(item: string, transform: const *IdmlTransform, pageLeft, pageTop: f32, bounds: const *IdmlBounds, strokeSize: f32, startArrow, endArrow: bool)->String
 {
@@ -629,7 +637,7 @@ private func idmlLineClipPath(item: string, transform: const *IdmlTransform, pag
 }
 
 // Returns an image data URI only for pixels embedded in the IDML package.
-internal func idmlEmbeddedGraphicDataUri(item: string)->String
+func idmlEmbeddedGraphicDataUri(item: string)->String
 {
     let imageStart = Utf8.indexOf(item, "<Image ")
     if imageStart == Swag.U64.Max do
@@ -702,9 +710,11 @@ private func idmlHexNibble(value: u8)->u8
     return Swag.U8.Max
 }
 
-// File links are local resources chosen by the document author. Decode only file: URLs and
-// reject malformed escapes so the viewer never turns a linked graphic into a network request.
-internal func idmlFileUriPath(uri: string)->String
+// Returns the local path a `file:` URI names, or an empty string for any other or unsafe URI.
+//
+// File links are local resources chosen by the document author. Only `file:` URLs are decoded and
+// malformed escapes are rejected, so the viewer never turns a linked graphic into a network request.
+func idmlFileUriPath(uri: string)->String
 {
     if not Utf8.startsWith(uri, "file:", .Latin1NoCase) do
         return {}
@@ -751,6 +761,7 @@ internal func idmlFileUriPath(uri: string)->String
     return result
 }
 
+// Returns `path` when it names a local image within the linked-graphics budget, charging its size to `loaded`.
 private func idmlLocalGraphicSource(path: string, loaded: *u64)->String
 {
     let mime = idmlGraphicMimeType(path)
@@ -770,12 +781,14 @@ private func idmlLocalGraphicSource(path: string, loaded: *u64)->String
     return String.from(path)
 }
 
-// Resolves a linked image without fetching. A direct file URI wins; a same-folder basename is a
-// portable fallback for a document moved together with its links after InDesign saved host paths.
+// Returns the image source of a frame, from its embedded pixels or a local linked file, without fetching.
+//
+// A direct file URI wins; a same-folder basename is a portable fallback for a document moved
+// together with its links after InDesign saved host paths.
 private func idmlLinkedGraphicSource(documentFileName, item: string, loaded: *u64)->String
 {
     let embedded = idmlEmbeddedGraphicDataUri(item)
-    if embedded.count do
+    if not embedded.isEmpty() do
         return embedded
 
     let imageStart = Utf8.indexOf(item, "<Image ")
@@ -789,7 +802,7 @@ private func idmlLinkedGraphicSource(documentFileName, item: string, loaded: *u6
     if linkedPath.isEmpty() do
         return {}
     let direct = idmlLocalGraphicSource(linkedPath.toString(), loaded)
-    if direct.count do
+    if not direct.isEmpty() do
         return direct
 
     let folder = Path.directoryName(documentFileName)
@@ -814,10 +827,8 @@ private func idmlEntity(text: string)->rune
         var value: u32
         for digit in text[2 to]
         {
-            let nibble = (digit >= '0' and digit <= '9') ? cast(u32) (digit - '0') :
-                         (digit >= 'a' and digit <= 'f') ? cast(u32) (digit - 'a' + 10) :
-                         (digit >= 'A' and digit <= 'F') ? cast(u32) (digit - 'A' + 10) : Swag.U32.Max
-            if nibble == Swag.U32.Max or value > (Swag.U32.Max - nibble) / 16 do
+            let nibble = cast(u32) idmlHexNibble(digit)
+            if nibble == Swag.U8.Max or value > (Swag.U32.Max - nibble) / 16 do
                 return 0xFFFD
             value = value * 16 + nibble
         }
@@ -872,7 +883,7 @@ private func idmlStoryText(source: string)->String
         let contentStart = Utf8.indexOf(source, "<Content", cursor)
         let breakStart   = Utf8.indexOf(source, "<Br", cursor)
         let paragraphEnd = Utf8.indexOf(source, "</ParagraphStyleRange>", cursor)
-        let next         = Math.min(contentStart, Math.min(breakStart, paragraphEnd))
+        let next         = Math.min(contentStart, breakStart, paragraphEnd)
         if next == Swag.U64.Max do
             break
 
@@ -914,15 +925,9 @@ private func idmlTextAlignment(value: string)->string
     return "left"
 }
 
-private func idmlFontStyleBold(value: string)->bool
-{
-    return Utf8.contains(value, "Bold") or Utf8.contains(value, "bold") or value == "W6" or value == "W7" or value == "W8" or value == "W9"
-}
+private func idmlFontStyleBold(value: string)->bool => Utf8.contains(value, "Bold") or Utf8.contains(value, "bold") or value == "W6" or value == "W7" or value == "W8" or value == "W9"
 
-private func idmlFontStyleItalic(value: string)->bool
-{
-    return Utf8.contains(value, "Italic") or Utf8.contains(value, "italic") or Utf8.contains(value, "Oblique") or Utf8.contains(value, "oblique")
-}
+private func idmlFontStyleItalic(value: string)->bool => Utf8.contains(value, "Italic") or Utf8.contains(value, "italic") or Utf8.contains(value, "Oblique") or Utf8.contains(value, "oblique")
 
 private func idmlContainsCjk(text: string)->bool
 {
@@ -975,7 +980,7 @@ private func idmlCharacterStyleCss(tag: string, colors: const *HashTable'(String
     if fontSize > 0 do
         result += Format.toString("font-size:%em;", fontSize / 12)
     let color = idmlColor(colors, idmlAttribute(tag, "FillColor"), idmlAttribute(tag, "FillTint"))
-    if color.count do
+    if not color.isEmpty() do
         result += Format.toString("color:%;", color)
     let fontStyle = idmlAttribute(tag, "FontStyle")
     if idmlFontStyleBold(fontStyle) do
@@ -1108,7 +1113,7 @@ private func idmlCssColor(space, value: string)->String
 private func idmlLoadColors(fileName: string, archive: const *ZipArchive)->HashTable'(String, String)
 {
     var result: retval
-    let entry = idmlFindEntry(archive, "Resources/Graphic.xml")
+    let entry = archive.tryFindEntry("Resources/Graphic.xml")
     if not entry do
         return result
     let source = catch idmlReadEntry(fileName, archive, entry.path.toString()) as readError
@@ -1127,7 +1132,7 @@ private func idmlLoadColors(fileName: string, archive: const *ZipArchive)->HashT
         let tag   = source.toString()[start until end + 1]
         let self  = idmlAttribute(tag, "Self")
         let color = idmlCssColor(idmlAttribute(tag, "Space"), idmlAttribute(tag, "ColorValue"))
-        if self.count and color.count and not result.tryFind(self) do
+        if self.count and not color.isEmpty() and not result.tryFind(self) do
             result.add(self, color)
         cursor = end + 1
     }
@@ -1179,7 +1184,7 @@ private func idmlColor(colors: const *HashTable'(String, String), name: string, 
 private func idmlLoadTextStyles(fileName: string, archive: const *ZipArchive, colors: const *HashTable'(String, String))->HashTable'(String, IdmlTextStyle)
 {
     var result: retval
-    let entry = idmlFindEntry(archive, "Resources/Styles.xml")
+    let entry = archive.tryFindEntry("Resources/Styles.xml")
     if not entry do
         return result
     let source = catch idmlReadEntry(fileName, archive, entry.path.toString()) as readError
@@ -1276,7 +1281,7 @@ private func idmlPageIndex(pages: const *Array'IdmlPage, bounds: const *IdmlBoun
     return Swag.U64.Max
 }
 
-private func idmlAppendItems(fileName, source: string, stories: const *HashTable'(String, String), colors: const *HashTable'(String, String), linkedGraphicBytes: *u64, pages: *Array'IdmlPage)
+private func idmlAppendItems(fileName, source: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64, pages: *Array'IdmlPage)
 {
     var cursor = 0'u64
     var groupCursor:     u64
@@ -1289,7 +1294,7 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
         let ovalStart    = Utf8.indexOf(source, "<Oval ", cursor)
         let polygonStart = Utf8.indexOf(source, "<Polygon ", cursor)
         let lineStart    = Utf8.indexOf(source, "<GraphicLine ", cursor)
-        let shapeStart   = Math.min(Math.min(rectStart, ovalStart), Math.min(polygonStart, lineStart))
+        let shapeStart   = Math.min(rectStart, ovalStart, polygonStart, lineStart)
         let start        = Math.min(textStart, shapeStart)
         if start == Swag.U64.Max do
             break
@@ -1314,7 +1319,7 @@ private func idmlAppendItems(fileName, source: string, stories: const *HashTable
 
             if close < start
             {
-                if groupTransforms.count do
+                if not groupTransforms.isEmpty() do
                     discard groupTransforms.popBack()
                 groupCursor = close + ("</Group>").count
                 continue
@@ -1430,9 +1435,7 @@ private func idmlAppendMasterItems(masters: const *Array'IdmlMaster, pages: *Arr
     }
 }
 
-// A story is one text flow, potentially crossing several positioned text frames and pages. The
-// package stores its text once; duplicating it in every frame is both visually wrong and expensive
-// for long editorial copy. Preserve paragraph markup and partition it across the linked frames.
+// Returns the text frame whose `Self` identifier is `self`, or null when no page holds it.
 private func idmlFindTextFrame(pages: *Array'IdmlPage, self: string)->*IdmlItem?
 {
     for &page in pages
@@ -1450,9 +1453,11 @@ private func idmlStoryBlockEnd(source: string, start: u64)->u64
     return close == Swag.U64.Max ? source.count : close + ("</div>").count
 }
 
+// Returns the text area of a frame, which weights the share of a story the frame receives.
+//
 // The local HTML renderer owns line breaking, but a text frame's area is a reliable first-order
-// capacity signal. Weight paragraph blocks by that area so an editorial chain with unequal columns
-// does not place the same amount of prose into a caption-sized frame and a body-sized frame.
+// capacity signal. Paragraph blocks are weighted by that area so an editorial chain with unequal
+// columns does not place the same amount of prose into a caption-sized frame and a body-sized frame.
 private func idmlTextFrameCapacity(frame: const *IdmlItem)->f32
 {
     let width  = frame.bounds.width - frame.textInsetLeft - frame.textInsetRight
@@ -1460,9 +1465,10 @@ private func idmlTextFrameCapacity(frame: const *IdmlItem)->f32
     return Math.max(width, 1) * Math.max(height, 1)
 }
 
+// Partitions the paragraph blocks of one story markup across its chain of linked frames.
 private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
 {
-    if not frames.count or not source.count do
+    if frames.isEmpty() or not source.count do
         return
 
     var blockCount: u64
@@ -1504,6 +1510,11 @@ private func idmlFlowStory(source: string, frames: const *Array'*IdmlItem)
     }
 }
 
+// Distributes the text of each story over its chain of linked text frames.
+//
+// A story is one text flow, potentially crossing several positioned text frames and pages. The
+// package stores its text once; duplicating it in every frame is both visually wrong and expensive
+// for long editorial copy, so the paragraph markup is partitioned across the linked frames.
 private func idmlFlowTextStories(pages: *Array'IdmlPage, stories: const *HashTable'(String, String))
 {
     for &page in pages
@@ -1546,7 +1557,7 @@ private func idmlFlowTextStories(pages: *Array'IdmlPage, stories: const *HashTab
     }
 }
 
-private func idmlLoadMasters(fileName: string, archive: const *ZipArchive, designMap: string, stories: const *HashTable'(String, String), colors: const *HashTable'(String, String), linkedGraphicBytes: *u64)->Array'IdmlMaster
+private func idmlLoadMasters(fileName: string, archive: const *ZipArchive, designMap: string, colors: const *HashTable'(String, String), linkedGraphicBytes: *u64)->Array'IdmlMaster
 {
     var result: retval
     var cursor = 0'u64
@@ -1572,7 +1583,7 @@ private func idmlLoadMasters(fileName: string, archive: const *ZipArchive, desig
                     var master: IdmlMaster
                     master.self = self
                     idmlAppendPages(source.toString(), &master.pages)
-                    idmlAppendItems(fileName, source.toString(), stories, colors, linkedGraphicBytes, &master.pages)
+                    idmlAppendItems(fileName, source.toString(), colors, linkedGraphicBytes, &master.pages)
                     result.add(#move master)
                 }
             }
@@ -1584,8 +1595,10 @@ private func idmlLoadMasters(fileName: string, archive: const *ZipArchive, desig
     return result
 }
 
-// Reads an IDML package into positioned pages, text frames, and vector frame backgrounds. Linked
-// external assets deliberately remain offline; a missing link never causes the viewer to fetch it.
+// Reads an IDML package into positioned pages, text frames, and vector frame backgrounds.
+//
+// Linked external assets deliberately remain offline; a missing link never causes the viewer to
+// fetch it.
 func loadIdmlDocument(fileName: string)->IdmlDocument fail
 {
     let archive = try loadZipArchive(fileName)
@@ -1614,7 +1627,7 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
     }
 
     var linkedGraphicBytes: u64
-    let masters = idmlLoadMasters(fileName, &archive, designMap.toString(), &stories, &colors, &linkedGraphicBytes)
+    let masters = idmlLoadMasters(fileName, &archive, designMap.toString(), &colors, &linkedGraphicBytes)
     var result: retval
     result.fileName = fileName
     var cursor = 0'u64
@@ -1634,7 +1647,7 @@ func loadIdmlDocument(fileName: string)->IdmlDocument fail
         if not spreadPages.isEmpty()
         {
             idmlAppendMasterItems(&masters, &spreadPages)
-            idmlAppendItems(fileName, spread.toString(), &stories, &colors, &linkedGraphicBytes, &spreadPages)
+            idmlAppendItems(fileName, spread.toString(), &colors, &linkedGraphicBytes, &spreadPages)
             for page in spreadPages do
                 result.pages.add(page[])
         }

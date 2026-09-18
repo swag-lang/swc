@@ -130,15 +130,9 @@ internal struct Decoder
 
 impl Decoder
 {
-    func safeDatas(chunk: DecodeChunk)->const [..] u8
-    {
-        return cast(const [..] u8) chunk.datas!
-    }
+    func safeDatas(chunk: DecodeChunk)->const [..] u8 => cast(const [..] u8) chunk.datas!
 
-    mtd safeTRNSData()->const [..] u8
-    {
-        return cast(const [..] u8) .chunkTRNS.datas!
-    }
+    mtd safeTRNSData()->const [..] u8 => cast(const [..] u8) .chunkTRNS.datas!
 
     mtd safeDstPixels()->[*] u8 => .dstPixels!
 
@@ -163,7 +157,7 @@ impl Decoder
         crc.update(Decoder.safeDatas(result))
 
         var vcrc: u32
-        .stream.peek32Be(cast([*] u8) &vcrc)
+        .stream.read32Be(cast([*] u8) &vcrc)
         if .stream.isEof() do
             fail InvalidFormatError{"PNG data ends before the chunk checksum"}
         if vcrc != crc.value() do
@@ -242,7 +236,7 @@ impl Decoder
         .stream.reset(buffer)
 
         var signature: u64
-        .stream.peekBytes(#sizeof(signature), cast([*] u8) &signature)
+        .stream.readBytes(#sizeof(signature), cast([*] u8) &signature)
         if signature != 0x0A1A0A0D474E5089 do
             fail InvalidFormatError{"not a png"}
 
@@ -267,8 +261,8 @@ impl Decoder
             // Peek a chunk header only if it's not already done
             if not chIsHere
             {
-                .stream.peek32Be(cast([*] u8) &ch.length)
-                .stream.peek32(cast([*] u8) &ch.type)
+                .stream.read32Be(cast([*] u8) &ch.length)
+                .stream.read32(cast([*] u8) &ch.type)
             }
 
             chIsHere = false
@@ -376,8 +370,8 @@ impl Decoder
                         iDataBuf.add(Decoder.safeDatas(chunk))
                     if currentFrame >= 0 do
                         frameHasData = true
-                    .stream.peek32Be(cast([*] u8) &ch.length)
-                    .stream.peek32(cast([*] u8) &ch.type)
+                    .stream.read32Be(cast([*] u8) &ch.length)
+                    .stream.read32(cast([*] u8) &ch.type)
                     if .stream.isEof() do
                         fail InvalidFormatError{"invalid chunk"}
                 }

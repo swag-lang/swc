@@ -6,10 +6,7 @@ using Core
 //
 // One walker covers WAV, AVI, WebP, ANI and every other format built on the same chunk chain, which
 // is what the container was designed for.
-func isRiffContainer(image: *BinaryImage)->bool
-{
-    return image.matches(0, "RIFF") or image.matches(0, "RIFX") or image.matches(0, "RF64")
-}
+func isRiffContainer(image: *BinaryImage)->bool => image.matches(0, "RIFF") or image.matches(0, "RIFX") or image.matches(0, "RF64")
 
 // Adds the chunk chain of a RIFF container, including the chunks nested inside its lists.
 func reportRiffContainer(image: *BinaryImage, report: *BinaryReport)
@@ -17,7 +14,7 @@ func reportRiffContainer(image: *BinaryImage, report: *BinaryReport)
     // `RIFX` is the same container written the other way round; everything else about it is equal.
     image.bigEndian = image.matches(0, "RIFX")
 
-    let s      = binStrings()
+    let s      = binaryStrings()
     let size   = cast(u64) image.u32At(4)
     let form   = image.fixedTextAt(8, 4)
     let stored = StrConv.toDisplaySize(size)
@@ -39,7 +36,7 @@ func reportRiffContainer(image: *BinaryImage, report: *BinaryReport)
 // Adds the chunks between `at` and `end`, and returns how many there were.
 private func reportRiffChunks(image: *BinaryImage, report: *BinaryReport, at, end: u64, open: bool)->u64
 {
-    let s     = binStrings()
+    let s     = binaryStrings()
     var scan  = at
     var count = 0'u64
 

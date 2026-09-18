@@ -12,9 +12,9 @@
 // sign if neg is true.
 struct FloatExt
 {
-    mant: u64      // Mant associated with this value.
-    exp:  s64      // Exp associated with this value.
-    neg:  bool     // Neg associated with this value.
+    mant: u64      // Mantissa.
+    exp:  s64      // Binary exponent.
+    neg:  bool     // Whether the number is negative.
 }
 
 // Powers of ten taken from double-conversion library.

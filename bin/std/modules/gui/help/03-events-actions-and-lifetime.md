@@ -117,7 +117,7 @@ file, a picture editor takes the bitmap, and each target picks what it understan
 ```swag
 var data: DragData
 data.addFile(exportedPath)
-try data.setImage(picture)
+data.setImage(picture)
 discard thumbnail.startDrag(&data, DropEffect.Copy)
 ```
 

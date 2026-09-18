@@ -1,9 +1,10 @@
 #global export
 
-// Swaps the values of two variables.
-// Takes pointers to the two values to be swapped.
-// Relocation applies `opPostMove`, so self-referential values stay valid. The
-// scratch value's lifetime ends at its final relocation.
+// Swaps the values that `x` and `y` point to.
+//
+// The values are relocated rather than copied. Relocation applies `opPostMove`, so
+// self-referential values stay valid, and the scratch value's lifetime ends at its final
+// relocation.
 #[Swag.Inline]
 func(T) swap(x, y: *T)
 {
@@ -13,8 +14,7 @@ func(T) swap(x, y: *T)
     y[] = #relocate tmp
 }
 
-// Ensures that the first value is less than or equal to the second value.
-// If the first value is greater than the second, their contents are swapped.
+// Swaps the values that `x` and `y` point to when `x` is greater, so that `x` holds the smaller one.
 #[Swag.Inline]
 func(T) orderMinMax(x, y: *T)
 {
@@ -22,8 +22,7 @@ func(T) orderMinMax(x, y: *T)
         swap(x, y)
 }
 
-// Ensures that the first value is greater than or equal to the second value.
-// If the first value is less than the second, their contents are swapped.
+// Swaps the values that `x` and `y` point to when `x` is smaller, so that `x` holds the greater one.
 #[Swag.Inline]
 func(T) orderMaxMin(x, y: *T)
 {

@@ -8,10 +8,7 @@ using Core, Pixel
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
 internal impl Properties
 {
-    func attributeString(value: any?)->string
-    {
-        return cast #assume (string) value!
-    }
+    func attributeString(value: any?)->string => cast #assume (string) value!
 
     // The string an attribute declares, as the reader sees it: an attribute value is a
     // compile-time constant, so the installed resolver is what can turn it into a
@@ -37,9 +34,11 @@ internal impl Properties
         return resolveText(beautified.toString())
     }
 
-    // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
-    // Public so custom editors registered with registerEditor (possibly authored in another
-    // module) can build their row the same way the built-in editors do.
+    // Creates a row for the field `value` describes, bound to `data`, under `parentItem`, and returns it.
+    //
+    // Custom editors registered with [[Gui.Properties.registerEditor]], possibly authored in
+    // another module, build their row with it the same way the built-in editors do. A zero
+    // `height` uses the grid line height.
     public mtd addItem(value: Swag.TypeValue, data: *u8?, parentItem: *PropertiesItem?, height: f32 = 0, flags = PropertiesAddItemFlags.Name | PropertiesAddItemFlags.Description)->*PropertiesItem
     {
         var rowWnd: *Wnd?
@@ -88,7 +87,7 @@ internal impl Properties
             .valueCellHeight = height != 0 ? height : me.gridLineHeight
         }
 
-        line.hookOnEvent = func|prop = me, item|(wnd, evt) { return prop.onItemEvent(item, wnd, evt); }
+        line.hookOnEvent = func|prop = me, item|(wnd, evt) => prop.onItemEvent(item, wnd, evt);
 
         // Name
         if flags.has(.Name)
@@ -342,13 +341,13 @@ internal impl Properties
                 {
                     for i in common until segs.count
                     {
-                        let parentForCateg = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
+                        let parentForCateg = not categPath.isEmpty() ? categPath[categPath.count - 1].item : parentItem
                         let citem = .addCategoryHeader(segs[i], parentForCateg)
                         categPath.add({segs[i], citem})
                     }
                 }
 
-                newParent = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
+                newParent = not categPath.isEmpty() ? categPath[categPath.count - 1].item : parentItem
             }
 
             // Decorators (Space / Header / HelpBox) go above the field, under the same parent so
@@ -366,9 +365,11 @@ internal impl Properties
         }
     }
 
-    // A thin horizontal separator row, the same look as a Panel category divider. Public so a
-    // host appending hand-made rows (addItem) after the generated content can separate them;
-    // call endAppendRows once done. 'name' feeds the notify visibility dispatch and the filter.
+    // Appends a thin horizontal separator row, drawn like a panel category divider, and returns it.
+    //
+    // A host appending its own rows with [[Gui.Properties.addItem]] after the generated content
+    // separates them with it, then calls [[Gui.Properties.endAppendRows]]. `name` feeds the notify
+    // visibility dispatch and the filter.
     public mtd addSeparator(name: string? = null, parentItem: *PropertiesItem? = null)->*PropertiesItem
     {
         let v         = Swag.TypeValue{name: name}
@@ -383,8 +384,9 @@ internal impl Properties
         return item
     }
 
-    // To be called once after appending custom rows (addItem / addSeparator) from outside the
-    // reflection build, so visibility states, layout and the scroll size account for them.
+    // Updates visibility, layout, and the scroll size after rows were appended outside the reflection build.
+    //
+    // Call it once after the [[Gui.Properties.addItem]] and [[Gui.Properties.addSeparator]] calls.
     public mtd endAppendRows()
     {
         .updateStates()

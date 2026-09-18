@@ -83,6 +83,5 @@ func day3B()
         di += d1.length()
     }
 
-    // Console.print("total: ", best)
     Swag.assert(best == 11222)
 }

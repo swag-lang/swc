@@ -7,7 +7,7 @@ struct WrapLayoutCtrl
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
         spacing:    f32 = 5             // Horizontal and vertical gap between items.
         itemWidth:  f32 = 64            // Fallback width when a child has no preferred width.
@@ -33,16 +33,13 @@ impl IWnd for WrapLayoutCtrl
 impl WrapLayoutCtrl
 {
     // Creates an empty wrapping layout.
-    func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl
-    {
-        return Wnd.create'WrapLayoutCtrl(parent, position)
-    }
+    func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl => Wnd.create'WrapLayoutCtrl(parent, position)
 
     // Recomputes the flow of all visible children.
     mtd computeLayout()
     {
         .contentHeight = 0
-        if not .children.count do
+        if .children.isEmpty() do
             return
 
         let client = .paddedClientRect()
@@ -52,7 +49,7 @@ impl WrapLayoutCtrl
         var rowHeight = 0'f32
         for c in .children
         {
-            if c.wndFlags & .Hidden do
+            if c.wndFlags.has(.Hidden) do
                 continue
 
             let margin = c.layoutMargin()

@@ -11,21 +11,21 @@ private #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
     func SystemParametersInfoW(uiAction, uiParam: UINT, pvParam: LPVOID, fWinIni: UINT)->BOOL
 }
 
-// Dependency-visible Windows storage embedded by [[Application]].
+// Dependency-visible Windows storage embedded by [[Gui.Application]].
 #[Swag.Opaque, Swag.NoDoc]
 public struct ApplicationNative
 {
     public
     {
-        fileSmallIconsImage:     Image                       // File small icons image associated with this value.
-        fileSmallIconsImageList: ImageList                   // File small icons image list associated with this value.
-        mapFileSmallIcons:       HashTable'(String, s32)     // Map file small icons associated with this value.
+        fileSmallIconsImage:     Image                       // Strip of the 16-pixel shell icons fetched so far.
+        fileSmallIconsImageList: ImageList                   // Renderer upload of the small icon strip.
+        mapFileSmallIcons:       HashTable'(String, s32)     // Index of each small icon in the strip, by extension or name.
 
-        fileBigIconsImage:     Image                       // File big icons image associated with this value.
-        fileBigIconsImageList: ImageList                   // File big icons image list associated with this value.
-        mapFileBigIcons:       HashTable'(String, s32)     // Map file big icons associated with this value.
+        fileBigIconsImage:     Image                       // Strip of the 32-pixel shell icons fetched so far.
+        fileBigIconsImageList: ImageList                   // Renderer upload of the large icon strip.
+        mapFileBigIcons:       HashTable'(String, s32)     // Index of each large icon in the strip, by extension or name.
 
-        hotKeysDisabled: bool     // Hot keys disabled associated with this value.
+        hotKeysDisabled: bool     // Whether registered system-wide shortcuts are withdrawn from the desktop.
     }
 }
 
@@ -90,7 +90,7 @@ impl Application
 
     // A system-wide hot key belongs to the desktop of the person running the process, and only one
     // process on the machine can hold a given one. A sandboxed run therefore takes none: the
-    // shortcut still enters [[Application.hotKeys]] and [[Application.dispatchHotKey]] still routes
+    // shortcut still enters [[Gui.Application.hotKeys]] and [[Gui.Application.dispatchHotKey]] still routes
     // it, exactly as the fake clipboard keeps clipboard semantics without touching the system one.
     //
     // Failing instead of substituting would defeat the purpose: an application that reports an
@@ -116,7 +116,7 @@ impl Application
         try RegisterHotKey(null, hotKeyId, mod, winKey)
     }
 
-    // Symmetrical to [[registerNativeHotKey]]: a sandboxed run holds no system hot key to release.
+    // Symmetrical to [[Gui.Application.registerNativeHotKey]]: a sandboxed run holds no system hot key to release.
     internal func unregisterNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
     {
         if Env.isSandboxed() do
@@ -171,7 +171,7 @@ impl Application
         {
             if s.native.hWnd == hWnd
             {
-                if .modalSurfaces.count and s != .modalSurfaces.back() do
+                if not .modalSurfaces.isEmpty() and s != .modalSurfaces.back() do
                     return null
                 return s
             }

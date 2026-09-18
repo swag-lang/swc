@@ -2,7 +2,10 @@ using Core
 
 public impl Image
 {
-    // Change the lightness. 'factor' is [-1, 1]
+    // Adds a signed offset to every color channel.
+    //
+    // `factor` is clamped to [-1, 1], where one is the full channel range; results saturate.
+    // Alpha is unchanged.
     mtd lightness(factor: f32 = 0.5)
     {
         if not .pixelFormat.isPacked() do

@@ -190,7 +190,7 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     moved = #move source
 
     let expected: [2] s32 = [7, 8]
-    Swag.assert(source.count == 0)
+    Swag.assert(source.isEmpty())
     Swag.assert(source.head == null)
     Swag.assert(source.tail == null)
     Swag.assert(assertIntList(&moved, expected))

@@ -90,7 +90,7 @@ impl RichEditCtrl
         .setRectangularSelection(false)
     }
 
-    // Sets rectangular selection.
+    // Selects whether the selection is a rectangle of columns rather than a run of text.
     mtd setRectangularSelection(selRect: bool)
     {
         .hasSelRect = selRect
@@ -103,7 +103,7 @@ impl RichEditCtrl
         .setRectangularSelection(false)
     }
 
-    // Sets selection.
+    // Selects from the anchor `start` to the caret `end`.
     mtd setSelection(start, end: RichEditCursor)
     {
         .selBeg    = start
@@ -111,17 +111,10 @@ impl RichEditCtrl
         .checkSelection()
     }
 
-    // Returns whether selection empty.
-    mtd isSelectionEmpty()->bool
-    {
-        if .selBeg.lineIndex != .cursorPos.lineIndex do
-            return false
-        if .selBeg.charPosInLine != .cursorPos.charPosInLine do
-            return false
-        return true
-    }
+    // Returns whether the anchor and the caret are at the same position.
+    mtd isSelectionEmpty()->bool => .selBeg.lineIndex == .cursorPos.lineIndex and .selBeg.charPosInLine == .cursorPos.charPosInLine
 
-    // Returns beg selection.
+    // Returns the first end of the selection in document order; a rectangle answers its top-left corner.
     mtd selectionStart()->RichEditCursor
     {
         if .hasSelRect
@@ -141,7 +134,7 @@ impl RichEditCtrl
         return .cursorPos
     }
 
-    // Returns end selection.
+    // Returns the last end of the selection in document order; a rectangle answers its bottom-right corner.
     mtd selectionEnd()->RichEditCursor
     {
         if .hasSelRect

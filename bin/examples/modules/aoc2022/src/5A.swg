@@ -69,7 +69,7 @@ func day5A()
         if moveMode
         {
             let res = r.grepAll(l[])
-            if res.count == 0 do
+            if res.isEmpty() do
                 continue
             var count   = expect StrConv.toU64(res[0])
             let colFrom = expect StrConv.toS32(res[1]) - 1
@@ -105,6 +105,5 @@ func day5A()
     for s in stacks do
         total += s[0]
 
-    // Console.print("total: ", total)
     Swag.assert(total == "HNSNMTLHQ")
 }

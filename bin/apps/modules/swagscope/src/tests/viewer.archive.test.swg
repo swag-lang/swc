@@ -1,12 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
-#global internal
+#global private
 
 using Core, Pixel, Gui
 
-private func archiveViewerFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.zip")
-}
+func archiveViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.zip")
 
 struct ZipFixtureEntry
 {
@@ -18,20 +15,21 @@ struct ZipFixtureEntry
     local:  u64
 }
 
-private func zipFixtureU16(bytes: *Array'u8, value: u16)
+func zipFixtureU16(bytes: *Array'u8, value: u16)
 {
     bytes.add(cast #bit (u8) value)
     bytes.add(cast #bit (u8) (value >> 8))
 }
 
-private func zipFixtureU32(bytes: *Array'u8, value: u32)
+func zipFixtureU32(bytes: *Array'u8, value: u32)
 {
     zipFixtureU16(bytes, cast #bit (u16) value)
     zipFixtureU16(bytes, cast #bit (u16) (value >> 16))
 }
 
-private func addZipFixtureEntry(bytes: *Array'u8, entry: *ZipFixtureEntry)
+func addZipFixtureEntry(bytes: *Array'u8, entry: *ZipFixtureEntry)
 {
+    entry.crc32 = Hash.Crc32.compute(entry.plain.toSlice())
     entry.local = bytes.count
     zipFixtureU32(bytes, 0x04034B50)
     zipFixtureU16(bytes, 20)
@@ -48,20 +46,16 @@ private func addZipFixtureEntry(bytes: *Array'u8, entry: *ZipFixtureEntry)
     bytes.add(entry.packed.toSlice())
 }
 
-private func buildZipFixture()->Array'u8
+func buildZipFixture()->Array'u8
 {
     var entries: [2] ZipFixtureEntry
     entries[0].name = "docs/readme.txt"
-    let readme = String.from("Archive preview through the text viewer.\n")
-    entries[0].plain.add(readme.toSlice())
+    entries[0].plain.add("Archive preview through the text viewer.\n")
     entries[0].packed = entries[0].plain
-    entries[0].crc32  = Hash.Crc32.compute(entries[0].plain.toSlice())
 
     entries[1].name = "data/sample.json"
-    let sample = String.from("{\"answer\": 42}\n")
-    entries[1].plain.add(sample.toSlice())
+    entries[1].plain.add("{\"answer\": 42}\n")
     entries[1].method = 8
-    entries[1].crc32  = Hash.Crc32.compute(entries[1].plain.toSlice())
     var deflater: Compress.Deflate
     deflater.init(.BestSpeed, flags: .Zero)
     expect deflater.compress(&entries[1].packed, entries[1].plain.toSlice())
@@ -105,7 +99,7 @@ private func buildZipFixture()->Array'u8
     return result
 }
 
-private func writeZipFixture()->String
+func writeZipFixture()->String
 {
     let path = Gui.Testing.tempFilePath("scope-archive-", ".zip")
     discard expect File.writeAllBytes(path, buildZipFixture().toSlice())
@@ -191,7 +185,7 @@ private func writeZipFixture()->String
     discard expect File.writeAllBytes(archiveFile, bytes.toSlice())
 
     discard catch loadZipArchive(archiveFile) as archiveError
-    Swag.assert((archiveError is Errors.UnsupportedFormatError))
+    Swag.assert(archiveError is Errors.UnsupportedFormatError)
 }
 
 // A changed payload cannot cross the archive boundary under a stale central-directory checksum.
@@ -207,7 +201,7 @@ private func writeZipFixture()->String
     let output  = Gui.Testing.tempFilePath("scope-archive-crc-entry-", ".txt")
     defer discard catch File.delete(output)
     catch extractZipEntry(archiveFile, &archive.entries[1], output) as extractError
-    Swag.assert((extractError is Errors.InvalidFormatError))
+    Swag.assert(extractError is Errors.InvalidFormatError)
 }
 
 // The integrated viewer builds synthetic folders and hosts the selected entry with the ordinary
@@ -272,7 +266,7 @@ private func writeZipFixture()->String
     Swag.assert(embedded.choices[0].key == "text")
     Swag.assert(embedded.currentView != null)
 
-    let textView = cast #assume (*TextView) embedded.currentView
+    let textView = cast #assume (*TextViewer) embedded.currentView
     completeTextReads(&host, textView)
     host.fireTimer(textView.loadTimer)
 

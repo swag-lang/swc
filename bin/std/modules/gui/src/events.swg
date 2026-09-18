@@ -18,11 +18,10 @@ struct Event
 
 impl Event
 {
-    // Allocates an owned event for `Wnd.postEvent`; the event queue releases it after dispatch.
-    func(T) create()->*T
-    {
-        return Memory.new'T()
-    }
+    // Allocates an event of type `T` for [[Gui.Wnd.postEvent]] or [[Gui.Application.postEvent]].
+    //
+    // Posting transfers the event to the queue, which releases it after dispatch.
+    func(T) create()->*T => Memory.new'T()
 }
 
 impl IEvent for Event {}
@@ -32,7 +31,7 @@ struct CommandEvent
 {
     public
     {
-        using base: Event          // Embedded base state.
+        using base: Event          // Routing state shared by every GUI event.
         id:         WndId = ""     // Command identifier.
         source:     *Wnd?          // Window that originated the command, when known.
     }
@@ -76,21 +75,21 @@ struct CommandStateEvent
             Apply       // Computed state is being applied to command presenters.
         }
 
-        using base: Event          // Embedded base state.
+        using base: Event          // Routing state shared by every GUI event.
         kind:       Kind           // Whether state is being computed or applied.
         id:         WndId = ""     // Command identifier.
         source:     *Wnd?          // Window that requested the state, when known.
 
-        icon:          Icon              // Command icon when [UpdatedFields.Icon] is present.
-        name:          String            // Compact command label when [UpdatedFields.Name] is present.
-        longName:      String            // Expanded command label when [UpdatedFields.LongName] is present.
-        shortcut:      String            // Display-form shortcut when [UpdatedFields.Shortcut] is present.
-        toolTip:       String            // Explanatory tooltip when [UpdatedFields.ToolTip] is present.
+        icon:          Icon              // Command icon when `UpdatedFields.Icon` is set.
+        name:          String            // Compact command label when `UpdatedFields.Name` is set.
+        longName:      String            // Expanded command label when `UpdatedFields.LongName` is set.
+        shortcut:      String            // Display-form shortcut when `UpdatedFields.Shortcut` is set.
+        toolTip:       String            // Explanatory tooltip when `UpdatedFields.ToolTip` is set.
         updatedFields: UpdatedFields     // Identifies which presentation fields contain authoritative values.
-        renderingHint: RenderingHint     // Presenter hints when [UpdatedFields.RenderingHint] is present.
-        disabled:      bool              // Disabled state when [UpdatedFields.Disabled] is present.
-        checked:       bool              // Checked state when [UpdatedFields.Checked] is present.
-        hidden:        bool              // Hidden state when [UpdatedFields.Hidden] is present.
+        renderingHint: RenderingHint     // Presenter hints when `UpdatedFields.RenderingHint` is set.
+        disabled:      bool              // Disabled state when `UpdatedFields.Disabled` is set.
+        checked:       bool              // Checked state when `UpdatedFields.Checked` is set.
+        hidden:        bool              // Hidden state when `UpdatedFields.Hidden` is set.
     }
 }
 
@@ -101,7 +100,7 @@ struct TimerEvent
 {
     public
     {
-        using base: Event      // Embedded base state.
+        using base: Event      // Routing state shared by every GUI event.
         late timer: *Timer     // Timer that elapsed.
     }
 }
@@ -113,7 +112,7 @@ struct FrameEvent
 {
     public
     {
-        using base: Event     // Embedded base state.
+        using base: Event     // Routing state shared by every GUI event.
         firstFrame: bool      // Whether this is the first frame after startup.
     }
 }
@@ -123,7 +122,7 @@ impl IEvent for FrameEvent {}
 // Signals creation of a window.
 struct CreateEvent
 {
-    public using base: Event     // Embedded base state.
+    public using base: Event     // Routing state shared by every GUI event.
 }
 
 impl IEvent for CreateEvent {}
@@ -136,18 +135,19 @@ struct StateEvent
         // Identifies the window-state transition.
         enum Kind
         {
-            // Sent once, the first time a surface is shown, *before* the window
-            // becomes visible. Perform slow first-time initialization here
-            // (restoring state, loading content, resizing): the surface is
-            // guaranteed not to be displayed until this returns and a first frame
-            // has been rendered, so there is no black/empty flash on startup.
-            Init        // Performs first-show initialization before the surface becomes visible.
+            // Requests first-show initialization before the surface becomes visible.
+            //
+            // Sent once to the surface view, the first time the surface is shown. Slow
+            // first-time work belongs here — restoring state, loading content, resizing —
+            // because the surface is not displayed until this returns and a first frame has
+            // been rendered, so startup never shows an empty window.
+            Init
             Show        // Signals transition to locally visible state.
             Hide        // Signals transition to locally hidden state.
             Disable     // Signals transition to locally disabled state.
         }
 
-        using base: Event     // Embedded base state.
+        using base: Event     // Routing state shared by every GUI event.
         kind:       Kind      // State transition being reported.
     }
 }
@@ -157,7 +157,7 @@ impl IEvent for StateEvent {}
 // Signals destruction of a window.
 struct DestroyEvent
 {
-    public using base: Event     // Embedded base state.
+    public using base: Event     // Routing state shared by every GUI event.
 }
 
 impl IEvent for DestroyEvent {}
@@ -188,7 +188,7 @@ struct ResizeEvent
 {
     public
     {
-        using base: Event          // Embedded base state.
+        using base: Event          // Routing state shared by every GUI event.
         oldSize:    Math.Point     // Size before the resize.
     }
 }
@@ -200,7 +200,7 @@ struct MoveEvent
 {
     public
     {
-        using base: Event          // Embedded base state.
+        using base: Event          // Routing state shared by every GUI event.
         oldPos:     Math.Point     // Position before the move.
     }
 }
@@ -220,7 +220,7 @@ struct KeyEvent
             Character     // Text input produced one Unicode character.
         }
 
-        using base: Event                         // Embedded base state.
+        using base: Event                         // Routing state shared by every GUI event.
         kind:       Kind                          // Keyboard event kind.
         modifiers:  Input.KeyModifiers = None     // Modifiers held during the event.
         key:        Input.Key                     // Physical or logical key, when applicable.
@@ -249,7 +249,7 @@ struct MouseEvent
             SetCursor       // The target must choose the active cursor.
         }
 
-        using base: Event                         // Embedded base state.
+        using base: Event                         // Routing state shared by every GUI event.
         kind:       Kind                          // Mouse event kind.
         button:     Input.MouseButton             // Button involved in the transition.
         surfacePos: Math.Point                    // Pointer position in surface coordinates.
@@ -265,7 +265,7 @@ struct QuitEvent
 {
     public
     {
-        using base: Event     // Embedded base state.
+        using base: Event     // Routing state shared by every GUI event.
         quitCode:   s32       // Process exit code requested by the application.
     }
 }
@@ -286,7 +286,7 @@ struct FocusEvent
             CanLose     // Queries whether the window may lose keyboard focus.
         }
 
-        using base: Event         // Embedded base state.
+        using base: Event         // Routing state shared by every GUI event.
         kind:       Kind          // Focus event kind.
         other:      *Wnd?         // Window at the other end of the focus transition.
         canChangeFocus = true     // Whether the queried focus transition is allowed.
@@ -315,7 +315,7 @@ struct SysUserEvent
             ContextMenu     // The user requested the icon's context menu.
         }
 
-        using base: Event          // Embedded base state.
+        using base: Event          // Routing state shared by every GUI event.
         kind:       Kind           // Portable event source.
         messageId:  u32            // Application-defined identifier when `kind` is `CustomMessage`.
         param:      u64            // Application-defined parameter when `kind` is `CustomMessage`.
@@ -340,7 +340,7 @@ struct SysCommandEvent
             User         // Carries a host-specific command not covered above.
         }
 
-        using base: Event     // Embedded base state.
+        using base: Event     // Routing state shared by every GUI event.
         kind:       Kind      // Host command being requested.
     }
 }
@@ -352,7 +352,7 @@ struct ThemeEvent
 {
     public
     {
-        using base: Event            // Embedded base state.
+        using base: Event            // Routing state shared by every GUI event.
         late style: *ThemeStyle      // Style being updated.
         parent:     *ThemeStyle?     // Parent style inherited by `style`, when any.
     }
@@ -365,7 +365,7 @@ struct SerializeStateEvent
 {
     public
     {
-        using base: Event                         // Embedded base state.
+        using base: Event                         // Routing state shared by every GUI event.
         serializer: *Serialization.Serializer     // Serializer that defines the current read/write mode.
     }
 }
@@ -377,7 +377,7 @@ struct NotifyEvent
 {
     public
     {
-        using base: Event     // Embedded base state.
+        using base: Event     // Routing state shared by every GUI event.
 
         // Identifies the semantic notification sent by a control.
         enum Kind
@@ -388,7 +388,7 @@ struct NotifyEvent
         }
 
         kind: Kind      // Notification kind.
-        from: *Wnd?     // Control that originated the notification.
+        from: *Wnd?     // Control that originated the notification; the framework's own notifications leave it `null`.
     }
 }
 
@@ -397,7 +397,7 @@ impl IEvent for NotifyEvent {}
 // Requests repainting of a window.
 struct InvalidateEvent
 {
-    public using base: Event     // Embedded base state.
+    public using base: Event     // Routing state shared by every GUI event.
 }
 
 impl IEvent for InvalidateEvent {}

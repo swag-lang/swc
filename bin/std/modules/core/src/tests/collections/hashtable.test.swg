@@ -39,7 +39,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 #test
 {
     var table: HashTable'(s32, s32)
-    Swag.assert(table.count == 0)
+    Swag.assert(table.isEmpty())
     Swag.assert(not table.contains(1))
     Swag.assert(table.tryFind(1) == null)
 
@@ -123,7 +123,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     Swag.assert(table[2] == 200)
 
     table.clear()
-    Swag.assert(table.count == 0)
+    Swag.assert(table.isEmpty())
     Swag.assert(not table.contains(1))
     Swag.assert(not table.contains(2))
 }

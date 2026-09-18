@@ -143,9 +143,9 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let fullVoice    = (expect Voice.create(&full))!
-    let trimmedVoice = (expect Voice.create(&trimmed))!
+    let fullVoice = (expect Voice.create(&full))!
     defer fullVoice.destroy()
+    let trimmedVoice = (expect Voice.create(&trimmed))!
     defer trimmedVoice.destroy()
     discard expect fullVoice.seekSampleFrame(Trim)
     let expected = expect fullVoice.readBuffer()

@@ -15,7 +15,10 @@ impl Image
         }
     }
 
-    // Crop image
+    // Crops the image in place to a rectangle given in top-left pixel coordinates.
+    //
+    // Coordinates are clamped to the image, and the clamped rectangle must keep at least one
+    // pixel.
     public mtd crop(x, y, w, h: s32)
     {
         let cx = Math.clamp(x, 0, .width - 1)
@@ -29,12 +32,15 @@ impl Image
         .applyWorkingBuffer()
     }
 
+    // Crops the image in place to `cropRect`, clamped as by the pixel-coordinate overload.
     public mtd crop(cropRect: Math.Rectangle)
     {
-        return .crop(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)
+        .crop(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)
     }
 
-    // Crop image
+    // Returns a copy cropped to a rectangle given in top-left pixel coordinates.
+    //
+    // Coordinates are clamped as by [[Pixel.Image.crop]].
     public mtd const cropped(x, y, w, h: s32)->Image
     {
         let cx = Math.clamp(x, 0, .width - 1)
@@ -48,12 +54,5 @@ impl Image
         return result
     }
 
-    // Returns a cropped copy described by `cropRect`.
-    //
-    // Coordinates are clamped to the source image. Width and height must leave at
-    // least one source pixel after clamping.
-    public mtd const cropped(cropRect: Math.Rectangle)->Image
-    {
-        return .cropped(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)
-    }
+    public mtd const cropped(cropRect: Math.Rectangle)->Image => .cropped(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)
 }

@@ -26,7 +26,10 @@ enum FontFamilyStyle
 
 impl FontFamily
 {
-    // Returns the requested style, falling back to the closest available face.
+    // Returns the font of the requested style, falling back to the closest available face.
+    //
+    // Bold-italic falls back to italic, then bold, then regular; bold and italic fall back to
+    // regular. Returns `null` when no candidate slot is set.
     mtd const getFont(style: FontFamilyStyle)->*Font?
     {
         switch style

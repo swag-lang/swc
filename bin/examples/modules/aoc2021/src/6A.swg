@@ -76,6 +76,5 @@ func day6A()
         }
     }
 
-    // Console.print("total: ", values.count)
     Swag.assert(values.count == 388739)
 }

@@ -2,10 +2,7 @@
 
 using Core, Pixel, Pdf
 
-private func pdfFixturePath(name: string)->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
-}
+private func pdfFixturePath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
 
 private func loadPdfFixture(name: string, pageCount: u64)->Document
 {
@@ -223,7 +220,7 @@ private func sampleDocument()->Document
 
     let document = expect Document.decode(bytes.toSlice())
     Swag.assert(document.pages.count == 1)
-    Swag.assert(document.pages[0].items.count == 0)
+    Swag.assert(document.pages[0].items.isEmpty())
 }
 
 // A CropBox trims the page to the region a reader displays: the page takes the crop's
@@ -412,7 +409,7 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     var reader = expect Reader.open(path.toString())
     Swag.assert(reader.pageCount() == 1)
     var page = expect reader.loadPage(0)
-    Swag.assert(page.items.count != 0)
+    Swag.assert(not page.items.isEmpty())
 }
 
 // An incremental update wins over the revision it replaces.

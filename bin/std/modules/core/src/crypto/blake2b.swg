@@ -68,16 +68,12 @@ private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
 #[Swag.Opaque]
 public struct Blake2b
 {
-    state: [8] u64
-
-    public
-    {
-        buffer:      [Blake2bBlockSize] u8
-        bufferCount: u64
-        counterLow:  u64
-        counterHigh: u64
-        digestSize:  u64
-    }
+    state:       [8] u64
+    buffer:      [Blake2bBlockSize] u8
+    bufferCount: u64
+    counterLow:  u64
+    counterHigh: u64
+    digestSize:  u64
 }
 
 public impl Blake2b
@@ -101,13 +97,16 @@ public impl Blake2b
         return result
     }
 
-    // Replaces any previous state and starts a new unkeyed sequence.
+    // Replaces any previous state and starts a new unkeyed sequence producing `digestSize` bytes, from 1 to 64.
     mtd reset(digestSize: u64) fail
     {
         try .resetKeyed("", digestSize)
     }
 
-    // Replaces any previous state and starts a new keyed sequence.
+    // Replaces any previous state and starts a new keyed sequence producing `digestSize` bytes, from 1 to 64.
+    //
+    // `key` holds at most 64 bytes. Fails with [[Core.Errors.BadParameterError]] for an invalid
+    // digest length or key.
     mtd resetKeyed(key: const [..] u8, digestSize: u64) fail
     {
         if not digestSize or digestSize > Blake2bMaxDigestSize do
@@ -120,8 +119,8 @@ public impl Blake2b
         .digestSize = digestSize
         .state[0]   ^= 0x0101_0000 ^ (key.count << 8) ^ digestSize
 
-        // The key becomes one full padded block, so an empty key and a key of
-        // zero bytes of payload can never collide.
+        // The key is compressed as one full zero-padded block ahead of the message,
+        // as RFC 7693 specifies; its length is already bound into the first state word.
         if key.count
         {
             var keyBlock: [Blake2bBlockSize] u8

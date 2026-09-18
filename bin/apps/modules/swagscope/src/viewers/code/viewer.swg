@@ -2,10 +2,7 @@
 
 using Core, Pixel, Gui
 
-private func codePluginProbe(content: Viewer.ProbeContent)->bool
-{
-    return not content.claimed and codeShebang(cast(string) content.head).found
-}
+private func codePluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and codeShebang(cast(string) content.head).found
 
 // Describes the source-code viewer to the host.
 //
@@ -32,12 +29,12 @@ func codeViewerPlugin()->Viewer.Plugin
 
 private const CodeStreamChunkSize = 16 * 1024'u64
 
-// Keep five complete viewports ready beyond the visible one.
+// Viewport heights of text kept loaded from the top of the visible one: it and five more.
 private const CodeStreamLookAhead    = 6.0
 private const CodeResidentWindowSize = 256 * 1024'u64
 private const CodeRevealContextSize  = 64 * 1024'u64
 
-internal struct CodeViewer
+struct CodeViewer
 {
     using wnd: Wnd
 
@@ -66,7 +63,7 @@ internal struct CodeViewer
     failureReason:     String
 }
 
-internal impl CodeViewer
+impl CodeViewer
 {
     mtd hasMore()->bool => .stream.isOpen() and .bytesRead < .fileSize
 
@@ -229,7 +226,7 @@ internal impl CodeViewer
         .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
         let base = .themeMetrics().defaultFixedFontSize
         let size = cast(u32) Math.max(Math.round(cast(f32) base * cast(f32) .zoomPercent / 100), 1)
-        .editor.style.setFont(.theme().createDefaultFontFS(size), .Regular)
+        .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
         .editor.setFlags(.editor.flags)
         .zoomLabel?.setText(Format.toString("% %", .zoomPercent, "%"))
         .updateEstimatedHeight()
@@ -255,92 +252,136 @@ internal impl CodeViewer
         }
     }
 
+    // Creates the streamed, syntax-colored view of `fileName` under `contentParent`.
+    //
+    // `info` receives the zoom control when the view is hosted with an information group, and
+    // `reportFailure` hears about read errors discovered once text is already shown.
     func create(contentParent: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, info: *Wnd? = null)->*CodeViewer
     {
-        let result = Wnd.create'CodeViewer(contentParent, "scope.code")
-        result.backgroundStyle = .View
-        result.fileName        = fileName
-        result.reportFailure   = reportFailure
-        result.info            = info
-
-        result.editor = RichEditCtrl.create(result)
-        result.editor.dockStyle   = .Center
-        result.editor.marginLeft  = 12
-        result.editor.marginRight = 12
-        result.editor.style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
-        result.editor.setFlags(.ReadOnly)
-        if info
+        with let result = Wnd.create'CodeViewer(contentParent, "scope.code")
         {
-            with result.zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.code.zoom", .CenterContent)
+            .backgroundStyle = .View
+            .fileName        = fileName
+            .reportFailure   = reportFailure
+            .info            = info
+        }
+
+        result.createEditor()
+        if info do
+            result.createZoomControl(info)
+        result.selectLexer()
+        result.hookEvents()
+        result.startReading()
+
+        result.applyLayout()
+        result.setZoom(100)
+        result.scheduleMore()
+        result.setInitialFocus(result.editor)
+        return result
+    }
+
+    // Decides whether scrolling from `oldPosition` to `newPosition` leaves the resident window,
+    // and asks for the part of the file it reaches when it does.
+    mtd followScroll(oldPosition, newPosition: Math.Point)
+    {
+        if .repositioning do
+            return
+        if .pauseStreaming and newPosition.y < oldPosition.y do
+            .pauseStreaming = false
+        let viewport     = .editor.paddedClientRect()
+        let loadedHeight = .editor.loadedDocumentHeight()
+
+        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32) (.bytesRead - .residentStart) / cast(f32) .fileSize : 0)
+        let residentEnd    = .residentOffsetY + residentHeight
+        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * CodeStreamLookAhead
+        let after          = .hasMore() and .bytesRead - .residentStart >= CodeResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * CodeStreamLookAhead > residentEnd
+        let outside        = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
+        .pendingSeek = .virtualHeight > 0 and (before or after or outside)
+        if .pendingSeek
+        {
+            let ratio = Math.clamp(newPosition.y / .virtualHeight, 0, 1)
+            .pendingSeekOffset = cast(u64) (ratio * cast(f32) .fileSize)
+
+            // A continuous gesture must have its bytes before the next paint, even when
+            // the timer was delayed. Ordinary prefetch still runs on the short timer.
+            if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
             {
-                .dockStyle = .Center
-                .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-                .setText("100%")
-                .setArrowPosition(.RightDownward)
-                .setForm(.Rectangle)
-                .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-                .toolTip    = codeStrings().ui_ZoomMenu
-                .sigPressed += func|view = result|(button)
+                if not before and not after and .needsMore()
                 {
-                    discard button
-                    view.showZoomMenu()
+                    .pendingSeek = false
+                    .loadNextChunk()
                 }
+                else do
+                    discard .revealOffset(.pendingSeekOffset, "")
             }
         }
 
-        let extension = Path.lowercaseExtension(fileName)
+        .scheduleMore()
+    }
+
+    // Creates the read-only editor that shows the resident window of the file.
+    private mtd createEditor()
+    {
+        with .editor = RichEditCtrl.create(me)
+        {
+            .dockStyle   = .Center
+            .marginLeft  = 12
+            .marginRight = 12
+            .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
+            .setFlags(.ReadOnly)
+        }
+    }
+
+    // Creates the zoom menu button in the host's information group `info`.
+    private mtd createZoomControl(info: *Wnd)
+    {
+        with .zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.code.zoom", .CenterContent)
+        {
+            .dockStyle = .Center
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
+            .toolTip    = codeStrings().ui_ZoomMenu
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.showZoomMenu()
+            }
+        }
+    }
+
+    // Colors the editor with the Swag lexer for Swag sources, and with the generic lexer configured
+    // for the file's language otherwise.
+    private mtd selectLexer()
+    {
+        let extension = Path.lowercaseExtension(.fileName.toString())
         if extension == ".swg" or extension == ".swgs"
         {
-            result.languageName = "Swag"
-            result.editor.setLexer(&result.swagLexer)
+            .languageName = "Swag"
+            .editor.setLexer(&.swagLexer)
         }
         else
         {
-            let language = codeLanguage(fileName)
-            result.languageName = codeLanguageName(language)
-            result.codeLexer.configure(language)
-            result.editor.setLexer(&result.codeLexer)
+            let language = codeLanguage(.fileName.toString())
+            .languageName = codeLanguageName(language)
+            .codeLexer.configure(language)
+            .editor.setLexer(&.codeLexer)
         }
+    }
 
-        result.editor.sigScrollPositionChanged += func|view = result|(editor, oldPosition, newPosition)
+    // Follows scrolling with the resident window, routes the keys the code view answers for, and
+    // keeps painting and resizing from reloading text.
+    private mtd hookEvents()
+    {
+        .editor.sigScrollPositionChanged += func|view = me|(editor, oldPosition, newPosition)
         {
             discard editor
-            if view.repositioning do
-                return
-            if view.pauseStreaming and newPosition.y < oldPosition.y do
-                view.pauseStreaming = false
-            let viewport     = view.editor.paddedClientRect()
-            let loadedHeight = view.editor.loadedDocumentHeight()
-
-            let residentHeight = loadedHeight > 0 ? loadedHeight : (view.fileSize ? view.virtualHeight * cast(f32) (view.bytesRead - view.residentStart) / cast(f32) view.fileSize : 0)
-            let residentEnd    = view.residentOffsetY + residentHeight
-            let before         = view.residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < view.residentOffsetY + viewport.height * CodeStreamLookAhead
-            let after          = view.hasMore() and view.bytesRead - view.residentStart >= CodeResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * CodeStreamLookAhead > residentEnd
-            let outside        = newPosition.y < view.residentOffsetY or newPosition.y + viewport.height > residentEnd
-            view.pendingSeek = view.virtualHeight > 0 and (before or after or outside)
-            if view.pendingSeek
-            {
-                let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
-                view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
-
-                // A continuous gesture must have its bytes before the next paint, even when
-                // the timer was delayed. Ordinary prefetch still runs on the short timer.
-                if outside and Math.abs(newPosition.y - oldPosition.y) <= viewport.height
-                {
-                    if not before and not after and view.needsMore()
-                    {
-                        view.pendingSeek = false
-                        view.loadNextChunk()
-                    }
-                    else do
-                        discard view.revealOffset(view.pendingSeekOffset, "")
-                }
-            }
-
-            view.scheduleMore()
+            view.followScroll(oldPosition, newPosition)
         }
 
-        result.hookOnChildEvent = func|view = result|(wnd, evt)
+        .hookOnChildEvent = func|view = me|(wnd, evt)
         {
             discard wnd
             switch evt
@@ -393,7 +434,7 @@ internal impl CodeViewer
             }
         }
 
-        result.hookOnEvent = func|view = result|(wnd, evt)
+        .hookOnEvent = func|view = me|(wnd, evt)
         {
             discard wnd
             if evt is ResizeEvent
@@ -404,34 +445,34 @@ internal impl CodeViewer
 
             return false
         }
+    }
 
-        result.stream = catch File.openReadLive(fileName) as openError
-        if openError != null do
-            result.showReadError(Errors.message(openError))
-        else
+    // Opens the source stream and reads its first chunk, or records why it cannot be read.
+    private mtd startReading()
+    {
+        .stream = catch File.openReadLive(.fileName.toString()) as openError
+        if openError != null
         {
-            let size = catch result.stream.size() as sizeError
-            if sizeError != null do
-                result.showReadError(Errors.message(sizeError))
-            else
-            {
-                result.fileSize = size
-                if not size do
-                    result.finishLoading()
-                else do
-                    result.loadNextChunk()
-            }
+            .showReadError(Errors.message(openError))
+            return
         }
 
-        result.applyLayout()
-        result.setZoom(100)
-        result.scheduleMore()
-        result.setInitialFocus(result.editor)
-        return result
+        let size = catch .stream.size() as sizeError
+        if sizeError != null
+        {
+            .showReadError(Errors.message(sizeError))
+            return
+        }
+
+        .fileSize = size
+        if not size do
+            .finishLoading()
+        else do
+            .loadNextChunk()
     }
 }
 
-internal impl IWnd for CodeViewer
+impl IWnd for CodeViewer
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
@@ -491,12 +532,12 @@ func createCodeViewer(host: Viewer.Host)
     host.attachView(view)
     host.setDetails(Format.toString(codeStrings().ui_Details, view.languageName).toString())
     host.setSearch({
-        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text) },
+        revealMatch: func(wnd, match, text)->bool => (cast #assume (*CodeViewer) wnd).revealOffset(match.offset, text),
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return Viewer.richEditMatchBounds((cast #assume (*CodeViewer) wnd).editor, bounds)
     },
         clear: func(wnd) { Viewer.clearRichEditMatch((cast #assume (*CodeViewer) wnd).editor) }})
-    host.setLifecycle({isLoading: func(wnd)->bool { return (cast #assume (*CodeViewer) wnd).loadTimer != null }})
+    host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*CodeViewer) wnd).loadTimer != null})
 }

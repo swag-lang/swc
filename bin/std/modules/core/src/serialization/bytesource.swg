@@ -65,7 +65,7 @@ impl ByteSource
         return result
     }
 
-    // Releases the file or the borrowed bytes and leaves an empty source. Repeated calls do nothing.
+    // Releases the file or the borrowed bytes and leaves an empty source; repeated calls do nothing.
     //
     // A source that leaves scope closes itself; calling this earlier is how a reader releases a
     // file before its own value goes away.
@@ -190,16 +190,10 @@ impl ByteSource
     }
 
     // Reads a little-endian integer of type `T`.
-    mtd(T) readLittleEndian()->T fail
-    {
-        return Math.littleEndianToNative(try .readNative'T())
-    }
+    mtd(T) readLittleEndian()->T fail => Math.littleEndianToNative(try .readNative'T())
 
     // Reads a big-endian integer of type `T`.
-    mtd(T) readBigEndian()->T fail
-    {
-        return Math.bigEndianToNative(try .readNative'T())
-    }
+    mtd(T) readBigEndian()->T fail => Math.bigEndianToNative(try .readNative'T())
 
     // Reads the bytes up to the next line feed and returns the line without it.
     //
@@ -214,9 +208,9 @@ impl ByteSource
             let value = try .readByte()
             if value == '\n'
             {
-                if bytes.count and bytes.back() == '\r' do
+                if not bytes.isEmpty() and bytes.back() == '\r' do
                     discard bytes.popBack()
-                return String.from(Swag.makeString(bytes.buffer, bytes.count))
+                return String.from(cast(string) bytes.toSlice())
             }
 
             bytes.add(value)
@@ -259,7 +253,7 @@ impl ByteSource
             .window.resize(size)
 
         let count = Math.min(size, .remaining())
-        if not (try .stream.readExactAt(.cursor, .window.toSlice()[0 until count])) do
+        if not (try .stream.readExactAt(.cursor, .window.toSlice()[until count])) do
             fail InvalidFormatError{"byte source ends before the requested bytes"}
 
         .windowStart = .cursor

@@ -3,20 +3,6 @@
 
 using Swag
 
-func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
-{
-    if actual.count != expected.count do
-        return false
-
-    for index in actual.count
-    {
-        if actual[index] != expected[index] do
-            return false
-    }
-
-    return true
-}
-
 #test
 {
     let input: [4] u8 = [0x10, 0x20, 0x30, 0x40]
@@ -29,7 +15,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert(stream.readU8() == 0x10)
     Swag.assert(stream.position() == 1)
     Swag.assert(stream.peekU8() == 0x20)
-    Swag.assert(assertBytes(stream.remainingBytes(), [0x20, 0x30, 0x40]))
+    Swag.assert(Slice.equals(stream.remainingBytes(), [0x20, 0x30, 0x40]))
     Swag.assert(stream.remainingString() == "\x20\x30\x40")
 
     stream.advance(2)
@@ -49,13 +35,13 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     Swag.assert(stream.length() == 3)
     Swag.assert(stream.position() == 3)
-    Swag.assert(assertBytes(buffer.toSlice(), [0xAB, 0xCD, 0xEF]))
+    Swag.assert(Slice.equals(buffer.toSlice(), [0xAB, 0xCD, 0xEF]))
 
     stream.setPosition(0)
     Swag.assert(not stream.isEof())
     Swag.assert(stream.peekU8() == 0xAB)
     Swag.assert(stream.readU8() == 0xAB)
-    Swag.assert(assertBytes(stream.remainingBytes(), [0xCD, 0xEF]))
+    Swag.assert(Slice.equals(stream.remainingBytes(), [0xCD, 0xEF]))
 }
 
 // LEB128 varints round-trip across the byte widths, and a truncated or over-long
@@ -77,7 +63,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     var small: Array'u8
     var sw = ByteStream.openWrite(&small)
     sw.writeVarint(0x45)
-    Swag.assert(assertBytes(small.toSlice(), [0x45]))
+    Swag.assert(Slice.equals(small.toSlice(), [0x45]))
 
     // Truncated in the middle of a continuation.
     let cut: [1] u8 = [0x80]
@@ -101,7 +87,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     writer.writeBigEndian(0xAABBCCDD'u32)
 
     // The bytes must be the declared order, not the host's.
-    Swag.assert(assertBytes(buffer.toSlice(), [0x34, 0x12, 0xDD, 0xCC, 0xBB, 0xAA, 0xAA, 0xBB, 0xCC, 0xDD]))
+    Swag.assert(Slice.equals(buffer.toSlice(), [0x34, 0x12, 0xDD, 0xCC, 0xBB, 0xAA, 0xAA, 0xBB, 0xCC, 0xDD]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
     Swag.assert(expect reader.readLittleEndian'u16() == 0x1234)
@@ -124,8 +110,8 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     writer.writeBigEndian(-100's8)
 
     // 800 is 0x0320, so a big-endian field stores its high byte first.
-    Swag.assert(assertBytes(buffer[0 until 2], [0x03, 0x20]))
-    Swag.assert(assertBytes(buffer[2 until 4], [0xFC, 0xE0]))
+    Swag.assert(Slice.equals(buffer[0 until 2], [0x03, 0x20]))
+    Swag.assert(Slice.equals(buffer[2 until 4], [0xFC, 0xE0]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
     Swag.assert(expect reader.readBigEndian's16() == 800)
@@ -145,7 +131,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     writer.writeLittleEndian(-70000's32)
     writer.writeLittleEndian(-100's8)
 
-    Swag.assert(assertBytes(buffer[0 until 2], [0x20, 0x03]))
+    Swag.assert(Slice.equals(buffer[0 until 2], [0x20, 0x03]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
     Swag.assert(expect reader.readLittleEndian's16() == 800)
@@ -163,7 +149,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     // A 32-bit little-endian byte count precedes the bytes.
     Swag.assert(buffer.count == 4 + 6 + 4)
-    Swag.assert(assertBytes(buffer[0 until 4], [6, 0, 0, 0]))
+    Swag.assert(Slice.equals(buffer[0 until 4], [6, 0, 0, 0]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
     Swag.assert(expect reader.readSizedString() == "sample")

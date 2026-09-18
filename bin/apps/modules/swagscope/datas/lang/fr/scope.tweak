@@ -44,7 +44,6 @@ ui_Unsupported  Aucune visionneuse ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.
 ui_ViewerError  Cette visionneuse n'a pas pu décoder le fichier.
 ui_AboutViewers Visionneuses prises en charge
-ui_AboutAnyFile tout fichier
 dlg_TitleOpen   Ouvrir un fichier
 dlg_ButtonOpen  Ouvrir
 dlg_AllFiles    Tous les fichiers

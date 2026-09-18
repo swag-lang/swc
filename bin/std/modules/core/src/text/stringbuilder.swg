@@ -1,61 +1,61 @@
 #global public
 #global namespace StrConv
 
-// Represents string builder.
+// Builds text piece by piece in a [[Core.ConcatBuffer]], without moving what was appended before.
 struct StringBuilder
 {
-    public buffer: ConcatBuffer     // Buffer associated with this value.
+    public buffer: ConcatBuffer     // Storage of the text built so far.
 }
 
 impl StringBuilder
 {
-    // Clear the content of the builder
+    // Empties the builder while keeping its storage for reuse.
     mtd clear()
     {
         .buffer.clear()
     }
 
-    // Returns the number of characters
+    // Returns the number of bytes appended so far.
     mtd const count()->u64 => .buffer.count()
 
-    // Set sizes of buckets of the string builder
+    // Sets the minimum size, in bytes, of the buckets allocated from now on.
     mtd setBucketSize(size: u64)
     {
         .buffer.setBucketSize(size)
     }
 
-    // Append a string
+    // Appends `value`.
     mtd appendString(value: string?)
     {
         .buffer.addBytes(value)
     }
 
-    // Append a end of line
+    // Appends the platform line ending, [[Core.Env.LineEnding]].
     mtd appendEOL()
     {
         .buffer.addBytes(Env.LineEnding)
     }
 
-    // Append a rune
+    // Appends the UTF-8 encoding of `value`.
     mtd appendRune(value: rune)
     {
         convertRune(&.buffer, value)
     }
 
-    // Append a value
+    // Appends the text of `value`, formatted by `strFormat` as [[Core.StrConv.convertAny]] does.
     mtd appendAny(value: const any?, strFormat: string? = null)
     {
         let convFmt: StrConv.ConvertFormat
         convertAny(&.buffer, value, convFmt, strFormat)
     }
 
-    // Append a formatted string
+    // Appends `fmt` formatted with `values`, following the rules of [[Core.Format.toString]].
     mtd appendFormat(fmt: string, values: ...)
     {
         Format.append(&.buffer, fmt, values)
     }
 
-    // Force a ending 0
+    // Writes a zero byte after the content without counting it, so the storage is zero-terminated.
     mtd zeroTerminate()
     {
         let seek = .buffer.position()
@@ -63,9 +63,11 @@ impl StringBuilder
         .buffer.truncate(seek)
     }
 
-    // Return the content as a string
+    // Returns a new [[Core.String]] holding a copy of the content.
     mtd const toString()->String => .buffer.toString()
 
-    // Return the content as a string by eating the content of the string builder (if possible)
+    // Returns the content as a [[Core.String]], taking over the storage when it is a single bucket.
+    //
+    // See [[Core.ConcatBuffer.moveToString]] for what remains in the builder.
     mtd moveToString()->String => .buffer.moveToString()
 }

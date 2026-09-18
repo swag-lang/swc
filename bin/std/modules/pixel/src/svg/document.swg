@@ -135,11 +135,13 @@ impl Document
         return result
     }
 
-    // Writes the document next to the other publication assets.
+    // Writes the document as SVG text to `fileName`, replacing any existing file.
+    //
+    // File errors are reported through `fail`.
     mtd const save(fileName: string) fail
     {
         let text = .toString()
-        discard try File.writeAllBytes(fileName, cast(const [..] u8) text)
+        try File.writeAllText(fileName, text.toString())
     }
 }
 
@@ -214,10 +216,7 @@ private func num(value: f32)->String
     return result
 }
 
-private func hex(color: Color)->String
-{
-    return Format.toString("#%{X02}%{X02}%{X02}", color.r, color.g, color.b)
-}
+private func hex(color: Color)->String => Format.toString("#%{X02}%{X02}%{X02}", color.r, color.g, color.b)
 
 private func escapeXml(value: string)->String
 {

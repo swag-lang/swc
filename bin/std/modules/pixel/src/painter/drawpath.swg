@@ -1034,10 +1034,7 @@ impl Painter
 }
 
 // Reports whether `pen` asks for a border outside its stroke.
-private func strokeHasOutline(pen: Pen)->bool
-{
-    return pen.outlineSize > 0 and pen.outlineColor.a != 0
-}
+private func strokeHasOutline(pen: Pen)->bool => pen.outlineSize > 0 and pen.outlineColor.a != 0
 
 // The pen the border pass strokes with: the same geometry, painted with the border's own colour.
 //
@@ -1082,7 +1079,10 @@ private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
 
 public impl Painter
 {
-    // Draw a line path.
+    // Strokes a path with a pen.
+    //
+    // A stroke thinner than one device pixel is drawn one device pixel wide with its opacity
+    // reduced in proportion, so a hairline fades with the scale instead of vanishing.
     mtd drawPath(path: *LinePath, color: Color, penSize: f32)
     {
         let pen = Pen.createSolid(color, penSize)
@@ -1193,10 +1193,14 @@ public impl Painter
         .strokePathPass(path, pen, 0)
     }
 
-    // Draw a list of paths.
+    // Strokes every path of a list with a pen.
+    //
+    // `mode` selects whether each path is stroked on its own or the list is stroked as one
+    // continuous stroke. With a pen outline, the whole list is bordered before any path is
+    // stroked, so one path's border never covers another's stroke.
     mtd drawPath(pathList: *LinePathList, pen: Pen, mode: DrawPathListMode = .Separate)
     {
-        if not pathList.paths.count do
+        if pathList.paths.isEmpty() do
             return
         if mode == .Separate
         {
@@ -1271,7 +1275,7 @@ public impl Painter
 
     mtd drawPath(pathList: *LinePathList, color: Color, penSize: f32, mode: DrawPathListMode = .Separate)
     {
-        if not pathList.paths.count do
+        if pathList.paths.isEmpty() do
             return
 
         let pen = Pen.createSolid(color, penSize)
@@ -1302,8 +1306,6 @@ public impl Painter
         case .SquareAnchor: return {half * capScaleX, half * capScaleX * capScaleY * 0.5}
         case .RoundAnchor:  return {half * capScaleX, half * capScaleX}
         }
-
-        return {0, 0}
     }
 
     // Returns how far a cap reaches from the point it is placed on, in any direction.
@@ -1341,7 +1343,5 @@ public impl Painter
         case .ArrowAnchor2:
             return hypot(width, width * capScaleY + capScaleX * capScaleY * 2)
         }
-
-        return 0
     }
 }

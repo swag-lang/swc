@@ -55,9 +55,9 @@ func day7A()
     var last: u8
     for k, v in steps
     {
-        if v.next.length == 0 do
+        if v.next.isEmpty() do
             last = k
-        if v.prev.length == 0 do
+        if v.prev.isEmpty() do
             first = Math.min(first, k)
     }
 
@@ -89,6 +89,5 @@ func day7A()
         }
     }
 
-    // Console.print("result: ", result)
     Swag.assert(result == "GJFMDHNBCIVTUWEQYALSPXZORK")
 }

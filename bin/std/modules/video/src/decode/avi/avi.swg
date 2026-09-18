@@ -181,10 +181,7 @@ private struct Layout
 // `db` for uncompressed bits and `dc` for compressed ones. Writers disagree on which one an
 // uncompressed stream deserves, so a decoder accepts both.
 #[Swag.ConstExpr]
-func frameChunkId(index: u32, a, b: u32)->u32
-{
-    return fourCc('0'u32 + index / 10, '0'u32 + index % 10, a, b)
-}
+func frameChunkId(index: u32, a, b: u32)->u32 => fourCc('0'u32 + index / 10, '0'u32 + index % 10, a, b)
 
 // Reads one chunk header and reports where its payload and its successor start.
 private func readChunk(source: *ByteSource, end: u64)->Chunk fail
@@ -411,7 +408,7 @@ impl IDecoder for Decoder
 
         try .describeFrames(&layout)
         try .buildFrameTable(source, &layout)
-        if not .frames.count do
+        if .frames.isEmpty() do
             fail InvalidFormatError{"AVI video stream has no frame"}
 
         .info.frameCount = .frames.count
@@ -617,7 +614,7 @@ private impl Decoder
             return false
 
         catch .readIndexEntries(source, layout, dataId, compressedId) as indexError
-        if indexError == null and .frames.count do
+        if indexError == null and not .frames.isEmpty() do
             return true
 
         .frames.clear()
@@ -666,7 +663,7 @@ private impl Decoder
             let chunk = try readChunk(source, layout.frameEnd)
             if chunk.id == dataId or chunk.id == compressedId
             {
-                .frames.add({chunk.data, chunk.size, .frames.count == 0})
+                .frames.add({chunk.data, chunk.size, .frames.isEmpty()})
                 position = chunk.next
                 continue
             }

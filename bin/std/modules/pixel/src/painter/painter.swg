@@ -11,9 +11,7 @@ enum DefaultShaderId
     Resolve     // Supersampling resolve pass used by layers.
 }
 
-// Antialiasing fringe half-width, in (untransformed) path-space pixels.
-//
-// Where a measured stroke's coverage lives in the vertex coverage attribute.
+// Offsets the signed distance a measured stroke stores in the vertex coverage attribute.
 //
 // The attribute normally carries an extruded band's ramp, one inside the contour and zero on the
 // outer edge. A measured stroke needs a *signed* distance instead, because one quad has to
@@ -25,6 +23,8 @@ enum DefaultShaderId
 // coverage both backends derive from it unchanged.
 const StrokeCoverageBias = 4.0'f32
 
+// Antialiasing fringe half-width, in untransformed path-space pixels.
+//
 // The fringe band is centered on the shape contour (AAHalf inside / AAHalf
 // outside), giving a 1px transition with 50% coverage on the true edge.
 const AAHalf = 0.5'f32
@@ -282,8 +282,8 @@ struct Command
 
 // Records drawing operations as a deferred command and vertex stream.
 //
-// Create it with an [[Pixel.IRenderer]], call [[Painter.begin]], issue drawing
-// operations, call [[Painter.end]], then call [[Painter.render]]. Coordinates are
+// Create it with an [[Pixel.IRenderer]], call [[Pixel.Painter.begin]], issue drawing
+// operations, call [[Pixel.Painter.end]], then call [[Pixel.Painter.render]]. Coordinates are
 // in path-space pixels and are transformed by the current [[Core.Math.Transform2]].
 //
 // ## Example
@@ -299,7 +299,7 @@ struct Command
 // ```
 struct Painter
 {
-    // Optional backend selected for [[Painter.render]]. It is borrowed and may
+    // Optional backend selected for [[Pixel.Painter.render]]. It is borrowed and may
     // remain unset when the painter is used only to inspect recorded commands.
     private rendererItf: IRenderer?
 
@@ -341,8 +341,8 @@ struct Painter
 
     private
     {
-        stackState:     Array'PaintState     // States saved by [[Painter.pushState]].
-        stackTransform: Array'Transform2     // Transforms saved by [[Painter.pushTransform]].
+        stackState:     Array'PaintState     // States saved by [[Pixel.Painter.pushState]].
+        stackTransform: Array'Transform2     // Transforms saved by [[Pixel.Painter.pushTransform]].
 
         stackRT: Array'(*RenderTarget?)     // Nested off-screen render targets.
         curRT:   *RenderTarget?             // Active off-screen target, or `null` for the surface.
@@ -407,7 +407,7 @@ impl Painter
         return result
     }
 
-    // Selects the renderer used by [[Painter.render]].
+    // Selects the renderer used by [[Pixel.Painter.render]].
     //
     // Change it only when no recording is active and no renderer-owned resource is
     // referenced by the painter.
@@ -440,7 +440,7 @@ impl Painter
     // Flattening tolerances are expressed in path units, so a consumer that zooms vector
     // geometry through its transform — a document viewer scaling a page — declares the zoom
     // here and curves stay as smooth on screen as they are at scale one. The value is
-    // quantized to the power of two below it, between a sixty-fourth and sixty-four, so the
+    // quantized to the power of two at or below it, between a sixty-fourth and sixty-four, so the
     // derived caches re-key on zoom *buckets* rather than on every wheel step. `1`, the
     // default, keeps the calibrated path-space tolerances untouched. Set it per pass and
     // restore it, the way [[Pixel.Painter.setContentScale]] is managed.
@@ -528,7 +528,7 @@ impl Painter
 
     // Submits the completed command stream to the selected renderer.
     //
-    // Rendering is synchronous. Call [[Painter.end]] before this method.
+    // Rendering is synchronous. Call [[Pixel.Painter.end]] before this method.
     mtd render()
     {
         Swag.assert(not .drawingBegin)
@@ -730,7 +730,7 @@ impl Painter
 
     private mtd pushTriangleCmd()->*Command
     {
-        if .commandBuffer.count
+        if not .commandBuffer.isEmpty()
         {
             let last = .commandBuffer.storage() + .commandBuffer.count - 1
             if last.id == CommandId.DrawTriangles do
@@ -929,10 +929,8 @@ impl Painter
 
     private mtd aaHalfPathSpace()->f32
     {
-        let tr = .curState.transform
-        let sx = Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12)
-        let sy = Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22)
-        let sc = Math.min(sx, sy) * .curContentScale
+        let scale = .curState.transform.axisScale()
+        let sc    = Math.min(scale.x, scale.y) * .curContentScale
         if sc <= 0.001 do
             return AAHalf
         return AAHalf / sc
@@ -940,10 +938,7 @@ impl Painter
 
     private mtd aaHalfPathSpace(normal: Vector2)->f32
     {
-        let tr = .curState.transform
-        let tx = normal.x * tr.m11 + normal.y * tr.m21
-        let ty = normal.x * tr.m12 + normal.y * tr.m22
-        let sc = Math.sqrt(tx * tx + ty * ty) * .curContentScale
+        let sc = .curState.transform.transformVector(normal).length() * .curContentScale
         if sc <= 0.001 do
             return AAHalf
         return AAHalf / sc
@@ -1060,7 +1055,7 @@ impl Painter
     // Set `layoutOnly` to compute layout without emitting text geometry.
     mtd begin(layoutOnly = false)
     {
-        Swag.assert(.drawingBegin == false)
+        Swag.assert(not .drawingBegin)
 
         .commandBuffer.clear()
         .vertexBuffer.clear()
@@ -1250,8 +1245,9 @@ impl Painter
         .setTransform(.curState.transform)
     }
 
-    // Set the paint rotation.
-    // Will rotate around the current transformation position.
+    // Appends a rotation around the current translation of the transform.
+    //
+    // The pivot is the transform's translation, so a shape placed there turns on the spot.
     mtd rotateTransformInPlace(angle: Math.Angle)
     {
         if isZeroEpsilon(angle.radians) do
@@ -1325,13 +1321,16 @@ impl Painter
     #[Swag.Inline]
     mtd const interpolationMode() => .curState.interpolationMode
 
-    // Set the current clipping rectangle
+    // Replaces the current clipping rectangle with a surface-space rectangle.
+    //
+    // The rectangle is used as given: it is neither transformed nor intersected with the
+    // previous clip. Use [[Pixel.Painter.pushClippingRect]] to nest clips.
     mtd setClippingRect(x, y, width, height: f32)
     {
         .setClippingRect({x, y, width, height})
     }
 
-    // Set the current clipping rectangle
+    // Replaces the current clipping rectangle with a surface-space rectangle.
     mtd setClippingRect(rect: Math.Rectangle)
     {
         if .curState.clippingRect == rect and .curState.clippingRectOn do
@@ -1342,7 +1341,7 @@ impl Painter
         cmd.clippingRect.rect = .curState.clippingRect
     }
 
-    // Reset the current clipping rectangle
+    // Disables rectangular clipping and forgets every pushed clipping rectangle.
     mtd resetClippingRect()
     {
         if .curState.clippingRectOn
@@ -1361,7 +1360,9 @@ impl Painter
 
     // Pushes the intersection of `rect` and the current clipping rectangle.
     //
-    // By default `rect` is transformed to surface space using the current translation.
+    // Unless `isSurfacePos` is true, `rect` is moved to surface space by the translation of
+    // the current transform; rotation and scale are ignored. The result is rounded to whole
+    // pixels. Restore the previous clip with [[Pixel.Painter.popClippingRect]].
     mtd pushClippingRect(rect: Math.Rectangle, isSurfacePos = false)
     {
         var rrect = rect
@@ -1382,7 +1383,9 @@ impl Painter
         }
     }
 
-    // Restore the original clipping rectangle
+    // Restores the clipping rectangle saved by the matching [[Pixel.Painter.pushClippingRect]].
+    //
+    // Popping the outermost rectangle disables rectangular clipping.
     mtd popClippingRect()
     {
         if .curState.stackClipRect.isEmpty()
@@ -1408,10 +1411,7 @@ impl Painter
     mtd const hasClippingRect()->bool => .curState.clippingRectOn
 
     // Reports whether rectangular clipping currently rejects all drawing.
-    mtd const isEmptyClippingRect()->bool
-    {
-        return .curState.clippingRectOn and .curState.clippingRect.isEmpty()
-    }
+    mtd const isEmptyClippingRect()->bool => .curState.clippingRectOn and .curState.clippingRect.isEmpty()
 
     // Starts drawing a clipping region, which begins empty.
     //
@@ -1479,16 +1479,10 @@ impl Painter
     // [[Pixel.BlendingMode.Copy]], where the source replaces the destination whatever its
     // alpha: there a fully transparent fill is the erase operation, and must reach the
     // renderer instead of being culled at the recording boundary.
-    internal mtd const isInvisible(color: Color)->bool
-    {
-        return color.a == 0 and .curState.blendingMode != .Copy
-    }
+    internal mtd const isInvisible(color: Color)->bool => color.a == 0 and .curState.blendingMode != .Copy
 
     // Reports whether painting with `brush` cannot change the destination; see the color overload.
-    internal mtd const isInvisible(brush: Brush)->bool
-    {
-        return not brush.hasVisibleAlpha() and .curState.blendingMode != .Copy
-    }
+    internal mtd const isInvisible(brush: Brush)->bool => not brush.hasVisibleAlpha() and .curState.blendingMode != .Copy
 
     // Sets the writable framebuffer channels from a mask value.
     mtd setColorMask(cm: ColorMask)
@@ -1518,7 +1512,12 @@ impl Painter
     // Enables writes only to alpha.
     mtd setColorMaskAlpha() => .setColorMask(false, false, false, true)
 
-    // Bind a render target
+    // Redirects subsequent drawing to an off-screen target and saves the drawing state.
+    //
+    // The state is reset to its defaults for the target and restored by
+    // [[Pixel.Painter.unbindRenderTarget]]; binds nest. Set `paintAlpha` when the target's alpha
+    // must be meaningful afterwards: the renderer then rebuilds the alpha channel by replaying
+    // the draws recorded while the target was bound.
     mtd bindRenderTarget(tgt: *RenderTarget, paintAlpha = false)
     {
         .pushState()
@@ -1534,13 +1533,13 @@ impl Painter
         .curPaintAlpha = paintAlpha
     }
 
-    // Bind a render target
+    // Restores the target and drawing state active before the matching [[Pixel.Painter.bindRenderTarget]].
     mtd unbindRenderTarget()
     {
         discard .newCommand(.UnbindRenderTarget, true)
         .popState()
 
-        if .stackRT.count do
+        if not .stackRT.isEmpty() do
             .curRT = .stackRT.popBack()
         else
         {
@@ -1548,10 +1547,13 @@ impl Painter
             .curRT = null
         }
 
-        .curPaintAlpha = .stackPaintAlpha.count ? .stackPaintAlpha.popBack() : false
+        .curPaintAlpha = .stackPaintAlpha.isEmpty() ? false : .stackPaintAlpha.popBack()
     }
 
-    // Release the render target
+    // Queues a pooled render target for release once the recorded frame has consumed it.
+    //
+    // `null` is ignored. The target goes back to the renderer when [[Pixel.Painter.end]] closes
+    // the recording, after every command that references it.
     mtd releaseRenderTarget(tgt: *RenderTarget?)
     {
         if not tgt do
@@ -1559,7 +1561,9 @@ impl Painter
         .transientTargets.add(tgt)
     }
 
-    // Set the current shader
+    // Selects a custom shader for subsequent drawing, or restores the built-in program with `null`.
+    //
+    // Custom shaders are OpenGL programs; submitting one to [[Pixel.RenderCpu]] is a programmer error.
     mtd setShader(shader: *ShaderBase? = null)
     {
         let cmd = .newCommand(.SetShader, true)
@@ -1607,7 +1611,7 @@ impl Painter
         cmd.defaultShader.factor = factor
     }
 
-    // Set a shader parameter
+    // Records a new value for one uniform of the current custom shader.
     mtd setShaderParam(param: ShaderParamHandle, val: s32)
     {
         let cmd = .newCommand(.SetShaderParam)
@@ -1616,7 +1620,7 @@ impl Painter
         cmd.shaderParam._s32  = val
     }
 
-    // Set a shader parameter
+    // Records a new floating-point value for one uniform of the current custom shader.
     mtd setShaderParam(param: ShaderParamHandle, val: f32)
     {
         let cmd = .newCommand(.SetShaderParam)

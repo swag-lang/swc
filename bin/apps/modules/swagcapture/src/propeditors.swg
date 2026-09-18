@@ -39,10 +39,7 @@ struct AlignEditor {}
 
 impl IPropertyEditor for AlignEditor
 {
-    mtd impl canEdit(type: typeinfo)->bool
-    {
-        return type == FormTextAlign
-    }
+    mtd impl canEdit(type: typeinfo)->bool => type == FormTextAlign
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
     {

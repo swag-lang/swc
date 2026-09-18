@@ -2,7 +2,7 @@
 
 using Pixel
 
-// Used to animate the blending of a color.
+// Animates a painted color toward its latest target on the application animation clock.
 struct BlendColor
 {
     public speed: f32 = 8     // Positive interpolation speed in units per second; non-positive values complete immediately.
@@ -10,13 +10,10 @@ struct BlendColor
     // Interpolation state owned by the application animator. Set a target with `apply` and read
     // the current value with `cur`.
 
-    internal
-    {
-        curVec4:   Math.Vector4           // Color of the current frame.
-        destVec4:  Math.Vector4           // Color the interpolation runs to.
-        themeCrc:  u32 = Swag.U32.Max     // Theme the endpoints were resolved against.
-        targetWnd: *Wnd?                  // Window borrowing this blend while a track is active.
-    }
+    curVec4:   Math.Vector4           // Color of the current frame.
+    destVec4:  Math.Vector4           // Color the interpolation runs to.
+    themeCrc:  u32 = Swag.U32.Max     // Theme the endpoints were resolved against.
+    targetWnd: *Wnd?                  // Window borrowing this blend while a track is active.
 }
 
 impl BlendColor
@@ -105,7 +102,7 @@ impl BlendColor
         }
     }
 
-    // Reset the blend
+    // Stops the running blend where it stands and forgets the theme it was resolved against.
     mtd reset()
     {
         let wnd = .targetWnd

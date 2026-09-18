@@ -17,10 +17,11 @@ public struct Md5
 
 public impl Md5
 {
-    // Names the digest type.
+    // Holds a 128-bit MD5 digest.
     alias Digest = [16] u8
 
     // Finalizes the current sequence and returns its 128-bit digest.
+    //
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
@@ -33,8 +34,8 @@ public impl Md5
         let index  = (.count[0] >> 3) & 0x3F
         let padLen = (index < 56) ? (56 - index) : (120 - index)
 
-        .update(Swag.makeSlice(&padding[0], padLen))
-        .update(Swag.makeSlice(&bits[0], 8))
+        .update(padding[until padLen])
+        .update(bits)
         encode(&digest[0], .state, 16)
         return digest
     }
@@ -43,10 +44,6 @@ public impl Md5
     mtd reset()
     {
         Swag.init(me, 1)
-        .state[0] = 0x67452301
-        .state[1] = 0xEFCDAB89
-        .state[2] = 0x98BADCFE
-        .state[3] = 0x10325476
     }
 
     // Includes `data` in the running digest.
@@ -142,34 +139,19 @@ public impl Md5
 impl Md5
 {
     #[Swag.Inline]
-    func f1(x, y, z: u32)->u32
-    {
-        return (x & y) | (~x & z)
-    }
+    func f1(x, y, z: u32)->u32 => (x & y) | (~x & z)
 
     #[Swag.Inline]
-    func f2(x, y, z: u32)->u32
-    {
-        return (x & z) | (y & ~z)
-    }
+    func f2(x, y, z: u32)->u32 => (x & z) | (y & ~z)
 
     #[Swag.Inline]
-    func f3(x, y, z: u32)->u32
-    {
-        return x ^ (y ^ z)
-    }
+    func f3(x, y, z: u32)->u32 => x ^ (y ^ z)
 
     #[Swag.Inline]
-    func f4(x, y, z: u32)->u32
-    {
-        return y ^ (x | ~z)
-    }
+    func f4(x, y, z: u32)->u32 => y ^ (x | ~z)
 
     #[Swag.Inline]
-    func f5(x, n: u32)->u32
-    {
-        return (x << n) | (x >> (32 - n))
-    }
+    func f5(x, n: u32)->u32 => (x << n) | (x >> (32 - n))
 
     #[Swag.Inline]
     func ff1(a: *u32, b, c, d, x, s, ac: u32)

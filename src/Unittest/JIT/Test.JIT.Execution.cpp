@@ -693,6 +693,7 @@ SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
         .targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data()),
         .constantShard  = maskRef.shardIndex,
         .constantOffset = maskRef.offset,
+        .constantCopySize = static_cast<uint32_t>(signMask.size()),
     });
     builder.emitLoadRegReg(callConv.intReturn, value, MicroOpBits::B32);
     builder.emitRet();
@@ -710,7 +711,8 @@ SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
     int32_t                displacement;
     std::memcpy(&displacement, static_cast<const std::byte*>(executableMemory.entryPoint()) + relocation.codeOffset, sizeof(displacement));
     const auto* patchedTarget = static_cast<const std::byte*>(executableMemory.entryPoint()) + relocation.relativeEndOffset + displacement;
-    if (patchedTarget != reinterpret_cast<const std::byte*>(maskStorage.data()))
+    if (patchedTarget == reinterpret_cast<const std::byte*>(maskStorage.data()) ||
+        std::memcmp(patchedTarget, signMask.data(), signMask.size()) != 0)
         return Result::Error;
 
     JIT::finalize(executableMemory);

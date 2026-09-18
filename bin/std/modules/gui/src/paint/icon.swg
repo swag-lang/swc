@@ -9,11 +9,11 @@ struct Icon
 {
     public
     {
-        imageList: *ImageList?     // Image list associated with this value.
-        index:     s32             // Index associated with this value.
-        sizeX:     f32 = 24        // Size x associated with this value.
-        sizeY:     f32 = 24        // Size y associated with this value.
-        color:     Color           // Color associated with this value.
+        imageList: *ImageList?     // Atlas the frame is drawn from, or `null` for an invalid icon.
+        index:     s32             // Frame index inside the atlas.
+        sizeX:     f32 = 24        // Logical draw width.
+        sizeY:     f32 = 24        // Logical draw height.
+        color:     Color           // Preferred tint; fully transparent lets the painting widget choose.
     }
 }
 
@@ -59,13 +59,11 @@ impl Icon
 
         .imageList = imageList
         .index     = index
-        let sx = width != 0 ? width : cast(f32) imageList.frameWidth
-        let sy = height != 0 ? height : cast(f32) imageList.frameHeight
-        .sizeX = sx
-        .sizeY = sy
+        .sizeX     = width != 0 ? width : cast(f32) imageList.frameWidth
+        .sizeY     = height != 0 ? height : cast(f32) imageList.frameHeight
     }
 
-    // Paint icon at the given position
+    // Draws the icon with its top-left corner at `x`, `y`, tinted by `color`.
     mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
     {
         if not .imageList or not .imageList.isValid() do

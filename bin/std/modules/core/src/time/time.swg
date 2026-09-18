@@ -4,40 +4,40 @@
 // Number of 100-nanosecond ticks in one millisecond.
 const TicksPerMillisecond: u64 = 10000
 
-// Defines ticks per second.
+// Number of 100-nanosecond ticks in one second.
 const TicksPerSecond: u64 = TicksPerMillisecond * 1000
 
-// Defines ticks per minute.
+// Number of 100-nanosecond ticks in one minute.
 const TicksPerMinute: u64 = TicksPerSecond * 60
 
-// Defines ticks per hour.
+// Number of 100-nanosecond ticks in one hour.
 const TicksPerHour: u64 = TicksPerMinute * 60
 
-// Defines ticks per day.
+// Number of 100-nanosecond ticks in one day.
 const TicksPerDay: u64 = TicksPerHour * 24
 
 // Number of milliseconds in one second.
 const MillisecondsPerSecond = 1000'u64
 
-// Defines millis per minute.
+// Number of milliseconds in one minute.
 const MillisecondsPerMinute = MillisecondsPerSecond * 60
 
-// Defines millis per hour.
+// Number of milliseconds in one hour.
 const MillisecondsPerHour = MillisecondsPerMinute * 60
 
-// Defines millis per day.
+// Number of milliseconds in one day.
 const MillisecondsPerDay = MillisecondsPerHour * 24
 
-// Defines days per year.
+// Number of days in a common year.
 const DaysPerYear = 365
 
-// Defines days per4 years.
+// Number of days in four consecutive years, one of them a leap year.
 const DaysPer4Years = (DaysPerYear * 4) + 1
 
-// Defines days per100 years.
+// Number of days in a century that does not start a 400-year cycle.
 const DaysPer100Years = (DaysPer4Years * 25) - 1
 
-// Defines days per400 years.
+// Number of days in one 400-year cycle of the Gregorian calendar.
 const DaysPer400Years = (DaysPer100Years * 4) + 1
 
 internal const DaysToMonth365 = [0'u16, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
@@ -55,15 +55,23 @@ internal const MaxTicks:    u64 = (DaysTo10000 * TicksPerDay) - 1
 internal const MaxMillisecondsToYear10000: u64 = DaysTo10000 * MillisecondsPerDay
 
 // Returns monotonic milliseconds from an unspecified origin.
-func monotonicMilliseconds()->u64 => monotonicTicks() / (monotonicFrequency() / 1000)
+func monotonicMilliseconds()->u64 => scaleMonotonic(1000)
 
 // Returns monotonic microseconds from an unspecified origin.
-func monotonicMicroseconds()->u64 => monotonicTicks() / (monotonicFrequency() / 1000000)
+func monotonicMicroseconds()->u64 => scaleMonotonic(1_000_000)
 
-// Names the ticks type.
+// Converts the monotonic counter to `unitsPerSecond` units without losing the fraction of the frequency.
+private func scaleMonotonic(unitsPerSecond: u64)->u64
+{
+    let ticks     = monotonicTicks()
+    let frequency = monotonicFrequency()
+    return (ticks / frequency) * unitsPerSecond + ((ticks % frequency) * unitsPerSecond) / frequency
+}
+
+// Counts 100-nanosecond intervals.
 alias Ticks = u64
 
-// Convert a time to a 64 bits value
+// Returns the ticks from midnight to the given time of day.
 func timeToTicks(hour, minute, second, millisecond: u16)->Ticks
 {
     Swag.assert(0 <= hour and hour < 24)
@@ -71,15 +79,14 @@ func timeToTicks(hour, minute, second, millisecond: u16)->Ticks
     Swag.assert(0 <= second and second < 60)
     Swag.assert(0 <= millisecond and millisecond < 1000)
 
-    // totalSeconds is bounded by 2^31 * 2^12 + 2^31 * 2^8 + 2^31,
-    // which is less than 2^44, meaning we won't overflow totalSeconds.
+    // The asserted ranges keep the total below one day, so the arithmetic cannot overflow.
     var totalMilli = (hour * 3600'u32 + minute * 60'u32 + second) * 1000'u64
     totalMilli += millisecond
     Swag.assert(totalMilli <= MaxMilliseconds)
     return totalMilli * TicksPerMillisecond
 }
 
-// Convert a 64 bits tick value to a time
+// Returns the time of day of `ticks`.
 func ticksToTime(ticks: Ticks)->{ hour: u16, minute: u16, second: u16, millisecond: u16 }
 {
     var result: retval
@@ -90,7 +97,7 @@ func ticksToTime(ticks: Ticks)->{ hour: u16, minute: u16, second: u16, milliseco
     return result
 }
 
-// Convert a date to a 64 bits value
+// Returns the ticks from 0001-01-01 to midnight of the given Gregorian date.
 func dateToTicks(year, month, day: u16)->Ticks
 {
     Swag.assert(1 <= year and year <= 9999)
@@ -103,7 +110,7 @@ func dateToTicks(year, month, day: u16)->Ticks
     return n * TicksPerDay
 }
 
-// Convert a 64 bits value to a date
+// Returns the Gregorian date that contains `ticks`.
 func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
 {
     // n = number of days since 1/1/0001
@@ -162,10 +169,10 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
     return result
 }
 
-// Returns true if the given year is a leap year
+// Returns whether `year` is a leap year of the Gregorian calendar.
 func isLeapYear(year: u16)->bool => year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
-// Returns the number of days of the given month, for the given year
+// Returns the number of days of `month` in `year`.
 func daysInMonth(year, month: u16)->u16
 {
     Swag.assert(1 <= month and month <= 12)

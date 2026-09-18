@@ -5,39 +5,37 @@
 using Win32
 
 // Creates one directory on Windows; its parent must already exist.
-func createNative(dirname: string) fail
+internal func createNative(dirName: string) fail
 {
-    let winPath = Utf16.toZeroTerminated(dirname)
+    let winPath = Utf16.toZeroTerminated(dirName)
     catch CreateDirectoryW(winPath.buffer, null) as err
-    try Errors.transformWinErrors(err, dirname)
+    try Errors.transformWinErrors(err, dirName)
 }
 
 // Removes an empty directory on Windows, failing if it cannot be removed.
-func deleteEmptyNative(dirName: string) fail
+internal func deleteEmptyNative(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
     catch RemoveDirectoryW(winPath.buffer) as err
     try Errors.transformWinErrors(err, dirName)
 }
 
-// Returns true if the given directory exists
+// Returns whether `dirName` names an existing directory.
+//
+// A file, an empty name, or a path the process cannot query reports false.
 func exists(dirName: string)->bool
 {
     if dirName.count == 0 do
         return false
     let winPath    = Utf16.toZeroTerminated(dirName)
     let attributes = catch GetFileAttributesW(winPath.buffer) as err
-    if err != null do
+    if err != null or attributes == 0xFFFFFFFF do
         return false
-    if attributes == 0xFFFFFFFF do
-        return false
-    if not (attributes & FILE_ATTRIBUTE_DIRECTORY) do
-        return false
-    return true
+    return (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0
 }
 
 // Enumerates exactly one directory and returns normalized metadata for every native entry.
-func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
+internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 {
     using File
     var result:   retval
@@ -59,7 +57,7 @@ func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
     {
         let fileName = Utf8.fromUtf16(Swag.makeSlice(dataof, Utf16.lengthUntilZero(findfile.cFileName)))
         var info: FileInfo
-        info.fullname   = Path.combine(toScan.toString(), fileName.toString())
+        info.fullName   = Path.combine(toScan.toString(), fileName.toString())
         info.attributes = FileAttributes.fromDWORD(findfile.dwFileAttributes)
         info.size       = findfile.nFileSizeLow + (cast(u64) findfile.nFileSizeHigh << 32)
 
@@ -79,22 +77,21 @@ func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
     return result
 }
 
-// Returns the current directory
+// Returns the current directory of the process, with normalized separators.
 func currentPath()->String fail
 {
-    var result: retval
     let length = try GetCurrentDirectoryW(0, null)
 
     var arr16: Array'u16
     arr16.reserve(cast(u64) length + 1)
     arr16.count = try GetCurrentDirectoryW(length + 1, arr16.buffer)
 
-    result = Utf8.fromUtf16(arr16.toSlice())
+    var result = Utf8.fromUtf16(arr16.toSlice())
     Path.normalize(&result)
     return result
 }
 
-// Set the current directory
+// Changes the current directory of the process to `dirName`.
 func setCurrentPath(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
@@ -102,7 +99,10 @@ func setCurrentPath(dirName: string) fail
     try Errors.transformWinErrors(err, dirName)
 }
 
-// Get the list of logical drives
+// Returns the root of every logical drive, such as `C:\`.
+//
+// The roots keep the native separator. Returns an empty array when the list does not fit the
+// platform path limit.
 func drives()->Array'String fail
 {
     var result:  retval
@@ -123,7 +123,9 @@ func drives()->Array'String fail
     return result
 }
 
-// Get the list of volumes
+// Returns the first mount point of every mounted volume, with normalized separators.
+//
+// A volume without a mount point is skipped.
 func volumes()->Array'String fail
 {
     var result: retval
@@ -134,6 +136,7 @@ func volumes()->Array'String fail
     let h = try FindFirstVolumeA(volName, MAX_PATH)
     if h == INVALID_HANDLE_VALUE do
         return result
+    defer discard catch FindVolumeClose(h)
 
     for
     {
@@ -146,7 +149,7 @@ func volumes()->Array'String fail
             {
                 var str = String.from(Swag.makeString(&driveName[0], len))
                 Path.normalize(&str)
-                result.add(str)
+                result.add(#move str)
             }
         }
 
@@ -154,6 +157,5 @@ func volumes()->Array'String fail
             break
     }
 
-    try FindVolumeClose(h)
     return result
 }

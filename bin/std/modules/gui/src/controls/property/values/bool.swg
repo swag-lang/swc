@@ -131,7 +131,7 @@ internal impl Properties
         else do
             line.layoutSpec.alignX = .Stretch
 
-        if not (item.label != null)
+        if item.label == null
         {
             line.margin.y = .listNameMarginBefore
             line.margin.w = .listNameMarginAfter

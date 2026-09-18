@@ -238,14 +238,21 @@ private impl PasswordEdit
             // Clipboard text is never imported or exported. This also prevents the child edit
             // box from changing its mask without changing the password storage.
             if key.kind == .Pressed and
-               ((key.modifiers & Input.KeyModifiers.Control) and
+               (key.modifiers.has(.Control) and
                 (key.key == .C or key.key == .X or key.key == .V or key.key == .Insert) or
-                (key.modifiers & Input.KeyModifiers.Shift) and
+                key.modifiers.has(.Shift) and
                 key.key == .Insert)
             {
                 key.accepted = true
                 return true
             }
+
+        // Dropped text would land in the masked box, shown in clear, and never reach the password
+        // storage: the field refuses every payload.
+        case DragDropEvent as drop:
+            drop.effect   = .None
+            drop.accepted = false
+            return true
         }
 
         return false
@@ -350,10 +357,11 @@ impl PasswordEdit
     }
 
     // Returns a borrowed view of the UTF-8 plaintext bytes.
+    //
     // The view remains valid until the password changes or the widget is destroyed.
     mtd const bytes()->const [..] u8 => .storage[until .byteCount]
 
-    // Returns true when no password bytes are stored.
+    // Returns whether no password bytes are stored.
     mtd const isEmpty()->bool => not .byteCount
 
     // Selects the complete masked password.

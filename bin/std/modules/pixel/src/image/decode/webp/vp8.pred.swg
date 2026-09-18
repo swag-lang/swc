@@ -28,15 +28,9 @@ func vp8TopLeftPredictor(mbX, mbY: s32, predictor: u8)->u8
     return mbY == 0 ? VP8_PRED_DC_TOP : VP8_PRED_DC
 }
 
-func vp8Average2(a, b: s32)->u8
-{
-    return cast(u8) ((a + b + 1) / 2)
-}
+func vp8Average2(a, b: s32)->u8 => cast(u8) ((a + b + 1) / 2)
 
-func vp8Average3(a, b, c: s32)->u8
-{
-    return cast(u8) ((a + 2 * b + c + 2) / 4)
-}
+func vp8Average3(a, b, c: s32)->u8 => cast(u8) ((a + 2 * b + c + 2) / 4)
 
 func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
 {

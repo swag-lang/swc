@@ -27,11 +27,17 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
     return null
 }
 
-// Returns the enum name for a value. Flag values can produce multiple names.
+// Returns the name of the case of enum `type` whose value is stored at `valueAddress`.
+//
+// For an enum marked `#[Swag.EnumFlags]`, returns the name of every case whose bits are all
+// set in the value, separated by ` | `; a case adding no bit to the ones already named, such as
+// an alias or a combination, is skipped, and zero is named only by a case whose value is zero. With `fullyQualified`, each name is prefixed by the enum type name, as in
+// `Color.Red`. Returns an empty string when `type` is not an enum, `valueAddress` is null, or no
+// case matches.
 #[ConstExpr]
 func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true)->String
 {
-    var result: String
+    var result: retval
     if not isEnum(type) or not valueAddress do
         return result
     let safeType  = type!
@@ -54,6 +60,7 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     }
 
     let simpleName = safeType.name
+    var covered    = 0'u64
 
     for it in typeEnum.values
     {
@@ -86,9 +93,12 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
             return result
         }
 
-        // For a flags enum, just append the name if the bit is set
-        if isFlags and (val1 & val2)
+        // For a flags enum, name a case whose bits are all set and not yet covered by earlier names.
+        let zeroMatch = val1 == 0 and val2 == 0 and result.isEmpty()
+        let bitsMatch = val2 != 0 and (val1 & val2) == val2 and (val2 & ~covered) != 0
+        if isFlags and (zeroMatch or bitsMatch)
         {
+            covered |= val2
             if not result.isEmpty() do
                 result += " | "
 

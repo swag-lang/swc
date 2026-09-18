@@ -107,10 +107,7 @@ struct LocalMinimum
 
 impl LocalMinimum
 {
-    mtd const opCompare(other: LocalMinimum)->s32
-    {
-        return other.y <=> .y
-    }
+    mtd const opCompare(other: LocalMinimum)->s32 => other.y <=> .y
 }
 
 struct Edge
@@ -316,8 +313,7 @@ impl Transform
         .outRecBlock, .outRecInBlock = 0
     }
 
-    // Runs one boolean operation over the paths added so far and replaces `solution` with its
-    // contours.
+    // Runs one boolean operation over the paths added so far and replaces `solution` with its contours.
     //
     // A sweep that cannot order the intersections of one scanbeam is abandoned and the solution
     // comes back empty, which is what the reference library reports as a failed operation. That
@@ -590,10 +586,7 @@ impl Transform
     }
 
     #[Swag.Inline]
-    func isHorizontal(e: *Edge)->bool
-    {
-        return e.dx == HorizontalVal
-    }
+    func isHorizontal(e: *Edge)->bool => e.dx == HorizontalVal
 
     #[Swag.Inline]
     func reverseHorizontal(e: *Edge)
@@ -811,10 +804,7 @@ impl Transform
     }
 
     #[Swag.Inline]
-    mtd localMinimaPending()->bool
-    {
-        return .currentLM != .minimaList.count
-    }
+    mtd localMinimaPending()->bool => .currentLM != .minimaList.count
 
     mtd deleteFromSEL(e: *Edge)
     {
@@ -874,10 +864,7 @@ impl Transform
         return null
     }
 
-    func getNextInAEL(e: *Edge, dir: Direction)->*Edge?
-    {
-        return dir == .LeftToRight ? e.nextInAEL : e.prevInAEL
-    }
+    func getNextInAEL(e: *Edge, dir: Direction)->*Edge? => dir == .LeftToRight ? e.nextInAEL : e.prevInAEL
 
     mtd getLastOutPt(e: *Edge)->*OutPt
     {
@@ -1901,10 +1888,7 @@ impl Transform
     }
 
     #[Swag.Inline]
-    func isMaxima(e: *Edge, y: CInt)->bool
-    {
-        return e.top.y == y and not e.nextInLML
-    }
+    func isMaxima(e: *Edge, y: CInt)->bool => e.top.y == y and not e.nextInLML
 
     func getMaximaPairEx(e: *Edge)->*Edge?
     {
@@ -1917,10 +1901,7 @@ impl Transform
     }
 
     #[Swag.Inline]
-    func isIntermediate(e: *Edge, y: CInt)->bool
-    {
-        return e.top.y == y and e.nextInLML
-    }
+    func isIntermediate(e: *Edge, y: CInt)->bool => e.top.y == y and e.nextInLML
 
     mtd doMaxima(e: *Edge)
     {
@@ -2150,10 +2131,7 @@ impl Transform
         }
     }
 
-    func edgesAdjacent(inode: *IntersectNode)->bool
-    {
-        return (inode.edge1.nextInSEL == inode.edge2) or (inode.edge1.prevInSEL == inode.edge2)
-    }
+    func edgesAdjacent(inode: *IntersectNode)->bool => (inode.edge1.nextInSEL == inode.edge2) or (inode.edge1.prevInSEL == inode.edge2)
 
     mtd fixupIntersectionOrder()->bool
     {
@@ -2161,7 +2139,7 @@ impl Transform
         // discovered, which is not the order the intersections have to be applied in; the loop
         // below only repairs adjacency, and it takes the vertical order as given.
         .copyAELToSEL()
-        .intersectList.sort(func||(left, right) { return right!.pt.y <=> left!.pt.y })
+        .intersectList.sort(func||(left, right) => right!.pt.y <=> left!.pt.y)
         for i in (.intersectList).count
         {
             if not edgesAdjacent(nnIntersect(.intersectList[i]))
@@ -2329,10 +2307,7 @@ impl Transform
     #[Swag.Inline]
     func cround(val: f64)->CInt => cast(CInt) Math.round(val)
 
-    func topX(edge: *Edge, currentY: CInt)->CInt
-    {
-        return currentY == edge.top.y ? edge.top.x : edge.bot.x + cround(edge.dx * (currentY - edge.bot.y))
-    }
+    func topX(edge: *Edge, currentY: CInt)->CInt => currentY == edge.top.y ? edge.top.x : edge.bot.x + cround(edge.dx * (currentY - edge.bot.y))
 
     func e2InsertsBeforeE1(e1, e2: *Edge)->bool
     {
@@ -2748,10 +2723,7 @@ impl Transform
         return false
     }
 
-    func getDx(pt1, pt2: IntPoint)->f64
-    {
-        return (pt1.y == pt2.y) ? cast(f64) HorizontalVal : cast(f64) (pt2.x - pt1.x) / (pt2.y - pt1.y)
-    }
+    func getDx(pt1, pt2: IntPoint)->f64 => (pt1.y == pt2.y) ? cast(f64) HorizontalVal : cast(f64) (pt2.x - pt1.x) / (pt2.y - pt1.y)
 
     func area(op1: *OutPt)->f64
     {

@@ -58,12 +58,7 @@ impl ImageMetadata
     }
 
     // Reports whether the tag exactly matches `val`, including its length.
-    mtd const isTag(val: const [..] u8)->bool
-    {
-        if val.count != .tag.count do
-            return false
-        return Memory.compare(val.buffer, .tag.buffer, val.count) == 0
-    }
+    mtd const isTag(val: const [..] u8)->bool => Slice.equals(val, .tag.toSlice())
 
     // Borrows the metadata value as a read-only slice.
     //

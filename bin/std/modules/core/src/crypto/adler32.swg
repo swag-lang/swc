@@ -76,7 +76,7 @@ public impl Adler32
 
             while i + NMax <= countof
             {
-                for rounds in n
+                for n
                 {
                     updateAdlerBlock16(input + i, &s1, &s2)
                     i += 16

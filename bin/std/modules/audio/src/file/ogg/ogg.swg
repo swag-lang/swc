@@ -41,10 +41,7 @@ impl PageHeader
     mtd const totalBytes()->u64 => .headerBytes + .bodyBytes
 }
 
-func readU32(bytes: const [..] u8, offset: u64)->u32
-{
-    return cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
-}
+func readU32(bytes: const [..] u8, offset: u64)->u32 => cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
 
 // Reads the page header at `offset`, which needs the capture pattern, the fixed header, and the
 // segment table to be inside `bytes`.
@@ -359,7 +356,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
                 if not frames
                 {
                     // A final page that completes no frame extends the run before it.
-                    if walker.packets.count do
+                    if not walker.packets.isEmpty() do
                         walker.packets.backPtr().byteSize += cast(u32) run.bytes
                 }
                 else
@@ -398,7 +395,7 @@ func openFile(path: string)->SoundFile fail
     let info  = try findStream(&walker)
     let start = try skipHeaders(&walker, &info)
     let total = try indexRuns(&walker, &info)
-    if not walker.packets.count do
+    if walker.packets.isEmpty() do
         fail InvalidFormatError{"Ogg stream carries no sound page"}
 
     var config: Array'u8

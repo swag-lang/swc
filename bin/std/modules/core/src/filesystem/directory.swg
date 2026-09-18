@@ -1,20 +1,20 @@
 #global public
 #global namespace Directory
 
-// Options for customizing file and directory enumeration
+// Selects and filters the entries returned by [[Core.Directory.enumerate]].
 struct EnumerationOptions
 {
     public
     {
-        matchExtension: string?                               // Optional extension to match (e.g. ".txt")
-        matchFileName:  string?                               // Optional file name pattern to match
-        skipAttributes         = File.FileAttributes.None     // Attributes to skip during enumeration
-        recurse                = false                        // Whether to recurse into subdirectories
-        wantFiles              = true                         // Whether to include files in the results
-        wantDirectories        = true                         // Whether to include directories in the results
-        wantSpecialDirectories = false                        // Whether to include "." and ".." in the results
+        matchExtension: string?                               // Extension an entry must have, dot included (e.g. ".txt")
+        matchFileName:  string?                               // Exact file name an entry must have
+        skipAttributes         = File.FileAttributes.None     // Entries carrying any of these attributes are skipped
+        recurse                = false                        // Whether to enumerate subdirectories too
+        wantFiles              = true                         // Whether to return files
+        wantDirectories        = true                         // Whether to return directories
+        wantSpecialDirectories = false                        // Whether to return the "." and ".." entries
 
-        filterLambda: (func(File.FileInfo)->bool)?     // Optional lambda to filter results
+        filter: (func(File.FileInfo)->bool)?     // Keeps only the entries for which it returns true
     }
 }
 
@@ -34,25 +34,22 @@ func delete(dirName: string, recurse = false) fail
 
     if recurse
     {
-        var options: EnumerationOptions
-        let entries = try enumerate(dirName, options)
+        let entries = try enumerate(dirName, {})
         for entry in entries
         {
-            if entry.isDirectory()
-            {
-                try delete(entry.fullname.toString(), recurse: true)
-            }
-            else
-            {
-                try File.delete(entry.fullname.toString())
-            }
+            if entry.isDirectory() do
+                try delete(entry.fullName, recurse: true)
+            else do
+                try File.delete(entry.fullName)
         }
     }
 
     try deleteEmptyNative(dirName)
 }
 
-// Enumerates a directory and applies recursion and filters in platform-neutral code.
+// Returns the entries of `dirName` selected by `options`, or an empty array when `dirName` is null.
+//
+// When both `matchExtension` and `matchFileName` are set, an entry matching either one is kept.
 func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileInfo) fail
 {
     var result: retval
@@ -67,31 +64,29 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
         if Path.VolumeSeparator != 0 and toScan.back() == Path.VolumeSeparator do
             toScan += Path.DirectorySeparator
 
-        var entries = try enumerateOneNative(toScan.toString())
+        var entries = try enumerateOneNative(toScan)
         for &entry in entries
         {
-            let fileName = Path.fileName(entry.fullname.toString()) orelse ""
+            let fileName = Path.fileName(entry.fullName) orelse ""
             let special  = fileName == "." or fileName == ".."
             let isDir    = entry.isDirectory()
 
             if isDir and not special and options.recurse do
-                stack.add(String.from(entry.fullname.toString()))
+                stack.add(String.from(entry.fullName))
 
-            var add = special ? options.wantSpecialDirectories : isDir ? options.wantDirectories : options.wantFiles
-            if not add or entry.attributes & options.skipAttributes do
+            let wanted = special ? options.wantSpecialDirectories : isDir ? options.wantDirectories : options.wantFiles
+            if not wanted or entry.attributes & options.skipAttributes do
                 continue
+
             if options.matchExtension or options.matchFileName
             {
-                var matches = false
-                if options.matchExtension and Path.hasExtension(entry.fullname.toString(), options.matchExtension orelse "") do
-                    matches = true
-                elif options.matchFileName and fileName == options.matchFileName do
-                    matches = true
-                if not matches do
+                let matchesExtension = options.matchExtension and Path.hasExtension(entry.fullName, options.matchExtension orelse "")
+                let matchesFileName  = options.matchFileName and fileName == options.matchFileName
+                if not matchesExtension and not matchesFileName do
                     continue
             }
 
-            if options.filterLambda and not options.filterLambda(entry) do
+            if options.filter and not options.filter(entry) do
                 continue
 
             result.add(#move entry[])
@@ -101,22 +96,8 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
     return result
 }
 
-// Gets all files in the specified directory
-func enumerateFiles(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail
-{
-    var options: EnumerationOptions
-    options.matchExtension  = matchExtension
-    options.wantDirectories = false
-    options.recurse         = recurse
-    return try enumerate(dirName, options)
-}
+// Returns the files of `dirName`, optionally restricted to one extension and extended to its subdirectories.
+func enumerateFiles(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail => try enumerate(dirName, {matchExtension: matchExtension, wantDirectories: false, recurse: recurse})
 
-// Gets all directories in the specified directory
-func enumerateDirectories(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail
-{
-    var options: EnumerationOptions
-    options.matchExtension = matchExtension
-    options.wantFiles      = false
-    options.recurse        = recurse
-    return try enumerate(dirName, options)
-}
+// Returns the subdirectories of `dirName`, optionally restricted to one extension and extended to their own subdirectories.
+func enumerateDirectories(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail => try enumerate(dirName, {matchExtension: matchExtension, wantFiles: false, recurse: recurse})

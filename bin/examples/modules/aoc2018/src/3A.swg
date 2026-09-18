@@ -77,7 +77,6 @@ func day3A0()
         if v > 1 do
             total += 1
 
-    // Console.print("total: ", total)
     Swag.assert(total == 100261)
 }
 
@@ -105,6 +104,5 @@ func day3A1()
         if v > 1 do
             total += 1
 
-    // Console.print("total: ", total)
     Swag.assert(total == 100261)
 }

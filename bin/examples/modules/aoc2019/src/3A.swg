@@ -104,7 +104,6 @@ func day3A0()
     trace(0, lines[0])
     trace(1, lines[1])
 
-    // Console.print("total: ", total)
     Swag.assert(total == 303)
 }
 
@@ -154,6 +153,5 @@ func day3A1()
         }
     }
 
-    // Console.print("total: ", best)
     Swag.assert(best == 303)
 }

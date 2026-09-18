@@ -1,23 +1,23 @@
 #global public
 #global namespace File
 
+// Describes the characteristics of a file or directory.
 #[Swag.EnumFlags]
-// Attributes that define file or directory characteristics
 enum FileAttributes
 {
-    None = 0              // No attributes are set.
-    ReadOnly              // File is read-only
-    Hidden                // File is hidden
-    System                // File is part of the operating system
-    Directory             // Entry is a directory
-    Archive               // File is marked for backup or removal
-    Device                // Reserved for system use (rarely used)
-    Normal                // File has no other attributes set
-    Temporary             // File is used for temporary storage
-    SparseFile            // File is a sparse file
-    ReparsePoint          // File contains a reparse point (e.g., symbolic link)
-    Compressed            // File is compressed
-    Offline               // File data is not available immediately (e.g., archived)
-    NotContentIndexed     // File is excluded from content indexing
-    Encrypted             // File is encrypted
+    None = 0              // No attribute is set
+    ReadOnly              // The file cannot be written
+    Hidden                // The entry is hidden from ordinary listings
+    System                // The entry belongs to the operating system
+    Directory             // The entry is a directory
+    Archive               // The entry is marked for backup
+    Device                // Reserved for system use
+    Normal                // The file has no other attribute
+    Temporary             // The file holds temporary data
+    SparseFile            // The file is sparse
+    ReparsePoint          // The entry is a reparse point, such as a symbolic link
+    Compressed            // The file is compressed by the file system
+    Offline               // The file data is not immediately available
+    NotContentIndexed     // The file is excluded from content indexing
+    Encrypted             // The file is encrypted by the file system
 }

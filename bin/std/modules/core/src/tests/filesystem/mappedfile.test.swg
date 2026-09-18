@@ -13,12 +13,12 @@
     var mapped = expect File.MappedFile.openSnapshot(fileName)
     var region = expect mapped.mapAll()
     mapped.close()
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "short")
+    discard expect File.writeAllText(fileName, "short")
     expect File.delete(fileName)
-    Swag.assert(mappedBytesEqual(region.bytes(), source))
+    Swag.assert(Slice.equals(region.bytes(), source))
     region.close()
 
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "")
+    discard expect File.writeAllText(fileName, "")
     var empty       = expect File.MappedFile.openSnapshot(fileName)
     var emptyRegion = expect empty.mapAll()
     Swag.assert(emptyRegion.isOpen() and not emptyRegion.bytes().count)
@@ -26,20 +26,7 @@
     discard expect File.writeAllBytes(fileName, source)
     var prefix       = expect File.MappedFile.openSnapshot(fileName, 17)
     var prefixRegion = expect prefix.mapAll()
-    Swag.assert(mappedBytesEqual(prefixRegion.bytes(), source[0 until 17]))
-}
-
-func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
-{
-    if actual.count != expected.count do
-        return false
-    for index in actual.count
-    {
-        if actual[index] != expected[index] do
-            return false
-    }
-
-    return true
+    Swag.assert(Slice.equals(prefixRegion.bytes(), source[until 17]))
 }
 
 #test
@@ -90,7 +77,7 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
     mapped.close()
 
     let persisted = expect File.readAllBytes(fileName)
-    Swag.assert(mappedBytesEqual(persisted.toSlice(), original))
+    Swag.assert(Slice.equals(persisted.toSlice(), original))
 }
 
 #test
@@ -134,12 +121,12 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
     var mapped = expect File.MappedFile.open(fileName)
     var region = expect mapped.mapAll()
     let bytes  = region.bytes()
-    Swag.assert(mappedBytesEqual(bytes, source))
+    Swag.assert(Slice.equals(bytes, source))
 
     File.MappedRegion.releasePages(bytes[0 until 0])
     File.MappedRegion.releasePages(bytes[1000 until 5000])
     File.MappedRegion.releasePages(bytes)
-    Swag.assert(mappedBytesEqual(bytes, source))
+    Swag.assert(Slice.equals(bytes, source))
 
     region.close()
     mapped.close()

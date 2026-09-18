@@ -1,12 +1,12 @@
 #global public
 #global namespace Input
 
-// Selects mouse button.
+// Identifies a mouse button.
 enum MouseButton
 {
-    Left         // Selects left.
-    Middle       // Selects middle.
-    Right        // Selects right.
-    XButton1     // Selects x button1.
-    XButton2     // Selects x button2.
+    Left         // Left button
+    Middle       // Middle button, usually the wheel
+    Right        // Right button
+    XButton1     // First extra button, usually Back
+    XButton2     // Second extra button, usually Forward
 }

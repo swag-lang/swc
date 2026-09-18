@@ -1,7 +1,7 @@
 #global export
 #global namespace Slice
 
-// Insertion sort algorithm (slow)
+// Sorts in place with an insertion sort: quadratic, but the cheapest choice for a short range.
 private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
 {
     var buffer = values.buffer
@@ -16,7 +16,7 @@ private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
     }
 }
 
-// Quick sort algorithm
+// Sorts in place with a median-of-three quick sort that recurses only into the smaller partition.
 private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 {
     let count = cast(s64) values.count
@@ -29,7 +29,7 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 
     for
     {
-        // If range is too small, simple sort
+        // A short range is cheaper to finish with an insertion sort.
         if end - begin <= 10
         {
             insertionSort(Swag.makeSlice(buffer + begin, (end - begin) + 1), compare)
@@ -68,10 +68,10 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
             swap(&buffer[low], &buffer[high])
         }
 
-        // Put the median in the "center" of the list
+        // Move the pivot between the two partitions.
         swap(&buffer[pivot], &buffer[high])
 
-        // To avoid too much recursions, we recurse only for the smaller partition
+        // Recursing only into the smaller partition bounds the recursion depth to a logarithm of the count.
         let set1 = (high - 1) - begin
         let set2 = end - (high + 1)
         if set1 > 0 and set2 > 0
@@ -101,8 +101,10 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
     }
 }
 
-// Sort the slice, by picking the right algorithm depending on the type and the
-// number of elements
+// Sorts the slice in place, in ascending order or in descending order when `descending` is true.
+//
+// Short slices use an insertion sort and longer ones a quick sort. The sort is not stable: equal
+// elements can change their relative order.
 func(T) sort(values: [..] T, descending = false)
     where Reflection.canCompare(T)
 {
@@ -112,8 +114,10 @@ func(T) sort(values: [..] T, descending = false)
         sort(values, func(x, y: T)->s32 => x <=> y)
 }
 
-// Sort the slice, by picking the right algorithm depending on the type and the
-// number of elements
+// Sorts the slice in place in the order defined by `compare`.
+//
+// `compare` returns a negative value when its first argument must come before the second, zero
+// when both are equivalent, and a positive value otherwise.
 func(T) sort(values: [..] T, compare: func||(T, T)->s32)
 {
     Swag.assert(compare != null)
@@ -123,26 +127,23 @@ func(T) sort(values: [..] T, compare: func||(T, T)->s32)
         quickSort(values, compare)
 }
 
-// Returns true if the slice is sorted
+// Returns whether the slice is in ascending order.
 func(T) isSorted(values: const [..] T)->bool
     where Reflection.canCompare(T)
 {
     return isSorted(values, func(x, y: T)->s32 => x <=> y)
 }
 
-// Returns true if the slice is sorted
+// Returns whether the slice is in the order defined by `compare`.
+//
+// The slice is sorted when `compare` returns no positive value for any two adjacent elements.
 func(T) isSorted(values: const [..] T, compare: func||(T, T)->s32)->bool
 {
     Swag.assert(compare != null)
-    let countof = values.count
-    if countof <= 1 do
+    if values.count <= 1 do
         return true
 
-    for i in countof - 1
-    {
-        if compare(values[i], values[i + 1]) > 0 do
-            return false
-    }
-
+    for i in values.count - 1 where compare(values[i], values[i + 1]) > 0 do
+        return false
     return true
 }

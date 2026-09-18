@@ -3,20 +3,9 @@
 
 using Core
 
-func accessTestPassword()->const [..] u8
-{
-    return Swag.makeSlice(cast(const [*] u8) ("panel password").buffer, 14)
-}
+func accessTestPassword()->const [..] u8 => cast(const [..] u8) "panel password"
 
-func accessTestSame(left, right: const [..] u8)->bool
-{
-    return left.count == right.count and Swag.memcmp(left.buffer, right.buffer, left.count) == 0
-}
-
-func accessTestPath(tag: string)->String
-{
-    return Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("vault_access_%_%.bin", tag, Guid64.random()))
-}
+func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("vault_access_%_%.bin", tag, Guid64.random()))
 
 // Password-only access uses the password bytes directly.
 #test
@@ -26,7 +15,7 @@ func accessTestPath(tag: string)->String
     access.setInputs(accessTestPassword(), files.toSlice())
 
     var credential = expect access.derive()
-    Swag.assert(accessTestSame(credential.toSlice(), accessTestPassword()))
+    Swag.assert(Slice.equals(credential.toSlice(), accessTestPassword()))
 }
 
 // Key-file contents, lengths, order, and password all participate; paths do not.
@@ -56,7 +45,7 @@ func accessTestPath(tag: string)->String
     var moved: VaultAccess
     moved.setInputs(accessTestPassword(), movedFiles.toSlice())
     var movedCredential = expect moved.derive()
-    Swag.assert(accessTestSame(firstCredential.toSlice(), movedCredential.toSlice()))
+    Swag.assert(Slice.equals(firstCredential.toSlice(), movedCredential.toSlice()))
 
     var reversedFiles: Array'String
     reversedFiles.add(String.from(secondPath))
@@ -64,12 +53,12 @@ func accessTestPath(tag: string)->String
     var reversed: VaultAccess
     reversed.setInputs(accessTestPassword(), reversedFiles.toSlice())
     var reversedCredential = expect reversed.derive()
-    Swag.assert(not accessTestSame(firstCredential.toSlice(), reversedCredential.toSlice()))
+    Swag.assert(not Slice.equals(firstCredential.toSlice(), reversedCredential.toSlice()))
 
     var otherPassword: VaultAccess
     otherPassword.setInputs("different", firstFiles.toSlice())
     var otherCredential = expect otherPassword.derive()
-    Swag.assert(not accessTestSame(firstCredential.toSlice(), otherCredential.toSlice()))
+    Swag.assert(not Slice.equals(firstCredential.toSlice(), otherCredential.toSlice()))
 }
 
 // Adding, replacing, and removing key files all keep exactly one verified access slot.

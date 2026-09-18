@@ -1,56 +1,63 @@
 #global public
 #global namespace Math
 
-// Structure containing mathematical constants of type 'T'
+// Provides mathematical constants in the floating-point type `T`.
+//
+// Use the `ConstF32` and `ConstF64` aliases rather than naming `T`.
 struct(T) Const
 {
-    const Pi:         T = 3.1415927410125732421875     // Pi constant
-    const E:          T = 2.71828174591064453125       // Euler's number
-    const TwoPi:      T = 2 * Pi                       // 2 times Pi
-    const PiBy2:      T = Pi / 2                       // Pi divided by 2
+    const Pi:         T = 3.14159265358979323846264338327950288     // Ratio of a circle's circumference to its diameter
+    const E:          T = 2.71828182845904523536028747135266250     // Euler's number, the base of the natural logarithm
+    const TwoPi:      T = 2 * Pi                       // Two times Pi, a full turn in radians
+    const PiBy2:      T = Pi / 2                       // Pi divided by 2, a quarter turn in radians
     const PiBy3:      T = Pi / 3                       // Pi divided by 3
     const PiBy4:      T = Pi / 4                       // Pi divided by 4
     const PiBy6:      T = Pi / 6                       // Pi divided by 6
     const PiBy8:      T = Pi / 8                       // Pi divided by 8
-    const ThreePiBy4: T = 3 * Pi / 4                   // 3 times Pi divided by 4
+    const ThreePiBy4: T = 3 * Pi / 4                   // Three times Pi divided by 4
     const OneByPi:    T = 1 / Pi                       // Reciprocal of Pi
-    const TwoByPi:    T = 2 / Pi                       // 2 divided by Pi
+    const TwoByPi:    T = 2 / Pi                       // Two divided by Pi
     const Sqrt2:      T = sqrt(cast(T) 2)              // Square root of 2
-    const OneBySqrt2: T = 1 / Sqrt2                    // Reciprocal of square root of 2
+    const OneBySqrt2: T = 1 / Sqrt2                    // Reciprocal of the square root of 2
     const Ln2:        T = log(cast(T) 2)               // Natural logarithm of 2
     const Ln10:       T = log(cast(T) 10)              // Natural logarithm of 10
-    const Log2E:      T = log2(E)                      // Log base 2 of Euler's number
-    const Log10E:     T = log10(E)                     // Log base 10 of Euler's number
-    const Epsilon:    T = 1e-06                        // Smallest value for floating-point precision comparisons
+    const Log2E:      T = log2(E)                      // Base-two logarithm of Euler's number
+    const Log10E:     T = log10(E)                     // Base-ten logarithm of Euler's number
+    const Epsilon:    T = 1e-06                        // Default absolute tolerance of the epsilon comparisons
 }
 
-// Aliases for 32-bit and 64-bit floating-point constants
+// Names the mathematical constants in `f32` precision.
 alias ConstF32 = Const'f32
 
-// Names the const f64 type.
+// Names the mathematical constants in `f64` precision.
 alias ConstF64 = Const'f64
 
 #[Swag.ConstExpr, Swag.Inline]
 {
-    // Returns the sign of 'x' (-1 for negative, 0 for zero, and 1 for positive).
+    // Returns the sign of `x`: -1 when negative, 1 when positive, and 0 for zero.
     func sign(x: f32) => cast(f32) (x > 0) - cast(f32) (x < 0)
     func sign(x: f64) => cast(f64) (x > 0) - cast(f64) (x < 0)
 
-    // Returns the magnitude of 'x' carrying the sign of 'y'.
+    // Returns the magnitude of `x` carrying the sign of `y`.
     //
     // Only the sign bit moves, so a NaN keeps its payload and a zero takes the sign it is given.
     func copysign(x, y: f32)->f32 => cast #bit (f32) ((cast #bit (u32) x & 0x7FFF_FFFF) | (cast #bit (u32) y & 0x8000_0000))
     func copysign(x, y: f64)->f64 => cast #bit (f64) ((cast #bit (u64) x & 0x7FFF_FFFF_FFFF_FFFF) | (cast #bit (u64) y & 0x8000_0000_0000_0000))
 
-    // Clamps 'x' between 0 and 1
+    // Returns `x` clamped to the range [0, 1].
     func saturate(x: f32) => clamp(x, 0'f32, 1'f32)
     func saturate(x: f64) => clamp(x, 0'f64, 1'f64)
 
-    // Linear interpolation between 'x' and 'y' based on 'factor'
+    // Returns the linear interpolation from `x` to `y` at `factor`.
+    //
+    // A `factor` of 0 gives `x` and 1 gives `y`. It is not clamped, so other values extrapolate.
     func lerp(x, y, factor: f32) => x + factor * (y - x)
     func lerp(x, y, factor: f64) => x + factor * (y - x)
 
-    // Cubic interpolation between 'a', 'b', 'c', and 'd' based on 't'
+    // Returns the cubic interpolation between `b` and `c` at `t`, shaped by the outer samples `a` and `d`.
+    //
+    // A `t` of 0 gives `b` and 1 gives `c`; `a` precedes `b` and `d` follows `c` in the sampled
+    // sequence.
     func cubicLerp(a, b, c, d, t: f32)->f32
     {
         let p = (d - c) - (a - b)
@@ -63,19 +70,29 @@ alias ConstF64 = Const'f64
         return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b
     }
 
-    // Hermite interpolation function
+    // Returns the smooth Hermite easing `3t² - 2t³` of `t`.
+    //
+    // It rises from 0 at 0 to 1 at 1 with a zero slope at both ends. `t` is not clamped; use
+    // [[Core.Math.smoothstep]] to map and clamp a range first.
     func interpHermite(t: f32) => t * t * (3 - 2 * t)
     func interpHermite(t: f64) => t * t * (3 - 2 * t)
 
-    // Quintic interpolation function
+    // Returns the quintic easing `6t⁵ - 15t⁴ + 10t³` of `t`.
+    //
+    // It rises from 0 at 0 to 1 at 1 with zero slope and zero curvature at both ends. `t` is not
+    // clamped.
     func interpQuintic(t: f32) => t * t * t * (t * (t * 6 - 15) + 10)
     func interpQuintic(t: f64) => t * t * t * (t * (t * 6 - 15) + 10)
 
-    // Get the fractional part
+    // Returns the fractional part of `x`, computed as `x - floor(x)`.
+    //
+    // The result lies within [0, 1) for negative values too, so `fract(-0.25)` is 0.75.
     func fract(x: f32)->f32 => x - floor(x)
     func fract(x: f64)->f64 => x - floor(x)
 
-    // Interpolation at constant speed - moves a fixed distance per step
+    // Returns `current` moved toward `target` by at most `speed`.
+    //
+    // The result is exactly `target` once that is within `speed`.
     func moveTowards(current, target, speed: f32)->f32
     {
         let distance = target - current
@@ -92,9 +109,11 @@ alias ConstF64 = Const'f64
         return current + sign(distance) * speed
     }
 
-    // Perform critically damped interpolation towards 'target'.
-    // Uses 'smoothTime' and 'deltaTime' for frame-rate independent smooth movement.
-    // 'currentVelocity' is modified to track the current rate of change.
+    // Returns `current` moved toward `target` along a critically damped spring over `deltaTime`.
+    //
+    // `smoothTime` is roughly the time the spring takes to reach the target, in the unit of
+    // `deltaTime`, and is raised to at least 0.0001. `currentVelocity` carries the velocity from
+    // one call to the next and is updated in place. The result never overshoots `target`.
     func(T) smoothDamp(current, target: T, currentVelocity: *T, smoothTime, deltaTime: T)->T
     {
         // Solve the critically damped spring exactly over this time step.
@@ -117,47 +136,47 @@ alias ConstF64 = Const'f64
         return result
     }
 
-    // Convert radians to degrees
+    // Returns the angle `x`, given in radians, converted to degrees.
     func toDegrees(x: f32) => x * 57.295779513082320876798154814105'f32
-
-    // Converts degrees to radians.
-    func toRadians(x: f32) => x * 0.017453292519943295769236907684886'f32
     func toDegrees(x: f64) => x * (180'f64 / ConstF64.Pi)
 
-    // Converts this value to radians.
+    // Returns the angle `x`, given in degrees, converted to radians.
+    func toRadians(x: f32) => x * 0.017453292519943295769236907684886'f32
     func toRadians(x: f64) => x * (ConstF64.Pi / 180'f64)
 
-    // Check if 'x' is approximately zero within an epsilon threshold
+    // Returns whether `x` is closer to zero than `eps`.
     func isZeroEpsilon(x: f32, eps = ConstF32.Epsilon) => abs(x) < eps
     func isZeroEpsilon(x: f64, eps = ConstF64.Epsilon) => abs(x) < eps
 
-    // Check if 'x' and 'y' are approximately equal within an epsilon threshold
+    // Returns whether `x` and `y` differ by less than `eps`.
+    //
+    // The tolerance is absolute, so it suits values of known magnitude rather than arbitrary ones.
     func isEqualEpsilon(x, y: f32, eps = ConstF32.Epsilon) => abs(x - y) < eps
     func isEqualEpsilon(x, y: f64, eps = ConstF64.Epsilon) => abs(x - y) < eps
 
-    // Check if 'x' is NaN (not a number)
+    // Returns whether `x` is NaN.
     #[Swag.Safety(.NaN, false)]
     func isNaN(x: f32) => x != x
     #[Swag.Safety(.NaN, false)]
     func isNaN(x: f64) => x != x
 
-    // Returns true if the value is finite (not infinite and not NaN).
-    // A finite number is any real number that is not positive infinity, negative infinity, or NaN.
+    // Returns whether `value` is finite, neither infinite nor NaN.
     func isFinite(value: f32)->bool
     {
         let bits = cast #bit (u32) value
         return (bits & 0x7F800000'u32) != 0x7F800000'u32
     }
 
-    // Returns true if the value is finite (not infinite and not NaN).
-    // A finite number is any real number that is not positive infinity, negative infinity, or NaN.
     func isFinite(value: f64)->bool
     {
         let bits = cast #bit (u64) value
         return (bits & 0x7FF0000000000000'u64) != 0x7FF0000000000000'u64
     }
 
-    // Smoothstep interpolation between 'edge0' and 'edge1'
+    // Returns the smooth Hermite step of `x` from `edge0` to `edge1`.
+    //
+    // The result is 0 up to `edge0`, 1 from `edge1` on, and eases between them like
+    // [[Core.Math.interpHermite]]. The two edges must differ.
     func smoothstep(edge0, edge1, x: f32)->f32
     {
         let t = clamp((x - edge0) / (edge1 - edge0), 0'f32, 1'f32)
@@ -170,7 +189,9 @@ alias ConstF64 = Const'f64
         return t * t * (3 - 2 * t)
     }
 
-    // Maps 'val' from the range [minSrc, maxSrc] to [minDst, maxDst]
+    // Returns `val` mapped linearly from the range [`minSrc`, `maxSrc`] to [`minDst`, `maxDst`].
+    //
+    // The result is not clamped, and `minSrc` and `maxSrc` must differ.
     func map(val, minSrc, maxSrc, minDst, maxDst: f32)->f32
     {
         let r = (val - minSrc) / (maxSrc - minSrc)
@@ -183,7 +204,9 @@ alias ConstF64 = Const'f64
         return minDst + r * (maxDst - minDst)
     }
 
-    // Returns the smallest power of ten strictly greater than 'value'.
+    // Returns the smallest power of ten, at least 1, that is strictly greater than `value`.
+    //
+    // Every `value` below 1 answers 1.
     func nextPowerOfTen(value: f32)->f32
     {
         if value < 1 do
@@ -191,7 +214,6 @@ alias ConstF64 = Const'f64
         return pow(10'f32, floor(log10(value)) + 1)
     }
 
-    // Returns the smallest power of ten strictly greater than 'value'.
     func nextPowerOfTen(value: f64)->f64
     {
         if value < 1 do
@@ -202,177 +224,127 @@ alias ConstF64 = Const'f64
 
 #[Swag.ConstExpr, Swag.Inline]
 {
-    // Returns the signed arc tangent of the coordinates 'y' and 'x'.
+    // Returns the angle of the point (`x`, `y`) from the positive X axis, in radians within [-π, π].
     func atan2(y, x: f32) => Swag.atan2(y, x)
-
-    // Returns the signed arc tangent of the coordinates 'y' and 'x'.
     func atan2(y, x: f64) => Swag.atan2(y, x)
 
-    // Performs the sqrt operation.
+    // Returns the square root of `x`.
     func sqrt(x: f32) => Swag.sqrt(x)
-
-    // Returns the square root.
     func sqrt(x: f64) => Swag.sqrt(x)
 
-    // Performs the sin operation.
+    // Returns the sine of the angle `x`, in radians.
     func sin(x: f32) => Swag.sin(x)
-
-    // Returns the sine of an angle in radians.
     func sin(x: f64) => Swag.sin(x)
 
-    // Performs the cos operation.
+    // Returns the cosine of the angle `x`, in radians.
     func cos(x: f32) => Swag.cos(x)
-
-    // Returns the cosine of an angle in radians.
     func cos(x: f64) => Swag.cos(x)
 
-    // Performs the tan operation.
+    // Returns the tangent of the angle `x`, in radians.
     func tan(x: f32) => Swag.tan(x)
-
-    // Returns the tangent of an angle in radians.
     func tan(x: f64) => Swag.tan(x)
 
-    // Performs the sinh operation.
+    // Returns the hyperbolic sine of `x`.
     func sinh(x: f32) => Swag.sinh(x)
-
-    // Returns the hyperbolic sine.
     func sinh(x: f64) => Swag.sinh(x)
 
-    // Performs the cosh operation.
+    // Returns the hyperbolic cosine of `x`.
     func cosh(x: f32) => Swag.cosh(x)
-
-    // Returns the hyperbolic cosine.
     func cosh(x: f64) => Swag.cosh(x)
 
-    // Performs the tanh operation.
+    // Returns the hyperbolic tangent of `x`.
     func tanh(x: f32) => Swag.tanh(x)
-
-    // Returns the hyperbolic tangent.
     func tanh(x: f64) => Swag.tanh(x)
 
-    // Performs the asin operation.
+    // Returns the arc sine of `x`, in radians within [-π/2, π/2].
     func asin(x: f32) => Swag.asin(x)
-
-    // Returns the arc sine in radians.
     func asin(x: f64) => Swag.asin(x)
 
-    // Performs the acos operation.
+    // Returns the arc cosine of `x`, in radians within [0, π].
     func acos(x: f32) => Swag.acos(x)
-
-    // Returns the arc cosine in radians.
     func acos(x: f64) => Swag.acos(x)
 
-    // Performs the atan operation.
+    // Returns the arc tangent of `x`, in radians within [-π/2, π/2].
     func atan(x: f32) => Swag.atan(x)
-
-    // Returns the arc tangent in radians.
     func atan(x: f64) => Swag.atan(x)
 
-    // Performs the log operation.
+    // Returns the natural logarithm of `x`.
     func log(x: f32) => Swag.log(x)
-
-    // Returns the natural logarithm.
     func log(x: f64) => Swag.log(x)
 
-    // Performs the log2 operation.
+    // Returns the base-two logarithm of `x`.
     func log2(x: f32) => Swag.log2(x)
-
-    // Returns the base-two logarithm.
     func log2(x: f64) => Swag.log2(x)
 
-    // Performs the log10 operation.
+    // Returns the base-ten logarithm of `x`.
     func log10(x: f32) => Swag.log10(x)
-
-    // Returns the base-ten logarithm.
     func log10(x: f64) => Swag.log10(x)
 
-    // Performs the floor operation.
+    // Returns `x` rounded down to an integer value.
     func floor(x: f32) => Swag.floor(x)
-
-    // Rounds downward to an integer-valued number.
     func floor(x: f64) => Swag.floor(x)
 
-    // Performs the ceil operation.
+    // Returns `x` rounded up to an integer value.
     func ceil(x: f32) => Swag.ceil(x)
-
-    // Rounds upward to an integer-valued number.
     func ceil(x: f64) => Swag.ceil(x)
 
-    // Performs the trunc operation.
+    // Returns `x` rounded toward zero to an integer value.
     func trunc(x: f32) => Swag.trunc(x)
-
-    // Removes the fractional part.
     func trunc(x: f64) => Swag.trunc(x)
 
-    // Performs the round operation.
+    // Returns `x` rounded to the nearest integer value, halfway cases away from zero.
     func round(x: f32) => Swag.round(x)
-
-    // Rounds to the nearest integer-valued number.
     func round(x: f64) => Swag.round(x)
 
-    // Performs the floor s32 operation.
+    // Returns `x` rounded down and converted to `s32`.
     func floorS32(x: f32) => cast(s32) Swag.floor(x)
 
-    // Performs the floor s64 operation.
+    // Returns `x` rounded down and converted to `s64`.
     func floorS64(x: f64) => cast(s64) Swag.floor(x)
 
-    // Performs the ceil s32 operation.
+    // Returns `x` rounded up and converted to `s32`.
     func ceilS32(x: f32) => cast(s32) Swag.ceil(x)
 
-    // Performs the ceil s64 operation.
+    // Returns `x` rounded up and converted to `s64`.
     func ceilS64(x: f64) => cast(s64) Swag.ceil(x)
 
-    // Performs the trunc s32 operation.
+    // Returns `x` rounded toward zero and converted to `s32`.
     func truncS32(x: f32) => cast(s32) Swag.trunc(x)
 
-    // Performs the trunc s64 operation.
+    // Returns `x` rounded toward zero and converted to `s64`.
     func truncS64(x: f64) => cast(s64) Swag.trunc(x)
 
-    // Performs the round s32 operation.
+    // Returns `x` rounded to the nearest integer, halfway cases away from zero, and converted to `s32`.
     func roundS32(x: f32) => cast(s32) Swag.round(x)
 
-    // Performs the round s64 operation.
+    // Returns `x` rounded to the nearest integer, halfway cases away from zero, and converted to `s64`.
     func roundS64(x: f64) => cast(s64) Swag.round(x)
 
-    // Performs the abs operation.
+    // Returns the absolute value of `x`.
     func abs(x: f32) => Swag.abs(x)
-
-    // Returns the absolute value.
     func abs(x: f64) => Swag.abs(x)
 
-    // Performs the min operation.
+    // Returns the smaller of `x` and `y`.
     func min(x, y: f32) => Swag.min(x, y)
-
-    // Returns the lesser value.
     func min(x, y: f64) => Swag.min(x, y)
 
-    // Performs the max operation.
+    // Returns the larger of `x` and `y`.
     func max(x, y: f32) => Swag.max(x, y)
-
-    // Returns the greater value.
     func max(x, y: f64) => Swag.max(x, y)
 
-    // Performs the exp operation.
+    // Returns Euler's number raised to the power `x`.
     func exp(x: f32) => Swag.exp(x)
-
-    // Raises Euler's number to the requested power.
     func exp(x: f64) => Swag.exp(x)
 
-    // Performs the exp2 operation.
+    // Returns two raised to the power `x`.
     func exp2(x: f32) => Swag.exp2(x)
-
-    // Raises two to the requested power.
     func exp2(x: f64) => Swag.exp2(x)
 
-    // Performs the pow operation.
+    // Returns `x` raised to the power `y`.
     func pow(x, y: f32) => Swag.pow(x, y)
-
-    // Raises a value to a power.
     func pow(x, y: f64) => Swag.pow(x, y)
 
-    // Performs the mul add operation.
+    // Returns `x * y + z`.
     func mulAdd(x, y, z: f32) => Swag.muladd(x, y, z)
-
-    // Multiplies two values and adds a third.
     func mulAdd(x, y, z: f64) => Swag.muladd(x, y, z)
 }

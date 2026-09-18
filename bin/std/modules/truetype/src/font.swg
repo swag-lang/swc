@@ -165,10 +165,7 @@ func getFaceImpl(face: *Face?)->*FaceImpl fail
     return cast(*FaceImpl) cast(*void) safeFace
 }
 
-func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail
-{
-    return try getFaceImpl(slot.face)
-}
+func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail => try getFaceImpl(slot.face)
 
 func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
 {

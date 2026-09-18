@@ -7,8 +7,8 @@ struct ThemeStyleRef
 {
     public
     {
-        late theme: *Theme     // Theme associated with this value.
-        count:      u32        // Count associated with this value.
+        late theme: *Theme     // Shared theme, released with the last style holding it.
+        count:      u32        // Number of styles holding the reference.
     }
 }
 
@@ -17,9 +17,9 @@ struct ThemeStyle
 {
     public
     {
-        styleSheetMetrics: String     // Style sheet metrics associated with this value.
-        styleSheetColors:  String     // Style sheet colors associated with this value.
-        font: FontFamily              // Font associated with this value.
+        styleSheetMetrics: String     // Local metric overrides, one `name value` line per [[Gui.ThemeMetrics]] field.
+        styleSheetColors:  String     // Local color overrides, one `name value` line per [[Gui.ThemeColors]] field.
+        font: FontFamily              // Local font faces; a `null` face inherits the theme default.
     }
 
     // The shared theme this style resolves against, and whether it must be resolved again.
@@ -88,7 +88,7 @@ impl ThemeStyle
     mtd create(parent: *ThemeStyle)
     {
         .free()
-        var theme = Memory.new'Theme()
+        let theme = Memory.new'Theme()
         theme[] = parent.refr!.theme[]
         .set(theme)
     }
@@ -102,8 +102,7 @@ impl ThemeStyle
             .dirty = true
         }
 
-        // If parent is dirty, or i am dirty, then we need
-        // to compute.
+        // Nothing to resolve unless this style or its parent changed.
         if not .dirty and not parent.dirty do
             return
         .dirty = true
@@ -111,7 +110,7 @@ impl ThemeStyle
         // By default, same as the parent
         .share(parent)
 
-        // Ask user
+        // Let the owner customize the style.
         var evt = ThemeEvent{}
         evt.accepted = false
         evt.style    = me
@@ -119,8 +118,8 @@ impl ThemeStyle
         owner.sendEvent(&evt)
 
         // Nothing to override
-        if .styleSheetColors.length == 0 and
-           .styleSheetMetrics.length == 0 and
+        if .styleSheetColors.isEmpty() and
+           .styleSheetMetrics.isEmpty() and
            not .font.regular and
            not .font.bold and
            not .font.italic and
@@ -136,14 +135,14 @@ impl ThemeStyle
 
         // Then tweak it with the stylesheet
         let own = .refr!
-        if .styleSheetColors.length
+        if not .styleSheetColors.isEmpty()
         {
             var tf: File.TweakFile
             tf.registerFolder'ThemeColors(&own.theme.colors)
             catch tf.parse(.styleSheetColors)
         }
 
-        if .styleSheetMetrics.length
+        if not .styleSheetMetrics.isEmpty()
         {
             var tf: File.TweakFile
             tf.registerFolder'ThemeMetrics(&own.theme.metrics)
@@ -158,14 +157,14 @@ impl ThemeStyle
         .dirty = true
     }
 
-    // Sets style sheet colors.
+    // Replaces the local color overrides with the `name value` lines of `str`.
     mtd setStyleSheetColors(str: string)
     {
         .styleSheetColors = str
         .dirty = true
     }
 
-    // Adds style sheet colors.
+    // Appends the `name value` lines of `str` to the local color overrides.
     mtd addStyleSheetColors(str: string)
     {
         .styleSheetColors.append("\n")
@@ -173,14 +172,14 @@ impl ThemeStyle
         .dirty = true
     }
 
-    // Sets style sheet metrics.
+    // Replaces the local metric overrides with the `name value` lines of `str`.
     mtd setStyleSheetMetrics(str: string)
     {
         .styleSheetMetrics = str
         .dirty = true
     }
 
-    // Adds style sheet metrics.
+    // Appends the `name value` lines of `str` to the local metric overrides.
     mtd addStyleSheetMetrics(str: string)
     {
         .styleSheetMetrics.append("\n")
@@ -200,14 +199,14 @@ impl ThemeStyle
         return result
     }
 
-    // Sets font.
+    // Replaces every local font face with those of `fnt`.
     mtd setFont(fnt: FontFamily)
     {
         .font  = fnt
         .dirty = true
     }
 
-    // Sets font.
+    // Replaces the local `style` face with `fnt`.
     mtd setFont(fnt: *Font, style: FontFamilyStyle)
     {
         .font.setFont(fnt, style)

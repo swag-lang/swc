@@ -53,6 +53,5 @@ func day8A()
         Swag.init(count)
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 1716)
 }

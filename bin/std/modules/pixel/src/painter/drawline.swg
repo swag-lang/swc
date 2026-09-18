@@ -4,7 +4,9 @@ using Core
 
 impl Painter
 {
-    // Draw a line
+    // Strokes a straight segment between two points.
+    //
+    // A zero-length segment, a zero-width pen, or an invisible paint produces no geometry.
     mtd drawLine(start, end: Math.Vector2, pen: Pen)
     {
         .drawLine(start.x, start.y, end.x, end.y, pen)

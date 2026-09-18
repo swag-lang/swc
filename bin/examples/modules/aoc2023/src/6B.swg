@@ -54,6 +54,5 @@ func day6B()
         total *= cpt
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 33875953)
 }

@@ -3,19 +3,7 @@
 
 using Swag
 
-func assertUtf16(values: Array'u16, expected: const [..] u16)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
+func assertUtf16(values: Array'u16, expected: const [..] u16)->bool => Slice.equals(values.toSlice(), expected)
 
 func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
@@ -82,7 +70,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     Swag.assert(c == Utf16.RuneError)
     Swag.assert(eat == 1)
 
-    {c, eat} = Utf16.decodeRune(Swag.makeSlice(values.buffer, 0))
+    {c, eat} = Utf16.decodeRune(values[until 0])
     Swag.assert(c == Utf16.RuneError)
     Swag.assert(eat == 0)
 }
@@ -140,7 +128,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 
     for count in values.count + 1
     {
-        let bounded = Swag.makeSlice(values.buffer, count)
+        let bounded = values[until count]
         Swag.assert(Utf16.lengthUntilZero(bounded) == count)
     }
 
@@ -170,7 +158,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
             expected[index] = 0xBEEF
         }
 
-        let src           = Swag.makeSlice(source.buffer, idx)
+        let src           = source[until idx]
         let actualCount   = Utf16.fromUtf8(actual, src)
         let expectedCount = scalarUtf16FromUtf8(expected, src)
         Swag.assert(actualCount == expectedCount)
@@ -189,7 +177,7 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
             expected[idx] = 0xBEEF
         }
 
-        let src           = Swag.makeSlice(source.buffer, 64)
+        let src           = source[until 64]
         let actualCount   = Utf16.fromUtf8(actual, src)
         let expectedCount = scalarUtf16FromUtf8(expected, src)
         Swag.assert(actualCount == expectedCount)

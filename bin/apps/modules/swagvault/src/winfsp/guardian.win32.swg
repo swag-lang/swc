@@ -23,7 +23,7 @@ namespace WinFsp
 
     func writeGuardianStatus(path, status: string) fail
     {
-        discard try File.writeAllBytes(path, Swag.makeSlice(cast(const [*] u8) status.buffer, status.count))
+        discard try File.writeAllText(path, status)
     }
 
     func startPortableGuardian(statusPath: string) fail
@@ -154,13 +154,13 @@ namespace WinFsp
             for entry in entries
             {
                 if entry.isDirectory() do
-                    removeRuntimeTree(entry.fullname)
+                    removeRuntimeTree(entry.fullName)
                 else
                 {
-                    discard catch File.delete(entry.fullname) as deleteError
+                    discard catch File.delete(entry.fullName) as deleteError
                     if deleteError != null
                     {
-                        let entry16 = Utf16.toZeroTerminated(entry.fullname)
+                        let entry16 = Utf16.toZeroTerminated(entry.fullName)
                         discard MoveFileExW(entry16.buffer, null, MoveDelayUntilReboot)
                     }
                 }

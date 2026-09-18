@@ -3,84 +3,85 @@
 
 using Swag, Core.Errors
 
-// Selects section kind.
+// Selects how the values of a section are framed.
 enum SectionKind
 {
-    Raw           // Selects the raw kind.
-    Unordered     // Selects the unordered kind.
-    Ordered       // Selects the ordered kind.
+    Raw           // Unkeyed values, read back in the order they were written
+    Unordered     // Keyed values a reader finds in any order, so fields can be added or removed
+    Ordered       // Keyed values, read back in the order they were written
 }
 
-// Defines the operations supported by i encoder.
+// Writes serialized values, as seen from [[Core.Serialization.ISerialize]] and [[Core.Serialization.Serializer]].
 interface IEncoder
 {
-    // Returns whether textual.
+    // Returns whether the format is textual, such as JSON, rather than binary.
     mtd isTextual()->bool
 
-    // Starts the operation.
+    // Starts writing the document to `result`.
     mtd start(result: *ConcatBuffer) fail
 
-    // Finishes the operation.
+    // Finishes writing the document.
     mtd end() fail
 
-    // Begins field.
+    // Opens the field `val`.
     mtd beginField(val: Swag.TypeValue) fail
 
-    // Performs the end field operation.
+    // Closes a field that [[Core.Serialization.IEncoder.beginField]] opened.
     mtd endField(val: Swag.TypeValue) fail
 
-    // Begins section.
+    // Opens a section of kind `kind`.
     mtd beginSection(kind: SectionKind) fail
 
-    // Performs the end section operation.
+    // Closes the current section.
     mtd endSection() fail
 
-    // Defines write.
+    // Writes the value of type `type` stored at `data`.
     mtd write(data: const [*] void, type: typeinfo) fail
 
-    // Writes buffer u8.
+    // Writes the `count` bytes at `data` as one byte sequence.
+    //
+    // `data` can be null only when `count` is zero.
     mtd writeBufferU8(data: const [*] u8?, count: u64) fail
 
-    // Writes bool.
+    // Writes a `bool`.
     mtd writeBool(value: bool)
 
-    // Writes s8.
+    // Writes an `s8`.
     mtd writeS8(value: s8)
 
-    // Writes s16.
+    // Writes an `s16`.
     mtd writeS16(value: s16)
 
-    // Writes s32.
+    // Writes an `s32`.
     mtd writeS32(value: s32)
 
-    // Writes s64.
+    // Writes an `s64`.
     mtd writeS64(value: s64)
 
-    // Writes u8.
+    // Writes a `u8`.
     mtd writeU8(value: u8)
 
-    // Writes u16.
+    // Writes a `u16`.
     mtd writeU16(value: u16)
 
-    // Writes u32.
+    // Writes a `u32`.
     mtd writeU32(value: u32)
 
-    // Writes u64.
+    // Writes a `u64`.
     mtd writeU64(value: u64)
 
-    // Writes f32.
+    // Writes an `f32`.
     mtd writeF32(value: f32)
 
-    // Writes f64.
+    // Writes an `f64`.
     mtd writeF64(value: f64)
 
-    // Writes string.
+    // Writes a string.
     mtd writeString(value: string?)
 }
 
 /*
-Serialization encoder.
-This is a high level encoder that needs a specific implementation like [[Core.Serialization.Write.TagBin]] or [[Core.Serialization.Write.Json]].
+Encodes reflected Swag values through a format backend such as [[Core.Serialization.Write.TagBin]] or [[Core.Serialization.Write.Json]].
 
 ```swag
 var buf:     ConcatBuffer
@@ -92,7 +93,7 @@ try File.writeAllBytes(file, buf)
 Can be serialized:
 - All simple types: `bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64`
 - A type value 'typeinfo', which will be saved as a CRC.
-- An interface. TagBin stores the concrete struct's stable 'Serialization.TypeKey' and value.
+- An interface. TagBin stores the concrete struct's stable [[Core.Serialization.TypeKey]] and value.
 - A struct.
 - A `Core.String`.
 - A `Core.Array` of valid values.
@@ -101,20 +102,20 @@ Can be serialized:
 > NOTE:
 > Type 'string' is not supported. Consider using [[Core.String]] instead.
 
-A struct can implement the 'ISerialize' interface in order to have a specific serialization. If not defined, then the struct will be saved field by field.
+A struct can implement [[Core.Serialization.ISerialize]] to drive its own serialization. Otherwise it is saved field by field.
 */
 struct(T) Encoder
 {
     public
     {
         serializer:     T        // Serializer associated with this value.
-        errorIfUnknown: bool     // If true, an error will be raised if a type cannot be saved. The field will be ignored if set to false
+        errorIfUnknown: bool     // Whether a value of an unsupported type fails the write instead of being skipped
     }
 }
 
 impl Encoder
 {
-    // Start serialization
+    // Starts writing the document to `result`.
     mtd start(result: *ConcatBuffer) fail
     {
         .serializer.startWrite(result)
@@ -132,13 +133,13 @@ impl Encoder
         try .start(result)
     }
 
-    // End serialization
+    // Finishes writing the document.
     mtd end() fail
     {
         .serializer.endRoot()
     }
 
-    // Write a given Swag.TypeValue.
+    // Writes the field or element `typeVal`, whose value is stored at `data`.
     mtd writeTypeValue(typeVal: TypeValue, data: const [*] void?) fail
     {
         if not typeVal.pointedType do
@@ -153,7 +154,7 @@ impl Encoder
         .serializer.endElement(typeVal)
     }
 
-    // Write a given value with a given type.
+    // Writes the value of type `dataType` stored at `data`.
     mtd writeValue(data: const [*] void, dataType: typeinfo?) fail
     {
         if not dataType do
@@ -282,7 +283,7 @@ impl Encoder
                 if not treated
                 {
                     var bufArr = cast(const [*] u8?) ptrArr.buffer
-                    for i in ptrArr.count
+                    for ptrArr.count
                     {
                         try .writeValue(bufArr!, safeValueType)
                         bufArr += safeValueType.sizeof
@@ -350,36 +351,34 @@ impl Encoder
             fail UnsupportedFormatError{Errors.mkString(Format.toString("cannot serialize type [[%]]", type.name))}
     }
 
-    // Write a full struct.
-    // Will call [[Encoder.start]], [[Encoder.writeValue]] and [[Encoder.end]]
+    // Writes the struct `value` as a complete document to `result`.
+    //
+    // This is [[Core.Serialization.Encoder.start]], [[Core.Serialization.Encoder.writeValue]],
+    // then [[Core.Serialization.Encoder.end]].
     mtd writeAll(result: *ConcatBuffer, value: any) fail
     {
         Swag.assert(Reflection.isStruct(Swag.kindOf(value)))
         try .start(result, Swag.kindOf(value))
         try .writeValue(value.buffer, Swag.kindOf(value))
-        try end(me)
+        try .end()
     }
 }
 
 impl IEncoder for Encoder
 {
-    // Returns whether textual.
     mtd impl isTextual()->bool => .serializer.isTextual()
 
-    // Start serialization
     mtd impl start(result: *ConcatBuffer) fail
     {
         .serializer.startWrite(result)
         .serializer.beginRoot()
     }
 
-    // End serialization
     mtd impl end() fail
     {
         .serializer.endRoot()
     }
 
-    // Begins field.
     mtd impl beginField(val: Swag.TypeValue) fail
     {
         #static if T == Write.TagBin do
@@ -389,32 +388,27 @@ impl IEncoder for Encoder
         .serializer.beginValue()
     }
 
-    // Performs the end field operation.
     mtd impl endField(val: Swag.TypeValue) fail
     {
         .serializer.endValue()
         .serializer.endElement(val)
     }
 
-    // Begins section.
     mtd impl beginSection(kind: SectionKind) fail
     {
         .serializer.beginSection(kind)
     }
 
-    // Performs the end section operation.
     mtd impl endSection() fail
     {
         .serializer.endSection()
     }
 
-    // Defines write.
     mtd impl write(data: const [*] void, type: typeinfo) fail
     {
         try .writeValue(data, type)
     }
 
-    // Writes buffer u8.
     mtd impl writeBufferU8(data: const [*] u8?, count: u64) fail
     {
         if not data
@@ -441,39 +435,27 @@ impl IEncoder for Encoder
         }
     }
 
-    // Writes bool.
     mtd impl writeBool(value: bool) => .serializer.writeNative(value)
 
-    // Writes s8.
     mtd impl writeS8(value: s8) => .serializer.writeNative(value)
 
-    // Writes s16.
     mtd impl writeS16(value: s16) => .serializer.writeNative(value)
 
-    // Writes s32.
     mtd impl writeS32(value: s32) => .serializer.writeNative(value)
 
-    // Writes s64.
     mtd impl writeS64(value: s64) => .serializer.writeNative(value)
 
-    // Writes u8.
     mtd impl writeU8(value: u8) => .serializer.writeNative(value)
 
-    // Writes u16.
     mtd impl writeU16(value: u16) => .serializer.writeNative(value)
 
-    // Writes u32.
     mtd impl writeU32(value: u32) => .serializer.writeNative(value)
 
-    // Writes u64.
     mtd impl writeU64(value: u64) => .serializer.writeNative(value)
 
-    // Writes f32.
     mtd impl writeF32(value: f32) => .serializer.writeNative(value)
 
-    // Writes f64.
     mtd impl writeF64(value: f64) => .serializer.writeNative(value)
 
-    // Writes string.
     mtd impl writeString(value: string?) => .serializer.writeNative(value)
 }

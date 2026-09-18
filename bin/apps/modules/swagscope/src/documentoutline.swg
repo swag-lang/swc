@@ -2,18 +2,24 @@
 
 using Core, Gui
 
+// Visible strings of the document outline.
 struct DocumentOutlineStrings
 {
-    title:   string = "Outline"
-    empty:   string = "No outline in this document."
-    loading: string = "Reading outline…"
-    close:   string = "Close outline"
+    title:   string = "Outline"                          // Title of the panel and tooltip of its toggle.
+    empty:   string = "No outline in this document."     // Status of a document without headings.
+    loading: string = "Reading outline…"                 // Status while the headings are read.
+    close:   string = "Close outline"                    // Tooltip of the close button.
 }
 
-private var g_DocumentOutlineStrings: DocumentOutlineStrings
-private const FrenchOutlineStrings = #include("../datas/lang/fr/scope.outline.tweak")
+private const FrenchOutlineStringsName = "lang/fr/scope.outline.tweak"
+private const FrenchOutlineStrings     = #include("../datas/lang/fr/scope.outline.tweak")
 
-#run { expect Gui.validateStrings'DocumentOutlineStrings(cast(string) FrenchOutlineStrings) }
+private var g_DocumentOutlineStrings: DocumentOutlineStrings
+
+#run
+{
+    expect Gui.validateStrings'DocumentOutlineStrings(cast(string) FrenchOutlineStrings)
+}
 
 private func loadMarkdownHeadings(fileName: string)->Array'DocumentHeading fail
 {
@@ -21,7 +27,7 @@ private func loadMarkdownHeadings(fileName: string)->Array'DocumentHeading fail
     return Markdown.parseHeadings(cast(string) source.toSlice())
 }
 
-// One hierarchy shared by every document viewer, hosted in the information panel lane.
+// One heading hierarchy shared by every document viewer, hosted in the viewer's side panel.
 struct DocumentOutline
 {
     using wnd: Wnd
@@ -48,49 +54,66 @@ struct DocumentOutline
 
 impl DocumentOutline
 {
+    // Creates the outline panel and its toggle in the side lane of the viewer `host` is building.
     func create(host: Viewer.Host)->*DocumentOutline
     {
-        host.application().resources.addEmbedded("lang/fr/scope.outline.tweak", FrenchOutlineStrings)
+        host.application().resources.addEmbedded(FrenchOutlineStringsName, FrenchOutlineStrings)
         Gui.registerStrings'DocumentOutlineStrings(&g_DocumentOutlineStrings, "scope.outline")
         let theme  = host.contentParent().theme()
         let side   = host.createSidePanel(276, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_DocumentOutlineStrings.title)
-        let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
-        result.dockStyle       = .Center
-        result.backgroundStyle = .Transparent
-        result.padding         = {12, 8, 12, 8}
-        result.toggle          = side.toggle
-        let size   = themeCompactButtonSize(result.themeMetrics())
-        let header = Wnd.create'Wnd(result, {0, 0, 0, size})
-        header.dockStyle              = .Top
-        header.backgroundStyle        = .Transparent
-        result.closeButton            = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
-        result.closeButton.dockStyle  = .Right
-        result.closeButton.sigPressed += func|panel = result|(button)
+        with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
         {
-            discard button
-            panel.toggle.setChecked(false)
-            panel.toggle.sigCheckedChanged.call(panel.toggle)
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .padding         = {12, 8, 12, 8}
+            .toggle          = side.toggle
         }
 
-        result.title = Label.create(header, "", {}, null, .Ellipsis)
-        result.title.dockStyle = .Center
-        result.title.setTextAlignment(.Left, .Center)
-        result.title.style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
-        result.status               = Label.create(result, "", {}, null, .WordWrap | .AutoHeight | .SecondaryText)
-        result.status.dockStyle     = .Top
-        result.status.margin.y      = 8
-        result.list                 = ListCtrl.createSimple(result, {}, "scope.outline.list")
-        result.list.dockStyle       = .Center
-        result.list.margin.y        = 8
-        result.list.backgroundStyle = .Transparent
-        result.list.listView.backgroundStyle = .Transparent
-        result.list.setFirstColumnIconMargin(false)
-        result.list.setIndentWidth(16)
-        result.list.updateFlags(.HotTrack | .Ellipsis)
-        result.list.sigSelectionChanged += func|panel = result|(list)
+        let size = themeCompactButtonSize(result.themeMetrics())
+        with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
         {
-            if let line = list.selectedLine() do
-                panel.sigSelected.call(panel, cast(u64) line.userData0 - 1)
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+        }
+
+        with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
+        {
+            .dockStyle  = .Right
+            .sigPressed += func|panel = result|(button)
+            {
+                discard button
+                panel.toggle.setChecked(false)
+                panel.toggle.sigCheckedChanged.call(panel.toggle)
+            }
+        }
+
+        with result.title = Label.create(header, "", {}, null, .Ellipsis)
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+            .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
+        }
+
+        with result.status = Label.create(result, "", {}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        {
+            .dockStyle = .Top
+            .margin.y  = 8
+        }
+
+        with result.list = ListCtrl.createSimple(result, {}, "scope.outline.list")
+        {
+            .dockStyle                = .Center
+            .margin.y                 = 8
+            .backgroundStyle          = .Transparent
+            .listView.backgroundStyle = .Transparent
+            .setFirstColumnIconMargin(false)
+            .setIndentWidth(16)
+            .updateFlags(.HotTrack | .Ellipsis)
+            .sigSelectionChanged += func|panel = result|(list)
+            {
+                if let line = list.selectedLine() do
+                    panel.sigSelected.call(panel, cast(u64) line.userData0 - 1)
+            }
         }
 
         result.refresh()

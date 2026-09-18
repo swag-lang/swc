@@ -31,10 +31,7 @@ func vp8Pack4(values: *[4] u8, shift: s32)->u32
     return value << shift
 }
 
-func vp8Clip8(value: s32)->u8
-{
-    return cast(u8) vp8Clip(value, 0, 255)
-}
+func vp8Clip8(value: s32)->u8 => cast(u8) vp8Clip(value, 0, 255)
 
 func vp8InverseDct4(decoder: *Vp8Decoder, y, x, coeffBase: s32)
 {

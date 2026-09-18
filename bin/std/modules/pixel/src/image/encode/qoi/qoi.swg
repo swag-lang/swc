@@ -34,10 +34,7 @@ func readPixel(image: Image, source: const [*] u8)->Pixel
 }
 
 #[Swag.Inline]
-func pixelsEqual(left, right: Pixel)->bool
-{
-    return left.r == right.r and left.g == right.g and left.b == right.b and left.a == right.a
-}
+func pixelsEqual(left, right: Pixel)->bool => left.r == right.r and left.g == right.g and left.b == right.b and left.a == right.a
 
 func writePixelChunk(result: *ConcatBuffer, pixel, previous: Pixel, index: *[64] Pixel)
 {

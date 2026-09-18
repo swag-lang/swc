@@ -57,6 +57,5 @@ func day2B()
         op = prg
     }
 
-    // Console.print("total: ", 100*op[1]+op[2])
     Swag.assert(100 * op[1] + op[2] == 7603)
 }

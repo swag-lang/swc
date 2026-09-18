@@ -13,34 +13,40 @@ alias PropertyTextResolver = func(string)->string?
 
 impl Properties
 {
-    // Start a new category. A "/"-separated name opens nested subgroups: Category("Transform/Advanced")
-    // creates a "Transform" group with an "Advanced" subgroup indented under it. Consecutive fields
-    // sharing a common prefix reuse the same headers.
+    // Starts a new category of rows at the field.
+    //
+    // A `/`-separated name opens nested subgroups: `Category("Transform/Advanced")` creates a
+    // `Transform` group with an `Advanced` subgroup indented under it. Consecutive fields sharing
+    // a common prefix reuse the same headers.
     attr Category(name: string)
 
-    // Decorator: insert a bold, non-collapsible divider label above the field.
-    // Named 'Heading' to avoid clashing with the existing Header widget type.
+    // Inserts a bold, non-collapsible divider label above the field.
+    //
+    // It is named `Heading` so it does not clash with the [[Gui.Header]] widget type.
     attr Heading(text: string)
 
-    // Decorator: insert an empty vertical gap ('size' px) above the field.
-    // Named 'Gap' to avoid clashing with the Key.Space enum used inside impl Properties.
+    // Inserts an empty vertical gap of `size` logical pixels above the field.
+    //
+    // It is named `Gap` so it does not clash with the `Key.Space` value used inside the grid.
     attr Gap(size: s32)
 
-    // Decorator: insert an informational note bar above the field.
+    // Inserts an informational note bar above the field.
     attr HelpBox(text: string)
 
     // Replaces the reflected field name with a presentation label.
     attr Name(name: string)
 
     // Displays the field immediately after another field of the same reflected structure.
+    //
     // This changes presentation order only; the declaration and serialization layout stay intact.
     attr After(field: string)
 
     // Adds explanatory text below the field label.
     attr Description(desc: string)
 
-    // Keeps a reflected field out of generated property grids while leaving it in the structure
-    // for persistence and programmatic use.
+    // Keeps a reflected field out of generated property grids.
+    //
+    // The field stays in the structure for persistence and programmatic use.
     attr Hidden()
 
     // Sets the preferred width of the field editor.
@@ -58,18 +64,20 @@ impl Properties
     // Edits a floating-point value with a slider over the supplied range.
     attr SliderMinMax(min, max: f32)
 
-    // Bool edition with a two-entries combo box instead of a check box; 'off' is the
-    // label of the false value, 'on' the label of the true one ("No Shadow"/"Small").
+    // Edits a Boolean with a two-entry combo box instead of a check box.
+    //
+    // `off` labels the false value and `on` the true one, as in `BoolCombo("No Shadow", "Small")`.
     attr BoolCombo(off, on: string)
 
-    // String edition with an extra '...' button opening a multi-line edition dialog.
+    // Edits a string with an extra `...` button that opens a multi-line editing dialog.
     attr MultiLine()
 
-    // String edition with a combo box of the system font families; the first entry is
-    // the theme's default font and stores an empty string.
+    // Edits a string with a combo box of the system font families.
+    //
+    // The first entry is the theme's default font and stores an empty string.
     attr FontName()
 
-    // String edition that takes a file dragged from the desktop, whose path replaces the value.
+    // Edits a string that takes a file dragged from the desktop, whose path replaces the value.
     //
     // Marks a field that names a document rather than holding free text: dropping one file on
     // its editor fills it, which is the gesture a reader reaches for before a browse dialog.
@@ -82,9 +90,9 @@ impl Properties
     // Preserves the field's alpha channel while editing its color.
     attr KeepAlpha()
 
-    // Mark a field read-only: it is shown but its editor is grayed and non-editable, and the
-    // "Paste" context-menu action is disabled. See also IPropertyNotify.isItemReadOnly for a
-    // dynamic (runtime) equivalent.
+    // Marks a field read-only: it is shown, but its editor is grayed and closed to editing and paste.
+    //
+    // [[Gui.IPropertyNotify.isItemReadOnly]] is the runtime equivalent.
     attr ReadOnly()
 }
 

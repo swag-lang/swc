@@ -78,6 +78,5 @@ func day6B()
     for v in lights do
         total += v
 
-    // Console.print("total: ", total)
     Swag.assert(total == 14110788)
 }

@@ -164,10 +164,7 @@ impl MainWnd
         .editMode = formToEditMode(f)
     }
 
-    func formToEditMode(f: IForm)->EditMode
-    {
-        return FormRegistry[formDescIndex(Swag.kindOf(f))].mode
-    }
+    func formToEditMode(f: IForm)->EditMode => FormRegistry[formDescIndex(Swag.kindOf(f))].mode
 
     mtd editModeToModel(mode: EditMode)->IForm
     {

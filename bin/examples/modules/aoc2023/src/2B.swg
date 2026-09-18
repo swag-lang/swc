@@ -54,6 +54,5 @@ func day2B()
         total += game.r * game.g * game.b
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 66363)
 }

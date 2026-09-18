@@ -8,12 +8,12 @@ using Swag
 {
     let fileName = CoreTests.makeFilesystemTestPath("core_file_live.tmp")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "first line\nsecond line\n")
+    discard expect File.writeAllText(fileName, "first line\nsecond line\n")
     var stream = expect File.openReadLive(fileName)
     let first  = expect stream.readUtf8Chunk(6)
     Swag.assert(first == "first " and expect stream.position() == 6)
 
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "other replacement\n")
+    discard expect File.writeAllText(fileName, "other replacement\n")
     let next = expect stream.readUtf8Chunk(11)
     Swag.assert(next == "replacement")
     expect stream.seek(.End, cast #bit (u64) -1's64)
@@ -21,7 +21,7 @@ using Swag
     Swag.assert(ending == "\n")
 
     let replacement = CoreTests.makeFilesystemTestPath("core_file_live_replacement.tmp")
-    discard expect File.writeAllBytes(replacement, cast(const [..] u8) "new")
+    discard expect File.writeAllText(replacement, "new")
     defer discard catch File.delete(replacement)
     expect File.move(fileName, replacement)
     Swag.assert(expect stream.size() == 3)
@@ -34,20 +34,6 @@ using Swag
     stream.close()
     stream.close()
     Swag.assert(not stream.isOpen())
-}
-
-func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
-{
-    if actual.count != expected.count do
-        return false
-
-    for index in actual.count
-    {
-        if actual[index] != expected[index] do
-            return false
-    }
-
-    return true
 }
 
 #test
@@ -63,7 +49,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     {
         let content = expect File.readAllBytes(fileName)
-        Swag.assert(assertBytes(content.toSlice(), ['a'u8, 'b'u8, 'c'u8, 'd'u8]))
+        Swag.assert(Slice.equals(content.toSlice(), ['a'u8, 'b'u8, 'c'u8, 'd'u8]))
     }
 
     discard expect File.delete(fileName)
@@ -86,7 +72,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     var recovered: [5] u8
     Swag.assert(expect stream.readExactAt(11, recovered))
-    Swag.assert(assertBytes(recovered, payload))
+    Swag.assert(Slice.equals(recovered, payload))
     Swag.assert(expect stream.position() == 16)
 
     var beyond: [17] u8
@@ -107,7 +93,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     defer discard catch File.delete(fileName)
 
     let content = "abcé◆xyz"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) content.buffer, content.count))
+    discard expect File.writeAllText(fileName, content)
 
     var stream = expect File.openRead(fileName)
     defer stream.close()
@@ -137,7 +123,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     Swag.assert((expect stream.readUtf8Chunk(16)) == "a")
     discard catch stream.readUtf8Chunk(16) as err
-    Swag.assert((err is Errors.InvalidFormatError))
+    Swag.assert(err is Errors.InvalidFormatError)
     Swag.assert(expect stream.position() == 1)
 }
 
@@ -174,7 +160,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     stream.close()
 
     let content = expect File.readAllBytes(fileName)
-    Swag.assert(assertBytes(content.toSlice(), ['x'u8, 'y'u8]))
+    Swag.assert(Slice.equals(content.toSlice(), ['x'u8, 'y'u8]))
 
     discard expect File.delete(fileName)
 }
@@ -192,7 +178,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
             discard catch File.delete(target.toString())
     }
 
-    discard expect File.writeAllBytes(source.toString(), Swag.makeSlice(cast(const [*] u8) ("moved").buffer, 5))
+    discard expect File.writeAllText(source.toString(), "moved")
     expect File.move(target.toString(), source.toString())
 
     Swag.assert(not File.exists(source.toString()))
@@ -200,7 +186,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     Swag.assert((expect File.readAllText(target.toString())) == "moved")
 
     // Moving over an existing file replaces it rather than refusing.
-    discard expect File.writeAllBytes(source.toString(), Swag.makeSlice(cast(const [*] u8) ("again").buffer, 5))
+    discard expect File.writeAllText(source.toString(), "again")
     expect File.move(target.toString(), source.toString())
     Swag.assert((expect File.readAllText(target.toString())) == "again")
 }

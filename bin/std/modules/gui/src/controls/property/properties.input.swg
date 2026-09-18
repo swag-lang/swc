@@ -15,7 +15,7 @@ internal impl Properties
     // a row through the bar.
     mtd isOverRows(target: *Wnd?)->bool
     {
-        if not target or not (.edView != null) do
+        if not target or .edView == null do
             return false
         let view = cast(*Wnd) .edView
         return target == view or view.isAncestorOf(target)
@@ -168,7 +168,7 @@ internal impl Properties
                     ToolTip.hide(prop.hotItem.line)
                 prop.hotItem = hit
 
-                if hit and (hit.label != null) and prop.isGridLike()
+                if hit and hit.label != null and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.clientRect().contains(pt) do

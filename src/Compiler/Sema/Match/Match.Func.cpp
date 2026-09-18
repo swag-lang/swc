@@ -960,7 +960,8 @@ namespace
             return;
 
         diagElement.addArgument(Diagnostic::ARG_INDEX, fail.argIndex + 1);
-        diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
+        if (!fn.name(ctx).empty())
+            diagElement.addArgument(Diagnostic::ARG_SYM, fn.name(ctx));
 
         if (fail.castFailure.diagId != DiagnosticId::sema_err_cannot_cast)
             return;
@@ -978,7 +979,11 @@ namespace
 
     DiagnosticArguments makeCallCastErrorArguments(const SymbolFunction& fn, uint32_t callArgIndex, const TaskContext& ctx)
     {
+        // A call through a function-typed value has no declaration to name. Leaving the name out
+        // lets the message fall back to its form without the callee instead of printing an empty one.
         DiagnosticArguments arguments;
+        if (fn.name(ctx).empty())
+            return arguments;
         arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, callArgIndex + 1});
         arguments.push_back(DiagnosticArgument{Diagnostic::ARG_SYM, Utf8{fn.name(ctx)}});
         return arguments;

@@ -9,8 +9,7 @@ enum FormLabelPlacement
     Left      // Places labels in a shared column to the left of fields.
 }
 
-// Configures the geometry and the label presentation shared by every row in a
-// [[Gui.FormLayoutCtrl]].
+// Configures the geometry and the label presentation shared by every row in a [[Gui.FormLayoutCtrl]].
 //
 // The form creates its own labels, so `labelFont` and `labelFlags` are how a surface gives them
 // its own emphasis instead of restyling them one by one after the fact.
@@ -66,7 +65,7 @@ struct FormLayoutCtrl
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
         options: FormLayoutOptions     // Geometry applied to all rows.
 
@@ -158,7 +157,7 @@ private impl FormLayoutCtrl
         // itself, and a blank label above it reserves the height of a name that is not there —
         // which reads as the option having drifted away from the field it qualifies.
         var cursor = y
-        if row.label.name.count != 0
+        if not row.label.name.isEmpty()
         {
             if place do
                 row.label.arrange({client.x, y, client.width, .options.labelHeight})
@@ -300,10 +299,7 @@ impl FormLayoutCtrl
         Swag.assert(field.parent == me, "form field needs the form as its parent")
         Swag.assert(not action or action.parent == me, "form action needs the form as its parent")
 
-        var row = FormLayoutRow{
-            label: Label.create(me, label, flags: .options.labelFlags),
-            field: field,
-            action: action}
+        var row = FormLayoutRow{label: Label.create(me, label, flags: .options.labelFlags), field: field, action: action}
         row.label.setTextAlignment(.Left, .Center)
         if .options.labelFont do
             row.label.style.setFont(.options.labelFont, .Regular)

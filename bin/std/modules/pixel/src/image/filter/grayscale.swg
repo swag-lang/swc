@@ -11,7 +11,9 @@ private const GrayOutput24    = [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 128, 128
 
 public impl Image
 {
-    // Transform image to grayscale, with a given factor
+    // Blends the color channels toward their luminance.
+    //
+    // `factor` is clamped to [0, 1], from the original image at zero to full grayscale at one.
     mtd grayscale(factor: f32 = 1)
     {
         if not .pixelFormat.isPacked() do

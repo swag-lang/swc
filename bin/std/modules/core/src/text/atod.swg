@@ -33,7 +33,7 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
 
     case exp > 0 and exp <= 15 + 22:
 
-        // If exponent is big but number of digits is not'f64, can #move a few zeros
+        // If the exponent is big but the number of digits is not, move a few zeros
         // into the integer part.
         if exp > 22
         {
@@ -868,13 +868,17 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
     return result
 }
 
-// Defines parse.
+// Parses the floating-point number at the start of `s`.
+//
+// Returns the value, the number of bytes consumed in `eat`, and `ovf` set when the value does not
+// fit in an `f64`. `NaN`, `Inf`, `+Inf` and `-Inf` are accepted, ignoring case, when they make up
+// the whole of `s`. Fails with [[Core.Errors.SyntaxError]] when `s` is empty, like the integer
+// parsers.
 public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 {
     var result: retval
-    let countof = s.count
-    if not countof do
-        return result
+    if s.count == 0 do
+        fail Errors.SyntaxError{}
 
     // Special values, infinity, nan
     #[Swag.Safety(.NaN, false)]

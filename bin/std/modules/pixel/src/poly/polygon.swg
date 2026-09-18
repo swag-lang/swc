@@ -152,7 +152,7 @@ impl Polygon
     internal mtd const fillOffsetDirections(target: *Array'Vector2)
     {
         target.clear()
-        if not .points.count do
+        if .points.isEmpty() do
             return
 
         let points = .points.storage()
@@ -201,7 +201,10 @@ impl Polygon
         }
     }
 
-    // Divide by adding points if two points are too far away
+    // Inserts points so that no edge is longer than `maxDistance`.
+    //
+    // With `closed`, the edge from the last point back to the first is subdivided too. Call
+    // [[Pixel.Polygon.recompute]] afterwards.
     mtd subdivideEdges(maxDistance: f32, closed: bool = true)
     {
         Swag.assert(maxDistance > 0)
@@ -238,7 +241,7 @@ impl Polygon
         .isClockwise = value
     }
 
-    // Clear all points
+    // Removes every point and resets the derived properties.
     mtd clear()
     {
         .area        = 0
@@ -251,7 +254,7 @@ impl Polygon
         .points.clear()
     }
 
-    // Add a new point
+    // Appends a point; call [[Pixel.Polygon.recompute]] once the contour is complete.
     mtd add(v: Vector2)
     {
         .points.add(v)
@@ -289,10 +292,7 @@ impl Polygon
     }
 
     #[Swag.Inline]
-    private func boxesAreApart(a, b: SegmentBox)->bool
-    {
-        return a.maxX < b.minX or b.maxX < a.minX or a.maxY < b.minY or b.maxY < a.minY
-    }
+    private func boxesAreApart(a, b: SegmentBox)->bool => a.maxX < b.minX or b.maxX < a.minX or a.maxY < b.minY or b.maxY < a.minY
 
     private mtd computeIsSimple(count: u64)->bool
     {
@@ -429,12 +429,15 @@ impl Polygon
         return true
     }
 
-    // Fast expand polygon by a given amount
+    // Moves every point by `value` along its averaged edge normal, then recomputes.
+    //
+    // This is fast but approximate: sharp corners and large offsets can make the contour
+    // self-intersect. The overload taking a [[Pixel.JoinStyle]] computes an exact offset.
     mtd offset(value: f32)
     {
         if Math.isZeroEpsilon(value) do
             return
-        if not .points.count do
+        if .points.isEmpty() do
             return
 
         var copy: Array'Vector2
@@ -512,7 +515,10 @@ impl Polygon
         off.execute(res, cast(f64) (value * ClipperScaleCoords))
     }
 
-    // Slow but quality offset with a joinStyle
+    // Replaces the contour with its exact offset by `value`, joining corners with `joinStyle`.
+    //
+    // `toler` is the round-join approximation tolerance, in pixels. Only the first resulting
+    // contour is kept; [[Pixel.Polygon.offsetPaths]] returns all of them.
     mtd offset(value: f32, joinStyle: JoinStyle, toler: f32 = 0.5)
     {
         var res: Clipper.ClipperPaths
@@ -523,7 +529,9 @@ impl Polygon
             .storeClipperResult(res[0])
     }
 
-    // Slow but quality offset with a joinStyle
+    // Returns every contour of the exact offset by `value`, joining corners with `joinStyle`.
+    //
+    // `tolerance` is the round-join approximation tolerance, in pixels.
     mtd offsetPaths(value: f32, joinStyle: JoinStyle, tolerance: f32 = 0.5)->LinePathList
     {
         var result: retval
@@ -547,7 +555,7 @@ impl Polygon
 
     private mtd cleanInto(res: *Clipper.ClipperPaths)
     {
-        if not .points.count do
+        if .points.isEmpty() do
             return
 
         var trf: Clipper.Transform
@@ -563,7 +571,10 @@ impl Polygon
         trf.execute(.Union, res, .NonZero, .NonZero)
     }
 
-    // Clean polygon by removing bad/unecessary points
+    // Replaces the contour with its simple, self-intersection-free form.
+    //
+    // Only the first resulting contour is kept; [[Pixel.Polygon.cleanedPaths]] returns all of
+    // them.
     mtd clean()
     {
         var res: Clipper.ClipperPaths
@@ -573,7 +584,10 @@ impl Polygon
             .storeClipperResult(res[0])
     }
 
-    // Clean polygon by removing bad/unecessary points
+    // Returns the simple, self-intersection-free contours of this polygon.
+    //
+    // Outer contours keep the winding of the source. An anticlockwise source yields only its
+    // first contour.
     mtd cleanedPaths()->LinePathList
     {
         var result: retval
@@ -599,10 +613,10 @@ impl Polygon
 
     // Computes the polygon's cached geometric properties.
     //
-    // Call this after adding all points. `knownSimple` lets a caller that already
-    // guarantees the polygon does not
-    // self-intersect (e.g. the output of a Clipper union/clean/offset) skip the
-    // O(n^2) self-intersection test, which otherwise dominates for large contours.
+    // Call this after adding all points. `knownSimple` lets a caller that already guarantees
+    // the polygon does not self-intersect, such as the output of a Clipper union, clean, or
+    // offset, skip the self-intersection test, which otherwise dominates the cost for large
+    // contours.
     mtd recompute(knownSimple = false)
     {
         .area        = 0
@@ -613,7 +627,7 @@ impl Polygon
         .minBounds   = {}
         .maxBounds   = {}
 
-        if not .points.count do
+        if .points.isEmpty() do
             return
 
         var count = .points.count

@@ -5,7 +5,9 @@ using Core, Pixel
 private var g_MarkdownFontFamilies: HashTable'(String, [FontFamilyStyle.count] (*TypeFace?))
 private var g_MarkdownFontLock:     Sync.Mutex
 
-// Resolve each CSS family list once. Missing system fonts keep the viewer's embedded fallback;
+// Returns the type faces of the first installed system family among `names`, one per style.
+//
+// Each family list is resolved once. Missing system fonts keep the viewer's embedded fallback;
 // no document theme installs, downloads or ships font files.
 func markdownSystemFaces(names: const [..] string)->[FontFamilyStyle.count] (*TypeFace?)
 {

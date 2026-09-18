@@ -2,16 +2,16 @@
 
 using Swag
 
-// Defines the operations supported by i hash32.
+// Lets a type supply its own 32-bit hash to [[Core.Hash.hash32]].
 public interface IHash32
 {
-    // Defines compute.
+    // Returns the 32-bit hash of this value.
     mtd const compute()->u32
 }
 
-// Hash a raw byte range and returns the corresponding u32
+// Returns a 32-bit hash of the bytes in `buffer`.
 //
-// Tuned for the short keys a hash table actually stores. 'Crc32' walks a lookup
+// Tuned for the short keys a hash table actually stores. [[Core.Hash.Crc32]] walks a lookup
 // table one byte at a time below its 64 byte unrolled block, which dominates the
 // cost of a table probe; this reads the buffer in 8 byte chunks, overlaps the
 // tail instead of stepping through it, and never reads outside the range.
@@ -69,7 +69,12 @@ public func hashBytes32(buffer: const [..] u8?)->u32
     return cast(u32) result
 }
 
-// Hash the given value and returns the corresponding u32
+// Returns a 32-bit hash of `value`.
+//
+// A string hashes its bytes with [[Core.Hash.hashBytes32]]. A struct that implements
+// [[Core.Hash.IHash32]] or [[Core.Hash.IHash64]] supplies its own hash; another struct hashes
+// its bytes, skipping the dynamic identity slots it contains. Integers use a multiplicative
+// hash, and other values hash their bits.
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash32(value: T)->u32
 {

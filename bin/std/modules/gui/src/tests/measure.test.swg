@@ -157,12 +157,7 @@ using Swag, Core, Pixel
     host.setup(300, 400)
     defer host.shutdown()
 
-    with var options: FormLayoutOptions
-    {
-        .helpHeight = 16
-    }
-
-    let form = FormLayoutCtrl.create(&host.root, options, {0, 0, 300, 400})
+    let form = FormLayoutCtrl.create(&host.root, {helpHeight: 16}, {0, 0, 300, 400})
     discard form.addTextField("SHORT", help: "One")
     discard form.addTextField("LONG", help: "A sentence long enough that it has to be laid out over several lines inside this narrow form.")
     form.computeLayout()

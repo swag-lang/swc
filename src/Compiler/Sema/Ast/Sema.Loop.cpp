@@ -385,17 +385,16 @@ namespace
             else
                 return SemaError::raiseTypeNotIndexable(sema, exprView.nodeRef(), exprView.typeRef());
 
-            sourceIsConst = exprView.type()->isConst() ||
-                            sourceType.isConst() ||
-                            sourceType.isAnyString() ||
-                            SemaCheck::isConstAssignmentTarget(sema, exprView.nodeRef(), exprView);
+            sourceIsConst = exprView.type()->isConst() || sourceType.isConst() || sourceType.isAnyString();
 
-            // An array is stored in its binding, so an immutable binding reaches its
-            // elements: '&name' over a 'let' array must not hand out a mutable reference
-            // the assignment would silently drop. A slice or a pointer only holds a handle
-            // to storage living elsewhere, which 'let' does not freeze.
+            // An array is stored in its binding, so a binding that cannot be written reaches
+            // its elements: '&name' over a 'let' array, a read-only parameter, or a field of a
+            // const receiver must not hand out a mutable reference the assignment would
+            // silently drop. A slice or a variadic only holds a handle to storage living
+            // elsewhere, which the binding does not freeze: '&values[i]' is mutable there,
+            // and '&name' agrees with it.
             if (!sourceIsConst && sourceType.isArray())
-                sourceIsConst = SemaCheck::isImmutableBinding(sema, exprView.nodeRef());
+                sourceIsConst = SemaCheck::isConstAssignmentTarget(sema, exprView.nodeRef(), exprView) || SemaCheck::isImmutableBinding(sema, exprView.nodeRef());
         }
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))

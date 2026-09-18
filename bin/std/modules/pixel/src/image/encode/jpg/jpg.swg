@@ -156,7 +156,7 @@ impl BitString
 
 // Encodes baseline JPEG images with configurable quality.
 //
-// The encoder is opaque; pass [[Jpg.EncodeOptions]] through the generic image
+// The encoder is opaque; pass [[Pixel.Jpg.EncodeOptions]] through the generic image
 // encoding API to control quality.
 #[Swag.Opaque]
 internal struct Encoder

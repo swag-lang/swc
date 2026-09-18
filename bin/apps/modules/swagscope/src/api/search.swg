@@ -114,11 +114,11 @@ struct SearchApi
 }
 
 // Reports whether `match` is bounded by non-word runes in `source`.
-func isWholeWordMatch(source: string, match: u64, length: u64)->bool
+func isWholeWordMatch(source: string, match, length: u64)->bool
 {
     if match
     {
-        let {c, ?} = Utf8.decodeLastRune(source[0 until match])
+        let {c, ?} = Utf8.decodeLastRune(source[until match])
         if Unicode.isWord(c) do
             return false
     }
@@ -223,8 +223,7 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
 
     let first = cursorAt(source, start)
     let last  = cursorAt(source, Math.min(start + length, source.count))
-    editor.setSelection(editor.cursorFromLogicalPosition(first.lineIndex, first.charPosInLine),
-                        editor.cursorFromLogicalPosition(last.lineIndex, last.charPosInLine))
+    editor.setSelection(editor.cursorFromLogicalPosition(first.lineIndex, first.charPosInLine), editor.cursorFromLogicalPosition(last.lineIndex, last.charPosInLine))
     editor.ensureCaretIsVisible(center: true)
     editor.invalidate()
 }
@@ -250,13 +249,14 @@ func clearRichEditMatch(editor: *RichEditCtrl)
 //
 // `text` is what the cell displays and `offset`/`length` the part of it that matched, so a row
 // in a table, a tree and a report is marked on its wording exactly as a word in a document is.
-// A whole row, which is what these viewers used to report, put a band the width of the window
-// beside markers that hug five letters. The band is the height of the list's font, centered in
-// the row: a row carries leading the way a line of text does.
+// A whole row would put a band the width of the window beside markers that hug five letters.
+// The band is the height of the list's font, centered in the row: a row carries leading the way
+// a line of text does.
 //
-// False when the row is not laid out or the range falls outside the text. The rectangle is not
-// clipped to the viewport, as no reported band is: the host intersects every one of them with the
-// view it is drawing over, and decides there whether to follow the result or hide the marker.
+// Returns false when the row is not laid out or the range falls outside the text. The rectangle
+// is not clipped to the viewport, as no reported band is: the host intersects every one of them
+// with the view it is drawing over, and decides there whether to follow the result or hide the
+// marker.
 func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string, offset, length: u64, result: *Math.Rectangle)->bool
 {
     if offset + length > text.count do
@@ -267,7 +267,7 @@ func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string,
         return false
 
     let font   = list.font().regular!
-    let prefix = Painter.measureString(text[0 until offset], font).width
+    let prefix = Painter.measureString(text[until offset], font).width
     let width  = Painter.measureString(text[offset until offset + length], font).width
 
     var local = Math.Rectangle{slot.x + prefix, slot.y + (slot.height - font.height) * 0.5, Math.max(width, 2), font.height}

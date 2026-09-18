@@ -145,7 +145,7 @@ private func reportMachFat(image: *BinaryImage, report: *BinaryReport, wide: boo
     // The wrapper itself is always big endian, whatever the slices inside it are.
     image.bigEndian = true
 
-    let s     = binStrings()
+    let s     = binaryStrings()
     let count = cast(u64) image.u32At(4)
     let step  = wide ? 32'u64 : 20
     let shown = Math.min(count, BinaryListLimit)
@@ -197,7 +197,7 @@ private func reportMachImage(image: *BinaryImage, report: *BinaryReport, at: u64
     image.bigEndian = magic == MachCigam32 or magic == MachCigam64
     result.wide     = magic == MachMagic64 or magic == MachCigam64
 
-    let s        = binStrings()
+    let s        = binaryStrings()
     let headerAt = at
     result.cpu  = image.u32At(headerAt + 4)
     result.kind = image.u32At(headerAt + 12)
@@ -222,7 +222,7 @@ private func reportMachImage(image: *BinaryImage, report: *BinaryReport, at: u64
 
 private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imageAt, at, count, totalSize: u64, wide, open: bool)
 {
-    let s     = binStrings()
+    let s     = binaryStrings()
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
@@ -264,7 +264,7 @@ private func reportMachCommands(image: *BinaryImage, report: *BinaryReport, imag
 // Adds the payload of one load command, for the commands that carry something a reader wants.
 private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, imageAt, at, size: u64, command: u32, wide: bool, libraries: *Array'String)
 {
-    let s    = binStrings()
+    let s    = binaryStrings()
     let kind = command & 0x7FFFFFFF
 
     switch kind
@@ -308,7 +308,7 @@ private func reportMachCommandBody(image: *BinaryImage, report: *BinaryReport, i
         report.field(at + offset, path.length, kind == 0x1C ? "path" : "name", path.toString(), kind == 0x1C ? "" : s.shr_Interpreter)
 
     case 0x1B:
-        let identity = machUuidText(image, at + 8)
+        let identity = image.uuidTextAt(at + 8)
         report.field(at + 8, 16, "uuid", identity.toString(), s.shr_BuildId)
 
     case 0x28:
@@ -335,7 +335,7 @@ private func reportMachSections(image: *BinaryImage, report: *BinaryReport, imag
     if not count do
         return
 
-    let s     = binStrings()
+    let s     = binaryStrings()
     let step  = wide ? 80'u64 : 68
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Section, s.word_Sections)
@@ -395,27 +395,4 @@ private func machProtectionText(value: u32)->String
 }
 
 // Returns the three-part version packed into one word.
-private func machVersionText(value: u32)->String
-{
-    return Format.toString("%.%.%", value >> 16, (value >> 8) & 0xFF, value & 0xFF)
-}
-
-// Returns the build identity, in the plain hexadecimal grouping Apple's tools print.
-private func machUuidText(image: *BinaryImage, at: u64)->String
-{
-    if not image.has(at, 16) do
-        return String.from(BinaryNoValue)
-
-    var text: Array'u8
-    for index in 16
-    {
-        if index == 4 or index == 6 or index == 8 or index == 10 do
-            text.add('-'u8)
-        let value  = image.bytes[at + index]
-        let digits = [cast(u8) (value >> 4), value & 0xF]
-        for nibble in digits do
-            text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
-    }
-
-    return String.from(Swag.makeString(text.storage(), text.count))
-}
+private func machVersionText(value: u32)->String => Format.toString("%.%.%", value >> 16, (value >> 8) & 0xFF, value & 0xFF)

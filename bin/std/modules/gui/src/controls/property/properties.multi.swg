@@ -32,10 +32,7 @@ internal impl Properties
     }
 
     // True when more than one instance is being edited.
-    mtd isMultiEdit(item: *PropertiesItem)->bool
-    {
-        return item.dataInstances.count > 1
-    }
+    mtd isMultiEdit(item: *PropertiesItem)->bool => item.dataInstances.count > 1
 
     // True when the item (or an ancestor) is a dynamic array.
     mtd isUnderDynamicArray(item: *PropertiesItem)->bool

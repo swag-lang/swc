@@ -566,7 +566,7 @@ private impl BacklogIdentity
 {
     mtd const survivesIn(destination: BacklogIdentity)->bool
     {
-        if .entries.count == 0 do
+        if .entries.isEmpty() do
             return false
         for entry in .entries where not destination.entries.contains(entry) do
             return false
@@ -602,7 +602,7 @@ private func readBacklogIdentity(context: *Context, revision: string, path: stri
                     heading = String.from(line[prefix.count to])
             }
         }
-        elif heading.count != 0 and Utf8.startsWith(cast(const [..] u8) Latin1.trim(line), RecordedField)
+        elif not heading.isEmpty() and Utf8.startsWith(cast(const [..] u8) Latin1.trim(line), RecordedField)
         {
             result.entries.add(Format.toString("%\n%", heading.toString(), Latin1.trim(line)))
             heading.clear()
@@ -640,7 +640,7 @@ private func findBacklogPredecessor(context: *Context, before: string, after: st
         }
     }
 
-    if sourcePaths.count == 0 do
+    if sourcePaths.isEmpty() do
         return String{}
 
     // A filesystem rename leaves its destination untracked until staging. Include every
@@ -675,7 +675,7 @@ private func findBacklogPredecessor(context: *Context, before: string, after: st
     {
         for source in sources where source.survivesIn(destination)
         {
-            if result.count != 0 do
+            if not result.isEmpty() do
                 return String{}
             var matches: u32
             for candidate in destinations where source.survivesIn(candidate) do
@@ -737,7 +737,7 @@ private func collectBacklogAllocationHistory(context: *Context, revision: string
         for i in 1 until parents.count
         {
             let source = try findBacklogPredecessor(context, parents[i], commit.toString(), line)
-            if source.count != 0 do
+            if not source.isEmpty() do
                 try collectBacklogAllocationHistory(context, parents[i], source.toString(), stem, visited, allocated)
         }
     }
@@ -757,10 +757,10 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
     var headCommand: Arguments
     headCommand.add(["grep", "-h", "--no-color", "-e", "^### ", "HEAD", "--", historyPath.toString()])
     var head = try captureBacklogGit(context, headCommand, true)
-    if head.count == 0
+    if head.isEmpty()
     {
         let predecessor = try findBacklogPredecessor(context, "HEAD", "", historyPath.toString())
-        if predecessor.count != 0
+        if not predecessor.isEmpty()
         {
             historyPath = predecessor
             var predecessorCommand: Arguments
@@ -779,7 +779,7 @@ private func auditDomainAllocations(context: *Context, seen: *HashSet'String, do
             added.add(identifier)
     }
 
-    if added.count == 0 do
+    if added.isEmpty() do
         return 0
     added.sort()
 
@@ -840,8 +840,8 @@ public func auditBacklog(context: *Context)->s32 fail
     let files = try Directory.enumerateFiles(backlogDir.toString(), ".md")
     for file in files
     {
-        let name = Path.fileName(file.fullname.toString()) orelse ""
-        errors += try auditBacklogLinks(file.fullname.toString())
+        let name = Path.fileName(file.fullName.toString()) orelse ""
+        errors += try auditBacklogLinks(file.fullName.toString())
 
         if name == "README.md" or name == "repo.prompts.md" do
             continue
@@ -859,7 +859,7 @@ public func auditBacklog(context: *Context)->s32 fail
             errors += 1
         }
 
-        let audit = try auditBacklogFile(file.fullname.toString(), &seen)
+        let audit = try auditBacklogFile(file.fullName.toString(), &seen)
         errors += audit.errors
 
         with var domain: Domain
@@ -874,10 +874,10 @@ public func auditBacklog(context: *Context)->s32 fail
 
     for file in files
     {
-        let name = Path.fileName(file.fullname.toString()) orelse ""
+        let name = Path.fileName(file.fullName.toString()) orelse ""
         if name == "README.md" or name == "repo.prompts.md" do
             continue
-        errors += try auditBacklogRelated(file.fullname.toString(), &seen)
+        errors += try auditBacklogRelated(file.fullName.toString(), &seen)
     }
 
     errors += auditBacklogIndex(readmeFile.toString(), readme.toString(), domains.toSlice())

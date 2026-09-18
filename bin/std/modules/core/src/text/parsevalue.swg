@@ -2,23 +2,22 @@
 
 using Swag, Core.Errors
 
-// This function will parse the string 'buf' and decode the corresponding value in 'addr'.
-// 'addr' must point to an initialized memory location that can hold 'type'
+// Parses a value of type `type` from the start of `buf` into `addr`, and returns the rest of `buf`.
 //
-// Accepted types are :
-// - `s8, s16, s32, s64, u8, u16, u32, u64, rune, bool, f32, f64`
-// - 'Core.String'  literal strings are not supported as 'buf' is supposed to be transient
-// - enum           with or without 'Swag.EnumFlags' attribute
-// - struct         a brace-enclosed list of field values in declaration order, such as
-//                  `{{1 29 27 27} 0}`; a `}` before the last field leaves the remaining
-//                  fields untouched, and `,` between two values is accepted
+// `addr` must point to initialized storage that can hold a `type`. Accepted types are:
+// - `s8`, `s16`, `s32`, `s64`, `u8`, `u16`, `u32`, `u64`, `rune`, `bool`, `f32` and `f64`;
+// - [[Core.String]], but not `string`, which would borrow the transient `buf`;
+// - an enum, with or without `Swag.EnumFlags`, whose flags are separated by '|';
+// - a type that implements [[Core.StrConv.IPokeValue]], which parses its own text;
+// - a struct, as a brace-enclosed list of field values in declaration order, such as
+//   `{{1 29 27 27} 0}`: a `}` before the last field leaves the remaining fields untouched,
+//   and `,` between two values is accepted.
 //
-// 'buf' can contain multiple values separated with blanks if 'type' is:
-// - a static array of the types above
-// - a dynamic 'Core.Array' of the types above
+// When `type` is a static array or a [[Core.Array]] of those types, `buf` holds several values
+// separated with blanks, up to its end or a '#'.
 public func parseValue(addr: *void, type: typeinfo, buf: string)->string? fail
 {
-    var patch = cast(*u8) addr
+    let patch = cast(*u8) addr
     var one   = Tokenize.eatSpaces(buf)
 
     // Dynamic Core.Array

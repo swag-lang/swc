@@ -43,59 +43,14 @@ func resetArrayDropTrace()
     ArrayDropMask  = 0
 }
 
-func assertIntArray(values: Array's32, expected: const [..] s32)->bool
+// Owned strings and their expected literals have different types, which 'Slice.equals' does not compare.
+func sameStrings(values: const [..] String, expected: const [..] string)->bool
 {
     if values.count != expected.count do
         return false
 
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
-
-func assertStringArray(values: Array'String, expected: const [..] string)->bool
-{
-    if values.count != expected.count do
+    for i in values.count where values[i] != expected[i] do
         return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
-
-func assertStringSlice(values: const [..] String, expected: const [..] string)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
-
-func assertStaticStringArray(values: StaticArray'(String, 4'u64), expected: const [..] string)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
     return true
 }
 
@@ -148,7 +103,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     tail[1] = 60
 
     let expectedFilled: [6] s32 = [10, 20, 30, 40, 50, 60]
-    Swag.assert(assertIntArray(values, expectedFilled))
+    Swag.assert(Slice.equals(values.toSlice(), expectedFilled))
     Swag.assert(values.contains(20))
     Swag.assert(not values.contains(99))
     Swag.assert(values.front() == 10)
@@ -157,7 +112,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     Swag.assert(values.popBack() == 60)
     values.removeBack()
     let expectedAfterPop: [4] s32 = [10, 20, 30, 40]
-    Swag.assert(assertIntArray(values, expectedAfterPop))
+    Swag.assert(Slice.equals(values.toSlice(), expectedAfterPop))
 
     values.clear()
     Swag.assert(values.isEmpty())
@@ -199,7 +154,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     bottomRight[] = 7
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]
-    Swag.assert(assertIntArray(values, expectedGrid))
+    Swag.assert(Slice.equals(values.toSlice(), expectedGrid))
 
     var weightedSum: s32 = 0
     for value, ordinal in values
@@ -215,7 +170,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     }
 
     let expectedVisited: [4] s32 = [9, 0, 1, 4]
-    Swag.assert(assertIntArray(values, expectedVisited))
+    Swag.assert(Slice.equals(values.toSlice(), expectedVisited))
 
     let middle = values[1 to 2]
     Swag.assert(middle.count == 2)
@@ -224,11 +179,11 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     values.sort()
     let expectedSorted: [4] s32 = [0, 1, 4, 9]
-    Swag.assert(assertIntArray(values, expectedSorted))
+    Swag.assert(Slice.equals(values.toSlice(), expectedSorted))
 
     values.sortReverse()
     let expectedReverse: [4] s32 = [9, 4, 1, 0]
-    Swag.assert(assertIntArray(values, expectedReverse))
+    Swag.assert(Slice.equals(values.toSlice(), expectedReverse))
 }
 
 #test
@@ -243,27 +198,27 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.insertAt(values.count, 9)
 
     let expectedInserted: [7] s32 = [0, 1, 7, 8, 2, 3, 9]
-    Swag.assert(assertIntArray(values, expectedInserted))
+    Swag.assert(Slice.equals(values.toSlice(), expectedInserted))
 
     values.removeAtOrdered(2, 2)
     let expectedOrderedRemove: [5] s32 = [0, 1, 2, 3, 9]
-    Swag.assert(assertIntArray(values, expectedOrderedRemove))
+    Swag.assert(Slice.equals(values.toSlice(), expectedOrderedRemove))
 
     values.removeAt(1)
     let expectedUnorderedRemove: [4] s32 = [0, 9, 2, 3]
-    Swag.assert(assertIntArray(values, expectedUnorderedRemove))
+    Swag.assert(Slice.equals(values.toSlice(), expectedUnorderedRemove))
 
     values.removeOrdered(2)
     let expectedRemoveOrderedValue: [3] s32 = [0, 9, 3]
-    Swag.assert(assertIntArray(values, expectedRemoveOrderedValue))
+    Swag.assert(Slice.equals(values.toSlice(), expectedRemoveOrderedValue))
 
     values.remove(9)
     let expectedRemoveValue: [2] s32 = [0, 3]
-    Swag.assert(assertIntArray(values, expectedRemoveValue))
+    Swag.assert(Slice.equals(values.toSlice(), expectedRemoveValue))
 
     values.swap(0, 1)
     let expectedSwap: [2] s32 = [3, 0]
-    Swag.assert(assertIntArray(values, expectedSwap))
+    Swag.assert(Slice.equals(values.toSlice(), expectedSwap))
 }
 
 #test
@@ -275,7 +230,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.remove(2, 2)
 
     let expected: [4] s32 = [0, 1, 4, 5]
-    Swag.assert(assertIntArray(values, expected))
+    Swag.assert(Slice.equals(values.toSlice(), expected))
 }
 
 // An empty array owns no block, and 'storage' still answers an address the caller can hold.
@@ -304,7 +259,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 #test
 {
     var values: Array's32
-    Swag.assert(values.count == 0)
+    Swag.assert(values.isEmpty())
     Swag.assert(values.buffer == null)
 
     let seed: [4] s32 = [5, 1, 9, 3]
@@ -319,11 +274,11 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values[1] += 2
     values[2] -= 4
     let expectedAssigned: [4] s32 = [5, 9, 5, 3]
-    Swag.assert(assertIntArray(values, expectedAssigned))
+    Swag.assert(Slice.equals(values.toSlice(), expectedAssigned))
 
     var none: [..] s32? = null
     values.add(none)
-    Swag.assert(assertIntArray(values, expectedAssigned))
+    Swag.assert(Slice.equals(values.toSlice(), expectedAssigned))
 
     var movedFront: s32 = 4
     var movedBack:  s32 = 8
@@ -331,12 +286,12 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.add(#move movedBack)
 
     let expectedMoved: [6] s32 = [4, 5, 9, 5, 3, 8]
-    Swag.assert(assertIntArray(values, expectedMoved))
+    Swag.assert(Slice.equals(values.toSlice(), expectedMoved))
 
-    values.sort(func||(a, b) { return b <=> a })
+    values.sort(func||(a, b) => b <=> a)
 
     let expectedSortedByCallback: [6] s32 = [9, 8, 5, 5, 4, 3]
-    Swag.assert(assertIntArray(values, expectedSortedByCallback))
+    Swag.assert(Slice.equals(values.toSlice(), expectedSortedByCallback))
 }
 
 #test
@@ -345,7 +300,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     var values: Array's32
     values = seed
-    Swag.assert(assertIntArray(values, seed))
+    Swag.assert(Slice.equals(values.toSlice(), seed))
 
     var copy: Array's32 = values
     let frontPtr        = copy.frontPtr()
@@ -355,20 +310,20 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expectedOriginal: [3] s32 = [1, 2, 3]
     let expectedCopy:     [3] s32 = [9, 2, 7]
-    Swag.assert(assertIntArray(values, expectedOriginal))
-    Swag.assert(assertIntArray(copy, expectedCopy))
+    Swag.assert(Slice.equals(values.toSlice(), expectedOriginal))
+    Swag.assert(Slice.equals(copy.toSlice(), expectedCopy))
 
     copy.fill(4)
     let expectedFilled: [3] s32 = [4, 4, 4]
-    Swag.assert(assertIntArray(copy, expectedFilled))
+    Swag.assert(Slice.equals(copy.toSlice(), expectedFilled))
 
     copy.resize(1)
     let expectedShrunk: [1] s32 = [4]
-    Swag.assert(assertIntArray(copy, expectedShrunk))
+    Swag.assert(Slice.equals(copy.toSlice(), expectedShrunk))
 
     copy.growResize(4)
     let expectedRegrown: [4] s32 = [4, 0, 0, 0]
-    Swag.assert(assertIntArray(copy, expectedRegrown))
+    Swag.assert(Slice.equals(copy.toSlice(), expectedRegrown))
 }
 
 #test
@@ -397,7 +352,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.emplaceAt(1, inserted)
 
     let expectedEmplaced: [5] s32 = [1, 2, 3, 4, 5]
-    Swag.assert(assertIntArray(values, expectedEmplaced))
+    Swag.assert(Slice.equals(values.toSlice(), expectedEmplaced))
 
     values.growResize(7)
     Swag.assert(values[5] == 0)
@@ -408,7 +363,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.add(snapshot)
 
     let expectedSelfAppend: [14] s32 = [1, 2, 3, 4, 5, 0, 0, 1, 2, 3, 4, 5, 0, 0]
-    Swag.assert(assertIntArray(values, expectedSelfAppend))
+    Swag.assert(Slice.equals(values.toSlice(), expectedSelfAppend))
 }
 
 #test
@@ -440,7 +395,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expected: [3] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(assertStringArray(values, expected))
+    Swag.assert(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -450,7 +405,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expected: [1] string =
         ["11111111111111111111111111111111"]
-    Swag.assert(assertStaticStringArray(values, expected))
+    Swag.assert(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -466,7 +421,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expected: [3] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(assertStaticStringArray(values, expected))
+    Swag.assert(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -484,7 +439,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expected: [6] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
          "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(assertStringSlice(values.toSlice(), expected))
+    Swag.assert(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -501,7 +456,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expected: [6] string =
         ["11111111111111111111111111111111", "22222222222222222222222222222222", "33333333333333333333333333333333",
          "44444444444444444444444444444444", "22222222222222222222222222222222", "33333333333333333333333333333333"]
-    Swag.assert(assertStringSlice(values.toSlice(), expected))
+    Swag.assert(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -518,7 +473,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expected: [6] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
          "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(assertStringSlice(values.toSlice(), expected))
+    Swag.assert(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -627,4 +582,41 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     Swag.assert(copy.count == 21)
     for i in 21 do
         Swag.assert(copy[i] == cast(u16) (i + 1))
+}
+
+var ArrayEmplaceDrops: s32
+
+struct ArrayEmplaceOwned
+{
+    value: s32
+}
+
+impl ArrayEmplaceOwned
+{
+    mtd opDrop()
+    {
+        if .value != 0 do
+            ArrayEmplaceDrops += 1
+    }
+
+    mtd opPostCopy() {}
+}
+
+// emplaceAt moves: the source is left empty, so each element is dropped once, at any index.
+#test
+{
+    for index in 2'u64
+    {
+        ArrayEmplaceDrops = 0
+        {
+            var values: Array'ArrayEmplaceOwned
+            values.add(ArrayEmplaceOwned{1})
+            var inserted: [2] ArrayEmplaceOwned = [ArrayEmplaceOwned{2}, ArrayEmplaceOwned{3}]
+            values.emplaceAt(index, inserted)
+            Swag.assert(values.count == 3)
+            Swag.assert(inserted[0].value == 0 and inserted[1].value == 0)
+        }
+
+        Swag.assert(ArrayEmplaceDrops == 3)
+    }
 }

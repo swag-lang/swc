@@ -3,10 +3,7 @@
 
 using Swag
 
-func expectedHasZeroByte16(value: u16)->bool
-{
-    return (value & 0x00FF) == 0 or (value & 0xFF00) == 0
-}
+func expectedHasZeroByte16(value: u16)->bool => (value & 0x00FF) == 0 or (value & 0xFF00) == 0
 
 func expectedHasByte16(value: u16, byte: u8)->bool
 {

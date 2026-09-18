@@ -4,7 +4,6 @@
 
 using Win32, Math
 
-// Returns the current mouse position
 // Returns the cursor position in physical desktop pixels.
 func mousePosition()->Point
 {
@@ -13,15 +12,15 @@ func mousePosition()->Point
     return Point{cast(f32) pt.x, cast(f32) pt.y}
 }
 
-// Set the current mouse position
-// Moves the cursor to the given position in physical desktop pixels.
+// Moves the cursor to (`x`, `y`) in physical desktop pixels.
 func setMousePosition(x, y: s32)
 {
     SetCursorPos(x, y)
 }
 
-// Shoud or hide the mouse cursor
 // Shows or hides the system cursor.
+//
+// Calls nest: the cursor shows again only after as many shows as hides.
 func showMouseCursor(show: bool)
 {
     ShowCursor(cast(BOOL) show)

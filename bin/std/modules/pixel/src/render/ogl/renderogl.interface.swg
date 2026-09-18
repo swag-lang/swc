@@ -145,10 +145,7 @@ impl IRenderer for RenderOgl
         .deleteRenderTargetImpl(target)
     }
 
-    mtd impl addImage(fullName: string)->Texture fail
-    {
-        return try .addImageImpl(fullName)
-    }
+    mtd impl addImage(fullName: string)->Texture fail => try .addImageImpl(fullName)
 
     mtd impl addImage(image: Image)->Texture => .addImageImpl(&image)
 

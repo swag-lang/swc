@@ -11,8 +11,8 @@ This makes repeated pointer input, resizing, and live theme changes retarget wit
 
 ## Animate a typed value
 
-The scheduler supports `f32`, [[Pixel.Color]], [[Math.Point]], [[Math.Vector4]], and
-[[Math.Rectangle]]. The update callback says exactly which state changes; the track's
+The scheduler supports `f32`, [[Pixel.Color]], [[Core.Math.Point]], [[Core.Math.Vector4]], and
+[[Core.Math.Rectangle]]. The update callback says exactly which state changes; the track's
 [[Gui.AnimationImpact]] says whether that state needs paint or layout.
 
 ```swag
@@ -20,13 +20,7 @@ var options: AnimationOptions
 options.duration = 180'ms
 options.easing   = .EaseOut
 
-discard app.animator.animatePoint(
-    panel,
-    AnimationChannel.from("Example.PanelOffset"),
-    {-24, 0},
-    {},
-    func(wnd, value) { wnd.setPresentationOffset(value); },
-    options)
+discard app.animator.animatePoint(panel, AnimationChannel.from("Example.PanelOffset"), {-24, 0}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
 ```
 
 An [[Gui.AnimationHandle]] does not retain the target. Keep it only when an operation needs to
@@ -40,10 +34,8 @@ group to the scheduler with `#move`.
 
 ```swag
 var group = AnimationGroup.concurrent()
-group.addF32(card, AnimationChannel.from("Example.CardOpacity"), 0, 1,
-             func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
-group.addPoint(card, AnimationChannel.from("Example.CardOffset"), {16, 0}, {},
-               func(wnd, value) { wnd.setPresentationOffset(value); }, options)
+group.addF32(card, AnimationChannel.from("Example.CardOpacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
+group.addPoint(card, AnimationChannel.from("Example.CardOffset"), {16, 0}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
 discard app.animator.start(#move group)
 ```
 
@@ -80,8 +72,7 @@ options.repeatCount = 0
 options.autoReverse = true
 options.motion      = .Essential
 
-discard app.animator.animateF32(dot, AnimationChannel.from("Example.Pulse"), 1, 0.4,
-                                func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
+discard app.animator.animateF32(dot, AnimationChannel.from("Example.Pulse"), 1, 0.4, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
 ```
 
 An endless track never gives its turn back, so keep one in a parallel group rather than in the

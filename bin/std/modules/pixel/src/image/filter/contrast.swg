@@ -2,7 +2,10 @@ using Core
 
 public impl Image
 {
-    // Change the contrast. 'factor' is [-1, 1]
+    // Scales the contrast of the color channels around mid gray.
+    //
+    // `factor` is clamped to [-1, 1]: zero leaves the image unchanged, -1 flattens it to mid
+    // gray, and positive values increase contrast. Alpha is unchanged.
     mtd contrast(factor: f32 = 0.5)
     {
         if not .pixelFormat.isPacked() do

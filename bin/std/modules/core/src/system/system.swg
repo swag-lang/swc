@@ -1,11 +1,11 @@
 #global public
 #global namespace System
 
-// Push a new execution context for the given block of code
+// Runs `stmt` with `cxt` as the current execution context, then restores the previous one.
 #[Swag.Macro]
 func pushContext(cxt: Swag.Context, stmt: #code)
 {
-    var prev = Swag.getContext()
+    let prev = Swag.getContext()
     defer Swag.setContext(prev)
 
     Swag.setContext(cxt)

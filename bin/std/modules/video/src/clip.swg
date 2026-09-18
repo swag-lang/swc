@@ -32,14 +32,17 @@ impl Clip
         if not frameRate.isValid() do
             fail BadParameterError{"video frame rate needs positive numerator and denominator values"}
 
-        var result: retval
-        result.frameWidth  = width
-        result.frameHeight = height
-        result.rate        = frameRate
+        with var result: retval
+        {
+            .frameWidth  = width
+            .frameHeight = height
+            .rate        = frameRate
+        }
+
         return result
     }
 
-    // Reports whether the clip has valid geometry and timing.
+    // Returns whether the clip has valid geometry and timing.
     mtd const isValid()->bool => .frameWidth > 0 and .frameHeight > 0 and .rate.isValid()
 
     // Returns the frame width, in pixels.

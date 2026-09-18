@@ -33,7 +33,7 @@ interface IRenderer
     // Creates a context for an opaque platform drawable or an off-screen surface.
     //
     // `shared` is borrowed during the call and belongs to this same renderer.
-    // The returned context remains owned by the caller until [[deleteContext]].
+    // The returned context remains owned by the caller until [[Pixel.IRenderer.deleteContext]].
     mtd createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
 
     // Releases renderer state held by `context` and invalidates the descriptor.

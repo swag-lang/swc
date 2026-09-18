@@ -163,3 +163,14 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     Swag.assert(a < c)
     Swag.assert(c > a)
 }
+
+// Fractional seconds read as a fraction, whatever the number of digits.
+#test
+{
+    let half = expect Time.DateTime.parse("2024-02-29 01:02:03.5")
+    assertDateTime(half.value, 2024, 2, 29, 1, 2, 3, 500)
+    let hundredth = expect Time.DateTime.parse("2024-02-29 01:02:03.05")
+    assertDateTime(hundredth.value, 2024, 2, 29, 1, 2, 3, 50)
+    let fine = expect Time.DateTime.parse("2024-02-29 01:02:03.4567")
+    assertDateTime(fine.value, 2024, 2, 29, 1, 2, 3, 456)
+}

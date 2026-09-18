@@ -26,10 +26,10 @@ impl Decoder
     mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 fail
     {
         var key       = 0'u32
-        var frag_size = 0
-        for var bits_read = 0; bits_read < keySize; bits_read += frag_size
+        var fragSize = 0
+        for var bitsRead = 0; bitsRead < keySize; bitsRead += fragSize
         {
-            let rpad = (shift[] + bits_read) % 8
+            let rpad = (shift[] + bitsRead) % 8
             if rpad == 0
             {
                 // Update byte.
@@ -44,8 +44,8 @@ impl Decoder
                 subLen[] -= 1
             }
 
-            frag_size = Math.min(cast(s32) (keySize - bits_read), cast(s32) (8 - rpad))
-            key       |= (cast(u32) byte[] >> rpad) << bits_read
+            fragSize = Math.min(cast(s32) (keySize - bitsRead), cast(s32) (8 - rpad))
+            key      |= (cast(u32) byte[] >> rpad) << bitsRead
         }
 
         // Clear extra bits to the left

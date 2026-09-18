@@ -162,7 +162,7 @@ impl SoundFile
         return result
     }
 
-    // Reports whether [[Audio.SoundFile.load]] accepts the extension of `fileName`.
+    // Returns whether [[Audio.SoundFile.load]] accepts the extension of `fileName`.
     //
     // The comparison is case-insensitive and does not open the file or validate its contents.
     // An empty name or a name without an extension returns `false`.
@@ -181,10 +181,10 @@ impl SoundFile
     mtd const isDataPreloaded()->bool => .data.count == .dataSize
 
     // Returns whether this source is made of independently indexed packets.
-    mtd const isPacketStream()->bool => .packets.count != 0
+    mtd const isPacketStream()->bool => not .packets.isEmpty()
 
     // Returns whether indexed packets need the compressed packet codec.
-    internal mtd const usesPacketCodec()->bool => isPacketEncoding(.encoding) and .packets.count != 0
+    internal mtd const usesPacketCodec()->bool => isPacketEncoding(.encoding) and not .packets.isEmpty()
 
     // Returns the number of indexed packets or chunks in this source.
     mtd const packetCount()->u64 => .packets.count
@@ -211,7 +211,7 @@ impl SoundFile
 
         let wanted = Math.min(count, .dataSize - offset)
         result.resize(wanted)
-        if .packets.count
+        if not .packets.isEmpty()
         {
             var source        = try ByteSource.openFile(.path.toString())
             var logicalStart  = 0'u64

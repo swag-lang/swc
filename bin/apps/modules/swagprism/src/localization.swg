@@ -42,7 +42,7 @@ struct AppStrings
     ui_OneViewer:          string = "Show one viewer"                                // Returns to the single-viewer layout.
     ui_TwoViewers:         string = "Show two viewers"                               // Opens the comparison beside the first viewer.
     ui_ViewerType:         string = "Viewer type"                                    // Selects the viewer hosted by this panel.
-    ui_Microcode:          string = "Microcode"                                      // Name of the first supported viewer type.
+    ui_Microcode:          string = "Microcode"                                      // Name of the instruction-listing viewer.
     ui_RunningViewers:     string = "% viewers compiling"                            // Global status with the number of running viewer jobs.
     ui_Working:            string = "Compiling…"                                     // Status while the compiler runs.
     ui_Ready:              string = "Ready"                                          // Status before anything has been compiled.

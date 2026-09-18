@@ -21,6 +21,18 @@ func inkCount(image: const *Image)->s32
     return result
 }
 
+// Renders a spinner stopped at one phase, on its own host drawn at `dpiScale`.
+func renderSpinner(dpiScale: f32)->Image
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 64, dpiScale)
+    defer host.shutdown()
+
+    let spin = Spinner.create(&host.root, {16, 16, 32, 32})
+    spin.animationPhase = 0.25
+    return host.render()
+}
+
 // A spinner takes its square from the theme when the caller gives no measurement.
 #test
 {
@@ -52,20 +64,9 @@ func inkCount(image: const *Image)->s32
 // sprite sheet would resample one frame and land far from that ratio.
 #test
 {
-    var host1: Testing.HeadlessHost
-    host1.setup(64, 64)
-    let spin1 = Spinner.create(&host1.root, {16, 16, 32, 32})
-    spin1.animationPhase = 0.25
-    let image1 = host1.render()
+    let image1 = renderSpinner(1)
+    let image2 = renderSpinner(2)
     let ink1   = inkCount(&image1)
-    host1.shutdown()
-
-    var host2: Testing.HeadlessHost
-    host2.setup(64, 64, dpiScale: 2)
-    defer host2.shutdown()
-    let spin2 = Spinner.create(&host2.root, {16, 16, 32, 32})
-    spin2.animationPhase = 0.25
-    let image2 = host2.render()
     let ink2   = inkCount(&image2)
 
     Swag.assert(ink1 > 0)

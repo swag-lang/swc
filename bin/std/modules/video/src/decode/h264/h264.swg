@@ -768,7 +768,7 @@ impl Decoder
         .sliceCount       = 0
         .refIdentityCount = 0
         .pictureSlices.clear()
-        .pipelineBandCount = .pipelineSingleSlice ? Math.min(Math.min(Swag.workerCount(), ReconstructionBands), cast(u32) sps.mbHeight) : 0
+        .pipelineBandCount = .pipelineSingleSlice ? Math.min(Swag.workerCount(), ReconstructionBands, cast(u32) sps.mbHeight) : 0
         .pipelineScheduled = 0
         .pipelineFailed    = 0
     }

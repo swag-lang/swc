@@ -135,7 +135,7 @@ func day4B0()
             }
         }
 
-        if index == lines.count - 1 or lines[index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
             if pass & 0b1111111 == 0b1111111 do
                 total += 1
@@ -143,7 +143,6 @@ func day4B0()
         }
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 224)
 }
 
@@ -193,13 +192,12 @@ func day4B1()
                 pass |= it.value.b
         }
 
-        if index == lines.count - 1 or lines[index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
             total += cast(s32) (pass == 0b1111111)
             pass  = 0
         }
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 224)
 }

@@ -56,3 +56,12 @@ using Swag
     let ja = Globalization.CultureInfo.fromName("ja-JP")
     Swag.assert(ja.currencyFormat.format(1200.0, ja.numberFormat) == "\u00A51,200")
 }
+
+// A negative value that rounds to zero prints without a sign.
+#test
+{
+    var info: Globalization.NumberFormatInfo
+    Swag.assert(info.format(-0.001) == "0.00")
+    Swag.assert(info.format(-0.005) == "-0.01")
+    Swag.assert(info.format(-1.5, decimals: 1) == "-1.5")
+}

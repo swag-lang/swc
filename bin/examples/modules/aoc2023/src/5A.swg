@@ -201,6 +201,5 @@ func day5A()
         total = Math.min(total, seed)
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 111627841)
 }

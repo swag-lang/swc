@@ -78,7 +78,7 @@ private func loadDragHelper()
         g_DragSourceHelper = cast(*IDragSourceHelper) srcRaw!
 }
 
-// The half of the drag helper that draws the picture over a window being dragged over.
+// Returns the half of the drag helper that draws the picture over a window being dragged over.
 //
 // Answers `null` when no native window backs the surface, which is what a headless test is: the
 // helper paints on the desktop, and there is no desktop under it.
@@ -91,7 +91,7 @@ private func dropTargetHelper(surface: *Surface)->*IDropTargetHelper?
     return g_DropTargetHelper
 }
 
-// The half of the drag helper that gives the gesture its picture in the first place.
+// Returns the half of the drag helper that gives the gesture its picture in the first place.
 private func dragSourceHelper()->*IDragSourceHelper?
 {
     loadDragHelper()
@@ -111,7 +111,7 @@ private func toKeyModifiers(grfKeyState: DWORD)->Input.KeyModifiers
     return result
 }
 
-// Converts the effect set of a Swag target into the one OLE speaks, and back.
+// Converts an effect set between the one OLE speaks and [[Gui.DropEffect]], in both directions.
 private func toDropEffect(value: DWORD)->DropEffect
 {
     var result: retval
@@ -249,13 +249,11 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     if not dataObj do
         return
 
-    let obj = dataObj
-
     // Files. The medium is a DROPFILES block, which is exactly what the shell drag helpers read.
     #scope(Files)
     {
         var med: STGMEDIUM
-        if not requestMedium(obj, CF_HDROP, TYMED_HGLOBAL, -1, &med) do
+        if not requestMedium(dataObj, CF_HDROP, TYMED_HGLOBAL, -1, &med) do
             break to Files
         defer ReleaseStgMedium(&med)
 
@@ -280,20 +278,20 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     // in that case: asking for FILECONTENTS can otherwise copy a multi-gigabyte local file into
     // the drop payload before the target receives its event.
     if not data.hasFiles() do
-        readFileContents(obj, data, withContents)
+        readFileContents(dataObj, data, withContents)
 
     // Text, preferring the Unicode form the way the clipboard does.
     #scope(Text)
     {
-        let utf16 = readFormat(obj, CF_UNICODETEXT)
+        let utf16 = readFormat(dataObj, CF_UNICODETEXT)
         if utf16.count >= 2
         {
             data.setText(NativeText.decodeUnicode(utf16.toSlice()))
             break to Text
         }
 
-        let ansi = readFormat(obj, CF_TEXT)
-        if ansi.count do
+        let ansi = readFormat(dataObj, CF_TEXT)
+        if not ansi.isEmpty() do
             data.setText(NativeText.decodeAnsi(ansi.toSlice()))
     }
 
@@ -302,16 +300,16 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     {
         if g_PngDragFormat
         {
-            let png = readFormat(obj, g_PngDragFormat)
-            if png.count
+            let png = readFormat(dataObj, g_PngDragFormat)
+            if not png.isEmpty()
             {
                 data.setImage("drag.png", png.toSlice())
                 break to Image
             }
         }
 
-        let dib = readFormat(obj, CF_DIB)
-        if dib.count do
+        let dib = readFormat(dataObj, CF_DIB)
+        if not dib.isEmpty() do
             data.setImage("drag.bmp", dib.toSlice())
     }
 }
@@ -427,8 +425,7 @@ private func comDrop(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWO
 // Outgoing: the three interfaces a source has to be, and the gesture that runs them.
 // ---------------------------------------------------------------------------
 
-// Formats the payload can produce, most specific first, because a target picks the first
-// one it understands out of the enumeration.
+// Describes one format the payload can produce through the mediums in `tymed`.
 private func offeredFormat(format: u32, tymed: u32, index: s32 = -1)->FORMATETC
 {
     var result: retval
@@ -439,6 +436,8 @@ private func offeredFormat(format: u32, tymed: u32, index: s32 = -1)->FORMATETC
     return result
 }
 
+// Lists the formats the payload can produce, most specific first, because a target picks the
+// first one it understands out of the enumeration.
 private func offeredFormats(data: *DragData)->Array'FORMATETC
 {
     var result: retval
@@ -719,7 +718,7 @@ private func srcRelease(itf: *IDataObject)->ULONG
     return obj.refCount
 }
 
-// Which of the object's own entries answers `fmt`, or `-1` when none does.
+// Returns the index of the object's own entry that answers `fmt`, or `-1` when none does.
 //
 // An entry that carries one thing is matched whatever index the caller asked for, because `-1`
 // means "the whole of it" and a target is free to spell that as an index. An entry that is one
@@ -742,7 +741,7 @@ private func srcOfferedIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
     return -1
 }
 
-// Which of the formats handed over through `SetData` answers `fmt`, or `-1` when none does.
+// Returns the index of the format handed over through `SetData` that answers `fmt`, or `-1` when none does.
 private func srcStoredIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 {
     for &s, i in obj.stored
@@ -815,7 +814,7 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     elif format == CF_TEXT
     {
         let ansi = NativeText.encodeAnsi(data.text.toString())
-        if ansi.count do
+        if not ansi.isEmpty() do
             hglob = toGlobalBlock(ansi.toSlice())
     }
     elif g_PngDragFormat and format == g_PngDragFormat do
@@ -1061,10 +1060,7 @@ private func dropSrcQueryContinueDrag(itf: *IDropSource, escapePressed: BOOL, gr
 private func dropSrcGiveFeedback(itf: *IDropSource, effect: DWORD)->HRESULT
 {
     discard effect
-
-    let app = dropSourceOf(itf).app
-    app?.paintSurfaces()
-
+    dropSourceOf(itf).app?.paintSurfaces()
     return DRAGDROP_S_USEDEFAULTCURSORS
 }
 
@@ -1134,11 +1130,10 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
 // picture simply drags with an arrow, the way it did before this existed.
 private func attachDragImage(dataObj: *IDataObject, image: const *Image)
 {
-    let found = dragSourceHelper()
-    if not found do
+    let helper = dragSourceHelper()
+    if not helper do
         return
 
-    let helper  = found
     let picture = buildDragBitmap(image)
     if not picture.bmp do
         return
@@ -1182,17 +1177,18 @@ impl Wnd
     // target may choose from; the answer is the single effect it settled on, or `None` when the
     // drag was cancelled or refused.
     //
-    // `picture` is what the desktop draws under the pointer for the length of the gesture, and
-    // defaults to the picture the payload already carries. A drag with nothing under the cursor
-    // but an arrow reads as a lesser gesture than the same drag out of a file manager, so a
-    // source that carries no image of its own is worth handing one.
+    // `picture` is what the desktop draws under the pointer for the length of the gesture, scaled
+    // down to a thumbnail, and defaults to the image the payload carries. A drag with nothing
+    // under the cursor but an arrow reads as a lesser gesture than the same drag out of a file
+    // manager, so a source that carries no image of its own is worth handing one.
     //
     // One thing follows from the desktop running the loop: the button that started the drag comes
     // back up inside it, so a control tracking a press has to forget it here rather than waiting
     // for a release event that has already been consumed. The application keeps drawing, from the
     // feedback callback the same loop makes.
     //
-    // Answers `None` immediately with no native window, which is what a headless test gets.
+    // Returns `None` at once when `data` offers nothing, or when the window has no native surface,
+    // which is what a headless test gets.
     mtd startDrag(data: *DragData, allowed = DropEffect.Copy, picture: const *Pixel.Image? = null)->DropEffect
     {
         let surface = .surface
@@ -1224,11 +1220,11 @@ impl Wnd
         return toDropEffect(effect)
     }
 
-    // Whether the pointer has travelled far enough from where it was pressed to mean a drag.
+    // Reports whether the pointer has travelled far enough from where it was pressed to mean a drag.
     //
-    // Both points are in this window's surface coordinates. The distance is the one the desktop
-    // is configured with, so a control does not invent a threshold of its own and a shaky hand
-    // on a click does not start dragging.
+    // Both points are in logical coordinates of this window's surface. The distance is the one the
+    // desktop is configured with, so a control does not invent a threshold of its own and a shaky
+    // hand on a click does not start dragging.
     mtd const exceedsDragThreshold(origin, current: Math.Point)->bool
     {
         let scale = .surface ? .surface.dpiScale : 1.0

@@ -3,29 +3,24 @@
 
 using Swag
 
-func sameValues(values: const [..] s32, expected: const [..] s32)->bool
-{
-    return Slice.equals(values, expected)
-}
-
 #test
 {
     var values: [4] s32 = [1, 2, 3, 4]
     let bias = 10
 
     Slice.forEachMutable(values, func|bias|(it: *s32) { it[] += bias })
-    Swag.assert(sameValues(values, [11, 12, 13, 14]))
+    Swag.assert(Slice.equals(values, [11, 12, 13, 14]))
 
-    let mapped = Slice.map(values, func(value: s32)->s32 { return value / 2 })
+    let mapped = Slice.map(values, func(value: s32)->s32 => value / 2)
     Swag.assert(mapped.count == 4)
-    Swag.assert(sameValues(cast([..] s32) mapped, [5, 6, 6, 7]))
+    Swag.assert(Slice.equals(mapped.toSlice(), [5, 6, 6, 7]))
 }
 
 #test
 {
-    Swag.assert(Slice.reduce([5], func(left, right: s32)->s32 { return left + right }) == 5)
-    Swag.assert(Slice.reduce([1, 2, 3, 4], func(left, right: s32)->s32 { return left + right }) == 10)
-    Swag.assert(Slice.reduce([2, 3, 4], func(left, right: s32)->s32 { return left * right }) == 24)
+    Swag.assert(Slice.reduce([5], func(left, right: s32)->s32 => left + right) == 5)
+    Swag.assert(Slice.reduce([1, 2, 3, 4], func(left, right: s32)->s32 => left + right) == 10)
+    Swag.assert(Slice.reduce([2, 3, 4], func(left, right: s32)->s32 => left * right) == 24)
 }
 
 #test
@@ -48,20 +43,20 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     let values: [4] s32 = [2, 4, 6, 8]
-    let empty = Swag.makeSlice(values.buffer, 0)
+    let empty = values[until 0]
 
-    Swag.assert(Slice.allOf(values, func(value: s32)->bool { return value % 2 == 0 }))
-    Swag.assert(not Slice.allOf(values, func(value: s32)->bool { return value < 8 }))
+    Swag.assert(Slice.allOf(values, func(value: s32)->bool => value % 2 == 0))
+    Swag.assert(not Slice.allOf(values, func(value: s32)->bool => value < 8))
 
-    Swag.assert(Slice.anyOf(values, func(value: s32)->bool { return value == 6 }))
-    Swag.assert(not Slice.anyOf(values, func(value: s32)->bool { return value == 5 }))
+    Swag.assert(Slice.anyOf(values, func(value: s32)->bool => value == 6))
+    Swag.assert(not Slice.anyOf(values, func(value: s32)->bool => value == 5))
 
-    Swag.assert(Slice.noneOf(values, func(value: s32)->bool { return value < 0 }))
-    Swag.assert(not Slice.noneOf(values, func(value: s32)->bool { return value == 4 }))
+    Swag.assert(Slice.noneOf(values, func(value: s32)->bool => value < 0))
+    Swag.assert(not Slice.noneOf(values, func(value: s32)->bool => value == 4))
 
-    Swag.assert(Slice.allOf(empty, func(value: s32)->bool { return false }))
-    Swag.assert(not Slice.anyOf(empty, func(value: s32)->bool { return true }))
-    Swag.assert(Slice.noneOf(empty, func(value: s32)->bool { return true }))
+    Swag.assert(Slice.allOf(empty, func(value: s32)->bool => false))
+    Swag.assert(not Slice.anyOf(empty, func(value: s32)->bool => true))
+    Swag.assert(Slice.noneOf(empty, func(value: s32)->bool => true))
 }
 
 #test
@@ -72,8 +67,8 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
     Slice.reverse(odd)
     Slice.reverse(single)
 
-    Swag.assert(sameValues(odd, [5, 4, 3, 2, 1]))
-    Swag.assert(sameValues(single, [9]))
+    Swag.assert(Slice.equals(odd, [5, 4, 3, 2, 1]))
+    Swag.assert(Slice.equals(single, [9]))
 }
 
 #test
@@ -81,15 +76,15 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
     var values: [3] s32 = [1, 2, 3]
 
     Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(sameValues(values, [1, 3, 2]))
+    Swag.assert(Slice.equals(values, [1, 3, 2]))
     Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(sameValues(values, [2, 1, 3]))
+    Swag.assert(Slice.equals(values, [2, 1, 3]))
     Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(sameValues(values, [2, 3, 1]))
+    Swag.assert(Slice.equals(values, [2, 3, 1]))
     Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(sameValues(values, [3, 1, 2]))
+    Swag.assert(Slice.equals(values, [3, 1, 2]))
     Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(sameValues(values, [3, 2, 1]))
+    Swag.assert(Slice.equals(values, [3, 2, 1]))
     Swag.assert(not Slice.nextPermutation(values))
-    Swag.assert(sameValues(values, [3, 2, 1]))
+    Swag.assert(Slice.equals(values, [3, 2, 1]))
 }

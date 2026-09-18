@@ -16,12 +16,12 @@ using Core, Pixel
 // value comparison is not what the user wants, and IPropertyNotify.resetItemToDefault can take
 // over the reset itself.
 
-// Result of IPropertyNotify.isItemAtDefault. Auto lets the grid run its built-in comparison.
+// Answers [[Gui.IPropertyNotify.isItemAtDefault]].
 public enum PropDefaultState
 {
-    Auto          // Selects auto.
-    AtDefault     // Selects at default.
-    Modified      // Selects modified.
+    Auto          // Lets the grid compare the value with the declared default.
+    AtDefault     // The field holds its default value.
+    Modified      // The field differs from its default value.
 }
 
 // One default-constructed instance backing a struct added to the grid (owned; freed on destroy).
@@ -30,8 +30,8 @@ public struct PropDefaultRoot
 {
     public
     {
-        base: *u8?          // Base associated with this value.
-        type: typeinfo?     // Type associated with this value.
+        base: *u8?          // Address of the default-constructed instance.
+        type: typeinfo?     // Type of the instance.
     }
 }
 
@@ -42,10 +42,7 @@ const PropRevertGap      = 4'f32
 
 internal impl Properties
 {
-    mtd revertButtonSize()->f32
-    {
-        return .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().editBox_Height
-    }
+    mtd revertButtonSize()->f32 => .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().editBox_Height
 
     mtd revertIconSize(buttonSize: f32)->f32 => Math.max(Math.min(PropRevertIconSize, buttonSize - 4), 8.0)
 
@@ -248,7 +245,7 @@ internal impl Properties
 
         if .canReset(item) do
             .ensureRevertButton(item)
-        if not (item.revertButton != null) do
+        if item.revertButton == null do
             return false
 
         let btn = item.revertButton
@@ -275,7 +272,7 @@ internal impl Properties
     // the painted modified bar instead (see updateItemDefaultState).
     mtd ensureRevertButton(item: *PropertiesItem)
     {
-        if (item.revertButton != null) or not .isGridLike() do
+        if item.revertButton != null or not .isGridLike() do
             return
 
         let host = .rowActionArea(item)

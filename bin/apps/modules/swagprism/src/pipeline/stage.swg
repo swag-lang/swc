@@ -38,7 +38,7 @@ const Stages = [
 //
 // The final instruction list is what a reader wants first: it is the code that will run, and it is
 // the one stage that means something without having seen any other.
-const DefaultStage = 13'u32
+const DefaultStage = cast(u32) (Stages.count - 1)
 
 /*
 What each offered stage is called in the interface, in the order of [[Stages]].

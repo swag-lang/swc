@@ -4,7 +4,10 @@ using Core
 
 impl Painter
 {
-    // Draw an empty rectangle
+    // Strokes the outline of a rectangle.
+    //
+    // The edges are snapped to the device-pixel grid. With [[Pixel.BorderPos.Inside]], the
+    // stroke stays inside the rectangle.
     mtd drawRect(left, top, width, height: f32, color: Color, penSize: f32 = 1)
     {
         if width == 0 or height == 0 or .isInvisible(color) or penSize == 0 do
@@ -81,7 +84,9 @@ impl Painter
         discard .pushTriangle(v0, v2, v3, brush.color)
     }
 
-    // Draw a filled rectangle
+    // Fills a rectangle.
+    //
+    // The edges are snapped to the device-pixel grid, so adjacent fills meet without a seam.
     mtd fillRect(left, top, width, height: f32, brush: Brush)
     {
         if width == 0 or height == 0 or .isInvisible(brush) do
@@ -131,7 +136,7 @@ impl Painter
         .fillRect(rect.x, rect.y, rect.width, rect.height, color)
     }
 
-    // Draw an empty round rectangle
+    // Strokes the outline of a rectangle with elliptical corners.
     mtd drawRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, color: Color, penSize: f32 = 1)
     {
         if width == 0 or height == 0 or .isInvisible(color) or penSize == 0 do
@@ -179,7 +184,9 @@ impl Painter
         .drawRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, pen)
     }
 
-    // Draw a filled round rectangle
+    // Fills a rectangle with elliptical corners.
+    //
+    // The straight edges are snapped to the device-pixel grid; the radii are used as given.
     mtd fillRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, brush: Brush)
     {
         if width == 0 or height == 0 or .isInvisible(brush) do
@@ -210,7 +217,12 @@ impl Painter
         .fillRoundRect(left, top, width, height, radiusX, radiusY, brush)
     }
 
-    // Fill a round rectangle whose corners carry their own radius.
+    mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, color: Color)
+    {
+        .fillRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, color)
+    }
+
+    // Fills a rounded rectangle whose corners carry their own radius.
     //
     // The radii are given clockwise from the top left, as a style sheet writes them. Corners that
     // would overlap are scaled down together; see [[Pixel.LinePath.setRoundRectRaw]].
@@ -227,7 +239,7 @@ impl Painter
         .fillPath(&.sharedLinePath, brush)
     }
 
-    // Fill a round rectangle whose corners carry their own radius.
+    // Fills a rounded rectangle whose corners carry their own radius.
     mtd fillRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, color: Color)
     {
         if rect.width == 0 or rect.height == 0 or .isInvisible(color) do
@@ -237,7 +249,7 @@ impl Painter
         .fillRoundRect(rect, topLeft, topRight, bottomRight, bottomLeft, brush)
     }
 
-    // Draw the outline of a round rectangle whose corners carry their own radius.
+    // Strokes the outline of a rounded rectangle whose corners carry their own radius.
     //
     // The pen is centred on the outline, exactly as the uniform form places it.
     mtd drawRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, pen: Pen)
@@ -256,7 +268,7 @@ impl Painter
         .drawPath(&.sharedLinePath, pen)
     }
 
-    // Draw the outline of a round rectangle whose corners carry their own radius.
+    // Strokes the outline of a rounded rectangle whose corners carry their own radius.
     mtd drawRoundRect(rect: Math.Rectangle, topLeft, topRight, bottomRight, bottomLeft: f32, color: Color, penSize: f32 = 1)
     {
         if rect.width == 0 or rect.height == 0 or .isInvisible(color) or penSize == 0 do
@@ -264,11 +276,6 @@ impl Painter
 
         let pen = Pen.createSolid(color, penSize)
         .drawRoundRect(rect, topLeft, topRight, bottomRight, bottomLeft, pen)
-    }
-
-    mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, color: Color)
-    {
-        .fillRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, color)
     }
 
     // Fills a soft shadow around a rounded rectangle, from a faint outer edge in to its border.

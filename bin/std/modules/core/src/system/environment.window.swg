@@ -13,7 +13,7 @@ struct WindowCallbacks
     public
     {
         onPaint:  WindowPaintCallback?      // Invoked for a paint request.
-        onResize: WindowResizeCallback?     // Invoked after the logical client size changes.
+        onResize: WindowResizeCallback?     // Invoked with the new client size in physical pixels.
     }
 }
 
@@ -60,8 +60,7 @@ struct Window
     public callbacks: WindowCallbacks     // Callbacks dispatched by the platform event adapter.
 }
 
-// Provides iterable window-event processing.
-// Pumps events until the window closes, or until a smoke run's frame budget is spent.
+// Pumps window events until the window closes or a smoke run's frame budget is spent.
 struct WindowLoop
 {
     // Frames a smoke run should render for this program, or zero to take the launcher's budget.
@@ -130,8 +129,7 @@ impl Window
         .requestPaintNative()
     }
 
-    // Resizes the client area to `width` by `height` logical units while preserving
-    // the current position.
+    // Resizes the client area to `width` by `height` logical units, keeping the window position.
     //
     // The realized client area is proportionally larger, in physical pixels, on a
     // scaled display; [[Core.Env.WindowResizeCallback]] reports that physical size.

@@ -20,7 +20,7 @@ enum CursorShape
 // Lightweight descriptor for a shared system cursor.
 struct Cursor
 {
-    public using native: NativeCursor     // Embedded native state.
+    public using native: NativeCursor     // Platform cursor handle.
 }
 
 impl Cursor
@@ -31,9 +31,6 @@ impl Cursor
         activate(Cursor.from(CursorShape.Wait))
     }
 
-    // Returns true if the cursor is defined
-    mtd isValid()->bool
-    {
-        return .native.cursor != null
-    }
+    // Reports whether the descriptor refers to a system cursor.
+    mtd isValid()->bool => .native.cursor != null
 }

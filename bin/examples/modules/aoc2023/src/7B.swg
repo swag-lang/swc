@@ -117,6 +117,5 @@ func day7B()
     for c, idx in cards do
         total += (idx + 1) * c.bid
 
-    // Console.print("total: ", total)
     Swag.assert(total == 248029057)
 }

@@ -14,10 +14,7 @@ using Core
 // consecutive samples of the same row: one load holds all four, and the whole segment filters
 // in lanes. The load reads eight, which the padding of every plane keeps inside the row.
 #[Swag.Inline]
-private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8
-{
-    return cast #bit(Simd.S16x8) Simd.load(&line[offset])
-}
+private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8 => cast #bit(Simd.S16x8) Simd.load(&line[offset])
 
 // Writes back the four lines the quad above holds.
 #[Swag.Inline]
@@ -29,10 +26,7 @@ private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8)
 // Holds `value` within `limit` of what the sample was, which is what the strong filter is
 // allowed to move it by, clause 8.7.2.5.7.
 #[Swag.Inline]
-private func holdNear(original, value, limit: Simd.S16x8)->Simd.S16x8
-{
-    return Math.max(Math.min(value, original + limit), original - limit)
-}
+private func holdNear(original, value, limit: Simd.S16x8)->Simd.S16x8 => Math.max(Math.min(value, original + limit), original - limit)
 
 // The deblocking parameters of one slice, which the loop filter needs long after the slice that
 // carried them was parsed.
@@ -95,7 +89,7 @@ impl Decoder
         let stepX     = vertical ? 8'u32 : 4'u32
         let stepY     = vertical ? 4'u32 : 8'u32
         let bandCount = (sps.height + stepY - 1) / stepY
-        let laneCount = Math.min(Math.min(Swag.workerCount(), DeblockLanes), bandCount)
+        let laneCount = Math.min(Swag.workerCount(), DeblockLanes, bandCount)
 
         if laneCount > 1
         {

@@ -17,7 +17,7 @@ enum Orientation
 // Owns the working state for constrained Delaunay triangulation.
 //
 // Treat this type as opaque and use its tessellation entry points. The returned
-// [[Poly2Tri.Result]] owns the flattened triangle vertices.
+// [[Pixel.Poly2Tri.Result]] owns the flattened triangle vertices.
 //
 // ## Example
 //
@@ -32,7 +32,7 @@ enum Orientation
 // var tessellator: Pixel.Poly2Tri.Tessellate
 // tessellator.addPolyLine(polygon)
 // tessellator.triangulate()
-// let triangles = tessellator.takeResult().triIndices
+// let triangles = tessellator.takeResult().vertices
 // ```
 #[Swag.Opaque]
 #[Swag.NoCopy]
@@ -139,20 +139,11 @@ struct AdvancingFront
     late searchNode: *Node
 }
 
-func nnPoint(p: *Point?)->*Point
-{
-    return p!
-}
+func nnPoint(p: *Point?)->*Point => p!
 
-func nnNode(n: *Node?)->*Node
-{
-    return n!
-}
+func nnNode(n: *Node?)->*Node => n!
 
-func nnTriangle(t: *Triangle?)->*Triangle
-{
-    return t!
-}
+func nnTriangle(t: *Triangle?)->*Triangle => t!
 
 impl Result
 {
@@ -500,10 +491,7 @@ impl Triangle
         .delaunayEdge[2] = false
     }
 
-    mtd contains(p: *Point)->bool
-    {
-        return p == .points[0] or p == .points[1] or p == .points[2]
-    }
+    mtd contains(p: *Point)->bool => p == .points[0] or p == .points[1] or p == .points[2]
 
     mtd contains(p1, p2: *Point)->bool => .contains(p1) and .contains(p2)
 
@@ -748,7 +736,7 @@ impl Tessellate
         }
     }
 
-    // Clear content
+    // Discards the registered polylines and the last triangulation, keeping pooled storage.
     public mtd clear()
     {
         Swag.init(&.basin, 1)
@@ -832,10 +820,7 @@ impl Tessellate
     // from converting to an out-of-range integer; two such points landing in the same clamped
     // cell only costs an extra exact comparison.
     #[Swag.Inline]
-    private func dupCellCoord(value: f32)->s32
-    {
-        return cast(s32) Math.floor(Math.clamp(value / CoincidentDistance, -1.0e9, 1.0e9))
-    }
+    private func dupCellCoord(value: f32)->s32 => cast(s32) Math.floor(Math.clamp(value / CoincidentDistance, -1.0e9, 1.0e9))
 
     #[Swag.Inline]
     private func dupCellKey(cx, cy: s32)->u64 => (cast(u64) cast #bit (u32) cx << 32) | cast(u64) cast #bit (u32) cy
@@ -910,15 +895,16 @@ impl Tessellate
         .dupPoint.clear()
     }
 
-    // To call before adding a polyline.
-    // A polyline is a polygon border.
-    // See [[addPoint]] and [[endPolyLine]]
+    // Starts registering one closed polygon border.
+    //
+    // Add its points with [[Pixel.Poly2Tri.Tessellate.addPoint]], then close it with
+    // [[Pixel.Poly2Tri.Tessellate.endPolyLine]].
     public mtd startPolyLine()
     {
         .polyStart = .points.count
     }
 
-    // Register a new point
+    // Adds one point to the polygon border being registered.
     public mtd addPoint(pt: Math.Vector2)
     {
         let p = .newPoint()
@@ -928,8 +914,9 @@ impl Tessellate
         .dupRegister(p)
     }
 
-    // To call to register the polyline.
-    // The polyline registration should have been done before with [[startPolyLine]]
+    // Closes the polygon border started by [[Pixel.Poly2Tri.Tessellate.startPolyLine]].
+    //
+    // Coincident consecutive points and zero-area spikes are dropped from the border.
     public mtd endPolyLine()
     {
         mtd initEdges(polyline: [..] *Point)
@@ -947,10 +934,7 @@ impl Tessellate
         // zero-area spikes (A, B, A), and authored outlines do contain both; drop
         // them until the ring is clean. A spike bounds no area, so removing it never
         // changes the fill.
-        func closeEnough(a, b: *Point)->bool
-        {
-            return Math.abs(a.x - b.x) < CoincidentDistance and Math.abs(a.y - b.y) < CoincidentDistance
-        }
+        func closeEnough(a, b: *Point)->bool => Math.abs(a.x - b.x) < CoincidentDistance and Math.abs(a.y - b.y) < CoincidentDistance
 
         // A dropped point leaves the ring for good: it is unfiled from the coincidence grid so
         // it stops matching, and returned to the pool rather than left behind.
@@ -994,7 +978,7 @@ impl Tessellate
         initEdges(me, .points[.polyStart to .points.count - 1])
     }
 
-    // Register a polygon as a polyline
+    // Registers the points of `poly` as one closed polygon border.
     public mtd addPolyLine(poly: Polygon)
     {
         .points.grow(.points.count + poly.points.count)
@@ -1033,7 +1017,7 @@ impl Tessellate
         .endPolyLine()
     }
 
-    // Triangulate
+    // Triangulates every registered border; read the triangles with [[Pixel.Poly2Tri.Tessellate.takeResult]].
     public mtd triangulate()
     {
         if .points.isEmpty() do

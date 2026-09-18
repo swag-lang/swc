@@ -11,10 +11,7 @@ private const QuantizePack24 = cast(Math.Simd.U8x16) [0'u8, 1, 2, 128, 3, 4, 5, 
 
 impl Encoder
 {
-    func colorKey(col: Color)->u32
-    {
-        return (cast(u32) col.r << 16) | (cast(u32) col.g << 8) | col.b
-    }
+    func colorKey(col: Color)->u32 => (cast(u32) col.r << 16) | (cast(u32) col.g << 8) | col.b
 
     func tableBitsForColorCount(count: u32)->u8
     {

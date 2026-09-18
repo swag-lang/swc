@@ -12,8 +12,7 @@ var app: Application
 
 #main
 {
-    let surface = (try app.createSurface(
-        100, 100, 640, 420, SurfaceFlags.StandardWindow))!
+    let surface = (try app.createSurface(100, 100, 640, 420))!
     surface.setTitle("Tasks")
 
     let view = surface.view()

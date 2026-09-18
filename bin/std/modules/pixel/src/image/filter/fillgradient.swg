@@ -7,7 +7,7 @@ struct FillGradient4Context
 
 public impl Image
 {
-    // Fill with an horizontal gradient from 'color0' to 'color1'
+    // Fills the image with a horizontal gradient from `color0` on the left to `color1` on the right.
     mtd fillGradient(color0, color1: Color)
     {
         if not .pixelFormat.isPacked() do
@@ -57,7 +57,7 @@ public impl Image
         case .BGRA8: .doIt'BGRA8()
         case .RGB8:  .doIt'RGB8()
         case .RGBA8: .doIt'RGBA8()
-        default:     Swag.assert(false)
+        default:     unreachable
         }
 
         .visitPixels(stride: .width)
@@ -66,7 +66,7 @@ public impl Image
         }
     }
 
-    // Fill with a gradient with a different color at each corner
+    // Fills the image with a bilinear gradient between four corner colors.
     mtd fillGradient(topLeft, topRight, bottomLeft, bottomRight: Color)
     {
         if not .pixelFormat.isPacked() do
@@ -120,7 +120,7 @@ public impl Image
         case .BGRA8: .doIt'BGRA8()
         case .RGB8:  .doIt'RGB8()
         case .RGBA8: .doIt'RGBA8()
-        default:     Swag.assert(false)
+        default:     unreachable
         }
     }
 }

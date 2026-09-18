@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Names the rich edit style ref type.
+// Indexes [[Gui.RichEditCtrl.styles]]; a lexer assigns one to every rune.
 alias RichEditStyleRef = u8
 
 // Describes foreground, background, face, and underline styling for one text run.
@@ -10,9 +10,9 @@ struct RichEditRuneStyle
 {
     public
     {
-        colBk: Color                            // Col bk associated with this value.
-        colFg: Color                            // Col fg associated with this value.
-        fontMode  = FontFamilyStyle.Regular     // Font mode associated with this value.
-        underline = UnderlineStyle.None         // Underline associated with this value.
+        colBk: Color                            // Background color, or transparent for none.
+        colFg: Color                            // Text color.
+        fontMode  = FontFamilyStyle.Regular     // Face the run is drawn with.
+        underline = UnderlineStyle.None         // Underline drawn under the run.
     }
 }

@@ -37,11 +37,9 @@ using Core
         """
 
     let inspected = Pipeline.inspectedSource(Source, "pre-emit")
-    let text      = inspected.toString()
-
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) text, "#[Swag.PrintMicro(\"pre-emit\")]") != Swag.U64.Max)
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) text, "const Limit = 4") < Utf8.indexOf(cast(const [..] u8) text, "#[Swag.PrintMicro"))
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) text, "#[Swag.PrintMicro") < Utf8.indexOf(cast(const [..] u8) text, "func first()"))
+    Swag.assert(inspected.contains("#[Swag.PrintMicro(\"pre-emit\")]"))
+    Swag.assert(inspected.indexOf("const Limit = 4") < inspected.indexOf("#[Swag.PrintMicro"))
+    Swag.assert(inspected.indexOf("#[Swag.PrintMicro") < inspected.indexOf("func first()"))
 }
 
 // The requested stage reaches the attribute unchanged.
@@ -49,9 +47,8 @@ using Core
 {
     const Source = "func only()\n{\n}"
 
-    let off  = Pipeline.inspectedSource(Source, "post-regalloc")
-    let text = off.toString()
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) text, "#[Swag.PrintMicro(\"post-regalloc\")]") != Swag.U64.Max)
+    let inspected = Pipeline.inspectedSource(Source, "post-regalloc")
+    Swag.assert(inspected.contains("#[Swag.PrintMicro(\"post-regalloc\")]"))
 }
 
 // A snippet with no function of its own is left exactly as it was written.
@@ -75,12 +72,11 @@ using Core
         """
 
     let inspected = Pipeline.inspectedSource(Source, "pre-emit")
-    let text      = inspected.toString()
-    let attribute = Utf8.indexOf(cast(const [..] u8) text, "#[Swag.PrintMicro")
+    let attribute = inspected.indexOf("#[Swag.PrintMicro")
 
     Swag.assert(attribute != Swag.U64.Max)
-    Swag.assert(attribute > Utf8.indexOf(cast(const [..] u8) text, "func in a string"))
-    Swag.assert(attribute < Utf8.indexOf(cast(const [..] u8) text, "func real()"))
+    Swag.assert(attribute > inspected.indexOf("func in a string"))
+    Swag.assert(attribute < inspected.indexOf("func real()"))
 }
 
 // Each optimization level reaches the real compiler, whose RGB output survives capture.
@@ -92,12 +88,12 @@ using Core
     {
         let result = expect probe.compile("func value()->s32 { return 42 }", "pre-emit", level)
         Swag.assert(not result.failed)
-        Swag.assert(Utf8.indexOf(cast(const [..] u8) result.text.toString(), "\x1B[38;2;") != Swag.U64.Max)
+        Swag.assert(result.text.contains("\x1B[38;2;"))
 
         var output: CompilerOutput
         output.parse(result.text.toString())
         let expected = Format.toString("  optimize : O%", cast(u8) level)
-        Swag.assert(Utf8.indexOf(cast(const [..] u8) output.text.toString(), expected.toString()) != Swag.U64.Max)
+        Swag.assert(output.text.contains(expected.toString()))
     }
 }
 
@@ -107,7 +103,7 @@ using Core
     var probe: Pipeline.Probe
     let result = expect probe.compile("using Pixel\nfunc value()->u32 { return 0 }", "pre-emit", .O0)
     Swag.assert(result.failed)
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) result.text.toString(), "Pixel") != Swag.U64.Max)
+    Swag.assert(result.text.contains("Pixel"))
 }
 
 // Every offered stage names a side and a pass, which is the only spelling the attribute takes.
@@ -116,9 +112,9 @@ using Core
     Swag.assert(Pipeline.Stages.count != 0)
     Swag.assert(Pipeline.DefaultStage < Pipeline.Stages.count)
 
-    for i in Pipeline.Stages.count
+    for stage in Pipeline.Stages
     {
-        let name     = cast(const [..] u8) Pipeline.Stages[i]
+        let name     = cast(const [..] u8) stage
         let isBefore = Utf8.startsWith(name, "pre-")
         let isAfter  = Utf8.startsWith(name, "post-")
         Swag.assert(isBefore or isAfter)
@@ -134,8 +130,8 @@ using Core
 
         let labels = Pipeline.stageLabels()
         Swag.assert(labels.count == Pipeline.Stages.count)
-        for i in labels.count do
-            Swag.assert(labels[i].count != 0)
+        for label in labels do
+            Swag.assert(label.count != 0)
     }
 }
 

@@ -3,20 +3,6 @@
 
 using Swag
 
-func assertBytesEqual(lhs, rhs: const [..] u8)->bool
-{
-    if lhs.count != rhs.count do
-        return false
-
-    for value, index in lhs
-    {
-        if value != rhs[index] do
-            return false
-    }
-
-    return true
-}
-
 func pushAllocatorAcceptsNull()->bool
 {
     Memory.withAllocator(null)
@@ -33,16 +19,16 @@ func pushAllocatorAcceptsNull()->bool
     var dst: [4] u8
 
     Memory.copy(dst.buffer, src.buffer, #sizeof(src))
-    Swag.assert(assertBytesEqual(dst, src))
+    Swag.assert(Slice.equals(dst, src))
     Swag.assert(Memory.compare(dst.buffer, src.buffer, #sizeof(src)) == 0)
 
     Memory.set(dst.buffer, 0xAB, #sizeof(dst))
     let filled: [4] u8 = [0xAB, 0xAB, 0xAB, 0xAB]
-    Swag.assert(assertBytesEqual(dst, filled))
+    Swag.assert(Slice.equals(dst, filled))
 
     Memory.clear(dst.buffer, #sizeof(dst))
     let zeroed: [4] u8 = [0, 0, 0, 0]
-    Swag.assert(assertBytesEqual(dst, zeroed))
+    Swag.assert(Slice.equals(dst, zeroed))
     Swag.assert(Memory.bytesEqual(&dst, &zeroed))
 }
 

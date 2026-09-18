@@ -32,7 +32,7 @@ namespace Integration
         if args.count < 3 do
             return 2
         let payload = "VISIBLE"
-        discard catch File.writeAllBytes(args[2], Swag.makeSlice(cast(const [*] u8) payload.buffer, payload.count)) as writeError
+        discard catch File.writeAllText(args[2], payload) as writeError
         return writeError == null ? 0 : 1
     }
 
@@ -127,27 +127,15 @@ namespace Integration
         try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
     }
 
-    func password()->const [..] u8
-    {
-        return Swag.makeSlice(cast(const [*] u8) PasswordText.buffer, PasswordText.count)
-    }
+    func password()->const [..] u8 => cast(const [..] u8) PasswordText
 
-    func wrongPassword()->const [..] u8
-    {
-        return Swag.makeSlice(cast(const [*] u8) WrongPasswordText.buffer, WrongPasswordText.count)
-    }
+    func wrongPassword()->const [..] u8 => cast(const [..] u8) WrongPasswordText
 
     func verify(condition: bool, message: string) fail
     {
         if not condition do
             try failWith(Format.toString("Integration check failed: %", message))
         g_CheckCount += 1
-    }
-
-    func sameBytes(left, right: const [..] u8)->bool
-    {
-        return left.count == right.count and
-               Swag.memcmp(left.buffer, right.buffer, left.count) == 0
     }
 
     func allZero(bytes: const [..] u8)->bool
@@ -230,7 +218,7 @@ namespace Integration
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
     {
-        for entry in entries where (Path.fileName(entry.fullname) orelse "") == name do
+        for entry in entries where (Path.fileName(entry.fullName) orelse "") == name do
             return true
         return false
     }
@@ -361,7 +349,7 @@ namespace Integration
         try verify(File.exists(persistent), "an external file must copy into the mounted drive")
         try File.duplicate(box.recovered, persistent)
         let firstRecovery = try File.readAllBytes(box.recovered)
-        try verify(sameBytes(original, firstRecovery.toSlice()), "a copied file must survive a round trip through the mounted drive")
+        try verify(Slice.equals(original, firstRecovery.toSlice()), "a copied file must survive a round trip through the mounted drive")
 
         trace("FS: resolve and reopen final paths from handles")
         try verifyFinalPath(root)
@@ -370,13 +358,13 @@ namespace Integration
 
         let empty = Path.combine(documents, "empty.txt")
         trace("FS: empty file")
-        discard try File.writeAllBytes(empty, Swag.makeSlice(cast(const [*] u8) ("").buffer, 0))
+        discard try File.writeAllText(empty, "")
         try verify(File.exists(empty) and (try File.openRead(empty)).size() == 0, "zero-length files must be supported")
 
         let unicode = Path.combine(documents, "résumé-東京.txt")
         trace("FS: Unicode file")
         let unicodePayload = "UTF-8 names are preserved"
-        discard try File.writeAllBytes(unicode, Swag.makeSlice(cast(const [*] u8) unicodePayload.buffer, unicodePayload.count))
+        discard try File.writeAllText(unicode, unicodePayload)
         let unicodeRead = try File.readAllText(unicode)
         try verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
         try verifyFinalPath(unicode)
@@ -388,7 +376,7 @@ namespace Integration
         discard try File.writeAllBytes(overwrite, first)
         discard try File.writeAllBytes(overwrite, second)
         let overwritten = try File.readAllBytes(overwrite)
-        try verify(sameBytes(overwritten.toSlice(), second), "overwriting must truncate and replace an existing file")
+        try verify(Slice.equals(overwritten.toSlice(), second), "overwriting must truncate and replace an existing file")
 
         var appendStream     = try File.open(overwrite, .Append, .Write, .Zero)
         let appended: [4] u8 = [6, 5, 4, 3]
@@ -396,7 +384,7 @@ namespace Integration
         appendStream.close()
         let afterAppend = try File.readAllBytes(overwrite)
         let expectedAppend: [7] u8 = [9, 8, 7, 6, 5, 4, 3]
-        try verify(sameBytes(afterAppend.toSlice(), expectedAppend), "append mode must add data at end of file")
+        try verify(Slice.equals(afterAppend.toSlice(), expectedAppend), "append mode must add data at end of file")
 
         let sparse = Path.combine(documents, "sparse.bin")
         trace("FS: sparse file")
@@ -448,7 +436,7 @@ namespace Integration
         discard try File.writeAllBytes(replacementTarget, first)
         try movePath(replacementSource, replacementTarget, true)
         let replacementRead = try File.readAllBytes(replacementTarget)
-        try verify(not File.exists(replacementSource) and sameBytes(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
+        try verify(not File.exists(replacementSource) and Slice.equals(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
 
         let readOnlyPath = Path.combine(documents, "readonly.bin")
         trace("FS: read-only attributes")
@@ -459,7 +447,7 @@ namespace Integration
         try verify(readonlyError != null, "writes to read-only files must be rejected")
         try setAttributes(readOnlyPath, FileAttributeNormal)
         discard try File.writeAllBytes(readOnlyPath, second)
-        try verify(sameBytes((try File.readAllBytes(readOnlyPath)).toSlice(), second), "clearing read-only must allow writes again")
+        try verify(Slice.equals((try File.readAllBytes(readOnlyPath)).toSlice(), second), "clearing read-only must allow writes again")
 
         let disposable = Path.combine(documents, "disposable.txt")
         trace("FS: file and directory deletion")
@@ -501,7 +489,7 @@ namespace Integration
             let collision = MoveFileExW(source16.buffer, occupied16.buffer, 0)
             let error     = GetLastError()
             try verify(not collision and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
-            try verify(File.exists(source) and sameBytes((try File.readAllBytes(occupied)).toSlice(), first), "a refused rename must preserve both files")
+            try verify(File.exists(source) and Slice.equals((try File.readAllBytes(occupied)).toSlice(), first), "a refused rename must preserve both files")
 
             let destination = Path.combine(bulk, Format.toString("clip (%).mp4", index + 1))
             renamePaths.add(destination)
@@ -511,7 +499,7 @@ namespace Integration
             var expected: [113] u8
             for byteIndex in expected.count do
                 expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
-            try verify(sameBytes(renamedBytes.toSlice(), expected), "batch renames must preserve file contents")
+            try verify(Slice.equals(renamedBytes.toSlice(), expected), "batch renames must preserve file contents")
         }
 
         trace("FS: Shell batch rename with automatic numbering")
@@ -526,7 +514,7 @@ namespace Integration
             var expected: [113] u8
             for byteIndex in expected.count do
                 expected[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
-            try verify(sameBytes(renamedBytes.toSlice(), expected), "Shell batch renames must preserve file contents")
+            try verify(Slice.equals(renamedBytes.toSlice(), expected), "Shell batch renames must preserve file contents")
         }
 
         let documentsEntries = try Directory.enumerate(documents, {})
@@ -555,7 +543,7 @@ namespace Integration
         let recoveredAgain = Path.combine(box.root, "recovered-after-remount.bin")
         try File.duplicate(recoveredAgain, persisted)
         let bytes = try File.readAllBytes(recoveredAgain)
-        try verify(sameBytes(original, bytes.toSlice()), "file contents must persist across unmount and remount")
+        try verify(Slice.equals(original, bytes.toSlice()), "file contents must persist across unmount and remount")
 
         let bulk    = Path.combine(root, "Documents", "Bulk")
         let entries = try Directory.enumerateFiles(bulk)
@@ -563,7 +551,7 @@ namespace Integration
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text = "mounted twice"
-        discard try File.writeAllBytes(newAfterRemount, Swag.makeSlice(cast(const [*] u8) text.buffer, text.count))
+        discard try File.writeAllText(newAfterRemount, text)
         try verify((try File.readAllText(newAfterRemount)) == text, "the remounted drive must remain writable")
 
         try box.unmountVolume()
@@ -742,7 +730,7 @@ namespace Integration
     func runAndExit()
     {
         let running = "RUNNING\n"
-        discard catch File.writeAllBytes(resultPath(), Swag.makeSlice(cast(const [*] u8) running.buffer, running.count))
+        discard catch File.writeAllText(resultPath(), running)
         let passed = run()
         let report = passed ? Format.toString("PASS: % end-to-end checks completed successfully.", g_CheckCount) : Format.toString("FAIL: %", g_Failure)
         trace(report)

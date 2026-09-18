@@ -69,7 +69,7 @@ impl Image
 {
     var decoders: Array'ImageDecoder
 
-    // Find the decoder that can treat 'fileName'
+    // Returns the registered decoder claiming `fileName`, or `null` when none does.
     func getDecoder(fileName: string)->*ImageDecoder?
     {
         for &decoder in decoders where decoder.format.matches(fileName) do
@@ -77,7 +77,7 @@ impl Image
         return null
     }
 
-    // Decode the given image buffer with the given decoder
+    // Decodes a buffer with one registered decoder type, enforcing the limits of `options`.
     func decode(decoderType: const *TypeInfoStruct, bytes: const [..] u8, options: DecodeOptions = {})->Image fail
     {
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
@@ -109,7 +109,7 @@ impl Image
     }
 }
 
-// Load an image from file
+// Decoder registration and extension-selected decoding.
 public impl Image
 {
     // Registers a decoder type unless it is already present.
@@ -146,10 +146,14 @@ public impl Image
         return result
     }
 
-    // Returns 'true' if the given filename has a corresponding decoder
+    // Returns whether a registered decoder claims the extension of `fileName`.
     func canLoad(fileName: string)->bool => getDecoder(fileName) != null
 
-    // Decode the given image buffer
+    // Decodes an encoded buffer with the decoder selected by the extension of `fileName`.
+    //
+    // No file is opened; `fileName` only selects the decoder. `options` bounds the input and the
+    // decoded image. Fails when `bytes` is null, no decoder claims the extension, a limit is
+    // exceeded, or the data is malformed or unsupported.
     func decode(fileName: string, bytes: const [..] u8?, options: DecodeOptions = {})->Image fail
     {
         if not bytes do
@@ -162,7 +166,10 @@ public impl Image
         return try decode(found.type, bytes, options)
     }
 
-    // Load the given image file
+    // Loads and decodes an image file, selecting the decoder by its extension.
+    //
+    // `options` bounds the file size and the decoded image. File access errors and decoding
+    // failures are reported through `fail`.
     func load(fileName: string, options: DecodeOptions = {})->Image fail
     {
         let found = getDecoder(fileName)

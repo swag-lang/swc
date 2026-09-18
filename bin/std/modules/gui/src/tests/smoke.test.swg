@@ -6,6 +6,8 @@ using Swag, Core
 const GuiHeadlessSmoke_CloseWindow = "GuiHeadlessSmoke.CloseWindow"
 const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
+// A click routes the button's command to the root, and the command that closes the host hides the
+// root and schedules its destruction.
 #test
 {
     var host: Testing.HeadlessHost
@@ -28,13 +30,14 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
+// A standard window rounds its corners, unless it has no shadow or is maximized.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
     defer host.shutdown()
     host.theme.metrics.surfaceWnd_CornerRadius = 18
-    host.surface.flags = SurfaceFlags.StandardWindow
+    host.surface.flags = .StandardWindow
 
     Swag.assert(host.surface.cornerRadius() == 18)
 
@@ -79,6 +82,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.surface.dirtyRect == Math.Rectangle{2, 4, 3, 4})
 }
 
+// A fired timer reaches its window, and a removed one leaves the application once the timer queues
+// are pumped.
 #test
 {
     var timerCount: u32
@@ -101,7 +106,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     host.app.removeTimer(timer)
     host.pumpTimerQueues()
-    Swag.assert(host.app.timers.count == 0)
+    Swag.assert(host.app.timers.isEmpty())
 }
 
 // Scheduling destruction immediately retires timers even though storage is released only after
@@ -132,7 +137,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.fireTimer(timer)
     Swag.assert(timerCount == 0)
     host.pumpTimerQueues()
-    Swag.assert(host.app.timers.count == 0)
+    Swag.assert(host.app.timers.isEmpty())
 }
 
 // A timer callback may create another timer and discard its target in the same dispatch. The
@@ -164,14 +169,16 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.app.timers.isEmpty())
 }
 
+// A surface the application creates honors its flags, swaps its view, and runs a modal loop that
+// leaves every other surface as it found it.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    let surface            = expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)!
-    let background         = expect host.app.createSurface(0, 0, 100, 80, SurfaceFlags.None)!
-    let disabledBackground = expect host.app.createSurface(100, 0, 100, 80, SurfaceFlags.None)!
+    let surface            = expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | .TopMost | .NoShadow)!
+    let background         = expect host.app.createSurface(0, 0, 100, 80, .None)!
+    let disabledBackground = expect host.app.createSurface(100, 0, 100, 80, .None)!
     background.show()
     disabledBackground.show()
     disabledBackground.disable()
@@ -232,6 +239,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.openedSurfaceCount() == 0)
 }
 
+// The frame limit makes the application quit after that many frames, each of them signalled.
 #test
 {
     var host: Testing.HeadlessHost
@@ -250,6 +258,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(frameCallbacks == 2)
 }
 
+// The caption hit-tests around its children and its menu bar, and dragging the caption or a border
+// moves or sizes the surface.
 #test
 {
     var host: Testing.HeadlessHost
@@ -258,7 +268,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.wnd_SizingBorderSize    = 8
     host.theme.metrics.wnd_TopSizingBorderSize = 7
-    host.surface.flags                         = SurfaceFlags.StandardWindow
+    host.surface.flags                         = .StandardWindow
     host.surface.position                      = {10, 20, 240, 120}
     host.surface.wnd.padding.y                 = host.theme.metrics.wnd_BigCaptionCY
 
@@ -280,16 +290,14 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     captionMenu.destroy()
     host.pump()
 
-    Swag.assert(host.surfaceWnd.hitTestBorders({30, 15}) == SizingBorder.None)
+    Swag.assert(host.surfaceWnd.hitTestBorders({30, 15}) == .None)
     Swag.assert(host.surfaceWnd.hitTestBorders({30, 1}) & SizingBorder.Top)
 
     host.surfaceWnd.itf     = &host.surfaceWnd
     host.surfaceWnd.surface = &host.surface
     host.app.mouseEnterWnd  = &host.surfaceWnd
 
-    var evt = MouseEvent{kind: .Pressed}
-    evt.button     = .Left
-    evt.surfacePos = {30, 15}
+    var evt = MouseEvent{kind: .Pressed, button: .Left, surfacePos: {30, 15}}
     host.surfaceWnd.sendEvent(&evt)
 
     evt.kind       = .Move

@@ -55,7 +55,7 @@ func reportZipArchive(image: *BinaryImage, report: *BinaryReport)
 {
     image.bigEndian = false
 
-    let s     = binStrings()
+    let s     = binaryStrings()
     let endAt = zipEndAt(image)
     if endAt == Swag.U64.Max
     {
@@ -93,7 +93,7 @@ func reportZipArchive(image: *BinaryImage, report: *BinaryReport)
 
 private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, size, declared: u64)
 {
-    let s     = binStrings()
+    let s     = binaryStrings()
     let end   = at + size
     let total = countText(declared, s.word_Entry, s.word_Entries)
 
@@ -153,16 +153,15 @@ private func reportZipEntries(image: *BinaryImage, report: *BinaryReport, at, si
     report.listCut(shown, declared)
     report.endGroup()
 
-    let counted = countText(declared, s.word_Entry, s.word_Entries)
     report.formatName = String.from("ZIP")
     if unpacked
     {
         let ratio = Format.toString(s.zip_Ratio, packed * 100 / unpacked)
-        report.summary = Format.toString("ZIP · % · %", counted, ratio)
+        report.summary = Format.toString("ZIP · % · %", total, ratio)
         return
     }
 
-    report.summary = Format.toString("ZIP · %", counted)
+    report.summary = Format.toString("ZIP · %", total)
 }
 
 // Returns where the trailing record starts, searching backwards from the end of what was loaded.
@@ -173,17 +172,8 @@ private func zipEndAt(image: *BinaryImage)->u64
 
     let last  = image.bytes.count - 22
     let limit = last > ZipEndSearch ? last - ZipEndSearch : 0
-    var scan  = last
-
-    while true
-    {
-        if image.u32At(scan) == ZipEndSignature do
-            return scan
-        if scan == limit do
-            return Swag.U64.Max
-        scan -= 1
-    }
-
+    for scan in rangeTo(limit, last).reversed() where image.u32At(scan) == ZipEndSignature do
+        return scan
     return Swag.U64.Max
 }
 

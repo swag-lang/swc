@@ -1,7 +1,9 @@
 #global public
 #global namespace Debug
 
-// Performs the safety operation.
+// Panics with `message` when `expr` is false, if the safety check `what` is enabled for the calling code.
+//
+// When the check is disabled, `expr` is not evaluated.
 #[Swag.Macro]
 func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string? = null, loc = #callerlocation)
 {
@@ -12,7 +14,7 @@ func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string? = null, l
     }
 }
 
-// Performs the safety bound check operation.
+// Checks `expr50` like [[Core.Debug.safety]] under the bound-check safety category.
 #[Swag.Macro]
 func safetyBoundCheck(expr50: #code->bool, message: string? = null, loc = #callerlocation)
 {

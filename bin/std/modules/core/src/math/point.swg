@@ -1,15 +1,17 @@
 #global public
 #global namespace Math
 
-// A simple 2D point struct with X and Y coordinates.
-// Contains x and y components as 32-bit floating point values for representing positions in 2D space.
+// Stores a position in the plane as two `f32` coordinates.
+//
+// [[Core.Math.Rectangle]] reports its corners and its size with this type. Use
+// [[Core.Math.Vector2]] for the vector operations a point does not offer.
 #[Serialization.Final]
 struct Point
 {
     public
     {
-        x: f32     // X coordinate of the point
-        y: f32     // Y coordinate of the point
+        x: f32     // Horizontal coordinate
+        y: f32     // Vertical coordinate
     }
 }
 
@@ -18,15 +20,15 @@ impl Point
     const Zero = Point{0, 0}     // Point at origin (0, 0)
     const One  = Point{1, 1}     // Point with both coordinates set to one (1, 1)
 
-    // Set both coordinates to the same scalar value.
-    // This allows assignment like 'point = 5.0' to set both coordinates to 5.0.
+    // Sets both coordinates to `value`.
+    //
+    // This is what lets a scalar initialize or assign a point, as in `point = 5.0`.
     mtd opSet(value: f32)
     {
         .x, .y = value
     }
 
-    // Compound assignment operators for point-point operations (+=, -=, *=, /=).
-    // Performs component-wise operations with another point.
+    // Applies `+=`, `-=`, `*=`, or `/=` coordinate by coordinate with `other`.
     mtd(op: Swag.Operator) opAssign(other: Point)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
@@ -50,8 +52,7 @@ impl Point
         }
     }
 
-    // Compound assignment operators for point-scalar operations (+=, -=, *=, /=).
-    // Applies the scalar 'value' to both coordinates of the point.
+    // Applies `+=`, `-=`, `*=`, or `/=` with the scalar `value` to both coordinates.
     mtd(op: Swag.Operator) opAssign(value: f32)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
@@ -75,8 +76,7 @@ impl Point
         }
     }
 
-    // Binary operators for point-point operations (+, -, *, /).
-    // Performs component-wise operations between two points and returns the result.
+    // Returns the coordinate-wise sum, difference, product, or quotient with `other`.
     mtd(op: Swag.Operator) const opBinary(other: Point)->Point
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
@@ -89,8 +89,7 @@ impl Point
         }
     }
 
-    // Binary operators for point-scalar operations (+, -, *, /).
-    // Applies the scalar 'value' to both coordinates and returns the result.
+    // Returns this point with `+`, `-`, `*`, or `/` applied to both coordinates and the scalar `value`.
     mtd(op: Swag.Operator) const opBinary(value: f32)->Point
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
@@ -103,8 +102,7 @@ impl Point
         }
     }
 
-    // Apply unary operations to the point.
-    // Currently supports negation (-) to return a point with both coordinates negated.
+    // Returns this point with both coordinates negated.
     mtd(op: Swag.Operator) const opUnary()->Point
         where op == .Neg
     {
@@ -114,61 +112,53 @@ impl Point
         return result
     }
 
-    // Set both coordinates to zero.
-    // Equivalent to assigning the 'Zero' constant but modifies the current instance.
+    // Sets both coordinates to zero.
     mtd clear()
     {
         .x, .y = 0
     }
 
-    // Returns true if this point is exactly at the origin.
-    // Performs exact floating-point comparison, which may not work well with computed values.
-    mtd const isZero()->bool
-    {
-        return .x == 0 and .y == 0
-    }
+    // Returns whether both coordinates are exactly zero.
+    //
+    // Use [[Core.Math.Point.isZeroEpsilon]] for computed values.
+    mtd const isZero()->bool => .x == 0 and .y == 0
 
-    // Returns true if this point is at the origin within an epsilon tolerance.
-    // Uses 'eps' parameter to handle floating-point precision issues.
+    // Returns whether both coordinates are closer to zero than `eps`.
     mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps)
 
-    // Returns true if this point is equal to 'other' within an epsilon tolerance.
-    // Compares each coordinate separately using the specified 'eps' tolerance.
+    // Returns whether each coordinate is closer than `eps` to the matching coordinate of `other`.
     mtd const isEqualEpsilon(other: Point, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
 
-    // Offset both coordinates by the same scalar value.
-    // Adds 'value' to both x and y coordinates of this point.
+    // Adds `value` to both coordinates.
     mtd offset(value: f32)
     {
         .x, .y += value
     }
 
-    // Offset this point by separate x and y values.
-    // Adds the specified 'x' and 'y' offsets to the corresponding coordinates.
-    func offset(me, x, y: f32)
+    // Adds `x` to the horizontal coordinate and `y` to the vertical one.
+    mtd offset(x, y: f32)
     {
         .x += x
         .y += y
     }
 
-    // Round both coordinates to the nearest integer values.
-    // Applies 'Math.round' function to both x and y coordinates in-place.
+    // Rounds both coordinates to the nearest integer values in place.
+    //
+    // A coordinate halfway between two integers rounds away from zero.
     mtd round()
     {
         .x = Math.round(.x)
         .y = Math.round(.y)
     }
 
-    // Truncate both coordinates to integer values.
-    // Applies 'Math.trunc' function to both x and y coordinates, removing fractional parts.
+    // Rounds both coordinates toward zero in place.
     mtd trunc()
     {
         .x = Math.trunc(.x)
         .y = Math.trunc(.y)
     }
 
-    // Round both coordinates up to the next integer values.
-    // Applies 'Math.ceil' function to both x and y coordinates in-place.
+    // Rounds both coordinates up to integer values in place.
     mtd ceil()
     {
         .x = Math.ceil(.x)

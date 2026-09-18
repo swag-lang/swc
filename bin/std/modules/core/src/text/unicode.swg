@@ -9,10 +9,10 @@
 
 public
 {
-    // Returns whether latin1.
+    // Returns whether `c` is a Latin-1 code point, at most U+00FF.
     func isLatin1(c: rune) => c <= 0xFF
 
-    // Returns whether ascii.
+    // Returns whether `c` is an ASCII code point, below U+0080.
     func isAscii(c: rune) => c <= 0x7F
 }
 
@@ -20,7 +20,9 @@ public
 
 public
 {
-    // Returns whether digit.
+    // Returns whether `c` is a digit.
+    //
+    // Above U+00FF this means a Unicode decimal digit; below, it follows [[Core.Latin1.isDigit]].
     func isDigit(c: rune)->bool
     {
         if isLatin1(c) do
@@ -28,7 +30,7 @@ public
         return isInTable(TableDigit, c)
     }
 
-    // Returns whether number.
+    // Returns whether `c` is a Unicode number: a digit, a letter number or another numeric character.
     func isNumber(c: rune)->bool
     {
         if isLatin1(c) do
@@ -36,7 +38,7 @@ public
         return isInTable(TableNumber, c)
     }
 
-    // Returns whether control.
+    // Returns whether `c` is a control character, all of which are in Latin-1.
     func isControl(c: rune)->bool
     {
         if isLatin1(c) do
@@ -44,7 +46,7 @@ public
         return false
     }
 
-    // Returns whether space.
+    // Returns whether `c` is Unicode white space.
     func isSpace(c: rune)->bool
     {
         if isLatin1(c) do
@@ -52,7 +54,7 @@ public
         return isInTable(TableWhiteSpace, c)
     }
 
-    // Returns whether letter.
+    // Returns whether `c` is a Unicode letter.
     func isLetter(c: rune)->bool
     {
         if isLatin1(c) do
@@ -60,7 +62,7 @@ public
         return isInTable(TableLetter, c)
     }
 
-    // Returns whether symbol.
+    // Returns whether `c` is a Unicode symbol.
     func isSymbol(c: rune)->bool
     {
         if isLatin1(c) do
@@ -68,10 +70,10 @@ public
         return isInTable(TableSymbol, c)
     }
 
-    // Returns whether symbol math.
+    // Returns whether `c` is a Unicode mathematical symbol.
     func isSymbolMath(c: rune)->bool => isInTable(TableSymbolMath, c)
 
-    // Returns whether letter or digit.
+    // Returns whether `c` is a Unicode letter or a digit.
     func isLetterOrDigit(c: rune)->bool
     {
         if isLatin1(c) do
@@ -79,7 +81,7 @@ public
         return isDigit(c) or isLetter(c)
     }
 
-    // Returns whether title.
+    // Returns whether `c` is a Unicode title-case letter.
     func isTitle(c: rune)->bool
     {
         if isLatin1(c) do
@@ -87,7 +89,7 @@ public
         return isInTable(TableTitle, c)
     }
 
-    // Returns whether lower.
+    // Returns whether `c` is a Unicode lower-case letter.
     func isLower(c: rune)->bool
     {
         if isLatin1(c) do
@@ -95,7 +97,7 @@ public
         return isInTable(TableLower, c)
     }
 
-    // Returns whether upper.
+    // Returns whether `c` is a Unicode upper-case letter.
     func isUpper(c: rune)->bool
     {
         if isLatin1(c) do
@@ -103,10 +105,10 @@ public
         return isInTable(TableUpper, c)
     }
 
-    // Returns whether word.
+    // Returns whether `c` is a word character: a letter, a digit or '_'.
     func isWord(c: rune)->bool => isLetter(c) or isDigit(c) or c == '_'
 
-    // Converts this value to lower.
+    // Returns the Unicode simple lowercase mapping of one code point.
     func toLower(c: rune)->rune
     {
         if isLatin1(c) do
@@ -154,8 +156,10 @@ public
     }
 }
 
-// Convert an utf8 buffer to a character sequence, and returns the
-// number of valid elements in the destination buffer
+// Decodes the UTF-8 bytes of `src` into `dest` and returns the number of runes written.
+//
+// `dest` must hold at least one rune per rune of `src`; `src.count` runes always suffice. Each
+// byte of an invalid sequence decodes to [[Core.Utf8.RuneError]].
 public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 {
     var count     = 0'u32
@@ -179,7 +183,7 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
     return count
 }
 
-// Convert an utf8 buffer to a character sequence
+// Returns the runes decoded from the UTF-8 bytes of `src`.
 public func fromUtf8(src: const [..] u8)->Array'rune
 {
     var result: retval
@@ -188,29 +192,24 @@ public func fromUtf8(src: const [..] u8)->Array'rune
     return result
 }
 
-// Make a rune buffer upper case
+// Replaces each rune of `buffer` with its [[Core.Unicode.toUpper]] mapping.
 public func makeUpper(buffer: [..] rune)
 {
-    var p = buffer.buffer
-    for buffer.count
-    {
-        p[] = toUpper(p[])
-        p   += 1
-    }
+    for &c in buffer do
+        c[] = toUpper(c[])
 }
 
-// Make a rune buffer lower case
+// Replaces each rune of `buffer` with its [[Core.Unicode.toLower]] mapping.
 public func makeLower(buffer: [..] rune)
 {
-    var p = buffer.buffer
-    for buffer.count
-    {
-        p[] = toLower(p[])
-        p   += 1
-    }
+    for &c in buffer do
+        c[] = toLower(c[])
 }
 
-// Compare two unicode strings, and returns -1, 0 or 1
+// Compares two rune sequences, returning -1, 0 or 1.
+//
+// When `len` is not 0, only the first `len` runes count, and a sequence shorter than `len` sorts
+// first. `ignoreCase` compares the [[Core.Unicode.toLower]] mappings.
 func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
 {
     let length      = src.count
@@ -258,23 +257,26 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
 ////////// TABLES ////////
 const UpperLower = Swag.S32.Max
 
+// A range of code points, every `stride`-th one of which belongs to a table.
 struct Range
 {
-    lo, hi: rune     // Lo associated with this value.
-    stride: u32      // Stride associated with this value.
+    lo, hi: rune     // First and last code points of the range.
+    stride: u32      // Distance between two code points of the range that belong to the table.
 }
 
+// The case a mapping converts to.
 enum WantedCase
 {
-    UpperCase     // Selects upper case.
-    LowerCase     // Selects lower case.
-    TitleCase     // Selects title case.
+    UpperCase
+    LowerCase
+    TitleCase
 }
 
+// A range of code points that share the same case mappings.
 struct CaseRange
 {
-    lo, hi: rune                 // Lo associated with this value.
-    delta:  [WantedCase] s32     // Delta associated with this value.
+    lo, hi: rune                 // First and last code points of the range.
+    delta:  [WantedCase] s32     // Offset to add for each case, or `UpperLower` for an alternating upper-lower sequence.
 }
 
 func isInTable(ranges: const [..] Range, r: rune)->bool
@@ -329,7 +331,7 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
         if cr.lo <= r and r <= cr.hi
         {
             let delta = cr.delta[wCase]
-            if delta == Swag.S32.Max
+            if delta == UpperLower
             {
                 // In an Upper-Lower sequence, which always starts with
                 // an UpperCase letter, the real deltas always look like:
@@ -340,7 +342,7 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
                 // The correct mapping can be done by clearing or setting the low
                 // bit in the sequence offset.
                 // The constants UpperCase and TitleCase are even while LowerCase
-                // is odd so we take the low bit from _case.
+                // is odd so we take the low bit from wCase.
                 result.mappedRune   = cr.lo + #wrap ((r - cr.lo) & ~1'u32 | (cast(rune) wCase & 1))
                 result.foundMapping = true
                 return result

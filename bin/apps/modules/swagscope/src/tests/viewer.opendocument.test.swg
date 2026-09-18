@@ -3,17 +3,14 @@
 
 using Core, Pixel, Gui
 
-private var openDocumentReportedDetails: String
-private const OpenDocumentFixtureImage    = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
-private const OpenDocumentFixtureStyles   = "<?xml version='1.0' encoding='UTF-8'?><office:document-styles xmlns:office='urn:o' xmlns:style='urn:style' xmlns:fo='urn:fo'><office:styles><style:style style:name='ExternalEmphasis' style:family='paragraph'><style:paragraph-properties fo:text-align='center'/><style:text-properties fo:font-weight='bold'/></style:style></office:styles></office:document-styles>"
-private const OpenDocumentFixtureMetadata = "<?xml version='1.0' encoding='UTF-8'?><office:document-meta xmlns:office='urn:o' xmlns:dc='urn:dc'><office:meta><dc:title>  Quarterly &amp; review  </dc:title><dc:subject>Reader &#x72;egression</dc:subject><dc:creator>Swag Scope tests</dc:creator></office:meta></office:document-meta>"
+var openDocumentReportedDetails: String
+const OpenDocumentFixtureImage    = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
+const OpenDocumentFixtureStyles   = "<?xml version='1.0' encoding='UTF-8'?><office:document-styles xmlns:office='urn:o' xmlns:style='urn:style' xmlns:fo='urn:fo'><office:styles><style:style style:name='ExternalEmphasis' style:family='paragraph'><style:paragraph-properties fo:text-align='center'/><style:text-properties fo:font-weight='bold'/></style:style></office:styles></office:document-styles>"
+const OpenDocumentFixtureMetadata = "<?xml version='1.0' encoding='UTF-8'?><office:document-meta xmlns:office='urn:o' xmlns:dc='urn:dc'><office:meta><dc:title>  Quarterly &amp; review  </dc:title><dc:subject>Reader &#x72;egression</dc:subject><dc:creator>Swag Scope tests</dc:creator></office:meta></office:document-meta>"
 
-private func openDocumentFixturePath(name: string)->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
-}
+func openDocumentFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 
-private func countOpenDocumentImageTags(html: string)->u64
+func countOpenDocumentImageTags(html: string)->u64
 {
     var result = 0'u64
     var at     = 0'u64
@@ -29,13 +26,13 @@ private func countOpenDocumentImageTags(html: string)->u64
     return result
 }
 
-private func reportOpenDocumentTestDetails(view: *Wnd, details: string)
+func reportOpenDocumentTestDetails(view: *Wnd, details: string)
 {
     discard view
     openDocumentReportedDetails = details
 }
 
-private struct OpenDocumentFixtureEntry
+struct OpenDocumentFixtureEntry
 {
     name:  String
     plain: Array'u8
@@ -43,20 +40,21 @@ private struct OpenDocumentFixtureEntry
     local: u64
 }
 
-private func openDocumentFixtureU16(bytes: *Array'u8, value: u16)
+func openDocumentFixtureU16(bytes: *Array'u8, value: u16)
 {
     bytes.add(cast #bit (u8) value)
     bytes.add(cast #bit (u8) (value >> 8))
 }
 
-private func openDocumentFixtureU32(bytes: *Array'u8, value: u32)
+func openDocumentFixtureU32(bytes: *Array'u8, value: u32)
 {
     openDocumentFixtureU16(bytes, cast #bit (u16) value)
     openDocumentFixtureU16(bytes, cast #bit (u16) (value >> 16))
 }
 
-private func addOpenDocumentFixtureEntry(bytes: *Array'u8, entry: *OpenDocumentFixtureEntry)
+func addOpenDocumentFixtureEntry(bytes: *Array'u8, entry: *OpenDocumentFixtureEntry)
 {
+    entry.crc32 = Hash.Crc32.compute(entry.plain.toSlice())
     entry.local = bytes.count
     openDocumentFixtureU32(bytes, 0x04034B50)
     openDocumentFixtureU16(bytes, 20)
@@ -73,7 +71,7 @@ private func addOpenDocumentFixtureEntry(bytes: *Array'u8, entry: *OpenDocumentF
     bytes.add(entry.plain.toSlice())
 }
 
-private func openDocumentMimeType(kind: OpenDocumentKind, template = false)->string
+func openDocumentMimeType(kind: OpenDocumentKind, template = false)->string
 {
     if template
     {
@@ -95,24 +93,19 @@ private func openDocumentMimeType(kind: OpenDocumentKind, template = false)->str
     }
 }
 
-private func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, template = false)->Array'u8
+func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, template = false)->Array'u8
 {
     var entries: [5] OpenDocumentFixtureEntry
     entries[0].name = "mimetype"
     entries[0].plain.add(openDocumentMimeType(kind, template))
-    entries[0].crc32 = Hash.Crc32.compute(entries[0].plain.toSlice())
-    entries[1].name  = "content.xml"
+    entries[1].name = "content.xml"
     entries[1].plain.add(content)
-    entries[1].crc32 = Hash.Crc32.compute(entries[1].plain.toSlice())
     entries[2].name  = "Pictures/figure.png"
     entries[2].plain = expect Base64.decode(OpenDocumentFixtureImage)
-    entries[2].crc32 = Hash.Crc32.compute(entries[2].plain.toSlice())
-    entries[3].name  = "styles.xml"
+    entries[3].name = "styles.xml"
     entries[3].plain.add(OpenDocumentFixtureStyles)
-    entries[3].crc32 = Hash.Crc32.compute(entries[3].plain.toSlice())
-    entries[4].name  = "meta.xml"
+    entries[4].name = "meta.xml"
     entries[4].plain.add(OpenDocumentFixtureMetadata)
-    entries[4].crc32 = Hash.Crc32.compute(entries[4].plain.toSlice())
 
     var result: retval
     for &entry in entries do
@@ -153,32 +146,29 @@ private func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, t
     return result
 }
 
-private func writeOpenDocumentFixture(extension: string, kind: OpenDocumentKind, content: string, template = false)->String
+func writeOpenDocumentFixture(extension: string, kind: OpenDocumentKind, content: string, template = false)->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-opendocument-", extension)
     discard expect File.writeAllBytes(fileName, buildOpenDocumentFixture(kind, content, template).toSlice())
     return fileName
 }
 
-private func writeOpenDocumentFlatFixture(extension: string, content: string)->String
+func writeOpenDocumentFlatFixture(extension: string, content: string)->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-opendocument-", extension)
     discard expect File.writeAllBytes(fileName, content)
     return fileName
 }
 
-private func openDocumentXml(body: string, styles: string = "")->String
-{
-    return Format.toString("<?xml version=\"1.0\" encoding=\"UTF-8\"?><office:document-content xmlns:office=\"urn:o\" xmlns:text=\"urn:t\" xmlns:table=\"urn:table\" xmlns:draw=\"urn:draw\" xmlns:xlink=\"urn:xlink\" xmlns:style=\"urn:style\" xmlns:fo=\"urn:fo\">%<office:body>%</office:body></office:document-content>", styles, body)
-}
+func openDocumentXml(body: string, styles: string = "")->String => Format.toString("<?xml version=\"1.0\" encoding=\"UTF-8\"?><office:document-content xmlns:office=\"urn:o\" xmlns:text=\"urn:t\" xmlns:table=\"urn:table\" xmlns:draw=\"urn:draw\" xmlns:xlink=\"urn:xlink\" xmlns:style=\"urn:style\" xmlns:fo=\"urn:fo\">%<office:body>%</office:body></office:document-content>", styles, body)
 
-private func textOpenDocumentXml()->String
+func textOpenDocumentXml()->String
 {
     let styles = "<office:automatic-styles><style:style style:name='Emphasis' style:family='text'><style:text-properties fo:font-weight='bold' fo:font-style='italic' fo:font-size='18pt'/></style:style><style:style style:name='Underline' style:family='text'><style:text-properties style:text-underline-style='solid'/></style:style><style:style style:name='Revision' style:family='text'><style:text-properties style:text-line-through-style='solid'/></style:style><style:style style:name='Raised' style:family='text'><style:text-properties style:text-position='super 58%'/></style:style><text:list-style style:name='Numbered'><text:list-level-style-number text:level='1'/></text:list-style></office:automatic-styles>"
     return openDocumentXml("<office:text><text:h text:outline-level='1'>Quarterly report</text:h><text:bookmark-start text:name='summary target'/><text:p><text:a xlink:href='#summary target'>Read the summary</text:a> <text:a xlink:href='javascript:alert(1)'>Unsafe action</text:a></text:p><text:p>Paris &amp; Berlin <text:span text:style-name='Emphasis'>remain</text:span> <text:a xlink:href='https://www.swag-lang.org/?viewer=odf&amp;kind=text'><text:span text:style-name='Underline'>readable</text:span><text:span text:style-name='Raised'>1</text:span></text:a> <text:note><text:note-citation>2</text:note-citation><text:note-body><text:p>Stored footnote.</text:p></text:note-body></text:note> <text:span text:style-name='Revision'>outdated</text:span>.</text:p><text:p text:style-name='ExternalEmphasis'>Style from styles.xml</text:p><text:list><text:list-item><text:p>Reviewed</text:p></text:list-item></text:list><text:list text:style-name='Numbered'><text:list-item><text:p>Prioritized</text:p></text:list-item></text:list><table:table table:name=\"Summary\"><table:table-header-rows><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row></table:table-header-rows><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell><text:p>42</text:p></table:table-cell></table:table-row></table:table><draw:frame svg:width='48px' svg:height='48px'><draw:image xlink:href='Pictures/figure.png'/></draw:frame><draw:frame><draw:image xlink:href='https://example.com/remote.png'/></draw:frame></office:text>", styles)
 }
 
-private func inlineImageOpenDocumentXml()->String
+func inlineImageOpenDocumentXml()->String
 {
     var frames: String
     frames += "<draw:frame><draw:image xlink:href='data:image/svg+xml;base64,PHN2Zy8+'/></draw:frame>"
@@ -189,20 +179,11 @@ private func inlineImageOpenDocumentXml()->String
     return openDocumentXml(Format.toString("<office:text><text:p>Inline raster images</text:p>%</office:text>", frames.toString()).toString())
 }
 
-private func spreadsheetOpenDocumentXml()->String
-{
-    return openDocumentXml("<office:spreadsheet><table:table table:name=\"Budget\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell office:value=\"42\"></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Berlin</text:p></table:table-cell><table:table-cell table:formula=\"of:=SUM([.B2])\" office:value=\"58\"></table:table-cell></table:table-row></table:table><table:table table:name=\"Forecast\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Lyon</text:p></table:table-cell><table:table-cell><text:p>73</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>")
-}
+func spreadsheetOpenDocumentXml()->String => openDocumentXml("<office:spreadsheet><table:table table:name=\"Budget\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Paris</text:p></table:table-cell><table:table-cell office:value=\"42\"></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Berlin</text:p></table:table-cell><table:table-cell table:formula=\"of:=SUM([.B2])\" office:value=\"58\"></table:table-cell></table:table-row></table:table><table:table table:name=\"Forecast\"><table:table-row><table:table-cell><text:p>City</text:p></table:table-cell><table:table-cell><text:p>Budget</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Lyon</text:p></table:table-cell><table:table-cell><text:p>73</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>")
 
-private func presentationOpenDocumentXml()->String
-{
-    return openDocumentXml("<office:presentation><draw:page draw:name=\"Launch\"><draw:text-box><text:h>Launch</text:h><text:p>Prepare the offline review.</text:p></draw:text-box><draw:frame><draw:image xlink:href='Pictures/figure.png'/></draw:frame></draw:page><draw:page draw:name=\"Review\"><draw:text-box><text:h>Review</text:h><text:p>Offline review is ready.</text:p></draw:text-box></draw:page></office:presentation>")
-}
+func presentationOpenDocumentXml()->String => openDocumentXml("<office:presentation><draw:page draw:name=\"Launch\"><draw:text-box><text:h>Launch</text:h><text:p>Prepare the offline review.</text:p></draw:text-box><draw:frame><draw:image xlink:href='Pictures/figure.png'/></draw:frame></draw:page><draw:page draw:name=\"Review\"><draw:text-box><text:h>Review</text:h><text:p>Offline review is ready.</text:p></draw:text-box></draw:page></office:presentation>")
 
-private func drawingOpenDocumentXml()->String
-{
-    return openDocumentXml("<office:drawing><draw:page draw:name=\"Diagram\"><draw:text-box><text:h>Diagram</text:h><text:p>Read-only drawing page.</text:p></draw:text-box><draw:frame svg:width='48px' svg:height='48px'><draw:image xlink:href='Pictures/figure.png'/></draw:frame></draw:page><draw:page draw:name=\"Delivery\"><draw:text-box><text:h>Delivery</text:h><text:p>Drawing handoff is ready.</text:p></draw:text-box></draw:page></office:drawing>")
-}
+func drawingOpenDocumentXml()->String => openDocumentXml("<office:drawing><draw:page draw:name=\"Diagram\"><draw:text-box><text:h>Diagram</text:h><text:p>Read-only drawing page.</text:p></draw:text-box><draw:frame svg:width='48px' svg:height='48px'><draw:image xlink:href='Pictures/figure.png'/></draw:frame></draw:page><draw:page draw:name=\"Delivery\"><draw:text-box><text:h>Delivery</text:h><text:p>Drawing handoff is ready.</text:p></draw:text-box></draw:page></office:drawing>")
 
 // The container reader preserves the readable structures of each supported OpenDocument family.
 #test
@@ -282,7 +263,7 @@ private func drawingOpenDocumentXml()->String
         var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt").toString())
         let view   = cast #assume (*OpenDocumentViewer) result.view!
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-        Swag.assert((view.html != null) and Utf8.contains(view.document.html.toString(), "Document with Tables") and result.info!.isVisible())
+        Swag.assert(view.html != null and Utf8.contains(view.document.html.toString(), "Document with Tables") and result.info!.isVisible())
     }
 
     {
@@ -292,7 +273,7 @@ private func drawingOpenDocumentXml()->String
         var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods").toString())
         let view   = cast #assume (*OpenDocumentViewer) result.view!
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-        Swag.assert((view.table != null) and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
+        Swag.assert(view.table != null and view.document.sheets.count == 1 and view.table.document.columns.count >= 5 and view.table.document.rows.count >= 1_000 and result.info!.isHidden())
     }
 
     {
@@ -302,7 +283,7 @@ private func drawingOpenDocumentXml()->String
         var result = openTestViewer(openDocumentViewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp").toString())
         let view   = cast #assume (*OpenDocumentViewer) result.view!
         completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-        Swag.assert((view.html != null) and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html.toString(), "Sample Presentation") and result.info!.isVisible())
+        Swag.assert(view.html != null and view.document.slides.count == 10 and Utf8.contains(view.document.slides[0].html.toString(), "Sample Presentation") and result.info!.isVisible())
     }
 }
 
@@ -317,7 +298,7 @@ private func drawingOpenDocumentXml()->String
     var flatResult = openTestViewer(openDocumentViewerPlugin(), &flatHost.root, flatFileName.toString())
     let flatView   = cast #assume (*OpenDocumentViewer) flatResult.view!
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
-    Swag.assert((flatView.table != null) and flatView.document.sheets.count == 2 and flatView.table.document.columns.count == 2 and flatView.table.document.rows.count == 2)
+    Swag.assert(flatView.table != null and flatView.document.sheets.count == 2 and flatView.table.document.columns.count == 2 and flatView.table.document.rows.count == 2)
 
     let templateFileName = writeOpenDocumentFixture(".ott", .Text, textOpenDocumentXml().toString(), true)
     defer discard catch File.delete(templateFileName)
@@ -327,7 +308,7 @@ private func drawingOpenDocumentXml()->String
     var templateResult = openTestViewer(openDocumentViewerPlugin(), &templateHost.root, templateFileName.toString())
     let templateView   = cast #assume (*OpenDocumentViewer) templateResult.view!
     completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
-    Swag.assert((templateView.html != null) and Utf8.contains(templateView.document.html.toString(), "Quarterly report"))
+    Swag.assert(templateView.html != null and Utf8.contains(templateView.document.html.toString(), "Quarterly report"))
 }
 
 // ODG keeps each drawing page searchable without trying to execute drawing content or macros.
@@ -341,7 +322,7 @@ private func drawingOpenDocumentXml()->String
     var flatResult = openTestViewer(openDocumentViewerPlugin(), &flatHost.root, flatFileName.toString())
     let flatView   = cast #assume (*OpenDocumentViewer) flatResult.view!
     completeViewerBackgroundLoad(&flatHost, &flatView.load, flatView.loadTimer)
-    Swag.assert((flatView.html != null) and not (flatView.table != null) and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
+    Swag.assert(flatView.html != null and flatView.table == null and flatView.document.kind == .Drawing and flatView.document.slides.count == 2)
     Swag.assert(flatResult.info != null and flatResult.info.isVisible() and flatView.pageCombo.items.count == 2 and flatView.pageCombo.toolTip == openDocumentStrings().ui_TipPage)
 
     flatView.pageCombo.setSelectedIndex(1)
@@ -366,7 +347,7 @@ private func drawingOpenDocumentXml()->String
     var templateResult = openTestViewer(openDocumentViewerPlugin(), &templateHost.root, templateFileName.toString())
     let templateView   = cast #assume (*OpenDocumentViewer) templateResult.view!
     completeViewerBackgroundLoad(&templateHost, &templateView.load, templateView.loadTimer)
-    Swag.assert((templateView.html != null) and templateView.document.kind == .Drawing and Utf8.contains(templateView.document.slides[0].html.toString(), "Read-only drawing page"))
+    Swag.assert(templateView.html != null and templateView.document.kind == .Drawing and Utf8.contains(templateView.document.slides[0].html.toString(), "Read-only drawing page"))
 }
 
 // ODT uses the offline HTML document surface and exposes its rendered text through shared search.
@@ -385,7 +366,7 @@ private func drawingOpenDocumentXml()->String
 
     let view = cast #assume (*OpenDocumentViewer) result.view
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert((view.html != null) and not (view.table != null))
+    Swag.assert(view.html != null and view.table == null)
     let navigated = view.html.elementById("odf-bookmark-1") != HtmlNoNode and view.html.navigateToFragment("#odf-bookmark-1")
     Swag.assert(navigated)
     Swag.assert(result.info != null)
@@ -432,7 +413,7 @@ private func drawingOpenDocumentXml()->String
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     host.root.applyLayout()
     discard host.render(&host.root)
-    Swag.assert((view.table != null) and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
+    Swag.assert(view.table != null and view.document.sheets.count == 2 and view.table.document.columns.count == 2 and view.table.document.rows.count == 2)
     Swag.assert(result.info != null and result.info.isHidden())
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSheet)
 
@@ -477,7 +458,7 @@ private func drawingOpenDocumentXml()->String
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = cast #assume (*OpenDocumentViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    Swag.assert((view.html != null) and not (view.table != null) and view.document.slides.count == 2)
+    Swag.assert(view.html != null and view.table == null and view.document.slides.count == 2)
     Swag.assert(view.pageCombo.items.count == 2 and view.pageCombo.selectedIndex == 0 and view.pageCombo.toolTip == openDocumentStrings().ui_TipSlide)
 
     view.pageCombo.setSelectedIndex(1)
@@ -544,10 +525,12 @@ private func drawingOpenDocumentXml()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
 
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar)
     Swag.assert(result.view != null and result.commands != null)
@@ -592,15 +575,19 @@ private func drawingOpenDocumentXml()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
 
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Top
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Top
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
 
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
@@ -642,10 +629,13 @@ private func drawingOpenDocumentXml()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Top
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Top
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
+
     var result = openTestViewer(openDocumentViewerPlugin(), &host.root, fileName.toString(), infoParent: infoBar)
     Swag.assert(result.info != null)
     infoBar.centerGroup = result.info

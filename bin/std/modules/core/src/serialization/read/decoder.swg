@@ -3,99 +3,103 @@
 
 using Swag, Core.Errors
 
-// Defines the operations supported by i decoder.
+// Reads serialized values, as seen from [[Core.Serialization.ISerialize]] and [[Core.Serialization.Serializer]].
 interface IDecoder
 {
-    // Returns version.
+    // Returns the version of the struct being read, or zero when the format records none.
     mtd version()->u32
 
-    // Returns whether textual.
+    // Returns whether the format is textual, such as JSON, rather than binary.
     mtd isTextual()->bool
 
-    // Starts the operation.
+    // Starts reading `input`, which stays borrowed until [[Core.Serialization.IDecoder.end]].
     mtd start(input: const [..] u8) fail
 
-    // Finishes the operation.
+    // Finishes reading the document.
     mtd end() fail
 
-    // Begins field.
+    // Opens the field `val` and returns whether the input contains it.
     mtd beginField(val: Swag.TypeValue)->bool fail
 
-    // Performs the end field operation.
+    // Closes a field that [[Core.Serialization.IDecoder.beginField]] opened.
     mtd endField(val: Swag.TypeValue) fail
 
-    // Begins section.
+    // Opens a section of kind `kind`.
     mtd beginSection(kind: SectionKind) fail
 
-    // Performs the end section operation.
+    // Closes the current section.
     mtd endSection() fail
 
-    // Performs the read operation.
+    // Reads one value of type `dataType` into `data`.
     mtd read(data: *void, dataType: typeinfo) fail
 
-    // Reads buffer u8.
+    // Reads `count` bytes into a new block and returns it, or null when `count` is zero.
+    //
+    // The caller owns the block and releases it with `Memory.free(block, count)`.
     mtd readBufferU8(count: u64)->*u8? fail
 
-    // Reads bool.
+    // Reads a `bool`.
     mtd readBool()->bool fail
 
-    // Reads s8.
+    // Reads an `s8`.
     mtd readS8()->s8 fail
 
-    // Reads s16.
+    // Reads an `s16`.
     mtd readS16()->s16 fail
 
-    // Reads s32.
+    // Reads an `s32`.
     mtd readS32()->s32 fail
 
-    // Reads s64.
+    // Reads an `s64`.
     mtd readS64()->s64 fail
 
-    // Reads u8.
+    // Reads a `u8`.
     mtd readU8()->u8 fail
 
-    // Reads u16.
+    // Reads a `u16`.
     mtd readU16()->u16 fail
 
-    // Reads u32.
+    // Reads a `u32`.
     mtd readU32()->u32 fail
 
-    // Reads u64.
+    // Reads a `u64`.
     mtd readU64()->u64 fail
 
-    // Reads f32.
+    // Reads an `f32`.
     mtd readF32()->f32 fail
 
-    // Reads f64.
+    // Reads an `f64`.
     mtd readF64()->f64 fail
 
-    // Reads string.
+    // Reads a string and returns an owned copy.
     mtd readString()->String fail
 }
 
-// Selects decoder flags.
+// Relaxes how a [[Core.Serialization.Decoder]] treats input that does not decode.
 #[Swag.EnumFlags]
 enum DecoderFlags
 {
     None = 0                   // No optional decoding behavior.
-    IgnoreStructFieldError     // Enables ignore struct field error.
+    IgnoreStructFieldError     // Skips a struct field that fails to decode, leaving it at its default value, instead of failing the read.
 }
 
 /*
-Serialization decoder.
-This is a high level decoder that needs a specific implementation like [[Core.Serialization.Read.TagBin]] or [[Core.Serialization.Read.Json]].
+Decodes reflected Swag values through a format backend such as [[Core.Serialization.Read.TagBin]] or [[Core.Serialization.Read.Json]].
+
+[[Core.Serialization.Decoder.readAll]] returns a new value that the caller releases:
 
 ```swag
-var res = try File.readAllBytes(file)
+let bytes   = try File.readAllBytes(fileName)
 var decoder: Decoder'Read.TagBin
-let myStruct = catch decoder.readAll'MyStruct(res.toSlice())
+let value   = try decoder.readAll'MyStruct(bytes.toSlice())!
+defer Memory.delete(value)
 ```
 */
 struct(T) Decoder
 {
     public
     {
-        serializer: T                       // Serializer associated with this value.
+        serializer: T                       // Format backend.
         flags:      DecoderFlags = None     // Optional decoding behavior.
     }
 }
@@ -310,7 +314,7 @@ impl Decoder
         }
     }
 
-    // Start reading
+    // Starts reading `input`, which stays borrowed until [[Core.Serialization.Decoder.end]].
     mtd start(input: const [..] u8) fail
     {
         try .serializer.startRead(input)
@@ -328,7 +332,7 @@ impl Decoder
         try .start(input)
     }
 
-    // Finish reading
+    // Finishes reading, and fails when a strict decode met corrupt payloads.
     mtd end() fail
     {
         try .serializer.endRoot()
@@ -343,7 +347,9 @@ impl Decoder
         }
     }
 
-    // Read a full struct
+    // Reads a whole document whose root is a `TR` struct and returns it in a new allocation.
+    //
+    // The caller owns the result and releases it with [[Core.Memory.delete]].
     mtd(TR) readAll(input: const [..] u8)->*TR? fail
     {
         Swag.assert(Reflection.isStruct(TR))
@@ -362,20 +368,17 @@ impl Decoder
 
 impl IDecoder for Decoder
 {
-    // Starts the operation.
     mtd impl start(input: const [..] u8) fail
     {
         try .serializer.startRead(input)
         try .serializer.beginRoot()
     }
 
-    // Finishes the operation.
     mtd impl end() fail
     {
         try .serializer.endRoot()
     }
 
-    // Begins field.
     mtd impl beginField(val: Swag.TypeValue)->bool fail
     {
         if not (try .serializer.beginElement(val)) do
@@ -384,44 +387,41 @@ impl IDecoder for Decoder
         return true
     }
 
-    // Performs the end field operation.
     mtd impl endField(val: Swag.TypeValue) fail
     {
         try .serializer.endValue()
         try .serializer.endElement(val)
     }
 
-    // Begins section.
     mtd impl beginSection(kind: SectionKind) fail
     {
         try .serializer.beginSection(kind)
     }
 
-    // Performs the end section operation.
     mtd impl endSection() fail
     {
         try .serializer.endSection()
     }
 
-    // Returns version.
     mtd impl version()->u32 => .serializer.version()
 
-    // Returns whether textual.
     mtd impl isTextual()->bool => .serializer.isTextual()
 
-    // Performs the read operation.
     mtd impl read(data: *void, dataType: typeinfo) fail
     {
         try .readTypedContent(data, dataType)
     }
 
-    // Reads buffer u8.
     mtd impl readBufferU8(count: u64)->*u8? fail
     {
         if not count do
             return null
 
         let safeData = cast([*] u8) Memory.alloc(count)
+        Memory.clear(safeData, count)
+        var decoded = false
+        defer if not decoded do
+            Memory.free(safeData, count)
 
         var cpt     = count
         let treated = try .serializer.beginSequence(u8, safeData, &cpt)
@@ -439,42 +439,31 @@ impl IDecoder for Decoder
             }
         }
 
+        decoded = true
         return safeData
     }
 
-    // Reads bool.
     mtd impl readBool()->bool fail => try .serializer.readNative'bool()
 
-    // Reads s8.
     mtd impl readS8()->s8 fail => try .serializer.readNative's8()
 
-    // Reads s16.
     mtd impl readS16()->s16 fail => try .serializer.readNative's16()
 
-    // Reads s32.
     mtd impl readS32()->s32 fail => try .serializer.readNative's32()
 
-    // Reads s64.
     mtd impl readS64()->s64 fail => try .serializer.readNative's64()
 
-    // Reads u8.
     mtd impl readU8()->u8 fail => try .serializer.readNative'u8()
 
-    // Reads u16.
     mtd impl readU16()->u16 fail => try .serializer.readNative'u16()
 
-    // Reads u32.
     mtd impl readU32()->u32 fail => try .serializer.readNative'u32()
 
-    // Reads u64.
     mtd impl readU64()->u64 fail => try .serializer.readNative'u64()
 
-    // Reads f32.
     mtd impl readF32()->f32 fail => try .serializer.readNative'f32()
 
-    // Reads f64.
     mtd impl readF64()->f64 fail => try .serializer.readNative'f64()
 
-    // Reads string.
     mtd impl readString()->String fail => try .serializer.readNative'String()
 }

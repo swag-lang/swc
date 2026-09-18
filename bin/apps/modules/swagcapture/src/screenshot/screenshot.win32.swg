@@ -36,10 +36,7 @@ impl CapturePlatformScope
 }
 
 // Enters the native coordinate context required by the Windows capture backend.
-func beginCapturePlatformScope()->CapturePlatformScope
-{
-    return {SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)}
-}
+func beginCapturePlatformScope()->CapturePlatformScope => {SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)}
 
 internal
 {

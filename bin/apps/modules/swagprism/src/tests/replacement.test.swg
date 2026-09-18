@@ -3,7 +3,7 @@
 
 using Core, Gui
 
-private func awaitReplacement(viewer: *PreviewViewer)
+func awaitReplacement(viewer: *PreviewViewer)
 {
     var watch: Time.Stopwatch
     watch.start()

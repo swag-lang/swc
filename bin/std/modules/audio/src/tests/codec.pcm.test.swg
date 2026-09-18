@@ -100,7 +100,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     let decoded     = expect audioDecodePcmToPcm16(.Pcm16, src, 4)
     Swag.assert(decoded.progress.bytesWritten == 4)
     Swag.assert(decoded.progress.bytesRead == 4)
-    Swag.assert(audioAssertBytes(decoded.destination.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
+    Swag.assert(Slice.equals(decoded.destination.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
 }
 
 #test
@@ -109,7 +109,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     let decoded     = expect audioDecodePcmToPcm16(.Pcm16, src, 2)
     Swag.assert(decoded.progress.bytesWritten == 2)
     Swag.assert(decoded.progress.bytesRead == 2)
-    Swag.assert(audioAssertBytes(decoded.destination.toSlice(), [0x34, 0x12]))
+    Swag.assert(Slice.equals(decoded.destination.toSlice(), [0x34, 0x12]))
 }
 
 #test

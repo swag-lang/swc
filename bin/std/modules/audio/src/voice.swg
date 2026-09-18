@@ -95,10 +95,7 @@ private impl Voice
         .destroyPacketCodec()
     }
 
-    mtd hasState(st: VoiceState)->bool
-    {
-        return Atomic.get(cast(*u32) &.state) & cast(u32) st ? true : false
-    }
+    mtd hasState(st: VoiceState)->bool => Atomic.get(cast(*u32) &.state) & cast(u32) st ? true : false
 
     mtd setState(st: VoiceState)
     {
@@ -232,7 +229,8 @@ public impl Voice
     // Compressed packet sources restart on the packet containing `frame`; decoded frames before
     // the requested position are discarded before submission. Indexed PCM sources seek directly
     // inside their chunk. The backend queue is flushed, so [[Audio.Voice.playbackSampleFrame]]
-    // immediately uses the new position as its origin.
+    // immediately uses the new position as its origin. A `frame` past the end is clamped to it.
+    // Fails with [[Core.Errors.BadParameterError]] when the voice is not valid.
     mtd seekSampleFrame(frame: u64) fail
     {
         .dataMutex.lock()
@@ -330,20 +328,12 @@ public impl Voice
     }
 
     // Returns whether the voice is currently marked as playing.
-    mtd isPlaying()->bool
-    {
-        if not .handle do
-            return false
-        return .hasState(.Playing)
-    }
+    mtd isPlaying()->bool => .handle != null and .hasState(.Playing)
 
     // Sets this voice's gain in decibels.
     //
     // `batchId` is forwarded to backends that support deferred operation sets.
-    mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail
-    {
-        try .setVolume(decibelsToLinearGain(decibels), batchId)
-    }
+    mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail => try .setVolume(decibelsToLinearGain(decibels), batchId)
 
     // Returns this voice's current gain in decibels.
     mtd volumeDb()->f32 fail => linearGainToDecibels(try .volume())

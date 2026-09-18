@@ -28,16 +28,9 @@ func makeTempGifPath()->String  => makeTempImagePath(".gif")
 func makeTempTiffPath()->String => makeTempImagePath(".tif")
 func makeTempIcoPath()->String  => makeTempImagePath(".ico")
 
-func nnBytes(bytes: const [..] u8?)->const [..] u8
-{
-    Swag.assert(bytes != null)
-    return Swag.makeSlice(cast(const [*] u8) bytes.buffer, bytes.count)
-}
+func nnBytes(bytes: const [..] u8?)->const [..] u8 => bytes!
 
-func loadTestTypeFace(fullname: string)->*TypeFace? fail
-{
-    return try TypeFace.load(fullname)
-}
+func loadTestTypeFace(fullName: string)->*TypeFace? fail => try TypeFace.load(fullName)
 
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {

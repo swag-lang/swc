@@ -5,7 +5,7 @@ using Core, Pixel
 
 // Shared helpers for headless test suites (module and application unittests).
 
-// Asserts that 'rect' equals the given coordinates within 'eps'.
+// Asserts that `rect` equals the given coordinates within `eps`.
 func assertRect(rect: Math.Rectangle, x, y, width, height: f32, eps: f32 = 0.001)
 {
     Swag.assert(Math.abs(rect.x - x) < eps)
@@ -14,7 +14,7 @@ func assertRect(rect: Math.Rectangle, x, y, width, height: f32, eps: f32 = 0.001
     Swag.assert(Math.abs(rect.height - height) < eps)
 }
 
-// Asserts that 'pt' equals the given coordinates within 'eps'.
+// Asserts that `pt` equals the given coordinates within `eps`.
 func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 {
     Swag.assert(Math.abs(pt.x - x) < eps)
@@ -55,10 +55,12 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
         assertContentFits(child, tolerance)
 }
 
-// Returns a unique file path in a dedicated 'swag-tests' sub-folder of the system
-// temp folder (created on demand). A dedicated folder keeps test files out of the
-// source tree and stays nearly empty, so tests that drive a real file dialog into
-// it only enumerate a handful of entries, not the whole system temp folder.
+// Returns a unique file path in the `swag-tests` folder of the system temp folder.
+//
+// The folder is created on demand. A dedicated folder keeps test files out of the source
+// tree and stays nearly empty, so tests that drive a real file dialog into it only
+// enumerate a handful of entries, not the whole system temp folder. The file itself is not
+// created.
 func tempFilePath(prefix, extension: string)->String
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
@@ -72,15 +74,15 @@ func tempFilePath(prefix, extension: string)->String
     return Path.combine(folder.toString(), fileName.toString())
 }
 
-// The bytes of 'text', with no terminator, which is what a payload carries.
+// Returns a copy of the bytes of `text`, with no terminator, which is what a payload carries.
 func textBytes(text: string)->Array'u8
 {
     var result: retval
-    result.add(Swag.makeSlice(cast(const [*] u8) text.buffer, cast(u64) text.count))
+    result.add(cast(const [..] u8) text)
     return result
 }
 
-// Whether a byte payload holds exactly the bytes of 'text'.
+// Returns whether `bytes` holds exactly the bytes of `text`.
 //
 // Slices compare over their content, but bytes and text are different types, so the
 // reinterpretation is spelled once here instead of at every call site.
@@ -98,8 +100,10 @@ func htmlImageSources(view: const *HtmlView)->Array'String
     return result
 }
 
-// Deterministic BGRA test image: every pixel derives from its coordinates, so a
-// save/load round-trip can be verified byte-for-byte.
+// Returns a deterministic BGRA test image of `w` by `h` pixels.
+//
+// Every pixel derives from its coordinates, so a save/load round-trip can be verified
+// byte-for-byte.
 func indexedImage(w, h: s32)->Image
 {
     var result = Image.create(w, h, .BGRA8)
@@ -114,21 +118,16 @@ func indexedImage(w, h: s32)->Image
     return result
 }
 
-// Number of non-zero bytes in the image pixels (cheap "something was painted" probe).
+// Returns the number of non-zero bytes in the pixels of `img`, a cheap probe that something was painted.
 func countNonZeroBytes(img: Image)->u64
 {
     var count: u64
-    let bytes = img.pixels.toSlice()
-    for b in bytes
-    {
-        if b != 0 do
-            count += 1
-    }
-
+    for b in img.pixels.toSlice() where b != 0 do
+        count += 1
     return count
 }
 
-// Returns a command state event for the given command id.
+// Returns an empty command state event for the command `id`.
 func commandState(id: WndId)->CommandStateEvent
 {
     var evt: CommandStateEvent
@@ -136,21 +135,21 @@ func commandState(id: WndId)->CommandStateEvent
     return evt
 }
 
-// Asks action type T whether it accepts the command, through its IActionUI interface.
+// Asks the action type `T` whether it accepts the command, through its [[Gui.IActionUI]] interface.
 func(T) actionAccept(wnd: *Wnd?, id: WndId)->bool
 {
     let act = Swag.makeInterface(null, #typeof(T), IActionUI)
     return act.accept({wnd: wnd, id: id})
 }
 
-// Executes action type T through its IActionUI interface, as the command dispatch would.
+// Executes the action type `T` through its [[Gui.IActionUI]] interface, as the command dispatch would.
 func(T) actionExecute(wnd: *Wnd?, id: WndId)->bool
 {
     let act = Swag.makeInterface(null, #typeof(T), IActionUI)
     return act.execute({wnd: wnd, id: id})
 }
 
-// Updates the command state of action type T through its IActionUI interface.
+// Updates the command state of the action type `T` through its [[Gui.IActionUI]] interface.
 func(T) actionUpdate(wnd: *Wnd, id: WndId, evt: *CommandStateEvent)->bool
 {
     let act = Swag.makeInterface(null, #typeof(T), IActionUI)

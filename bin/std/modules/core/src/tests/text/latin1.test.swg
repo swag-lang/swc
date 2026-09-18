@@ -195,8 +195,8 @@ using Swag
 
             var upper = original
             var lower = original
-            Latin1.makeUpper(Swag.makeSlice(upper.storage(), upper.count))
-            Latin1.makeLower(Swag.makeSlice(lower.storage(), lower.count))
+            Latin1.makeUpper(upper.bytes())
+            Latin1.makeLower(lower.bytes())
             Swag.assert(upper.toString() == expectedUpper.toString())
             Swag.assert(lower.toString() == expectedLower.toString())
             Swag.assert(Latin1.compare(upper.toString(), lower.toString(), ignoreCase: true) == 0)
@@ -215,8 +215,8 @@ using Swag
         let original = Format.toString("%\u0100\u0101\u0120\u0105\u4E01\U0001F600\U0001F62000000000000000000000000000000000", prefix.toString())
         var upper    = original
         var lower    = original
-        Latin1.makeUpper(Swag.makeSlice(upper.storage(), upper.count))
-        Latin1.makeLower(Swag.makeSlice(lower.storage(), lower.count))
+        Latin1.makeUpper(upper.bytes())
+        Latin1.makeLower(lower.bytes())
         Swag.assert(upper.toString() == original.toString())
         Swag.assert(lower.toString() == original.toString())
     }

@@ -11,7 +11,7 @@ enum SplitterFlags
     HideDividers     // Hides idle dividers while preserving drag interaction.
 }
 
-// Configures one pane managed by a [[SplitterCtrl]].
+// Configures one pane managed by a [[Gui.SplitterCtrl]].
 struct SplitterItem
 {
     public
@@ -35,7 +35,7 @@ struct SplitterCtrl
 {
     public
     {
-        using frameWnd: FrameWnd       // Embedded frame wnd state.
+        using frameWnd: FrameWnd       // Embedded frame behavior and presentation.
         flags = SplitterFlags.None     // Orientation and divider options.
         titleSize:      f32 = 30       // Title extent along the splitting axis.
 
@@ -449,8 +449,7 @@ impl SplitterCtrl
     {
         Swag.assert(parent != null)
 
-        let pos = position
-        let res = Wnd.create'SplitterCtrl(parent, null, pos, id)
+        let res = Wnd.create'SplitterCtrl(parent, null, position, id)
         res.wndFlags |= .AfterChildrenPaint
         if vertical do
             res.flags.add(.Vertical)
@@ -500,9 +499,9 @@ impl SplitterCtrl
         {
             // A new divider consumes room before the new pane borrows from its neighbour.
             // Otherwise layout has to shrink the explicitly requested pane again.
-            for var index = cast(s64) .items.count - 2; index >= 0; index -= 1
+            for index in reversed(.items.count - 1)
             {
-                let previous = .items[cast(u64) index]!
+                let previous = .items[index]!
                 if previous.visible
                 {
                     previous.size -= .themeMetrics().splitView_BarSize

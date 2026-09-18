@@ -7,7 +7,7 @@ using Swag
 #test
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    Swag.assert(tempDir.length != 0)
+    Swag.assert(not tempDir.isEmpty())
     Swag.assert(Path.isRooted(tempDir.toString()))
     Swag.assert(Directory.exists(tempDir.toString()))
 }

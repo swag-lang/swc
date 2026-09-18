@@ -3,10 +3,7 @@
 
 using Core, Pixel, Gui
 
-func subtitleViewerFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.srt")
-}
+func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.srt")
 
 // Go-to-time accepts its documented forms and rejects values that only look like timestamps.
 #test
@@ -46,7 +43,7 @@ func subtitleViewerFixturePath()->String
 
     let view = cast #assume (*SubtitleViewer) result.view
     Swag.assert(view.track!.cueCount() == 2)
-    Swag.assert(view.cueButton.text() == "2 cues" and (view.durationButton.text()).count)
+    Swag.assert(view.cueButton.text() == "2 cues" and view.durationButton.text().count)
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
     Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
 

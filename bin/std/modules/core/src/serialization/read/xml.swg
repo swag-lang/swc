@@ -5,8 +5,11 @@ using Swag, Core.Errors
 
 // Reads XML whose element order matches the serialized Swag type.
 //
-// Unknown, missing, and reordered elements fail. The input slice is borrowed
-// until decoding completes.
+// Every struct field is an element named after the field, and the document root is one more
+// element around them, whatever its name, after an optional `<?xml ...?>` declaration. A
+// sequence holds native values separated by blanks.
+// Unknown, missing, and reordered elements fail. The input slice is borrowed until decoding
+// completes.
 public struct Xml
 {
     internal
@@ -19,10 +22,10 @@ public struct Xml
 
 public impl Xml
 {
-    // Returns version.
+    // Returns zero because XML has no stream-level schema version.
     mtd version()->u32 => 0
 
-    // Returns whether textual.
+    // Returns true, because XML is a textual format.
     mtd isTextual()->bool => true
 
     internal mtd readTag()->string fail
@@ -55,8 +58,26 @@ public impl Xml
     {
         let tag   = try .readTag()
         let start = .stackTags.popBack()
-        if tag[1 to ] != start do
+        if not Utf8.startsWith(tag, "/") or tag[1 to] != start do
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
+    }
+
+    // Reads the predefined entity after an '&' and returns the character it stands for.
+    internal mtd readEntity()->u8 fail
+    {
+        const Names = ["lt;", "gt;", "amp;", "quot;", "apos;"]
+        const Chars = "<>&\"'"
+        let rest    = .stream.remainingString()
+        for index in Names.count
+        {
+            if Utf8.startsWith(rest, Names[index])
+            {
+                .stream.advance(Names[index].count)
+                return Chars[index]
+            }
+        }
+
+        fail .getError("unknown entity, expected [[&lt;]], [[&gt;]], [[&amp;]], [[&quot;]], or [[&apos;]]")
     }
 
     internal mtd getError(val: string)->SyntaxError
@@ -90,7 +111,7 @@ public impl Xml
     }
 
     // Starts decoding from borrowed XML bytes and resets reusable state.
-    mtd startRead(input: const [..] u8)
+    mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
         .line   = 1
@@ -98,38 +119,48 @@ public impl Xml
         .stackTags.clear()
     }
 
-    // Converts this value to next sequence element.
+    // Returns whether another sequence element follows, that is, whether the next non-blank byte does not start a tag.
     mtd toNextSequenceElement(_countElem: *u64)->bool
     {
-        let c = .stream.peekU8()
-        return c != '<'
+        .zapBlanks()
+        return .stream.peekU8() != '<'
     }
 
-    // Begins section.
+    // Reads the tag that opens a section.
     mtd beginSection(_kind: SectionKind) fail
     {
         discard try .readTag()
     }
 
-    // Performs the end section operation.
+    // Reads the tag that closes a section.
     mtd endSection() fail
     {
         discard try .readTag()
     }
 
-    // Begins root.
+    // Skips an optional XML declaration, then reads the tag that opens the document.
     mtd beginRoot() fail
     {
+        .zapBlanks()
+        let rest = .stream.remainingString()
+        if Utf8.startsWith(rest, "<?")
+        {
+            let end = Utf8.indexOf(rest, "?>")
+            if end == Swag.U64.Max do
+                fail .getError("malformed XML declaration, missing closing [[?>]]")
+            .stream.advance(end + 2)
+        }
+
         discard try .readStartTag()
     }
 
-    // Performs the end root operation.
+    // Reads the tag that closes the document, which must match the opening one.
     mtd endRoot() fail
     {
         try .readEndTag()
     }
 
-    // Begins element.
+    // Reads the start tag of the element `val` and fails when it names another element.
     mtd beginElement(val: TypeValue)->bool fail
     {
         let tag = try .readStartTag()
@@ -138,29 +169,29 @@ public impl Xml
         return true
     }
 
-    // Performs the end element operation.
+    // Reads the end tag of the current element.
     mtd endElement(_val: TypeValue) fail
     {
         try .readEndTag()
     }
 
     {
-        // Begins struct.
+        // Returns false, so the decoder reads the fields of the struct.
         mtd beginStruct(structType: typeinfo, structData: const *u8)->bool fail => false
 
-        // Performs the end struct operation.
+        // Does nothing: the struct ends with its last element.
         mtd endStruct() fail {}
 
-        // Begins sequence.
+        // Returns false, so the decoder reads the elements one by one.
         mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool fail => false
 
-        // Performs the end sequence operation.
+        // Does nothing: the sequence ends before the next tag.
         mtd endSequence() fail {}
 
-        // Begins value.
+        // Does nothing: an XML value needs no opening mark.
         mtd beginValue() fail {}
 
-        // Performs the end value operation.
+        // Does nothing: an XML value needs no closing mark.
         mtd endValue() fail {}
     }
 
@@ -175,57 +206,57 @@ public impl Xml
         #static switch NT
         {
         case bool:
-            let val = StrConv.parseBool(.stream.remainingString())
+            let val = try StrConv.parseBool(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case f32:
-            let val = StrConv.parseF32(.stream.remainingString())
+            let val = try StrConv.parseF32(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case f64:
-            let val = StrConv.parseF64(.stream.remainingString())
+            let val = try StrConv.parseF64(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case s8:
-            let val = StrConv.parseS8(.stream.remainingString())
+            let val = try StrConv.parseS8(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case s16:
-            let val = StrConv.parseS16(.stream.remainingString())
+            let val = try StrConv.parseS16(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case s32:
-            let val = StrConv.parseS32(.stream.remainingString())
+            let val = try StrConv.parseS32(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case s64:
-            let val = StrConv.parseS64(.stream.remainingString())
+            let val = try StrConv.parseS64(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case u8:
-            let val = StrConv.parseU8(.stream.remainingString())
+            let val = try StrConv.parseU8(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case u16:
-            let val = StrConv.parseU16(.stream.remainingString())
+            let val = try StrConv.parseU16(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case u32:
-            let val = StrConv.parseU32(.stream.remainingString())
+            let val = try StrConv.parseU32(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
         case u64:
-            let val = StrConv.parseU64(.stream.remainingString())
+            let val = try StrConv.parseU64(.stream.remainingString())
             .stream.advance(val.eat)
             return val.value
 
@@ -234,9 +265,12 @@ public impl Xml
             var c = .stream.peekU8()
             while c and c != '<'
             {
-                c      = .stream.readU8()
-                result += c
-                c      = .stream.peekU8()
+                .stream.advance()
+                if c == '&' do
+                    result += try .readEntity()
+                else do
+                    result += c
+                c = .stream.peekU8()
             }
 
             return result

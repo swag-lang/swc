@@ -99,7 +99,7 @@ func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [
     }
 }
 
-// Structure to store Haar coefficients
+// Holds the multi-scale Haar wavelet coefficients of a grayscale image thumbnail.
 public struct HaarFeatures
 {
     public
@@ -110,7 +110,10 @@ public struct HaarFeatures
     }
 }
 
-// Extract Haar coefficients from the image
+// Returns the Haar coefficients of a grayscale thumbnail of `image`.
+//
+// The thumbnail side is the smaller image dimension rounded up to a power of two, capped at
+// `windowSize`, which must be a power of two of at least 32.
 public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatures
 {
     Swag.assert(Math.isPowerOf2(windowSize))
@@ -136,7 +139,11 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
     return features
 }
 
-// Compare Haar coefficients with multiscale weights
+// Returns the similarity of two feature sets, from 0 to 1.
+//
+// The DC term and every detail level contribute the absolute normalized correlation of their
+// coefficients. Level `l` weighs `2^(levels - l)`: the DC term weighs most, then the detail
+// levels from the finest to the coarsest. Both sets must have the same size.
 public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 {
     Swag.assert(haar1.size == haar2.size, "Haar features must have same size")
@@ -145,7 +152,9 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     var totalWeight:     f64 = 0.0
     let size = haar1.size
 
-    for level in haar1.levels
+    // Level 0 is the DC term; levels 1 to 'levels' are the detail bands, the last one being the
+    // three single coefficients next to the DC term.
+    for level in 0 to haar1.levels
     {
         let weight = Math.pow(2.0, cast(f64) (haar1.levels - level))
 
@@ -219,7 +228,9 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     return 0.0'f32     // Considered more neutral than 1.0
 }
 
-// Compare to another image with Haar coefficients
+// Returns the Haar similarity of two images, from 0 to 1.
+//
+// See [[Pixel.ImageStatistics.extractHaarFeatures]] for `windowSize`.
 public func haarCompareTo(one, two: Image, windowSize: u32 = 128)->f32
 {
     Swag.assert(Math.isPowerOf2(windowSize))
@@ -230,7 +241,9 @@ public func haarCompareTo(one, two: Image, windowSize: u32 = 128)->f32
     return compareHaarCoefficients(haar1, haar2)
 }
 
-// Extract Haar coefficients from the image (fast version)
+// Returns the Haar coefficients of a `windowSize` grayscale thumbnail sampled by nearest neighbor.
+//
+// This is faster and coarser than [[Pixel.ImageStatistics.extractHaarFeatures]].
 public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFeatures
 {
     Swag.assert(Math.isPowerOf2(windowSize))
@@ -267,7 +280,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     return features
 }
 
-// Compare Haar coefficients (simplified version)
+// Returns the absolute normalized correlation of all coefficients of two feature sets, from 0 to 1.
 public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 {
     Swag.assert(haar1.size == haar2.size, "Haar features must have same size")
@@ -275,7 +288,7 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     var norm1, norm2, correlation: f64
     let coeffCount = haar1.coefficients.count
 
-    for i in coeffCount     // Fixed: iterate over indices, not values
+    for i in coeffCount
     {
         let c1 = cast(f64) haar1.coefficients[i]
         let c2 = cast(f64) haar2.coefficients[i]
@@ -290,7 +303,7 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     return (norm1 == 0.0 and norm2 == 0.0) ? 1.0'f32 : 0.0'f32
 }
 
-// Compare to another image with Haar coefficients, fast simplified version
+// Returns the quick Haar similarity of two images, from 0 to 1.
 public func quickHaarCompareTo(one, two: Image, windowSize: u32 = 32)->f32
 {
     Swag.assert(Math.isPowerOf2(windowSize))

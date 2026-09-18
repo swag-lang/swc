@@ -4,7 +4,7 @@
 
 using Swag, Core.Errors
 
-// Names the buffer type.
+// Byte array that holds a decompressed payload.
 alias Buffer = Array'u8
 
 // Highest ratio deflate can reach, one stored bit per output byte plus block
@@ -15,31 +15,32 @@ private const DeflateMaxExpansion = 1032'u64
 private const NoShapeIndex = 0xFFFFFFFF'u32
 
 /*
-Binary serializer with schema and key based compatibility.
-Changes that are supported from V to V+1 are:
+Reads the TagBin binary format, which keys every field so a stream survives the evolution of its types.
 
-- Add a new field. The new field will stay at the default value.
-- Remove a field. It will just be ignored.
-- Reorder of fields, as long as their name/type are the same.
-- Rename a field that declares a stable 'Serialization.Key'.
+A stream written by version V of a type reads into version V+1 after these changes:
 
-Supported type changes are :
+- A new field. It keeps its default value.
+- A removed field. The stored value is ignored.
+- Reordered fields, as long as their names and types are the same.
+- A renamed field that declares a stable [[Core.Serialization.Key]].
 
-- Conversion from integer/float/rune/bool to integer/float/rune/bool.
-- Change the underlying type of an enum.
-- Change the size of a static array.
-- Conversion from a static array to a dynamic `Core.Array`, and vice versa.
-- Conversion from a single value to a static array or `Core.Array`, and vice versa.
-- Rename a concrete interface implementation that declares a stable 'Serialization.TypeKey'.
-- Convert an existing complex type to 'Serialization.Final'.
+These type changes are supported:
 
-Supported attributes are :
+- Conversion between integer, float, rune, and Boolean types.
+- A new underlying type for an enum.
+- A new size for a static array.
+- Conversion from a static array to a [[Core.Array]], and back.
+- Conversion from a single value to a static array or a [[Core.Array]], and back.
+- A renamed interface implementation that declares a stable [[Core.Serialization.TypeKey]].
+- An existing complex type that becomes [[Core.Serialization.Final]].
 
-- 'Serialization.Version'. The struct version, exposed while reading through [[Core.Serialization.Read.TagBin.version]].
-- 'Serialization.Schema'. To identify and validate a root document independently from its type name.
-- 'Serialization.Key'. To give one stable identity to a field.
-- 'Serialization.TypeKey'. To give one stable identity to a serialized struct type.
-- 'Serialization.Final'. The struct will be loaded/saved without versioning (faster and lower serialization size)
+These attributes are supported:
+
+- [[Core.Serialization.Version]]: the struct version, exposed while reading through [[Core.Serialization.Read.TagBin.version]].
+- [[Core.Serialization.Schema]]: identifies and validates a root document independently from its type name.
+- [[Core.Serialization.Key]]: gives one stable identity to a field.
+- [[Core.Serialization.TypeKey]]: gives one stable identity to a serialized struct type.
+- [[Core.Serialization.Final]]: loads and saves the struct without versioning, faster and smaller.
 
 The persisted format is version 1. Earlier experimental layouts are not accepted.
 */
@@ -118,7 +119,7 @@ struct TagBinShape
     public fields: Array'TagBinShapeField     // The fields, in written order.
 }
 
-// Section information for tracking deserialization state within structured data.
+// Tracks the decoding state of one open section.
 struct TagBinSection
 {
     public
@@ -130,8 +131,8 @@ struct TagBinSection
         payloadStart:  u64                                    // Stream position of the first payload byte.
         consumedCount: u64                                    // How many indexed fields the decode requested.
         posIndex:      u64                                    // Next field index in positional mode.
-        version:       u32                                    // Version number of this section
-        kind:          SectionKind                            // Type of section (ordered, unordered, or raw)
+        version:       u32                                    // Struct version stored in the stream for this section.
+        kind:          SectionKind                            // How the values of the section are framed.
         positional:    bool                                   // Shape matches the plan, so fields are read in order.
         mapLoaded:     bool                                   // Whether 'mapSeek' is populated.
         shape:         const *TagBinShape?                    // Shape describing the stream fields.
@@ -139,16 +140,15 @@ struct TagBinSection
     }
 }
 
-// Configuration options for controlling deserialization behavior.
+// Selects how a [[Core.Serialization.Read.TagBin]] reacts to data it was not written for.
 struct TagBinOptions
 {
-    public tryForward: bool     // Accept to try to read a newest version, otherwise error
+    public tryForward: bool     // Whether a struct version newer than the reader's is read anyway instead of failing with [[Core.Errors.InvalidVersion]]
 }
 
 private impl TagBin
 {
-    // Create a new section for the deserialization stack.
-    // Returns a pointer to a section object, either reused from the free pool or newly allocated.
+    // Pushes a reset section on the stack, reusing a released one when possible.
     mtd newSection()->*TagBinSection
     {
         var ptr: *TagBinSection?
@@ -175,8 +175,7 @@ private impl TagBin
         return sec
     }
 
-    // Release the current section back to the free pool.
-    // Pops the most recent section from the active stack and returns it to the reuse pool.
+    // Pops the current section and keeps it for reuse.
     mtd releaseSection()
     {
         let ptr = .sections.popBack()
@@ -217,8 +216,7 @@ private impl TagBin
         return result
     }
 
-    // Check if type conversion is possible between 'fromType' and 'toType'.
-    // Sets up conversion flags and returns true if the conversion is supported.
+    // Returns whether a value stored as `fromType` can be read as `toType`, arming the conversion it needs.
     mtd canConvertType(toType, fromType: typeinfo?)->bool
     {
         if toType == fromType do
@@ -745,8 +743,7 @@ impl TagBin
         return type
     }
 
-    // Initialize the deserializer with the given input byte array.
-    // Sets up the private byte stream for reading from the provided data buffer.
+    // Starts reading the borrowed `input` and resets the diagnostics.
     mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
@@ -758,7 +755,7 @@ impl TagBin
         .diag = TagBinDiagnostics{}
     }
 
-    // Begin reading the root container of the serialized data.
+    // Reads the stream header.
     //
     // Validates the root signature and the only supported format marker.
     mtd beginRoot() fail
@@ -773,18 +770,16 @@ impl TagBin
         try .readShapedRoot()
     }
 
-    // Finish reading the root container.
-    // Currently no cleanup is required, but this maintains the symmetric begin/end API.
+    // Finishes reading the document.
     mtd endRoot() fail
     {
         .expectedRootType = null
     }
 
-    // Begin reading a new section with the specified 'kind'.
+    // Opens a section of kind `kind`.
     mtd beginSection(kind: SectionKind, _skipFat = false) fail => try .openSection(kind, null)
 
-    // Finish reading the current section.
-    // Updates the stream position and releases the section back to the pool.
+    // Closes the current section and moves past its end.
     mtd endSection() fail
     {
         let sec = .sections.back()!
@@ -817,15 +812,16 @@ impl TagBin
         .releaseSection()
     }
 
-    // Begin reading a struct of the given 'structType'.
-    // Returns false for normal struct processing, true for special handling cases.
+    // Opens the struct `structType` and returns false, so the decoder reads its fields.
+    //
+    // Fails with [[Core.Errors.InvalidVersion]] when the stream holds a newer version of the
+    // struct and `options.tryForward` is not set.
     mtd beginStruct(structType: typeinfo?, _structData: [*] u8?)->bool fail
     {
         var sig = try .stream.readNative'u32()
         if sig == Write.TagBinSignature.Raw
         {
-            // If the stream contains a 'raw' representation of the struct, and the requested
-            // type is not a POD, then we can load in place.
+            // A raw representation can only be loaded in place into a type that is still final.
             if not Reflection.hasAttribute(structType, Serialization.Final) do
                 fail SerializationError{"cannot convert a type from final to non final"}
 
@@ -861,15 +857,13 @@ impl TagBin
         return false
     }
 
-    // Finish reading the current struct.
-    // Closes the current section that was opened by 'beginStruct'.
+    // Closes the struct that [[Core.Serialization.Read.TagBin.beginStruct]] opened.
     mtd endStruct() fail
     {
         try .endSection()
     }
 
-    // Begin reading a field element identified by 'val'.
-    // Returns true if the element exists in the stream and should be processed, false to skip it.
+    // Opens the field `val` and returns whether the stream contains it.
     mtd beginElement(val: TypeValue)->bool fail
     {
         Swag.assert(not .sections.isEmpty(), "Missing a previous 'beginSection' call")
@@ -979,8 +973,7 @@ impl TagBin
         return true
     }
 
-    // Finish reading the current field element.
-    // Clears any pending native type conversion state.
+    // Closes the current field and clears any pending conversion.
     mtd endElement(_val: TypeValue) fail
     {
         .convertNextNative = null
@@ -1000,16 +993,13 @@ impl TagBin
         .releaseTmpBuf(ctx.tmpBuf!)
     }
 
-    // Begin reading a value within the current context.
-    // Currently no special processing is required, but this maintains the symmetric API.
+    // Does nothing: TagBin values need no opening mark.
     mtd beginValue() fail {}
 
-    // Finish reading a value within the current context.
-    // Currently no cleanup is required, but this maintains the symmetric API.
+    // Does nothing: TagBin values need no closing mark.
     mtd endValue() fail {}
 
-    // Begin reading a sequence (array) of elements of type 'typeElem'.
-    // Updates 'countElem' with the actual number of elements and returns true for bulk reading optimization.
+    // Opens a sequence of `typeElem` values, stores its element count in `countElem`, and returns whether it read the elements in bulk.
     mtd beginSequence(typeElem: typeinfo?, data: *u8?, countElem: *u64)->bool fail
     {
         let orgCount = countElem[]
@@ -1137,12 +1127,10 @@ impl TagBin
         return false
     }
 
-    // Finish reading the current sequence.
-    // Currently no cleanup is required, but this maintains the symmetric API.
+    // Does nothing: a TagBin sequence needs no closing mark.
     mtd endSequence() fail {}
 
-    // Advance to the next element in the current sequence.
-    // Decrements 'countElem' and returns false when no more elements remain.
+    // Returns whether another element remains, consuming one from `countElem`.
     mtd toNextSequenceElement(countElem: *u64)->bool
     {
         if countElem[] == 0 do
@@ -1151,26 +1139,22 @@ impl TagBin
         return true
     }
 
-    // Check if this serializer uses textual representation.
-    // Always returns false since this is a binary serializer.
+    // Returns false, because TagBin is a binary format.
     mtd isTextual()->bool => false
 
-    // Get the version number of the current section.
-    // Returns 0 if no sections are active, otherwise returns the version found in the stream for the innermost struct.
+    // Returns the version stored for the innermost struct being read, or zero outside any struct.
     mtd version()->u32
     {
         if .sections.isEmpty() do
             return 0
-        let sec = .sections.back()!
-        return sec.version
+        return .sections.back()!.version
     }
 
     /////////////////////////////////
     // VALUES
     /////////////////////////////////
 
-    // Read a native type value from the stream with automatic type conversion support.
-    // Handles string types specially and performs type conversions when 'convertNextNative' is set.
+    // Reads a value of type `NT`, converting it from the stored type when a conversion is armed.
     mtd(NT) readNative()->NT fail
     {
         #static if NT == Core.String

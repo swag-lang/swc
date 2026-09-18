@@ -14,12 +14,12 @@ using Swag, Core
     f.main.mdlFormText.text = "Keep me"
     let textRectBefore = textItf.boundRect()
 
-    var textPaint = quickStyleNewPaintForm(textItf)
+    var textPaint = QuickStylePaintForm.create(textItf)
     Swag.assert(textPaint.itf.buffer != textItf.buffer)
     Swag.assert(f.main.mdlFormText.text == "Keep me")
     Swag.assert(textItf.boundRect() == textRectBefore)
     Swag.assert((cast #assume (*FormText) (textPaint.itf!)).text == "A")
-    quickStyleReleasePaintForm(&textPaint)
+    textPaint.release()
 
     f.main.mdlFormPolygon.points.add({10, 10})
     f.main.mdlFormPolygon.points.add({40, 20})
@@ -27,12 +27,12 @@ using Swag, Core
     let polyItf     = f.main.editModeToModel(.Polygon)
     let pointBefore = f.main.mdlFormPolygon.points[0]
 
-    var polyPaint = quickStyleNewPaintForm(polyItf)
+    var polyPaint = QuickStylePaintForm.create(polyItf)
     Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
     Swag.assert(f.main.mdlFormPolygon.points.count == 3)
     Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
     Swag.assert((cast #assume (*FormPolygon) (polyPaint.itf!)).points.count == 6)
-    quickStyleReleasePaintForm(&polyPaint)
+    polyPaint.release()
 }
 
 // A preset sample is centered in its cell whether or not the style carries an outline.
@@ -92,8 +92,8 @@ using Swag, Core
         defer btn.destroy()
         btn.iconPainter = func|itf|(btn, bc, pos, flags)
         {
-            var paint = quickStyleNewPaintForm(itf)
-            defer quickStyleReleasePaintForm(&paint)
+            var paint = QuickStylePaintForm.create(itf)
+            defer paint.release()
             Capture.paintForm(bc.painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paint.itf!, zoom: 1, quickMode: true)
         }
 
@@ -254,7 +254,7 @@ using Swag, Core
         for c in quick.layout.children
         {
             let btn = cast #assume (*QuickButton) c
-            if btn.userData or not btn.formItf do
+            if btn.isModel or not btn.formItf do
                 continue
             if Swag.kindOf(btn.formItf) != FormImage do
                 continue

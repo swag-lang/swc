@@ -46,6 +46,5 @@ func day9B()
             break
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 736)
 }

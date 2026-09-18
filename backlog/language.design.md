@@ -37,6 +37,27 @@ Public API consistency remains a module-by-module design requirement under
 options structs, slices and ownership contracts are available today. A concrete API defect belongs
 in its module backlog; a general request for better names is not a missing language feature.
 
+### language.design.036 — Struct equality compares float members by their bytes
+
+- Recorded: 2026-09-18 14:05
+- Evidence: the [operators reference](../bin/reference/modules/language/src/003_006_operators.swg)
+  says that `==` on a struct compares member by member, and that the compiler compares the bytes
+  only when every member gives the answer its bytes give, "which is what a struct of numbers
+  does". A float member does not: `-0.0 == 0.0` holds and `NaN == NaN` does not, while their
+  bytes say the opposite. [Aggregate codegen](../src/Compiler/CodeGen/Ast/CodeGen.Relational.cpp)
+  (`appendCompareParts`) treats every float member as bytes, and a struct of at most eight bytes
+  such as `Core.Math.Point` compares as one integer. Since scalar float negation flips the sign
+  bit, `-Math.Point.Zero == Math.Point.Zero` is false; the core test that asserted it held only
+  because negation used to compute `0 - x`.
+- Decisions: either float members compare as floats, which the reference promises, or the
+  reference states that numeric structs compare by bytes. Comparing as floats has to cover the
+  Sema constant fold, small structs carried in registers, and float arrays (a packed `cmpeqps`
+  answers IEEE equality sixteen bytes at a time), and it makes a byte hash disagree with `==` for
+  `-0.0` and NaN keys, as it does in C++.
+- Next: decide the contract, then align the reference, the constant fold, and codegen together.
+- Complete when: the reference and every compile-time and run-time comparison of a float-bearing
+  struct or array give the same answer, with JIT and native tests for `-0.0` and NaN members.
+
 ### language.design.032 — Produce values directly from a switch
 
 - Recorded: 2026-09-16 16:06

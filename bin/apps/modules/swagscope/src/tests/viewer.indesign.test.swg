@@ -23,30 +23,21 @@ using Core, Pixel, Gui
 }
 
 // The fixed 4 KiB master-page unit is the file-level contract this fixture records.
-private const IndesignFixtureHeaderSize = 4096'u64
+const IndesignFixtureHeaderSize = 4096'u64
+
+func indesignDataPath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 
 // Returns the minimal dual-header document fixture shared by this viewer and the smoke run.
-private func indesignFixturePath()->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.indd")
-}
+func indesignFixturePath()->String => indesignDataPath("viewer.indd")
 
 // An external, licensed IDML package exercises positioned content rather than a saved bitmap.
-private func idmlFixturePath()->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "uni-halle-52a.idml")
-}
+func idmlFixturePath()->String => indesignDataPath("uni-halle-52a.idml")
 
 // This published native document exercises the binary header and its independently saved preview.
-private func nativeFixturePath()->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "publicdomain.indd")
-}
+func nativeFixturePath()->String => indesignDataPath("publicdomain.indd")
 
-private func linkedIdmlFixturePath()->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "iosdc-2025-indesign-template.idml")
-}
+// This MIT-licensed editorial template keeps the absolute image links InDesign saved.
+func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-template.idml")
 
 #test
 {
@@ -118,7 +109,7 @@ private func linkedIdmlFixturePath()->String
             }
         }
 
-        for item in page.items where item.story == "u113" and item.text.count
+        for item in page.items where item.story == "u113" and not item.text.isEmpty()
         {
             flowedArticleFrames += 1
             flowedArticleBytes  += item.text.count
@@ -209,14 +200,19 @@ private func linkedIdmlFixturePath()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Bottom
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
+
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
 
     var result = openTestViewer(indesignViewerPlugin(), &host.root, linkedIdmlFixturePath().toString(), commandParent: commandBar, infoParent: infoBar)
     commandBar.centerGroup = result.commands
@@ -278,14 +274,19 @@ private func linkedIdmlFixturePath()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Bottom
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
+
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
 
     var result = openTestViewer(indesignViewerPlugin(), &host.root, idmlFixturePath().toString(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)
@@ -345,14 +346,19 @@ private func linkedIdmlFixturePath()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Bottom
-    commandBar.backgroundStyle = .Window
-    commandBar.padding         = {16, 8, 16, 8}
-    let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
-    infoBar.dockStyle       = .Bottom
-    infoBar.backgroundStyle = .InformationBar
-    infoBar.padding         = {16, 4, 16, 4}
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
+
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .InformationBar
+        .padding         = {16, 4, 16, 4}
+    }
 
     var result = openTestViewer(indesignViewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null and result.info != null)

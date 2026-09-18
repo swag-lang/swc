@@ -7,8 +7,9 @@
 
 using Swag
 
-// Performs the murmur3 operation.
-// Performs the murmur3 operation.
+// Returns the MurmurHash3 finalizer mix of the integer `h`.
+//
+// Every input bit affects every output bit, which suits hash-table keys that are already integers.
 #[Safety(.All, false)]
 public func murmur3(h: u32)->u32
 {
@@ -20,6 +21,7 @@ public func murmur3(h: u32)->u32
     return key
 }
 
+// Returns the MurmurHash3 64-bit finalizer mix of the integer `h`.
 #[Safety(.All, false)]
 public func murmur3(h: u64)->u64
 {
@@ -31,6 +33,7 @@ public func murmur3(h: u64)->u64
     return key
 }
 
+// Combines the hashes `a` and `b` into one hash.
 #[Safety(.All, false)]
 public func murmur3(a, b: u32)->u32
 {
@@ -41,6 +44,7 @@ public func murmur3(a, b: u32)->u32
     return nb + 0xE6546B64
 }
 
+// Combines the 64-bit hashes `a` and `b` into one hash.
 #[Safety(.All, false)]
 public func murmur3(a, b: u64)->u64
 {
@@ -52,6 +56,9 @@ public func murmur3(a, b: u64)->u64
     return nb * K
 }
 
+// Returns a hash of the `len` bytes at `key`, seeded with `seed`.
+//
+// The byte hash is MurmurHash64A, which reads the input in eight-byte blocks.
 #[Safety(.All, false)]
 public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 {

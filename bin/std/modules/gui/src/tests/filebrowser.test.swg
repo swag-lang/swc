@@ -110,19 +110,18 @@ using Swag, Core, File
 // recent-folder history keeps unique existing folders, most recent first.
 #test
 {
-    var state: FileDlgState
-    state.nameColumnWidth     = 333
-    state.modifiedColumnWidth = 155
-    state.sizeColumnWidth     = 77
+    var state = FileDlgState{nameColumnWidth: 333, modifiedColumnWidth: 155, sizeColumnWidth: 77}
 
     var host: Testing.HeadlessHost
     host.setup(640, 460)
     defer host.shutdown()
-    var opt: FileDlgOptions
-    opt.mode  = .SelectFile
-    opt.showLocationsPane = false
-    opt.state = &state
-    opt.filters.add({"Text", ".txt"})
+    with var opt: FileDlgOptions
+    {
+        .mode              = .SelectFile
+        .showLocationsPane = false
+        .state             = &state
+        .filters.add({"Text", ".txt"})
+    }
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 333) < 0.5)

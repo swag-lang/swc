@@ -1,12 +1,12 @@
 # Loading, streaming, and voices
 
 [[Audio.SoundFile.load]] always reads and validates the file header. With the
-default `preloadData = true`, it also keeps the payload of a PCM WAV file in memory. Pass
-`preloadData = false` for long sounds that should be read from disk while they
+default `preloadData: true`, it also keeps the payload of a PCM WAV file in memory. Pass
+`preloadData: false` for long sounds that should be read from disk while they
 play; a compressed file, ADPCM WAV included, is always indexed and read while it plays.
 
 ```swag
-let music = try Audio.SoundFile.load("assets/music.wav", preloadData = false)
+let music = try Audio.SoundFile.load("assets/music.wav", preloadData: false)
 let voice = try Audio.Voice.create(&music)!
 defer voice.destroy()
 

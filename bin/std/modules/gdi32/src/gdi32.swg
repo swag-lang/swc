@@ -454,10 +454,7 @@ alias FONTENUMPROCA = func(const *LOGFONTA, const *TEXTMETRICA, DWORD, LPARAM)->
 alias FONTENUMPROCW = func(const *LOGFONTW, const *TEXTMETRICW, DWORD, LPARAM)->BOOL
 
 #[Swag.Inline]
-func RGB(r, g, b: s32)->COLORREF
-{
-    return r | g << 8 | b << 16
-}
+func RGB(r, g, b: s32)->COLORREF => r | g << 8 | b << 16
 
 #[Foreign("Gdi32", callconv: Swag.CallConv.C)]
 {

@@ -42,7 +42,6 @@ func day1A()
     {
         if Slice.findSorted(arr[to], 2020 - v) != Swag.U64.Max
         {
-            // Console.print("total: ", v * (2020 - v))
             Swag.assert(v * (2020 - v) == 158916)
             break
         }

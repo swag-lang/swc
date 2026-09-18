@@ -61,16 +61,10 @@ public impl FontRenderMode
     // Returns the glyph-atlas bytes per pixel for this mode.
     //
     // MSDF is 4 (MTSDF): RGB multi-channel field + a true SDF in alpha for effects.
-    mtd bytesPerPixel()->u32
-    {
-        return me == .Msdf ? 4 : 1
-    }
+    mtd bytesPerPixel()->u32 => me == .Msdf ? 4 : 1
 
-    // True if the mode is a distance field (sampled with linear filtering)
-    mtd isDistanceField()->bool
-    {
-        return me == .Msdf
-    }
+    // Returns whether the mode stores a distance field, which is sampled with linear filtering.
+    mtd isDistanceField()->bool => me == .Msdf
 }
 
 // Defines the reference em size and range for size-independent MSDF rendering.
@@ -182,7 +176,7 @@ public struct Font
 #[Swag.NoCopy]
 public struct FontCache
 {
-    // The storage the cache owns. Views come out of 'create'; nothing else should reach in.
+    // The storage the cache owns. Views come out of 'createFont'; nothing else should reach in.
 
     internal
     {
@@ -245,7 +239,7 @@ public impl FontCache
         .clear()
     }
 
-    // Get or create the glyph storage for a (typeface, style, mode, refSize, spread).
+    // Returns the glyph storage for one typeface, style, mode, reference size, and spread, creating it on first use.
     private mtd acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*GlyphCache
     {
         for it in .glyphCaches
@@ -359,25 +353,23 @@ public impl FontCache
 
     // Loads a typeface file and creates a font at the requested draw size.
     //
-    // Typefaces are shared process-wide: they are immutable parsed files with no graphics resource
-    // of their own, so loading the same one through two caches parses it once.
-    mtd createFont(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
+    // The file is loaded by [[Pixel.TypeFace.load]], which reports a missing or malformed file
+    // through `fail`. Typefaces are shared process-wide: they are immutable parsed files with no
+    // graphics resource of their own, so loading the same one through two caches parses it once.
+    mtd createFont(fullName: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
     {
-        Swag.assert(fullname.count != 0)
-        let typeFace = try TypeFace.load(fullname)
+        Swag.assert(fullName.count != 0)
+        let typeFace = try TypeFace.load(fullName)
         return .createFont(typeFace, size, mode, forceBold, forceItalic)
     }
 }
 
 public impl Font
 {
-    // Scale factor from the shared cache reference size to this Font's draw size
-    mtd const scale()->f32
-    {
-        return cast(f32) .size / cast(f32) .cache.refSize
-    }
+    // Returns the factor that scales reference-size glyph metrics to this font's draw size.
+    mtd const scale()->f32 => cast(f32) .size / cast(f32) .cache.refSize
 
-    // Distance from the middle of a line box to the middle of the text a reader sees in it.
+    // Returns the distance from the middle of a line box to the middle of the text a reader sees in it.
     //
     // A line box reaches from the ascender to the descender, but a word is read on its capitals,
     // and the two middles are not the same point: the ascender keeps room above the capitals for
@@ -386,30 +378,21 @@ public impl Font
     // with generous accent room reads low in its line box, a compact one reads high. Add it to the
     // center of a rectangle a single line box is centered in to place anything that has to look
     // level with that line, such as a leading icon or a check mark.
-    mtd const opticalOffset()->f32
-    {
-        return (.ascent + .descent - .capHeight) * 0.5
-    }
+    mtd const opticalOffset()->f32 => (.ascent + .descent - .capHeight) * 0.5
 
-    // Y of the top edge of `size` placed level with a line of this font centered on `centerY`.
-    mtd const opticalTop(centerY, size: f32)->f32
-    {
-        return centerY + .opticalOffset() - size * 0.5
-    }
+    // Returns the top of an item `size` pixels tall placed level with a line of this font centered on `centerY`.
+    mtd const opticalTop(centerY, size: f32)->f32 => centerY + .opticalOffset() - size * 0.5
 
-    // Y of the top of a line box of this font whose capitals are centered on `centerY`.
+    // Returns the top of a line box of this font whose capitals are centered on `centerY`.
     //
     // This is how a single line is centered in something a reader sees the edges of — a field, a
     // cell, a button. Centering the line *box* instead hands the placement to the internal leading
     // of the face: two fields of one form, one set in the interface face and one in the fixed-width
     // one, then put their words on centers a couple of pixels apart, and neither on the center of
     // the frame around it. What the eye compares is the ink, so it is the ink that is centered.
-    mtd const opticalLineTop(centerY: f32)->f32
-    {
-        return centerY - .height * 0.5 - .opticalOffset()
-    }
+    mtd const opticalLineTop(centerY: f32)->f32 => centerY - .height * 0.5 - .opticalOffset()
 
-    // The render mode requested at creation (may be .Auto)
+    // Returns the render mode requested at creation, which can be `Auto`.
     mtd const renderMode()->FontRenderMode => .mode
 
     // Resolves the font used to draw a Unicode character, including configured fallbacks.
@@ -453,7 +436,7 @@ public impl Font
     // Returns a rune's descriptor, including fallback, in this font's reference-size units.
     mtd getGlyphDesc(c: rune)->const *GlyphDesc => .resolveRune(c).cache.getGlyphDesc(c)
 
-    // Returns the glyph descriptor of a given glyph index (in reference-size pixels)
+    // Returns the descriptor of a glyph index of this font's typeface, in reference-size pixels.
     mtd getGlyphDescByIndex(glyphIndex: u32)->const *GlyphDesc => .cache.getGlyphDescByIndex(glyphIndex)
 
     // Returns a rune's glyph index in this typeface alone, or zero when absent.
@@ -535,9 +518,8 @@ impl GlyphCache
         if not .hasKerning or not leftIndex or not rightIndex do
             return 0
 
-        let key  = (cast(u64) leftIndex << 32) | cast(u64) rightIndex
-        let here = .kernRef.tryFind(key)
-        if here do
+        let key = (cast(u64) leftIndex << 32) | cast(u64) rightIndex
+        if let here = .kernRef.tryFind(key) do
             return here.value
 
         // 'kern' is scaled to the current pixel size, so query it at the reference size.
@@ -548,7 +530,7 @@ impl GlyphCache
         return px
     }
 
-    // Returns the glyph descriptor of a given rune, rendered at the reference size
+    // Returns the descriptor of a rune, rendered at the reference size on first use.
     mtd getGlyphDesc(c: rune)->const *GlyphDesc => .getGlyphDescByIndex(.typeFace.face.glyphIndex(c))
 
     // Rasterizes a typeface glyph into the face bitmap using this cache's mode.
@@ -564,7 +546,7 @@ impl GlyphCache
         }
     }
 
-    // Returns the glyph descriptor of a given glyph index, rendered at the reference size
+    // Returns the descriptor of a glyph index, rendered at the reference size on first use.
     mtd getGlyphDescByIndex(glyphIndex: u32)->const *GlyphDesc
     {
         let entry = .glyphRef.tryFind(glyphIndex)

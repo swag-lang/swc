@@ -74,6 +74,7 @@ impl OrderedMap
     }
 
     // Selects the comparator used by subsequent operations.
+    //
     // The map must be empty so that no key was positioned by another ordering.
     mtd initialize(comparator: func(const *K, const *K)->s32)
     {
@@ -156,6 +157,7 @@ impl OrderedMap
     }
 
     // Returns the sorted entries with keys in the half-open interval `[lower, upper)`.
+    //
     // The returned slice borrows the map and is invalidated by any insertion or removal.
     mtd const range(lower, upper: K)->const [..] OrderedMapEntry'(K, V)
     {
@@ -170,6 +172,7 @@ impl OrderedMap
     mtd const contains(key: K)->bool => .tryFind(key) != null
 
     // Returns the entry for `key`, or `null` when the key is absent.
+    //
     // The returned pointer is invalidated by insertion or removal.
     mtd tryFind(key: K)->*OrderedMapEntry?
     {
@@ -180,6 +183,7 @@ impl OrderedMap
     }
 
     // Returns the entry for `key`, or `null` when the key is absent.
+    //
     // The returned pointer is invalidated by insertion or removal.
     mtd const tryFind(key: K)->const *OrderedMapEntry?
     {
@@ -211,7 +215,8 @@ impl OrderedMap
     // Returns the address of the value for `key` and asserts if the key is absent.
     mtd const opIndexPtr(key: K)->const *V => &.find(key).value
 
-    // Adds a key-value pair in sorted position, replacing the value of an existing key.
+    // Adds a key-value pair in sorted position, replacing the value of an existing key, and returns the entry.
+    //
     // The key and value are copied; pass either with `#move` to transfer it.
     #[Discardable]
     mtd add(key: #fwd K, value: #fwd V)->*OrderedMapEntry

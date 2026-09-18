@@ -9,10 +9,7 @@ func countVideoLoadingChange(wnd: *Wnd)
     count[] += 1
 }
 
-func videoPreviewFile(name: string, frameCount = 4'u32)->String fail
-{
-    return try videoPreviewFileAt(Path.combine(Env.getSpecialDirectory(.Temp).toString(), name).toString(), frameCount)
-}
+func videoPreviewFile(name: string, frameCount = 4'u32)->String fail => try videoPreviewFileAt(Path.combine(Env.getSpecialDirectory(.Temp).toString(), name).toString(), frameCount)
 
 // Writes a short silent movie of `frameCount` solid pictures at `fileName`.
 func videoPreviewFileAt(fileName: string, frameCount = 4'u32)->String fail
@@ -86,7 +83,8 @@ func waitForVideoFrame(view: *VideoViewer)
     Swag.assert(view.openFinished and not view.awaitingFrame)
 }
 
-// Withhold every free slot and drain any in-flight decode before observing a loading state.
+// Withholds every free slot and drains any in-flight decode, so a test can observe a loading state.
+//
 // A fast background producer must not decide whether a test sees the requested wait overlay.
 func holdVideoProducer(view: *VideoViewer)
 {
@@ -106,11 +104,12 @@ func holdVideoProducer(view: *VideoViewer)
     Swag.assert(false)
 }
 
+// Hands back every slot [[holdVideoProducer]] withheld, and wakes the producer.
 func releaseVideoProducer(view: *VideoViewer)
 {
     {
         Sync.scopedLock(&view.queueLock)
-        Swag.assert(not view.inFlight and not view.ready.count and not view.freeSlots.count)
+        Swag.assert(not view.inFlight and view.ready.isEmpty() and view.freeSlots.isEmpty())
         for index in view.slotCount do
             view.freeSlots.add(cast(u32) index)
     }
@@ -144,20 +143,11 @@ func waitForVideoVoicePlaying(view: *VideoViewer)
     Swag.assert(view.voice != null and view.voice.isPlaying())
 }
 
-func videoAudioFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/glint-aac-mjpeg.mp4")
-}
+func videoAudioFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/glint-aac-mjpeg.mp4")
 
-func videoAvcFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-baseline.mp4")
-}
+func videoAvcFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-baseline.mp4")
 
-func videoMatroskaFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-two-aac.mkv")
-}
+func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-two-aac.mkv")
 
 // A same-stem sidecar is discovered, selected, and presented on the movie clock. Rendering
 // preferences and manual synchronization are available from the same track menu.
@@ -181,7 +171,7 @@ func videoMatroskaFixturePath()->String
 
     let standalone = expect Subtitle.Track.loadOwned(sidecar.toString())
     Swag.assert(standalone != null)
-    let standaloneText = videoSubtitleText(standalone.cueTextData(0), standalone.cueTextLength(0))
+    let standaloneText = standalone.cueContent(0)
     Swag.assert(standaloneText == "Opening caption")
     Subtitle.Track.destroy(standalone)
 
@@ -207,7 +197,7 @@ func videoMatroskaFixturePath()->String
     Swag.assert(Utf8.contains(languageText, "<p2> (fr)</p>"))
     Swag.assert(Utf8.contains(embeddedTrackText, "<p3>Embedded</p>"))
     Swag.assert(not Utf8.contains(RichString.plainText(sidecarTrackText), "<p"))
-    let opening = videoSubtitleText(view.subtitleOverlay.sidecars[0].cueTextData(0), view.subtitleOverlay.sidecars[0].cueTextLength(0))
+    let opening = view.subtitleOverlay.sidecars[0].cueContent(0)
     Swag.assert(opening == "Opening caption")
     Swag.assert(view.subtitleOverlay.text == "Opening caption")
     view.seekSeconds(0.6)
@@ -246,9 +236,9 @@ func videoMatroskaFixturePath()->String
     waitForVideoFrame(previous)
     Swag.assert(previous.video.isOpen() and previous.playing)
 
-    // Leave each decoder running before replacing it. The queue used to grow from two `u32`
-    // entries to four on the decoder thread through storage owned by the GUI allocator; several
-    // ordinary zaps made that allocator mismatch surface as Memory.realloc(16, 8).
+    // Leave each decoder running before replacing it. A queue that grew on the decoder thread
+    // through storage owned by the GUI allocator would surface, after several ordinary zaps, as
+    // Memory.realloc(16, 8).
     for 8
     {
         for 12
@@ -580,7 +570,7 @@ func videoMatroskaFixturePath()->String
     defer discard catch Directory.delete(folder.toString(), recurse: true)
     discard expect videoPreviewFileAt(Path.combine(folder.toString(), "clip1.mp4").toString())
     discard expect videoPreviewFileAt(Path.combine(folder.toString(), "clip2.mp4").toString())
-    discard expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8) "a readable line\n")
+    expect File.writeAllBytes(Path.combine(folder.toString(), "notes.txt").toString(), cast(const [..] u8) "a readable line\n")
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -969,11 +959,11 @@ func videoMatroskaFixturePath()->String
 
 // The run-ahead queue stays a FIFO as pictures are taken from it.
 //
-// Taking the front with an unstable removal put the newest picture there instead, and the ones it
-// stepped over were never taken at all: the queue reported itself full while the run-ahead it
-// exists for had shrunk to two pictures, so any decode longer than one frame period reached the
-// screen as a stall. Playback still looked sequential, which is why this needs an assertion on the
-// order rather than on what was shown.
+// Taking the front with an unstable removal would put the newest picture there instead, and the
+// ones it steps over would never be taken at all: the queue would report itself full while the
+// run-ahead it exists for shrinks to two pictures, so any decode longer than one frame period
+// reaches the screen as a stall. Playback would still look sequential, which is why this asserts
+// the order rather than what is shown.
 #test
 {
     let fileName = expect videoPreviewFile(Format.toString("scope-video-queue-%.mp4", Guid64.random()).toString(), 40)

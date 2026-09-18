@@ -22,8 +22,7 @@ internal func blockBytes(format: Format)->u64
     switch #complete format
     {
     case .None:
-        Swag.assert(false)
-        return 0
+        unreachable
 
     case .BC1, .BC4:
         return 8
@@ -34,10 +33,7 @@ internal func blockBytes(format: Format)->u64
 }
 
 #[Swag.Inline]
-func readU16(source: const [*] u8)->u16
-{
-    return cast(u16) source[0] | (cast(u16) source[1] << 8)
-}
+func readU16(source: const [*] u8)->u16 => cast(u16) source[0] | (cast(u16) source[1] << 8)
 
 #[Swag.Inline]
 func readU32(source: const [*] u8)->u32

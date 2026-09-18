@@ -40,7 +40,7 @@ struct RichEditCtrl
 {
     public
     {
-        using frameWnd:           FrameWnd                                                   // Embedded frame wnd state.
+        using frameWnd:           FrameWnd                                                   // Embedded frame behavior and presentation.
         flags = RichEditFlags.None                                                           // Active editor behavior flags.
         lineSpacing:              f32                                                        // Extra vertical spacing, in logical pixels, between display lines.
         overwriteMode:            bool                                                       // Whether typed text replaces the rune under the caret.
@@ -64,38 +64,38 @@ struct RichEditCtrl
     // The document and everything the control derives from it: the line pool, the cursor and
     // selection, the visible window, and the undo timeline. Edit through the methods and
     // connect to the signals; this state only makes sense together.
-    cursorPos:      RichEditCursor            // Cursor pos associated with this value.
-    selBeg:         RichEditCursor            // Sel beg associated with this value.
-    lines:          ArrayPtr'RichEditLine     // Lines associated with this value.
-    freeLines:      ArrayPtr'RichEditLine     // Free lines associated with this value.
-    late scrollWnd: *ScrollWnd                // Scroll wnd associated with this value.
-    late edView:    *RichEditView             // Ed view associated with this value.
-    selRectangle:   Math.Rectangle            // Sel rectangle associated with this value.
+    cursorPos:      RichEditCursor            // Caret, the moving end of the selection.
+    selBeg:         RichEditCursor            // Anchor, the fixed end of the selection.
+    lines:          ArrayPtr'RichEditLine     // Logical lines of the document.
+    freeLines:      ArrayPtr'RichEditLine     // Removed lines kept for reuse.
+    late scrollWnd: *ScrollWnd                // Scrolling container of the text view.
+    late edView:    *RichEditView             // View that paints the text and reads the input.
+    selRectangle:   Math.Rectangle            // Bounds of a rectangular selection.
 
-    hasSelRect:              bool     // Whether this value has sel rect.
-    modified:                bool     // Modified associated with this value.
+    hasSelRect:              bool     // Whether the selection is rectangular.
+    modified:                bool     // Whether the document differs from its last saved state.
     recomputeWrap:           bool     // Reflow every logical line after flags or font metrics change.
-    recomputeScroll:         bool     // Recompute scroll associated with this value.
-    dirtyFirstLineView:      bool     // Dirty first line view associated with this value.
-    forceCaretVisible:       bool     // Force caret visible associated with this value.
-    forceCaretVisibleCenter: bool     // Force caret visible center associated with this value.
+    recomputeScroll:         bool     // Whether the scroll extent must be computed again.
+    dirtyFirstLineView:      bool     // Whether the first visible line must be found again.
+    forceCaretVisible:       bool     // Whether the next layout scrolls the caret into view.
+    forceCaretVisibleCenter: bool     // Whether that scroll centers the caret.
 
-    undoMgr:                ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
-    toUndo:                 ArrayPtr'RichEditUndo     // To undo associated with this value.
-    mapping:                Array'RichEditMapping     // Mapping associated with this value.
-    currentUndo:            u64                       // Current undo associated with this value.
-    undoCounter:            u64                       // Undo counter associated with this value.
-    modifiedUndoMarker:     u64                       // Modified undo marker associated with this value.
-    serialUndo:             u64                       // Serial undo associated with this value.
-    countVisibleLines:      u64                       // Count visible lines associated with this value.
-    firstVisibleLineView:   u64                       // First visible line view associated with this value.
-    lastVisibleLineView:    u64                       // Last visible line view associated with this value.
+    undoMgr:                ArrayPtr'RichEditUndo     // Committed undo records, oldest first.
+    toUndo:                 ArrayPtr'RichEditUndo     // Records of the open undo group, committed by `popUndo`.
+    mapping:                Array'RichEditMapping     // Keyboard shortcuts and the commands they run.
+    currentUndo:            u64                       // Number of committed records currently applied.
+    undoCounter:            u64                       // Nesting depth of `pushUndo` groups.
+    modifiedUndoMarker:     u64                       // Undo position at which the document was last marked unmodified.
+    serialUndo:             u64                       // Group number given to the next committed records.
+    countVisibleLines:      u64                       // Number of lines not hidden by a fold.
+    firstVisibleLineView:   u64                       // First line the view shows.
+    lastVisibleLineView:    u64                       // Last line the view shows.
     loadedContentHeight:    f32                       // Height laid out from the text currently held in memory.
     residentContentOffset:  f32                       // Virtual y origin of the resident text window.
     estimatedContentHeight: f32                       // Optional larger virtual height published by a streaming owner.
-    clipFormat:             Clipboard.ValueFormat     // Clip format associated with this value.
-    cursorPosUndo:          RichEditCursor            // Cursor pos undo associated with this value.
-    selBegUndo:             RichEditCursor            // Sel beg undo associated with this value.
+    clipFormat:             Clipboard.ValueFormat     // Clipboard format carrying the rune styles of a copy.
+    cursorPosUndo:          RichEditCursor            // Caret when the outermost undo group opened.
+    selBegUndo:             RichEditCursor            // Anchor when the outermost undo group opened.
 }
 
 private impl IWnd for RichEditCtrl
@@ -120,7 +120,7 @@ private impl RichEditCtrl
     mtd setDefaultStyles()
     {
         let colors = .themeColors()
-        for i in (.styles).count do
+        for i in .styles.count do
             .styles[i].colFg = colors.richEdit_Text
         .setForm(.RichEditCtrl)
     }
@@ -134,7 +134,7 @@ private impl RichEditCtrl
         var y = .residentContentOffset
         var firstHidden = true
         .countVisibleLines = 0
-        for i in (.lines).count
+        for i in .lines.count
         {
             let ln = .lines[i]!
             ln.drawingRect.clear()
@@ -217,14 +217,8 @@ private impl RichEditCtrl
 
     mtd lastVisibleLine()->u64
     {
-        if not .lines.count do
-            return 0
-        for var i = .lines.count - 1; i >= 0; i -= 0
-        {
-            if .lines[i]!.isVisible() do
-                return i
-        }
-
+        for i in reversed(.lines.count) where .lines[i]!.isVisible() do
+            return i
         return 0
     }
 
@@ -321,22 +315,14 @@ impl RichEditCtrl
         .form = form
         let colors = .themeColors()
 
+        // An explicit background color model wins over the one each form defaults to.
+        var mdlBk = .backgroundColorModel
         switch .form
         {
         case .RichEditCtrl:
             .style.setFont(.parent!.theme().res.fontDefaultFs)
-
-            var mdlBk = .backgroundColorModel
-            if .backgroundColorModel.length == 0 do
+            if mdlBk.isEmpty() do
                 mdlBk = String.from("$richEdit_Bk")
-
-            .frameWnd.style.clearStyleSheetColors()
-            .scrollWnd.style.clearStyleSheetColors()
-
-            .frameWnd.style.addStyleSheetColors(Format.toString("frameWnd_FocusBk %", mdlBk))
-            .frameWnd.style.addStyleSheetColors(Format.toString("frameWnd_Bk %", mdlBk))
-            .scrollWnd.style.addStyleSheetColors(Format.toString("scrollBar_Bk %", mdlBk))
-
             .stylesSelect[0].colFg = colors.richEdit_SelText
             .stylesSelect[0].colBk = colors.richEdit_SelBk
             .stylesSelect[1].colFg = colors.richEdit_SelTextNoFocus
@@ -344,28 +330,23 @@ impl RichEditCtrl
 
         case .Edit:
             .style.clearFont()
-
-            var mdlBk = .backgroundColorModel
-            if .backgroundColorModel.length == 0 do
+            if mdlBk.isEmpty() do
                 mdlBk = String.from("$edit_Bk")
-
-            .frameWnd.style.clearStyleSheetColors()
-            .scrollWnd.style.clearStyleSheetColors()
-
-            .frameWnd.style.addStyleSheetColors(Format.toString("frameWnd_FocusBk %", mdlBk))
-            .frameWnd.style.addStyleSheetColors(Format.toString("frameWnd_Bk %", mdlBk))
-            .scrollWnd.style.addStyleSheetColors(Format.toString("scrollBar_Bk %", mdlBk))
-
             .stylesSelect[0].colFg = colors.edit_Text
             .stylesSelect[0].colBk = colors.edit_SelectedBk
             .stylesSelect[1].colFg = 0
             .stylesSelect[1].colBk = 0
         }
 
+        .frameWnd.style.clearStyleSheetColors()
+        .scrollWnd.style.clearStyleSheetColors()
+        .frameWnd.style.addStyleSheetColors(Format.toString("frameWnd_FocusBk %", mdlBk))
+        .frameWnd.style.addStyleSheetColors(Format.toString("frameWnd_Bk %", mdlBk))
+        .scrollWnd.style.addStyleSheetColors(Format.toString("scrollBar_Bk %", mdlBk))
         .invalidate()
     }
 
-    // Returns true if the rich edit is read only
+    // Returns whether the editor rejects edits, through its flags or a [[Gui.RichEditCtrl.sigIsReadOnly]] handler.
     mtd isReadOnly()->bool
     {
         var ro = false
@@ -423,14 +404,17 @@ impl RichEditCtrl
         .edView.invalidate()
     }
 
-    // Simulate a keyboard character pressed
+    // Processes a typed character the way the keyboard does.
+    //
+    // A key combination bound to a command is left to [[Gui.RichEditCtrl.keyPressed]]. Otherwise,
+    // unless the editor is read-only, the lexer may consume `ch`, and the text receives it.
     mtd charPressed(key: Input.Key, ch: rune, modifiers: Input.KeyModifiers)
     {
         var isChar = false
         if modifiers == .None and ch >= '0' and ch <= '9' do
             isChar = true
 
-        // If there is a corresponding command,: nothing
+        // A key combination bound to a command is not text.
         if not isChar
         {
             let cmd = .commandForShortcut(key, modifiers)
@@ -455,7 +439,7 @@ impl RichEditCtrl
         .forceCaretVisible = true
     }
 
-    // Simulate a keyboard pressed
+    // Runs the command bound to the key combination, if any, as the keyboard does.
     mtd keyPressed(key: Input.Key, modifiers: Input.KeyModifiers)
     {
         let cmd = .commandForShortcut(key, modifiers)
@@ -466,7 +450,7 @@ impl RichEditCtrl
         .invalidate()
     }
 
-    // Associate a lexer
+    // Installs `lex` as the lexer and lets it set up its styles for the current theme.
     mtd setLexer(lex: IRichEditLexer)
     {
         .lexer = lex
@@ -474,14 +458,14 @@ impl RichEditCtrl
         .lexer.setupTheme(me)
     }
 
-    // Lex the full text
+    // Runs the lexer over every line, in order.
     mtd lexAll()
     {
         if not .lexer do
             return
 
         var prev, cur, next: *RichEditLine?
-        for i in (.lines).count
+        for i in .lines.count
         {
             cur  = .lines[i]!
             next = i == .lines.count - 1 ? null : .lines[i + 1]

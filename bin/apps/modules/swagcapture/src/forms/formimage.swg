@@ -99,10 +99,7 @@ impl FormImage
 
 impl IForm for FormImage
 {
-    mtd impl canRotate()->bool
-    {
-        return not .mustEditInside() and .subKind == .None
-    }
+    mtd impl canRotate()->bool => not .mustEditInside() and .subKind == .None
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {

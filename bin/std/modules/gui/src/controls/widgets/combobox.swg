@@ -40,7 +40,7 @@ struct ComboBox
         sigChanged:         SigArray'func||(*ComboBox, u32)     // Emitted after a notifying selection change.
 
         // What the combo shows. Add items through the methods, which keep the popup and the
-        // measured icon width in step, and select through 'setSelected'.
+        // measured icon width in step, and select through [[Gui.ComboBox.setSelectedIndex]].
 
         readonly
         {
@@ -273,7 +273,7 @@ impl IWnd for ComboBox
         if evt.kind != .Pressed do
             return
 
-        let alt = cast(bool) (evt.modifiers & .Alt)
+        let alt = evt.modifiers.has(.Alt)
 
         // When the drop-down is open, the keys drive the list selection.
         if .popup
@@ -451,7 +451,9 @@ impl ComboBox
         return result
     }
 
-    // Removes every item and silently clears the selection and editable text.
+    // Removes every item and clears the selection without emitting [[Gui.ComboBox.sigChanged]].
+    //
+    // An editable combo box that had a selection also clears the text it mirrored from it.
     mtd clear()
     {
         .hidePopup()

@@ -1,7 +1,7 @@
-// Global variable
+// The main window once [[MainWnd.create]] has run. Headless fixtures that build a panel on its
+// own leave it null.
 var g_Main: *MainWnd?
 
-// Constants
 const ClipboardFormat        = "Swag.Capture"
 const CaptureFileMetadataTag = "Swag.Capture.File"
 const IconsSvg               = #include("../datas/icons.svg")
@@ -17,7 +17,6 @@ const ReadoutsWidth   = 240.0     // The readout group: both cells, their gap, a
 const RightPanelWidth = 288.0     // Content width of the tool panel on the right.
 const ToolTitleHeight = 26.0      // Heading included in the upper split panel.
 
-// Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
 
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
@@ -88,7 +87,6 @@ enum BottomSize
     Big
 }
 
-// Main structure
 struct MainWnd
 {
     using wnd: Wnd
@@ -118,7 +116,7 @@ struct MainWnd
 
     // State
     editMode:                                  EditMode   = .Shape
-    bottomSize:                                BottomSize = Medium
+    bottomSize:                                BottomSize = .Medium
     pixSelFillCol:                             Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
     firstShow = true
@@ -147,53 +145,8 @@ struct MainWnd
     mdlByType: Array'IForm
 }
 
-// Interface implementation
 impl IWnd for MainWnd
 {
-    mtd popupBar()
-    {
-        let sf        = (catch .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost))!
-        with let menu = Wnd.create'MenuCtrl(sf.wnd.view)
-        {
-            .addItem(ActionGlobal.ShowEditor)
-            .addSeparator()
-            .addItem(ActionCapture.Area)
-            .addItem(ActionCapture.LastArea)
-            .addItem(ActionCapture.FullScreen)
-            .addItem(ActionCapture.ActiveWnd)
-
-            for idx in me.monitors.count do
-                .addItem(ActionCapture.screenId(idx))
-
-            .addSeparator()
-            .addItem(ActionGlobal.Exit)
-            .owner = me
-            .setFramePainting(true)
-            .dockStyle = .Center
-            .padding   = 10
-            .updateState()
-            .computeLayoutPopup()
-        }
-
-        // The menu layout is logical; the surface rectangle is physical screen pixels.
-        let pt         = Input.mousePosition()
-        let shadowSize = .themeMetrics().surfaceWnd_ShadowSize
-        menu.position.width  += 2 * shadowSize
-        menu.position.height += 2 * shadowSize
-        sf.setPosition({pt.x, pt.y, menu.position.width * sf.dpiScale, menu.position.height * sf.dpiScale})
-        sf.constrainPositionToScreen()
-        sf.wnd.view.backgroundStyle = .Window
-
-        sf.show()
-        sf.bringToFront()
-        while not menu.isModalEnded() do
-            .app().runFrame()
-        sf.hide()
-        if menu.modalResult() do
-            .postCommandEvent(menu.modalResult())
-        sf.destroy()
-    }
-
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
         switch evt.kind
@@ -206,7 +159,7 @@ impl IWnd for MainWnd
                 srf.bringToFront()
             }
             elif evt.trayAction == .ContextMenu do
-                .popupBar()
+                .popupTrayMenu()
 
         case .CustomMessage:
             if evt.messageId == 1 and Clipboard.hasString() do
@@ -251,9 +204,8 @@ impl IWnd for MainWnd
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .saveAppState()
-        let renderer = .app().renderer
         .icons.free()
-        .appIcon.release(renderer)
+        .appIcon.release(.app().renderer)
     }
 
     mtd impl onStateEvent(evt: *StateEvent)
@@ -311,8 +263,8 @@ impl IWnd for MainWnd
                 try .serialize("MainWnd.libraryShowChangedLinked", &me.libWnd.showUnSavedLinkedImage)
                 try .serialize("MainWnd.libraryShowRatingOverlay", &me.libWnd.showRatingOverlay)
                 try .serialize("MainWnd.libraryShowLinkOverlay", &me.libWnd.showLinkOverlay)
-                try .serialize("MainWnd.RightBar.Pane0", &me .quickStyleBar.items[0]!.size)
-                try .serialize("MainWnd.RightBar.Pane1", &me .quickStyleBar.items[1]!.size)
+                try .serialize("MainWnd.RightBar.Pane0", &me.quickStyleBar.items[0]!.size)
+                try .serialize("MainWnd.RightBar.Pane1", &me.quickStyleBar.items[1]!.size)
                 try .serialize("MainWnd.captureOptions", &me.captureOptions)
                 try .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
@@ -342,9 +294,54 @@ impl IWnd for MainWnd
     }
 }
 
-// Main implementation
 impl MainWnd
 {
+    // Opens the notification-area menu at the pointer, on a top-most surface of its own: the
+    // main window may be hidden when the tray icon is clicked.
+    mtd popupTrayMenu()
+    {
+        let sf        = (catch .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost))!
+        with let menu = Wnd.create'MenuCtrl(sf.wnd.view)
+        {
+            .addItem(ActionGlobal.ShowEditor)
+            .addSeparator()
+            .addItem(ActionCapture.Area)
+            .addItem(ActionCapture.LastArea)
+            .addItem(ActionCapture.FullScreen)
+            .addItem(ActionCapture.ActiveWnd)
+
+            for idx in me.monitors.count do
+                .addItem(ActionCapture.screenId(idx))
+
+            .addSeparator()
+            .addItem(ActionGlobal.Exit)
+            .owner = me
+            .setFramePainting(true)
+            .dockStyle = .Center
+            .padding   = 10
+            .updateState()
+            .computeLayoutPopup()
+        }
+
+        // The menu layout is logical; the surface rectangle is physical screen pixels.
+        let pt         = Input.mousePosition()
+        let shadowSize = .themeMetrics().surfaceWnd_ShadowSize
+        menu.position.width  += 2 * shadowSize
+        menu.position.height += 2 * shadowSize
+        sf.setPosition({pt.x, pt.y, menu.position.width * sf.dpiScale, menu.position.height * sf.dpiScale})
+        sf.constrainPositionToScreen()
+        sf.wnd.view.backgroundStyle = .Window
+
+        sf.show()
+        sf.bringToFront()
+        while not menu.isModalEnded() do
+            .app().runFrame()
+        sf.hide()
+        if menu.modalResult() do
+            .postCommandEvent(menu.modalResult())
+        sf.destroy()
+    }
+
     // Migrates values whose historical default would otherwise pin an old visual choice
     // forever. User-picked colors are left untouched.
     mtd migrateStoredOptions()
@@ -379,10 +376,10 @@ impl MainWnd
             MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failed))
     }
 
-    // Change the user-defined name of a capture and persist it. The library shows
-    // previews loaded without the background image, so we never save that in-memory
-    // copy (it would wipe the picture); we update the real file on disk instead and
-    // then refresh the preview's displayed title.
+    // Changes the user-defined name of a capture and persists it. The library shows
+    // previews loaded without the background image, so that in-memory copy is never
+    // saved (it would wipe the picture): the real file on disk is updated instead, then
+    // the preview's displayed title.
     mtd setCaptureTitle(file: String, title: String)
     {
         let editCapture = .editWnd.getCapture()
@@ -406,25 +403,25 @@ impl MainWnd
             }
 
             let loaded = full!
+            defer Memory.delete(loaded)
             loaded.title   = title
             loaded.changed = true
             .saveCapture(loaded)
-            Memory.delete(loaded)
         }
 
         // Reflect the new title on the library preview(s) that reference this file.
-        if (.libWnd != null) and (.libWnd.view != null)
+        if .libWnd != null and .libWnd.view != null
         {
-            for it in .libWnd.view.items where it.capture and it.fi.fullname == file do
+            for it in .libWnd.view.items where it.capture and it.fi.fullName == file do
                 it.capture.title = title
             .libWnd.view.invalidate()
         }
     }
 
-    // Render a stored capture at full resolution and place it on the clipboard. Used
-    // from the library, where the focused capture is only a lightweight preview: we
-    // load the complete file, borrow the editor's render context to composite it, and
-    // discard it without touching the active editor selection.
+    // Renders a stored capture at full resolution and places it on the clipboard. Used
+    // from the library, where the focused capture is only a lightweight preview: the
+    // complete file is loaded, composited through the editor's render context, and
+    // discarded without touching the active editor selection.
     mtd copyLibraryImage(file: String)
     {
         Cursor.activateWait()
@@ -437,10 +434,9 @@ impl MainWnd
         }
 
         let loaded = full!
+        defer Memory.delete(loaded)
         loaded.editView = .editWnd.editView
         Clipboard.addImage(loaded.toImage())
-
-        Memory.delete(loaded)
     }
 
     mtd loadExternalImage(arg: String)
@@ -482,8 +478,7 @@ impl MainWnd
         {
         case .Selection:
             .editMode = .Shape
-            let capture = .getCapture()
-            capture?.updateEditModeFromSelection()
+            .getCapture()?.updateEditModeFromSelection()
             let edMode = .editMode
             .editMode = .Selection
             return edMode
@@ -594,11 +589,11 @@ impl MainWnd
         .sizeBtn.invalidate()
     }
 
-    // Names the surface the right column is editing. It replaces the two pane titles the
-    // panel used to carry, and unlike them it says something the reader does not know.
+    // Names the surface the right column is editing. A pane title would only repeat what the
+    // reader already sees; the tool name says something the panel itself does not.
     mtd updateToolTitle()
     {
-        if not (.toolTitle != null) do
+        if .toolTitle == null do
             return
 
         var name = appStrings().act_Select
@@ -619,8 +614,7 @@ impl MainWnd
         default:         break
         }
 
-        let upper = String.toUpper(name)
-        .toolTitle.setText(upper.toString())
+        .toolTitle.setText(String.toUpper(name).toString())
     }
 
     mtd registerActions()
@@ -736,7 +730,7 @@ impl MainWnd
         }
 
         // File menu
-        with let fileMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let fileMenu = MenuCtrl.createPopup(parentWnd, owner: me)
         {
             .addGroup([ActionFile.NewImage, ActionFile.NewFromClipboard])
             .addGroup([ActionFile.OpenImage, ActionFile.SaveAsImage])
@@ -747,7 +741,7 @@ impl MainWnd
         }
 
         // Capture menu
-        with let captureMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let captureMenu = MenuCtrl.createPopup(parentWnd, owner: me)
         {
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
@@ -772,7 +766,7 @@ impl MainWnd
         }
 
         // Edit menu
-        with let editMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let editMenu = MenuCtrl.createPopup(parentWnd, owner: me)
         {
             .addGroup([ActionUndo.DoUndo, ActionUndo.DoRedo])
             .addGroup([ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste])
@@ -785,7 +779,7 @@ impl MainWnd
         }
 
         // Image menu
-        with let imageMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let imageMenu = MenuCtrl.createPopup(parentWnd, owner: me)
         {
             .addGroup([ActionCopyPaste.CopyAsImage])
             .addGroup([ActionImage.RestoreOrg])
@@ -795,9 +789,9 @@ impl MainWnd
             topMenu.addPopup(func()->string => appStrings().ui_MenuImage, imageMenu)
         }
 
-        // View menu. The recent-preview size lives here now, instead of on three radio
+        // View menu. The recent-preview size is chosen here rather than by three radio
         // buttons standing permanently beside the recent bar.
-        with let viewMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let viewMenu = MenuCtrl.createPopup(parentWnd, owner: me)
         {
             .addGroup([ActionZoom.ZoomIn, ActionZoom.ZoomOut])
             .addGroup([ActionZoom.Zoom1, ActionZoom.ZoomFit])
@@ -807,7 +801,7 @@ impl MainWnd
         }
 
         // Help menu
-        with let helpMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let helpMenu = MenuCtrl.createPopup(parentWnd, owner: me)
         {
             .addItem(ActionOptions.Options)
             topMenu.addPopup(func()->string => appStrings().ui_MenuHelp, helpMenu)
@@ -873,7 +867,7 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(me .toolRail, {}, position: {0, 0, cellSize, cellSize})
+            with let b = IconButton.create(me.toolRail, {}, position: {0, 0, cellSize, cellSize})
             {
                 .id = id
 
@@ -906,12 +900,20 @@ impl MainWnd
     }
 
     // The command row: the two verbs of the application on one side, what the machine
-    // knows about the open capture on the other, and nothing in between.
+    // knows about the open capture on the other, and nothing in between. It keeps the same
+    // height in the editor and in the library.
     mtd createCommandRow()
     {
-        let metrics    = .themeMetrics()
-        let cellSize   = themeActionButtonSize(metrics)
-        with let verbs = StackLayoutCtrl.create(me .topBar, .Left, {0, 0, VerbsWidth, cellSize})
+        let metrics  = .themeMetrics()
+        let cellSize = themeActionButtonSize(metrics)
+        with .topBar = Wnd.create'Wnd(me, {0, 0, 0, cellSize})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Window
+            .style.addStyleSheetColors("wnd_Bk $wnd_CaptionBk")
+        }
+
+        with let verbs = StackLayoutCtrl.create(me.topBar, .Left, {0, 0, VerbsWidth, cellSize})
         {
             .dockStyle = .Left
             .spacing   = metrics.iconBar_ButtonsPadding
@@ -919,15 +921,16 @@ impl MainWnd
         }
 
         // Capture is the primary Voltage action. Library has the same push-button shape and
-        // footprint, but only takes an informational blue fill while its page is active.
+        // footprint, and takes the theme's alternate tone only while its page is active (see
+        // updateLibraryButtonAppearance).
         .captureBtn = PushButton.create(verbs, "", {0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionCapture.DoIt, .Strong)
 
         with .libraryBtn = PushButton.create(verbs, appStrings().act_Library, {0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionGlobal.ShowLibrary)
         {
-            .setIcon(me .icon(.Library))
+            .setIcon(me.icon(.Library))
         }
 
-        with .commandReadouts = StackLayoutCtrl.create(me .topBar, .Right, {0, 0, ReadoutsWidth, cellSize})
+        with .commandReadouts = StackLayoutCtrl.create(me.topBar, .Right, {0, 0, ReadoutsWidth, cellSize})
         {
             .dockStyle = .Right
             .spacing   = metrics.iconBar_ButtonsPadding
@@ -944,10 +947,13 @@ impl MainWnd
             .style.setFont(me.theme().res.fontDefaultFs)
             .sigPressed += func|main = me|(btn)
             {
-                var menu = MenuCtrl.createPopup(main)
-                menu.updateFlags(.HideShortcuts)
-                menu.addItem(ActionZoom.Zoom1)
-                menu.addItem(ActionZoom.ZoomFit)
+                with let menu = MenuCtrl.createPopup(main)
+                {
+                    .updateFlags(.HideShortcuts)
+                    .addItem(ActionZoom.Zoom1)
+                    .addItem(ActionZoom.ZoomFit)
+                }
+
                 discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
             }
         }
@@ -966,11 +972,8 @@ impl MainWnd
 
         // Pixel-selection forms borrow a theme color, so their retained renderings
         // follow the switch.
-        if .editWnd != null
-        {
-            let capture = .editWnd.getCapture()
-            capture?.invalidateAllFormCaches()
-        }
+        if .editWnd != null do
+            .editWnd.getCapture()?.invalidateAllFormCaches()
     }
 
     // Applies the language selected in the options to every string table.
@@ -1065,146 +1068,22 @@ impl MainWnd
             .monitors        = Env.getMonitors()
         }
 
-        res.appearanceButton = AppearanceButton.create(srf, "capture.appearance")
-        res.appearanceButton.sigThemeChanged += func|main = res|(button)
-        {
-            main.editorOptions.theme = button.appearanceTheme
-            let capture = main.editWnd.getCapture()
-            capture?.invalidateAllFormCaches()
-            main.saveAppState()
-        }
-
-        res.appearanceButton.sigLanguageChanged += func|main = res|(button)
-        {
-            if button.language.isEmpty() do
-                main.editorOptions.language = .System
-            elif button.language == "fr" do
-                main.editorOptions.language = .French
-            else do
-                main.editorOptions.language = .English
-            main.saveAppState()
-        }
-
-        res.appearanceButton.sigAboutRequested += func|main = res|(button)
-        {
-            discard button
-            main.postCommandEvent(ActionAbout.About)
-        }
+        res.createAppearanceButton()
 
         // One Voltage rail identifies every standard Swag application surface.
         Separator.create(res, .Top, .Accent)
 
-        // One command row, the same height in both modes, instead of the former stack of
-        // a command bar and a centered tool ribbon.
-        with res.topBar = Wnd.create'Wnd(res, {0, 0, 0, themeActionButtonSize(res.themeMetrics())})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-            .style.addStyleSheetColors("wnd_Bk $wnd_CaptionBk")
-        }
-
         res.createCommandRow()
         res.createToolRail()
-        let panelGutter = res.themeMetrics().panel_GutterSize
+        res.createEditArea()
+        res.createRecentBar()
+        res.createToolPanel()
 
-        // Main edit area. The host supplies the structural gutter behind the rounded View;
-        // putting the View directly on the Window ground made the exposed corner pixels read
-        // as a second panel underneath it.
-        with res.editBar = Wnd.create'Wnd(res)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .ToolBar
-            .padding.y       = panelGutter
-        }
-
-        with res.editWnd = EditWnd.create(res, res.editBar)
-        {
-            .dockStyle            = .Center
-            .backgroundStyle      = .Transparent
-            .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
-        }
-
-        // Recent bar. The three preview-size buttons that used to stand permanently at its
-        // left are gone: a control shown at all times to set a preference costs permanent
-        // room and buys one occasional click. The size lives in the View menu.
-        with res.recentBar = Wnd.create'Wnd(res, {0, 0, 0, 136})
-        {
-            .dockStyle       = .Bottom
-            .backgroundStyle = .ToolBar
-            .padding         = {0, panelGutter, panelGutter, 0}
-        }
-
-        with res.recentWnd = RecentWnd.create(res.recentBar, res)
-        {
-            .dockStyle = .Center
-        }
-
-        // Right bar: one column, one heading naming the tool it edits. The two pane titles
-        // it replaces said what the reader could already see; this one does not.
-        with res.rightBar = Wnd.create'Wnd(res, {0, 0, RightPanelWidth + 2 * panelGutter, 0})
-        {
-            .dockStyle       = .Right
-            .backgroundStyle = .ToolBar
-            .padding         = {panelGutter, panelGutter, panelGutter, 0}
-        }
-
-        with let rightPanel = Wnd.create'Wnd(res.rightBar, {0, 0, RightPanelWidth, 0})
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-        }
-
-        with res.quickStyleBar = SplitterCtrl.create(rightPanel, {0, 0, RightPanelWidth, 600}, vertical: true)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .ToolBar
-        }
-
-        with let quickPane = Wnd.create'Wnd(res.quickStyleBar)
-        {
-            .backgroundStyle = .Panel
-        }
-
-        // The heading starts on the same margin as the cells and the rows under it: a title
-        // centred over a left-aligned column is a second alignment on one narrow panel.
-        with res.toolTitle = Label.create(quickPane, "", {0, 0, 0, ToolTitleHeight})
-        {
-            .dockStyle = .Top
-            .style.setFont(res.theme().res.fontDefaultFs)
-            .setTextAlignment(.Left, .Center)
-            .setTextPadding({12, 8, 12, 0})
-            .setTextColor(res.themeColors().label_TextLight)
-        }
-
-        with res.quickWnd = QuickWnd.create(quickPane, res)
-        {
-            .dockStyle = .Center
-        }
-
-        with let propPane = Wnd.create'Wnd(res.quickStyleBar)
-        {
-            .backgroundStyle = .Panel
-        }
-
-        with res.propWnd = PropWnd.create(propPane, res)
-        {
-            .dockStyle = .Center
-        }
-
-        with let quickItem = res.quickStyleBar.addPane(quickPane)
-        {
-            .preserveSize = true
-        }
-
-        discard res.quickStyleBar.addPane(propPane)
-        res.quickStyleBar.setPaneSize(0, 168 + ToolTitleHeight)
-
-        // Initialize everything
         with res
         {
-            // Theme and language before anything is built from a string: they used to be
-            // applied only while reading the persisted state, so a first run — which has no
-            // state to read — stayed on the reference English wording whatever the locale.
+            // Theme and language come before anything is built from a string. A first run has
+            // no persisted state to read them from, and would otherwise stay on the reference
+            // English wording whatever the locale.
             .setTheme()
             .setLanguage()
             .registerActions()
@@ -1220,5 +1099,137 @@ impl MainWnd
 
         g_Main = res
         return res
+    }
+
+    // The caption action offering the palettes, the languages and the About box. The control
+    // applies a choice itself; the application only persists it and refreshes what it caches.
+    mtd createAppearanceButton()
+    {
+        .appearanceButton = AppearanceButton.create(.surface!, "capture.appearance")
+        .appearanceButton.sigThemeChanged += func|main = me|(button)
+        {
+            main.editorOptions.theme = button.appearanceTheme
+            main.editWnd.getCapture()?.invalidateAllFormCaches()
+            main.saveAppState()
+        }
+
+        .appearanceButton.sigLanguageChanged += func|main = me|(button)
+        {
+            if button.language.isEmpty() do
+                main.editorOptions.language = .System
+            elif button.language == "fr" do
+                main.editorOptions.language = .French
+            else do
+                main.editorOptions.language = .English
+            main.saveAppState()
+        }
+
+        .appearanceButton.sigAboutRequested += func|main = me|(button)
+        {
+            discard button
+            main.postCommandEvent(ActionAbout.About)
+        }
+    }
+
+    // The edit area. The host supplies the structural gutter behind the rounded view: put
+    // directly on the Window ground, the exposed corner pixels would read as a second panel
+    // underneath it.
+    mtd createEditArea()
+    {
+        with .editBar = Wnd.create'Wnd(me)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .ToolBar
+            .padding.y       = me.themeMetrics().panel_GutterSize
+        }
+
+        with .editWnd = EditWnd.create(me, me.editBar)
+        {
+            .dockStyle            = .Center
+            .backgroundStyle      = .Transparent
+            .sigScrollSizeChanged += func|main = me|(scroll, old, new) { main.updateZoomDisplay() }
+        }
+    }
+
+    // The strip of recent captures. Its preview size is a View menu choice: a control shown at
+    // all times to set a preference costs permanent room and buys one occasional click.
+    mtd createRecentBar()
+    {
+        let panelGutter = .themeMetrics().panel_GutterSize
+        with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136})
+        {
+            .dockStyle       = .Bottom
+            .backgroundStyle = .ToolBar
+            .padding         = {0, panelGutter, panelGutter, 0}
+        }
+
+        with .recentWnd = RecentWnd.create(me.recentBar, me)
+        {
+            .dockStyle = .Center
+        }
+    }
+
+    // The tool panel on the right: one column, one heading naming the tool it edits, the quick
+    // styles of that tool above and its properties below.
+    mtd createToolPanel()
+    {
+        let panelGutter = .themeMetrics().panel_GutterSize
+        with .rightBar = Wnd.create'Wnd(me, {0, 0, RightPanelWidth + 2 * panelGutter, 0})
+        {
+            .dockStyle       = .Right
+            .backgroundStyle = .ToolBar
+            .padding         = {panelGutter, panelGutter, panelGutter, 0}
+        }
+
+        with let rightPanel = Wnd.create'Wnd(me.rightBar, {0, 0, RightPanelWidth, 0})
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+        }
+
+        with .quickStyleBar = SplitterCtrl.create(rightPanel, {0, 0, RightPanelWidth, 600}, vertical: true)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .ToolBar
+        }
+
+        with let quickPane = Wnd.create'Wnd(me.quickStyleBar)
+        {
+            .backgroundStyle = .Panel
+        }
+
+        // The heading starts on the same margin as the cells and the rows under it: a title
+        // centred over a left-aligned column is a second alignment on one narrow panel.
+        with .toolTitle = Label.create(quickPane, "", {0, 0, 0, ToolTitleHeight})
+        {
+            .dockStyle = .Top
+            .style.setFont(me.theme().res.fontDefaultFs)
+            .setTextAlignment(.Left, .Center)
+            .setTextPadding({12, 8, 12, 0})
+            .setTextColor(me.themeColors().label_TextLight)
+        }
+
+        with .quickWnd = QuickWnd.create(quickPane, me)
+        {
+            .dockStyle = .Center
+        }
+
+        with let propPane = Wnd.create'Wnd(me.quickStyleBar)
+        {
+            .backgroundStyle = .Panel
+        }
+
+        with .propWnd = PropWnd.create(propPane, me)
+        {
+            .dockStyle = .Center
+        }
+
+        with let quickItem = .quickStyleBar.addPane(quickPane)
+        {
+            .preserveSize = true
+        }
+
+        discard .quickStyleBar.addPane(propPane)
+        .quickStyleBar.setPaneSize(0, 168 + ToolTitleHeight)
     }
 }

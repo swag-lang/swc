@@ -25,18 +25,12 @@ func tap6(a, b, c, d, e, f: s32)->s32 => a - 5 * b + 20 * c + 20 * d - 5 * e + f
 // positive taps reach 20 * 510 + 510 = 10710 and the negative ones -2550, so
 // the arithmetic never wraps.
 #[Swag.Inline]
-private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8
-{
-    return cast #bit(Simd.S16x8) edges + cast #bit(Simd.S16x8) inner * 20 - cast #bit(Simd.S16x8) outer * 5
-}
+private func tap6Raw16(inner, outer, edges: Simd.U16x8)->Simd.S16x8 => cast #bit(Simd.S16x8) edges + cast #bit(Simd.S16x8) inner * 20 - cast #bit(Simd.S16x8) outer * 5
 
 // Eight six-tap half-samples on widened byte lanes; the caller's saturating
 // pack is exactly the scalar clamp.
 #[Swag.Inline]
-private func tap6Half16(inner, outer, edges: Simd.U16x8)->Simd.S16x8
-{
-    return (tap6Raw16(inner, outer, edges) + 16) >> 5
-}
+private func tap6Half16(inner, outer, edges: Simd.U16x8)->Simd.S16x8 => (tap6Raw16(inner, outer, edges) + 16) >> 5
 
 // One vertical six-tap over four widened sums, with the center rounding shift.
 // The 32-bit intermediates stay far inside the lane range: the sums reach
@@ -684,10 +678,7 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
 
 // The two weights of one bilinear blend, packed as the byte pair the multiply below reads.
 #[Swag.Inline]
-private func chromaWeights(first, second: s32)->Simd.S8x16
-{
-    return cast #bit(Simd.S8x16) Simd.splat(cast(u16) (first | (second << 8)))
-}
+private func chromaWeights(first, second: s32)->Simd.S8x16 => cast #bit(Simd.S8x16) Simd.splat(cast(u16) (first | (second << 8)))
 
 // Eight blended chroma samples from two rows of bytes and one weight pair.
 //
@@ -697,10 +688,7 @@ private func chromaWeights(first, second: s32)->Simd.S8x16
 // first, then multiplying twice and adding, does the same work over half as many lanes. This is
 // how the reference decoder's own chroma kernel is written.
 #[Swag.Inline]
-private func chromaPairs(low, high: Simd.U8x16, weights: Simd.S8x16)->Simd.S16x8
-{
-    return Simd.mulAddPairs(Simd.interleaveLow(low, high), weights)
-}
+private func chromaPairs(low, high: Simd.U8x16, weights: Simd.S8x16)->Simd.S16x8 => Simd.mulAddPairs(Simd.interleaveLow(low, high), weights)
 
 // Rounds, narrows, and stores one row of blended chroma lanes. The weights of
 // one blend sum to 64, so the accumulators peak at 64 * 255 + 32, well inside
@@ -773,10 +761,7 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
 
 // Combines two predicted blocks with explicit or implicit weights.
 #[Swag.Inline]
-private func weightBiQuads(a, b: Simd.S32x4, weight0, weight1, rounding, shift, offset: s32)->Simd.S32x4
-{
-    return ((a * weight0 + b * weight1 + rounding) >> cast(u32) shift) + offset
-}
+private func weightBiQuads(a, b: Simd.S32x4, weight0, weight1, rounding, shift, offset: s32)->Simd.S32x4 => ((a * weight0 + b * weight1 + rounding) >> cast(u32) shift) + offset
 
 #[Swag.Inline]
 private func weightBiRow(pixels0, pixels1: Simd.U8x16, logDenom, weight0, weight1, offset0, offset1: s32)->Simd.U8x16

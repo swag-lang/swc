@@ -11,7 +11,7 @@ using Swag, Core, Pixel
     var app: Application
     app.setRenderer(&cpu)
 
-    let surface = (expect app.createSurface(0, 0, 160, 96))!
+    let surface = expect app.createSurface(0, 0, 160, 96)!
     Swag.assert(not app.renderer.needsNativeWindow())
     Swag.assert(not surface.hWnd)
 
@@ -27,6 +27,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(96, 64)
     defer host.shutdown()
+
     let background = host.render()
     Swag.assert(background.isValid())
     Swag.assert(background.width == 96 and background.height == 64)
@@ -34,12 +35,12 @@ using Swag, Core, Pixel
 
     let button  = PushButton.create(&host.root, "", {20, 16, 56, 32})
     let enabled = host.render()
-    Swag.assert(Memory.compare(enabled.pixels.buffer, background.pixels.buffer, enabled.byteCount) != 0)
+    Swag.assert(not Slice.equals(enabled.pixels.toSlice(), background.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&enabled, "widget.cpu.pushbutton")
 
     button.disable()
     let disabled = host.render()
-    Swag.assert(Memory.compare(disabled.pixels.buffer, enabled.pixels.buffer, disabled.byteCount) != 0)
+    Swag.assert(not Slice.equals(disabled.pixels.toSlice(), enabled.pixels.toSlice()))
 }
 
 // A repaint is normally one control wide, and the tree it sits in is a whole window. A window

@@ -48,7 +48,7 @@ const ViewerSmokeStepLimit                     = 300'u32
 const ViewerSmokeExposureSteps                 = 25'u32
 const ViewerSmokeMinimumSteps                  = 2'u32
 
-internal func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f32}
+func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f32}
 {
     let pulse = 0.5'f32 - 0.5'f32 * Math.cos(phase * Math.ConstF32.TwoPi)
 
@@ -91,19 +91,17 @@ struct ViewerFolderHistory
     file:   String
 }
 
-// Keeps the search group centered on the complete action bar, independently of the action cluster
-// and viewer selector docked at opposite edges.
-func viewerWindowFor(view: *Wnd)->*ViewerWindow
-{
-    return view.ancestorByType'ViewerWindow()!
-}
+// Returns the application window that hosts `view`.
+func viewerWindowFor(view: *Wnd)->*ViewerWindow => view.ancestorByType'ViewerWindow()!
 
+// Replaces a viewer that failed after creation with the standard error surface.
 func reportViewerFailure(view: *Wnd, reason: string)
 {
-    let window = viewerWindowFor(view)
-    window.replaceFailedViewer(view, reason)
+    viewerWindowFor(view).replaceFailedViewer(view, reason)
 }
 
+// The main window of Swag Scope: the command, information, and viewer bars around the document,
+// the file panel beside it, and every viewer session opened for the current file.
 struct ViewerWindow
 {
     using wnd: Wnd
@@ -230,7 +228,7 @@ struct ViewerWindow
     shuffleFolder: String
     shufflePlayed: Array'String
 
-    // Guards the one nested dispatch [[forwardKeyToViewer]] makes, so a key the viewer
+    // Guards the one nested dispatch [[ViewerWindow.forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
     forwardingViewerKey: bool
     playPauseKeyDown:    bool
@@ -260,6 +258,7 @@ struct ViewerWindow
     smokeRunning:              bool
 }
 
+// Records the format summary a viewer reported after creation, and shows it while that viewer is active.
 func reportViewerDetails(view: *Wnd, details: string)
 {
     let window = viewerWindowFor(view)
@@ -291,10 +290,7 @@ func navigateViewerFile(view: *Wnd, delta: s32)
 }
 
 // Answers a viewer that has finished presenting its file with what the play mode calls for.
-func reportViewerFinished(view: *Wnd)->Viewer.Continuation
-{
-    return viewerWindowFor(view).continueAfter(view)
-}
+func reportViewerFinished(view: *Wnd)->Viewer.Continuation => viewerWindowFor(view).continueAfter(view)
 
 // Starts the slideshow pace for a viewer showing content with no end of its own.
 func reportViewerShown(view: *Wnd)
@@ -524,7 +520,7 @@ impl IWnd for ViewerWindow
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
-        if not evt.serializer.isReading() and .filePanel.items.count do
+        if not evt.serializer.isReading() and not .filePanel.items.isEmpty() do
             .recentPaneSize = .filePanel.items[0]!.size
 
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
@@ -547,7 +543,7 @@ impl IWnd for ViewerWindow
         {
             .themeIndex     = Math.min(.themeIndex, cast(u32) AppearanceTheme.Dark)
             .recentPaneSize = Math.max(.recentPaneSize, ViewerPaneMinSize)
-            if .filePanel.items.count do
+            if not .filePanel.items.isEmpty() do
                 .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > ViewerRecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
@@ -889,7 +885,7 @@ impl ViewerWindow
         {
             .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_Search)
-            .setValidator(func|window = me|(edit)->EditBoxCheckResult { return window.validateSearchEdit(edit) })
+            .setValidator(func|window = me|(edit)->EditBoxCheckResult => window.validateSearchEdit(edit))
             .sigTextChanged += func|window = me|(edit)
             {
                 discard edit
@@ -946,7 +942,7 @@ impl ViewerWindow
         with .searchCountLabel = Label.create(.searchNavigation, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
         {
             .margin.x = 8
-            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
@@ -1028,13 +1024,13 @@ impl ViewerWindow
         with .infoSizeLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .SecondaryText)
         {
             .margin.x = 8
-            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
         with .infoStatsLabel = Label.create(.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
         {
-            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
@@ -1104,7 +1100,7 @@ impl ViewerWindow
         with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, themeCompactButtonSize(.themeMetrics())}, null, .SecondaryText)
         {
             .dockStyle = .Center
-            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
@@ -1171,7 +1167,7 @@ impl ViewerWindow
         with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, themeCompactButtonSize(.themeMetrics())}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
-            .style.setFont(me.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
@@ -1317,11 +1313,10 @@ impl ViewerWindow
     mtd showAbout()
     {
         const BuildDate = #run Time.DateTime.now()
-        let dlg = .createAboutDialog(BuildDate)
-        discard dlg.doModal()
+        discard .createAboutDialog(BuildDate).doModal()
     }
 
-    // Every registered viewer in selection order, presented as one compact capability line.
+    // Returns every registered viewer name in selection order, as one compact capability line.
     //
     // The names carry the content families without repeating the registry's extension inventory.
     mtd const aboutViewerList()->String
@@ -1585,12 +1580,14 @@ impl ViewerWindow
 
     mtd chooseFile()
     {
-        var options: FileDlgOptions
-        options.state = &.fileDlgState
-        options.mode  = .SelectFile
-        options.title = appStrings().dlg_TitleOpen
-        options.confirmButtonText = appStrings().dlg_ButtonOpen
-        options.filters.add({appStrings().dlg_AllFiles, ""})
+        with var options: FileDlgOptions
+        {
+            .state             = &me.fileDlgState
+            .mode              = .SelectFile
+            .title             = appStrings().dlg_TitleOpen
+            .confirmButtonText = appStrings().dlg_ButtonOpen
+            .filters.add({appStrings().dlg_AllFiles, ""})
+        }
 
         let dialog = FileDlg.create(.surface!, options)
         if dialog.doModal() == Dialog.BtnOk do
@@ -1700,15 +1697,8 @@ impl ViewerWindow
                 instance.sidePanel       = null
                 instance.sidePanelButton = null
             }
-            else
-            {
-                instance.actions?.destroy()
-                instance.info?.destroy()
-                instance.commands?.destroy()
-                instance.sidePanelButton?.destroy()
-                instance.sidePanelHost?.destroy()
-                instance.view?.destroy()
-            }
+            else do
+                instance.destroyWindows()
         }
 
         .instances.clear()
@@ -1821,36 +1811,13 @@ impl ViewerWindow
         {
             if not instance.retireView() do
                 return
-            instance.actions?.destroy()
-            instance.info?.destroy()
-            instance.commands?.destroy()
-            instance.sidePanelButton?.destroy()
-            instance.sidePanelHost?.destroy()
-            instance.view?.destroy()
+            instance.destroyWindows()
+            instance[] = {}
 
             let errorView = ViewerErrorView.create(.documentPanel, message.toString())
-            errorView.dockStyle          = .Center
-            instance.view                = errorView
-            instance.actions             = null
-            instance.info                = null
-            instance.commands            = null
-            instance.sidePanelHost       = null
-            instance.sidePanel           = null
-            instance.sidePanelButton     = null
-            instance.revealMatch         = null
-            instance.searchBounds        = null
-            instance.clearSearch         = null
-            instance.collectMatches      = null
-            instance.filterSearch        = null
-            instance.describeSearch      = null
-            instance.prepareSearch       = null
-            instance.collectFileMatches  = null
-            instance.useSearchMatches    = null
-            instance.isLoading           = null
-            instance.needsLoadingOverlay = null
-            instance.retire              = null
-            instance.failureReason       = #move message
-            instance.details.clear()
+            errorView.dockStyle    = .Center
+            instance.view          = errorView
+            instance.failureReason = #move message
 
             if index != .activeChoiceIndex
             {
@@ -1892,32 +1859,8 @@ impl ViewerWindow
 
         if not instance.retireView() do
             return false
-        instance.actions?.destroy()
-        instance.info?.destroy()
-        instance.commands?.destroy()
-        instance.sidePanelButton?.destroy()
-        instance.sidePanelHost?.destroy()
-        instance.view.destroy()
-        instance.view                = null
-        instance.actions             = null
-        instance.info                = null
-        instance.commands            = null
-        instance.sidePanelHost       = null
-        instance.sidePanel           = null
-        instance.sidePanelButton     = null
-        instance.revealMatch         = null
-        instance.searchBounds        = null
-        instance.clearSearch         = null
-        instance.collectMatches      = null
-        instance.filterSearch        = null
-        instance.describeSearch      = null
-        instance.prepareSearch       = null
-        instance.collectFileMatches  = null
-        instance.useSearchMatches    = null
-        instance.isLoading           = null
-        instance.needsLoadingOverlay = null
-        instance.retire              = null
-        instance.details.clear()
+        instance.destroyWindows()
+        instance[] = {}
         .currentView     = null
         .currentActions  = null
         .currentInfo     = null
@@ -2072,45 +2015,22 @@ impl ViewerWindow
                 next.failureReason = appStrings().ui_OpenStopped
         }
 
+        // A rejected or failed viewer keeps its explanation and nothing else: the session becomes
+        // the standard error surface.
         if not next.failureReason.isEmpty()
         {
             if next.view and next.retire do
                 discard next.retire(next.view)
-            next.actions?.destroy()
-            next.info?.destroy()
-            next.commands?.destroy()
-            next.sidePanelButton?.destroy()
-            next.sidePanelHost?.destroy()
-            next.view?.destroy()
-            next.actions             = null
-            next.info                = null
-            next.commands            = null
-            next.sidePanelHost       = null
-            next.sidePanel           = null
-            next.sidePanelButton     = null
-            next.view                = ViewerErrorView.create(.documentPanel, next.failureReason.toString())
-            next.revealMatch         = null
-            next.searchBounds        = null
-            next.clearSearch         = null
-            next.collectMatches      = null
-            next.filterSearch        = null
-            next.describeSearch      = null
-            next.prepareSearch       = null
-            next.collectFileMatches  = null
-            next.useSearchMatches    = null
-            next.isLoading           = null
-            next.needsLoadingOverlay = null
-            next.retire              = null
-            next.details.clear()
+            let reason = #move next.failureReason
+            next.destroyWindows()
+            next               = {}
+            next.failureReason = #move reason
+            next.view          = ViewerErrorView.create(.documentPanel, next.failureReason.toString())
         }
 
         if not next.view
         {
-            next.actions?.destroy()
-            next.info?.destroy()
-            next.commands?.destroy()
-            next.sidePanelButton?.destroy()
-            next.sidePanelHost?.destroy()
+            next.destroyWindows()
             return false
         }
 
@@ -2118,12 +2038,7 @@ impl ViewerWindow
         {
             if next.retire do
                 discard next.retire(next.view)
-            next.actions?.destroy()
-            next.info?.destroy()
-            next.commands?.destroy()
-            next.sidePanelButton?.destroy()
-            next.sidePanelHost?.destroy()
-            next.view.destroy()
+            next.destroyWindows()
             return false
         }
 
@@ -2160,25 +2075,19 @@ impl ViewerWindow
             .currentCommands = next.commands
             .setCurrentSidePanel(next.sidePanelHost, next.sidePanelButton)
             .currentInfo?.show()
+            next.view.dockStyle = .Center
+            if next.commands do
+                next.commands.dockStyle = .None
+            .updateViewerBar()
         }
 
         .activeChoiceIndex = index
-        if not stage do
-            next.view.dockStyle = .Center
-        if next.commands
-        {
-            if not stage do
-                next.commands.dockStyle = .None
-        }
-
-        if not stage do
-            .updateViewerBar()
-        instance[] = #move next
+        instance[]         = #move next
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(instance.details.toString())
         .updateSearchAvailability()
         if stage do
-            .commitViewerTransition(next.view)
+            .commitViewerTransition(instance.view)
         else do
             .applyLayout()
         .updateLoadingIndicator()
@@ -2790,7 +2699,7 @@ impl ViewerWindow
         }
 
         bytes.resize(count)
-        .searchCarry += Swag.makeString(bytes.storage(), bytes.count)
+        .searchCarry += cast(string) bytes.toSlice()
         let eof      = count == 0
         let instance = &.instances[.activeChoiceIndex]
 
@@ -3023,10 +2932,9 @@ impl ViewerWindow
         .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
             (cast #assume(*ViewerErrorView) instance.view).retranslate()
-        if .currentFile.isEmpty() do
-            .folderLabel.setText(texts.ui_Folder)
         if .currentFile.isEmpty()
         {
+            .folderLabel.setText(texts.ui_Folder)
             .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
             .emptyHintLabel.setText(texts.ui_DropHint)
             .infoStatsLabel.setText("")
@@ -3300,7 +3208,7 @@ impl ViewerWindow
             .siblings.add(file[])
         }
 
-        for i in (.siblings).count where .siblings[i] == .currentFile
+        for i in .siblings.count where .siblings[i] == .currentFile
         {
             .siblingIndex = i
             break

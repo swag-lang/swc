@@ -2,14 +2,14 @@
 
 using Core
 
-// Selects rich edit undo type.
+// Selects what a [[Gui.RichEditUndo]] record reverts.
 enum RichEditUndoType
 {
-    Delete        // Selects delete.
-    Insert        // Selects insert.
-    Selection     // Selects selection.
-    Show          // Selects show.
-    Hide          // Selects hide.
+    Delete        // Text was deleted; undoing inserts it back.
+    Insert        // Text was inserted; undoing deletes it.
+    Selection     // Only the selection changed.
+    Show          // Not produced by the editor.
+    Hide          // Not produced by the editor.
 }
 
 // Stores one reversible rich-edit text or selection operation.
@@ -17,19 +17,19 @@ struct RichEditUndo
 {
     public
     {
-        type:        RichEditUndoType = Selection     // Type associated with this value.
-        concatChars: bool                             // Concat chars associated with this value.
-        selBeg:      RichEditCursor                   // Sel beg associated with this value.
-        cursorPos:   RichEditCursor                   // Cursor pos associated with this value.
-        runes:       Array'rune                       // Runes associated with this value.
-        styles:      Array'u8                         // Styles associated with this value.
-        serial:      u64                              // Serial associated with this value.
-        hasSelRect:  bool                             // Whether this value has sel rect.
+        type:        RichEditUndoType = Selection     // What the record reverts.
+        concatChars: bool                             // Whether typed runes may still be appended to this record.
+        selBeg:      RichEditCursor                   // Selection anchor where the edit applies.
+        cursorPos:   RichEditCursor                   // Caret where the edit applies.
+        runes:       Array'rune                       // Runes inserted or deleted.
+        styles:      Array'u8                         // Style index of each rune in `runes`.
+        serial:      u64                              // Group number; records sharing it undo and redo together.
+        hasSelRect:  bool                             // Whether the edit applied to a rectangular selection.
 
-        begSelectionBefore: RichEditCursor     // Beg selection before associated with this value.
-        endSelectionBefore: RichEditCursor     // End selection before associated with this value.
-        begSelectionAfter:  RichEditCursor     // Beg selection after associated with this value.
-        endSelectionAfter:  RichEditCursor     // End selection after associated with this value.
+        begSelectionBefore: RichEditCursor     // Selection anchor before the edit.
+        endSelectionBefore: RichEditCursor     // Caret before the edit.
+        begSelectionAfter:  RichEditCursor     // Selection anchor after the edit.
+        endSelectionAfter:  RichEditCursor     // Caret after the edit.
     }
 }
 
@@ -75,10 +75,12 @@ impl RichEditCtrl
         .modifiedUndoMarker = Swag.U64.Max
     }
 
-    // Appends one undo record and clears redo history.
+    // Opens an undo group: the edits made until the matching [[Gui.RichEditCtrl.popUndo]] undo and redo as one step.
+    //
+    // Groups nest; only the outermost one starts a new step and captures the selection.
     mtd pushUndo()
     {
-        // Nested undo,: not increment serial
+        // A nested group joins the step its outermost group started.
         if .undoCounter == 0
         {
             .serialUndo    += 1
@@ -89,7 +91,7 @@ impl RichEditCtrl
         .undoCounter += 1
     }
 
-    // Removes and returns the newest undo record.
+    // Closes the undo group [[Gui.RichEditCtrl.pushUndo]] opened and commits the edits recorded in it.
     mtd popUndo()
     {
         Swag.assert(.undoCounter != 0)
@@ -110,15 +112,8 @@ impl RichEditCtrl
         .toUndo.count = 0
     }
 
-    // Returns whether this value can undo.
-    mtd canUndo()->bool
-    {
-        if .undoMgr.count == 0 do
-            return false
-        if not .currentUndo do
-            return false
-        return true
-    }
+    // Returns whether an edit can be undone.
+    mtd canUndo()->bool => not .undoMgr.isEmpty() and .currentUndo != 0
 
     // Reverts the newest recorded edit.
     mtd undo()
@@ -166,15 +161,8 @@ impl RichEditCtrl
         .computeScrollY()
     }
 
-    // Returns whether this value can redo.
-    mtd canRedo()->bool
-    {
-        if .undoMgr.count == 0 do
-            return false
-        if .currentUndo == .undoMgr.count do
-            return false
-        return true
-    }
+    // Returns whether an undone edit can be redone.
+    mtd canRedo()->bool => not .undoMgr.isEmpty() and .currentUndo != .undoMgr.count
 
     // Reapplies the newest reverted edit.
     mtd redo()

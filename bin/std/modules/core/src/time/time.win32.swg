@@ -10,7 +10,7 @@ var g_PerfCounterFreq: u64
     QueryPerformanceFrequency(cast() &g_PerfCounterFreq)
 }
 
-// Get current time precise value
+// Returns the current value of the monotonic high-resolution counter, in ticks of [[Core.Time.monotonicFrequency]].
 public func monotonicTicks()->u64
 {
     var counter: u64
@@ -18,8 +18,5 @@ public func monotonicTicks()->u64
     return counter
 }
 
-// The frequency of the precise counter, in ticks per second
-public func monotonicFrequency()->u64
-{
-    return g_PerfCounterFreq
-}
+// Returns the frequency of the monotonic counter, in ticks per second.
+public func monotonicFrequency()->u64 => g_PerfCounterFreq

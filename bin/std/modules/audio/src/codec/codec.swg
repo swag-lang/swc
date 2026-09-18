@@ -23,7 +23,7 @@ public interface ICodec
 
     // Initializes decoder state and returns the number of input bytes consumed.
     //
-    // `srcBuffer` contains up to `srcLength` bytes from the start of the encoded
+    // `source` contains up to `sourceSize` bytes from the start of the encoded
     // stream. Implementations may consume headers or initial sample data.
     mtd initialize(source: const [*] void, sourceSize: u64)->u64 fail
 
@@ -53,7 +53,7 @@ public interface IPacketCodec
     mtd decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
 }
 
-// Reports whether `encoding` names packets a packet codec decodes.
+// Returns whether `encoding` names packets a packet codec decodes.
 //
 // A packetized sound is one whose payload is a sequence of independently indexed compressed
 // access units; the uncompressed encodings are chunked instead, and go through the PCM path.
@@ -66,9 +66,10 @@ public func isPacketEncoding(encoding: SoundFileEncoding)->bool
     }
 }
 
-// Reports whether packets of `encoding` decode only with the configuration their container
-// carries beside the stream: the AAC audio-specific config, the FLAC stream information, the
-// Vorbis headers, the Opus identification header.
+// Returns whether packets of `encoding` need the decoder configuration their container carries.
+//
+// That configuration travels beside the stream: the AAC audio-specific config, the FLAC stream
+// information, the Vorbis headers, the Opus identification header.
 public func packetEncodingNeedsConfig(encoding: SoundFileEncoding)->bool
 {
     switch encoding
@@ -133,8 +134,10 @@ public impl PacketDurationProbe
         .vorbis = probe
     }
 
-    // Returns the number of sample frames `packet` decodes to, and remembers what the next
-    // packet needs to know about it.
+    // Returns the number of sample frames `packet` decodes to.
+    //
+    // The probe also remembers what the next packet needs to know about this one, so packets
+    // must be fed in stream order.
     mtd frames(packet: const [..] u8)->u32 fail
     {
         switch .encoding
@@ -155,7 +158,7 @@ public impl PacketDurationProbe
     }
 }
 
-// Reports the byte-level progress of one incremental codec operation.
+// Describes the byte-level progress of one incremental codec operation.
 public struct CodecProgress
 {
     public
@@ -177,7 +180,7 @@ struct PacketCodecDesc
     itf:  IPacketCodec
 }
 
-// Reports whether `type` opens with the registry header every codec instance is destroyed through.
+// Returns whether `type` opens with the registry header every codec instance is destroyed through.
 //
 // A voice allocates a codec by its type, hands the caller an interface, and later reads the
 // concrete type and the allocator back out of the first bytes of the instance. A codec that does
@@ -214,10 +217,7 @@ public func(T) registerCodec()
 #[Swag.NoDoc]
 public func registerCodecImplementation(type: const *Swag.TypeInfoStruct, itf: ICodec)
 {
-    var desc: CodecDesc
-    desc.type = type
-    desc.itf  = itf
-    g_Codecs.add(desc)
+    g_Codecs.add({type, itf})
 }
 
 // Registers a packet codec implementation for subsequent voice creation.
@@ -237,28 +237,18 @@ public func(T) registerPacketCodec()
 #[Swag.NoDoc]
 public func registerPacketCodecImplementation(type: const *Swag.TypeInfoStruct, itf: IPacketCodec)
 {
-    var desc: PacketCodecDesc
-    desc.type = type
-    desc.itf  = itf
-    g_PacketCodecs.add(desc)
+    g_PacketCodecs.add({type, itf})
 }
 
-// Find the codec that can treat the given encoding
+// Returns the registered codec that converts `sourceEncoding` to `destinationEncoding`, or null.
 func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->*CodecDesc?
 {
-    var found: *CodecDesc?
-    for &codec in g_Codecs
-    {
-        if codec.itf.canEncode(destinationEncoding) and codec.itf.canDecode(sourceEncoding)
-        {
-            found = codec
-            break
-        }
-    }
-
-    return found
+    for &codec in g_Codecs where codec.itf.canEncode(destinationEncoding) and codec.itf.canDecode(sourceEncoding) do
+        return codec
+    return null
 }
 
+// Returns the registered packet codec that decodes `sourceEncoding`, or null.
 func findPacketCodec(sourceEncoding: SoundFileEncoding)->*PacketCodecDesc?
 {
     for &codec in g_PacketCodecs where codec.itf.canDecode(sourceEncoding) do
@@ -267,6 +257,10 @@ func findPacketCodec(sourceEncoding: SoundFileEncoding)->*PacketCodecDesc?
 }
 
 // Stores the source, destination, and concrete type of a codec instance.
+//
+// Every codec implementation declares a `Codec` as its first field: a voice reads the concrete
+// type and the allocator back from it to destroy the instance. [[Audio.registerCodec]] and
+// [[Audio.registerPacketCodec]] check this layout at compile time.
 public struct Codec
 {
     public readonly
@@ -294,7 +288,7 @@ impl Codec
     }
 }
 
-// Initialize predefined codecs
+// Registers the built-in PCM codec.
 #init
 {
     registerCodec'CodecPcmToPcm16()

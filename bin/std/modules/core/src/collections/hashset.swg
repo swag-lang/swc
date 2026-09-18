@@ -2,7 +2,7 @@
 
 using Swag
 
-// Represents a single entry within a HashSet.
+// A key stored in a [[Core.HashSet]].
 struct(K) HashSetEntry
 {
     hash: u32
@@ -13,8 +13,10 @@ struct(K) HashSetEntry
     }
 }
 
-// A hash set implemented with an open-addressing hash table.
-// It stores a collection of unique keys, providing fast lookups, additions, and removals.
+// An open-addressing hash set of unique keys.
+//
+// Lookups, insertions, and removals take expected constant time. The set grows by rehashing, which
+// moves every key and invalidates every entry pointer borrowed from it.
 struct(K) HashSet
 {
     // Special hash values to indicate the state of a slot in the table.
@@ -97,25 +99,26 @@ impl HashSet
     }
 
     #[Swag.NoDoc]
-    mtd tablePtr()->[*] HashSetEntry
-    {
-        return .table orelse cast([*] HashSetEntry'(K)) 1'u64
-    }
+    mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry'(K)) 1'u64
 
     #[Swag.NoDoc]
     mtd const constTablePtr()->const [*] HashSetEntry => cast(const [*] HashSetEntry'(K)) (.table orelse cast([*] HashSetEntry'(K)) 1'u64)
 
     // Returns the number of elements in the set.
     #[Inline]
-    mtd opCount()->u64 => .count
+    mtd const opCount()->u64 => .count
 
-    // Ensures the allocated memory is freed when the set goes out of scope.
+    // Returns whether the set contains no elements.
+    #[Inline]
+    mtd const isEmpty()->bool => .count == 0
+
+    // Drops every key and releases the slots.
     mtd opDrop()
     {
         .free()
     }
 
-    // Replaces the content of the set with elements from a slice.
+    // Replaces the content with copies of the keys in `slice`, ignoring duplicates.
     mtd opSet(slice: const [..] K)
     {
         .clear()
@@ -123,8 +126,7 @@ impl HashSet
             .add(v)
     }
 
-    // Handles the deep copy of the set when it is copied.
-    // A new me.table is allocated and all entries are copied over.
+    // Gives a copied set its own slots holding copies of the keys.
     mtd opPostCopy()
     {
         if not .table do
@@ -159,9 +161,10 @@ impl HashSet
         .table = newTable
     }
 
-    // Provides a way to iterate over each key in the set.
-    // This is a macro that accepts a code block to execute for each key.
-    // Block parameter: 'key' is the key (or a pointer to it).
+    // Visits every key in storage-slot order, binding it to `key`.
+    //
+    // The order is unspecified and changes when the set grows. Visiting by address binds a mutable
+    // pointer; otherwise a struct key is bound through a constant pointer and any other by value.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key))
     {
@@ -195,8 +198,7 @@ impl HashSet
     // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
     mtd const reversed()->ReversedHashSet'K => {source: me}
 
-    // Computes the hash for a given key.
-    // Ensures the resulting hash is not one of the reserved values (FREE, me.deleted).
+    // Returns the hash of `key`, lifted above the reserved free and deleted slot markers.
     //
     // Only the two reserved values are lifted, never a whole bit: forcing a bit on
     // would make every starting probe index share it, so half of the slots could
@@ -208,15 +210,14 @@ impl HashSet
         return hashVal < HashSet.HASH_FIRST ? HashSet.HASH_FIRST : hashVal
     }
 
-    // Frees the hash set's memory and resets its state.
-    // If keys have destructors, they are called.
+    // Drops every key, releases the slots, and leaves the set empty.
     mtd free()
     {
         if not .table do
             return
         let table = .tablePtr()
 
-        // Need to drop every structs
+        // Deleted slots still hold their key until they are reused.
         #static if Reflection.hasDrop(#typeof(K))
         {
             for i in .capacity
@@ -231,13 +232,12 @@ impl HashSet
         .count, .capacity, .deleted = 0
     }
 
-    // Checks if the me.table needs to be resized and triggers it if necessary.
-    // Growth happens when the load factor (including me.deleted slots) exceeds 50%.
+    // Doubles the capacity when the used slots, deleted ones included, reach half of it.
     #[Swag.NoDoc]
     mtd grow()
     {
         // Linear probing degrades sharply past half full: a failed lookup averages
-        // 2.5 probes at a 50% load factor, but 8.5 probes at 75%
+        // 2.5 probes at a 50% load factor, but 8.5 probes at 75%.
         if .capacity != 0 and .capacity - (.count + .deleted) > .capacity / 2 do
             return
 
@@ -245,7 +245,10 @@ impl HashSet
         .reserve(newCapacity)
     }
 
-    // Resizes the hash me.table to a new me.capacity, rehashing all existing elements.
+    // Grows the set to at least `newCapacity` slots, rehashing every key.
+    //
+    // The slot count is rounded up to a power of two of at least 32. Requests at or below the
+    // current capacity do nothing.
     mtd reserve(newCapacity: u64)
     {
         let reqCapacity = normalizeCapacity(newCapacity)
@@ -261,13 +264,13 @@ impl HashSet
         .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
-        // Be sure hash entry is 0
+        // Every slot starts free, which is a zero hash.
         #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
             Swag.init(table, reqCapacity)
         else do
             Memory.clear(table, newCapacityBytes)
 
-        // Copy the last me.table to the new me.table, removing me.deleted entries
+        // Relocate the live keys into the new slots and drop the deleted ones.
         let oldCapacity = .capacity
         .capacity = reqCapacity
         let oldTablePtr = oldTable orelse cast([*] HashSetEntry'(K)) 1'u64
@@ -287,8 +290,9 @@ impl HashSet
         Memory.free(oldTable, oldCapacity * #sizeof(HashSetEntry'(K)), .allocator)
     }
 
-    // Finds the correct index for a new key, handling collisions and me.deleted slots.
-    // Uses linear probing to find the next available slot.
+    // Returns the slot of `key`, or the slot where it would be inserted, probing linearly from `idx`.
+    //
+    // A deleted slot met on the way is reused when the key is absent.
     //
     // Both loops test the cached hash first: an occupied slot that does not match is by far
     // the most frequent outcome, and it must cost a single compare. A set that has never seen
@@ -338,8 +342,9 @@ impl HashSet
         }
     }
 
-    // Adds a new key to the set. The key is copied; pass it with '#move' to move it instead.
-    // If the key already exists, does nothing. Returns a pointer to the entry.
+    // Adds `key` unless it is already present, and returns its entry.
+    //
+    // The key is copied; pass it with `#move` to move it instead.
     #[Discardable]
     mtd add(key: #fwd K)->*HashSetEntry
     {
@@ -369,7 +374,7 @@ impl HashSet
         return table + index
     }
 
-    // Internal helper to add a new element with a pre-computed hash.
+    // Relocates `key` into the set under a precomputed hash.
     #[Discardable, Swag.NoDoc]
     mtd emplaceInternal(hashVal: u32, key: *K)->*HashSetEntry
         where Reflection.canCopy(#typeof(K))
@@ -400,11 +405,11 @@ impl HashSet
         return table + index
     }
 
-    // Toggles the presence of a key in the set.
-    // The key is copied when inserted; pass it with '#move' to move it instead.
-    // Returns 'true' if the key is present after the operation, or 'false' if it was removed.
+    // Adds `key` when it is absent or removes it when present, and returns whether it is now present.
+    //
+    // The key is copied when inserted; pass it with `#move` to move it instead.
     #[Discardable]
-    public mtd toggle(key: #fwd K)->bool
+    mtd toggle(key: #fwd K)->bool
     {
         .grow()
 
@@ -451,8 +456,10 @@ impl HashSet
         }
     }
 
-    // Removes a key from the set.
-    // If the key exists, its slot is marked as 'DELETED'. Does nothing if the key is not found.
+    // Removes `key`; does nothing when it is absent.
+    //
+    // The slot is only marked as deleted: its key is dropped when the slot is reused, when the set
+    // grows, or when it is cleared or freed.
     mtd remove(key: K)
     {
         if not .table do
@@ -477,7 +484,7 @@ impl HashSet
         }
     }
 
-    // Returns 'true' if the set contains the given key.
+    // Returns whether the set contains `key`.
     mtd const contains(key: K)->bool
     {
         if not .table do
@@ -498,12 +505,10 @@ impl HashSet
         return false
     }
 
-    // Removes all elements from the set without deallocating the me.table memory.
-    // All slots are marked as 'FREE'.
+    // Drops every key and leaves the set empty, keeping its slots for reuse.
     mtd clear()
     {
-        // Need to put the 'hash' value of each entry to HASH_FREE
-        // Drop the key and the value if necessary
+        // Free every slot, dropping what live and deleted slots still hold.
         if .count or .deleted
         {
             let table = .tablePtr()
@@ -519,7 +524,7 @@ impl HashSet
                     .count -= 1
                 table[i].hash = HashSet.HASH_FREE
 
-                // We are done if there's no more valid value, and no more me.deleted value
+                // The remaining slots are already free once no live or deleted slot is left.
                 if not .count and not .deleted do
                     break
             }

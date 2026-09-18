@@ -1,6 +1,6 @@
 #global namespace Sync
 
-// Performs the scoped lock operation.
+// Locks `syncObj` exclusively until the end of the calling scope.
 #[Swag.Mixin]
 public func(T) scopedLock(syncObj: *T)
 {
@@ -8,7 +8,7 @@ public func(T) scopedLock(syncObj: *T)
     defer syncObj.unlock()
 }
 
-// Performs the shared lock operation.
+// Locks `syncObj` for shared access until the end of the calling scope.
 #[Swag.Mixin]
 public func(T) sharedLock(syncObj: *T)
 {

@@ -3,10 +3,7 @@
 
 using Swag
 
-func md5String(buffer: const [..] u8)->String
-{
-    return Hash.Md5.toString(Hash.Md5.compute(buffer))
-}
+func md5String(buffer: const [..] u8)->String => Hash.Md5.toString(Hash.Md5.compute(buffer))
 
 func assertMd5(buffer: const [..] u8, expected: string)
 {

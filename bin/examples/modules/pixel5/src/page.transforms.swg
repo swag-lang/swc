@@ -38,10 +38,7 @@ func buildFlippedImage(source: Image)->Image
     return result
 }
 
-func buildRotatedImage(source: Image, angle: Image.Rotation)->Image
-{
-    return source.rotated(angle)
-}
+func buildRotatedImage(source: Image, angle: Image.Rotation)->Image => source.rotated(angle)
 
 func buildExpandedImage(source: Image)->Image
 {

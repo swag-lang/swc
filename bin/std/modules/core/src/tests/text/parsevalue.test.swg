@@ -46,11 +46,11 @@ struct ParseOuter
     var value: ParseOuter
     discard catch StrConv.parseValue(&value, #typeof(ParseOuter), "1 2 3") as err
     Swag.assert(err != null)
-    Swag.assert((err is Errors.InvalidFormatError))
+    Swag.assert(err is Errors.InvalidFormatError)
 
     discard catch StrConv.parseValue(&value, #typeof(ParseOuter), "{{1 2 3 4} 5") as err2
     Swag.assert(err2 != null)
-    Swag.assert((err2 is Errors.InvalidFormatError))
+    Swag.assert(err2 is Errors.InvalidFormatError)
 }
 
 // A struct field parses from a tweak line, which is what theme sheets rely on.

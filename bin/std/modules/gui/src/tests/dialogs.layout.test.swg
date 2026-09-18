@@ -10,15 +10,12 @@ using Swag, Core, Pixel
     host.setup(900, 600)
     defer host.shutdown()
 
-    var options: EditDlgOptions
-    options.title   = "Rename"
-    options.message = "Enter the new name."
-    let dlg = EditDlg.createSingleLine(&host.surface, options)
+    let dlg     = EditDlg.createSingleLine(&host.surface, {title: "Rename", message: "Enter the new name."})
+    let metrics = dlg.themeMetrics()
 
     Swag.assert(dlg.surface!.flags.has(.SmallCaption))
     Swag.assert(dlg.label.preferredSize.y < 40)
-    Swag.assert(Math.abs(dlg.label.margin.w - dlg.themeMetrics().dialog_BtnPadding) < 0.5)
-    let metrics       = dlg.themeMetrics()
+    Swag.assert(Math.abs(dlg.label.margin.w - metrics.dialog_BtnPadding) < 0.5)
     let contentHeight = dlg.edit!.position.height + dlg.label.position.height + dlg.label.margin.w
     var expected      = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
     expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface.shadowMargin()
@@ -55,10 +52,8 @@ using Swag, Core, Pixel
     host.setup(900, 600)
     defer host.shutdown()
 
-    var options: EditDlgOptions
-    options.title        = "Description"
-    options.editorHeight = 150
-    let dlg = EditDlg.createMultiLine(&host.surface, options)
+    let options = EditDlgOptions{title: "Description", editorHeight: 150}
+    let dlg     = EditDlg.createMultiLine(&host.surface, options)
 
     Swag.assert(dlg.label.name.raw == strings().dlg_MultiLineHint)
     Swag.assert(dlg.label.position.bottom() <= dlg.richEdit!.position.y + 0.5)
@@ -231,6 +226,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(900, 900)
     defer host.shutdown()
+
     var message: String
     for index in 80 do
         message += Format.toString("Line % remains readable.\n", index)
@@ -284,7 +280,7 @@ using Swag, Core, Pixel
 
     // A list long enough to have no end of its own.
     var long: String
-    for i in 400 do
+    for 400 do
         long += "extension, "
     dlg.addSection("Everything", long.toString())
 

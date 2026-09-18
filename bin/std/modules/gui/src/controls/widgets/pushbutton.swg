@@ -269,6 +269,9 @@ impl PushButton
     mtd setIconSize(width, height: f32) => .button.setIconSize(width, height)
 
     // Creates a push button with optional command identifier and visual emphasis.
+    //
+    // A zero `position` height takes the theme height. A zero width starts at the theme width
+    // and then follows the caption, keeping the theme width as a floor.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, form = PushButtonForm.Normal)->*PushButton
     {
@@ -361,7 +364,7 @@ impl PushButton
         let metrics = .themeMetrics()
 
         var result = .captionWidth(bold: .form == .Strong) + 2 * metrics.btnPush_TextMargin
-        if .icon.isValid() and (.name).count != 0 do
+        if .icon.isValid() and not .name.isEmpty() do
             result += metrics.iconText_Margin
         return result
     }

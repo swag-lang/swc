@@ -23,6 +23,7 @@ SWC_DIAG_DEF(sema_note_other_ast_expansion, Note, "same generated '#ast' source 
 SWC_DIAG_DEF(sema_note_could_be, Note, "could refer to {a-sym-fam} '{sym}'")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could be")
 SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "depends on '{tok}' here")
+SWC_DIAG_DEF(sema_note_cyclic_inferred_return, Note, "the return type of '{tok}' is inferred from its expression body, which depends on '{tok}' itself; [help] declare the return type of '{tok}'")
 SWC_DIAG_DEF(sema_note_available_named_arguments, Note, "available named arguments: {values}")
 SWC_DIAG_DEF(sema_note_call_has_no_named_arguments, Note, "this call has no named parameters")
 SWC_DIAG_DEF(sema_note_available_struct_fields, Note, "available fields: {values}")

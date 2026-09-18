@@ -51,7 +51,6 @@ func day4B()
         for r in results do
             total = Math.min(total, r)
 
-        // Console.print("total: ", total)
         Swag.assert(total == 9962624)
     }
 }

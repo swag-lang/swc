@@ -48,7 +48,7 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 
     for idx in 80
     {
-        let slice    = Swag.makeSlice(bytes.buffer, idx)
+        let slice    = bytes[until idx]
         let actual   = Text.countZeroPositions(slice)
         let expected = scalarCountZeroPositions(slice)
         Swag.assert(actual.even == expected.even)
@@ -123,9 +123,9 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 
     for count in utf16.count + 1
     {
-        let expected = Utf8.fromUtf16(Swag.makeSlice(utf16.buffer, count))
-        Swag.assert(Text.decode(Swag.makeSlice(le16.buffer, 2 * count), .Utf16Le) == expected)
-        Swag.assert(Text.decode(Swag.makeSlice(be16.buffer, 2 * count), .Utf16Be) == expected)
+        let expected = Utf8.fromUtf16(utf16[until count])
+        Swag.assert(Text.decode(le16[until 2 * count], .Utf16Le) == expected)
+        Swag.assert(Text.decode(be16[until 2 * count], .Utf16Be) == expected)
     }
 
     let utf32: [9] rune = ['A'rune, 0x80, 0x7FF, 0x800, 0x20AC, 0xD800, 0x10000, 0x10FFFF, 0x110000]
@@ -146,9 +146,9 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 
     for count in utf32.count + 1
     {
-        let expected = Utf8.fromUnicode(Swag.makeSlice(utf32.buffer, count))
-        Swag.assert(Text.decode(Swag.makeSlice(le32.buffer, 4 * count), .Utf32Le) == expected)
-        Swag.assert(Text.decode(Swag.makeSlice(be32.buffer, 4 * count), .Utf32Be) == expected)
+        let expected = Utf8.fromUnicode(utf32[until count])
+        Swag.assert(Text.decode(le32[until 4 * count], .Utf32Le) == expected)
+        Swag.assert(Text.decode(be32[until 4 * count], .Utf32Be) == expected)
     }
 }
 

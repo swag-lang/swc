@@ -56,10 +56,10 @@ private func auditNoticeIndex(context: *Context, directory: string, index: strin
     let files = try Directory.enumerateFiles(directory, ".md", recurse: true)
     for file in files
     {
-        if (Path.fileName(file.fullname.toString()) orelse "") != "THIRDPARTY.md" do
+        if (Path.fileName(file.fullName.toString()) orelse "") != "THIRDPARTY.md" do
             continue
 
-        let relative = noticeRelativePath(context, file.fullname.toString())
+        let relative = noticeRelativePath(context, file.fullName.toString())
         if Utf8.indexOf(cast(const [..] u8) index, relative.toString()) != Swag.U64.Max do
             continue
 
@@ -72,11 +72,11 @@ private func auditNoticeIndex(context: *Context, directory: string, index: strin
 
 // The index names a notice by its path under `bin/`, which is where a reader of a shipped tree
 // stands.
-private func noticeRelativePath(context: *Context, fullname: string)->String
+private func noticeRelativePath(context: *Context, fullName: string)->String
 {
     let rootLength = (context.root.toString()).count
-    let start      = rootLength < fullname.count and (fullname[rootLength] == '/' or fullname[rootLength] == '\\') ? rootLength + 1 : rootLength
-    var result     = String.from(fullname[start until fullname.count])
+    let start      = rootLength < fullName.count and (fullName[rootLength] == '/' or fullName[rootLength] == '\\') ? rootLength + 1 : rootLength
+    var result     = String.from(fullName[start until fullName.count])
     result.replace("\\", "/")
     if Utf8.startsWith(cast(const [..] u8) result.toString(), "bin/") do
         result = String.from((result.toString())[4 until (result.toString()).count])
@@ -90,7 +90,7 @@ private func auditNoticeReferences(context: *Context, directory: string)->u32 fa
     {
         let files = try Directory.enumerateFiles(directory, extension, recurse: true)
         for file in files do
-            errors += try auditNoticeFile(context, file.fullname.toString())
+            errors += try auditNoticeFile(context, file.fullName.toString())
     }
 
     return errors

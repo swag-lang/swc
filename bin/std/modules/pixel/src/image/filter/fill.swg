@@ -2,7 +2,7 @@ using Core
 
 public impl Image
 {
-    // Fill image with 'color'
+    // Sets every pixel to `color`.
     mtd fill(color: Color)
     {
         if not .pixelFormat.isPacked() do
@@ -37,7 +37,7 @@ public impl Image
         case .BGRA8: .fillFirstLine'BGRA8()
         case .RGB8:  .fillFirstLine'RGB8()
         case .RGBA8: .fillFirstLine'RGBA8()
-        default:     Swag.assert(false)
+        default:     unreachable
         }
 
         .visitPixels(stride: .width)

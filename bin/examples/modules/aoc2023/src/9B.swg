@@ -66,6 +66,5 @@ func day9B()
         total += prev
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 1019)
 }

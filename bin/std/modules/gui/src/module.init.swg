@@ -2,12 +2,9 @@
 
 using Pixel
 
-func nnFont(font: *Font?)->*Font
-{
-    return font!
-}
+func nnFont(font: *Font?)->*Font => font!
 
-// Y of the top edge of `size` placed level with a line box of `family` centered on `centerY`.
+// Returns the top edge of a glyph of height `size` set level with a line of `family` centered on `centerY`.
 //
 // Every glyph a widget sets beside a word centered that way goes through this: an icon, a check
 // mark, a drop-down arrow. Centering them on the cell instead leaves them off the word by the
@@ -28,7 +25,4 @@ func opticalTop(family: const *FontFamily?, centerY, size: f32)->f32
     return font.opticalTop(centerY, size)
 }
 
-func nnPixels(pixels: [*] u8?)->const *u8
-{
-    return cast(const *u8) pixels!
-}
+func nnPixels(pixels: [*] u8?)->const *u8 => cast(const *u8) pixels!

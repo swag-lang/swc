@@ -126,6 +126,5 @@ func day7B()
             break
     }
 
-    // Console.print("total: ", total, "\n\n")
     Swag.assert(total == 44282086)
 }

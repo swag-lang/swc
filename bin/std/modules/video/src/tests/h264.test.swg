@@ -49,7 +49,7 @@ using Core, Core.Errors, Pixel
     decoder.video.avc.stopFrameThreads()
 
     let configuredLanes = decoder.video.avc.laneCount
-    Swag.assert(configuredLanes >= 1 and configuredLanes <= Math.max(1'u32, Math.min(Swag.workerCount(), 16'u32)))
+    Swag.assert(configuredLanes >= 1 and configuredLanes <= Math.clamp(Swag.workerCount(), 1'u32, 16'u32))
     Swag.assert(decoder.video.avc.threadedHighWater == configuredLanes)
 }
 

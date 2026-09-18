@@ -77,9 +77,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image    = renderer.readRenderTarget(&target, 0, 0, 72, 12)
     let expected = image.pixelColor(60, 0)
-    for var y = 0; y < 12; y += 1
+    for y in 12
     {
-        for var x = 60; x < 72; x += 1 do
+        for x in 60 until 72 do
             assertPixel(image, x, y, expected)
     }
 }
@@ -519,9 +519,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertImage(serial, Narrow, Height, .BGRA8)
     assertImage(banded, Wide, Height, .BGRA8)
 
-    for var y = 0; y < Height; y += 1
+    for y in Height
     {
-        for var x = 0; x < Narrow; x += 1 do
+        for x in Narrow do
             Swag.assert(serial.pixelColor(x, y) == banded.pixelColor(x, y))
     }
 }

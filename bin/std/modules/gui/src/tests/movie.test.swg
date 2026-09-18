@@ -3,8 +3,11 @@
 
 using Core, Pixel
 
-func movieFixture(name: string)->String => String.from(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name))
+// Returns the full path of the fixture `name` in the `datas` folder beside this file.
+func movieFixture(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
 
+// An animated WebP or APNG advances on its frame durations, honors its encoded loop count, and
+// counts the loops it completes.
 #test
 {
     for name in ["imageset-animation.webp", "imageset-animation.apng"]
@@ -14,9 +17,12 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
         Swag.assert(movie.isAnimated() and movie.frameCount == 3 and movie.frameIndex == 0)
         Swag.assert(not movie.isPaused and movie.currentFrameDuration() == 0.04)
         Swag.assert(movie.completedLoopCount() == 0)
-        Swag.assert(movie.update(0.04) and movie.frameIndex == 1)
-        Swag.assert(not movie.update(0.05) and movie.frameIndex == 1)
-        Swag.assert(movie.update(0.071) and movie.frameIndex == 2)
+        var advanced = movie.update(0.04)
+        Swag.assert(advanced and movie.frameIndex == 1)
+        advanced = movie.update(0.05)
+        Swag.assert(not advanced and movie.frameIndex == 1)
+        advanced = movie.update(0.071)
+        Swag.assert(advanced and movie.frameIndex == 2)
         discard movie.update(0.08)
         Swag.assert(movie.isPaused and movie.frameIndex == 2)
         Swag.assert(movie.completedLoopCount() == 1)
@@ -29,13 +35,16 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
         Swag.assert(movie.completedLoopCount() == 1)
         movie.setPaused(true)
         discard movie.update(0)
-        Swag.assert(not movie.update(10) and movie.frameIndex == 0)
+        advanced = movie.update(10)
+        Swag.assert(not advanced and movie.frameIndex == 0)
         Swag.assert(movie.completedLoopCount() == 1)
         movie.setPaused(false)
         Swag.assert(movie.completedLoopCount() == 0)
     }
 }
 
+// A frame cache stays within its byte budget while seeking, and an image view shows each image of
+// an icon file as one frame.
 #test
 {
     var movie: Movie
@@ -51,6 +60,7 @@ func movieFixture(name: string)->String => String.from(Path.combine(Path.directo
     for y in 4 do
         for x in 4 do
             Swag.assert(movie.frame.pixelColor(x, y).argb == (x < 2 and y >= 2 ? 0xFF0000FF : 0))
+
     movie.setFrameIndex(0)
     Swag.assert(movie.frameIndex == 0 and movie.frame.pixelColor(0, 0).r == 255)
     Swag.assert(movie.cachedBytes == 64)

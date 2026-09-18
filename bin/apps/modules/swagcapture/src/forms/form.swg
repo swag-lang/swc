@@ -122,7 +122,7 @@ impl BaseForm
             let stroke = base.borderSize
             let beg    = Painter.capStyleRadius(line.beginCap, stroke, line.startSize)
             let end    = Painter.capStyleRadius(line.endCap, stroke, line.endSize)
-            extent = Math.max(stroke * 1.5, Math.max(beg, end)) + line.outlineSize
+            extent = Math.max(stroke * 1.5, beg, end) + line.outlineSize
         }
         elif type == FormDraw
         {
@@ -201,10 +201,7 @@ impl BaseForm
         }
     }
 
-    mtd rectFormBound()->Math.Rectangle
-    {
-        return Math.Rectangle{.x, .y, .w, .h}
-    }
+    mtd rectFormBound()->Math.Rectangle => Math.Rectangle{.x, .y, .w, .h}
 
     // PixSel forms share one look: an almost transparent fill and a thin dashed
     // outline, widened when hit-testing so the outline stays clickable.

@@ -1,14 +1,14 @@
 using Core, Pixel, Serialization
 
-// Selects sizing border.
+// Identifies the edges of a surface a pointer position resizes; a corner combines two.
 #[Swag.EnumFlags]
 public enum SizingBorder
 {
-    None = 0     // No flags are enabled.
-    Left         // Selects left.
-    Top          // Selects top.
-    Right        // Selects right.
-    Bottom       // Selects bottom.
+    None = 0     // Not over a sizing border.
+    Left         // Left edge.
+    Top          // Top edge.
+    Right        // Right edge.
+    Bottom       // Bottom edge.
 }
 
 // Provides the root GUI frame and native caption controls for a [[Gui.Surface]].
@@ -16,13 +16,13 @@ public struct SurfaceWnd
 {
     public
     {
-        using base:    FrameWnd                // Embedded base state.
-        icon:          Icon                    // Icon associated with this value.
-        minimizeBtn:   *IconButton?            // Minimize btn associated with this value.
-        maximizeBtn:   *IconButton?            // Maximize btn associated with this value.
-        closeBtn:      *IconButton?            // Close btn associated with this value.
-        movingSurface: bool                    // Moving surface associated with this value.
-        sizingBorder:  SizingBorder = None     // Sizing border associated with this value.
+        using base:    FrameWnd                // Frame hosting the surface view.
+        icon:          Icon                    // Caption icon; an invalid one shows the application mark.
+        minimizeBtn:   *IconButton?            // Caption minimize button, present with [[Gui.SurfaceFlags.MinimizeButton]].
+        maximizeBtn:   *IconButton?            // Caption maximize button, present with [[Gui.SurfaceFlags.MaximizeButton]].
+        closeBtn:      *IconButton?            // Caption close button, present with [[Gui.SurfaceFlags.CloseButton]].
+        movingSurface: bool                    // Whether a pointer drag is moving or resizing the surface.
+        sizingBorder:  SizingBorder = None     // Border under the pointer, or being dragged.
     }
 
     captionButtons: Array'(*IconButton)     // Application actions immediately before the native caption controls.

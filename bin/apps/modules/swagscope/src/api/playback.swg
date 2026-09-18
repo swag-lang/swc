@@ -95,7 +95,7 @@ impl PlaybackApi
         }
     }
 
-    // Applies a command produced by [[Swagscope.Viewer.PlaybackApi.appendMenuItems]] and reports whether it was handled.
+    // Applies a command produced by [[Viewer.PlaybackApi.appendMenuItems]] and reports whether it was handled.
     //
     // Pass the same `showSlideDuration` choice used to build the menu. Unknown commands and hosts
     // without playback callbacks return false, so a viewer can handle its other settings normally.

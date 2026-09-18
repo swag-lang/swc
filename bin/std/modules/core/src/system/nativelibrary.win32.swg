@@ -19,7 +19,9 @@ internal func loadNativeLibrary(path: string)->*void fail
 
 internal func nativeLibrarySymbol(handle: *void, name: string)->const *void?
 {
-    return GetProcAddress(cast(HMODULE) handle, name.buffer)
+    // The symbol name is read up to its terminator, which a 'string' view does not guarantee.
+    let symbolName = String.from(name)
+    return GetProcAddress(cast(HMODULE) handle, symbolName.buffer)
 }
 
 internal func closeNativeLibrary(handle: *void)

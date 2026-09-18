@@ -184,7 +184,7 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
     if prec > 0
     {
         dst.addNative(g_CultureInfo.numberFormat.decimalSeparator)
-        for var i = 0; i < prec; i += 1
+        for i in prec
         {
             var ch = '0'u8
             let j  = d.dp + i
@@ -351,15 +351,18 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
     }
 }
 
-// Convert of floating value to a string.
-// The format 'fmt' is one of:
+// Appends the text of `val` to `buf`, in the format `fmt` with `precision` digits.
+//
+// The format `fmt` is one of:
 // | e | -d.dddde±dd, a decimal exponent
 // | E | -d.ddddE±dd, a decimal exponent
 // | f | -ddd.dddd, no exponent
 // | g | 'e' for large exponents, 'f' otherwise
 // | G | 'E' for large exponents, 'f' otherwise
-// A negative precision means *only as much as needed to be exact*
-public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool)
+//
+// A negative `precision` writes only as many digits as `val` needs to be exact. `forceSign` also
+// writes the sign of a positive value. A NaN is written `NaN` and an infinity `+Inf` or `-Inf`.
+public func append(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool)
 {
     let bits: u64 = cast #bit (u64) val
 

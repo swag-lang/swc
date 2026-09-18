@@ -32,3 +32,19 @@ using Swag, Core
     Swag.assert(Color.lerp(Argb.Black, Argb.White, -1) == Argb.Black)
     Swag.assert(Color.lerp(Argb.Black, Argb.White, 2) == Argb.White)
 }
+
+// A color reads from text as a packed hexadecimal value or four decimal bytes, and a lone digit is incomplete.
+#test
+{
+    var packed: Color
+    discard expect StrConv.parseValue(&packed, Color, " 0xFF102030")
+    Swag.assert(packed.argb == 0xFF102030)
+
+    var bytes: Color
+    discard expect StrConv.parseValue(&bytes, Color, " 255 16 32 48")
+    Swag.assert(bytes.a == 255 and bytes.r == 16 and bytes.g == 32 and bytes.b == 48)
+
+    var single: Color
+    discard catch StrConv.parseValue(&single, Color, "0") as incomplete
+    Swag.assert(incomplete != null)
+}

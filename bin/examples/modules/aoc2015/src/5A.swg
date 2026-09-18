@@ -57,7 +57,6 @@ func day5A0()
             total += 1
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 258)
 }
 
@@ -83,6 +82,5 @@ func day5A1()
         total += 1
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 258)
 }

@@ -24,8 +24,7 @@ struct StreamInfo
 
         frameRate: FrameRate     // Exact playback rate.
 
-        // Number of frames in the stream, or zero when the format cannot report it without
-        // decoding the whole stream.
+        // Number of frames in the stream, or zero when the format cannot report it without decoding the whole stream.
         //
         // Zero is not an error and not an empty stream: it means the count is unknown, so a
         // caller reads frames in order until decoding fails at the end of the stream instead

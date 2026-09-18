@@ -88,7 +88,7 @@ func day5A()
 
     for f in lines
     {
-        if f.count == 0
+        if f.isEmpty()
         {
             first = false
             continue
@@ -103,7 +103,7 @@ func day5A()
         else
         {
             let update = Tokenize.split(f[], ','u8)
-            Swag.assert(update.count != 0)
+            Swag.assert(not update.isEmpty())
 
             var isOrdered = true
             for beforeIndex in update.count

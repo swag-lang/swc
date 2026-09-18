@@ -696,7 +696,7 @@ impl Track
     // of a variable one, which is what a caller pacing playback can best use.
     mtd const frameRate()->FrameRate fail
     {
-        if not .times.count do
+        if .times.isEmpty() do
             fail InvalidFormatError{"MP4 video track has no time-to-sample table"}
         if not .timescale do
             fail InvalidFormatError{"MP4 video track has no media timescale"}
@@ -787,11 +787,11 @@ impl Track
     // Expands the chunk tables into one direct frame table.
     mtd buildFrames(sourceSize: u64)->Array'FrameEntry fail
     {
-        if not .sizes.count do
+        if .sizes.isEmpty() do
             fail InvalidFormatError{"MP4 video track has no samples"}
-        if not .offsets.count do
+        if .offsets.isEmpty() do
             fail InvalidFormatError{"MP4 video track has no chunk offsets"}
-        if not .chunks.count or .chunks[0].firstChunk != 1 do
+        if .chunks.isEmpty() or .chunks[0].firstChunk != 1 do
             fail InvalidFormatError{"MP4 sample-to-chunk table does not start at the first chunk"}
 
         var result: retval
@@ -915,7 +915,7 @@ impl IDecoder for Decoder
         else do
             .presentationTimes = #move times
 
-        if .presentationTimes.count
+        if not .presentationTimes.isEmpty()
         {
             let origin = .presentationTimes[0]
             for &time in .presentationTimes do
@@ -1064,7 +1064,7 @@ impl ITimedDecoder for Decoder
 
     mtd impl frameAtTime(seconds: f64)->u64
     {
-        if not .presentationTimes.count or not .presentationTimescale do
+        if .presentationTimes.isEmpty() or not .presentationTimescale do
             return 0
         if seconds < 0 do
             return 0

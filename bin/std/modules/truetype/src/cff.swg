@@ -35,7 +35,7 @@ impl CffIndex
         // A position the index does not hold answers empty, not absent: every reader loops to
         // 'count', so an empty program is the benign outcome a malformed font deserves.
         if cast(u64) index + 1 >= .starts.count do
-            return Swag.makeSlice(block.buffer, 0)
+            return block[until 0]
         let from = .starts[index]
         let stop = .starts[index + 1]
         if stop < from do
@@ -155,16 +155,10 @@ impl CffFont
     }
 }
 
-func clampToS16(value: f64)->s16
-{
-    return cast(s16) Math.clamp(Math.round(value), cast(f64) Swag.S16.Min, cast(f64) Swag.S16.Max)
-}
+func clampToS16(value: f64)->s16 => cast(s16) Math.clamp(Math.round(value), cast(f64) Swag.S16.Min, cast(f64) Swag.S16.Max)
 
 // Answers whether a PostScript weight name describes a bold face.
-func isBoldWeightName(weight: string)->bool
-{
-    return weight == "Bold" or weight == "Black" or weight == "Heavy" or weight == "Semibold" or weight == "Demi" or weight == "DemiBold"
-}
+func isBoldWeightName(weight: string)->bool => weight == "Bold" or weight == "Black" or weight == "Heavy" or weight == "Semibold" or weight == "Demi" or weight == "DemiBold"
 
 // Returns the offset added to a subroutine number before it indexes the subroutine array.
 func subrBias(count: u32)->s32

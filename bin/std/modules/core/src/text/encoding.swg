@@ -20,7 +20,7 @@ enum Encoding
     Windows1252     // One byte per character, code page 1252.
 }
 
-// Bytes the encoding writes in front of the content to announce itself, if any.
+// Returns the length, in bytes, of the byte-order mark of `encoding`, or 0 when it has none.
 //
 // A byte-order mark is part of the file but not part of the text, so a reader skips exactly this
 // many bytes at offset zero and never inside.
@@ -35,7 +35,7 @@ func bomLength(encoding: Encoding)->u64
     }
 }
 
-// Bytes one character occupies, or the size a chunk boundary must be a multiple of.
+// Returns the size, in bytes, of one unit of `encoding`, which a chunk boundary must be a multiple of.
 //
 // UTF-8 and code page 1252 return one because a boundary is decided by the content rather than by
 // arithmetic: the first cuts on a lead byte, the second cuts anywhere.
@@ -49,7 +49,7 @@ func unitSize(encoding: Encoding)->u64
     }
 }
 
-// Reports whether `bytes` opens with the byte-order mark of `encoding`.
+// Returns whether `bytes` starts with the byte-order mark of `encoding`.
 func hasBom(bytes: const [..] u8, encoding: Encoding)->bool
 {
     let length = bomLength(encoding)
@@ -230,51 +230,44 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 // byte where it is.
 func decode(bytes: const [..] u8, encoding: Encoding)->String
 {
-    var result: retval
     if not bytes.count do
-        return result
+        return {}
 
     switch #complete encoding
     {
     case .Utf8:
-        result = Swag.makeString(bytes.buffer, bytes.count)
-        return result
+        return String.from(cast(string) bytes)
 
     case .Windows1252:
         var runes: Array'rune
         runes.reserve(bytes.count)
         for value in bytes do
             runes.add(windows1252Rune(value))
-        result = Utf8.fromUnicode(runes.toSlice())
-        return result
+        return Utf8.fromUnicode(runes.toSlice())
 
     case .Utf16Le:
-        result = Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16) bytes.buffer, bytes.count / 2))
-        return result
+        return Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16) bytes.buffer, bytes.count / 2))
 
     case .Utf16Be:
         let units = decodeUtf16BeUnits(bytes)
-        result = Utf8.fromUtf16(units.toSlice())
-        return result
+        return Utf8.fromUtf16(units.toSlice())
 
     case .Utf32Le:
-        result = Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune) bytes.buffer, bytes.count / 4))
-        return result
+        return Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune) bytes.buffer, bytes.count / 4))
 
     case .Utf32Be:
         let runes = decodeUtf32BeRunes(bytes)
-        result = Utf8.fromUnicode(runes.toSlice())
-        return result
+        return Utf8.fromUnicode(runes.toSlice())
     }
 }
 
-// Reports whether `probe`, read as `encoding`, is text a reader should be shown.
+// Returns whether `probe`, read as `encoding`, is text a reader should be shown.
 //
 // Every byte means something under code page 1252 and half of them mean something under UTF-16, so
 // a decoder alone never says no — an executable decodes into thousands of characters. What
 // separates text from a binary that happens to decode is the control characters: a document uses
-// tab, newline and carriage return and nothing else below `0x20`, and it never contains a null
-// character at all.
+// tab, line feed, form feed and carriage return and nothing else below `0x20`, and it never
+// contains a null character at all.
 func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
 {
     if not probe.count do
@@ -285,10 +278,8 @@ func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
         return false
 
     var controls = 0'u64
-    var count    = 0'u64
     for c in text
     {
-        count += 1
         if not c do
             return false
         if c < 0x20 and c != '\t' and c != '\n' and c != '\r' and c != 0x0C do
@@ -296,5 +287,5 @@ func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
     }
 
     // One in twenty is already generous for a document and far below what any binary reaches.
-    return controls * 20 <= count
+    return controls * 20 <= text.length
 }

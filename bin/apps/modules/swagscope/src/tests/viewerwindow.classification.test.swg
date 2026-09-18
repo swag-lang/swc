@@ -27,7 +27,7 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     for i in 3'u32
     {
         let fileName = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
-        discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllText(fileName.toString(), "a readable line\n")
         names.add(fileName)
     }
 
@@ -70,8 +70,8 @@ func holdClassificationStatistics(thread: Threading.Thread)
     defer discard catch Directory.delete(folder.toString(), recurse: true)
     let first = Path.combine(folder.toString(), "first.txt")
     let next  = Path.combine(folder.toString(), "next.txt")
-    discard expect File.writeAllBytes(first.toString(), cast(const [..] u8) "The first document.\n")
-    discard expect File.writeAllBytes(next.toString(), cast(const [..] u8) "The next document.\n")
+    discard expect File.writeAllText(first.toString(), "The first document.\n")
+    discard expect File.writeAllText(next.toString(), "The next document.\n")
 
     // The gate outlives the GUI owner, including cleanup after an assertion failure.
     var gate: ClassificationRetirementGate
@@ -86,7 +86,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == TextViewerKey)
     let previousView = window.currentView!
-    let previous     = cast #assume (*TextView) previousView
+    let previous     = cast #assume (*TextViewer) previousView
     Swag.assert(previous.loadTimer == null)
 
     // Replace completed statistics with a worker whose lifetime is controlled by this test.

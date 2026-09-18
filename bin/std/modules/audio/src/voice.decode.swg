@@ -271,7 +271,7 @@ impl Voice
 
         var wantedLength = length
 
-        if file.packets.count do
+        if not file.packets.isEmpty() do
             return try .readPacketBytes(destBuffer, wantedLength)
 
         // First take from the prefetched buffer if there's something there, instead of reading

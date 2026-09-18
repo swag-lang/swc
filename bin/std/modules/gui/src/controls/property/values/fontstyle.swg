@@ -7,10 +7,7 @@ internal struct FontStyleEditor {}
 
 internal impl IPropertyEditor for FontStyleEditor
 {
-    mtd impl canEdit(type: typeinfo?)->bool
-    {
-        return type == FontFamilyStyle
-    }
+    mtd impl canEdit(type: typeinfo?)->bool => type == FontFamilyStyle
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {

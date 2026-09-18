@@ -26,9 +26,9 @@ private const BinaryFillRows       = 128'u64
 private const BinaryCommandWidth   = 80.0
 
 // Commands shared by the context menu, keyboard, and command bar.
-internal struct ActionBinary {}
+struct ActionBinary {}
 
-internal impl ActionBinary
+impl ActionBinary
 {
     newCmdId("CopyAll")
     newCmdId("CopyLine")
@@ -40,7 +40,7 @@ internal impl ActionBinary
 }
 
 // Lanes one row of the report is read across.
-internal enum BinaryColumn
+enum BinaryColumn
 {
     Field      // Structure or field name, and the tree indentation.
     Value      // The value itself, in the spelling its type is read in.
@@ -51,9 +51,9 @@ internal enum BinaryColumn
 // Structured view of a binary file.
 //
 // Every format reader produces the same thing — a flat, levelled list of rows — so this view knows
-// nothing about executables, libraries or containers. It turns rows into a tree, maps a byte offset
-// the host searched for back onto the row that covers it, and copies the whole report as text.
-internal struct BinaryViewer
+// nothing about executables, libraries or containers. It turns rows into a tree, maps a file offset
+// back onto the row that covers it, and copies the whole report as text.
+struct BinaryViewer
 {
     using wnd: Wnd
 
@@ -101,7 +101,10 @@ internal struct BinaryViewer
     filterIncluded:          Array'bool
 }
 
-// Reads a hexadecimal file offset, with an optional sign relative to `current`.
+// Returns the hexadecimal file offset `text` names, or `Swag.U64.Max` when it names none.
+//
+// A leading `+` or `-` makes the offset relative to `current`, and the result is clamped to the last
+// byte of a file of `fileSize` bytes.
 private func parseBinaryOffset(text: string, current, fileSize: u64)->u64
 {
     var index = 0'u64
@@ -156,7 +159,7 @@ private func parseBinaryOffset(text: string, current, fileSize: u64)->u64
     return Math.min(target, fileSize - 1)
 }
 
-internal impl BinaryViewer
+impl BinaryViewer
 {
     // Returns the exact text displayed in one logical report cell.
     private mtd cellText(rowIndex, column: u64)->String
@@ -185,14 +188,12 @@ internal impl BinaryViewer
 
         if row.kind == .Group
         {
-            var marked = String.from("<b>")
-            marked += row.label
-            marked += "</b>"
+            let marked = Format.toString("<b>%</b>", row.label)
             line.itemAt(cast(u32) BinaryColumn.Field).name = marked.toString()
         }
     }
 
-    // Rebuilds the tree from the report, parents before the rows they own.
+    // Empties the tree so that [[BinaryViewer.fillListStep]] rebuilds it from the first report row.
     mtd beginFillList()
     {
         .list.clear()
@@ -202,7 +203,10 @@ internal impl BinaryViewer
         .fillIndex = 0
     }
 
-    // Publishes a bounded number of report rows per GUI turn.
+    // Adds the next bounded batch of report rows to the tree, and returns whether the whole report is in.
+    //
+    // Rows arrive in report order, so a parent line always exists before the rows it owns, and a
+    // bounded batch per GUI turn keeps a large report from freezing the window.
     mtd fillListStep()->bool
     {
         let end = Math.min(.fillIndex + BinaryFillRows, .doc.report.rows.count)
@@ -255,10 +259,7 @@ internal impl BinaryViewer
     {
         if not .filterQuery.isEmpty()
         {
-            for row, index in .doc.report.rows where row.level and .rowLines[index] do
-                .rowLines[index]!.expanded = true
-            for row, index in .doc.report.rows where not row.level and .rowLines[index] do
-                .list.expand(.rowLines[index]!)
+            .expandEveryGroup()
             return
         }
 
@@ -279,6 +280,18 @@ internal impl BinaryViewer
         .restoreExpanded.clear()
     }
 
+    // Opens every group of the tree.
+    //
+    // Deeper groups are only marked; expanding each root then inserts its marked subtree in one pass.
+    private mtd expandEveryGroup()
+    {
+        for row, index in .doc.report.rows where row.level and .rowLines[index] do
+            .rowLines[index]!.expanded = true
+        for row, index in .doc.report.rows where not row.level and .rowLines[index] do
+            .list.expand(.rowLines[index]!)
+    }
+
+    // Selects again the row that was selected before the tree was rebuilt.
     private mtd restoreSelection()
     {
         if .restoreSelected >= .rowLines.count or not .rowLines[.restoreSelected]
@@ -296,34 +309,26 @@ internal impl BinaryViewer
     mtd setExpandedAll(expand: bool)
     {
         .list.collapseAll()
-        if expand
-        {
-            for row, index in .doc.report.rows where row.level and .rowLines[index] do
-                .rowLines[index]!.expanded = true
-            for row, index in .doc.report.rows where not row.level and .rowLines[index] do
-                .list.expand(.rowLines[index]!)
-        }
+        if expand do
+            .expandEveryGroup()
 
         .list.computeLayout()
         .invalidate()
     }
 
-    // Reveals the structure the byte at `offset` belongs to.
+    // Selects the innermost report row whose bytes contain `offset`, and returns whether one does.
     //
-    // The host searches the raw bytes and knows nothing of the structure; this is what turns the
-    // offset it found into a place in the file's layout. Group rows carry the range they cover, so
-    // a hit deep inside a section's payload still lands on that section.
-    mtd revealOffset(offset: u64, text: string)->bool
+    // This is what turns a file offset into a place in the file's layout. Group rows carry the range
+    // they cover, so an offset deep inside a section's payload still lands on that section.
+    mtd revealOffset(offset: u64)->bool
     {
-        discard text
-
         let index = .doc.report.rowAt(offset)
         if index == Swag.U64.Max do
             return false
         return .selectReportRow(index)
     }
 
-    // Selects one stable report row and opens its ancestors.
+    // Selects report row `index` after opening its ancestors, and returns whether it could be selected.
     private mtd selectReportRow(index: u64, recordHistory = true)->bool
     {
         if index >= .rowLines.count do
@@ -377,6 +382,7 @@ internal impl BinaryViewer
         .forwardButton.enable(.historyIndex != Swag.U64.Max and .historyIndex + 1 < .history.count)
     }
 
+    // Moves `direction` steps through the rows selected so far, and returns whether a row was selected.
     mtd navigateHistory(direction: s32)->bool
     {
         if .historyIndex == Swag.U64.Max do
@@ -394,7 +400,10 @@ internal impl BinaryViewer
         return true
     }
 
-    // Indexes the decoded report rather than scanning unrelated raw bytes.
+    // Collects every occurrence of `text` in the cells of the rows the filter keeps.
+    //
+    // The decoded report is searched rather than the raw bytes, so every match is text the reader can
+    // see.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for row, rowIndex in .doc.report.rows
@@ -413,6 +422,7 @@ internal impl BinaryViewer
         }
     }
 
+    // Selects the row of `match` and outlines its text, and returns whether it could be revealed.
     mtd revealMatch(match: Viewer.SearchMatch)->bool
     {
         if match.major >= .doc.report.rows.count or match.minor > cast(u64) BinaryColumn.Detail do
@@ -433,6 +443,7 @@ internal impl BinaryViewer
         return true
     }
 
+    // Writes the bounds of the outlined match to `result`, and returns whether one is visible.
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
         if .searchVisibleIndex == Swag.U32.Max or .searchRow >= .rowLines.count or not .rowLines[.searchRow] do
@@ -441,6 +452,7 @@ internal impl BinaryViewer
         return Viewer.listCellMatchBounds(.list, .searchVisibleIndex, cast(u32) .searchColumn, source.toString(), .searchOffset, .searchLength, result)
     }
 
+    // Removes the outline and the selection a search left behind.
     mtd clearSearch()
     {
         .clearSearchHighlight()
@@ -474,8 +486,10 @@ internal impl BinaryViewer
         return not matches.isEmpty()
     }
 
-    // Keeps direct matches and every ancestor needed to reach them. Filtering therefore never
-    // turns a nested field into an orphan row or leaves it behind a collapsed parent.
+    // Marks the rows the filter keeps: every direct match, and each ancestor needed to reach one.
+    //
+    // Filtering therefore never turns a nested field into an orphan row or leaves it behind a
+    // collapsed parent.
     private mtd rebuildFilterIndex()
     {
         .filterIncluded.clear()
@@ -492,11 +506,8 @@ internal impl BinaryViewer
                 options.expression = &expression
         }
 
-        for row, index in .doc.report.rows
-        {
-            discard row
+        for index in .doc.report.rows.count do
             .filterIncluded[index] = .rowMatchesFilter(index, options)
-        }
 
         // Rows are stored in preorder, so walking backward from a direct match finds each parent
         // at the first preceding shallower level. Mark that chain without leaking a match into an
@@ -517,6 +528,7 @@ internal impl BinaryViewer
         }
     }
 
+    // Shows only the rows matching `query` and their ancestors, or every row when `query` is empty.
     mtd applyFilter(query: string, options: Viewer.SearchOptions)
     {
         let enteringFilter = .filterQuery.isEmpty() and query.count
@@ -556,8 +568,8 @@ internal impl BinaryViewer
             walk = walk.parent
         }
 
-        for index in chain.count do
-            .list.expand(chain[chain.count - 1 - index])
+        for ancestor in chain.reversed() do
+            .list.expand(ancestor)
     }
 
     // Returns where `line` currently sits among the visible rows, or `Swag.U32.Max`.
@@ -568,12 +580,14 @@ internal impl BinaryViewer
         return Swag.U32.Max
     }
 
+    // Puts the whole report on the clipboard, as indented text.
     mtd copyReport()
     {
         let text = .doc.report.toText()
         Clipboard.addString(text.toString())
     }
 
+    // Puts the visible cells of the selected row on the clipboard.
     mtd copySelectedLine()
     {
         let line = .list.selectedLine()
@@ -588,42 +602,47 @@ internal impl BinaryViewer
                 continue
             if not text.isEmpty() do
                 text += "  "
-            let plain = RichString.plainText(item.name.raw.toString())
-            text += plain
+            text += RichString.plainText(item.name.raw.toString())
         }
 
         Clipboard.addString(text.toString())
     }
 
-    mtd goToTypedOffset(text: string)->bool
+    // Returns the file offset of the selected row, or zero when no selected row has one.
+    private mtd selectedOffset()->u64
     {
-        var current  = 0'u64
         let selected = .selectedReportIndex()
         if selected < .doc.report.rows.count and .doc.report.rows[selected].offset != Swag.U64.Max do
-            current = .doc.report.rows[selected].offset
-
-        let target = parseBinaryOffset(text, current, .doc.image.fileSize)
-        if target == Swag.U64.Max do
-            return false
-        return .revealOffset(target, "")
+            return .doc.report.rows[selected].offset
+        return 0
     }
 
+    // Selects the row covering the offset `text` names, and returns whether there is one.
+    //
+    // A signed offset is taken relative to the selected row.
+    mtd goToTypedOffset(text: string)->bool
+    {
+        let target = parseBinaryOffset(text, .selectedOffset(), .doc.image.fileSize)
+        if target == Swag.U64.Max do
+            return false
+        return .revealOffset(target)
+    }
+
+    // Asks for a file offset and selects the row that covers it.
     mtd promptGoToOffset()
     {
         let surface = .surface
         if not surface or not .doc.image.fileSize do
             return
 
-        var current  = 0'u64
-        let selected = .selectedReportIndex()
-        if selected < .doc.report.rows.count and .doc.report.rows[selected].offset != Swag.U64.Max do
-            current = .doc.report.rows[selected].offset
+        let currentText = hexText(.selectedOffset(), 8)
+        with var options: EditDlgOptions
+        {
+            .title   = binaryStrings().ui_MenuGoTo
+            .message = binaryStrings().ui_GoToMessage
+            .text    = currentText.toString()
+        }
 
-        var options: EditDlgOptions
-        let currentText = hexText(current, 8)
-        options.title   = binStrings().ui_MenuGoTo
-        options.message = binStrings().ui_GoToMessage
-        options.text    = currentText.toString()
         let dialog = EditDlg.createSingleLine(surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -631,6 +650,7 @@ internal impl BinaryViewer
         discard .goToTypedOffset(typed.toString())
     }
 
+    // Creates the popup menu that offers every command of the viewer.
     mtd createCommandMenu()->*MenuCtrl
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
@@ -649,6 +669,7 @@ internal impl BinaryViewer
         return menu
     }
 
+    // Shows the command menu at `surfacePos`, in surface coordinates.
     mtd showContextMenu(surfacePos: Math.Point)
     {
         let menu = .createCommandMenu()
@@ -661,7 +682,7 @@ internal impl BinaryViewer
     // has no natural width: a flag list is as long as the flags that are set.
     mtd layoutColumns()
     {
-        if not (.list != null) do
+        if .list == null do
             return
 
         let room  = Math.max(.list.listView.paddedClientRect().width, 480.0)
@@ -683,17 +704,21 @@ internal impl BinaryViewer
         .list.computeLayout()
     }
 
+    // Shows a card above the report for every image the document extracted.
     mtd fillPreviews()
     {
         if .doc.previews.isEmpty() do
             return
 
-        let band = StackLayoutCtrl.create(me, .HorizontalCenter, {0, 0, 0, 152})
-        band.dockStyle       = .Top
-        band.backgroundStyle = .View
-        band.padding         = {12, 10, 12, 8}
-        band.spacing         = 8
-        .previewBand         = band
+        with let band = StackLayoutCtrl.create(me, .HorizontalCenter, {0, 0, 0, 152})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .View
+            .padding         = {12, 10, 12, 8}
+            .spacing         = 8
+        }
+
+        .previewBand = band
 
         for preview in .doc.previews
         {
@@ -712,8 +737,10 @@ internal impl BinaryViewer
         }
     }
 
-    // Keeps every recognized image in one restrained row. Large icon families get smaller cards
-    // instead of forcing a second permanent toolbar-sized band into the document.
+    // Fits every preview card into one restrained row.
+    //
+    // Large icon families get smaller cards instead of forcing a second permanent toolbar-sized band
+    // into the document.
     mtd layoutPreviews()
     {
         if not .previewBand do
@@ -737,7 +764,7 @@ internal impl BinaryViewer
     }
 }
 
-internal impl IActionUI for ActionBinary
+impl IActionUI for ActionBinary
 {
     mtd impl accept(cxt: ActionContext)->bool
     {
@@ -752,7 +779,7 @@ internal impl IActionUI for ActionBinary
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let view  = cast #assume (*BinaryViewer) cxt.wnd!
-        let s     = binStrings()
+        let s     = binaryStrings()
         let theme = view.theme()
 
         switch cxt.id
@@ -823,7 +850,7 @@ internal impl IActionUI for ActionBinary
     }
 }
 
-internal impl IWnd for BinaryViewer
+impl IWnd for BinaryViewer
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
@@ -952,11 +979,12 @@ internal impl IWnd for BinaryViewer
     }
 }
 
-internal impl BinaryViewer
+impl BinaryViewer
 {
+    // Writes the column headers again in the active language.
     mtd retranslate()
     {
-        let s = binStrings()
+        let s = binaryStrings()
         .list.header.itemAt(cast(u32) BinaryColumn.Field).name  = s.ui_ColField
         .list.header.itemAt(cast(u32) BinaryColumn.Value).name  = s.ui_ColValue
         .list.header.itemAt(cast(u32) BinaryColumn.Offset).name = s.ui_ColOffset
@@ -992,7 +1020,7 @@ internal impl BinaryViewer
 
     private mtd startLoad(notify = true) fail
     {
-        .loadStrings   = binStrings()[]
+        .loadStrings   = binaryStrings()[]
         .loadState     = 0
         .loadPublished = false
         try .loadThread.init(&runBinaryViewerLoad, me, priority: .BelowNormal)
@@ -1029,6 +1057,7 @@ internal impl BinaryViewer
             .reportLoadingChanged(me)
     }
 
+    // Asks the background read to stop, and returns whether it has ended so the viewer can be released.
     mtd retire()->bool
     {
         if .retired do
@@ -1054,6 +1083,7 @@ internal impl BinaryViewer
         return true
     }
 
+    // Stops the background read and waits for it to end, so the viewer can be released at once.
     mtd retireBlocking()
     {
         discard .retire()
@@ -1062,51 +1092,48 @@ internal impl BinaryViewer
         .retired = true
     }
 
-    func create(host: Viewer.Host)->*BinaryViewer? fail
+    // Creates the command group `host` registers for this viewer, and the history buttons in it.
+    private mtd createCommandBar(host: Viewer.Host)
     {
-        let s        = binStrings()
-        let services = host.services()
+        .commands = host.createCommandGroup(BinaryCommandWidth)
 
-        with let result = Wnd.create'BinaryViewer(host.contentParent(), "scope.binary")
-        {
-            .backgroundStyle = .View
-            .registerAction'ActionBinary()
-            .reportDetails        = services.reportDetails
-            .reportFailure        = services.reportFailure
-            .reportLoadingChanged = services.reportLoadingChanged
-            .commands             = host.createCommandGroup(BinaryCommandWidth)
-        }
-
-        with result.backButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        let s = binaryStrings()
+        with .backButton = IconButton.create(.commands, .theme().icon(.ChevronLeft, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
             .toolTip   = s.ui_MenuBack
             .enable(false)
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 discard view.navigateHistory(-1)
             }
         }
 
-        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with .forwardButton = IconButton.create(.commands, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
             .toolTip   = s.ui_MenuForward
             .enable(false)
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 discard view.navigateHistory(1)
             }
         }
+    }
 
-        // The whole report is read in the fixed-width font: every second lane is a number, and a
-        // column of hexadecimal that does not line up is a column that has to be read twice.
-        with result.list = ListCtrl.createMultiColumns(result)
+    // Creates the tree the report is read in.
+    //
+    // The whole report is read in the fixed-width font: every second lane is a number, and a column
+    // of hexadecimal that does not line up is a column that has to be read twice.
+    private mtd createReportList()
+    {
+        let s = binaryStrings()
+        with .list = ListCtrl.createMultiColumns(me)
         {
             .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontfamilyFS(result.themeMetrics().defaultFixedFontSize))
+            .style.setFont(me.theme().createDefaultFontFamilyFs(me.themeMetrics().defaultFixedFontSize))
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines)
@@ -1114,17 +1141,34 @@ internal impl BinaryViewer
             .addColumn(s.ui_ColValue, 200)
             .addColumn(s.ui_ColOffset, BinaryOffsetWidth)
             .addColumn(s.ui_ColDetail, 320)
-            .sigRightClicked += func|view = result|(list, position)
+            .sigRightClicked += func|view = me|(list, position)
             {
                 discard list
                 view.showContextMenu(view.list.listView.localToSurface(position))
             }
 
-            .sigSelectionChanged += func|view = result|(list)
+            .sigSelectionChanged += func|view = me|(list)
             {
                 view.recordHistory(view.reportIndexOf(list.selectedLine()))
             }
         }
+    }
+
+    // Creates the viewer of the file `host` opens, and starts reading that file in the background.
+    func create(host: Viewer.Host)->*BinaryViewer? fail
+    {
+        let services = host.services()
+        with let result = Wnd.create'BinaryViewer(host.contentParent(), "scope.binary")
+        {
+            .backgroundStyle = .View
+            .registerAction'ActionBinary()
+            .reportDetails        = services.reportDetails
+            .reportFailure        = services.reportFailure
+            .reportLoadingChanged = services.reportLoadingChanged
+        }
+
+        result.createCommandBar(host)
+        result.createReportList()
 
         result.applyLayout()
         result.layoutColumns()
@@ -1169,8 +1213,8 @@ func createBinaryViewer(host: Viewer.Host)
     {
         discard wnd
         presentation.canFilter         = true
-        presentation.filterPlaceholder = binStrings().ui_Filter
-        presentation.filterToolTip     = binStrings().ui_FilterTip
+        presentation.filterPlaceholder = binaryStrings().ui_Filter
+        presentation.filterToolTip     = binaryStrings().ui_FilterTip
     },
         filter: func(wnd, text, options) { (cast #assume (*BinaryViewer) wnd).applyFilter(text, options) },
         collectMatches: func(wnd, text, options, progress, matches)->bool
@@ -1191,6 +1235,6 @@ func createBinaryViewer(host: Viewer.Host)
     },
         clear: func(wnd) { (cast #assume (*BinaryViewer) wnd).clearSearch() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast #assume (*BinaryViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*BinaryViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool => (cast #assume (*BinaryViewer) wnd).loadTimer != null,
+        retire: func(wnd)->bool => (cast #assume (*BinaryViewer) wnd).retire()})
 }

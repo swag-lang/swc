@@ -99,10 +99,7 @@ impl IForm for FormText
 
     mtd impl mustClipToBound()->bool => true
 
-    mtd impl canRotate()->bool
-    {
-        return .subKind == .None
-    }
+    mtd impl canRotate()->bool => .subKind == .None
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {

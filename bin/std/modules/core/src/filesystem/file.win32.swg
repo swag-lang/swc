@@ -5,7 +5,7 @@
 using Win32
 
 // Deletes a file on Windows, reporting an OS failure through a filesystem error.
-func deleteNative(fullName: string) fail
+internal func deleteNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
     catch DeleteFileW(winPath.buffer) as err
@@ -13,7 +13,7 @@ func deleteNative(fullName: string) fail
 }
 
 // Moves `oldName` to `newName`, replacing an existing file and permitting a cross-volume copy.
-func moveNative(newName, oldName: string) fail
+internal func moveNative(newName, oldName: string) fail
 {
     let winOld = Utf16.toZeroTerminated(oldName)
     let winNew = Utf16.toZeroTerminated(newName)
@@ -21,8 +21,8 @@ func moveNative(newName, oldName: string) fail
     try Errors.transformWinErrors(err, oldName)
 }
 
-// Opens an existing file exclusively and requests its modification time be set to the current UTC time.
-func touchNative(fullName: string) fail
+// Opens an existing file exclusively and sets its modification time to the current UTC time.
+internal func touchNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
 
@@ -37,25 +37,22 @@ func touchNative(fullName: string) fail
     try SetFileTime(hFile, null, null, &ft)
 }
 
-// Returns true if the given file exists
+// Returns whether `fullName` names an existing file.
+//
+// A directory, an empty name, or a path the process cannot query reports false.
 func exists(fullName: string)->bool
 {
-    if fullName == null do
+    if fullName.count == 0 do
         return false
-    let safeName   = fullName orelse ""
-    let winPath    = Utf16.toZeroTerminated(safeName)
+    let winPath    = Utf16.toZeroTerminated(fullName)
     let attributes = catch GetFileAttributesW(winPath.buffer) as err
-    if err != null do
+    if err != null or attributes == 0xFFFFFFFF do
         return false
-    if attributes == 0xFFFFFFFF do
-        return false
-    if attributes & FILE_ATTRIBUTE_DIRECTORY do
-        return false
-    return true
+    return (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0
 }
 
 // Opens a Windows file handle with the requested mode, access, and sharing policy.
-func openNative(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileHandle fail
+internal func openNative(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileHandle fail
 {
     var wMode: DWORD
     switch mode
@@ -69,23 +66,17 @@ func openNative(fullName: string, mode: FileMode, access: FileAccess, share: Fil
     }
 
     var wAccess: DWORD
-    if access & FileAccess.Read
-    {
+    if access.has(.Read) do
         wAccess |= GENERIC_READ
-    }
-
-    if access & FileAccess.Write
-    {
+    if access.has(.Write) do
         wAccess |= GENERIC_WRITE
-    }
 
-    // Share mode
     var wShare: DWORD
-    if share & FileShare.Read do
+    if share.has(.Read) do
         wShare |= FILE_SHARE_READ
-    if share & FileShare.Write do
+    if share.has(.Write) do
         wShare |= FILE_SHARE_WRITE
-    if share & FileShare.Delete do
+    if share.has(.Delete) do
         wShare |= FILE_SHARE_DELETE
 
     var security:    SECURITY_ATTRIBUTES

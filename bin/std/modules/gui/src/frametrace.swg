@@ -2,7 +2,7 @@
 
 using Core
 
-// Per-frame cost recorder, armed from the command line of the running program.
+// Records the cost of every frame when the command line of the running program asks for it.
 //
 // A window's fluidity is a property of the machine it draws on, so the numbers that decide whether
 // a change helped have to come from the real application on a real adapter. A headless render
@@ -23,8 +23,8 @@ struct FrameTrace
     path:      String     // File the summary is written to, empty for standard output.
     maxFrames: u64        // Measured frames the stress run stops after, or zero when unbounded.
 
-    // Accumulated cost of the run, in microseconds.
-    totalUs:   u64     // Whole frames, from the start of one to the start of the next.
+    // Accumulated totals of the run; the `Us` fields are in microseconds.
+    totalUs:   u64     // Whole frames, from `beginFrame` to `endFrame`.
     recordUs:  u64     // Recording the hierarchy and the chrome into the painter.
     targetUs:  u64     // Submitting the recorded frame to the adapter as the render-target pass.
     presentUs: u64     // Copying that target to the back buffer.
@@ -90,7 +90,7 @@ internal impl FrameTrace
     // wraps rather than bouncing so every frame of a run costs the same.
     mtd const movingBox(size: Math.Point)->Math.Rectangle
     {
-        let side  = Math.min(.boxSide, Math.min(size.x, size.y))
+        let side  = Math.min(.boxSide, size.x, size.y)
         let spanX = Math.max(size.x - side, 1.0'f32)
         let spanY = Math.max(size.y - side, 1.0'f32)
         let step  = cast(f32) (.frames + .warmedUp)
@@ -188,7 +188,7 @@ internal impl FrameTrace
             return
         }
 
-        catch File.writeAllBytes(.path.toString(), content.toSlice())
+        discard catch File.writeAllText(.path.toString(), content)
     }
 }
 
@@ -211,7 +211,7 @@ private func findMarker(name: string)->Marker
     {
         if arg.count < name.count do
             continue
-        if arg[0 until name.count] != name do
+        if arg[until name.count] != name do
             continue
 
         if arg.count == name.count
@@ -223,7 +223,7 @@ private func findMarker(name: string)->Marker
         if arg[name.count] == '='
         {
             result.found = true
-            result.value = arg[name.count + 1 until arg.count]
+            result.value = arg[name.count + 1 to]
             return result
         }
     }

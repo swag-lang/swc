@@ -201,6 +201,7 @@ impl RadioButton
     }
 
     // Changes the selected state without emitting a change signal or command.
+    //
     // Selecting a grouped button clears its selected siblings.
     mtd setChecked(checked: bool)
     {
@@ -232,8 +233,7 @@ impl RadioButton
         .postCommandEvent(.id)
     }
 
-    // Selects the next or previous option of this button's group, and reports whether one was
-    // found.
+    // Selects the next or previous option of this button's group and reports whether one was found.
     //
     // The order is the order the options were created in and it wraps, so the arrows stay inside
     // the group however long they are held: a group that let the last option pass the key on
@@ -249,14 +249,12 @@ impl RadioButton
         var current = 0's64
         for child in .parent.children
         {
-            let other = cast #try (*RadioButton) child
-            if not other do
-                continue
-            if other.groupId != .groupId do
-                continue
-            if child == cast(*Wnd) me do
-                current = cast(s64) group.count
-            group.add(other)
+            if child is RadioButton as other where other.groupId == .groupId
+            {
+                if child == cast(*Wnd) me do
+                    current = cast(s64) group.count
+                group.add(other)
+            }
         }
 
         let count = cast(s64) group.count
@@ -280,10 +278,7 @@ impl RadioButton
         {
             if c == cast(*Wnd) me do
                 continue
-            let other = cast #try (*RadioButton) c
-            if not other do
-                continue
-            if other.groupId == .groupId do
+            if c is RadioButton as other where other.groupId == .groupId do
                 other.setChecked(false)
         }
     }

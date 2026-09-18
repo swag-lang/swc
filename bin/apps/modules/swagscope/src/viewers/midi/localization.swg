@@ -2,6 +2,7 @@
 
 using Core, Gui
 
+// Visible strings of the MIDI viewer.
 struct MidiStrings
 {
     ui_AllTracks:     string = "All tracks"
@@ -29,8 +30,10 @@ private const FrenchStrings     = #include("../../../datas/lang/fr/scope.midi.tw
 
 private var g_MidiStrings: MidiStrings
 
+// Returns the visible strings of the MIDI viewer in the active language.
 func midiStrings()->const *MidiStrings => &g_MidiStrings
 
+// Registers this viewer's string table with the application.
 func registerMidiStrings(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)

@@ -17,11 +17,11 @@ struct NodeMetadataPatch
 
 // One metadata change, small enough to append instead of rewriting everything.
 //
-// A change used to cost a full re-serialization of the node table: populating a
-// container was quadratic in the number of files. A journal record describes
-// only what changed, so a change now costs one small write, and the full
-// metadata image is rewritten at a checkpoint instead — every
-// `JournalCapacity` records, or when the volume closes.
+// Re-serializing the whole node table on every change would make populating a
+// container quadratic in the number of files. A journal record describes only
+// what changed, so a change costs one small write, and the full metadata image
+// is rewritten at a checkpoint instead — every `JournalCapacity` records, or
+// when the volume closes.
 //
 // Records are replayed in sequence order on top of the checkpoint they follow.
 // A record that cannot be read stops the replay: everything after it belongs to
@@ -104,7 +104,7 @@ impl JournalRecord
 
         // Records written before metadata patches were introduced end after the full-node list.
         // Keeping that form readable preserves every existing container.
-        if (reader.remainingBytes()).count
+        if reader.remainingBytes().count
         {
             let metadataCount = try reader.readLittleEndian'u64()
             if metadataCount > MaximumNodeCount do

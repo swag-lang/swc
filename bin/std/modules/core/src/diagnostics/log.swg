@@ -15,7 +15,7 @@ enum LogFlags
     Default = Prefix | Date | Time | LongFileName | FullLoc     // Default logging configuration.
 }
 
-// Interface for writing log output.
+// Receives the formatted messages of a [[Core.Log]].
 interface ILogWriter
 {
     // Writes one fully formatted log message to the destination.
@@ -38,10 +38,10 @@ struct Log
 
 impl Log
 {
-    // Build the formatted log message header based on the current flags.
+    // Appends the header components selected by the current flags to the message buffer.
     private mtd buildHeader(loc: Swag.SourceCodeLocation)
     {
-        if .formatFlags & .Prefix and (.prefixText).count
+        if .formatFlags & .Prefix and not .prefixText.isEmpty()
         {
             .buf.appendString(.prefixText)
             .buf.appendString(" ")
@@ -79,12 +79,8 @@ impl Log
         }
     }
 
-    // Create a new log instance.
-    func create()->Log
-    {
-        var result: retval
-        return result
-    }
+    // Creates a logger with the default flags and no writer.
+    func create()->Log => {}
 
     // Replaces the owned prefix prepended to log messages.
     mtd setPrefix(prefix: string)
@@ -100,7 +96,7 @@ impl Log
         return .prefixText
     }
 
-    // Set the logger flags.
+    // Replaces the header components written before each message.
     mtd setFlags(flags: LogFlags)
     {
         Sync.scopedLock(&.lock)
@@ -121,21 +117,24 @@ impl Log
         .writers.add(writer)
     }
 
-    // Remove all registered writers.
+    // Removes every registered writer, so messages go to the console again.
     mtd clearWriters()
     {
         Sync.scopedLock(&.lock)
         .writers.clear()
     }
 
-    // Print a message to the log with an optional source location.
+    // Writes `text`, after the configured header, to every registered writer or to the console when there is none.
+    //
+    // `loc` is the source location the header reports; it defaults to the caller.
     mtd print(text: string, loc = #callerlocation)
     {
-        // Get this first, to have the time of the call, before the lock
-        if .formatFlags & (.Date | .Time) do
-            .dt = Time.DateTime.now()
-
+        // The header reports when the call happened, not when the lock was obtained; the shared
+        // fields are only read and written once the lock is held.
+        let now = Time.DateTime.now()
         Sync.scopedLock(&.lock)
+        if .formatFlags & (.Date | .Time) do
+            .dt = now
 
         // Build log string
         .buf.clear()
@@ -154,9 +153,7 @@ impl Log
         }
 
         // Otherwise call all writers
-        for w in .writers
-        {
+        for w in .writers do
             w.print(renderedText)
-        }
     }
 }

@@ -24,8 +24,8 @@ public struct Element
 
 // Builds a mutable vector path from lines, arcs, and Bézier curves.
 //
-// A path begins with [[LinePath.start]]. Segment methods update `endPoint`;
-// [[LinePath.close]] optionally joins the last point to the first. Flattened
+// A path begins with [[Pixel.LinePath.start]]. Segment methods update `endPoint`;
+// [[Pixel.LinePath.close]] optionally joins the last point to the first. Flattened
 // polygons and triangles are cached and invalidated by geometry changes.
 //
 // ## Example
@@ -158,6 +158,8 @@ public impl LinePath
     }
 
     // Adds a straight segment from the current endpoint to `(x, y)`.
+    //
+    // Like every segment method, it adds nothing when `(x, y)` is the current endpoint.
     mtd lineTo(x, y: f32)
     {
         let newEndPoint = Vector2{x, y}
@@ -220,7 +222,11 @@ public impl LinePath
         .isDirty  = true
     }
 
-    // Add an arc from the previous point
+    // Adds an elliptical arc around `(centerX, centerY)` from `initAngle` to `maxAngle`.
+    //
+    // Angles run clockwise from the top of the ellipse. `maxAngle` is advanced by whole turns
+    // until it is not below `initAngle`, so the arc always runs clockwise. The arc starts where
+    // `initAngle` lands; flattening joins it to the current endpoint with a straight segment.
     mtd arcTo(centerX, centerY: f32, radiusX, radiusY: f32, initAngle, maxAngle: Math.Angle)
     {
         var ia = initAngle.radians
@@ -338,11 +344,13 @@ public impl LinePath
         return {min.x, min.y, max.x - min.x, max.y - min.y}
     }
 
-    // Close the figure
-    // Will add a line or a curve to the first point if necessary
+    // Closes the contour, joining the last point to the first when they differ.
+    //
+    // The closing segment is a curve when the last segment is one, and a line otherwise. An empty
+    // or already closed path is left unchanged.
     mtd close()
     {
-        if .isClosed or not .elements.count do
+        if .isClosed or .elements.isEmpty() do
             return
 
         let v = .endPoint - .startPoint
@@ -402,16 +410,16 @@ public impl LinePath
         .minBounds = .polygon.minBounds
         .maxBounds = .polygon.maxBounds
 
-        if .polygon.points.count
+        if not .polygon.points.isEmpty()
         {
             .startPoint = .polygon.pointAt(0)[]
             .endPoint   = .startPoint
         }
     }
 
-    // Initialize the path with a rectangle at exact coordinates.
+    // Replaces the path with a closed rectangle at exact coordinates.
     //
-    // Unlike [[setRect]], nothing is snapped to the pixel grid: authored fractional
+    // Unlike [[Pixel.LinePath.setRect]], nothing is snapped to the pixel grid: authored fractional
     // geometry, such as a parsed vector document, stays untouched.
     mtd setRectRaw(l, t, w, h: f32)
     {
@@ -426,7 +434,7 @@ public impl LinePath
         .close()
     }
 
-    // Initialize the path with a rectangle
+    // Replaces the path with a closed rectangle whose position and size are rounded to whole pixels.
     mtd setRect(left, top, width, height: f32)
     {
         let l = Math.round(left)
@@ -437,9 +445,9 @@ public impl LinePath
         .setRectRaw(l, t, w, h)
     }
 
-    // Initialize the path with a round rectangle at exact coordinates.
+    // Replaces the path with a closed rectangle with elliptical corners, at exact coordinates.
     //
-    // Unlike [[setRoundRect]], nothing is snapped to the pixel grid; the radii are
+    // Unlike [[Pixel.LinePath.setRoundRect]], nothing is snapped to the pixel grid; the radii are
     // clamped to half the dimensions, so a full radius produces a capsule.
     mtd setRoundRectRaw(l, t, w, h: f32, radiusX, radiusY: f32)
     {
@@ -459,7 +467,7 @@ public impl LinePath
         .close()
     }
 
-    // Initialize the path with a round rectangle whose corners carry their own radius.
+    // Replaces the path with a closed rounded rectangle whose corners carry their own radius.
     //
     // The radii are given clockwise from the top left, as a style sheet writes them, and each
     // corner is a quarter circle. Two radii that together exceed the side they share would make
@@ -501,7 +509,9 @@ public impl LinePath
         .close()
     }
 
-    // Initialize the path with a round rectangle
+    // Replaces the path with a closed rectangle with elliptical corners, rounded to whole pixels.
+    //
+    // The position, size, and radii are rounded; see [[Pixel.LinePath.setRoundRectRaw]].
     mtd setRoundRect(left, top, width, height: f32, radiusX, radiusY: f32)
     {
         let l = Math.round(left)
@@ -512,9 +522,9 @@ public impl LinePath
         .setRoundRectRaw(l, t, w, h, Math.round(radiusX), Math.round(radiusY))
     }
 
-    // Initialize the path with an ellipse at exact coordinates.
+    // Replaces the path with a closed ellipse at exact coordinates.
     //
-    // Unlike [[setEllipse]], the center and radii are not snapped to the pixel grid.
+    // Unlike [[Pixel.LinePath.setEllipse]], the center and radii are not snapped to the pixel grid.
     mtd setEllipseRaw(cX, cY: f32, rX, rY: f32)
     {
         .start(cX, cY - rY)
@@ -525,7 +535,9 @@ public impl LinePath
         .close()
     }
 
-    // Initialize the path with an ellipse
+    // Replaces the path with a closed ellipse snapped to the pixel grid.
+    //
+    // The center is rounded to whole pixels and the radii to half pixels.
     mtd setEllipse(centerX, centerY: f32, radiusX, radiusY: f32)
     {
         let cX = Math.round(centerX)
@@ -536,22 +548,22 @@ public impl LinePath
         .setEllipseRaw(cX, cY, rX, rY)
     }
 
-    // Initialize the path with a circle
+    // Replaces the path with a closed circle snapped to the pixel grid.
+    //
+    // The center is rounded to whole pixels and the radius to half pixels.
     mtd setCircle(centerX, centerY: f32, radius: f32)
     {
         let cX = Math.round(centerX)
         let cY = Math.round(centerY)
         let r  = 0.5 * Math.round(radius * 2)
 
-        .start(cX, cY - r)
-        .arcTo(cX, cY, r, r, 0'deg, 90'deg)
-        .arcTo(cX, cY, r, r, 90'deg, 180'deg)
-        .arcTo(cX, cY, r, r, 180'deg, 270'deg)
-        .arcTo(cX, cY, r, r, 270'deg, 360'deg)
-        .close()
+        .setEllipseRaw(cX, cY, r, r)
     }
 
-    // Initialize the path with an arc
+    // Replaces the path with an open circular arc from `startAngle` to `endAngle`.
+    //
+    // Angles run clockwise from the top of the circle, within one turn. The center and radius are
+    // rounded to whole pixels. The path is left unchanged when the two angles are equal.
     mtd setArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle)
     {
         if isZeroEpsilon(endAngle.radians - startAngle.radians) do
@@ -617,7 +629,7 @@ public impl LinePath
         .revision = nextContourRevision()
     }
 
-    // Convert the path to a list of points
+    // Flattens the segments of the path into its cached polygon.
     //
     // `scale` is the number of device pixels one path unit covers when the result is drawn:
     // the flattening tolerance is expressed in path units, so a curve zoomed by a transform
@@ -626,7 +638,7 @@ public impl LinePath
     // and scale asked for it.
     mtd flatten(quality = PaintQuality.Normal, scale = 1.0'f32)
     {
-        // Already done ?
+        // A path adopted from a polygon has no segments to flatten.
         if .isPolyOnly do
             return
         let tolerance = getFlattenDistance(quality) / Math.max(scale, 1.0)
@@ -652,7 +664,7 @@ public impl LinePath
         .flattenTolerance      = curved ? tolerance : 0
         .minBounds, .maxBounds = .startPoint
 
-        if not .elements.count do
+        if .elements.isEmpty() do
             return
 
         .endPosBuffer = .startPoint
@@ -889,7 +901,7 @@ impl LinePath
         // For cubic curves, use a conservative estimate
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 3.0)
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -934,7 +946,7 @@ impl LinePath
         // So segments needed ≈ sqrt(8 * deviation / tolerance)
         let segments = Math.ceil(Math.sqrt(8.0 * deviation / tolerance))
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -996,7 +1008,7 @@ impl LinePath
         // Use the flatness criterion: segments ≈ sqrt(maxDeviation / tolerance)
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 2.0)
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(segments, 1, 1000)     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -1044,6 +1056,6 @@ impl LinePath
 
         let numSegments = Math.ceil(Math.abs(angleSpan) / maxAnglePerSegment)
 
-        return cast(u32) Math.max(1, Math.min(numSegments, 1000))     // Reasonable bounds
+        return cast(u32) Math.clamp(numSegments, 1, 1000)     // Reasonable bounds
     }
 }

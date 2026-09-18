@@ -158,7 +158,7 @@ alone. Comparative reference points for that investigation:
   thread-exit destructor, which frees the bytes without running `opDrop`. Whatever the heap
   keeps in thread-local storage has to be a plain value.
 - Measure with runtime.allocator.001 before and after, not with a probe written for the occasion.
-- Static evidence: `bin/runtime/os_windows.swg::__hostThreadStorageGet` calls `FlsGetValue`;
+- Static evidence: `bin/runtime/os.win32.swg::__hostThreadStorageGet` calls `FlsGetValue`;
   `allocator.swg::threadHeap/freeBlock` reach it on local operations. Dispatch, request setup,
   validation and diagnostic predicates add work, but inlining and generated code determine the
   actual cost. The individual FLS/TLS/global timings above are also historical.

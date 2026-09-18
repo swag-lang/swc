@@ -705,10 +705,7 @@ public struct HtmlDeclarationContext
 
 impl HtmlComputedStyle
 {
-    private mtd length(value: string, context: *HtmlDeclarationContext)->{ length: HtmlLength, matched: bool }
-    {
-        return htmlParseLength(context.pool, value, context.length)
-    }
+    private mtd length(value: string, context: *HtmlDeclarationContext)->{ length: HtmlLength, matched: bool } => htmlParseLength(context.pool, value, context.length)
 
     // Applies a color declaration, resolving `currentColor` against the color already computed.
     private mtd readColor(value: string, target: *Color)->bool

@@ -22,25 +22,13 @@ const WEBP_RESERVED_FEATURES = 0xC1'u8
 
 const WEBP_YUV_FIX = 6
 
-func vp8MultiplyHigh(value, coefficient: s32)->s32
-{
-    return (value * coefficient) >> 8
-}
+func vp8MultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 8
 
-func vp8YuvToR(y, v: s32)->u8
-{
-    return vp8Clip8((vp8MultiplyHigh(y, 19077) + vp8MultiplyHigh(v, 26149) - 14234) >> WEBP_YUV_FIX)
-}
+func vp8YuvToR(y, v: s32)->u8 => vp8Clip8((vp8MultiplyHigh(y, 19077) + vp8MultiplyHigh(v, 26149) - 14234) >> WEBP_YUV_FIX)
 
-func vp8YuvToG(y, u, v: s32)->u8
-{
-    return vp8Clip8((vp8MultiplyHigh(y, 19077) - vp8MultiplyHigh(u, 6419) - vp8MultiplyHigh(v, 13320) + 8708) >> WEBP_YUV_FIX)
-}
+func vp8YuvToG(y, u, v: s32)->u8 => vp8Clip8((vp8MultiplyHigh(y, 19077) - vp8MultiplyHigh(u, 6419) - vp8MultiplyHigh(v, 13320) + 8708) >> WEBP_YUV_FIX)
 
-func vp8YuvToB(y, u: s32)->u8
-{
-    return vp8Clip8((vp8MultiplyHigh(y, 19077) + vp8MultiplyHigh(u, 33050) - 17685) >> WEBP_YUV_FIX)
-}
+func vp8YuvToB(y, u: s32)->u8 => vp8Clip8((vp8MultiplyHigh(y, 19077) + vp8MultiplyHigh(u, 33050) - 17685) >> WEBP_YUV_FIX)
 
 struct Chunk
 {
@@ -77,15 +65,9 @@ internal struct Decoder
     container: Container
 }
 
-func readU24(data: const [*] u8)->u32
-{
-    return data[0] | (cast(u32) data[1] << 8) | (cast(u32) data[2] << 16)
-}
+func readU24(data: const [*] u8)->u32 => data[0] | (cast(u32) data[1] << 8) | (cast(u32) data[2] << 16)
 
-func readU32(data: const [*] u8)->u32
-{
-    return data[0] | (cast(u32) data[1] << 8) | (cast(u32) data[2] << 16) | (cast(u32) data[3] << 24)
-}
+func readU32(data: const [*] u8)->u32 => data[0] | (cast(u32) data[1] << 8) | (cast(u32) data[2] << 16) | (cast(u32) data[3] << 24)
 
 func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Container fail
 {

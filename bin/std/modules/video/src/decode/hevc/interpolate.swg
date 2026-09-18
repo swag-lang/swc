@@ -28,16 +28,10 @@ struct ChromaTaps
 }
 
 #[Swag.Inline]
-private func lumaTaps(fraction: u32)->LumaTaps
-{
-    return {LumaPairWeights[fraction, 0], LumaPairWeights[fraction, 1], LumaPairWeights[fraction, 2], LumaPairWeights[fraction, 3]}
-}
+private func lumaTaps(fraction: u32)->LumaTaps => {LumaPairWeights[fraction, 0], LumaPairWeights[fraction, 1], LumaPairWeights[fraction, 2], LumaPairWeights[fraction, 3]}
 
 #[Swag.Inline]
-private func chromaTaps(fraction: u32)->ChromaTaps
-{
-    return {ChromaPairWeights[fraction, 0], ChromaPairWeights[fraction, 1]}
-}
+private func chromaTaps(fraction: u32)->ChromaTaps => {ChromaPairWeights[fraction, 0], ChromaPairWeights[fraction, 1]}
 
 #[Swag.Inline]
 private func storeLow4(destination: [*] s16, value: Simd.S16x8)

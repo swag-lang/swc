@@ -10,21 +10,21 @@ using Globalization, Errors
 
 struct Decimal
 {
-    d:        [800] u8     // digits, big-endian representation
-    nd:       s64          // number of digits used
-    dp:       s64          // decimal point
-    neg:      bool         // negative flag
-    bigtrunc: bool         // Bigtrunc associated with this value.
-    mantissa: u64          // Mantissa associated with this value.
-    trunc:    bool         // Trunc associated with this value.
-    exp:      s64          // Exp associated with this value.
+    d:        [800] u8     // Digits, most significant first.
+    nd:       s64          // Number of digits used.
+    dp:       s64          // Position of the decimal point.
+    neg:      bool         // Whether the number is negative.
+    bigtrunc: bool         // Whether nonzero digits were dropped because `d` is full.
+    mantissa: u64          // The leading digits, as an integer.
+    trunc:    bool         // Whether nonzero digits were dropped from `mantissa`.
+    exp:      s64          // Decimal exponent of `mantissa`.
 }
 
 struct DecimalSlice
 {
-    d:      [..] u8     // D associated with this value.
-    nd, dp: s64         // Nd associated with this value.
-    neg:    bool        // Neg associated with this value.
+    d:      [..] u8     // Digits, most significant first.
+    nd, dp: s64         // Number of digits used, and position of the decimal point.
+    neg:    bool        // Whether the number is negative.
 }
 
 struct LeftCheat
@@ -274,7 +274,7 @@ impl Decimal
 
     func prefixIsLessThan(b: const [..] u8, s: string)->bool
     {
-        for var i = 0; i < s.count; i += 1
+        for i in s.count
         {
             if i >= b.count do
                 return true
@@ -374,13 +374,13 @@ impl Decimal
         {
             buffer, cpt += 1
             .neg        = true
-            if not Latin1.isDigit(buffer[]) and cpt == countof do
+            if cpt == countof do
                 fail ParseIncompleteError{}
         }
         elif c == plusSign
         {
             buffer, cpt += 1
-            if not Latin1.isDigit(buffer[]) and cpt == countof do
+            if cpt == countof do
                 fail ParseIncompleteError{}
         }
 

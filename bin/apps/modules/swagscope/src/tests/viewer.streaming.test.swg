@@ -18,7 +18,7 @@ using Core, Pixel, Gui
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var session  = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view     = cast #assume (*TextView) session.view!
+    let view     = cast #assume (*TextViewer) session.view!
     view.resize(640, 360)
     view.applyLayout()
     completeTextReads(&host, view)

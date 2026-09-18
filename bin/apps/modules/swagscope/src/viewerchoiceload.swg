@@ -1,5 +1,6 @@
 using Core
 
+// Everything the worker learns about one requested file, handed to the window in one move.
 struct ViewerClassifiedFile
 {
     absoluteFileName: String
@@ -14,12 +15,11 @@ struct ViewerClassifiedFile
 // Classifies one requested file without making the GUI thread open or probe it.
 struct ViewerChoiceLoad
 {
-    task:     Swag.Task
-    index:    *ViewerPluginRegistry?
-    fileName: String
-    recent:   Array'String
-    result:   ViewerClassifiedFile
-    started:  bool
+    using operation: Viewer.BackgroundOperation
+    index:           *ViewerPluginRegistry?
+    fileName:        String
+    recent:          Array'String
+    result:          ViewerClassifiedFile
 }
 
 impl ViewerChoiceLoad
@@ -64,30 +64,23 @@ impl ViewerChoiceLoad
             let files = catch Directory.enumerateFiles(folder) as listError
             if listError != null do
                 return
-            for file in files
-            {
-                if file.isDirectory() do
-                    continue
-                operation.result.folderFiles.add(file.fullname)
-            }
+            for file in files where not file.isDirectory() do
+                operation.result.folderFiles.add(file.fullName)
 
-            operation.result.folderFiles.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
+            operation.result.folderFiles.sort(func(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
         })
     }
 
-    mtd const isDone()->bool => .started and .task.isDone()
-
+    // Hands the classification to the caller once the worker is done with it.
     mtd finish()->ViewerClassifiedFile
     {
         Swag.assert(.isDone())
-        .task.wait()
-        .started = false
+        .wait()
         return #move .result
     }
 
     mtd opDrop()
     {
-        if .started do
-            .task.wait()
+        .wait()
     }
 }

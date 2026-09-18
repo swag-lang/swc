@@ -56,10 +56,10 @@ struct PopupListCtrl
 // Implements painting and input inside a popup list.
 internal struct PopupListView
 {
-    using wnd: Wnd                    // Embedded wnd state.
-    late list: *PopupListCtrl         // List associated with this value.
-    hotIdx:    u32 = Swag.U32.Max     // Index of hot.
-    closing:   bool                   // Closing associated with this value.
+    using wnd: Wnd                    // Embedded window behavior and presentation.
+    late list: *PopupListCtrl         // Popup list whose entries this view paints.
+    hotIdx:    u32 = Swag.U32.Max     // Highlighted entry, or U32.Max.
+    closing:   bool                   // Whether the popup is already closing.
 }
 
 internal impl IWnd for PopupListView
@@ -138,7 +138,7 @@ internal impl IWnd for PopupListView
 
     // Item index under a local position, or U32.Max when over a separator or empty
     // space.
-    mtd hitAt(pos: Math.Point)->u32
+    private mtd hitAt(pos: Math.Point)->u32
     {
         var y = pos.y + .scrollPos.y
         for vIt, i in .list.items
@@ -368,42 +368,32 @@ impl PopupListCtrl
         return popup
     }
 
+    // Returns the view that paints the entries and tracks the highlight.
+    private mtd listView()->*PopupListView => cast #assume (*PopupListView) .scrollWnd.view
+
     // Moves the highlighted item by a signed distance, skipping separators.
-    mtd moveHighlight(direction: s32)
-    {
-        let view = cast #assume (*PopupListView) .scrollWnd.view
-        view.moveHot(direction)
-    }
+    mtd moveHighlight(direction: s32) => .listView().moveHot(direction)
 
     // Highlights the first selectable item.
-    mtd highlightFirst()
-    {
-        let view = cast #assume (*PopupListView) .scrollWnd.view
-        view.moveHotEdge(forward: true)
-    }
+    mtd highlightFirst() => .listView().moveHotEdge(forward: true)
 
     // Highlights the last selectable item.
-    mtd highlightLast()
-    {
-        let view = cast #assume (*PopupListView) .scrollWnd.view
-        view.moveHotEdge(forward: false)
-    }
+    mtd highlightLast() => .listView().moveHotEdge(forward: false)
 
     // Closes the popup and reports cancellation.
-    mtd cancel()
-    {
-        let view = cast #assume (*PopupListView) .scrollWnd.view
-        view.close(Swag.U32.Max)
-    }
+    mtd cancel() => .listView().close(Swag.U32.Max)
 
     // Closes the popup and commits the highlighted item, if any.
     mtd commitHighlighted()
     {
-        let view = cast #assume (*PopupListView) .scrollWnd.view
+        let view = .listView()
         view.close(view.hotIdx)
     }
 
-    // Shows the popup at the supplied surface coordinates and requested width.
+    // Shows the popup with its top-left corner at the surface position (`x`, `y`).
+    //
+    // The popup is at least `width` and [[Gui.PopupListCtrl.minimumWidth]] wide, as tall as its
+    // entries up to [[Gui.PopupListCtrl.maximumHeight]], and moved to fit inside its parent.
     mtd show(x, y: f32, width: f32 = 10)
     {
         var contentHeight: f32
@@ -416,12 +406,11 @@ impl PopupListCtrl
         // row as well turns the sample into a bar of accent, which is the one thing a sample of a
         // stroke must not become. The keyboard still starts from the selection, which `moveHot`
         // reads on its own while nothing is highlighted.
-        let startView = cast #assume (*PopupListView) .scrollWnd.view
-        startView.hotIdx = .markSelectionOnly ? Swag.U32.Max : .selectedIndex
+        .listView().hotIdx = .markSelectionOnly ? Swag.U32.Max : .selectedIndex
 
         let pt  = .parent!.surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
-        pos.width  = Math.max(width, Math.max(.minimumWidth, 0))
+        pos.width  = Math.max(width, .minimumWidth, 0)
         pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))
         pos.height += .padding.y + .padding.w
         .setPosition(pos)

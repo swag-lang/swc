@@ -7,7 +7,7 @@ struct SliderCtrl
 {
     public
     {
-        using frameWnd: FrameWnd     // Embedded frame wnd state.
+        using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
         sigChanged: SigArray'func||(*SliderCtrl)     // Emitted after the slider value changes.
 
@@ -32,7 +32,7 @@ impl IWnd for SliderCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if not (.label != null) do
+        if .label == null do
             return
         let rect    = .clientRect()
         let metrics = .themeMetrics()
@@ -146,7 +146,7 @@ impl SliderCtrl
     // Configures floating-point bounds and input validation.
     mtd setFloatBounds(min, max: f32)
     {
-        .slider.setBounds(cast(f32) min, cast(f32) max)
+        .slider.setBounds(min, max)
         .slider.flags.remove(.Integer)
         .edit.setFloatingPointRange(cast(f64) min, cast(f64) max)
     }
@@ -173,7 +173,7 @@ impl SliderCtrl
         .slider.setValue(value)
     }
 
-    // Sets the value without emitting a value-change gesture.
+    // Sets the value without emitting the start and end signals of a value-change gesture.
     mtd setValueWithoutGesture(value: f32)
     {
         .slider.setValueWithoutGesture(value)

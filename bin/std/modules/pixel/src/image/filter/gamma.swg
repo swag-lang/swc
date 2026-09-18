@@ -2,7 +2,10 @@ using Core
 
 public impl Image
 {
-    // Change the gamma.
+    // Applies gamma correction to the color channels.
+    //
+    // Each normalized channel is raised to `1 / level`, with `level` clamped to (0, 5]; values
+    // above one brighten the image. Alpha is unchanged.
     mtd gamma(level: f32 = 2.2)
     {
         if not .pixelFormat.isPacked() do

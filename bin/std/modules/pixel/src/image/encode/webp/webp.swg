@@ -274,7 +274,7 @@ impl Encoder
             return
         }
 
-        Swag.assert(false)
+        unreachable
     }
 
     func writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)

@@ -85,7 +85,7 @@ func audioStartNoSoundEngine()
 
     child.destroy()
     root.destroy()
-    Swag.assert(g_Driver.buses.count == 0)
+    Swag.assert(g_Driver.buses.isEmpty())
 }
 
 #test

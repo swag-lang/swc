@@ -2,13 +2,14 @@
 
 using Core
 
+// Line and word counts of one text.
 struct TextStatistics
 {
     lines: u64
     words: u64
 }
 
-// Keeps Unicode word boundaries and CRLF pairs intact across streamed chunks.
+// Counts lines and words across streamed chunks, keeping Unicode word boundaries and CRLF pairs intact.
 struct TextStatisticsCounter
 {
     totals:             TextStatistics
@@ -20,6 +21,7 @@ struct TextStatisticsCounter
 
 impl TextStatisticsCounter
 {
+    // Counts `text`, the next chunk of the stream.
     mtd append(text: string)
     {
         var scan = 0'u64
@@ -54,6 +56,7 @@ impl TextStatisticsCounter
         }
     }
 
+    // Returns the counts, closing a last line that does not end with a line break.
     mtd const finish()->TextStatistics
     {
         var result = .totals
@@ -62,6 +65,7 @@ impl TextStatisticsCounter
         return result
     }
 
+    // Counts the lines and words of a UTF-8 file, read in chunks.
     func loadUtf8(fileName: string)->TextStatistics fail
     {
         var stream = try File.openReadLive(fileName)

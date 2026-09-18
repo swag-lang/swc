@@ -18,9 +18,6 @@ struct RuneClass
     ranges: Array'RuneRange     // Sorted, disjoint, non-adjacent once normalized.
 }
 
-// The largest scalar value, so a negation has a bound.
-const MaxRune = 0x10FFFF'rune
-
 impl RuneClass
 {
     // Adds one interval; the class stays unnormalized until 'normalize' runs.
@@ -103,7 +100,7 @@ impl RuneClass
         {
             if r.lo > next do
                 result.add({next, r.lo - 1})
-            if r.hi >= MaxRune
+            if r.hi >= Utf8.MaxRune
             {
                 .ranges = #move result
                 return
@@ -112,7 +109,7 @@ impl RuneClass
             next = r.hi + 1
         }
 
-        result.add({next, MaxRune})
+        result.add({next, Utf8.MaxRune})
         .ranges = #move result
     }
 

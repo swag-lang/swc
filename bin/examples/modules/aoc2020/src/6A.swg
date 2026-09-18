@@ -53,13 +53,12 @@ func day6A()
     {
         for c in l.bytes() do
             map.add(c)
-        if index == lines.count - 1 or lines[index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
             total += map.count
             map.clear()
         }
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 6249)
 }

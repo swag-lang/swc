@@ -33,10 +33,7 @@ private func findClosing(text: string, marker: string, start: u64, wordBoundaryC
     return Swag.U64.Max
 }
 
-private func canOpenUnderscore(text: string, index: u64)->bool
-{
-    return index == 0 or not Latin1.isWord(text[index - 1])
-}
+private func canOpenUnderscore(text: string, index: u64)->bool => index == 0 or not Latin1.isWord(text[index - 1])
 
 private func findInlineMathEnd(text: string, start: u64)->u64
 {

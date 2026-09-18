@@ -3,9 +3,9 @@ GUI builds native desktop interfaces from composable windows, controls, dialogs,
 themes, actions, password-safe input, and Pixel drawing.
 
 An [[Gui.Application]] owns surfaces and drives the event loop. Each
-[[Gui.Surface]] has a root [[Gui.Wnd]]; controls form a flatly documented API and
-are connected at runtime through parent links, event hooks, signals, docking, and
-layout constraints.
+[[Gui.Surface]] has a root [[Gui.Wnd]]; controls are connected at runtime through
+parent links, event hooks, signals, docking, and layout constraints, and each one
+is documented as its own entry of this reference.
 
 ## Create a window
 
@@ -16,8 +16,7 @@ var app: Application
 
 #main
 {
-    let surface = (try app.createSurface(
-        100, 100, 640, 420, SurfaceFlags.StandardWindow))!
+    let surface = (try app.createSurface(100, 100, 640, 420))!
     surface.setTitle("My application")
 
     let button = PushButton.create(surface.view(), "Continue")
@@ -33,8 +32,8 @@ use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
 
 Finite transitions use the application-owned [[Gui.Animator]]. Typed tracks can be
 retargeted by [[Gui.AnimationChannel]], grouped in parallel or sequence, and are
-cancelled automatically when their target is hidden or destroyed. See
-`help/08-animation.md` for the motion and presentation contract.
+cancelled automatically when their target is hidden or destroyed. The Animation
+guide below covers the motion and presentation contract.
 */
 
 #import("pixel")

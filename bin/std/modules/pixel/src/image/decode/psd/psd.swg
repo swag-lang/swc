@@ -33,10 +33,7 @@ struct Layer
 }
 
 #[Swag.Inline]
-func readU16(source: const [*] u8)->u16
-{
-    return (cast(u16) source[0] << 8) | source[1]
-}
+func readU16(source: const [*] u8)->u16 => (cast(u16) source[0] << 8) | source[1]
 
 #[Swag.Inline]
 func readU32(source: const [*] u8)->u32

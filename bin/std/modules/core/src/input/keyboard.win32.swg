@@ -15,13 +15,10 @@ impl Keyboard
         mapVKeyToKey[vkey] = cast(u8) key
     }
 
-    // Performs the key to virtual key operation.
-    public func keyToVirtualKey(key: Key)->VirtualKey
-    {
-        return cast(VirtualKey) mapKeyToVKey[key]
-    }
+    // Returns the Windows virtual-key code of `key`, or zero when it has none.
+    public func keyToVirtualKey(key: Key)->VirtualKey => cast(VirtualKey) mapKeyToVKey[key]
 
-    // Performs the virtual key to key operation.
+    // Returns the key of the Windows virtual-key code `vkey`, or `Key.None` when it has none.
     public func virtualKeyToKey(vkey: VirtualKey)->Key
     {
         if vkey > 255 do
@@ -51,7 +48,7 @@ impl Keyboard
     setupArray(Capital, cast(u8) VK_CAPITAL)
     setupArray(CapsLock, cast(u8) VK_CAPITAL)
     setupArray(Clear, cast(u8) VK_CLEAR)
-    setupArray(Control, cast(u8) VK_LCONTROL)
+    setupArray(Control, cast(u8) VK_CONTROL)
     setupArray(Crsel, cast(u8) VK_CRSEL)
     setupArray(D, 'D')
     setupArray(D0, '0')
@@ -199,7 +196,7 @@ impl Keyboard
     setupArray(Select, cast(u8) VK_SELECT)
     setupArray(SelectMedia, cast(u8) VK_LAUNCH_MEDIA_SELECT)
     setupArray(Separator, cast(u8) VK_SEPARATOR)
-    setupArray(Shift, cast(u8) VK_LSHIFT)
+    setupArray(Shift, cast(u8) VK_SHIFT)
     setupArray(Sleep, cast(u8) VK_SLEEP)
     setupArray(Space, cast(u8) VK_SPACE)
     setupArray(Subtract, cast(u8) VK_SUBTRACT)
@@ -222,7 +219,7 @@ impl Keyboard
 
 public impl Keyboard
 {
-    // Returns true if the given key is pressed
+    // Returns whether `key` is down right now, according to the operating system.
     func isKeyPressed(key: Key)->bool
     {
         let vkey = Keyboard.mapKeyToVKey[key]
@@ -231,7 +228,7 @@ public impl Keyboard
         return GetAsyncKeyState(cast(s32) vkey) < 0
     }
 
-    // Try to transform the given key to the corresponding rune
+    // Returns the character `key` produces with the modifiers of the latest state, or zero when it produces none or several.
     mtd keyToRune(key: Key)->rune
     {
         let virt = keyToVirtualKey(key)

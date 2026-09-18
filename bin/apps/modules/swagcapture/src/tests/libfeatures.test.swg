@@ -200,7 +200,7 @@ using Swag, Core
     Memory.delete(cap)
 
     let it = view.allItems.addNew()
-    it.fi.fullname = path
+    it.fi.fullName = path
     view.items.add(it)
     view.loadOne(it)
 

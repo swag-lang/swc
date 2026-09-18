@@ -4,7 +4,7 @@ using Core
 
 // Provides a compact fluent wrapper for drawing one rich string.
 //
-// Configure font, color, alignment, and flags, then call [[StringPainter.draw]].
+// Configure font, color, alignment, and flags, then call [[Pixel.StringPainter.draw]].
 struct StringPainter
 {
     public

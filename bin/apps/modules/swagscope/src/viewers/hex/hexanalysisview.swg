@@ -9,8 +9,10 @@ const HexAnalysisHistogramSize  = 184.0
 const HexAnalysisHistogramInset = 8.0
 const HexAnalysisHistogramGap   = 2.0
 
-// A 16x16 byte map. Each cell keeps its hexadecimal position, while the alternate theme tone
-// carries frequency; empty cells remain on the panel ground.
+// Map of the 256 byte values, shaded by how often each occurs.
+//
+// The 16x16 cells keep their hexadecimal position, high nibble by row and low nibble by column,
+// while the alternate theme tone carries frequency; empty cells remain on the panel ground.
 struct HexHistogramView
 {
     using wnd: Wnd
@@ -18,9 +20,9 @@ struct HexHistogramView
     histogram: [256] u64
     total:     u64
     maximum:   u64
-    hovered = Swag.U32.Max
+    hovered = Swag.U32.Max     // Byte value under the pointer, or `Swag.U32.Max` for none.
 
-    sigByteChanged: SigArray'func||(*HexHistogramView, u32)
+    sigByteChanged: SigArray'func||(*HexHistogramView, u32)     // Emitted with the new hovered value.
 }
 
 private impl HexHistogramView
@@ -95,9 +97,12 @@ impl HexHistogramView
 {
     func create(parent: *Wnd)->*HexHistogramView
     {
-        let result = Wnd.create'HexHistogramView(parent, {0, 0, 0, HexAnalysisHistogramSize})
-        result.dockStyle       = .Top
-        result.backgroundStyle = .Transparent
+        with let result = Wnd.create'HexHistogramView(parent, {0, 0, 0, HexAnalysisHistogramSize})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+        }
+
         return result
     }
 
@@ -155,12 +160,7 @@ struct HexAnalysisView
 
 private impl HexAnalysisView
 {
-    mtd offsetText(offset: u64)->String
-    {
-        var bytes: Array'u8
-        appendHexDigits(&bytes, offset, .offsetDigits)
-        return String.from(Swag.makeString(bytes.storage(), bytes.count))
-    }
+    mtd offsetText(offset: u64)->String => formatHexDigits(offset, .offsetDigits)
 
     mtd scopeText(range: HexAnalysisRange)->String
     {
@@ -169,7 +169,7 @@ private impl HexAnalysisView
         return Format.toString(hexStrings().ui_AnalysisFile, StrConv.toDisplaySize(range.length))
     }
 
-    mtd stringKind(kind: HexAnalysisStringKind)->string
+    mtd encodingName(kind: HexAnalysisStringKind)->string
     {
         switch #complete kind
         {
@@ -198,7 +198,7 @@ private impl HexAnalysisView
             return
         let value = &.result.strings[index]
         line.setItem(0, .offsetText(value.offset).toString())
-        line.setItem(1, .stringKind(value.kind))
+        line.setItem(1, .encodingName(value.kind))
         line.setItem(2, value.text.toString())
     }
 
@@ -235,10 +235,90 @@ private impl HexAnalysisView
         else do
             .stringsLabel.setText(Format.toString(hexStrings().ui_AnalysisStringsCount, .result.strings.count))
     }
+
+    // Creates the title row and its run, stop, and close actions.
+    mtd createHeader()
+    {
+        let compactSize = themeCompactButtonSize(.themeMetrics())
+        let rowIconSize = themeRowIconSize(.themeMetrics())
+        with let header = Wnd.create'Wnd(me, {0, 0, 0, compactSize})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+        }
+
+        with .closeButton = IconButton.create(header, .theme().icon(.WndClose, rowIconSize), {0, 0, compactSize, compactSize})
+        {
+            .dockStyle  = .Right
+            .toolTip    = hexStrings().ui_AnalysisClose
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.sigClose.call(view)
+            }
+        }
+
+        with .cancelButton = IconButton.create(header, .theme().icon(.Stop, rowIconSize), {0, 0, compactSize, compactSize})
+        {
+            .dockStyle = .Right
+            .toolTip   = hexStrings().ui_AnalysisCancel
+            .hide()
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.sigCancel.call(view)
+            }
+        }
+
+        with .analyzeButton = IconButton.create(header, .theme().icon(.Play, rowIconSize), {0, 0, compactSize, compactSize})
+        {
+            .dockStyle  = .Right
+            .toolTip    = hexStrings().ui_AnalysisRun
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.sigAnalyze.call(view)
+            }
+        }
+
+        with .titleLabel = Label.create(header, hexStrings().ui_Analysis, {0, 0, 0, compactSize})
+        {
+            .dockStyle = .Center
+            .style.setFont(me.theme().createDefaultFont(13, .Bold), .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+    }
+
+    // Creates the list of inferred strings, where selecting a line navigates to its bytes.
+    mtd createStringsList()
+    {
+        with .stringsList = ListCtrl.createMultiColumns(me)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .listView.backgroundStyle = .Transparent
+            .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
+            .setSelectionMode(.Single)
+            .setFirstColumnIconMargin(false)
+            .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.updateFlags(.DisableHorizontal)
+            .header.form = .Transparent
+            .header.updateFlags(remove: .Clickable | .Separators)
+            .addColumn(hexStrings().ui_AnalysisOffset, 82)
+            .addColumn(hexStrings().ui_AnalysisEncoding, 78)
+            .addColumn(hexStrings().ui_AnalysisText, 150)
+            .onFillVirtualLine   = &fillHexAnalysisStringLine
+            .sigSelectionChanged += func|view = me|(list) { view.navigateSelection(list) }
+        }
+    }
 }
 
 impl HexAnalysisView
 {
+    // Clears the panel for a new analysis of `range`, and shows its cancel action.
+    //
+    // `selection` says whether `range` comes from a selection rather than the whole file, and
+    // `offsetDigits` is the width the grid writes offsets with.
     mtd begin(range: HexAnalysisRange, selection: bool, offsetDigits: u64)
     {
         .selection    = selection
@@ -255,12 +335,14 @@ impl HexAnalysisView
         .cancelButton.show()
     }
 
+    // Shows the share of the range `processed` bytes represent.
     mtd setProgress(processed: u64)
     {
         let percent = .result.range.length ? cast(f64) processed * 100 / cast(f64) .result.range.length : 100
         .metricsLabel.setText(Format.toString(hexStrings().ui_AnalysisProgress, percent))
     }
 
+    // Takes over `result` and shows it, restoring the run action.
     mtd publish(result: *HexAnalysisResult)
     {
         .result = #move result[]
@@ -292,85 +374,42 @@ impl HexAnalysisView
 
     func create(parent: *Wnd)->*HexAnalysisView
     {
-        let result = Wnd.create'HexAnalysisView(parent)
-        result.dockStyle       = .Center
-        result.backgroundStyle = .Transparent
-        result.padding         = {12, 8, 12, 8}
-
-        let compactSize = themeCompactButtonSize(result.themeMetrics())
-        let rowIconSize = themeRowIconSize(result.themeMetrics())
-        with let header = Wnd.create'Wnd(result, {0, 0, 0, compactSize})
+        with let result = Wnd.create'HexAnalysisView(parent)
         {
-            .dockStyle       = .Top
+            .dockStyle       = .Center
             .backgroundStyle = .Transparent
+            .padding         = {12, 8, 12, 8}
         }
 
-        with result.closeButton = IconButton.create(header, result.theme().icon(.WndClose, rowIconSize), {0, 0, compactSize, compactSize})
-        {
-            .dockStyle  = .Right
-            .toolTip    = hexStrings().ui_AnalysisClose
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.sigClose.call(view)
-            }
-        }
-
-        with result.cancelButton = IconButton.create(header, result.theme().icon(.Stop, rowIconSize), {0, 0, compactSize, compactSize})
-        {
-            .dockStyle = .Right
-            .toolTip   = hexStrings().ui_AnalysisCancel
-            .hide()
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.sigCancel.call(view)
-            }
-        }
-
-        with result.analyzeButton = IconButton.create(header, result.theme().icon(.Play, rowIconSize), {0, 0, compactSize, compactSize})
-        {
-            .dockStyle  = .Right
-            .toolTip    = hexStrings().ui_AnalysisRun
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.sigAnalyze.call(view)
-            }
-        }
-
-        with result.titleLabel = Label.create(header, hexStrings().ui_Analysis, {0, 0, 0, compactSize})
-        {
-            .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
-            .setTextAlignment(.Left, .Center)
-        }
+        result.createHeader()
 
         with result.scopeLabel = Label.create(result, "", {0, 0, 0, HexAnalysisLabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
         with result.metricsLabel = Label.create(result, "", {0, 0, 0, HexAnalysisMetricsHeight}, null, .SecondaryText | .WordWrap)
         {
             .dockStyle = .Top
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        result.histogram = HexHistogramView.create(result)
-        result.histogram.sigByteChanged += func|view = result|(histogram, value)
+        with result.histogram = HexHistogramView.create(result)
         {
-            discard histogram
-            view.updateByteDetail(value)
+            .sigByteChanged += func|view = result|(histogram, value)
+            {
+                discard histogram
+                view.updateByteDetail(value)
+            }
         }
 
         with result.byteLabel = Label.create(result, hexStrings().ui_AnalysisByteHint, {0, 0, 0, HexAnalysisLabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
@@ -380,30 +419,13 @@ impl HexAnalysisView
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.stringsList = ListCtrl.createMultiColumns(result)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-            .listView.backgroundStyle = .Transparent
-            .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
-            .setSelectionMode(.Single)
-            .setFirstColumnIconMargin(false)
-            .updateFlags(.HotTrack | .Ellipsis)
-            .scrollWnd.updateFlags(.DisableHorizontal)
-            .header.form = .Transparent
-            .header.updateFlags(remove: .Clickable | .Separators)
-            .addColumn(hexStrings().ui_AnalysisOffset, 82)
-            .addColumn(hexStrings().ui_AnalysisEncoding, 78)
-            .addColumn(hexStrings().ui_AnalysisText, 150)
-            .onFillVirtualLine   = &fillHexAnalysisStringLine
-            .sigSelectionChanged += func|view = result|(list) { view.navigateSelection(list) }
-        }
-
+        result.createStringsList()
         result.applyLayout()
         return result
     }
 }
 
+// Fills one line of the virtual strings list from the panel that owns the list.
 private func fillHexAnalysisStringLine(list: *ListCtrl, line: *ListLine?, index: u32)
 {
     if line do

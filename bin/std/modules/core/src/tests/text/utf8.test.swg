@@ -83,7 +83,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     Swag.assert(bytes[2] == 0xBD)
 
     Swag.assert(Utf8.isValidRune(0))
-    Swag.assert(Utf8.isValidRune(Utf8.MaxRunes))
+    Swag.assert(Utf8.isValidRune(Utf8.MaxRune))
     Swag.assert(not Utf8.isValidRune(0xD800'rune))
     Swag.assert(not Utf8.isValidRune(0x110000'rune))
 }
@@ -136,7 +136,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[index] = 0xA5
         }
 
-        let runeSlice     = Swag.makeSlice(runes.buffer, length)
+        let runeSlice     = runes[until length]
         var actualCount   = Utf8.fromUnicode(actual, runeSlice)
         var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
         Swag.assert(actualCount == expectedCount)
@@ -148,7 +148,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[index] = 0xA5
         }
 
-        let utf16Slice = Swag.makeSlice(utf16.buffer, length)
+        let utf16Slice = utf16[until length]
         actualCount   = Utf8.fromUtf16(actual, utf16Slice)
         expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
         Swag.assert(actualCount == expectedCount)
@@ -177,7 +177,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[index] = 0xA5
         }
 
-        let runeSlice     = Swag.makeSlice(runes.buffer, length)
+        let runeSlice     = runes[until length]
         var actualCount   = Utf8.fromUnicode(actual, runeSlice)
         var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
         Swag.assert(actualCount == expectedCount)
@@ -189,7 +189,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[index] = 0xA5
         }
 
-        let utf16Slice = Swag.makeSlice(utf16.buffer, length)
+        let utf16Slice = utf16[until length]
         actualCount   = Utf8.fromUtf16(actual, utf16Slice)
         expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
         Swag.assert(actualCount == expectedCount)
@@ -222,7 +222,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[index] = 0xA5
         }
 
-        let runeSlice     = Swag.makeSlice(runes.buffer, length)
+        let runeSlice     = runes[until length]
         var actualCount   = Utf8.fromUnicode(actual, runeSlice)
         var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
         Swag.assert(actualCount == expectedCount)
@@ -234,7 +234,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[index] = 0xA5
         }
 
-        let utf16Slice = Swag.makeSlice(utf16.buffer, 2 * length)
+        let utf16Slice = utf16[until 2 * length]
         actualCount   = Utf8.fromUtf16(actual, utf16Slice)
         expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
         Swag.assert(actualCount == expectedCount)
@@ -290,7 +290,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[index] = 0xA5
         }
 
-        let src           = Swag.makeSlice(source.buffer, idx)
+        let src           = source[until idx]
         let actualCount   = Utf8.fromUtf16(actual, src)
         let expectedCount = scalarUtf8FromUtf16(expected, src)
         Swag.assert(actualCount == expectedCount)
@@ -308,7 +308,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             expected[idx] = 0xA5
         }
 
-        let src           = Swag.makeSlice(source.buffer, 64)
+        let src           = source[until 64]
         let actualCount   = Utf8.fromUtf16(actual, src)
         let expectedCount = scalarUtf8FromUtf16(expected, src)
         Swag.assert(actualCount == expectedCount)
@@ -448,13 +448,13 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     Swag.assert(Utf8.lastIndexOfAny(text, runeNeedles) == 11)
     let missingRuneNeedles: [2] rune = ['z'rune, '\u2603'rune]
     Swag.assert(Utf8.lastIndexOfAny(text, missingRuneNeedles) == Swag.U64.Max)
-    Swag.assert(Utf8.lastIndexOfAny(text, Swag.makeSlice(runeNeedles.buffer, 0)) == Swag.U64.Max)
+    Swag.assert(Utf8.lastIndexOfAny(text, runeNeedles[until 0]) == Swag.U64.Max)
 
     let byteNeedles: [2] u8 = ['h'u8, 'x'u8]
     Swag.assert(Utf8.lastIndexOfAny(text, byteNeedles) == 16)
     let missingByteNeedles: [2] u8 = ['z'u8, 'x'u8]
     Swag.assert(Utf8.lastIndexOfAny(text, missingByteNeedles) == Swag.U64.Max)
-    Swag.assert(Utf8.lastIndexOfAny(text, Swag.makeSlice(byteNeedles.buffer, 0)) == Swag.U64.Max)
+    Swag.assert(Utf8.lastIndexOfAny(text, byteNeedles[until 0]) == Swag.U64.Max)
 
     Swag.assert(Utf8.startsWith(text, "one"))
     Swag.assert(Utf8.startsWith(text, "ONE", Utf8.ComparisonType.Latin1NoCase))

@@ -294,7 +294,7 @@ namespace ResizeTools
         {
         case 24: doIt'24()
         case 32: doIt'32()
-        default: Swag.assert(false)
+        default: unreachable
         }
     }
 
@@ -347,7 +347,7 @@ namespace ResizeTools
         {
         case 24: doIt'24()
         case 32: doIt'32()
-        default: Swag.assert(false)
+        default: unreachable
         }
     }
 

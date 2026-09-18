@@ -55,6 +55,13 @@ impl QuickStyle
         }
     }
 
+    // Adopts a freshly built form as the last preset of the set.
+    mtd add(form: IForm)
+    {
+        form.setup(null)
+        .forms.add(form)
+    }
+
     mtd remove(itf: IForm)
     {
         deleteOne(itf)
@@ -69,39 +76,119 @@ impl QuickStyle
     }
 }
 
-// Register a freshly built default form into a quick style set (see the
-// defaultQuickStyle* builders below).
-func(T) addStyleForm(qs: *QuickStyle, form: *T)
-{
-    let it: IForm = form
-    it.setup(null)
-    qs.forms.add(it)
-}
-
 struct QuickButton
 {
     using iconBtn: IconButton
     formItf:       IForm?
     late quickWnd: *QuickWnd
+
+    // The trailing cell, which shows the current tool style and offers to add it as a preset.
+    isModel: bool
 }
 
+// The disposable copy of a preset a cell paints. Painting a sample normalizes its geometry,
+// text and points, so it never works on the style itself.
 struct QuickStylePaintForm
 {
     itf: IForm?
 }
 
-func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
+impl QuickStylePaintForm
 {
-    if paint.itf do
-        Memory.delete(paint.itf.buffer, Swag.kindOf(paint.itf))
-    paint.itf = null
+    // Creates the copy of `srcItf` a cell of [[QuickCellSize]] paints, laid out inside the cell.
+    func create(srcItf: IForm)->QuickStylePaintForm
+    {
+        let paintBase = MainWnd.newFormFromForm(srcItf)
+        let paintItf  = cast #assume (IForm) paintBase
+
+        var cxt: FormPaintContext
+        cxt.z         = 1
+        cxt.quickMode = true
+
+        let m    = QuickCellMargin + sampleInset(paintItf, cxt)
+        let rect = Math.Rectangle{m, m, QuickCellSize - 2 * m, QuickCellSize - 2 * m}
+
+        var result: QuickStylePaintForm
+        result.itf = paintItf
+
+        switch paintItf
+        {
+        case FormPolygon as poly: poly.setDefaultShape()
+        case FormDraw as poly:    poly.setDefaultShape()
+        case FormText as txt:     txt.text = "A"
+        }
+
+        paintItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
+
+        // The callout tail lives in canvas space and is never carried by a style; give the
+        // preview a shortened body and an in-cell downward tail so it renders to scale.
+        if Swag.kindOf(paintItf) == FormCallout
+        {
+            let cl = cast #assume (*FormCallout) paintItf
+            cl.text = "A"
+
+            // Read as a clean speech bubble: quick mode already normalizes the glyph size to
+            // a fixed range, so a small fontSize just lands at the airy end; keep the body
+            // nearly full-cell so the letter breathes, and hang a short downward tail nub.
+            cl.fontSize = 10
+            cl.h        = cast(s32) (cast(f32) cl.h * 0.82)
+            cl.tailX    = cl.x + cast(s32) (cast(f32) cl.w * 0.28)
+            cl.tailY    = cl.y + cl.h + 8
+        }
+
+        return result
+    }
+
+    // Frees the copy. A second call does nothing.
+    mtd release()
+    {
+        if .itf do
+            Memory.delete(.itf.buffer, Swag.kindOf(.itf))
+        .itf = null
+    }
+
+    // Returns the room a sample needs between its own geometry and the edge of its cell.
+    //
+    // Everything a form paints outside its rectangle lives in there: half a stroke for a box, and
+    // the line ends for a line or an arrow, which are as wide as the stroke times their scale and
+    // stand across the diagonal the sample runs along. Answered too small, an arrow head is cut
+    // flat by the cell and the preset reads as broken rather than as pointed.
+    func sampleInset(itf: IForm, cxt: FormPaintContext)->f32
+    {
+        let sel  = cast #assume (*BaseForm) itf
+        let type = Swag.kindOf(itf)
+
+        // An arrow is a line carrying its own defaults, so both answer through the line.
+        if type == FormLine or type == FormArrow
+        {
+            // The line ends are shaped from the stroke and the contour is pushed out around the
+            // result, so the contour adds its own width once instead of widening the stroke the
+            // ends are measured against.
+            let line  = cast #assume (*FormLine) itf
+            let sizes = line.paintSizes(cxt)
+            let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
+            let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
+
+            // The sample runs corner to corner, so both axes of an end land on both axes of the
+            // cell at the cosine of that diagonal: what stands across the line and what reaches
+            // past its point add up there, and an end reserving only the larger of the two would
+            // lose its far corner to the edge of the cell.
+            let room = Math.max(beg.w + beg.l, end.w + end.l) + line.paintOutlineSize(cxt)
+            return room * Math.ConstF32.OneBySqrt2
+        }
+
+        var inset = BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
+        if type == FormDraw do
+            inset += (cast #assume (*FormDraw) itf).paintOutlineSize(cxt)
+        return inset
+    }
 }
 
-// Name of what a preset cell shows, for its tooltip.
+// Returns the name of what a preset cell shows, for its tooltip.
 //
 // A processed image form is the one family whose samples say what they do rather than how
 // they look, so the word is worth having. It belongs on the tooltip and not inside the cell:
-// printed there it overflowed the cell on both axes and crossed the sample it was naming.
+// printed there, it would overflow the cell on both axes and cross the sample it names.
 func quickStyleTip(itf: IForm)->string
 {
     if Swag.kindOf(itf) != FormImage do
@@ -118,87 +205,6 @@ func quickStyleTip(itf: IForm)->string
     }
 
     return ""
-}
-
-// Room a sample needs between its own geometry and the edge of its cell.
-//
-// Everything a form paints outside its rectangle lives in there: half a stroke for a box, and
-// the line ends for a line or an arrow, which are as wide as the stroke times their scale and
-// stand across the diagonal the sample runs along. Answered too small, an arrow head is cut
-// flat by the cell and the preset reads as broken rather than as pointed.
-func quickStyleInset(itf: IForm, cxt: FormPaintContext)->f32
-{
-    let sel  = cast #assume (*BaseForm) itf
-    let type = Swag.kindOf(itf)
-
-    // An arrow is a line carrying its own defaults, so both answer through the line.
-    if type == FormLine or type == FormArrow
-    {
-        // The line ends are shaped from the stroke and the contour is pushed out around the
-        // result, so the contour adds its own width once instead of widening the stroke the
-        // ends are measured against.
-        let line  = cast #assume (*FormLine) itf
-        let sizes = line.paintSizes(cxt)
-        let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
-        let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
-
-        // The sample runs corner to corner, so both axes of an end land on both axes of the cell
-        // at the cosine of that diagonal: what stands across the line and what reaches past its
-        // point add up there, and an end reserving only the larger of the two lost its far corner
-        // to the edge of the cell.
-        let room = Math.max(beg.w + beg.l, end.w + end.l) + line.paintOutlineSize(cxt)
-        return room * Math.ConstF32.OneBySqrt2
-    }
-
-    var inset = BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
-    if type == FormDraw do
-        inset += (cast #assume (*FormDraw) itf).paintOutlineSize(cxt)
-    return inset
-}
-
-func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
-{
-    // Icon painting normalizes geometry/text/points, so work on a disposable copy.
-    let paintBase = MainWnd.newFormFromForm(srcItf)
-
-    let paintItf = cast #assume (IForm) paintBase
-
-    var cxt: FormPaintContext
-    cxt.z         = 1
-    cxt.quickMode = true
-
-    let m    = QuickCellMargin + quickStyleInset(paintItf, cxt)
-    let rect = Math.Rectangle{m, m, QuickCellSize - 2 * m, QuickCellSize - 2 * m}
-
-    var result: QuickStylePaintForm
-    result.itf = paintItf
-
-    switch paintItf
-    {
-    case FormPolygon as poly: poly.setDefaultShape()
-    case FormDraw as poly:    poly.setDefaultShape()
-    case FormText as txt:     txt.text = "A"
-    }
-
-    paintItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
-
-    // The callout tail lives in canvas space and is never carried by a style; give the
-    // preview a shortened body and an in-cell downward tail so it renders to scale.
-    if Swag.kindOf(paintItf) == FormCallout
-    {
-        let cl = cast #assume (*FormCallout) paintItf
-        cl.text = "A"
-
-        // Read as a clean speech bubble: quick mode already normalizes the glyph size to
-        // a fixed range, so a small fontSize just lands at the airy end; keep the body
-        // nearly full-cell so the letter breathes, and hang a short downward tail nub.
-        cl.fontSize = 10
-        cl.h        = cast(s32) (cast(f32) cl.h * 0.82)
-        cl.tailX    = cl.x + cast(s32) (cast(f32) cl.w * 0.28)
-        cl.tailY    = cl.y + cl.h + 8
-    }
-
-    return result
 }
 
 struct QuickWnd
@@ -325,10 +331,13 @@ impl QuickWnd
 
     mtd btnPopup(btn: *Button?, pos: Math.Point)
     {
-        let menu = MenuCtrl.createPopup(me)
-        menu.addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: not btn)
-        menu.addSeparator()
-        menu.addItem(ActionQuickStyle.Reset)
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            .addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: not btn)
+            .addSeparator()
+            .addItem(ActionQuickStyle.Reset)
+        }
+
         let res = menu.doModal(pos, autoDestroy: true)
         if res == "0" and btn
         {
@@ -373,7 +382,7 @@ impl QuickWnd
             if endSize != 0 do
                 form.endCap = .ArrowAnchor
             form.borderColor = color
-            addStyleForm(&.qsArrow, form)
+            .qsArrow.add(form)
         }
 
         const BorderSize = 10.0
@@ -402,7 +411,7 @@ impl QuickWnd
             let form = Memory.new'FormLine()
             form.borderSize  = borderSize
             form.borderColor = color
-            addStyleForm(&.qsLine, form)
+            .qsLine.add(form)
         }
 
         const BorderSize = 10.0
@@ -425,7 +434,7 @@ impl QuickWnd
             form.borderColor = color
             form.backColor   = backColor
             form.kind        = kind
-            addStyleForm(&.qsShape, form)
+            .qsShape.add(form)
         }
 
         const BorderSize = 10.0
@@ -463,7 +472,7 @@ impl QuickWnd
             form.kind        = kind
             if borderSize == 0 do
                 form.paintShadow = false
-            addStyleForm(&.qsImage, form)
+            .qsImage.add(form)
         }
 
         .add(2, .Image, Argb.White)
@@ -481,7 +490,7 @@ impl QuickWnd
             form.borderColor = color
             form.backColor   = backColor
             form.kind        = kind
-            addStyleForm(&.qsStep, form)
+            .qsStep.add(form)
         }
 
         .add(.Ellipse, Argb.White, ColorRed)
@@ -504,7 +513,7 @@ impl QuickWnd
             form.borderColor = color
             form.backColor   = 0
             form.bezier      = bezier
-            addStyleForm(&.qsPolygon, form)
+            .qsPolygon.add(form)
         }
 
         const BorderSize = 5.0
@@ -535,7 +544,7 @@ impl QuickWnd
             form.roundSize   = 16
             form.fontSize    = 40
             form.text        = "A"
-            addStyleForm(&.qsCallout, form)
+            .qsCallout.add(form)
         }
 
         .add(Argb.White, ColorRed, Argb.White)
@@ -556,7 +565,7 @@ impl QuickWnd
             form.backColor   = bkColor
             form.fontSize    = fontSize
             form.text        = "A"
-            addStyleForm(&.qsText, form)
+            .qsText.add(form)
         }
 
         .add(4, 24, Argb.White, ColorRed)
@@ -585,7 +594,7 @@ impl QuickWnd
             let form = Memory.new'FormDraw()
             form.borderSize  = borderSize
             form.borderColor = color
-            addStyleForm(&.qsDraw, form)
+            .qsDraw.add(form)
         }
 
         const BorderSize = 10.0
@@ -609,7 +618,7 @@ impl QuickWnd
             form.borderColor = color
             form.alpha       = 30
             form.subKind     = .Highlight
-            addStyleForm(&.qsHighlight, form)
+            .qsHighlight.add(form)
         }
 
         mtd addShape(kind: FormShapeKind, backColor: Color)
@@ -621,7 +630,7 @@ impl QuickWnd
             form.alpha       = 30
             form.kind        = kind
             form.subKind     = .Highlight
-            addStyleForm(&.qsHighlight, form)
+            .qsHighlight.add(form)
         }
 
         mtd addPoly(backColor: Color)
@@ -632,7 +641,7 @@ impl QuickWnd
             form.backColor   = backColor
             form.alpha       = 30
             form.subKind     = .Highlight
-            addStyleForm(&.qsHighlight, form)
+            .qsHighlight.add(form)
         }
 
         const BorderSize = 20.0
@@ -660,7 +669,7 @@ impl QuickWnd
             let form = Memory.new'FormDraw()
             form.subKind     = .PixSel
             form.paintShadow = false
-            addStyleForm(&.qsPixSel, form)
+            .qsPixSel.add(form)
         }
 
         mtd addShape(kind: FormShapeKind)
@@ -669,7 +678,7 @@ impl QuickWnd
             form.kind        = kind
             form.subKind     = .PixSel
             form.paintShadow = false
-            addStyleForm(&.qsPixSel, form)
+            .qsPixSel.add(form)
         }
 
         mtd addPoly()
@@ -677,7 +686,7 @@ impl QuickWnd
             let form = Memory.new'FormPolygon()
             form.subKind     = .PixSel
             form.paintShadow = false
-            addStyleForm(&.qsPixSel, form)
+            .qsPixSel.add(form)
         }
 
         with me
@@ -710,10 +719,10 @@ impl QuickWnd
 
         // The model button is optional (canAddModel), so the child list can be
         // empty; guard back() against an out-of-bounds read.
-        if .layout.children.count
+        if not .layout.children.isEmpty()
         {
-            let curMdl = cast #assume (*IconButton) .layout.children.back()
-            if curMdl.userData
+            let curMdl = cast #assume (*QuickButton) .layout.children.back()
+            if curMdl.isModel
             {
                 curMdl.show(not done)
                 if not done do
@@ -731,8 +740,7 @@ impl QuickWnd
         if not .currentStyle do
             return
 
-        let res = MessageDlg.confirm(.surface!, appStrings().msg_ResetStyles)
-        if res != MessageDlg.BtnYes do
+        if MessageDlg.confirm(.surface!, appStrings().msg_ResetStyles) != MessageDlg.BtnYes do
             return
 
         .currentStyle.clear()
@@ -764,8 +772,8 @@ impl QuickWnd
         func paintForm(painter: *Painter, btnp: *QuickButton)
         {
             painter.setParams(.Antialiased)
-            var paintForm = quickStyleNewPaintForm(btnp.formItf!)
-            defer quickStyleReleasePaintForm(&paintForm)
+            var paintForm = QuickStylePaintForm.create(btnp.formItf!)
+            defer paintForm.release()
 
             Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paintForm.itf!, zoom: 1, quickMode: true)
         }
@@ -824,48 +832,40 @@ impl QuickWnd
 
         for it in .currentStyle.forms
         {
-            let btn = Wnd.create'QuickButton(.layout, null, {0, 0, QuickCellSize, QuickCellSize})
-            btn.updateFlags(.Radio)
-            btn.setForm(.Rectangle)
-
-            // The picked preset is the cell that is lit, not the cell with a bar under it: a
-            // rule in the accent below a sample drawn in the user's own colors reads as one
-            // more thing painted in the cell rather than as the state of the cell.
-            btn.setCheckIndicator(.None)
-            btn.formItf  = it
-            btn.quickWnd = me
-            btn.toolTip  = quickStyleTip(it)
-
-            btn.iconPainter = func(btn, bc, pos, flags) { paintForm(bc.painter, cast #assume (*QuickButton) btn) }
-
-            btn.sigRightPressed += func(btn)
+            with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
             {
-                var rect     = btn.surfaceRect()
-                let quickBtn = cast #assume (*QuickButton) btn
-                quickBtn.quickWnd.btnPopup(btn, rect.center())
+                .updateFlags(.Radio)
+                .setForm(.Rectangle)
+
+                // The picked preset is the cell that is lit, not the cell with a bar under it: a
+                // rule in the accent below a sample drawn in the user's own colors reads as one
+                // more thing painted in the cell rather than as the state of the cell.
+                .setCheckIndicator(.None)
+                .formItf  = it
+                .quickWnd = me
+                .toolTip  = quickStyleTip(it)
+
+                .iconPainter = func(btn, bc, pos, flags) { paintForm(bc.painter, cast #assume (*QuickButton) btn) }
+                .sigRightPressed += func(btn) { (cast #assume (*QuickButton) btn).quickWnd.btnPopup(btn, btn.surfaceRect().center()) }
             }
 
             btn.sigCheckedChanged += func(btn)
             {
+                if not btn.isChecked do
+                    return
+
                 let quickBtn = cast #assume (*QuickButton) btn
                 let quick    = quickBtn.quickWnd
                 let it       = quickBtn.formItf!
-                if not btn.isChecked do
-                    return
                 quick.main.updateModel(it)
 
-                var capture = quick.main.getCapture()!
-                if capture.selection.count
+                let capture = quick.main.getCapture()!
+                if not capture.selection.isEmpty()
                 {
-                    let mdlValue = MainWnd.newFormFromForm(it)
-                    let undo     = capture.newUndo(.SetFormFromModel)
+                    let undo = capture.newUndo(.SetFormFromModel)
                     undo.mdlType  = Swag.kindOf(it)
-                    undo.mdlValue = mdlValue
+                    undo.mdlValue = MainWnd.newFormFromForm(it)
                     capture.pushUndo(undo)
-                }
-                else
-                {
-                    capture.selection.clear()
                 }
 
                 quick.updateSelection()
@@ -875,15 +875,18 @@ impl QuickWnd
 
         if canAddModel
         {
-            let btn = Wnd.create'QuickButton(.layout, null, {0, 0, QuickCellSize, QuickCellSize})
-            btn.updateFlags(.Radio)
-            btn.userData = cast(*void) 1'u64     // This is the model button
-            btn.formItf  = formItf
-            btn.setForm(.Rectangle)
-            btn.setCheckIndicator(.None)
-            btn.style.addStyleSheetColors("btnIcon_Bk          0x0")
-            btn.style.addStyleSheetColors("btnIcon_HotBk       0x0")
-            btn.style.addStyleSheetColors("btnIcon_PressedBk   0x0")
+            with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
+            {
+                .updateFlags(.Radio)
+                .isModel = true
+                .formItf = formItf
+                .setForm(.Rectangle)
+                .setCheckIndicator(.None)
+                .style.addStyleSheetColors("btnIcon_Bk          0x0")
+                .style.addStyleSheetColors("btnIcon_HotBk       0x0")
+                .style.addStyleSheetColors("btnIcon_PressedBk   0x0")
+            }
+
             .layout.sendResizeEvent()
 
             btn.iconPainter = func(btn, bc, pos, flags)
@@ -895,19 +898,20 @@ impl QuickWnd
                 bc.painter.drawRect(rect, Pen.createDash(.Dash, Argb.White, 1))
             }
 
-            // Button to add a new style. Neutral, not Voltage: adding a preset is a
-            // convenience, not the primary action of the surface.
-            let ico  = .theme().icon(.Plus, AddGlyphSize)
-            let btn1 = IconButton.create(btn, ico, {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
-            btn1.style.addStyleSheetColors("btnIcon_Bk          $veilMedium")
-            btn1.style.addStyleSheetColors("btnIcon_HotBk       $veilStrong")
-            btn1.style.addStyleSheetColors("btnIcon_PressedBk   $btnIcon_PressedBk")
-            btn1.setForm(.Rectangle)
+            // The cell's own button adds its style as a new preset. Neutral, not Voltage: adding
+            // a preset is a convenience, not the primary action of the surface.
+            with let addBtn = IconButton.create(btn, me.theme().icon(.Plus, AddGlyphSize), {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
+            {
+                .style.addStyleSheetColors("btnIcon_Bk          $veilMedium")
+                .style.addStyleSheetColors("btnIcon_HotBk       $veilStrong")
+                .style.addStyleSheetColors("btnIcon_PressedBk   $btnIcon_PressedBk")
+                .setForm(.Rectangle)
+            }
 
             .layout.sendResizeEvent()
             .setScrollSize(0, .layout.contentHeight)
 
-            btn1.sigPressed += func|quickWnd = me|(btn)
+            addBtn.sigPressed += func|quickWnd = me|(btn)
             {
                 let main = quickWnd.main
                 let mdl  = main.newFormFromModel(main.getEditMode())

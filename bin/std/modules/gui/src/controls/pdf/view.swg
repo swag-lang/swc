@@ -79,8 +79,7 @@ public struct PdfCanvas
     late owner: *PdfView
 }
 
-// Displays a PDF document the way a reader scrolls one: every page in one column, decoded as it
-// comes into view.
+// Displays a PDF document the way a reader scrolls one: every page in one column, decoded as it comes into view.
 //
 // The document's page sizes are read from its page tree when it opens, so the whole column is
 // laid out and scrollable before a single page is decoded. A page is then decoded on a worker as
@@ -937,16 +936,8 @@ internal impl PdfView
             return
 
         var bounds = rects[0]
-        for index in 1 until rects.count
-        {
-            let rect  = rects[index]
-            let right = Math.max(bounds.right(), rect.right())
-            let down  = Math.max(bounds.bottom(), rect.bottom())
-            bounds.x      = Math.min(bounds.x, rect.x)
-            bounds.y      = Math.min(bounds.y, rect.y)
-            bounds.width  = right - bounds.x
-            bounds.height = down - bounds.y
-        }
+        for index in 1 until rects.count do
+            bounds.combine(rects[index])
 
         .pendingReveal = false
 
@@ -1313,10 +1304,10 @@ impl PdfView
         .invalidate()
     }
 
-    // Releases the document, its decoded pages, their textures, and the text extracted for search,
-    // while keeping the widget alive.
+    // Releases the document and everything decoded from it, while keeping the widget alive.
     //
-    // Cached typefaces remain owned by Pixel until module shutdown.
+    // The decoded pages, their textures, and the text extracted for search are released. Cached
+    // typefaces remain owned by Pixel until module shutdown.
     mtd close()
     {
         .stopPrepare()
@@ -1541,8 +1532,7 @@ impl PdfView
         return result
     }
 
-    // Appends the matches of the pages whose text is extracted so far, from page `page[]` on,
-    // and reports whether the whole document has been searched.
+    // Appends the matches of the pages extracted so far, from page `page[]` on, and reports whether the whole document was searched.
     //
     // The document's text is extracted on a worker, a page at a time, the first time a search
     // asks for it. This call never waits for a page: it searches the pages extracted since
@@ -1612,22 +1602,13 @@ impl PdfView
             return false
 
         var bounds = rects[0]
-        for index in 1 until rects.count
-        {
-            let rect  = rects[index]
-            let right = Math.max(bounds.right(), rect.right())
-            let down  = Math.max(bounds.bottom(), rect.bottom())
-            bounds.x      = Math.min(bounds.x, rect.x)
-            bounds.y      = Math.min(bounds.y, rect.y)
-            bounds.width  = right - bounds.x
-            bounds.height = down - bounds.y
-        }
+        for index in 1 until rects.count do
+            bounds.combine(rects[index])
 
         let page   = .pageRect(match.pageIndex)
         let origin = .documentOrigin()
         let scale  = .effectiveZoom()
-        let local  = Math.Rectangle{origin.x + page.x + bounds.x * scale, origin.y + page.y + bounds.y * scale,
-                                    bounds.width * scale, bounds.height * scale}
+        let local  = Math.Rectangle{origin.x + page.x + bounds.x * scale, origin.y + page.y + bounds.y * scale, bounds.width * scale, bounds.height * scale}
         result[] = .canvas.localToSurface(local)
         return not result.isEmpty()
     }
@@ -1690,9 +1671,10 @@ impl PdfView
         return true
     }
 
-    // Finds and reveals the next occurrence of `text`, scanning forward from the last hit and
-    // wrapping once around the document. The match becomes the selection, so a copy right after
-    // a search takes what the search found. Reports whether any page holds the text.
+    // Finds and reveals the next occurrence of `text`, wrapping once around the document, and reports whether one exists.
+    //
+    // The scan resumes just past the last hit. The match becomes the selection, so a copy right
+    // after a search takes what the search found.
     //
     // The document's text is extracted once per document, on a worker, and the first search waits
     // for it; the page carrying the match is scrolled to without waiting for it to decode.
@@ -1764,8 +1746,7 @@ impl PdfView
         .invalidate()
     }
 
-    // Offers the reading vocabulary at `surfacePos`: what a page can give the clipboard, with the
-    // same shortcuts the keyboard already binds.
+    // Shows the reading context menu at `surfacePos`: copy and select all, with their keyboard shortcuts.
     internal mtd showContextMenu(surfacePos: Math.Point)
     {
         let menu = MenuCtrl.createPopup(me, owner: me)

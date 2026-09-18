@@ -6,7 +6,8 @@ renderers.
 Most image operations mutate an [[Pixel.Image]] in place. Pixel coordinates use
 an origin at the top-left; `x` grows to the right and `y` grows downward.
 Dimensions and integer coordinates are expressed in pixels unless a declaration
-says otherwise. Colors use straight (non-premultiplied) alpha.
+says otherwise. Colors use straight (non-premultiplied) alpha. The raw pixel
+buffer of an image stores its bottom row first; see [[Pixel.Image]].
 
 ## Create and save an image
 
@@ -31,6 +32,7 @@ var painter = Painter.create(renderer)
 var context = try renderer.createContext(null, 320, 180)
 defer renderer.deleteContext(&context)
 
+renderer.init()
 renderer.begin(context)
 painter.begin()
 painter.clear(Color.fromRgb(24, 32, 48))

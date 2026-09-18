@@ -5,7 +5,7 @@
 using Win32, StrConv, Core.Errors
 
 // Windows environment names compare without regard to case.
-func processEnvironmentStoredName(name: string)->String => String.toUpper(name)
+internal func processEnvironmentStoredName(name: string)->String => String.toUpper(name)
 
 // Bytes taken from a captured pipe in one read.
 private const PipeReadChunk = 4096'u32
@@ -19,7 +19,7 @@ private const PipePollInterval = 5'u32
 // Longest single wait issued to the system, so a very long timeout still fits a native call.
 private const MaxWaitStep = 0xFFFFFFFE'u64
 
-// Exit the current process, reporting `exitCode` to whoever waits on it.
+// Exits the current process, reporting `exitCode` to whoever waits on it.
 //
 // The code is signed like everywhere else exit codes travel — [[Core.Env.Process.waitForExit]],
 // [[Core.Env.Process.exitCode]], [[Core.Env.Process.kill]] — and is reinterpreted at the
@@ -42,21 +42,20 @@ func currentEnvironment()->ProcessEnvironment
     // The block is a run of zero-terminated 'name=value' strings closed by an empty one. An
     // entry whose name is empty records a per-drive current directory instead of a variable,
     // and the system rebuilds those for a child on its own.
-    let entries = block
-    var offset  = 0'u64
-    while entries[offset] != 0
+    var offset = 0'u64
+    while block[offset] != 0
     {
         let start = offset
-        while entries[offset] != 0 do
+        while block[offset] != 0 do
             offset += 1
 
-        let entry = Utf8.fromUtf16(Swag.makeSlice(entries + start, offset - start))
+        let entry = Utf8.fromUtf16(Swag.makeSlice(block + start, offset - start))
         offset += 1
 
         let text      = entry.toString()
         let separator = Utf8.indexOf(entry.toSlice(), "=")
         if separator != Swag.U64.Max and separator != 0 do
-            result.set(text[0 until separator], text[separator + 1 until text.count])
+            result.set(text[until separator], text[separator + 1 to])
     }
 
     return result
@@ -81,7 +80,7 @@ func variable(name: string)->String
     let written = GetEnvironmentVariableW(name16.buffer, (buffer.toSlice()).buffer, needed)
     if not written or written >= needed do
         return ""
-    return Utf8.fromUtf16(Swag.makeSlice((buffer.toSlice()).buffer, cast(u64) written))
+    return Utf8.fromUtf16(buffer.toSlice()[until written])
 }
 
 // Returns `value` spelled so the system parses it back as exactly one argument.
@@ -117,12 +116,8 @@ func joinArguments(arguments: const [..] string)->String
 private func appendQuoted(commandLine: *String, argument: string)
 {
     var mustQuote = argument.count == 0
-    for i in argument.count
-    {
-        let c = argument[i]
-        if c == ' ' or c == '\t' or c == '"' do
-            mustQuote = true
-    }
+    for c in argument where c == ' ' or c == '\t' or c == '"' do
+        mustQuote = true
 
     if not mustQuote
     {
@@ -133,9 +128,8 @@ private func appendQuoted(commandLine: *String, argument: string)
     commandLine.append("\"")
 
     var slashes = 0'u64
-    for i in argument.count
+    for c in argument
     {
-        let c = argument[i]
         if c == '\\'
         {
             slashes += 1
@@ -270,7 +264,7 @@ private func buildEnvironmentBlock(environment: const *ProcessEnvironment)->Arra
     var entries: Array'String
     for name, value in environment.variables do
         entries.add(Format.toString("%=%", name.toString(), value.toString()))
-    entries.sort(func||(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
+    entries.sort(func||(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
 
     var result: retval
     for entry in entries do
@@ -320,13 +314,11 @@ func startProcess(info: StartInfo)->Process fail
         commandLine.append(info.arguments)
     }
 
-    var directory:    String
     var directory16:  Array'u16
     var directoryPtr: LPCWSTR
     if info.workingDirectory
     {
-        directory    = nativePath(info.workingDirectory)
-        directory16  = Utf16.toZeroTerminated(directory.toString())
+        directory16  = Utf16.toZeroTerminated(nativePath(info.workingDirectory).toString())
         directoryPtr = directory16.buffer
     }
 
@@ -514,7 +506,7 @@ impl Process
                 return
             }
 
-            text.append(cast(string) Swag.makeSlice(&buffer[0], cast(u64) read))
+            text.append(cast(string) buffer[until read])
         }
     }
 
@@ -610,8 +602,9 @@ impl Process
         }
     }
 
-    // Closes the standard-input pipe, which is how a child reading to the end of its input
-    // learns that there is nothing more. Calling it repeatedly is safe.
+    // Closes the standard-input pipe, so a child reading to the end of its input sees that end.
+    //
+    // Calling it repeatedly is safe.
     mtd closeStandardInput()
     {
         releaseHandle(&.inputPipe)
@@ -631,7 +624,7 @@ impl Process
             try failWinError(GetLastError())
         if count >= buffer.count do
             try failWinError(ERROR_INSUFFICIENT_BUFFER)
-        return Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
+        return Utf8.fromUtf16(buffer[until count])
     }
 
     // Returns the current operating-system thread identifier.

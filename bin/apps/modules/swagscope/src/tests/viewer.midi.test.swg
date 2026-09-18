@@ -3,23 +3,20 @@
 
 using Core, Pixel, Gui
 
-func midiTestFixture()->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.mid")
-}
+func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.mid")
 
 #test
 {
-    let fileName = midiTestFixture()
+    let fileName = midiViewerFixturePath()
 
     let document = expect loadMidiDocument(fileName.toString())
     Swag.assert(document.format == 0 and document.division == 480)
     Swag.assert(document.tracks.count == 1 and document.tracks[0].name == "Piano Roll")
     Swag.assert(document.notes.count == 7 and document.tracks[0].noteCount == 7)
     Swag.assert(document.minKey == 60 and document.maxKey == 72)
-    Swag.assert(document.tempos.count == 1 and midiBpm(&document) == 120)
-    Swag.assert(document.timeSignatures.count == 1 and midiMeterText(&document) == "4/4")
-    Swag.assert(document.keySignatures.count == 1 and midiKeyText(&document) == "C major")
+    Swag.assert(document.tempos.count == 1 and document.bpm() == 120)
+    Swag.assert(document.timeSignatures.count == 1 and document.meterText() == "4/4")
+    Swag.assert(document.keySignatures.count == 1 and document.keyText() == "C major")
     Swag.assert(Math.abs(document.durationSeconds - 2.25) < 0.001)
 }
 
@@ -71,7 +68,7 @@ func midiTestFixture()->String
     infoBar.backgroundStyle = .InformationBar
     infoBar.padding         = {16, 4, 16, 4}
 
-    let fileName = midiTestFixture()
+    let fileName = midiViewerFixturePath()
     var result   = openTestViewer(midiViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar, infoParent: infoBar)
     Swag.assert(result.view != null and result.commands != null)
     commandBar.centerGroup = result.commands
@@ -103,8 +100,7 @@ func midiTestFixture()->String
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     host.root.applyLayout()
-    var french = host.render(&host.root)
-    discard french
+    discard host.render(&host.root)
     Swag.assert(viewer.trackCombo.selectedItem()!.name.raw == "Toutes les pistes")
     Swag.assert(viewer.zoomLabel.toolTip == "Options de zoom")
     Testing.assertContentFits(viewer.commands)

@@ -2,15 +2,15 @@
 
 using Swag
 
-// Defines string small size.
+// The largest capacity, in bytes, that a [[Core.String]] stores inline without allocating.
 const StringSmallSize = 16'u64
 #assert(#sizeof(String) == 56)
 
-// Selects character set.
+// Selects which letters a case conversion maps.
 enum CharacterSet
 {
-    Latin1      // Selects latin1.
-    Unicode     // Selects unicode.
+    Latin1      // ASCII and Latin-1 letters only, keeping the byte count.
+    Unicode     // Every letter with a Unicode simple case mapping.
 }
 
 // Iterates Unicode scalar values decoded lazily from borrowed UTF-8 bytes.
@@ -51,16 +51,15 @@ struct String
 
 impl String
 {
-    // Returns the number of elements.
+    // Returns the length in bytes.
     #[Inline]
     mtd const opCount()->u64 => .length
 
-    // Returns the underlying data address.
+    // Returns the address of the bytes, null when the string owns no storage.
     #[Inline]
     mtd const opData()->const [*] u8? => .buffer
 
-    // Converts this value to another representation.
-    // Converts this value to another representation.
+    // Converts the string implicitly to a `cstring`, a `string` or a `const [..] u8` that borrows its bytes.
     #[Implicit, Inline]
     mtd const opCast()->cstring? => .buffer
 
@@ -80,7 +79,9 @@ impl String
     #[Inline]
     mtd const storage()->[*] u8 => .buffer orelse cast([*] u8) cast(u64) 1
 
-    // Assigns a value.
+    // Replaces the contents with a copy of `value`, which may view this string's own storage.
+    //
+    // A null `value` empties the string.
     #[Implicit]
     mtd opSet(value: string?)
     {
@@ -111,14 +112,14 @@ impl String
         buffer[.length] = 0
     }
 
-    // Returns a slice of this value.
+    // Returns a view of the bytes from `lower` to `upper`, both included.
     mtd const opSlice(lower, upper: u64)->string
     {
         Swag.assert(lower <= upper and lower < .length and upper < .length)
         return Swag.makeString(.buffer + lower, (upper + 1) - lower)
     }
 
-    // Returns whether two values are equal.
+    // Returns whether the string holds the same bytes as `other`.
     mtd const opEquals(other: string?)->bool
     {
         if .buffer == other.buffer do
@@ -128,10 +129,10 @@ impl String
         return Memory.compare(.buffer, other.buffer, .length) == 0
     }
 
-    // Compares this value with another value.
-    mtd const opCompare(other: string)->s32 => Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
+    // Compares the bytes of the string with `other`, returning -1, 0 or 1.
+    mtd const opCompare(other: string)->s32 => Utf8.compare(.toString(), other, .Latin1)
 
-    // Applies an assignment operator to the byte at the requested index.
+    // Adds `value` to, or subtracts it from, the byte at `index`, wrapping around.
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: u8)
         where op == .AddAssign or op == .SubAssign
     {
@@ -144,7 +145,7 @@ impl String
         }
     }
 
-    // Sets an element by index.
+    // Sets the byte at `index`.
     mtd opIndexSet(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
@@ -152,7 +153,7 @@ impl String
         buffer[index] = value
     }
 
-    // Applies an assignment operator with a sequence of strings.
+    // Appends `value` with `+=`: a string, a rune or a byte, or a slice of them appended in order.
     mtd(op: Swag.Operator) opAssign(value: const [..] string)
         where op == .AddAssign
     {
@@ -192,14 +193,14 @@ impl String
         .append(value)
     }
 
-    // Completes a moved value.
+    // Points a moved small string back at its own inline storage.
     mtd opPostMove()
     {
         if .buffer and .capacity <= StringSmallSize do
             .buffer = cast() &.padding[0]
     }
 
-    // Completes a copied value.
+    // Gives a copied string storage of its own.
     mtd opPostCopy()
     {
         if not .buffer do
@@ -217,7 +218,7 @@ impl String
         }
     }
 
-    // Releases resources owned by this value.
+    // Releases the allocated storage, if any.
     mtd opDrop()
     {
         if not .buffer do
@@ -227,7 +228,7 @@ impl String
             Memory.free(.buffer, .capacity, .allocator)
     }
 
-    // Returns the byte at the given index
+    // Returns the byte at `index`.
     #[Inline]
     mtd const opIndex(index: u64)->u8
     {
@@ -254,7 +255,7 @@ impl String
     // Returns an immutable zero-allocation view that traverses the UTF-8 bytes from last to first.
     mtd const reversed()->ConstReversedSlice'u8 => reverseSlice(.toSlice())
 
-    // Default element iteration visits UTF-8 bytes in storage order.
+    // Visits each byte with its index, in storage order.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(var item, var index: u64))
     {
@@ -270,7 +271,7 @@ impl String
         }
     }
 
-    // Set the length of the String to 0
+    // Empties the string, keeping its storage.
     #[Inline]
     mtd clear()
     {
@@ -284,19 +285,19 @@ impl String
             buffer[0] = 0
     }
 
-    // Returns true if the String has zero length
+    // Returns whether the length is zero.
     #[Inline]
     mtd const isEmpty()->bool => .length == 0
 
-    // Returns true if the String is null (undefined)
+    // Returns whether the string owns no storage.
     #[Inline]
     mtd const isNull()->bool => .buffer == null
 
-    // Returns true if the String is null or empty
+    // Returns whether the string owns no storage or has zero length.
     #[Inline]
     mtd const isNullOrEmpty()->bool => .buffer == null or .length == 0
 
-    // Transform a null string in an empty one
+    // Makes a null string empty, pointing it at its inline storage.
     mtd ensureNotNull()
     {
         if .buffer do
@@ -304,7 +305,7 @@ impl String
         .buffer = cast() &.padding[0]
     }
 
-    // Replace all occurences of 'what' with 'by'
+    // Replaces every occurrence of the rune `what` with `by`.
     mtd replace(what: rune, by: string)
     {
         if not .length do
@@ -320,17 +321,19 @@ impl String
             }
         }
 
-        let byLength = by.count
+        var encoded: [4] u8
+        let whatLength = cast(u64) Utf8.encodeRune(encoded, what)
+        let byLength   = by.count
 
         var idx = Utf8.indexOf(.toString(), what, 0)
         while idx != Swag.U64.Max
         {
-            .reserve(.length + byLength + 1)
-            Memory.copyOverlapping(.buffer + idx + byLength, .buffer + idx + 1, .length - idx)
-            Memory.copy(.buffer + idx, by.buffer, byLength)
-            .length -= 1
-            .length += byLength
-            idx     += byLength
+            .grow(.length - whatLength + byLength + 1)
+            let buffer = .buffer!
+            Memory.copyOverlapping(buffer + idx + byLength, buffer + idx + whatLength, .length - idx - whatLength)
+            Memory.copy(buffer + idx, by.buffer, byLength)
+            .length = .length - whatLength + byLength
+            idx += byLength
             if idx == .length do
                 break
             idx = Utf8.indexOf(.toString(), what, idx)
@@ -340,7 +343,9 @@ impl String
         buffer[.length] = 0
     }
 
-    // Replace all occurences of 'what' with 'by'
+    // Replaces every occurrence of `what` with `by` under the case policy `comparisonType`.
+    //
+    // An empty `what` changes nothing, and a null `by` removes each occurrence.
     mtd replace(what: string, by: string?, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = what.count
@@ -385,7 +390,7 @@ impl String
         buffer[.length] = 0
     }
 
-    // Get the last byte
+    // Returns the last byte, or 0 when the string is empty.
     mtd back()->u8
     {
         if not .length do
@@ -394,7 +399,7 @@ impl String
         return buffer[.length - 1]
     }
 
-    // Remove some bytes at the given index
+    // Removes `byteCount` bytes starting at `byteIndex`.
     mtd remove(byteIndex: u64, byteCount: u64 = 1)
     {
         if not byteCount do
@@ -406,7 +411,7 @@ impl String
         buffer[.length] = 0
     }
 
-    // Remove some bytes at the end
+    // Removes the last `byteCount` bytes.
     mtd removeBack(byteCount: u64 = 1)
     {
         if not byteCount do
@@ -417,7 +422,9 @@ impl String
         buffer[.length] = 0
     }
 
-    // Insert an ascii byte at the given position
+    // Inserts the byte `value` at `byteIndex`, which may be the length to append it.
+    //
+    // `value` must not be zero.
     mtd insert(byteIndex: u64, value: u8)
     {
         if byteIndex == .length
@@ -436,7 +443,9 @@ impl String
         .length += 1
     }
 
-    // Insert a substring at the given position
+    // Inserts `value` at `byteIndex`, which may be the length to append it.
+    //
+    // `value` may view this string's own storage.
     mtd insert(byteIndex: u64, value: string)
     {
         if byteIndex == .length
@@ -466,24 +475,26 @@ impl String
         .length += countof
     }
 
-    // Append a formatted string
+    // Appends `format` formatted with `values`, following the rules of [[Core.Format.toString]].
     mtd appendFormat(format: string, values: ...)
     {
         .append(Format.toString(format, values))
     }
 
-    // Append a byte to the String
+    // Appends the byte `value`.
     #[Inline]
     mtd append(value: u8)
     {
         .grow(.length + 2)
+
+        // One 16-bit store writes the byte and the zero terminator together.
         let buffer = .buffer!
         var ptr    = cast(*u16) (buffer + .length)
         ptr[]   = value
         .length += 1
     }
 
-    // Append a rune to the String
+    // Appends the UTF-8 encoding of `value`, which must be a valid rune.
     mtd append(value: rune)
     {
         Swag.assert(Utf8.isValidRune(value), "invalid rune")
@@ -497,7 +508,7 @@ impl String
         buffer[.length] = 0
     }
 
-    // Append a string to the String
+    // Appends `value`, which may view this string's own storage.
     mtd append(value: string?)
     {
         let concatLength = value.count
@@ -522,48 +533,48 @@ impl String
         buffer[.length] = 0
     }
 
-    // Join a list of strings to make a unique one
+    // Returns the concatenation of `values`.
     func join(values: string...)->String
     {
-        var result: String
-        for index in values.count do
-            result += values[index]
+        var result: retval
+        for v in values do
+            result += v
         return result
     }
 
-    // Join an list of strings to make a unique one, by using a given 'separator'
-    // between them
+    // Returns the concatenation of `values`, with `separator` between each pair.
     func joinWith(separator: string, values: string...)->String
     {
-        var result: String
-        for index in values.count
+        var result: retval
+        for v, index in values
         {
             if separator.count and index do
                 result += separator
-            result += values[index]
+            result += v
         }
 
         return result
     }
 
-    // Ensure the String is big enough to store a given amount of bytes
+    // Ensures room for `wantedCapacity` bytes, at least doubling the capacity when it grows.
     #[Inline]
     mtd grow(wantedCapacity: u64)
     {
         if wantedCapacity <= .capacity do
             return
-        let newCapacity = Math.max(.capacity * 2, wantedCapacity)
-        .reserve(newCapacity)
+        .reserve(Math.max(.capacity * 2, wantedCapacity))
     }
 
-    // Reserve room for at least 'newCapacity' bytes
+    // Sets the capacity to `newCapacity` bytes, truncating the text that no longer fits.
+    //
+    // A capacity up to [[Core.StringSmallSize]] uses the inline storage and releases any allocation.
     mtd reserve(newCapacity: u64)
     {
         .length = Math.min(.length, newCapacity)
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
-        // Small size, just be sure with have a valid buffer address
+        // A small capacity always uses the inline storage.
         if newCapacity <= StringSmallSize
         {
             // Free dynamic memory if this is not a small string
@@ -602,42 +613,40 @@ impl String
         }
     }
 
-    // Remove whitespaces at the start of the String
+    // Removes the white space at the start of the string, as judged by [[Core.Unicode.isSpace]].
     mtd trimStart()
     {
         if not .length do
             return
 
         let buffer     = .buffer!
-        let asciiBytes = Latin1.firstNonSpace(Swag.makeSlice(cast(const [*] u8) buffer, .length), includeLatin1: false)
+        let asciiBytes = Latin1.firstNonSpace(.toSlice(), includeLatin1: false)
         var ptr        = buffer + asciiBytes
         .length -= asciiBytes
         for
         {
-            let sl       = Swag.makeSlice(ptr, .length)
-            let {c, eat} = Utf8.decodeRune(sl)
+            let {c, eat} = Utf8.decodeRune(Swag.makeSlice(ptr, .length))
             if not Unicode.isSpace(c) do
                 break
             .length -= eat
             ptr     += eat
         }
 
-        Memory.copy(buffer, ptr, .length)
+        Memory.copyOverlapping(buffer, ptr, .length)
         buffer[.length] = 0
     }
 
-    // Remove whitespaces at the end of the String
+    // Removes the white space at the end of the string, as judged by [[Core.Unicode.isSpace]].
     mtd trimEnd()
     {
         if not .length do
             return
 
         let buffer = .buffer!
-        .length = Latin1.lastNonSpace(Swag.makeSlice(cast(const [*] u8) buffer, .length), includeLatin1: false)
+        .length = Latin1.lastNonSpace(.toSlice(), includeLatin1: false)
         for
         {
-            let sl       = Swag.makeSlice(buffer, .length)
-            let {c, eat} = Utf8.decodeLastRune(sl)
+            let {c, eat} = Utf8.decodeLastRune(Swag.makeSlice(buffer, .length))
             if not Unicode.isSpace(c) do
                 break
             .length -= eat
@@ -646,78 +655,88 @@ impl String
         buffer[.length] = 0
     }
 
-    // Removes all leading and trailing white-space characters from the current String
+    // Removes the white space at both ends of the string, as judged by [[Core.Unicode.isSpace]].
     mtd trim()
     {
         .trimStart()
         .trimEnd()
     }
 
-    // Convert string to a 32 bits character array
-    mtd const toRuneArray()->Array'rune => Unicode.fromUtf8(Swag.makeSlice(.buffer, .length))
+    // Returns the runes of the string, decoded from UTF-8.
+    mtd const toRuneArray()->Array'rune => Unicode.fromUtf8(.toSlice())
 
-    // Convert a literal string to a String
+    // Returns a new string holding a copy of `value`.
     func from(value: string?)->String
     {
-        var val: retval = value
-        return val
+        var result: retval = value
+        return result
     }
 
-    // Returns a string type
+    // Returns a `string` view of the bytes, borrowing the storage.
     #[Inline]
     mtd const toString()->string => Swag.makeString(.buffer, .length)
 
-    // Returns a slice type
+    // Returns a mutable view of the bytes, borrowing the storage.
     #[Inline]
     mtd toSlice()->[..] u8 => Swag.makeSlice(.buffer, .length)
 
-    // Returns a slice type
+    // Returns an immutable view of the bytes, borrowing the storage.
     #[Inline]
     mtd const toSlice()->const [..] u8 => Swag.makeSlice(.buffer, .length)
 
-    // Convert the string inplace to upper case.
+    // Replaces the content with the UTF-8 encoding of `runes`, keeping the allocator.
+    private mtd setRunes(runes: const [..] rune)
+    {
+        // Four bytes per rune in the worst case, and one more for the terminator.
+        .reserve(runes.count * 4 + 1)
+        let buffer = .buffer!
+        .length         = Utf8.fromUnicode(Swag.makeSlice(buffer, runes.count * 4), runes)
+        buffer[.length] = 0
+    }
+
+    // Converts the string to upper case in place.
+    //
+    // `.Latin1` keeps the byte count; `.Unicode` re-encodes the whole text.
     mtd makeUpper(set = CharacterSet.Latin1)
     {
-        let sl = Swag.makeSlice(.buffer, .length)
         switch set
         {
         case .Latin1:
-            Core.Latin1.makeUpper(sl)
+            Core.Latin1.makeUpper(.toSlice())
 
         case .Unicode:
             var uni32 = Core.Unicode.fromUtf8(.toString())
             Core.Unicode.makeUpper(uni32.toSlice())
-            .reserve(uni32.count * 4)
-            .length = Utf8.fromUnicode(Swag.makeSlice(.buffer, .capacity), uni32.toSlice())
+            .setRunes(uni32.toSlice())
         }
     }
 
-    // Convert the string inplace to lower case.
+    // Converts the string to lower case in place.
+    //
+    // `.Latin1` keeps the byte count; `.Unicode` re-encodes the whole text.
     mtd makeLower(set = CharacterSet.Latin1)
     {
-        let sl = Swag.makeSlice(.buffer, .length)
         switch set
         {
         case .Latin1:
-            Core.Latin1.makeLower(sl)
+            Core.Latin1.makeLower(.toSlice())
 
         case .Unicode:
             var uni32 = Core.Unicode.fromUtf8(.toString())
             Core.Unicode.makeLower(uni32.toSlice())
-            .reserve(uni32.count * 4)
-            .length = Utf8.fromUnicode(Swag.makeSlice(.buffer, .capacity), uni32.toSlice())
+            .setRunes(uni32.toSlice())
         }
     }
 
-    // Returns a new String in upper case
-    mtd toUpper(set = CharacterSet.Latin1)->String
+    // Returns a copy of the string converted to upper case, like [[Core.String.makeUpper]].
+    mtd const toUpper(set = CharacterSet.Latin1)->String
     {
         var result: retval = me
         result.makeUpper(set)
         return result
     }
 
-    // Returns a new String in lower case
+    // Returns a new string holding `str` converted to upper case, like [[Core.String.makeUpper]].
     func toUpper(str: string, set = CharacterSet.Latin1)->String
     {
         var result: retval = str
@@ -725,15 +744,15 @@ impl String
         return result
     }
 
-    // Returns a new String in lower case
-    mtd toLower(set = CharacterSet.Latin1)->String
+    // Returns a copy of the string converted to lower case, like [[Core.String.makeLower]].
+    mtd const toLower(set = CharacterSet.Latin1)->String
     {
         var result: retval = me
         result.makeLower(set)
         return result
     }
 
-    // Returns a new String in lower case
+    // Returns a new string holding `str` converted to lower case, like [[Core.String.makeLower]].
     func toLower(str: string?, set = CharacterSet.Latin1)->String
     {
         var result: retval = str
@@ -742,19 +761,19 @@ impl String
     }
 
     {
-        // Returns true if the string contains 'what'
+        // Returns whether the string contains `what`, as [[Core.Utf8.contains]] decides.
         mtd const contains(what: u8)->bool            => Utf8.contains(.toSlice(), what)
         mtd const contains(what: rune)->bool          => Utf8.contains(.toSlice(), what)
         mtd const contains(what: string)->bool        => Utf8.contains(.toSlice(), what)
         mtd const contains(what: const [..] u8)->bool => Utf8.contains(.toSlice(), what)
 
-        // Return true if the string starts with 'str'
+        // Returns whether the string starts with `str` under the case policy `comparisonType`.
         mtd const startsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.startsWith(.toSlice(), str, comparisonType)
 
-        // Return true if the string ends with 'str'
+        // Returns whether the string ends with `str` under the case policy `comparisonType`.
         mtd const endsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.endsWith(.toSlice(), str, comparisonType)
 
-        // Find 'what', and returns the byte index of it
+        // Returns the byte index of the first `what` at or after `startByteIndex`, or `Swag.U64.Max` when it is absent.
         mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
         mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex)
     }
@@ -765,7 +784,7 @@ impl Hash.IHash32 for String
     func impl compute(const me)->u32
     {
         // Same function as the one used for 'string', so a 'String' and the text it
-        // holds always hash alike
-        return Hash.hashBytes32(Swag.makeSlice(.buffer, .length))
+        // holds always hash alike.
+        return Hash.hashBytes32(.toSlice())
     }
 }

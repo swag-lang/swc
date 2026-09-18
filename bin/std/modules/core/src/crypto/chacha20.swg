@@ -76,9 +76,8 @@ private func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: co
     initial[15] = Math.Simd.splat(load32(nonce.buffer + 8))
 
     var state = initial
-    for round in 10
+    for 10
     {
-        discard round
         quarterRound4(&state, 0, 4, 8, 12)
         quarterRound4(&state, 1, 5, 9, 13)
         quarterRound4(&state, 2, 6, 10, 14)
@@ -113,6 +112,8 @@ private func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: co
 }
 
 // Produces one IETF ChaCha20 key-stream block for `counter`.
+//
+// Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes or `nonce` 12.
 func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[ChaCha20BlockSize] u8 fail
 {
     if key.count != ChaCha20KeySize do
@@ -133,9 +134,8 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
     initial[15] = load32(nonce.buffer + 8)
 
     var state = initial
-    for round in 10
+    for 10
     {
-        discard round
         quarterRound(&state, 0, 4, 8, 12)
         quarterRound(&state, 1, 5, 9, 13)
         quarterRound(&state, 2, 6, 10, 14)
@@ -156,8 +156,13 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
 
 // XORs `source` with the IETF ChaCha20 key stream into `destination`.
 //
-// Source and destination can be the same slice. Other overlapping ranges are not supported.
-// Large inputs share the runtime worker pool. All output is complete before the call returns.
+// The first block uses the key-stream counter `initialCounter`. Source and destination can be
+// the same slice; other overlapping ranges are not supported. Large inputs share the runtime
+// worker pool, and all output is complete before the call returns.
+//
+// Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes, `nonce` 12,
+// or `destination` as many bytes as `source`, and with [[Core.Errors.OverflowError]] when the
+// input needs more blocks than the counter range starting at `initialCounter` provides.
 func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter = 0'u32) fail
 {
     if key.count != ChaCha20KeySize do

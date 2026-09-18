@@ -3,10 +3,7 @@
 
 using Core, Pixel, Gui
 
-func htmlViewerFixturePath()->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.html")
-}
+func htmlViewerFixturePath()->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.html")
 
 func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
@@ -110,7 +107,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     host.setup(640, 360)
     defer host.shutdown()
 
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_scope_html_%.html", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-html-missing-", ".html")
     var result   = openTestViewer(htmlViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(not result.failureReason.isEmpty())

@@ -83,14 +83,8 @@ func day8A()
     var total = 0
     for y in H
     {
-        for x in W
-        {
+        for x in W do
             total += screen[x, y] ? 1 : 0
-
-            // Swag.print(screen[x, y] ? "X" : ".")
-        }
-
-        // Swag.print("\n")
     }
 
     Swag.assert(total == 116)

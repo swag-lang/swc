@@ -34,6 +34,9 @@ public struct MessageDlgOptions
 public impl MessageDlg
 {
     // Creates a message dialog without adding action buttons.
+    //
+    // Add the actions with [[Gui.Dialog.addButton]], then run the box with
+    // [[Gui.MessageDlg.doModal]], which fits it to its message first.
     #[Swag.Discardable]
     func create(from: *Surface, message: string, options: MessageDlgOptions = {})->*MessageDlg
     {
@@ -101,7 +104,7 @@ public impl MessageDlg
 
         // The room the message loses to the frame and to the standard body inset, on each side.
         let chrome   = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
-        let iconRoom = (.labelIcon != null) ? .labelIcon.position.width : 0
+        let iconRoom = .labelIcon != null ? .labelIcon.position.width : 0
 
         // Width: what the actions need side by side, then whatever more the message wants, up to
         // the width it is allowed to run before wrapping. The label answers with its own format
@@ -142,9 +145,9 @@ public impl MessageDlg
         }
 
         var overhead = chrome + .buttonBar.position.height + 2 * srf.shadowMargin()
-        if srf.flags & .SmallCaption do
+        if srf.flags.has(.SmallCaption) do
             overhead += metrics.wnd_SmallCaptionCY
-        elif srf.flags & .LargeCaption do
+        elif srf.flags.has(.LargeCaption) do
             overhead += metrics.wnd_BigCaptionCY
         let limit  = Math.max(1.0, Math.min(MaxMessageHeight, Math.floor(availableHeight - overhead - extensionHeight) - 1))
         var needed = .label.itf.measureContent({.label.position.width, 0}).y
@@ -220,7 +223,7 @@ public impl MessageDlg
     // Changes the large icon tint.
     mtd setIconColor(color: Color)
     {
-        Swag.assert((.labelIcon != null))
+        Swag.assert(.labelIcon != null, "the message has no icon to tint")
         .labelIcon.setIconColor(color)
     }
 
@@ -231,7 +234,7 @@ public impl MessageDlg
             return
 
         let gap = .themeMetrics().dialog_BtnPadding * 2
-        if not (.labelIcon != null) do
+        if .labelIcon == null do
             .labelIcon = Label.create(.label.parent!, "", {0, 0, icon.sizeX + gap, 0})
 
         with me.labelIcon
@@ -335,6 +338,9 @@ public impl MessageDlg
     }
 
     // Shows a standardized confirmation question with Yes and No actions.
+    //
+    // `question` is set under `message` as its own paragraph; when it is `null`, the standard
+    // confirmation line is set there in bold.
     func confirm(from: *Surface, message: string, question: string? = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var txt = String.from(message)
@@ -359,8 +365,10 @@ public impl MessageDlg
         return yesNo(from, txt.toString(), defaultId, opt)
     }
 
-    // Message box to show a raised error. The caller captures the error ('catch f() as err') and
-    // hands it in; when a SystemError is passed its message is appended to the shown text.
+    // Shows a modal error message with one OK action.
+    //
+    // The caller captures the error (`catch f() as err`) and hands it in; when it is a
+    // `Swag.SystemError`, its message is appended to the shown text as its own paragraph.
     func error(from: *Surface, message: string? = null, err: any? = null, options: MessageDlgOptions = {})
     {
         // The detail is a paragraph under the message, and only when there is one: appended

@@ -131,8 +131,9 @@ using Core, Pixel, Gui, Gui.Testing
     let previous = g_MarkdownViewerSettings
     defer g_MarkdownViewerSettings = previous
     g_MarkdownViewerSettings = {}
+    // The golden shows the file name, so it is fixed rather than unique.
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "markdown-statistics.md")
-    discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8) "Alpha beta\r\nthree\u00a0four\n")
+    discard expect File.writeAllText(fileName.toString(), "Alpha beta\r\nthree\u00a0four\n")
     defer discard catch File.delete(fileName.toString())
 
     var host: Testing.HeadlessHost
@@ -207,15 +208,9 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 #[Swag.TestTag("golden")]
 #test { assertMarkdownImages(1, 1.5, "viewer.markdown.images.hidpi") }
 
-private func markdownFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
-}
+private func markdownFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
 
-private func markdownWhiteyFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/whitey.md")
-}
+private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/whitey.md")
 
 // Theme and line width are viewer preferences, not properties of one Markdown file.
 #test
@@ -270,7 +265,7 @@ private func markdownWhiteyFixturePath()->String
     host.setup(640, 360)
     defer host.shutdown()
 
-    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_scope_markdown_%.md", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-markdown-missing-", ".md")
     var result   = openTestViewer(markdownViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(not result.failureReason.isEmpty())
@@ -278,14 +273,13 @@ private func markdownWhiteyFixturePath()->String
 
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_markdown_%.md", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-markdown-", ".md")
     defer discard catch File.delete(fileName)
 
     var source = expect File.readAllText(markdownFixturePath())
     for 160 do
         source += "A README paragraph remains available for progressive wheel navigation.\n\n"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -338,8 +332,7 @@ private func markdownWhiteyFixturePath()->String
 // leaving the remaining source on disk.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_large_markdown_%.md", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-markdown-large-", ".md")
     defer discard catch File.delete(fileName)
 
     let fixture       = expect File.readAllText(markdownFixturePath())
@@ -354,7 +347,7 @@ private func markdownWhiteyFixturePath()->String
     for 8_000 do
         source += "A trailing paragraph keeps the document large.\n\n"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)

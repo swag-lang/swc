@@ -2,8 +2,11 @@
 
 using Swag, Core, Core.Errors, Core.StrConv
 
-// Represents a color with 8-bit ARGB components.
-// Provides utilities for color creation, conversion, and manipulation.
+// Represents a straight-alpha color with 8-bit ARGB components.
+//
+// The four components overlay `argb`, which reads as the packed `0xAARRGGBB` value on every platform.
+// A color converts implicitly from an [[Pixel.Argb]] name, and the factory functions build one
+// from bytes, normalized floats, HSL, or a [[Core.Math.Vector4]].
 #[ConstExpr, Core.Serialization.Final]
 struct Color
 {
@@ -30,46 +33,46 @@ impl Color
     #[Inline]
     mtd const opCompare(other: Color)->s32 => .argb <=> other.argb
 
-    // Assignment operator for u32 ARGB value.
+    // Assigns a packed `0xAARRGGBB` value.
     #[FullInit, Inline, ConstExpr]
-    func opSet(me, argb: u32)
+    mtd opSet(argb: u32)
     {
         .argb = argb
     }
 
-    // Assignment operator for 'Argb' enum value.
+    // Assigns a named color.
     #[FullInit, Inline, Implicit, ConstExpr]
-    func opSet(me, argb: Argb)
+    mtd opSet(argb: Argb)
     {
         .argb = cast(u32) argb
     }
 
-    // Assignment operator for color name string.
+    // Assigns the named color spelled by `name`, or black when no name matches.
     #[FullInit, Inline, ConstExpr]
-    func opSet(me, name: string)
+    mtd opSet(name: string)
     {
         .argb = cast(u32) Argb.fromName(name)
     }
 
-    // Equality comparison with u32 ARGB value.
+    // Returns whether the packed value equals `argb`.
     #[Inline]
     mtd const opEquals(argb: u32) => .argb == argb
 
-    // Equality comparison with 'Argb' enum value.
+    // Returns whether the color equals a named color.
     #[Inline]
     mtd const opEquals(argb: Argb) => .argb == cast(u32) argb
 
-    // Equality comparison with another Color.
+    // Returns whether both colors have the same four components.
     #[Inline]
     mtd const opEquals(other: Color) => .argb == other.argb
 
-    // Check if the color is fully opaque.
+    // Returns whether alpha is 255.
     #[Inline]
     mtd const isOpaque() => .a == 255
 
-    // Set all ARGB components with u8 values (0-255).
+    // Sets the four components from bytes.
     #[Inline]
-    func setArgb(me, a, r, g, b: u8)
+    mtd setArgb(a, r, g, b: u8)
     {
         .a = a
         .r = r
@@ -77,9 +80,9 @@ impl Color
         .b = b
     }
 
-    // Set all ARGB components with floats in the range [0, 1].
+    // Sets the four components from normalized values, clamped to [0, 1].
     #[Inline]
-    func setArgbF32(me, a, r, g, b: f32)
+    mtd setArgbF32(a, r, g, b: f32)
     {
         .a = cast() (Math.saturate(a) * 255)
         .r = cast() (Math.saturate(r) * 255)
@@ -87,10 +90,9 @@ impl Color
         .b = cast() (Math.saturate(b) * 255)
     }
 
-    // Set RGB components with u8 values (0-255).
-    // Alpha will be set to opaque (255).
+    // Sets the color components from bytes and makes the color opaque.
     #[Inline]
-    func setRgb(me, r, g, b: u8)
+    mtd setRgb(r, g, b: u8)
     {
         .a = 255
         .r = r
@@ -98,8 +100,7 @@ impl Color
         .b = b
     }
 
-    // Copy RGB components from another color.
-    // Alpha remains unchanged.
+    // Copies the color components of `rgb`, keeping the current alpha.
     #[Inline]
     mtd setRgb(rgb: Color)
     {
@@ -108,10 +109,9 @@ impl Color
         .b = rgb.b
     }
 
-    // Set RGB components with floats in the range [0, 1].
-    // Alpha will be set to opaque (255).
+    // Sets the color components from normalized values, clamped to [0, 1], and makes the color opaque.
     #[Inline]
-    func setRgbF32(me, r, g, b: f32)
+    mtd setRgbF32(r, g, b: f32)
     {
         .a = 255
         .r = cast() (Math.saturate(r) * 255)
@@ -119,7 +119,7 @@ impl Color
         .b = cast() (Math.saturate(b) * 255)
     }
 
-    // Retrieve all ARGB components as floating point values between 0 and 1.
+    // Returns the four components normalized to [0, 1].
     #[Inline, ConstExpr]
     mtd const toArgbF32()->{ a: f32, r: f32, g: f32, b: f32 }
     {
@@ -131,7 +131,7 @@ impl Color
         return result
     }
 
-    // Convert color to a Math.Vector4 (w=alpha, x=red, y=green, z=blue).
+    // Returns the normalized components as a vector whose `w` is alpha and `x`, `y`, `z` are red, green, blue.
     #[Inline, ConstExpr]
     mtd const toVector4()->Math.Vector4
     {
@@ -143,7 +143,7 @@ impl Color
         return result
     }
 
-    // Retrieve RGB components as floating point values between 0 and 1.
+    // Returns the color components normalized to [0, 1].
     #[Inline, ConstExpr]
     mtd const toRgbF32()->{ r: f32, g: f32, b: f32 }
     {
@@ -154,7 +154,7 @@ impl Color
         return result
     }
 
-    // Create a new Color with specified RGB values and opaque alpha.
+    // Creates an opaque color from byte components.
     #[Inline, ConstExpr]
     func fromRgb(r, g, b: u8)->Color
     {
@@ -163,7 +163,7 @@ impl Color
         return result
     }
 
-    // Create a new Color with specified RGB float values and opaque alpha.
+    // Creates an opaque color from normalized components, clamped to [0, 1].
     #[Inline, ConstExpr]
     func fromRgbF32(r, g, b: f32)->Color
     {
@@ -172,7 +172,7 @@ impl Color
         return result
     }
 
-    // Create a new Color with specified ARGB values.
+    // Creates a color from byte components, alpha first.
     #[Inline, ConstExpr]
     func fromArgb(a, r, g, b: u8)->Color
     {
@@ -181,7 +181,7 @@ impl Color
         return result
     }
 
-    // Create a new Color from 'Argb' enum value.
+    // Creates a color from a named color.
     #[Inline, ConstExpr]
     func fromArgb(argb: Argb)->Color
     {
@@ -189,7 +189,7 @@ impl Color
         return result
     }
 
-    // Create a new Color from 'Argb' enum value with custom alpha.
+    // Creates a named color with its alpha replaced by `alpha`.
     #[Inline, ConstExpr]
     func fromArgb(alpha: u8, argb: Argb)->Color
     {
@@ -198,7 +198,7 @@ impl Color
         return result
     }
 
-    // Create a new Color from u32 ARGB value.
+    // Creates a color from a packed `0xAARRGGBB` value.
     #[Inline, ConstExpr]
     func fromArgb(argb: u32)->Color
     {
@@ -206,7 +206,7 @@ impl Color
         return result
     }
 
-    // Create a new Color from u32 ABGR value (reversed byte order).
+    // Creates a color from a packed `0xAABBGGRR` value.
     #[Inline, ConstExpr]
     func fromAbgr(abgr: u32)->Color
     {
@@ -218,7 +218,7 @@ impl Color
         return result
     }
 
-    // Create a new Color with specified ARGB float values.
+    // Creates a color from normalized components, alpha first, clamped to [0, 1].
     #[Inline, ConstExpr]
     func fromArgbF32(a, r, g, b: f32)->Color
     {
@@ -227,7 +227,7 @@ impl Color
         return result
     }
 
-    // Create a new Color from Math.Vector4 (w=alpha, x=red, y=green, z=blue).
+    // Creates a color from a normalized vector whose `w` is alpha and `x`, `y`, `z` are red, green, blue.
     #[Inline, ConstExpr]
     func fromVector4(vec: Math.Vector4)->Color
     {
@@ -236,7 +236,7 @@ impl Color
         return result
     }
 
-    // Create a new Color from HSL values (hue, saturation, lightness).
+    // Creates an opaque color from hue, saturation, and lightness, each clamped to [0, 1].
     #[Inline, ConstExpr]
     func fromHsl(h, s, l: f32)->Color
     {
@@ -246,7 +246,9 @@ impl Color
         return result
     }
 
-    // Set color from HSL values (hue, saturation, lightness in range [0, 1]).
+    // Sets the color components from hue, saturation, and lightness, each clamped to [0, 1].
+    //
+    // Alpha is unchanged.
     mtd setHsl(h, s, l: f32)
     {
         // Convert hue component to RGB color value.
@@ -291,7 +293,7 @@ impl Color
         }
     }
 
-    // Convert color to HSL values (hue, saturation, lightness in range [0, 1]).
+    // Returns the hue, saturation, and lightness of the color, each in [0, 1].
     mtd const toHsl()->{ h: f32, s: f32, l: f32 }
     {
         var result: retval
@@ -341,10 +343,7 @@ impl Color
     mtd const toLinear()->Math.Vector4
     {
         // Convert a normalized sRGB channel [0,1] to linear light.
-        func srgbToLinear(c: f32)->f32
-        {
-            return c <= 0.04045 ? (c / 12.92) : Math.pow((c + 0.055) / 1.055, 2.4)
-        }
+        func srgbToLinear(c: f32)->f32 => c <= 0.04045 ? (c / 12.92) : Math.pow((c + 0.055) / 1.055, 2.4)
 
         var result: retval
         result.w = .a / 255.0                   // alpha channel
@@ -363,10 +362,7 @@ impl Color
     func fromLinear(vec: Math.Vector4)->Color
     {
         // Convert a linear-light channel [0,1] to gamma-encoded sRGB.
-        func linearToSrgb(c: f32)->f32
-        {
-            return c <= 0.0031308 ? (c * 12.92) : (1.055 * Math.pow(c, 1.0 / 2.4) - 0.055)
-        }
+        func linearToSrgb(c: f32)->f32 => c <= 0.0031308 ? (c * 12.92) : (1.055 * Math.pow(c, 1.0 / 2.4) - 0.055)
 
         var result: retval
         result.a = cast(u8) Math.round(Math.saturate(vec.w) * 255.0)
@@ -376,21 +372,19 @@ impl Color
         return result
     }
 
-    // Calculates the color's relative luminance in linear light.
+    // Returns the relative luminance of the color in linear light, in [0, 1].
     //
-    // Uses the linearized RGB values from [[Pixel.Color.toLinear]] and BT.709
-    // coefficients (WCAG 2.x).
-    // Returns a scalar in [0, 1] representing perceived brightness.
-    // Formula:
-    //   Y = 0.2126 * R_lin + 0.7152 * G_lin + 0.0722 * B_lin
-    // where R_lin, G_lin, B_lin are the linearized channels.
+    // The channels are linearized by [[Pixel.Color.toLinear]] and weighted with the BT.709
+    // coefficients WCAG 2.x uses: `0.2126 * r + 0.7152 * g + 0.0722 * b`.
     mtd const relativeLuminance()->f32
     {
         let lin = .toLinear()
         return lin.x * 0.2126 + lin.y * 0.7152 + lin.z * 0.0722
     }
 
-    // Blend two colors using linear interpolation, keeping 'col0's alpha channel.
+    // Interpolates the color components from `start` to `end`, keeping the alpha of `start`.
+    //
+    // `factor` is clamped to [0, 1].
     #[ConstExpr]
     func lerpRgb(start, end: Color, factor: f32)->Color
     {
@@ -403,7 +397,9 @@ impl Color
         return result
     }
 
-    // Blend two colors using linear interpolation (including alpha).
+    // Interpolates all four components from `start` to `end`.
+    //
+    // `factor` is clamped to [0, 1].
     #[ConstExpr]
     func lerp(start, end: Color, factor: f32)->Color
     {
@@ -416,15 +412,15 @@ impl Color
         return result
     }
 
-    // Returns a darker version of the color by blending with black.
+    // Returns `color` blended toward black by `factor`, keeping its alpha.
     #[ConstExpr]
     func darker(color: Color, factor: f32)->Color => color.lerpRgb(Color.fromArgb(Argb.Black), factor)
 
-    // Returns a lighter version of the color by blending with white.
+    // Returns `color` blended toward white by `factor`, keeping its alpha.
     #[ConstExpr]
     func lighter(color: Color, factor: f32)->Color => color.lerpRgb(Color.fromArgb(Argb.White), factor)
 
-    // Calculate the RGB distance between this color and another (normalized to [0, 1]).
+    // Returns the Euclidean distance between the color components of two colors, normalized to [0, 1].
     mtd const rgbDistanceTo(other: Color)->f32
     {
         let x1   = cast(f32) .r - other.r
@@ -435,32 +431,23 @@ impl Color
         return dist
     }
 
-    // Check if the color is considered "dark" based on luminance.
+    // Returns whether [[Pixel.Color.grayscaleValue]] is below one half.
     #[Inline]
-    mtd const isDark()->bool
-    {
-        return .grayscaleValue() < 0.5
-    }
+    mtd const isDark()->bool => .grayscaleValue() < 0.5
 
-    // Check if the color is considered "light" based on luminance.
+    // Returns whether [[Pixel.Color.grayscaleValue]] is at least one half.
     #[Inline]
-    mtd const isLight()->bool
-    {
-        return .grayscaleValue() >= 0.5
-    }
+    mtd const isLight()->bool => .grayscaleValue() >= 0.5
 
-    // Get a contrasting color (black or white) for text readability.
+    // Returns white for a dark color and black for a light one, for readable text over it.
     #[Inline, ConstExpr]
     mtd const contrasting()->Color => .isDark() ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Black)
 
-    // Calculate the perceived brightness using luminance formula.
+    // Returns the perceived brightness in [0, 1], using BT.601 luma weights on the gamma-encoded components.
     #[Inline, ConstExpr]
-    mtd const grayscaleValue()->f32
-    {
-        return (cast(f32) .r * 0.299 + cast(f32) .g * 0.587 + cast(f32) .b * 0.114) / 255.0
-    }
+    mtd const grayscaleValue()->f32 => (cast(f32) .r * 0.299 + cast(f32) .g * 0.587 + cast(f32) .b * 0.114) / 255.0
 
-    // Convert to grayscale color preserving alpha.
+    // Returns the gray of the same perceived brightness, keeping alpha.
     #[Inline, ConstExpr]
     mtd const grayscale()->Color
     {
@@ -468,9 +455,9 @@ impl Color
         return Color.fromArgb(.a, gray, gray, gray)
     }
 
-    // Calculates contrast ratio between this color and another.
+    // Returns the WCAG contrast ratio between this color and `against`, from 1 to 21.
     //
-    // Uses the standard WCAG contrast formula: (l1 + 0.05) / (l2 + 0.05)
+    // The ratio is `(l1 + 0.05) / (l2 + 0.05)`, where `l1` is the larger relative luminance.
     mtd const contrastRatio(against: Color)->f32
     {
         let l1 = Math.max(.relativeLuminance(), against.relativeLuminance())
@@ -478,7 +465,9 @@ impl Color
         return (l1 + 0.05) / (l2 + 0.05)
     }
 
-    // Adjust saturation (-1.0 = grayscale, 0.0 = no change, 1.0 = full saturation).
+    // Returns the color with `factor` added to its HSL saturation, keeping alpha.
+    //
+    // -1 always gives gray, zero leaves the color unchanged, and one always gives full saturation.
     #[ConstExpr]
     mtd const adjustSaturation(factor: f32)->Color
     {
@@ -489,7 +478,9 @@ impl Color
         return result
     }
 
-    // Adjust brightness (-1.0 = black, 0.0 = no change, 1.0 = white).
+    // Returns the color with `factor` added to its HSL lightness, keeping alpha.
+    //
+    // -1 always gives black, zero leaves the color unchanged, and one always gives white.
     #[ConstExpr]
     mtd const adjustBrightness(factor: f32)->Color
     {
@@ -500,19 +491,12 @@ impl Color
         return result
     }
 
-    // Adjusts the color to meet a required contrast ratio against `target`.
+    // Lightens or darkens the color in place until it reaches a contrast ratio against `target`.
     //
-    // The result meets or exceeds `requiredContrast` using the WCAG contrast
-    // calculation. The function iteratively darkens or lightens the color in the
-    // direction that increases contrast most effectively.
-    //
-    // - Parameters:
-    //   - target: The color to contrast against (e.g., foreground or background).
-    //   - requiredContrast: The minimum contrast ratio (default = 4.5 for normal text).
-    //   - step: Brightness adjustment per iteration. Positive values move toward lighter,
-    //           negative toward darker; the function automatically picks direction.
-    //   - maxSteps: Maximum number of iterations (safety cap).
-    // - Returns: A new color meeting or exceeding the required contrast ratio.
+    // `requiredContrast` is a WCAG contrast ratio between 1 and 21; the default 4.5 suits normal
+    // text. A color that already meets it is left unchanged. Otherwise its HSL lightness moves by
+    // the magnitude of `step` per iteration, in whichever direction raises the contrast more, for
+    // at most `maxSteps` iterations, so the result can still fall short of the ratio.
     mtd ensureContrast(target: Color, requiredContrast: f32 = 4.5, step: f32 = 0.02, maxSteps: s32 = 64)
     {
         Swag.assert(requiredContrast >= 1 and requiredContrast <= 21)
@@ -548,7 +532,7 @@ impl Color
         }
     }
 
-    // Adjust hue by rotating around the color wheel.
+    // Returns the color with its hue rotated by `degrees` around the color wheel, keeping alpha.
     #[ConstExpr]
     mtd const rotateHue(degrees: f32)->Color
     {
@@ -559,19 +543,19 @@ impl Color
         return result
     }
 
-    // Create a color with modified alpha.
+    // Returns the color with its alpha replaced by `alpha`.
     #[Inline, ConstExpr]
     mtd const withAlpha(alpha: u8)->Color => fromArgb(alpha, .r, .g, .b)
 
-    // Create a color with modified alpha (float version).
+    // Returns the color with its alpha replaced by a normalized value, clamped to [0, 1].
     #[Inline, ConstExpr]
     mtd const withAlphaF32(alpha: f32)->Color => fromArgb(cast(u8) (Math.clamp(alpha, 0.0, 1.0) * 255), .r, .g, .b)
 
-    // Get complementary color (opposite on color wheel).
+    // Returns the color on the opposite side of the color wheel, keeping alpha.
     #[ConstExpr]
     mtd const complementary()->Color => .rotateHue(180.0)
 
-    // Multiply color by another color (component-wise).
+    // Returns the component-wise product of two colors, each component read as a fraction of 255.
     #[ConstExpr]
     func multiply(col0, col1: Color)->Color
     {
@@ -583,7 +567,7 @@ impl Color
         return result
     }
 
-    // Add colors with clamping.
+    // Returns the component-wise sum of two colors, saturated at 255.
     #[ConstExpr]
     func add(col0, col1: Color)->Color
     {
@@ -595,10 +579,11 @@ impl Color
         return result
     }
 
-    // Generates N visually distinct colors.
+    // Returns `n` visually distinct opaque colors.
     //
-    // Uses golden-angle hue spacing to ensure that each color is clearly separated from the others,
-    // with slight lightness variation for good contrast against white text.
+    // Hues advance from `startHue` by the golden ratio conjugate, so each color is clearly
+    // separated from the others, and the lightness alternates slightly around `lum` for good
+    // contrast against white text. All values are HSL components in [0, 1].
     func generateDistinctColors(n: u32, startHue: f32 = 0.113, lum: f32 = 0.44, sat: f32 = 0.68)->Array'Color
     {
         var colors: retval
@@ -616,20 +601,20 @@ impl Color
             // Slight alternating lightness to enhance contrast between adjacent colors
             let l = lum + ((i & 1) == 0 ? -LVAR : LVAR)
 
-            var c = fromHsl(h, sat, l)
-            c.a = 255
-            colors.add(c)
+            colors.add(fromHsl(h, sat, l))
         }
 
         return colors
     }
 }
 
-// Implementation of string parsing interface for Color values.
+// Parses a color from text.
 impl Core.StrConv.IPokeValue for Color
 {
-    // Parse a Color from a string representation.
-    // Supports hex format (0x...), individual ARGB components, or named colors.
+    // Parses a color and returns the unread rest of `buf`.
+    //
+    // Accepts a packed hexadecimal value (`0xAARRGGBB`), four decimal bytes in alpha, red, green,
+    // blue order, or an [[Pixel.Argb]] name. An unknown name reads as black.
     mtd impl poke(buf: string)->string fail
     {
         var eat: u64
@@ -639,14 +624,14 @@ impl Core.StrConv.IPokeValue for Color
         if one.count == 0 do
             fail SyntaxError{}
 
-        if buf[0] == '0' and buf[1] | 32 == 'x'
+        if one.count >= 2 and one[0] == '0' and one[1] | 32 == 'x'
         {
             {.argb, eat, ovf} = try parseU32(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
         }
-        elif Latin1.isDigit(buf[0])
+        elif Latin1.isDigit(one[0])
         {
             {.a, eat, ovf} = try parseU8(one)
             if ovf do

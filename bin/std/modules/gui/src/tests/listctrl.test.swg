@@ -502,3 +502,26 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     Swag.assert(leading != host.theme.colors.activeRail)
     Swag.assert(corner != center)
 }
+
+// The keyboard focus follows its row when rows appear, disappear, or move above it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 180)
+    defer host.shutdown()
+
+    let list  = ListCtrl.createSimple(&host.root, {0, 0, 220, 160})
+    let root0 = list.createLine("b-root")
+    discard list.createLine("child0", parentLine: root0)
+    discard list.createLine("child1", parentLine: root0)
+    let root1 = list.createLine("a-root")
+
+    list.setFocusedIndex(1, ensureVisible: false)
+    Swag.assert(list.focusedLine() == root1)
+    list.expand(root0)
+    Swag.assert(list.focusedLine() == root1)
+    list.collapse(root0)
+    Swag.assert(list.focusedLine() == root1)
+    list.sort(0)
+    Swag.assert(list.focusedLine() == root1)
+}

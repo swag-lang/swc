@@ -1015,7 +1015,7 @@ impl Decoder
 
         if intra do
             levels[0] *= cast(s32) scaler
-        dequantise(&levels, &.layer, .quant, intra, isLuma)
+        dequantise(&levels, &.layer, .quant, intra)
 
         var samples: [64] s16
         inverseTransform(&levels, &samples)

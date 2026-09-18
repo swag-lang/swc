@@ -47,7 +47,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     expect Library.init()
     g_Library.loaded = true
 
-    if not (main.recentWnd != null) do
+    if main.recentWnd == null do
         main.recentWnd = RecentWnd.create(main, main)
 }
 

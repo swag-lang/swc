@@ -28,6 +28,7 @@ struct HexDocument
 
 impl HexDocument
 {
+    // Records `reason` as the failure that stops every later read, and reports it to `reportFailure` once.
     mtd failRead(reason: string)
     {
         if .readFailed do
@@ -74,10 +75,7 @@ impl HexDocument
     }
 
     // Returns whether `offset` currently sits inside the resident window.
-    mtd isResident(offset: u64)->bool
-    {
-        return offset >= .windowStart and offset - .windowStart < .window.count
-    }
+    mtd isResident(offset: u64)->bool => offset >= .windowStart and offset - .windowStart < .window.count
 
     // Makes `[offset, offset + length)` resident, and reports whether it now is.
     //

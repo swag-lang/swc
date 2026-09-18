@@ -1,7 +1,10 @@
 #global public
 #global namespace StrConv
 
-// Converts a size in bytes into a human-readable string with units (bytes, Kb, Mb, Gb, Tb)
+// Returns the size `value`, in bytes, as a whole number of the largest 1024-based unit it reaches.
+//
+// The units are spelled `bytes`, `KB`, `MB`, `GB` and `TB`, and the division truncates:
+// 1536 bytes give `"1 KB"`. See [[Core.Format.byteSize]] for a size with fractional digits.
 func toDisplaySize(value: u64)->String
 {
     var size = value
@@ -9,18 +12,20 @@ func toDisplaySize(value: u64)->String
         return Format.toString("% bytes", size)
     size /= 1024
     if size < 1024 do
-        return Format.toString("% Kb", size)
+        return Format.toString("% KB", size)
     size /= 1024
     if size < 1024 do
-        return Format.toString("% Mb", size)
+        return Format.toString("% MB", size)
     size /= 1024
     if size < 1024 do
-        return Format.toString("% Gb", size)
+        return Format.toString("% GB", size)
     size /= 1024
-    return Format.toString("% Tb", size)
+    return Format.toString("% TB", size)
 }
 
-// Converts a bit rate value into a readable format with Kbps, Mbps, or Gbps
+// Returns the bit rate `value`, in bits per second, as a whole number of the largest 1000-based unit it reaches.
+//
+// The units are spelled `bps`, `Kbps`, `Mbps` and `Gbps`, and the division truncates.
 func toDisplayBitrate(value: u64)->String
 {
     var rate = value
@@ -36,7 +41,9 @@ func toDisplayBitrate(value: u64)->String
     return Format.toString("% Gbps", rate)
 }
 
-// Converts a duration in milliseconds into a string formatted as "Xd Yh Zm Ws"
+// Returns the duration `ms`, in milliseconds, as days, hours, minutes and seconds, such as `"1d 2h 3m 4s"`.
+//
+// Leading units that are zero are left out, and the milliseconds are truncated.
 func toDisplayDuration(ms: u64)->String
 {
     let seconds = ms / 1000

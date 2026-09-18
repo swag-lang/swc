@@ -234,10 +234,7 @@ private func htmlLinearToSrgb(value: f32)->u8
     return cast(u8) Math.round(Math.clamp(encoded, 0, 1) * 255)
 }
 
-private func htmlColorFromLinearRgb(red, green, blue, alpha: f32)->Color
-{
-    return Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), htmlLinearToSrgb(red), htmlLinearToSrgb(green), htmlLinearToSrgb(blue))
-}
+private func htmlColorFromLinearRgb(red, green, blue, alpha: f32)->Color => Color.fromArgb(cast(u8) Math.round(Math.clamp(alpha, 0, 1) * 255), htmlLinearToSrgb(red), htmlLinearToSrgb(green), htmlLinearToSrgb(blue))
 
 // Converts OKLab coordinates to sRGB, out-of-gamut components clamping to the gamut edge.
 private func htmlColorFromOklab(lightness, aAxis, bAxis, alpha: f32)->Color

@@ -59,7 +59,7 @@ func day6B0()
         for c in l.bytes() do
             count[c - 'a'] += 1
 
-        if index == lines.count - 1 or lines[index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
             for c in count where c == num do
                 total += 1
@@ -68,7 +68,6 @@ func day6B0()
         }
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 3103)
 }
 
@@ -93,13 +92,12 @@ func day6B1()
             interVal &= lineVal
         }
 
-        if index == lines.count - 1 or lines[index + 1].length == 0
+        if index == lines.count - 1 or lines[index + 1].isEmpty()
         {
             total    += Math.countOnes(interVal)
             interVal = ~0'u32
         }
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 3103)
 }

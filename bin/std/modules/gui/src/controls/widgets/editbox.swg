@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Specifies the visual geometry of the EditBox.
+// Selects the background and border geometry of an [[Gui.EditBox]].
 enum EditBoxForm
 {
     Rectangle            // Uses a rectangular background and standard border.
@@ -11,7 +11,7 @@ enum EditBoxForm
     Transparent          // Draws no background unless validation fails.
 }
 
-// Defines the type of input that the EditBox should accept and validate.
+// Selects the input an [[Gui.EditBox]] accepts and validates.
 enum EditBoxInputMode
 {
     Text                // Accepts unrestricted UTF-8 text.
@@ -21,7 +21,7 @@ enum EditBoxInputMode
     Hexadecimal         // Accepts an unsigned 64-bit hexadecimal value in the configured range.
 }
 
-// Possible outcomes when validating the EditBox content.
+// Reports the outcome of validating the content of an [[Gui.EditBox]].
 enum EditBoxCheckResult
 {
     Incomplete         // Allows an incomplete prefix, such as "-" or "0x", while editing.
@@ -30,8 +30,8 @@ enum EditBoxCheckResult
     InvalidVisible     // Keeps the content and shows an error state.
 }
 
+// Configures editing, alignment, clearing, and file-drop behavior of an [[Gui.EditBox]].
 #[Swag.EnumFlags]
-// Optional behaviour modifiers for the EditBox.
 enum EditBoxFlags
 {
     None = 0     // Uses editable left-aligned text without a clear button.
@@ -92,29 +92,29 @@ struct EditBox
     // the reader backs out of leaves the value the surface around it had written here.
     originalText: String
 
-    // Numeric bounds used when inputMode is S64/U64/X64/F64.
+    // Numeric bounds of the integer, hexadecimal, and floating-point input modes.
     using minMax: union
     {
         minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
         minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
-        minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
+        minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating-point bounds
     }
 
-    aniBk:     BlendColor = {speed: 4}     // Background colour animation
-    aniBorder: BlendColor = {speed: 4}     // Border colour animation
+    aniBk:     BlendColor = {speed: 4}     // Color animation of the background.
+    aniBorder: BlendColor = {speed: 4}     // Color animation of the border.
 
-    isInvalid:          bool             // True if current content is invalid
-    isHot:              bool             // True while the mouse is hovering
-    isDragging:         bool             // True while the user is selecting text
-    selBeg, selEnd:     u64              // Selection start/end (byte indices)
-    timerCaret:         *Timer?          // Blinking‑caret timer
-    clearBtn:           *IconButton?     // Optional clear button instance
-    clearBtnTextMargin: f32              // Text margin reserved for the clear button
-    visibleCaret:       bool             // True when the caret should be visible
-    posSelBeg:          f32              // X‑position of selection start in pixels
-    posSelEnd:          f32              // X‑position of selection end in pixels
-    scrollPosX:         f32              // Horizontal scroll offset
-    countRunes:         s32              // Number of runes currently in text
+    isInvalid:          bool             // Whether the content is invalid.
+    isHot:              bool             // Whether the mouse is over the box.
+    isDragging:         bool             // Whether the user is selecting text with the mouse.
+    selBeg, selEnd:     u64              // Selection anchor and caret, as byte offsets.
+    timerCaret:         *Timer?          // Timer driving the caret blink.
+    clearBtn:           *IconButton?     // Clear button, while shown.
+    clearBtnTextMargin: f32              // Text margin reserved for the clear button.
+    visibleCaret:       bool             // Whether the blinking caret is currently drawn.
+    posSelBeg:          f32              // X position of the selection anchor, in pixels.
+    posSelEnd:          f32              // X position of the caret, in pixels.
+    scrollPosX:         f32              // Horizontal scroll offset.
+    countRunes:         s32              // Number of runes in the text.
 }
 
 impl IWnd for EditBox
@@ -448,7 +448,6 @@ impl IWnd for EditBox
             else
             {
                 .forceVisibleCaret()
-                .deleteSelectionPrivate()
                 .insertRune(evt.character)
             }
         }
@@ -460,7 +459,7 @@ private impl EditBox
     // Keeps the optional clear button in sync with the current flags and text.
     mtd syncClearButton()
     {
-        let mustShow = .flags.has(.ClearButton) and .textStorage != null and (.textStorage).count
+        let mustShow = .flags.has(.ClearButton) and not .textStorage.isEmpty()
         if not mustShow
         {
             if .clearBtn
@@ -494,8 +493,8 @@ private impl EditBox
     // Handles individual key presses as well as shortcut combinations.
     mtd keyPressed(key: Input.Key, modifiers: Input.KeyModifiers)->bool
     {
-        let ctrl  = modifiers & .Control
-        let shift = modifiers & .Shift
+        let ctrl  = modifiers.has(.Control)
+        let shift = modifiers.has(.Shift)
 
         switch key
         {
@@ -632,7 +631,7 @@ private impl EditBox
         .forceVisibleCaret()
     }
 
-    // Inserts an arbitrary UTF‑8 string (after deleting the current selection).
+    // Inserts an arbitrary UTF-8 string (after deleting the current selection).
     mtd insertString(str: string?)
     {
         let safeStr = str orelse ""
@@ -642,7 +641,7 @@ private impl EditBox
         }
     }
 
-    // Inserts a raw UTF‑8 slice without validation.
+    // Inserts a raw UTF-8 slice without validation.
     mtd insertUtf8(s: string)
     {
         .deleteSelectionPrivate()
@@ -700,7 +699,7 @@ private impl EditBox
                     res = .Incomplete
                 elif parseErr is Errors.OverflowError do
                     res = .InvalidVisible
-                elif parseErr != null or eat != (.textStorage).count do
+                elif parseErr != null or eat != .textStorage.length do
                     res = .InvalidSilent
             }
         }
@@ -710,13 +709,26 @@ private impl EditBox
         return res
     }
 
-    // Inserts a single Unicode rune, enforcing maximum length and validation.
+    // Returns the number of runes in the current selection.
+    mtd selectedRuneCount()->s32
+    {
+        let selB = .selectionStartIndex()
+        let selE = .selectionEndIndex()
+        if selB >= selE do
+            return 0
+        return cast(s32) Utf8.countRunes(.textStorage[selB until selE])
+    }
+
+    // Inserts a single Unicode rune in place of the selection, enforcing maximum length and validation.
+    //
+    // A rune the validator rejects silently leaves the text, the selection, and the rune count as
+    // they were.
     mtd insertRune(r: rune)
     {
-        if .maximumLength and .countRunes == .maximumLength do
+        if .maximumLength and .countRunes - .selectedRuneCount() >= .maximumLength do
             return
 
-        // Convert rune to UTF‑8.
+        // Convert rune to UTF-8.
         var utf8: [5] u8
         let cpt = Utf8.fromUnicode(utf8, [r])
         if not cpt do
@@ -735,6 +747,7 @@ private impl EditBox
         let saveText   = .textStorage
         let saveSelBeg = .selBeg
         let saveSelEnd = .selEnd
+        let saveCount  = .countRunes
         .insertUtf8(Swag.makeString(&utf8[0], cpt))
 
         let res = .checkContent()
@@ -742,7 +755,7 @@ private impl EditBox
         {
             .textStorage = saveText
             .setSelection(saveSelBeg, saveSelEnd)
-            .countRunes -= 1
+            .countRunes = saveCount
         }
         else do
             .notifyChanged()
@@ -757,8 +770,8 @@ private impl EditBox
         mtd selectionEndIndex() => .selBeg <= .selEnd ? .selEnd : .selBeg
     }
 
-    #[Swag.Discardable]
     // Deletes the current selection without emitting change notifications.
+    #[Swag.Discardable]
     mtd deleteSelectionPrivate()->bool
     {
         if .selBeg == .selEnd do
@@ -821,9 +834,9 @@ private impl EditBox
         return {}
     }
 
-    // Width the box needs to fully display the widest value of its numeric input
-    // range (U64/S64/F64), measured with the current font and chrome. Returns 0 for
-    // non-numeric modes. Adapts automatically to the value range, font and theme.
+    // Returns the width the box needs to display the widest value of its numeric input range.
+    //
+    // The value is measured with the current font and chrome, and is zero for text input.
     mtd numericPreferredWidth()->f32
     {
         let fontR = .font().regular
@@ -1189,7 +1202,9 @@ impl EditBox
             .notifyChanged()
     }
 
-    // Sets the current selection.
+    // Selects the bytes from `start` to `end` and places the caret at `end`.
+    //
+    // Both offsets are clamped to the text length; `end` may precede `start`.
     mtd setSelection(start, end: u64)
     {
         .selBeg = start
@@ -1211,7 +1226,10 @@ impl EditBox
         .invalidate()
     }
 
-    // Replaces the content and optionally emits one `sigTextChanged` notification.
+    // Replaces the content and, when `notify` is true, emits one [[Gui.EditBox.sigTextChanged]].
+    //
+    // Each rune goes through the same checks as typing: runes past the maximum length, and
+    // runes the input mode rejects without an error state, are dropped.
     mtd setText(str: string?, notify = true)
     {
         if .textStorage == str do
@@ -1263,7 +1281,7 @@ impl EditBox
         .invalidate()
     }
 
-    // Accepts signed 64-bit integers in the inclusive range.
+    // Accepts signed 64-bit integers from `min` to `max` inclusive.
     mtd setSignedIntegerRange(min = Swag.S64.Min, max = Swag.S64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
@@ -1274,7 +1292,7 @@ impl EditBox
         .invalidate()
     }
 
-    // Accepts unsigned 64-bit integers in the inclusive range.
+    // Accepts unsigned 64-bit integers from `min` to `max` inclusive.
     mtd setUnsignedIntegerRange(min = 0'u64, max = Swag.U64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
@@ -1285,7 +1303,7 @@ impl EditBox
         .invalidate()
     }
 
-    // Accepts unsigned hexadecimal integers in the inclusive range.
+    // Accepts unsigned hexadecimal integers from `min` to `max` inclusive.
     mtd setHexadecimalRange(min = 0'u64, max = Swag.U64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
@@ -1296,7 +1314,7 @@ impl EditBox
         .invalidate()
     }
 
-    // Accepts 64-bit floating-point values in the inclusive range.
+    // Accepts 64-bit floating-point values from `min` to `max` inclusive.
     mtd setFloatingPointRange(min = -Swag.F64.Max, max = Swag.F64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
@@ -1377,11 +1395,9 @@ impl EditBox
         .invalidate()
     }
 
-    // Returns the selected byte range.
-    mtd const selection()->{ start: u64, end: u64 } =>
-    {
-        .selBeg, .selEnd}
+    // Returns the selected byte range; `end` is the caret and may precede `start`.
+    mtd const selection()->{ start: u64, end: u64 } => {.selBeg, .selEnd}
 
-    // Returns true when the current content is valid.
+    // Returns whether the current content is valid.
     mtd const isValid()->bool => not .isInvalid
 }

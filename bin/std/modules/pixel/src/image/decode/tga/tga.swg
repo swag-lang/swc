@@ -53,25 +53,13 @@ func checkBuffer(ptr, last: const [*] u8, size: u64) fail
         fail InvalidFormatError{"invalid source buffer"}
 }
 
-func isMappedType(imageType: u8)->bool
-{
-    return imageType == TYPE_MAP or imageType == TYPE_RLE_MAP
-}
+func isMappedType(imageType: u8)->bool => imageType == TYPE_MAP or imageType == TYPE_RLE_MAP
 
-func isRgbType(imageType: u8)->bool
-{
-    return imageType == TYPE_RGB or imageType == TYPE_RLE_RGB
-}
+func isRgbType(imageType: u8)->bool => imageType == TYPE_RGB or imageType == TYPE_RLE_RGB
 
-func isMonoType(imageType: u8)->bool
-{
-    return imageType == TYPE_MONO or imageType == TYPE_RLE_MONO
-}
+func isMonoType(imageType: u8)->bool => imageType == TYPE_MONO or imageType == TYPE_RLE_MONO
 
-func isRleType(imageType: u8)->bool
-{
-    return imageType == TYPE_RLE_MAP or imageType == TYPE_RLE_RGB or imageType == TYPE_RLE_MONO
-}
+func isRleType(imageType: u8)->bool => imageType == TYPE_RLE_MAP or imageType == TYPE_RLE_RGB or imageType == TYPE_RLE_MONO
 
 func sourcePixelBytes(header: Header)->u8 fail
 {
@@ -133,10 +121,7 @@ func pixelFormat(header: Header, palette: Palette)->PixelFormat fail
     fail UnsupportedFormatError{"unsupported bit depth"}
 }
 
-func expand5(value: u32)->u8
-{
-    return cast(u8) ((value * 255 + 15) / 31)
-}
+func expand5(value: u32)->u8 => cast(u8) ((value * 255 + 15) / 31)
 
 func writeBgrPixel(dst: [*] u8, b, g, r: u8)
 {

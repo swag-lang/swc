@@ -313,10 +313,7 @@ private impl RenderCpu
             Memory.clear(plane + cast(u64) y * cast(u64) width + cast(u64) bounds.minX, runWidth)
     }
 
-    func edge(a, b, p: Vector2)->f32
-    {
-        return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
-    }
+    func edge(a, b, p: Vector2)->f32 => (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
 
     func isTopLeft(a, b: Vector2)->bool
     {
@@ -328,10 +325,7 @@ private impl RenderCpu
     // Preserve the rounded f32 edge value at the classification boundary. Auto-inlining this
     // predicate into the raster loop changes exact-zero decisions in release mode.
     #[Swag.NoInline]
-    func insideEdge(value: f32, topLeft: bool)->bool
-    {
-        return value > 0 or (value == 0 and topLeft)
-    }
+    func insideEdge(value: f32, topLeft: bool)->bool => value > 0 or (value == 0 and topLeft)
 
     // Returns one coverage bit per horizontal pixel while preserving the scalar top-left rule.
     func insideEdges4(edge0, edge1, edge2: Math.Simd.F32x4, edge0TopLeft, edge1TopLeft, edge2TopLeft: bool)->u32
@@ -503,13 +497,13 @@ private impl RenderCpu
 
     func blendLuminosity(color: Math.Vector3)->f32 => 0.3 * color.x + 0.59 * color.y + 0.11 * color.z
 
-    func blendSaturation(color: Math.Vector3)->f32 => Math.max(color.x, Math.max(color.y, color.z)) - Math.min(color.x, Math.min(color.y, color.z))
+    func blendSaturation(color: Math.Vector3)->f32 => Math.max(color.x, color.y, color.z) - Math.min(color.x, color.y, color.z)
 
     func clipBlendColor(color: Math.Vector3)->Math.Vector3
     {
         let luminosity = blendLuminosity(color)
-        let minValue   = Math.min(color.x, Math.min(color.y, color.z))
-        let maxValue   = Math.max(color.x, Math.max(color.y, color.z))
+        let minValue   = Math.min(color.x, color.y, color.z)
+        let maxValue   = Math.max(color.x, color.y, color.z)
         var result     = color
 
         if minValue < 0 do
@@ -527,7 +521,7 @@ private impl RenderCpu
         if currentSaturation == 0 do
             return Math.Vector3.Zero
 
-        let minValue = Math.min(color.x, Math.min(color.y, color.z))
+        let minValue = Math.min(color.x, color.y, color.z)
         return (color - minValue) * saturation / currentSaturation
     }
 
@@ -1370,10 +1364,10 @@ private impl RenderCpu
             area = -area
         }
 
-        let minX = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.x, Math.min(p1.x, p2.x))), 0, batch.width - 1), batch.clipMinX)
-        let minY = Math.max(Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, Math.min(p1.y, p2.y))), 0, batch.height - 1), bandMinY), batch.clipMinY)
-        let maxX = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, Math.max(p1.x, p2.x))) - 1, 0, batch.width - 1), batch.clipMaxX)
-        let maxY = Math.min(Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, Math.max(p1.y, p2.y))) - 1, 0, batch.height - 1), bandMaxY), batch.clipMaxY)
+        let minX = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.x, p1.x, p2.x)), 0, batch.width - 1), batch.clipMinX)
+        let minY = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, p1.y, p2.y)), 0, batch.height - 1), bandMinY, batch.clipMinY)
+        let maxX = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, p1.x, p2.x)) - 1, 0, batch.width - 1), batch.clipMaxX)
+        let maxY = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, p1.y, p2.y)) - 1, 0, batch.height - 1), bandMaxY, batch.clipMaxY)
         if minX > maxX or minY > maxY do
             return
 
@@ -2517,7 +2511,6 @@ impl RenderCpu
         return .addImageImpl(&image)
     }
 
-    // Copies an image into a renderer-owned CPU texture.
     // Registers a planar picture.
     //
     // This backend has no shaders, so it converts once here rather than once per sample and holds
@@ -2552,6 +2545,7 @@ impl RenderCpu
         view.convertToRgb(&storage.image)
     }
 
+    // Copies an image into a renderer-owned CPU texture.
     internal mtd addImageImpl(image: const *Image)->Texture
     {
         if not image.isValid() do

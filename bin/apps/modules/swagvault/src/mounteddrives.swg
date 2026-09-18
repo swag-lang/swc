@@ -19,7 +19,7 @@ struct MountedDrive
 //
 // The first one carries no text: a list row draws its check box in its first cell, so that
 // column is the check box, and the heading above it is what says what checking one means.
-internal enum MountedColumn
+enum MountedColumn
 {
     Startup       // Whether the drive comes back the next time Swag Vault starts.
     Drive         // Drive letter the volume appears on.
@@ -39,12 +39,17 @@ internal enum MountedColumn
 // stand for a drive everywhere else.
 struct MountedDrives
 {
-    card:               VaultCard
-    late list:          *ListCtrl
-    late empty:         *Label
-    late unmountButton: *PushButton
-    drives:             Array'MountedDrive
-    startupEnabled:     bool = true
+    card: VaultCard
+
+    late
+    {
+        list:          *ListCtrl
+        empty:         *Label
+        unmountButton: *PushButton
+    }
+
+    drives:         Array'MountedDrive
+    startupEnabled: bool = true     // Whether the rows offer the check box that remounts them at startup.
 
     // Emitted once the table says what `drives` now holds. Whether the action of the card can
     // work depends on the selection *and* on what the window is doing, so the window is what
@@ -68,6 +73,7 @@ impl MountedDrives
     const SizeColumnShare      = 0.14'f32
     const AvailableColumnShare = 0.18'f32
 
+    // Creates the card in `parent`, with an empty table and its unmount action.
     func create(parent: *Wnd)->MountedDrives
     {
         let card = VaultCard.create(parent, appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
@@ -181,6 +187,7 @@ impl MountedDrives
         .sigDrivesChanged.call(me)
     }
 
+    // Offers or withdraws the startup check box on every row.
     mtd setStartupEnabled(enabled: bool)
     {
         if .startupEnabled == enabled do
@@ -204,11 +211,8 @@ impl MountedDrives
         let available = .list.listView.paddedClientRect().width
 
         var currentItems = 0'f32
-        for item, index in .list.header.items
-        {
-            discard item
+        for index in .list.header.items.count do
             currentItems += .list.header.itemWidthAt(cast(u32) index)
-        }
 
         let chrome = .list.header.contentWidth() - currentItems
         let room   = Math.max(available - chrome, 0)
@@ -233,12 +237,8 @@ impl MountedDrives
         let line = .list.selectedLine()
         if not line do
             return Swag.U64.Max
-        for &one, index in .drives
-        {
-            discard one
-            if .list.lineAt(cast(u32) index) == line do
-                return index
-        }
+        for index in .drives.count where .list.lineAt(cast(u32) index) == line do
+            return index
 
         return Swag.U64.Max
     }

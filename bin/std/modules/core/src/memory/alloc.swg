@@ -65,8 +65,9 @@ private func panicAllocationFailure(operation: string, request: *AllocatorReques
     Swag.panic(cast(string) message.toSlice()!, request.callerLoc)
 }
 
-// Asserts that a byte range belongs to the selected allocator.
-// A null buffer is accepted and performs no check.
+// Asserts that the `size` bytes at `buffer` were allocated by `allocator`.
+//
+// A null `allocator` selects the context allocator. A null `buffer` performs no check.
 func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if not buffer do
@@ -78,12 +79,12 @@ func assertIsAllocated(buffer: [*] void?, size: u64, allocator: IAllocator? = nu
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = (allocator orelse Swag.getContext().allocator)!
-    talloc.assertAllocated(&req)
+    (allocator orelse Swag.getContext().allocator)!.assertAllocated(&req)
 }
 
-// Releases a byte range through the selected allocator.
-// A null buffer is accepted and performs no operation.
+// Releases the `size` bytes at `buffer` through `allocator`.
+//
+// A null `allocator` selects the context allocator. A null `buffer` does nothing.
 func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if not buffer do
@@ -95,23 +96,26 @@ func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: str
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = (allocator orelse Swag.getContext().allocator)!
-    talloc.free(&req)
+    (allocator orelse Swag.getContext().allocator)!.free(&req)
 }
 
-// Releases every allocation owned by the selected allocator, when supported.
+// Releases every allocation owned by `allocator`, when the allocator supports it.
+//
+// A null `allocator` selects the context allocator.
 func freeAll(allocator: IAllocator?, hint: string? = null, loc = #callerlocation)
 {
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
 
-    let talloc = (allocator orelse Swag.getContext().allocator)!
-    talloc.freeAll(&req)
+    (allocator orelse Swag.getContext().allocator)!.freeAll(&req)
 }
 
-// Resizes a byte allocation, preserving its existing contents.
-// The returned pointer is non-null; a zero new size raises a panic.
+// Resizes the allocation at `buffer` from `oldSize` to `newSize` bytes and returns its possibly moved address.
+//
+// The contents are preserved up to the smaller size. A null `allocator` selects the context
+// allocator, and a zero `alignment` the default one. A zero `newSize` or an allocation failure
+// raises a panic, so the result is never null.
 func realloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
     var req: AllocatorRequest
@@ -125,8 +129,7 @@ func realloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocato
     if not newSize do
         panicAllocationFailure("Memory.realloc", &req, true)
 
-    let talloc = (allocator orelse Swag.getContext().allocator)!
-    talloc.realloc(&req)
+    (allocator orelse Swag.getContext().allocator)!.realloc(&req)
 
     if not req.address
     {
@@ -137,8 +140,10 @@ func realloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAllocato
     return req.address!
 }
 
-// Allocates an uninitialized byte range.
-// The returned pointer is non-null; a zero size raises a panic.
+// Allocates `size` uninitialized bytes and returns their address.
+//
+// A null `allocator` selects the context allocator, and a zero `alignment` the default one. A zero
+// `size` or an allocation failure raises a panic, so the result is never null.
 func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
     var req: AllocatorRequest
@@ -150,15 +155,17 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
     if not size do
         panicAllocationFailure("Memory.alloc", &req, false)
 
-    let talloc = (allocator orelse Swag.getContext().allocator)!
-    talloc.alloc(&req)
+    (allocator orelse Swag.getContext().allocator)!.alloc(&req)
 
     if not req.address do
         panicAllocationFailure("Memory.alloc", &req, false)
     return req.address!
 }
 
-// Allocates an uninitialized byte range from the current temporary allocator.
+// Allocates `size` uninitialized bytes from the context's temporary allocator and returns their address.
+//
+// A zero `size` or an allocation failure raises a panic, so the result is never null. The bytes
+// stay allocated until [[Core.Memory.releaseTemporaryAllocations]].
 func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] void
 {
     var req: AllocatorRequest
@@ -176,8 +183,10 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #calle
     return req.address!
 }
 
-// Allocates and default-initializes a value described at runtime.
-// Returns null after reporting a panic when the type requires explicit initialization.
+// Allocates a value of the runtime type `type` and default-initializes it.
+//
+// Raises a panic, and returns null if the panic handler returns, when the type cannot be
+// default-initialized.
 func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*u8?
 {
     let userHint = hint orelse type.fullname
@@ -192,7 +201,7 @@ func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint
     return ptr
 }
 
-// Allocates and default-initializes one value of T.
+// Allocates one value of `T` and default-initializes it.
 func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
@@ -201,7 +210,10 @@ func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = n
     return ptr
 }
 
-// Drops and releases one value of T.
+// Drops the value at `ptr` and releases its storage.
+//
+// The storage must come from `allocator`, or from the context allocator when it is null. A null
+// `ptr` does nothing.
 func(T) delete(ptr: *T?, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if not ptr do
@@ -212,7 +224,9 @@ func(T) delete(ptr: *T?, allocator: IAllocator? = null, hint: string? = null, lo
     free(ptr, #sizeof(T), allocator, userHint, loc)
 }
 
-// Drops and releases a value described at runtime.
+// Drops the value of the runtime type `type` at `ptr` and releases its storage.
+//
+// A null `ptr` does nothing.
 func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if not ptr do
@@ -227,7 +241,9 @@ func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: st
     free(ptr, cast(u64) type.sizeof, allocator, userHint, loc)
 }
 
-// Allocates and default-initializes num contiguous values of T.
+// Allocates `num` contiguous values of `T` and default-initializes them.
+//
+// `num` must not be zero.
 func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] T
 {
     Swag.assert(num > 0)
@@ -238,7 +254,9 @@ func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
     return ptr
 }
 
-// Drops and releases num contiguous values of T.
+// Drops the `num` contiguous values at `ptr` and releases their storage.
+//
+// A null `ptr` does nothing.
 func(T) delete(ptr: [*] T?, num: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if not ptr do

@@ -10,7 +10,7 @@ enum YuvMatrix
     Bt2020     // ITU-R BT.2020 non-constant-luminance conversion.
 }
 
-// One picture in planar YUV, borrowed from whatever produced it.
+// Borrows one picture in planar YUV from whatever produced it.
 //
 // Every video codec reconstructs this layout: a full-resolution luma plane and two chroma planes,
 // either at half resolution on both axes, where one chroma sample serves a two-by-two block of

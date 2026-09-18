@@ -4,26 +4,24 @@
 
 using Win32
 
-// Transform 'fullname' to an absolute path
-func absolute(fullname: string)->String fail
+// Returns `path` as an absolute path, resolved against the current directory when it is relative.
+func absolute(path: string)->String fail
 {
-    var result: retval
+    let winPath = Utf16.toZeroTerminated(path)
 
-    var tmpArr: Array'u16
-    tmpArr.reserve(100)
+    var buffer: Array'u16
+    buffer.reserve(100)
+    var length = cast(u64) try GetFullPathNameW(winPath.buffer, cast(DWORD) buffer.capacity, buffer.buffer, null)
 
-    let winPath = Utf16.toZeroTerminated(fullname)
-    var res     = cast(u64) try GetFullPathNameW(winPath.buffer, cast(DWORD) tmpArr.capacity, tmpArr.buffer, null)
-
-    // No enough room in destination, give it another try
-    if res >= 100
+    // The buffer was too small: the call returned the size it needs, terminator included.
+    if length >= buffer.capacity
     {
-        tmpArr.reserve(res + 1)
-        res = cast(u64) try GetFullPathNameW(winPath.buffer, cast(DWORD) tmpArr.capacity, tmpArr.buffer, null)
+        buffer.reserve(length)
+        length = cast(u64) try GetFullPathNameW(winPath.buffer, cast(DWORD) buffer.capacity, buffer.buffer, null)
     }
 
-    tmpArr.count = res
-    result       = Utf8.fromUtf16(tmpArr.toSlice())
+    buffer.count = length
+    var result = Utf8.fromUtf16(buffer.toSlice())
     normalize(&result)
     return result
 }

@@ -23,6 +23,24 @@ func squares(a, b: f64)->f64
     return x * y + b
 }
 
+#[Swag.Optimize(true), Swag.NoInline]
+func select32(a, b: f32, pickA: bool)->f32 => pickA ? a : b
+
+#[Swag.Optimize(true), Swag.NoInline]
+func select64(a, b: f64, pickA: bool)->f64 => pickA ? a : b
+
+#[Swag.Optimize(true), Swag.NoInline]
+func minimum32(a, b: f32)->f32 => a < b ? a : b
+
+#[Swag.Optimize(true), Swag.NoInline]
+func maximum32(a, b: f32)->f32 => a > b ? a : b
+
+#[Swag.Optimize(true), Swag.NoInline]
+func minimum64(a, b: f64)->f64 => a < b ? a : b
+
+#[Swag.Optimize(true), Swag.NoInline]
+func maximum64(a, b: f64)->f64 => a > b ? a : b
+
 #test
 {
     Swag.assert(lerp(1, 3, 0.5) == 2)
@@ -31,4 +49,19 @@ func squares(a, b: f64)->f64
     Swag.assert(reversed(5, 1, 2) == 0)
     Swag.assert(reversed(1, 5, 4) == 5)
     Swag.assert(squares(2, 3) == 27)
+    Swag.assert(select32(1.25, 2.5, true) == 1.25)
+    Swag.assert(select32(1.25, 2.5, false) == 2.5)
+    Swag.assert(select64(-3.5, 7.25, true) == -3.5)
+    Swag.assert(select64(-3.5, 7.25, false) == 7.25)
+    Swag.assert(minimum32(1.25, 2.5) == 1.25)
+    Swag.assert(maximum32(1.25, 2.5) == 2.5)
+    Swag.assert(minimum64(7.25, -3.5) == -3.5)
+    Swag.assert(maximum64(7.25, -3.5) == 7.25)
+
+    const minNumber = minimum32(Swag.F32.NaN, 2)
+    const minNaN    = minimum32(2, Swag.F32.NaN)
+    const maxNumber = maximum32(Swag.F32.NaN, 2)
+    const maxNaN    = maximum32(2, Swag.F32.NaN)
+    Swag.assert(minNumber == 2 and minNaN != minNaN)
+    Swag.assert(maxNumber == 2 and maxNaN != maxNaN)
 }

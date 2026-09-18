@@ -95,6 +95,24 @@ func switchNaNRange()->bool
     }
 }
 
+// Finite f32 comparisons stay at their source width.
+#test
+{
+    const a = 1.25'f32
+    const b = 2.5'f32
+
+    Swag.assert(not eqF32(a, b))
+    Swag.assert(eqF32(a, a))
+    Swag.assert(neF32(a, b))
+    Swag.assert(ltF32(a, b))
+    Swag.assert(leF32(a, b))
+    Swag.assert(not gtF32(a, b))
+    Swag.assert(not geF32(a, b))
+    Swag.assert(cmpF32(a, b) == -1)
+    Swag.assert(cmpF32(b, a) == 1)
+    Swag.assert(cmpF32(a, a) == 0)
+}
+
 // NaN comparison for f32
 #test
 {

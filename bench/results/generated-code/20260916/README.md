@@ -216,6 +216,16 @@ Scalar integer-to-float conversions returned immediately in the ABI float
 register no longer clear the unobservable upper lanes first. The micro operation
 now also distinguishes an `s64` source converted to `f32`, so x64 emits the
 required REX.W form instead of truncating the input to 32 bits.
+A scalar floating selection returned immediately now keeps the true arm in the
+ABI return register and branches around one direct copy of the false arm. This
+removes the three temporary copies and the unconditional branch from the
+post-allocation diamond.
+Scalar `f32` relations now use the native single-precision comparison instead
+of converting both operands to `f64`. Sema has already promoted mixed operands
+to one common type, so the conversion did not change the comparison result.
+An immediately returned floating min/max ternary now becomes the matching x64
+scalar min/max instruction. The fold recognizes operand order and the unordered
+path, so equal values and NaNs continue to select the second operand.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -308,15 +318,45 @@ nine native floating-cast tests. A value of 5,000,000,000 protects the `s64` to
 `f32` source width. The resulting `cvtsi2ss xmm0, rcx; ret` is 6 bytes, matching
 LLVM; `s32` to `f32` and `s64` to `f64` returns also match LLVM at 5 and 6 bytes.
 
+Build 979 passed all 997 C++ tests and the focused floating-copy Release test,
+which executes both arms for `f32` and `f64`. Both selections shrink from 24 to
+10 bytes (`test; jne; movss/movsd; ret`). Unit coverage keeps the
+diamond unchanged when RET does not consume the ABI floating return register.
+
+Build 980 passed all 997 C++ tests and four focused Release tests covering all
+six `f32` relations, the three results of `<=>`, and unordered NaN behavior.
+The encoder test fixes the direct `comiss` byte sequence. In the scalar corpus,
+each `f32` min/max ternary shrinks from 41 to 24 bytes before its selection
+diamond is optimized; the corresponding `f64` functions remain unchanged.
+
+Build 981 passed all 998 C++ tests and the focused floating-copy Release test.
+The runtime cases cover both widths, min/max, and both NaN operand positions.
+Each `f32` min/max function is now one instruction plus RET, shrinking from 24
+to 5 bytes and matching LLVM. The `f64` forms shrink from 25 to 6 bytes; their
+remaining byte is the redundant REX.W prefix on the scalar SSE operation.
+
+Build 982 passed all 998 C++ tests, all 22 native min/max intrinsic tests and
+all 23 native intrinsic-fold tests, including runtime `f64` rounding. Scalar
+SSE register operations and rounding no longer request REX.W; extended XMM
+registers retain their required REX.R/B bits. The `f64` min/max functions are
+now 5 bytes and match LLVM.
+
+Build 983 passed all 998 C++ tests and the focused floating-copy Release test.
+The false arm of an immediately returned scalar selection now uses a full XMM
+register copy, whose upper lanes are unobservable at RET. Both `f32` and `f64`
+selections shrink from 10 to 9 bytes and match LLVM; an exact encoder case
+protects the three-byte register copy.
+
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under
 heavier concurrent load, at 310.33 and 303.89 MiB. Shared-machine variation is
 larger than these differences, so they are admission and regression evidence
 rather than a claimed speedup.
 
-The full repository campaign, DevMode compiler and C++ unit tests were not run
-by this worktree during this session. Concurrent contributors performed separate
-checks on their changes; those do not constitute a global checkpoint campaign.
+The full repository campaign was not run by this worktree during this session.
+The DevMode compiler and focused C++ unit tests were rebuilt and run for the
+post-allocation batches. Concurrent contributors performed separate checks on
+their changes; those do not constitute a global checkpoint campaign.
 Shared-machine timing varied enough that no compile-time speedup is asserted.
 
 ## Reproduce

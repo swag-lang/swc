@@ -68,7 +68,6 @@ func day9A()
 
         if not sum.contains(v1)
         {
-            // Console.print("total: ", v1)
             Swag.assert(v1 == 552655238)
             break
         }

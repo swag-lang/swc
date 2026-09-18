@@ -30,7 +30,6 @@ func day1B()
 
             if Slice.containsSorted(arr[i1 to], v2)
             {
-                // Console.print("total: ", v0*v1*v2)
                 Swag.assert(v0 * v1 * v2 == 165795564)
                 return
             }

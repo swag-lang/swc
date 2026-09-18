@@ -148,6 +148,5 @@ func day5B()
     for r in ranges do
         total = Math.min(total, r.start)
 
-    // Console.print("total: ", total)
     Swag.assert(total == 69323688)
 }

@@ -69,6 +69,5 @@ func day3B()
     let o2  = calc('1', '0')
     let co2 = calc('0', '1')
 
-    // Console.print("total: ", o2*co2)
     Swag.assert(o2 * co2 == 7041258)
 }

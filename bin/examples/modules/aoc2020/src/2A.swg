@@ -48,6 +48,5 @@ func day2A()
             total += 1
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 524)
 }

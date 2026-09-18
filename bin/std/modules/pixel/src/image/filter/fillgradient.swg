@@ -57,7 +57,7 @@ public impl Image
         case .BGRA8: .doIt'BGRA8()
         case .RGB8:  .doIt'RGB8()
         case .RGBA8: .doIt'RGBA8()
-        default:     Swag.assert(false)
+        default:     unreachable
         }
 
         .visitPixels(stride: .width)
@@ -120,7 +120,7 @@ public impl Image
         case .BGRA8: .doIt'BGRA8()
         case .RGB8:  .doIt'RGB8()
         case .RGBA8: .doIt'RGBA8()
-        default:     Swag.assert(false)
+        default:     unreachable
         }
     }
 }

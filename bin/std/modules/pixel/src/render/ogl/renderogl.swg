@@ -746,11 +746,6 @@ impl RenderOgl
         return true
     }
 
-    internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
-    {
-        // Swag.print(cast(cstring) (Message));
-    }
-
     // Initializes OpenGL extensions, built-in shaders, buffers, and hatch textures.
     //
     // Call this once after a native context is current.
@@ -778,10 +773,6 @@ impl RenderOgl
         }
 
         .createShaders()
-
-        // glEnable(GL_DEBUG_OUTPUT);
-        // glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        // glDebugMessageCallback(&GLDebugMessageCallback, null);
 
         glGenBuffers(1, &.vertexbuffer)
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)

@@ -52,6 +52,5 @@ func day7B()
         total += (n * (n + 1)) / 2
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 92335207)
 }

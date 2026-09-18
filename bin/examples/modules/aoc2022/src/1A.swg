@@ -59,6 +59,5 @@ func day1A()
         one += expect StrConv.toU64(l[])
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 70369)
 }

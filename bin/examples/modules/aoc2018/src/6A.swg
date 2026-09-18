@@ -112,6 +112,5 @@ func day6A()
         if not borders[index] do
             total = Math.max(v, total)
 
-    // Console.print("total: ", total)
     Swag.assert(total == 3882)
 }

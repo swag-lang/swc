@@ -31,6 +31,5 @@ func day1A()
     for l in lines do
         total += (expect StrConv.toS32(l[]) / 3) - 2
 
-    // Console.print("total: ", total)
     Swag.assert(total == 3296560)
 }

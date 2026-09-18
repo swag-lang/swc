@@ -64,7 +64,6 @@ func day5B0()
             {
                 if not here[r, c]
                 {
-                    // Console.print("total: ", r, " ", c, " ", r*8+c,"\n")
                     Swag.assert(r * 8 + c == 714)
                     return
                 }
@@ -106,7 +105,6 @@ func day5B1()
     {
         if seats[i + 1] - seats[i] != 1
         {
-            // Console.print("total: ", seats[i]+1)
             Swag.assert(seats[i] + 1 == 714)
             return
         }

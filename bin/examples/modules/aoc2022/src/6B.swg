@@ -39,7 +39,6 @@ func day6B()
 
         if len == LEN
         {
-            // Console.print("total: ", i+1)
             Swag.assert(i + 1 == 2308)
             break
         }

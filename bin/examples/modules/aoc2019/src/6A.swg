@@ -77,6 +77,5 @@ func day6A()
     for v in map do
         total += count(&map, v)
 
-    // Console.print("total: ", total)
     Swag.assert(total == 253104)
 }

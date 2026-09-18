@@ -143,7 +143,6 @@ func day4B0()
         }
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 224)
 }
 
@@ -200,6 +199,5 @@ func day4B1()
         }
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 224)
 }

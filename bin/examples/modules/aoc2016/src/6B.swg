@@ -41,6 +41,5 @@ func day6B()
         }
     }
 
-    // Console.print(pwd)
     Swag.assert(pwd == "bhkzekao")
 }

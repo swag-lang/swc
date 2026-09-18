@@ -45,6 +45,5 @@ func day2A()
         total += Score[l[0] - 'A', l[2] - 'X']
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 14163)
 }

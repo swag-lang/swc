@@ -89,6 +89,5 @@ func day5B()
     for s in stacks do
         total += s[0]
 
-    // Console.print("total: ", total)
     Swag.assert(total == "RNLFDJMCT")
 }

@@ -459,7 +459,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     var lineCopy: FormLine
     line.IForm.copy(&lineCopy, line)
     Swag.assert(lineCopy.subKind == .PixSel)
-    Swag.assert(lineCopy.paintShadow == false)
+    Swag.assert(not lineCopy.paintShadow)
     Swag.assert(lineCopy.outlineSize == 3 and lineCopy.outlineColor == ColorBlue)
     Swag.assert(line.IForm.isSame(&lineCopy))
     lineCopy.subKind = .Highlight
@@ -476,7 +476,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     var polygonCopy: FormPolygon
     polygon.IForm.copy(&polygonCopy, polygon)
     Swag.assert(polygonCopy.subKind == .Highlight)
-    Swag.assert(polygonCopy.paintShadow == false)
+    Swag.assert(not polygonCopy.paintShadow)
     Swag.assert(polygon.IForm.isSame(&polygonCopy))
     polygonCopy.subKind = .PixSel
     Swag.assert(not polygon.IForm.isSame(&polygonCopy))
@@ -488,7 +488,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     var drawCopy: FormDraw
     draw.IForm.copy(&drawCopy, draw)
     Swag.assert(drawCopy.subKind == .PixSel)
-    Swag.assert(drawCopy.paintShadow == false)
+    Swag.assert(not drawCopy.paintShadow)
     Swag.assert(drawCopy.outlineSize == 3 and drawCopy.outlineColor == ColorBlue)
     Swag.assert(draw.IForm.isSame(&drawCopy))
     drawCopy.paintShadow = true

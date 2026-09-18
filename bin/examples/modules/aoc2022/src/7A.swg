@@ -122,6 +122,5 @@ func day7A()
         if val <= 100_000 do
             total += val
 
-    // Console.print("total: ", total)
     Swag.assert(total == 1443806)
 }

@@ -95,19 +95,19 @@ impl Decoder
 
     mtd readApplicationExt() fail
     {
-        var app_id:        [8] u8
-        var app_auth_code: [3] u8
+        var appId:       [8] u8
+        var appAuthCode: [3] u8
 
         // Discard block size (always 0x0B)
         try .seek(1)
 
         // Application Identifier
-        try .read(app_id, 8)
+        try .read(appId, 8)
 
         // Application Authentication Code
-        try .read(app_auth_code, 3)
+        try .read(appAuthCode, 3)
 
-        if not Memory.compare(app_id, ("NETSCAPE").buffer, app_id.count)
+        if not Memory.compare(appId, ("NETSCAPE").buffer, appId.count)
         {
             // Discard block size (0x03) and constant byte (0x01).
             try .seek(2)

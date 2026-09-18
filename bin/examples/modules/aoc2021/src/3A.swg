@@ -54,6 +54,5 @@ func day3A()
         epsilon |= cast(s32) (count < lines.count / 2)
     }
 
-    // Console.print("total: ", gamma*epsilon)
     Swag.assert(gamma * epsilon == 2967914)
 }

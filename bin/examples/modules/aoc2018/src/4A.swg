@@ -121,6 +121,5 @@ func day4A()
         }
     }
 
-    // Console.print("total: ", guard*min)
     Swag.assert(guard * min == 106710)
 }

@@ -51,7 +51,6 @@ func day1B()
             {
                 let total = Math.abs(pos.x) + Math.abs(pos.y)
 
-                // Console.print("total: ", total)
                 Swag.assert(total == 150)
                 return
             }

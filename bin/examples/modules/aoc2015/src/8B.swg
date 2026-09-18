@@ -48,11 +48,9 @@ func day8B()
             }
         }
 
-        // Console.print(l, " => ", res, "\n")
         total0 += l.length
         total1 += 4
     }
 
-    // Console.print("total: ", total1-total0)
     Swag.assert(total1 - total0 == 2046)
 }

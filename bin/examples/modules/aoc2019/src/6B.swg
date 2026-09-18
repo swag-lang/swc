@@ -84,6 +84,5 @@ func day6B()
         its = map.tryFind(its.value)
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 499)
 }

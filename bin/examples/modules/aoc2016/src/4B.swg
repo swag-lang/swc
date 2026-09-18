@@ -36,7 +36,6 @@ func day4B()
 
         if Utf8.contains(str, "north")
         {
-            // Console.print(str, " ", res.value, "\n")
             Swag.assert(res.value == 482)
             return
         }

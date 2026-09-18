@@ -89,6 +89,5 @@ func day7A()
         }
     }
 
-    // Console.print("result: ", result)
     Swag.assert(result == "GJFMDHNBCIVTUWEQYALSPXZORK")
 }

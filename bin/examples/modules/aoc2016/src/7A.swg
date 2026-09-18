@@ -49,6 +49,5 @@ func day7A()
         total += ok ? 1 : 0
     }
 
-    // Console.print(total)
     Swag.assert(total == 110)
 }

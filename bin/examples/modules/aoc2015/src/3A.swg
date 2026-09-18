@@ -41,6 +41,5 @@ func day3A()
         set.add(pos.v)
     }
 
-    // Console.print("total: ", set.count)
     Swag.assert(set.count == 2572)
 }

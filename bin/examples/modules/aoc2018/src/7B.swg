@@ -93,7 +93,6 @@ func day7B()
             current.remove(c)
             if c == last
             {
-                // Console.print("total: ", total)
                 Swag.assert(total == 1050)
                 return
             }

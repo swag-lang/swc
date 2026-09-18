@@ -46,6 +46,5 @@ func day5A()
         idx += 1
     }
 
-    // Console.print("total: ", line.length)
     Swag.assert(line.length == 10774)
 }

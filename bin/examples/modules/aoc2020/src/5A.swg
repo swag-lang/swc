@@ -80,7 +80,6 @@ func day5A0()
         total = Math.max(total, row0 * 8 + col0)
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 838)
 }
 

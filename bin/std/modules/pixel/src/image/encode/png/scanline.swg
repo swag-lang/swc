@@ -114,7 +114,6 @@ impl Encoder
             let initialShift   = 8 - bitDepth
             var shiftAmount    = initialShift
 
-            let row_uc   = row
             var scanline = .scanline!
             Memory.clear(cast([*] u8) scanline, cast(u64) .subimage[pass].scanlineWidth)
 
@@ -122,7 +121,7 @@ impl Encoder
             {
                 let ioffset = Adam7StartX[pass] + k * Adam7DeltaX[pass]
 
-                var sample = row_uc[ioffset / samplesPerByte]
+                var sample = row[ioffset / samplesPerByte]
                 sample = sample >> (initialShift - ioffset * bitDepth % 8)
                 sample = sample & mask
                 sample = sample << shiftAmount
@@ -221,18 +220,18 @@ impl Encoder
         if not .rowInfo.scanlineIdx and requiresPrevious do
             Memory.clear(cast([*] u8) .prevScanline!, cast(u64) scanlineWidth)
 
-        var filtered_sl = cast([*] u8) .filteredScanline!
-        let filter      = .getBestFilter(scanlineWidth - 1)
+        var filtered = cast([*] u8) .filteredScanline!
+        let filter   = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
-            filtered_sl = cast([*] u8) .scanline!
-        filtered_sl    -= 1
-        filtered_sl[0] = cast(u8) filter
-        filtered_sl    += 1
+            filtered = cast([*] u8) .scanline!
+        filtered    -= 1
+        filtered[0] = cast(u8) filter
+        filtered    += 1
 
         if filter != .None do
-            .filterScanline(filtered_sl, scanlineWidth - 1, filter)
+            .filterScanline(filtered, scanlineWidth - 1, filter)
 
-        try .writeIDatBytes(filtered_sl - 1, scanlineWidth)
+        try .writeIDatBytes(filtered - 1, scanlineWidth)
 
         swap(&.prevScanline, &.scanline)
         if .updateRowInfo()

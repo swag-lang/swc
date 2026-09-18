@@ -151,7 +151,6 @@ func day6A0()
         }
     }
 
-    // Console.print("total: ", lights.count)
     Swag.assert(lights.count == 377891)
 }
 
@@ -214,7 +213,6 @@ func day6A1()
     for v in lights do
         total += cast(s32) v
 
-    // Console.print("total: ", total)
     Swag.assert(total == 377891)
 }
 
@@ -276,6 +274,5 @@ func day6A2()
     for v in lights do
         total += cast(s32) v
 
-    // Console.print("total: ", total)
     Swag.assert(total == 377891)
 }

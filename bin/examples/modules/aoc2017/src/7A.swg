@@ -53,8 +53,6 @@ func day7A()
     let line     = expect File.readAllText(dataPath)
     let g        = expect Parser.RegExp.grepAll(#raw "\l+", line)
 
-    // Console.print(g)
-
     var set: HashTable'(string, s32)
     for v in g
     {

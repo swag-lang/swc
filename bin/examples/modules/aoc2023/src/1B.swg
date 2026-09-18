@@ -58,6 +58,5 @@ func day1B()
         total += process(l)
     }
 
-    // Console.print("total: ", total)
     Swag.assert(total == 56324)
 }

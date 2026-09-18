@@ -644,12 +644,12 @@ impl Decoder
             for cNum in .compsInScan
             {
                 let cid        = .compList[cNum]
-                var num_blocks = .compSampH[cid] * .compSampV[cid]
-                while num_blocks
+                var numBlocks = .compSampH[cid] * .compSampV[cid]
+                while numBlocks
                 {
                     .mcuOrg[.blocksPerMcu] = cid
                     .blocksPerMcu += 1
-                    num_blocks    -= 1
+                    numBlocks     -= 1
                 }
             }
         }

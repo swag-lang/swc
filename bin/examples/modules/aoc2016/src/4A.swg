@@ -62,7 +62,6 @@ func day4A()
                 total += res.value
         }
 
-        // Console.print("total: ", total)
         Swag.assert(total == 361724)
     }
 }

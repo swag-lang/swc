@@ -1602,6 +1602,33 @@ SWC_TEST_BEGIN(PostRAPeephole_RipFloatLoadFoldsIntoThreeOperandOp)
             ops[3].microOp != MicroOp::FloatMultiply)
             return Result::Error;
     }
+
+    // ANDPS/ANDPD read a full 128-bit memory operand while the relocated
+    // scalar constant only owns four or eight bytes. Keep its scalar load.
+    MicroBuilder bitwise(ctx);
+    bitwise.emitClearReg(xmm1, MicroOpBits::B64);
+    bitwise.emitLoadRegMem(xmm1, rip, 0, MicroOpBits::B64);
+    MicroInstrRef maskLoadRef = MicroInstrRef::invalid();
+    for (auto it = bitwise.instructions().view().begin(); it != bitwise.instructions().view().end(); ++it)
+        if (it->op == MicroInstrOpcode::LoadRegMem)
+            maskLoadRef = it.current;
+    if (maskLoadRef.isInvalid())
+        return Result::Error;
+    bitwise.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = maskLoadRef,
+        .constantShard  = 0,
+        .constantOffset = 16,
+    });
+    bitwise.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, MicroOp::FloatAnd, MicroOpBits::B64);
+    bitwise.emitRet();
+    X64Encoder bitwiseEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(bitwise, &bitwiseEncoder));
+    if (Backend::Unittest::countOpcode(bitwise, MicroInstrOpcode::LoadRegMem) != 1 ||
+        Backend::Unittest::countOpcode(bitwise, MicroInstrOpcode::OpBinaryRegRegReg) != 1 ||
+        bitwise.codeRelocations().front().instructionRef != maskLoadRef)
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

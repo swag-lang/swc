@@ -44,6 +44,7 @@ func keySlotPayloadOffset(index: u64)->u64 => KeySlotAreaOffset + index * KeySlo
 // Maps a uniformly random word onto the four physical slots without bias.
 func keySlotIndex(random: u64)->u64 => random & (KeySlotCount - 1)
 
+// Returns a slot index drawn from the system's secure random generator.
 func randomKeySlotIndex()->u64 fail
 {
     var random: u64
@@ -105,6 +106,7 @@ impl KeySlot
         return result
     }
 
+    // Wipes the wrapped master key and its nonce.
     mtd clear()
     {
         Core.Crypto.secureClear(.wrapped)

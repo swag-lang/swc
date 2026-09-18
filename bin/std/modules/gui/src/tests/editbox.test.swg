@@ -470,3 +470,23 @@ func editHeadlessEscape(eb: *EditBox)
     Swag.assert(field.text() == "kept")
     Swag.assert(not field.hasFocus())
 }
+
+// A rune the validator rejects over a selection leaves the rune count intact, so the maximum length still holds.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 60)
+    defer host.shutdown()
+
+    let edit = EditBox.create(&host.root, "255", {20, 20, 200, 26})
+    edit.setUnsignedIntegerRange(0, 999)
+    edit.setMaximumLength(3)
+    host.focus(edit)
+    edit.selectAll()
+
+    host.sendRune(Input.Key.X, 'x')
+    Swag.assert(edit.text() == "255")
+    for digit in ['1', '2', '3', '4'] do
+        host.sendRune(Input.Key.A, digit)
+    Swag.assert(edit.text() == "123")
+}

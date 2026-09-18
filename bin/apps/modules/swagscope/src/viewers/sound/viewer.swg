@@ -39,7 +39,7 @@ private const WaveformTickHeight  = 5.0
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
 // body the ear hears. Drawing both is what separates a waveform from a silhouette.
-internal struct WaveformPoint
+struct WaveformPoint
 {
     peak: f32     // Loudest absolute level of the slice.
     body: f32     // Mean absolute level of the slice.
@@ -59,7 +59,7 @@ private var g_SoundEngineWarming: bool
 // the picture. Starting it here lets the device come online while the file is being opened
 // and its first picture decoded; [[acquireSoundEngine]] then joins the work instead of doing
 // it. Call it from the GUI thread, which is the only one that acquires the engine.
-internal func warmSoundEngine()
+func warmSoundEngine()
 {
     if g_SoundEngineWarming or g_SoundEngineUsers or isEngineCreated() do
         return
@@ -71,7 +71,10 @@ internal func warmSoundEngine()
     })
 }
 
-internal func acquireSoundEngine(kind = DriverKind.Default)->bool
+// Takes a reference on the shared audio engine, creating it on first use, and reports whether the engine is available.
+//
+// Call [[releaseSoundEngine]] once for every successful acquisition.
+func acquireSoundEngine(kind = DriverKind.Default)->bool
 {
     if g_SoundEngineUsers
     {
@@ -99,7 +102,8 @@ internal func acquireSoundEngine(kind = DriverKind.Default)->bool
     return true
 }
 
-internal func releaseSoundEngine()
+// Drops a reference taken by [[acquireSoundEngine]], destroying the engine with the last one when a viewer created it.
+func releaseSoundEngine()
 {
     if not g_SoundEngineUsers do
         return
@@ -110,7 +114,8 @@ internal func releaseSoundEngine()
     g_SoundViewerOwnsEngine = false
 }
 
-internal func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)->f32
+// Reads the PCM sample at `offset` as a level between -1 and 1, or 0 for an encoding that is not PCM.
+func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)->f32
 {
     switch encoding
     {
@@ -139,7 +144,8 @@ internal func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFile
     return 0
 }
 
-internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
+// Reduces an interleaved PCM payload to at most [[WaveformPointCount]] points, mixing its channels.
+func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
 {
     var result: retval
     if not bytes.count or not channels do
@@ -180,24 +186,26 @@ internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, c
     return result
 }
 
-internal func soundDurationText(seconds: f32)->String
+// Formats the length of a sound for the host summary: milliseconds below one second, seconds with two decimals from there on.
+func soundDurationText(seconds: f32)->String
 {
     if seconds < 1 do
         return Format.toString("% ms", cast(u32) Math.max(Math.round(seconds * 1000), 1))
     return Format.toString("%{f2} s", seconds)
 }
 
-internal struct SoundWaveformView
+// Plots the waveform of a sound above its time scale, the played part apart from the rest.
+struct SoundWaveformView
 {
     using wnd:  Wnd
     samples:    Array'WaveformPoint
-    readyCount: u64
+    readyCount: u64     // Points the builder has published so far.
     duration:   f32
-    progress:   f32
+    progress:   f32     // Played fraction, from 0 to 1.
 }
 
 // Reduces successive interleaved PCM16 chunks without retaining their borrowed storage.
-internal struct WaveformReducer
+struct WaveformReducer
 {
     points:       *Array'WaveformPoint
     frameCount:   u64
@@ -211,7 +219,7 @@ internal struct WaveformReducer
     readyCount:   u64
 }
 
-internal impl WaveformReducer
+impl WaveformReducer
 {
     mtd consume(samples: const [..] s16)
     {
@@ -251,7 +259,7 @@ internal impl WaveformReducer
 
 // Returns the interval a time scale is graduated at, so the marks land on numbers a reader
 // already thinks in rather than on an even division of whatever the duration happens to be.
-internal func waveformTickStep(duration: f32, plotWidth: f32)->f32
+func waveformTickStep(duration: f32, plotWidth: f32)->f32
 {
     const Steps: [14] f32 = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600]
 
@@ -264,7 +272,7 @@ internal func waveformTickStep(duration: f32, plotWidth: f32)->f32
 }
 
 // Formats one graduation of the time scale, in the shortest spelling its step allows.
-internal func waveformTickText(seconds, step: f32)->String
+func waveformTickText(seconds, step: f32)->String
 {
     if seconds >= 60
     {
@@ -297,11 +305,10 @@ private impl SoundWaveformView
         if .duration <= 0 do
             return
 
-        let resolved = .font().regular
-        if not resolved do
+        let font = .font().regular
+        if not font do
             return
 
-        let font    = resolved
         let colors  = .themeColors()
         let step    = waveformTickStep(.duration, plot.width)
         let baseY   = plot.bottom()
@@ -345,7 +352,7 @@ private impl IWnd for SoundWaveformView
 
         // The silence line is under the wave, and only shows where the wave has nothing to say.
         painter.drawLine(plot.x, center, plot.right(), center, colors.border, 1)
-        if not .samples.count do
+        if .samples.isEmpty() do
             return
 
         // The alternate theme tone gives the sound its own voice while the signature accent stays
@@ -397,7 +404,8 @@ private impl IWnd for SoundWaveformView
     }
 }
 
-internal struct SoundViewer
+// Plays a sound file over its waveform, with the transport in the host's command bar.
+struct SoundViewer
 {
     using wnd: Wnd
 
@@ -415,6 +423,7 @@ internal struct SoundViewer
         waveform:       *SoundWaveformView
     }
 
+    // Opening runs on a worker. `openState` is zero while opening, one on success and two on failure.
     sound:        SoundFile
     pendingSound: SoundFile
     openFileName: String
@@ -446,9 +455,9 @@ internal struct SoundViewer
     reportFinished:       Viewer.ReportFinished?
 }
 
-internal impl SoundViewer
+impl SoundViewer
 {
-    // Reports work whose result has not reached the waveform yet.
+    // Reports whether work remains whose result has not reached the waveform yet.
     mtd isLoading()->bool
     {
         if not .openFinished do
@@ -456,11 +465,12 @@ internal impl SoundViewer
         if not .waveformThread.isValid() do
             return false
 
-        .waveformLock.lock()
-        let built = .waveformBuilt
-        .waveformLock.unlock()
+        let built = .publishedWaveformCount()
         return not .waveformThread.isDone() or .waveform.readyCount < built
     }
+
+    // Reports whether the host should cover the view, which is until the sound has opened.
+    mtd needsLoadingOverlay()->bool => not .openFinished
 
     // Publishes the file opened by the worker and initializes playback on the GUI thread.
     mtd completeOpen() fail
@@ -485,8 +495,6 @@ internal impl SoundViewer
             .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))
         .startWaveform()
 
-        let durationText = soundDurationText(.duration)
-        .details     = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), durationText)
         .engineReady = acquireSoundEngine()
         if .engineReady do
             .playButton.enable(true)
@@ -495,13 +503,37 @@ internal impl SoundViewer
         .timeline.enable(.engineReady and .duration > 0)
         .muteButton.enable(.engineReady)
         .volumeSlider.enable(.engineReady)
-        .updatePlaybackUi()
+        .refreshTransport()
         if not .engineReady do
             .playButton.toolTip = soundStrings().ui_NoEngine
-        if .reportDetails do
-            .reportDetails(me, .details.toString())
+        .refreshDetails()
         if .reportLoadingChanged do
             .reportLoadingChanged(me)
+    }
+
+    // Rebuilds the host summary in the active language and reports it.
+    mtd refreshDetails()
+    {
+        .details = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), soundDurationText(.duration))
+        if .reportDetails do
+            .reportDetails(me, .details.toString())
+    }
+
+    mtd retranslate()
+    {
+        .playButton.toolTip     = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
+        .stopButton.toolTip     = soundStrings().ui_TipStop
+        .backwardButton.toolTip = soundStrings().ui_TipBackward
+        .forwardButton.toolTip  = soundStrings().ui_TipForward
+        .volumeSlider.toolTip   = soundStrings().ui_TipVolume
+        .muteButton.toolTip     = soundStrings().ui_TipMute
+        .timeline.toolTip       = soundStrings().ui_TipSeek
+        if not .openFinished or .openState != 1 do
+            return
+
+        if not .engineReady do
+            .playButton.toolTip = soundStrings().ui_NoEngine
+        .refreshDetails()
     }
 
     // Finishes teardown once neither worker can touch the sound or waveform storage.
@@ -516,7 +548,7 @@ internal impl SoundViewer
         .retired = true
     }
 
-    // Requests release without waiting on the GUI thread.
+    // Requests teardown without waiting on the GUI thread, and reports whether deferred GUI destruction may release this view.
     mtd retire()->bool
     {
         if .retired do
@@ -557,23 +589,34 @@ internal impl SoundViewer
         return true
     }
 
-    // Window destruction is the terminal fallback and may wait for both workers.
+    // Tears the view down for window destruction, which, unlike file selection, may wait for both workers.
     mtd retireBlocking()
     {
         discard .retire()
         .finishRetire()
     }
 
-    // Publishes a completed prefix. The worker never changes a published point, so the painter can
-    // read that prefix after taking this one synchronized count without copying the whole wave.
+    // Publishes the first `count` waveform points to the GUI thread.
+    //
+    // The worker never changes a published point, so the painter can read that prefix after taking
+    // this one synchronized count without copying the whole wave.
     mtd publishWaveform(count: u64)
     {
         Sync.scopedLock(&.waveformLock)
         .waveformBuilt = count
     }
 
-    // Decodes the sound independently from Voice streaming and reduces successive PCM16 chunks to
-    // a fixed visual budget. The callback never retains the decoder's borrowed storage.
+    // Returns how many waveform points the worker has published.
+    mtd publishedWaveformCount()->u64
+    {
+        Sync.scopedLock(&.waveformLock)
+        return .waveformBuilt
+    }
+
+    // Decodes the sound independently from voice streaming and reduces it to the waveform budget.
+    //
+    // Successive PCM16 chunks are reduced as they arrive; the callback never retains the decoder's
+    // borrowed storage.
     mtd buildWaveformInBackground(thread: Thread)
     {
         let frameCount = .sound.sampleFrameCount()
@@ -594,35 +637,31 @@ internal impl SoundViewer
         .publishWaveform(reducer.readyCount)
     }
 
+    // Starts the worker that reduces the sound to its waveform.
     mtd startWaveform()
     {
         let pointCount = Math.min(.sound.sampleFrameCount(), WaveformPointCount)
         if not pointCount do
             return
         .waveform.samples.resize(pointCount)
-        catch .waveformThread.init(func|view = me|(thread: Thread) { view.buildWaveformInBackground(thread); }, priority: .BelowNormal) as initError
+        catch .waveformThread.init(func|view = me|(thread: Thread) { view.buildWaveformInBackground(thread) }, priority: .BelowNormal) as initError
         if initError != null do
             return
         catch .waveformThread.start() as startError
-        if startError != null
-        {
+        if startError != null do
             .waveformThread.wait()
-            return
-        }
     }
 
     mtd syncWaveform()
     {
-        .waveformLock.lock()
-        let ready = .waveformBuilt
-        .waveformLock.unlock()
+        let ready = .publishedWaveformCount()
         if ready == .waveform.readyCount do
             return
         .waveform.readyCount = ready
         .waveform.invalidate()
     }
 
-    mtd updatePlaybackUi()
+    mtd refreshTransport()
     {
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
         .playButton.toolTip = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
@@ -654,7 +693,7 @@ internal impl SoundViewer
         if seekError != null do
             return
         .elapsed = target
-        .updatePlaybackUi()
+        .refreshTransport()
     }
 
     mtd seekRelative(seconds: f32)
@@ -681,9 +720,7 @@ internal impl SoundViewer
 
     mtd togglePlayback()
     {
-        if not .engineReady do
-            return
-        if not .ensureVoice() do
+        if not .engineReady or not .ensureVoice() do
             return
 
         if .playing
@@ -701,7 +738,7 @@ internal impl SoundViewer
             .playing = true
         }
 
-        .updatePlaybackUi()
+        .refreshTransport()
     }
 
     mtd stopPlayback()
@@ -715,7 +752,7 @@ internal impl SoundViewer
 
         .playing = false
         .elapsed = 0
-        .updatePlaybackUi()
+        .refreshTransport()
     }
 
     // Applies what the window's play mode calls for once the sound has been played through.
@@ -731,29 +768,12 @@ internal impl SoundViewer
     }
 }
 
-internal impl IWnd for SoundViewer
+impl IWnd for SoundViewer
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged
-        {
-            .playButton.toolTip     = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
-            .stopButton.toolTip     = soundStrings().ui_TipStop
-            .backwardButton.toolTip = soundStrings().ui_TipBackward
-            .forwardButton.toolTip  = soundStrings().ui_TipForward
-            .volumeSlider.toolTip   = soundStrings().ui_TipVolume
-            .muteButton.toolTip     = soundStrings().ui_TipMute
-            .timeline.toolTip       = soundStrings().ui_TipSeek
-            if .openFinished and .openState == 1
-            {
-                if not .engineReady do
-                    .playButton.toolTip = soundStrings().ui_NoEngine
-                .details = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), soundDurationText(.duration))
-                if .reportDetails do
-                    .reportDetails(me, .details.toString())
-            }
-        }
-
+        if evt.kind == .LanguageChanged do
+            .retranslate()
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
@@ -783,7 +803,7 @@ internal impl IWnd for SoundViewer
             return
         }
 
-        .updatePlaybackUi()
+        .refreshTransport()
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
@@ -812,8 +832,115 @@ internal impl IWnd for SoundViewer
     }
 }
 
-internal impl SoundViewer
+impl SoundViewer
 {
+    // Creates the transport in the command group: transport and seek buttons on the left, the
+    // sound controls and the clock on the right, and the timeline between them.
+    //
+    // Every control starts disabled; opening the sound enables what the engine can serve.
+    mtd createTransportBar()
+    {
+        let iconSize   = themeActionIconSize(.themeMetrics())
+        let buttonSize = themeActionButtonSize(.themeMetrics())
+
+        with .playButton = IconButton.create(.commands, .theme().icon(.Play, iconSize), {0, 0, buttonSize, buttonSize})
+        {
+            .dockStyle = .Left
+            .toolTip   = soundStrings().ui_TipPlay
+            .enable(false)
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.togglePlayback()
+            }
+        }
+
+        with .stopButton = IconButton.create(.commands, .theme().icon(.Stop, iconSize), {0, 0, buttonSize, buttonSize})
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = soundStrings().ui_TipStop
+            .enable(false)
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.stopPlayback()
+            }
+        }
+
+        with .backwardButton = IconButton.create(.commands, .theme().icon(.SeekBackward, iconSize), {0, 0, buttonSize, buttonSize})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = soundStrings().ui_TipBackward
+            .enable(false)
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.seekRelative(-SoundSeekSeconds)
+            }
+        }
+
+        with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = soundStrings().ui_TipForward
+            .enable(false)
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.seekRelative(SoundSeekSeconds)
+            }
+        }
+
+        with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
+        {
+            .dockStyle = .Right
+            .margin    = {8, 1, 0, 1}
+            .toolTip   = soundStrings().ui_TipVolume
+            .setBounds(0, 1, 0.05)
+            .setValueWithoutGesture(1)
+            .enable(false)
+            .sigChanged += func|view = me|(slider)
+            {
+                view.setVolume(slider.value())
+            }
+        }
+
+        with .muteButton = IconButton.create(.commands, .theme().icon(.Volume, iconSize), {0, 0, buttonSize, buttonSize}, flags: .Toggle)
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
+            .toolTip   = soundStrings().ui_TipMute
+            .setCheckIndicator(.Frame)
+            .enable(false)
+            .sigCheckedChanged += func|view = me|(button)
+            {
+                view.setMuted(button.isChecked)
+            }
+        }
+
+        with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
+            .setTextAlignment(.Right, .Center)
+        }
+
+        with .timeline = Slider.create(.commands, {0, 0, 0, 36})
+        {
+            .dockStyle    = .Center
+            .margin       = {12, 1, 12, 1}
+            .toolTip      = soundStrings().ui_TipSeek
+            .enable(false)
+            .sigEndChange += func|view = me|(slider)
+            {
+                view.seekSeconds(slider.value())
+            }
+        }
+    }
+
     func create(host: Viewer.Host)->*SoundViewer fail
     {
         let services    = host.services()
@@ -826,126 +953,32 @@ internal impl SoundViewer
             .reportLoadingChanged = services.reportLoadingChanged
         }
 
+        defer #fail result.destroy()
+
         result.commands = host.createCommandGroup(SoundCommandWidth)
-        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        result.createTransportBar()
+
+        with result.waveform = Wnd.create'SoundWaveformView(result, "scope.sound.waveform")
         {
-            .dockStyle = .Left
-            .toolTip   = soundStrings().ui_TipPlay
-            .enable(false)
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.togglePlayback()
-            }
+            .dockStyle       = .Center
+            .backgroundStyle = .View
         }
 
-        with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = soundStrings().ui_TipStop
-            .enable(false)
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.stopPlayback()
-            }
-        }
-
-        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = soundStrings().ui_TipBackward
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.seekRelative(-SoundSeekSeconds)
-            }
-        }
-
-        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = soundStrings().ui_TipForward
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.seekRelative(SoundSeekSeconds)
-            }
-        }
-
-        with result.volumeSlider = Slider.create(result.commands, {0, 0, 96, 36})
-        {
-            .dockStyle = .Right
-            .margin    = {8, 1, 0, 1}
-            .toolTip   = soundStrings().ui_TipVolume
-            .setBounds(0, 1, 0.05)
-            .setValueWithoutGesture(1)
-            .sigChanged += func|view = result|(slider)
-            {
-                view.setVolume(slider.value())
-            }
-        }
-
-        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
-        {
-            .dockStyle = .Right
-            .margin.x  = 8
-            .toolTip   = soundStrings().ui_TipMute
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|view = result|(button)
-            {
-                view.setMuted(button.isChecked)
-            }
-        }
-
-        with result.timeLabel = Label.create(result.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
-        {
-            .dockStyle = .Right
-            .margin.x  = 8
-            .setTextAlignment(.Right, .Center)
-        }
-
-        with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})
-        {
-            .dockStyle    = .Center
-            .margin       = {12, 1, 12, 1}
-            .toolTip      = soundStrings().ui_TipSeek
-            .sigEndChange += func|view = result|(slider)
-            {
-                view.seekSeconds(slider.value())
-            }
-        }
-
-        result.waveform = Wnd.create'SoundWaveformView(result, "scope.sound.waveform")
-        result.waveform.dockStyle       = .Center
-        result.waveform.backgroundStyle = .View
-
-        result.backwardButton.enable(false)
-        result.forwardButton.enable(false)
-        result.timeline.enable(false)
-        result.muteButton.enable(false)
-        result.volumeSlider.enable(false)
         result.timer = result.addTimer(33'ms)
-        result.updatePlaybackUi()
+        result.refreshTransport()
         result.applyLayout()
         result.setInitialFocus(result.playButton)
         result.openFileName = host.fileName()
-        defer #fail
-        {
-            result.destroy()
-        }
-
         try result.openThread.init(&runSoundViewerOpen, result, priority: .Normal)
         try result.openThread.start()
         return result
     }
 }
 
-// Opens and indexes the sound without occupying the GUI event loop. The default allocator makes
-// the owned packet table safe to publish to the GUI thread once loading completes.
+// Opens and indexes the sound without occupying the GUI event loop.
+//
+// The default allocator makes the owned packet table safe to publish to the GUI thread once
+// loading completes.
 private func runSoundViewerOpen(thread: Thread)
 {
     let view    = cast(*SoundViewer) thread.userParam!
@@ -965,22 +998,23 @@ private func runSoundViewerOpen(thread: Thread)
     Atomic.exchange(&view.openState, 1)
 }
 
-// Creates the integrated sound playback and waveform view.
+// Returns the created viewer as a nullable pointer, which gives `catch` a fallback value.
 private func loadSoundViewer(host: Viewer.Host)->*SoundViewer? fail => try SoundViewer.create(host)
 
+// Creates the integrated sound playback and waveform view and connects it to the host.
 func createSoundViewer(host: Viewer.Host)
 {
-    let view = catch loadSoundViewer(host) as decodeError
-    if decodeError != null
+    let view = catch loadSoundViewer(host) as createError
+    if createError != null
     {
-        host.reject(Errors.message(decodeError))
+        host.reject(Errors.message(createError))
         return
     }
 
     host.attachView(view!)
     host.setDetails(view.details.toString())
     host.setLifecycle({
-        retire: func(wnd)->bool { return (cast #assume (*SoundViewer) wnd).retire() },
-        isLoading: func(wnd)->bool { return (cast #assume (*SoundViewer) wnd).isLoading() },
-        needsLoadingOverlay: func(wnd)->bool { return not (cast #assume (*SoundViewer) wnd).openFinished }})
+        retire: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).retire(),
+        isLoading: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).isLoading(),
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*SoundViewer) wnd).needsLoadingOverlay()})
 }

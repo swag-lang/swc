@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -249,6 +250,20 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
             const SourceView& srcView = edgeSema->srcView(loc.codeRef.srcViewRef);
             diag.last().addSpan(srcView.tokenCodeRange(edgeSema->ctx(), loc.codeRef.tokRef), next->name(*ctx_), DiagnosticSeverity::Note);
         }
+    }
+
+    // A function whose return type comes from its '=>' body closes the cycle by itself when that
+    // body calls an overload of the same name: the overload set is only complete once this
+    // function is typed. Say so, since an explicit return type is the whole repair.
+    for (const Symbol* sym : cycle)
+    {
+        const auto* functionDecl = sym->isFunction() && sym->decl() ? sym->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!functionDecl || !functionDecl->hasFlag(AstFunctionFlagsE::Short) || functionDecl->nodeReturnTypeRef.isValid())
+            continue;
+
+        diag.addNote(DiagnosticId::sema_note_cyclic_inferred_return);
+        diag.last().addArgument(Diagnostic::ARG_TOK, sym->name(*ctx_));
+        break;
     }
 
     diag.report(*ctx_);

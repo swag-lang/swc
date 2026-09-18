@@ -201,10 +201,7 @@ impl BaseForm
         }
     }
 
-    mtd rectFormBound()->Math.Rectangle
-    {
-        return Math.Rectangle{.x, .y, .w, .h}
-    }
+    mtd rectFormBound()->Math.Rectangle => Math.Rectangle{.x, .y, .w, .h}
 
     // PixSel forms share one look: an almost transparent fill and a thin dashed
     // outline, widened when hit-testing so the outline stays clickable.

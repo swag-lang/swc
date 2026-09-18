@@ -78,7 +78,7 @@ struct Watcher
 {
     public readonly
     {
-        root:    String           // Normalized directory whose changes are reported.
+        root:    String           // Absolute directory whose changes are reported.
         options: WatchOptions     // Scope, filter, and buffer policy fixed at creation.
     }
 
@@ -86,11 +86,7 @@ struct Watcher
 }
 
 // Starts watching `root` with the default options.
-func watch(root: string)->Watcher fail
-{
-    var options: WatchOptions
-    return try watch(root, options)
-}
+func watch(root: string)->Watcher fail => try watch(root, WatchOptions{})
 
 // Starts watching `root` with an explicit scope and notification policy.
 func watch(root: string, options: WatchOptions)->Watcher fail
@@ -107,7 +103,7 @@ func watch(root: string, options: WatchOptions)->Watcher fail
 
 impl Watcher
 {
-    // Releases the watcher and cancels an outstanding read. Repeated calls do nothing.
+    // Releases the watcher and cancels an outstanding read; repeated calls do nothing.
     mtd close()
     {
         .closeNative()

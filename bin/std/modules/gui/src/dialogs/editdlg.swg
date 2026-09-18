@@ -29,6 +29,9 @@ public struct EditDlgOptions
 public impl EditDlg
 {
     // Creates a single-line text prompt, centered on its owner.
+    //
+    // Run it with [[Gui.Dialog.doModal]]; when the result is `Dialog.BtnOk`, read the answer with
+    // [[Gui.EditDlg.text]].
     #[Swag.Discardable]
     func createSingleLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
@@ -37,8 +40,7 @@ public impl EditDlg
         let srf = dlg.createSurface(from, 0, 0, 450, 210)
         srf.setTitle(options.title)
 
-        dlg.edit = EditBox.create(dlg.createContentView(), "")
-        with dlg.edit
+        with dlg.edit = EditBox.create(dlg.createContentView(), "")
         {
             .dockStyle = .Bottom
             .setFocus()
@@ -62,8 +64,7 @@ public impl EditDlg
         srf.setTitle(options.title)
         srf.minSize.x = 500
 
-        dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), {0, 0, 0, options.editorHeight})
-        with dlg.richEdit
+        with dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), {0, 0, 0, options.editorHeight})
         {
             .anchorStyle = .Height
             .dockStyle   = .Bottom
@@ -152,10 +153,8 @@ public impl EditDlg
         let edit = .edit
         if edit do
             edit.setText(text)
-        else
-        {
+        else do
             .richEdit!.setText(text)
-        }
     }
 
     // Returns a copy of the editor contents.
@@ -175,7 +174,7 @@ public impl EditDlg
     mtd setMessage(message: string, height: s32 = 40)
     {
         Swag.assert(height > 0, "message height must be positive")
-        if not (.label != null)
+        if .label == null
         {
             Swag.assert(.surface != null)
             .label = Label.create(.contentView!, message, {0, 0, 0, height}, flags: .WordWrap | .SecondaryText)

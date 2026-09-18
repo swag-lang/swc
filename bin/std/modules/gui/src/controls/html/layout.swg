@@ -124,7 +124,7 @@ impl HtmlLayout
         elif style.italic do
             face = .Italic
 
-        let result = style.fontFamily == .Mono ? .theme.createDefaultFontFS(size, face) :
+        let result = style.fontFamily == .Mono ? .theme.createDefaultFontFs(size, face) :
                      style.fontFamily == .Cjk ? .theme.createCjkFont(size, face) :
                      .theme.createDefaultFont(size, face)
         if .fontCache.count < .styles.count do
@@ -962,7 +962,7 @@ impl HtmlLayout
             return true
         if style.overflowY != .Visible or style.position == .Absolute or style.position == .Fixed do
             return true
-        return .boxes[box].items.count != 0
+        return not .boxes[box].items.isEmpty()
     }
 
     private mtd const sealsBottomMargin(box: u32, containingWidth: f32)->bool
@@ -978,7 +978,7 @@ impl HtmlLayout
             return true
         if not style.height.isAuto() do
             return true
-        return .boxes[box].items.count != 0
+        return not .boxes[box].items.isEmpty()
     }
 
     // Returns the top margin a box exposes, after the margins of its first children have
@@ -1655,10 +1655,7 @@ impl HtmlLayout
     }
 
     // Returns the room a line box starting at `y` has between the floats.
-    private mtd const lineBand(contentX, contentWidth, y: f32)->{ left: f32, right: f32 }
-    {
-        return .floatBandRange(contentX, contentWidth, y, y + 1)
-    }
+    private mtd const lineBand(contentX, contentWidth, y: f32)->{ left: f32, right: f32 } => .floatBandRange(contentX, contentWidth, y, y + 1)
 
     // Returns the position just below the floats a `clear` names.
     private mtd const clearY(y: f32, clearLeft, clearRight: bool)->f32
@@ -2393,7 +2390,7 @@ private impl HtmlLayout
             fractions.add(0)
         }
 
-        let gaps = columnGap * cast(f32) (widths.count > 0 ? widths.count - 1 : 0)
+        let gaps = columnGap * cast(f32) (not widths.isEmpty() ? widths.count - 1 : 0)
         let free = Math.max(contentWidth - fixed - gaps, 0)
         if flex > 0
         {

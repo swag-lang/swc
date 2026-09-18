@@ -29,11 +29,6 @@ impl Scc.ICodec for ReverseSccCodec
 
 func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
 
-func sameSccBytes(left, right: const [..] u8)->bool
-{
-    return left.count == right.count and (not left.count or Swag.memcmp(left.buffer, right.buffer, left.count) == 0)
-}
-
 // The header and one selected chunk are sufficient; unrelated payload corruption is lazy.
 #test
 {
@@ -82,7 +77,7 @@ func sameSccBytes(left, right: const [..] u8)->bool
     var reader: Scc.Reader
     expect reader.initialize(path)
     var preview = expect reader.readChunk(previewId)
-    Swag.assert(sameSccBytes(preview.toSlice(), "small preview"))
+    Swag.assert(Slice.equals(preview.toSlice(), "small preview"))
     discard catch reader.readChunk(imageId) as damagedError
     Swag.assert(damagedError != null)
 }
@@ -114,8 +109,8 @@ func sameSccBytes(left, right: const [..] u8)->bool
 
     let customBytes  = expect reader.readChunk(customId)
     let deflateBytes = expect reader.readChunk(deflateId)
-    Swag.assert(sameSccBytes(customBytes.toSlice(), "custom codec"))
-    Swag.assert(sameSccBytes(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
+    Swag.assert(Slice.equals(customBytes.toSlice(), "custom codec"))
+    Swag.assert(Slice.equals(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
 }
 
 // Header limits are enforced before the decoder allocates attacker-controlled sizes.
@@ -211,5 +206,5 @@ func sameSccBytes(left, right: const [..] u8)->bool
     discard catch writer.saveAtomic(path) as invalid
     Swag.assert(invalid != null)
     let bytes = expect File.readAllBytes(path)
-    Swag.assert(sameSccBytes(bytes.toSlice(), "keep me"))
+    Swag.assert(Slice.equals(bytes.toSlice(), "keep me"))
 }

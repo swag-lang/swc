@@ -2,10 +2,11 @@
 
 using Core, Pixel
 
-// Per-item validation state for the property grid, in increasing severity. A field can be
-// flagged Info/Warning/Error (e.g. a value out of range, an empty required string); the
-// row then shows an accent bar and a badge in the state color, with the message in a
-// tooltip. Mirrors the validation feedback of the Unity/Unreal inspectors.
+// Selects the validation state of a property grid row, in increasing severity.
+//
+// A field can be flagged `Info`, `Warning`, or `Error`, for example for a value out of range or
+// an empty required string. The row then shows an accent bar and a badge in the state color,
+// with the message in a tooltip.
 enum PropValidation
 {
     None        // Reports no validation issue.
@@ -14,7 +15,7 @@ enum PropValidation
     Error       // Reports an invalid value.
 }
 
-// Returns one validation severity and its optional user-facing explanation.
+// Carries one validation severity and its optional user-facing explanation.
 struct PropValidationResult
 {
     public
@@ -125,7 +126,7 @@ internal impl Properties
     // stay vertically centered together — see applyValidationVisual for the icon/colors.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
-        if item.validation == .None or not (item.validationLabel != null) do
+        if item.validation == .None or item.validationLabel == null do
             return
         let lbl = item.validationLabel
         if not lbl.isVisible() do
@@ -144,7 +145,7 @@ internal impl Properties
     // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
     mtd applyValidationVisual(item: *PropertiesItem)
     {
-        if not (item.validationLabel != null) or item.validation == .None do
+        if item.validationLabel == null or item.validation == .None do
             return
         let lbl = item.validationLabel
         lbl.setIcon(.validationIcon(item.validation))
@@ -159,7 +160,7 @@ internal impl Properties
     // styles, so a note built under one theme would otherwise keep stale colors under the next.
     mtd applyNoteVisual(item: *PropertiesItem)
     {
-        if not (item.label != null) do
+        if item.label == null do
             return
         let lbl = item.label
         lbl.setIcon(.theme().icon(.Information, .valBarIconSize))
@@ -244,7 +245,7 @@ private impl Properties
 
         if state == .None
         {
-            if (item.validationLabel != null) and item.validationLabel.isVisible() do
+            if item.validationLabel != null and item.validationLabel.isVisible() do
                 item.validationLabel.show(false)
         }
         else

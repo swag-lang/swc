@@ -112,7 +112,7 @@ func delayTestViewerRetirement(wnd: *Wnd)->bool
 // that band therefore has two possible answers unless it waits here.
 func completeViewerStatistics(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
-    let view = cast #assume (*TextView) window.currentView!
+    let view = cast #assume (*TextViewer) window.currentView!
     while not Atomic.get(&view.statisticsState) do
         host.pump()
     if view.statisticsTimer do
@@ -134,7 +134,7 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 
     Swag.assert(window.searchTimer == null)
     if window.currentView and window.activeChoiceIndex < window.choices.count and window.choices[window.activeChoiceIndex].key == TextViewerKey do
-        completeTextReads(host, cast #assume (*TextView) window.currentView)
+        completeTextReads(host, cast #assume (*TextViewer) window.currentView)
 }
 
 func createSidePanelFixture(host: Viewer.Host)
@@ -219,22 +219,21 @@ func createSidePanelFixture(host: Viewer.Host)
 
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_text_stream_%.txt", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-text-stream-", ".txt")
     defer discard catch File.delete(fileName)
 
     let fixture = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
     var source  = expect File.readAllText(fixture)
     for 2_000 do
         source += "A source line that stays readable while the rest remains on disk.\n"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view          = cast #assume (*TextView) viewerSession.view!
+    let view          = cast #assume (*TextViewer) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
 
@@ -276,7 +275,7 @@ func createSidePanelFixture(host: Viewer.Host)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName.toString(), commandParent: commands)
-    let view          = cast #assume (*TextView) viewerSession.view!
+    let view          = cast #assume (*TextViewer) viewerSession.view!
     while not Atomic.get(&view.statisticsState) do
         host.pump()
     if view.statisticsTimer do
@@ -345,8 +344,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let wideFile = writeTempFile("utf16.txt", utf16.toSlice())
     defer discard catch File.delete(wideFile.toString())
 
-    Swag.assert(TextView.supports(wideFile.toString()))
-    let probed = TextView.probe(wideFile.toString())
+    Swag.assert(TextViewer.supports(wideFile.toString()))
+    let probed = TextViewer.probe(wideFile.toString())
     Swag.assert(probed.encoding == .Utf16Le and probed.contentStart == 2 and probed.accepted)
 
     var host: Testing.HeadlessHost
@@ -354,7 +353,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, wideFile.toString(), commandParent: commands)
-    let view          = cast #assume (*TextView) viewerSession.view!
+    let view          = cast #assume (*TextViewer) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
 
@@ -372,14 +371,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let file = writeTempFile("cp1252.txt", latin)
     defer discard catch File.delete(file.toString())
 
-    Swag.assert(TextView.probe(file.toString()).encoding == .Windows1252)
+    Swag.assert(TextViewer.probe(file.toString()).encoding == .Windows1252)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, file.toString(), commandParent: commands)
-    let view          = cast #assume (*TextView) viewerSession.view!
+    let view          = cast #assume (*TextViewer) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
     Swag.assert(view.editor.text() == "café naïve\n")
@@ -409,7 +408,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, file.toString(), commandParent: commands)
-    let view          = cast #assume (*TextView) viewerSession.view!
+    let view          = cast #assume (*TextViewer) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
 
@@ -430,7 +429,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         binary.add(cast(u8) ((i * 7) & 0xFF))
     let file = writeTempFile("binary.bin", binary.toSlice())
     defer discard catch File.delete(file.toString())
-    Swag.assert(not TextView.supports(file.toString()))
+    Swag.assert(not TextViewer.supports(file.toString()))
 }
 
 // The panel lists what is beside the current file and what was read before it, and a row opens
@@ -446,7 +445,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for i in 3'u32
     {
         let one = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
-        discard expect File.writeAllBytes(one.toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllText(one.toString(), "a readable line\n")
         names.add(one)
     }
 
@@ -527,7 +526,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         let folder = Path.combine(root.toString(), Format.toString("folder%", i).toString())
         expect Directory.create(folder.toString())
         let fileName = Path.combine(folder.toString(), "document.txt")
-        discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllText(fileName.toString(), "a readable line\n")
         files.add(fileName)
     }
 
@@ -638,7 +637,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for i in 3'u32
     {
         let one = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
-        discard expect File.writeAllBytes(one.toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllText(one.toString(), "a readable line\n")
         names.add(one)
     }
 
@@ -700,7 +699,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for i in 3'u32
     {
         let one = Path.combine(folder.toString(), Format.toString("file%.txt", i).toString())
-        discard expect File.writeAllBytes(one.toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllText(one.toString(), "a readable line\n")
         names.add(one)
     }
 
@@ -775,7 +774,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let first  = Path.combine(folder.toString(), "notes.txt")
     let second = Path.combine(folder.toString(), "other.txt")
     for one in [first, second] do
-        discard expect File.writeAllBytes(one[].toString(), cast(const [..] u8) "a readable line\n")
+        discard expect File.writeAllText(one[].toString(), "a readable line\n")
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -859,22 +858,21 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // paints, and exercises complete keyboard navigation through the real focused editor.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_large_scroll_%.txt", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-large-scroll-", ".txt")
     defer discard catch File.delete(fileName)
 
     var source: String
     for 70_000 do
         source += "A large source line keeps the virtual scrollbar stable between frames.\n"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view          = cast #assume (*TextView) viewerSession.view!
+    let view          = cast #assume (*TextViewer) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
     discard host.render(view)
@@ -933,22 +931,21 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // snapping back to the resident window it replaced.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_text_scrub_%.txt", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-text-scrub-", ".txt")
     defer discard catch File.delete(fileName)
 
     var source: String
     for index in 70_000 do
         source += Format.toString("Distinct streamed line % keeps scrollbar seeks observable.\n", index)
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(textViewerPlugin(), &host.root, fileName, commandParent: commands)
-    let view          = cast #assume (*TextView) viewerSession.view!
+    let view          = cast #assume (*TextViewer) viewerSession.view!
     view.resize(800, 520)
     view.applyLayout()
     discard host.render(view)
@@ -1100,8 +1097,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // resident text window without losing the virtual scroll range.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_large_search_%.txt", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-large-search-", ".txt")
     defer discard catch File.delete(fileName)
 
     let query  = "marker across boundary"
@@ -1115,7 +1111,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for 32_000 do
         source += "\nThe rest of the large document stays searchable."
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
@@ -1131,7 +1127,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchMatch == target)
     Swag.assert(window.searchMatches.count == 1 and window.searchIndex == 0)
     Swag.assert(window.searchCountLabel.text() == "1/1")
-    let textView = cast #assume (*TextView) window.currentView!
+    let textView = cast #assume (*TextViewer) window.currentView!
     Swag.assert(textView.editor.selectedText() == query)
     Swag.assert(textView.bytesRead < textView.fileSize)
     discard host.render(textView)
@@ -1205,7 +1201,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     discard host.render(window)
     host.fireTimers()
     Swag.assert(window.searchOverlay.isLocallyVisible())
-    let basic = cast #assume (*TextView) window.currentView!
+    let basic = cast #assume (*TextViewer) window.currentView!
     Swag.assert(basic.editor.selectedText() == "Cat")
     var matchBounds: Math.Rectangle
     Swag.assert(textSearchBounds(basic, window.searchMatches[window.searchIndex], &matchBounds))
@@ -1257,7 +1253,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchBox.setText(null)
     Swag.assert(not (window.searchBox.text()).count)
     Swag.assert(not (window.searchCountLabel.text()).count and not window.searchOverlay.isLocallyVisible())
-    Swag.assert((cast #assume (*TextView) window.currentView).editor.isSelectionEmpty())
+    Swag.assert((cast #assume (*TextViewer) window.currentView).editor.isSelectionEmpty())
 }
 
 // Search navigation over a streamed Markdown file materializes every distant occurrence in both
@@ -1820,11 +1816,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_cached_view_%.txt", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-cached-view-", ".txt")
     defer discard catch File.delete(fileName)
     let source = "cached text"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer, source.count))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
@@ -1836,7 +1831,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
 
-    let textView = cast #assume (*TextView) window.currentView!
+    let textView = cast #assume (*TextViewer) window.currentView!
     textView.setInitialFocus(textView.editor)
     Swag.assert(textView.editor.hasFocus())
     var comboPoint = window.viewerCombo.surfaceRect().center()
@@ -1863,16 +1858,15 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // This is the path exercised by quickly moving from one file to the next in the sibling browser.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let firstFile     = Path.combine(tempDirectory.toString(), Format.toString("scope_switch_first_%.txt", Guid64.random()).toString())
-    let secondFile    = Path.combine(tempDirectory.toString(), Format.toString("scope_switch_second_%.txt", Guid64.random()).toString())
+    let firstFile = Gui.Testing.tempFilePath("scope-switch-first-", ".txt")
+    let secondFile = Gui.Testing.tempFilePath("scope-switch-second-", ".txt")
     defer discard catch File.delete(firstFile)
     defer discard catch File.delete(secondFile)
 
     var source: String
     for 2_000 do
         source += "A streamed document keeps loading while another file is selected.\n"
-    let bytes = Swag.makeSlice(cast(const [*] u8) source.storage(), source.length)
+    let bytes = source.bytes()
     discard expect File.writeAllBytes(firstFile, bytes)
     discard expect File.writeAllBytes(secondFile, bytes)
 
@@ -1887,7 +1881,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.choiceLoad.task.wait()
     host.fireTimer(window.startupTimer)
 
-    let discardedView  = cast #assume (*TextView) window.currentView!
+    let discardedView  = cast #assume (*TextViewer) window.currentView!
     let discardedTimer = discardedView.loadTimer!
     window.openFile(secondFile)
     host.fireTimer(window.startupTimer)
@@ -2174,7 +2168,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "t1.txt").toString(), cast(const [..] u8) "a readable line\n")
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "t2.txt").toString(), cast(const [..] u8) "a readable line\n")
     let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
-    let imageBytes  = Swag.makeSlice(cast(const [*] u8) imageSource.storage(), imageSource.length)
+    let imageBytes  = imageSource.bytes()
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "pic1.svg").toString(), imageBytes)
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "pic2.svg").toString(), imageBytes)
 
@@ -2190,7 +2184,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // arrow reaches the editor instead of walking the folder, and the keyboard follows it.
     window.openFile(Path.combine(folder.toString(), "t1.txt").toString())
     completeQueuedViewerFile(&host, window)
-    let textView = cast #assume (*TextView) window.currentView!
+    let textView = cast #assume (*TextViewer) window.currentView!
     window.openButton.setFocus()
     Swag.assert(not textView.editor.hasFocus())
     host.keyPress(Input.Key.Right)
@@ -2213,7 +2207,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("%_%", stem, Guid64.random()).toString())
     expect Directory.create(folder.toString())
     let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
-    let imageBytes  = Swag.makeSlice(cast(const [*] u8) imageSource.storage(), imageSource.length)
+    let imageBytes  = imageSource.bytes()
     for name in names do
         discard expect File.writeAllBytes(Path.combine(folder.toString(), name).toString(), imageBytes)
     return folder

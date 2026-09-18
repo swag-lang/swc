@@ -1,12 +1,14 @@
 using Core
 
+// One run of consecutive file blocks stored in consecutive container blocks.
 struct BlockMapping
 {
-    logical:  u64
-    physical: u64
-    count:    u64
+    logical:  u64     // First block of the run, counted from the start of the file.
+    physical: u64     // Container block that holds it.
+    count:    u64     // Number of blocks in the run.
 }
 
+// One file or directory of the volume namespace, with the block map of its contents.
 struct Node
 {
     id:             u64
@@ -26,6 +28,8 @@ impl Node
 {
     mtd const isDirectory()->bool => (.attributes & FileAttributeDirectory) != 0
 
+    // Returns the index of the first mapping that ends after `logical`, and whether that mapping
+    // contains it. When it does not, `index` is where a mapping for `logical` would be inserted.
     mtd blockSearch(logical: u64)->{found: bool, index: u64}
     {
         var low  = 0'u64
@@ -47,7 +51,7 @@ impl Node
     {
         if not mapping.count do
             return
-        if .blocks.count
+        if not .blocks.isEmpty()
         {
             let previous = .blocks.backPtr()
             if previous.logical + previous.count == mapping.logical and previous.physical + previous.count == mapping.physical
@@ -122,7 +126,7 @@ impl Node
             let logical  = try reader.readLittleEndian'u64()
             let physical = try reader.readLittleEndian'u64()
             let count    = try reader.readLittleEndian'u64()
-            if not count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped or logical > Swag.U64.Max - count or (result.blocks.count and logical < previousLogical) do
+            if not count or physical >= blockCount or count > blockCount - physical or count > blockCount - mapped or logical > Swag.U64.Max - count or (not result.blocks.isEmpty() and logical < previousLogical) do
                 try failWith("A block run falls outside the container.", .Corrupted)
 
             result.appendMapping({logical, physical, count})

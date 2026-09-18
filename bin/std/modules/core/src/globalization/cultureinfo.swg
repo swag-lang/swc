@@ -4,7 +4,7 @@ using Swag
 
 // Groups the conventions used to format, compare, and inflect text for one locale.
 //
-// Values returned by [[CultureInfo.fromName]] own their locale name and can be copied
+// Values returned by [[Core.Globalization.CultureInfo.fromName]] own their locale name and can be copied
 // freely. An unrecognized locale receives invariant English conventions while retaining
 // its requested name.
 public struct CultureInfo
@@ -25,21 +25,12 @@ public impl CultureInfo
         let name = .name.toString()
         if name.count < language.count do
             return false
-        if Utf8.compare(Swag.makeSlice(name.buffer, language.count), Swag.makeSlice(language.buffer, language.count), .Latin1NoCase) != 0 do
+        if Utf8.compare(cast(const [..] u8) name[until language.count], cast(const [..] u8) language, .Latin1NoCase) != 0 do
             return false
         return name.count == language.count or name[language.count] == '-'
     }
 
-    internal mtd const isNamed(locale: string)->bool
-    {
-        return Utf8.compare(.name.toSlice(), Swag.makeSlice(locale.buffer, locale.count), .Latin1NoCase) == 0
-    }
-
-    internal func englishDateTime()->DateTimeFormatInfo
-    {
-        var result: retval
-        return result
-    }
+    internal mtd const isNamed(locale: string)->bool => Utf8.compare(.name.toSlice(), cast(const [..] u8) locale, .Latin1NoCase) == 0
 
     // Creates formatting and language rules for a BCP 47 locale name.
     //
@@ -48,10 +39,9 @@ public impl CultureInfo
     // use invariant English display data and the general plural rules.
     func fromName(name: string)->CultureInfo
     {
+        // The defaults of every format are the invariant English conventions.
         var result: retval
         result.name = name
-        result.dateTimeFormat        = CultureInfo.englishDateTime()
-        result.currencyFormat.symbol = "$"
 
         if result.isNamed("en-GB")
         {
@@ -258,7 +248,7 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(Swag.makeSlice(value.buffer, value.count))
+        Utf8.visitRunes(cast(const [..] u8) value)
         {
             if turkic and c == 'i' do
                 result.append(0x0130)
@@ -278,7 +268,7 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(Swag.makeSlice(value.buffer, value.count))
+        Utf8.visitRunes(cast(const [..] u8) value)
         {
             if turkic and c == 'I' do
                 result.append(0x0131)
@@ -296,7 +286,7 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(Swag.makeSlice(value.buffer, value.count))
+        Utf8.visitRunes(cast(const [..] u8) value)
         {
             if c == 0x00DF do
                 result.append("ss")
@@ -319,10 +309,9 @@ public impl CultureInfo
     // independently of the source string.
     mtd const sortKey(value: string, ignoreCase = false)->String
     {
-        let source      = ignoreCase ? .caseFold(value) : String.from(value)
+        let source = ignoreCase ? .caseFold(value) : String.from(value)
         var result: retval
-        let sourceSlice = source.toSlice()
-        Utf8.visitRunes(sourceSlice)
+        Utf8.visitRunes(source.toSlice())
         {
             var handled = false
             if .isLanguage("de")
@@ -395,14 +384,14 @@ public impl CultureInfo
         let primary  = Utf8.compare(leftKey.toSlice(), rightKey.toSlice(), .Unicode)
         if primary do
             return primary
-        return Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), ignoreCase ? .UnicodeNoCase : .Unicode)
+        return Utf8.compare(cast(const [..] u8) left, cast(const [..] u8) right, ignoreCase ? .UnicodeNoCase : .Unicode)
     }
 }
 
 var g_CultureInfo: CultureInfo
 var g_CultureInfoInitialized: bool
 
-// Returns the mutable process-wide culture settings.
+// Returns the mutable process-wide culture settings, initialized to `en-US` on first use.
 public func currentCulture()->*CultureInfo
 {
     if not g_CultureInfoInitialized

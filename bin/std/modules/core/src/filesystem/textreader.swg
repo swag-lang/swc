@@ -1,75 +1,51 @@
 #global namespace File
 
-// Text encoding formats supported for reading text files
-public enum TextEncoding
-{
-    Ascii     // ASCII encoding
-    Utf8      // UTF-8 encoding
-}
-
-// Reads a text file through an owned, buffered [[Core.File.FileStream]].
+// Reads a UTF-8 text file through an owned, buffered [[Core.File.FileStream]].
+//
+// A byte-order mark at the start of the file is skipped.
 public struct TextReader
 {
     internal
     {
-        stream:        FileStream            // Owned file stream.
-        buffer:        Array'u8              // Buffered encoded bytes.
-        encodingType = TextEncoding.Utf8     // Selected source encoding.
-        byteSeek:      u64                   // Current byte offset in the buffer.
-        bufferSize:    u64                   // Target buffer capacity.
-        checkPreamble: bool                  // Whether the first read must inspect a UTF-8 BOM.
+        stream:        FileStream     // Owned file stream.
+        buffer:        Array'u8       // Bytes read from the stream and not yet consumed.
+        byteSeek:      u64            // Offset of the first unconsumed byte in `buffer`.
+        checkPreamble: bool           // Whether the next refill is the first one, which may start with a byte-order mark.
     }
 }
 
 impl TextReader
 {
+    // Refills the buffer from the stream and skips a byte-order mark on the first refill.
     mtd readBuffer() fail
     {
-        .byteSeek = 0
-
-        // First init. Fill force 4 bytes of the decode buffer to be 0 to
-        // read the BOM
-        if .checkPreamble
-        {
-            .checkPreamble = false
-            .buffer.reserve(.bufferSize)
-
-            if .encodingType == .Utf8
-            {
-                let buffer = .buffer.storage()
-                (cast(*u32) buffer)[] = 0
-                .buffer.count         = try .stream.read(buffer, .buffer.capacity)
-
-                // BOM
-                if .buffer.count >= 3 and .buffer[0] == 0xEF and .buffer[1] == 0xBB and .buffer[2] == 0xBF do
-                    .byteSeek = 3
-
-                return
-            }
-        }
-
+        .byteSeek     = 0
         .buffer.count = try .stream.read(.buffer.buffer, .buffer.capacity)
+        if not .checkPreamble do
+            return
+
+        .checkPreamble = false
+        if Text.hasBom(.buffer.toSlice(), .Utf8) do
+            .byteSeek = Text.bomLength(.Utf8)
     }
 }
 
 public impl TextReader
 {
-    // Opens the reader with the specified text encoding (default is UTF-8)
-    mtd open(fullname: string, encoding = TextEncoding.Utf8) fail
+    // Opens `fullName` for reading.
+    mtd open(fullName: string) fail
     {
         Swag.assert(not .stream.isOpen())
+        .stream = try openRead(fullName)
 
-        .stream = try openRead(fullname)
-        Swag.assert(.stream.isOpen())
-
+        // Small files are read in one refill; large ones through a 64 KiB window.
+        .buffer.clear()
+        .buffer.reserve(Math.clamp(try .stream.size(), 16'u64, 64 * 1024'u64))
         .byteSeek      = 0
         .checkPreamble = true
-        .bufferSize    = Math.min(try .stream.size(), 64 * 1024'u64)
-        .bufferSize    = Math.max(.bufferSize, 16)
-        .encodingType  = encoding
     }
 
-    // Closes the reader and the associated stream
+    // Closes the reader and its stream.
     mtd close()
     {
         .stream.close()
@@ -97,7 +73,7 @@ public impl TextReader
             let ptrB = ptr
             let ptrE = .buffer.buffer + .buffer.count
 
-            // u64 by u64
+            // Scan eight bytes at a time for a line ending, then finish byte by byte.
             while ptr + 8'u64 <= ptrE
             {
                 let c64 = (cast(const *u64) ptr)[]
@@ -106,15 +82,13 @@ public impl TextReader
                 ptr += 8
             }
 
-            // u8 by u8
             while ptr != ptrE and ptr[] != '\r' and ptr[] != '\n' do
                 ptr += 1
 
             let range = cast(u64) (ptr - ptrB)
             result[] += Swag.makeString(ptrB, range)
 
-            // We have reached the end of the buffer without finding an eol
-            // Restart
+            // The line continues in the next refill; at end of file it ends here.
             if ptr == ptrE
             {
                 try .readBuffer()
@@ -123,10 +97,10 @@ public impl TextReader
                 continue
             }
 
-            // + 1 because we eat the eol
+            // Consume the line ending too.
             .byteSeek += range + 1
 
-            // If we have a '\r', then eat the following '\n' if it exists
+            // A '\r' followed by '\n' is one line ending, even when a refill separates them.
             if ptr[] == '\r'
             {
                 if ptr + 1'u64 < ptrE
@@ -148,23 +122,14 @@ public impl TextReader
         return true
     }
 
-    // Reads from the current position to the end as UTF-8 text.
+    // Reads from the current position to the end of the file.
     mtd readToEnd()->String fail
     {
         var result: retval
+        if .byteSeek == .buffer.count do
+            try .readBuffer()
 
-        // Append what remains valid in the current decoded buffer
-        if .byteSeek < .buffer.count
-        {
-            let remain = .buffer.count - .byteSeek
-            result.grow(result.length + remain)
-            Memory.copy(result.buffer + result.length, .buffer.buffer + .byteSeek, remain)
-            result.length += remain
-        }
-
-        // Then read and append all the rest
-        try .readBuffer()
-        while .buffer.count
+        while .byteSeek < .buffer.count
         {
             let remain = .buffer.count - .byteSeek
             result.grow(result.length + remain)

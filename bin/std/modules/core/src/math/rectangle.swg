@@ -1,17 +1,20 @@
 #global public
 #global namespace Math
 
-// A simple rectangle struct with position and dimensions.
-// Represents an axis-aligned rectangle using top-left position and width/height dimensions.
+// Stores an axis-aligned rectangle as its top-left corner and its size.
+//
+// Y grows downward: `y` is the top edge and [[Core.Math.Rectangle.bottom]] is `y + height`. A
+// rectangle is normalized when neither dimension is negative, which most operations assume;
+// [[Core.Math.Rectangle.normalize]] restores it.
 #[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct Rectangle
 {
     public
     {
-        x:      f32     // Left position
-        y:      f32     // Top position
-        width:  f32     // Rectangle width
-        height: f32     // Rectangle height
+        x:      f32     // Left edge
+        y:      f32     // Top edge
+        width:  f32     // Horizontal size
+        height: f32     // Vertical size
     }
 }
 
@@ -19,16 +22,18 @@ impl Rectangle
 {
     const Zero = Rectangle{0, 0, 0, 0}     // Rectangle with all coordinates set to zero
 
-    // Scale the rectangle by a scalar value.
-    // Multiplies all components (position and dimensions) by the given 'value'.
+    // Returns this rectangle with its position and size multiplied by `value`.
+    //
+    // This scales the rectangle about the origin, like [[Core.Math.Rectangle.scaledFromOrigin]].
     mtd(op: Swag.Operator) const opBinary(value: f32)->Rectangle
         where op == .Mul
     {
         return {.x * value, .y * value, .width * value, .height * value}
     }
 
-    // Initialize the rectangle using two corner points.
-    // Automatically handles the case where points are not in top-left/bottom-right order.
+    // Sets this rectangle to the one spanned by two opposite corners.
+    //
+    // The corners may come in any order: the result is always normalized.
     mtd set(topLeft, bottomRight: Math.Point)
     {
         .x      = Math.min(topLeft.x, bottomRight.x)
@@ -37,144 +42,116 @@ impl Rectangle
         .height = Math.abs(bottomRight.y - topLeft.y)
     }
 
-    // Get the horizontal center coordinate.
-    // Calculated as x + width / 2.
+    // Returns the horizontal coordinate of the center.
     #[Swag.Inline]
-    mtd const horzCenter()->f32
-    {
-        return .x + (.width * 0.5)
-    }
+    mtd const horzCenter()->f32 => .x + (.width * 0.5)
 
-    // Get the vertical center coordinate.
-    // Calculated as y + height / 2.
+    // Returns the vertical coordinate of the center.
     #[Swag.Inline]
-    mtd const vertCenter()->f32
-    {
-        return .y + (.height * 0.5)
-    }
+    mtd const vertCenter()->f32 => .y + (.height * 0.5)
 
-    // Get the center point of the rectangle.
-    // Returns a Point containing the horizontal and vertical center coordinates.
-    mtd const center()->Point
-    {
-        return Point{.horzCenter(), .vertCenter()}
-    }
+    // Returns the center point.
+    mtd const center()->Point => Point{.horzCenter(), .vertCenter()}
 
-    // Get the right edge coordinate.
-    // Calculated as x + width.
+    // Returns the coordinate of the right edge, `x + width`.
     #[Swag.Inline]
-    mtd const right()->f32
-    {
-        return .x + .width
-    }
+    mtd const right()->f32 => .x + .width
 
-    // Set the right edge coordinate by adjusting the width.
-    // Modifies 'width' to make the right edge equal to 'value'.
+    // Moves the right edge to `value` by changing the width, keeping the left edge in place.
     #[Swag.Inline]
     mtd setRight(value: f32)
     {
         .width = value - .x
     }
 
-    // Get the bottom edge coordinate.
-    // Calculated as y + height.
+    // Returns the coordinate of the bottom edge, `y + height`.
     #[Swag.Inline]
-    mtd const bottom()->f32
-    {
-        return .y + .height
-    }
+    mtd const bottom()->f32 => .y + .height
 
-    // Set the bottom edge coordinate by adjusting the height.
-    // Modifies 'height' to make the bottom edge equal to 'value'.
+    // Moves the bottom edge to `value` by changing the height, keeping the top edge in place.
     #[Swag.Inline]
     mtd setBottom(value: f32)
     {
         .height = value - .y
     }
 
-    // Move the left edge inward by the specified amount.
-    // Increases 'x' and decreases 'width' by 'value', effectively shrinking from the left.
+    // Moves the left edge right by `value`, keeping the right edge in place.
+    //
+    // A positive `value` shrinks the rectangle and a negative one grows it.
     mtd moveLeft(value: f32)
     {
         .x     += value
         .width -= value
     }
 
-    // Extend the right edge outward by the specified amount.
-    // Increases 'width' by 'value', extending the rectangle to the right.
+    // Moves the right edge right by `value`, keeping the left edge in place.
+    //
+    // A positive `value` grows the rectangle and a negative one shrinks it.
     mtd moveRight(value: f32)
     {
         .width += value
     }
 
-    // Move the top edge downward by the specified amount.
-    // Increases 'y' and decreases 'height' by 'value', effectively shrinking from the top.
+    // Moves the top edge down by `value`, keeping the bottom edge in place.
+    //
+    // A positive `value` shrinks the rectangle and a negative one grows it.
     mtd moveTop(value: f32)
     {
         .y      += value
         .height -= value
     }
 
-    // Extend the bottom edge downward by the specified amount.
-    // Increases 'height' by 'value', extending the rectangle downward.
+    // Moves the bottom edge down by `value`, keeping the top edge in place.
+    //
+    // A positive `value` grows the rectangle and a negative one shrinks it.
     mtd moveBottom(value: f32)
     {
         .height += value
     }
 
-    // Set all rectangle components to zero.
-    // Equivalent to assigning the 'Zero' constant but modifies the current instance.
+    // Sets the position and the size to zero.
     mtd clear()
     {
         .x, .y, .width, .height = 0
     }
 
-    // Returns true if all rectangle components are exactly zero.
-    // Performs exact floating-point comparison, which may not work well with computed values.
-    mtd const isZero()->bool
-    {
-        return .x == 0 and .y == 0 and .width == 0 and .height == 0
-    }
+    // Returns whether the position and the size are all exactly zero.
+    //
+    // Use [[Core.Math.Rectangle.isZeroEpsilon]] for computed values.
+    mtd const isZero()->bool => .x == 0 and .y == 0 and .width == 0 and .height == 0
 
-    // Returns true if the rectangle has zero area.
-    // A rectangle is empty if either width or height is zero.
-    mtd const isEmpty()->bool
-    {
-        return .width == 0 or .height == 0
-    }
+    // Returns whether the width or the height is exactly zero.
+    //
+    // A rectangle with a negative dimension is not empty; normalize it first when that matters.
+    mtd const isEmpty()->bool => .width == 0 or .height == 0
 
-    // Returns true if the rectangle has non-negative dimensions.
-    // A normalized rectangle has width and height greater than or equal to zero.
-    mtd const isNormalized()->bool
-    {
-        return .width >= 0 and .height >= 0
-    }
+    // Returns whether neither the width nor the height is negative.
+    mtd const isNormalized()->bool => .width >= 0 and .height >= 0
 
-    // Offset the rectangle position by the same amount in both directions.
-    // Adds 'offsetXY' to both x and y coordinates without changing dimensions.
+    // Moves the rectangle by `offsetXY` along both axes, keeping its size.
     mtd offset(offsetXY: f32)
     {
         .x, .y += offsetXY
     }
 
-    // Offset the rectangle position by separate x and y amounts.
-    // Adds 'offsetX' to x coordinate and 'offsetY' to y coordinate.
+    // Moves the rectangle by `offsetX` horizontally and `offsetY` vertically, keeping its size.
     mtd offset(offsetX, offsetY: f32)
     {
         .x += offsetX
         .y += offsetY
     }
 
-    // Offset the rectangle position by a point vector.
-    // Adds the point's x and y components to the rectangle's position.
+    // Moves the rectangle by the components of `offset`, keeping its size.
     mtd offset(offset: Math.Point)
     {
         .x += offset.x
         .y += offset.y
     }
 
-    // Apply padding to all sides of the rectangle.
-    // Uses Vector4 components as left, top, right, bottom padding values respectively.
+    // Shrinks the rectangle by a separate padding on each side.
+    //
+    // The components of `padding` are the left, top, right, and bottom paddings, in that order.
+    // Negative paddings grow the rectangle instead.
     mtd applyPadding(padding: Math.Vector4)
     {
         .x      += padding.x
@@ -183,31 +160,28 @@ impl Rectangle
         .height -= (padding.y + padding.w)
     }
 
-    // Scale the rectangle dimensions uniformly.
-    // Multiplies both width and height by 'value' without changing position.
+    // Multiplies the width and the height by `value`, keeping the top-left corner in place.
     mtd scale(value: f32)
     {
         .width, .height *= value
     }
 
-    // Scale the rectangle dimensions independently.
-    // Multiplies width by 'x' and height by 'y' without changing position.
-    func scale(me, x, y: f32)
+    // Multiplies the width by `x` and the height by `y`, keeping the top-left corner in place.
+    mtd scale(x, y: f32)
     {
         .width  *= x
         .height *= y
     }
 
-    // Return the rectangle mapped through a uniform scale about the origin.
-    // Position and dimensions are all multiplied by 'value'; useful to address a
-    // proportionally scaled grid, such as a texture atlas built at another density.
-    mtd const scaledFromOrigin(value: f32)->Rectangle
-    {
-        return Rectangle{.x * value, .y * value, .width * value, .height * value}
-    }
+    // Returns this rectangle scaled by `value` about the origin.
+    //
+    // The position and the size are all multiplied by `value`, which is how a rectangle addresses
+    // a proportionally scaled grid, such as a texture atlas built at another density.
+    mtd const scaledFromOrigin(value: f32)->Rectangle => Rectangle{.x * value, .y * value, .width * value, .height * value}
 
-    // Inflate the rectangle uniformly in all directions.
-    // Expands the rectangle by 'value' on all sides, moving position and increasing dimensions.
+    // Grows the rectangle by `value` on every side, keeping its center in place.
+    //
+    // A negative `value` shrinks it.
     mtd inflate(value: f32)
     {
         .x      -= value
@@ -216,9 +190,10 @@ impl Rectangle
         .height += value * 2
     }
 
-    // Inflate the rectangle by different amounts horizontally and vertically.
-    // Expands by 'x' horizontally and 'y' vertically on all sides.
-    func inflate(me, x, y: f32)
+    // Grows the rectangle by `x` on the left and right sides and by `y` on the top and bottom sides.
+    //
+    // The center stays in place, and negative amounts shrink the rectangle.
+    mtd inflate(x, y: f32)
     {
         .x      -= x
         .y      -= y
@@ -226,16 +201,13 @@ impl Rectangle
         .height += y * 2
     }
 
-    // Returns true if all rectangle components are zero within epsilon tolerance.
-    // Uses 'eps' parameter to handle floating-point precision issues.
+    // Returns whether the position and the size are all closer to zero than `eps`.
     mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.x, eps) and isZeroEpsilon(.y, eps) and isZeroEpsilon(.width, eps) and isZeroEpsilon(.height, eps)
 
-    // Returns true if the rectangle has zero area within epsilon tolerance.
-    // Checks if either width or height is zero within the specified tolerance.
+    // Returns whether the width or the height is closer to zero than `eps`.
     mtd const isEmptyEpsilon(eps = ConstF32.Epsilon)->bool => isZeroEpsilon(.width, eps) or isZeroEpsilon(.height, eps)
 
-    // Returns true if this rectangle equals 'other' within epsilon tolerance.
-    // Compares all four components separately using the specified 'eps' tolerance.
+    // Returns whether the position and the size are each closer than `eps` to those of `other`.
     mtd const isEqualEpsilon(other: Rectangle, eps = ConstF32.Epsilon)->bool
     {
         return isEqualEpsilon(.x, other.x, eps) and
@@ -244,8 +216,10 @@ impl Rectangle
                isEqualEpsilon(.height, other.height, eps)
     }
 
-    // Round all rectangle components to the nearest integer values.
-    // Applies 'Math.round' function to position and dimension components in-place.
+    // Rounds the position and the size to the nearest integer values in place.
+    //
+    // A value halfway between two integers rounds away from zero. The edges are not rounded
+    // themselves, so the right edge can move by up to one unit.
     mtd round()
     {
         .x      = Math.round(.x)
@@ -254,8 +228,7 @@ impl Rectangle
         .height = Math.round(.height)
     }
 
-    // Truncate all rectangle components to integer values.
-    // Applies 'Math.trunc' function to all components, removing fractional parts.
+    // Rounds the position and the size toward zero in place.
     mtd trunc()
     {
         .x      = Math.trunc(.x)
@@ -264,8 +237,7 @@ impl Rectangle
         .height = Math.trunc(.height)
     }
 
-    // Round all rectangle components up to the next integer values.
-    // Applies 'Math.ceil' function to all components in-place.
+    // Rounds the position and the size up to integer values in place.
     mtd ceil()
     {
         .x      = Math.ceil(.x)
@@ -274,34 +246,34 @@ impl Rectangle
         .height = Math.ceil(.height)
     }
 
-    // Test if the specified coordinates are contained within the rectangle.
-    // Uses half-open interval [x, x+width) × [y, y+height) for containment test.
-    func contains(const me, x, y: f32)->bool
-    {
-        return (x >= .x and x < .x + .width) and (y >= .y and y < .y + .height)
-    }
+    // Returns whether the point (`x`, `y`) lies inside the rectangle.
+    //
+    // The left and top edges are inside and the right and bottom edges are outside, so
+    // rectangles that tile a surface never both contain a point on their shared edge. An empty
+    // rectangle contains no point.
+    mtd const contains(x, y: f32)->bool => (x >= .x and x < .x + .width) and (y >= .y and y < .y + .height)
 
-    // Test if the specified point is contained within the rectangle.
-    // Delegates to the coordinate-based 'contains' method.
+    // Returns whether `pt` lies inside the rectangle, with the edge rules of the coordinate form.
     mtd const contains(pt: Point)->bool => .contains(pt.x, pt.y)
 
-    // Test if the specified rectangle is entirely contained within this rectangle.
-    // Returns true only if 'rect' is completely inside the bounds of this rectangle.
-    mtd const contains(rect: Rectangle)->bool
-    {
-        return (rect.x >= .x and rect.right() <= .right()) and (rect.y >= .y and rect.bottom() <= .bottom())
-    }
+    // Returns whether `rect` lies entirely inside this rectangle.
+    //
+    // Shared edges count as inside, so a rectangle contains itself.
+    mtd const contains(rect: Rectangle)->bool => (rect.x >= .x and rect.right() <= .right()) and (rect.y >= .y and rect.bottom() <= .bottom())
 
-    // Intersect this rectangle with another rectangle in-place.
-    // Modifies this rectangle to contain only the overlapping area with 'other'.
+    // Replaces this rectangle with its intersection with `other`.
+    //
+    // It becomes [[Core.Math.Rectangle.Zero]] when the two do not overlap.
     mtd intersect(other: Rectangle)
     {
         let current: Rectangle = me
         me[] = intersect(current, other)
     }
 
-    // Create a rectangle representing the intersection of two rectangles.
-    // Returns the overlapping area between 'a' and 'b', or 'Zero' if no intersection exists.
+    // Returns the overlapping area of `a` and `b`.
+    //
+    // The result is [[Core.Math.Rectangle.Zero]] when the overlap has no area, which includes
+    // rectangles that only share an edge.
     func intersect(a, b: Rectangle)->Rectangle
     {
         let x1 = max(a.x, b.x)
@@ -313,23 +285,23 @@ impl Rectangle
         return Zero
     }
 
-    // Test if this rectangle intersects with another rectangle.
-    // Returns true if there is any overlap between the two rectangles.
-    mtd const intersects(rect: Rectangle)->bool
-    {
-        return (rect.x < .right()) and (.x < rect.right()) and (rect.y < .bottom()) and (.y < rect.bottom())
-    }
+    // Returns whether this rectangle and `rect` overlap.
+    //
+    // Rectangles that only share an edge do not intersect.
+    mtd const intersects(rect: Rectangle)->bool => (rect.x < .right()) and (.x < rect.right()) and (rect.y < .bottom()) and (.y < rect.bottom())
 
-    // Set this rectangle to the union with another rectangle.
-    // Modifies this rectangle to be the smallest rectangle containing both this and 'other'.
+    // Replaces this rectangle with the smallest one containing both it and `other`.
+    //
+    // Like [[Core.Math.Rectangle.combined]], an empty rectangle still extends the result to its position.
     mtd combine(other: Rectangle)
     {
         let current: Rectangle = me
         me[] = combined(current, other)
     }
 
-    // Create a rectangle representing the union of two rectangles.
-    // Returns the smallest rectangle that completely contains both 'a' and 'b'.
+    // Returns the smallest rectangle containing both `a` and `b`.
+    //
+    // An empty rectangle is not ignored: its position still extends the result.
     func combined(a, b: Rectangle)->Rectangle
     {
         let x1 = min(a.x, b.x)
@@ -339,24 +311,17 @@ impl Rectangle
         return Rectangle{x1, y1, x2 - x1, y2 - y1}
     }
 
-    // Get the area of the rectangle.
-    // Calculated as width × height, may be negative for non-normalized rectangles.
+    // Returns the area, `width * height`.
+    //
+    // It is negative when exactly one dimension is negative.
     #[Swag.Inline]
-    mtd const area()->f32
-    {
-        return .width * .height
-    }
+    mtd const area()->f32 => .width * .height
 
-    // Get the perimeter of the rectangle.
-    // Calculated as 2 × (width + height).
+    // Returns the perimeter, `2 * (width + height)`.
     #[Swag.Inline]
-    mtd const perimeter()->f32
-    {
-        return 2.0 * (.width + .height)
-    }
+    mtd const perimeter()->f32 => 2.0 * (.width + .height)
 
-    // Get the aspect ratio of the rectangle.
-    // Returns width / height, or 0 if height is zero.
+    // Returns the aspect ratio, `width / height`, or 0 when the height is zero.
     mtd const aspectRatio()->f32
     {
         if .height == 0 do
@@ -364,8 +329,9 @@ impl Rectangle
         return .width / .height
     }
 
-    // Normalize the rectangle to ensure positive width and height.
-    // Adjusts position and dimensions if width or height are negative.
+    // Makes the width and the height non-negative in place, covering the same area.
+    //
+    // A negative dimension moves the matching edge to the other side of the rectangle.
     mtd normalize()
     {
         if .width < 0
@@ -381,8 +347,7 @@ impl Rectangle
         }
     }
 
-    // Get a normalized copy of the rectangle.
-    // Returns a new rectangle with positive width and height without modifying the original.
+    // Returns this rectangle with a non-negative width and height, covering the same area.
     mtd const normalized()->Rectangle
     {
         var result: retval = me
@@ -390,63 +355,39 @@ impl Rectangle
         return result
     }
 
-    // Get the top-left corner point.
-    // Returns a Point containing the x and y coordinates.
+    // Returns the top-left corner.
     #[Swag.Inline]
-    mtd const topLeft()->Point
-    {
-        return Point{.x, .y}
-    }
+    mtd const topLeft()->Point => Point{.x, .y}
 
-    // Get the top-right corner point.
-    // Returns a Point at (x + width, y).
+    // Returns the top-right corner.
     #[Swag.Inline]
-    mtd const topRight()->Point
-    {
-        return Point{.x + .width, .y}
-    }
+    mtd const topRight()->Point => Point{.x + .width, .y}
 
-    // Get the bottom-left corner point.
-    // Returns a Point at (x, y + height).
+    // Returns the bottom-left corner.
     #[Swag.Inline]
-    mtd const bottomLeft()->Point
-    {
-        return Point{.x, .y + .height}
-    }
+    mtd const bottomLeft()->Point => Point{.x, .y + .height}
 
-    // Get the bottom-right corner point.
-    // Returns a Point at (x + width, y + height).
+    // Returns the bottom-right corner.
     #[Swag.Inline]
-    mtd const bottomRight()->Point
-    {
-        return Point{.x + .width, .y + .height}
-    }
+    mtd const bottomRight()->Point => Point{.x + .width, .y + .height}
 
-    // Get the size of the rectangle as a point.
-    // Returns a Point containing width and height values.
+    // Returns the width and the height as a point.
     #[Swag.Inline]
-    mtd const size()->Point
-    {
-        return Point{.width, .height}
-    }
+    mtd const size()->Point => Point{.width, .height}
 
-    // Set the size of the rectangle.
-    // Modifies width and height without changing position.
+    // Sets the width and the height from `newSize`, keeping the top-left corner in place.
     mtd setSize(newSize: Point)
     {
         .width  = newSize.x
         .height = newSize.y
     }
 
-    // Clamp a point to be within the rectangle bounds.
-    // Returns the closest point inside or on the rectangle boundary.
-    mtd const clampPoint(pt: Point)->Point
-    {
-        return Point{Math.clamp(pt.x, .x, .x + .width), Math.clamp(pt.y, .y, .y + .height)}
-    }
+    // Returns the point of the rectangle closest to `pt`, edges included.
+    //
+    // A point inside is returned unchanged. The rectangle must be normalized.
+    mtd const clampPoint(pt: Point)->Point => Point{Math.clamp(pt.x, .x, .x + .width), Math.clamp(pt.y, .y, .y + .height)}
 
-    // Get the distance from a point to the rectangle.
-    // Returns 0 if the point is inside the rectangle, otherwise returns the shortest distance to the boundary.
+    // Returns the distance from `pt` to the rectangle, or 0 when the point is inside or on an edge.
     mtd const distanceToPoint(pt: Point)->f32
     {
         let clamped = .clampPoint(pt)
@@ -455,8 +396,9 @@ impl Rectangle
         return Math.sqrt(dx * dx + dy * dy)
     }
 
-    // Fit this rectangle within bounds while maintaining aspect ratio.
-    // Scales the rectangle to fit inside 'bounds' without distortion.
+    // Scales this rectangle to the largest size that fits in `bounds`, keeping its aspect ratio, then centers it there.
+    //
+    // A rectangle with a zero width or height has no aspect ratio and is left unchanged.
     mtd fitWithin(bounds: Rectangle)
     {
         if .width == 0 or .height == 0 do
@@ -472,8 +414,9 @@ impl Rectangle
         .y      = bounds.y + (bounds.height - .height) * 0.5
     }
 
-    // Create a rectangle that fits within bounds while maintaining aspect ratio.
-    // Returns a new rectangle scaled to fit inside 'bounds' without distortion.
+    // Returns `rect` scaled to the largest size that fits in `bounds`, keeping its aspect ratio, and centered there.
+    //
+    // This is the value form of [[Core.Math.Rectangle.fitWithin]].
     func fittedWithin(rect: Rectangle, bounds: Rectangle)->Rectangle
     {
         var result = rect
@@ -481,8 +424,7 @@ impl Rectangle
         return result
     }
 
-    // Expand the rectangle to include a point.
-    // Grows the rectangle if necessary to contain the specified point.
+    // Grows the rectangle just enough to contain `pt`.
     mtd expandToInclude(pt: Point)
     {
         let right     = .x + .width
@@ -498,8 +440,7 @@ impl Rectangle
         .height = newBottom - newTop
     }
 
-    // Expand the rectangle to include another rectangle.
-    // Grows the rectangle if necessary to contain the entire specified rectangle.
+    // Grows the rectangle just enough to contain `other`.
     mtd expandToInclude(other: Rectangle)
     {
         .expandToInclude(other.topLeft())

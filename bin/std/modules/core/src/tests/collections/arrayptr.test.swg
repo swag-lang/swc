@@ -81,8 +81,8 @@ impl ApTracked
     mtd opPostCopy() {}
 }
 
-// getFirst/getLast, indexOf/contains, insertNewPtr, and the delete* helpers (which must
-// deallocate the pointed-to object, verified via opDrop).
+// first/last, indexOf/contains, insertNew, and the delete* helpers, which must delete the
+// pointed-to object, as opDrop verifies.
 #test
 {
     g_ApDropCount = 0
@@ -125,7 +125,7 @@ impl ApTracked
     let b1 = arr[1]!
     Swag.assert(b0.id == 3 and b1.id == 2)
 
-    // insertNewPtr allocates and inserts at the index.
+    // insertNew allocates and inserts at the index.
     let ins = arr.insertNew(1)
     ins.id = 99
     Swag.assert(arr.count == 3)

@@ -11,10 +11,9 @@ const StreamedFileSize = HexWindowSize * 32 + 1234'u64
 // the checkout gave it, which moves every offset an assertion names.
 func writeSampleFile()->String
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("viewer_hex_sample_%.bin", Guid64.random()).toString())
-    let content       = "Swag Scope hex fixture\nASCII text and symbols: 00 FF 42.\n"
-    discard expect File.writeAllBytes(fileName.toString(), Swag.makeSlice(cast(const [*] u8) content.buffer, content.count))
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-sample-", ".bin")
+    let content  = "Swag Scope hex fixture\nASCII text and symbols: 00 FF 42.\n"
+    discard expect File.writeAllText(fileName, content)
     return fileName
 }
 
@@ -22,14 +21,13 @@ func writeSampleFile()->String
 // assertion about a distant byte states an exact expected value.
 func writeStreamedFile(size: u64)->String
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("viewer_hex_stream_%.bin", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-stream-", ".bin")
 
     var payload: Array'u8
     payload.resize(size)
     for index in size do
         payload[index] = cast(u8) (index & 0xFF)
-    discard expect File.writeAllBytes(fileName.toString(), payload.toSlice())
+    discard expect File.writeAllBytes(fileName, payload.toSlice())
     return fileName
 }
 
@@ -41,19 +39,17 @@ func writePreviewFile()->String
 
     var payload: Array'u8
     let header = "Swag Scope hex preview"
-    for index in header.count do
-        payload.add(header[index])
+    payload.add(cast(const [..] u8) header)
     for 42 do
         payload.add(0)
     for index in 64 do
         payload.add(cast(u8) (0xC0 + index % 0x40))
     let text = "name=value; the text column stays readable"
-    for index in text.count do
-        payload.add(text[index])
+    payload.add(cast(const [..] u8) text)
     for index in 128 do
         payload.add(index % 3 == 0 ? 0'u8 : cast(u8) ((index * 7) & 0xFF))
 
-    discard expect File.writeAllBytes(fileName.toString(), payload.toSlice())
+    discard expect File.writeAllBytes(fileName, payload.toSlice())
     return fileName
 }
 
@@ -99,6 +95,18 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 }
 
+// Switches `window` to the hexadecimal viewer, and returns it once its document is open.
+func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*HexViewer
+{
+    var hexIndex = Swag.U32.Max
+    for choice, index in window.choices where choice.key == "hex" do
+        hexIndex = cast(u32) index
+    Swag.assert(hexIndex != Swag.U32.Max)
+    window.selectViewer(hexIndex)
+    completeHexViewerOpen(host, window)
+    return cast #assume (*HexViewer) window.currentView!
+}
+
 func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 {
     var steps = 0'u32
@@ -130,13 +138,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(4096)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setGrouping(.Unsigned32)
     Swag.assert(grid.valueSize() == 4 and grid.displayGroupSize() == 4)
@@ -320,14 +328,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeHexViewerOpen(&host, window)
-
-    var hexIndex = Swag.U32.Max
-    for choice, index in window.choices where choice.key == "hex" do
-        hexIndex = cast(u32) index
-    Swag.assert(hexIndex != Swag.U32.Max)
-    window.selectViewer(hexIndex)
-    completeHexViewerOpen(&host, window)
-    let view = cast #assume (*HexViewer) window.currentView!
+    let view = selectHexViewer(&host, window)
 
     window.searchBox.setText("DE AD ?E EF")
     completeHexViewerSearch(&host, window)
@@ -375,7 +376,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writePreviewFile()
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(1_100, 700)
@@ -390,16 +391,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     // the right edge of that information panel.
     let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.openFile(fileName.toString())
+    window.openFile(fileName)
     completeHexViewerOpen(&host, window)
-
-    var hexIndex = Swag.U32.Max
-    for choice, index in window.choices where choice.key == "hex" do
-        hexIndex = cast(u32) index
-    Swag.assert(hexIndex != Swag.U32.Max)
-    window.selectViewer(hexIndex)
-    completeHexViewerOpen(&host, window)
-    let view = cast #assume (*HexViewer) window.currentView!
+    let view = selectHexViewer(&host, window)
     Swag.assert(window.currentInfo != null)
     Swag.assert(view.analysisButton.position.x - window.currentInfo.position.right() == ViewerInfoSideButtonSpacing)
 
@@ -452,13 +446,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(StreamedFileSize)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
     let allocator = Swag.defaultAllocator()
     let baseline  = allocator.stats()
 
     var doc: HexDocument
     defer doc.close()
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     Swag.assert(doc.fileSize == StreamedFileSize)
 
@@ -500,13 +494,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(StreamedFileSize)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.grid.doc.fileSize == StreamedFileSize)
     Swag.assert(view.grid.topRow == 0 and view.grid.caret == 0)
     discard host.render(view)
@@ -533,13 +527,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(StreamedFileSize)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     let span = grid.scroll.scrollSize.y
 
@@ -558,13 +552,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(4096)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     let wide = grid.bytesPerRow
     Swag.assert(wide >= HexMinBytesPerRow and wide % grid.valueSize() == 0)
@@ -599,13 +593,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(4096)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
 
@@ -619,16 +613,15 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 // Byte order is an action-bar option and immediately changes multi-byte decoding.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("viewer_hex_values_%.bin", Guid64.random()).toString())
-    defer discard catch File.delete(fileName.toString())
-    discard expect File.writeAllBytes(fileName.toString(), [0x78'u8, 0x56'u8, 0x34'u8, 0x12'u8, 0'u8, 0'u8, 0'u8, 0x80'u8, 0x41'u8])
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-values-", ".bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, [0x78'u8, 0x56'u8, 0x34'u8, 0x12'u8, 0'u8, 0'u8, 0'u8, 0x80'u8, 0x41'u8])
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.byteOrderCombo.selectedIndex == 0)
     Swag.assert(not view.grid.bigEndian)
 
@@ -653,13 +646,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
         return
 
     let fileName = writeStreamedFile(4096)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
     grid.moveCaret(0x41, false)
@@ -696,13 +689,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(4096)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
 
     host.clickPopupMenuItemWhenShown(ActionHex.SelectAll)
@@ -743,13 +736,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeSampleFile()
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view     = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view     = createTestViewer(&host, fileName, 900, 560)
     var revealed = view.revealOffset(11, 5)
     Swag.assert(revealed)
     Swag.assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
@@ -768,13 +761,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeSampleFile()
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.doc.fileSize = 0x1_0000_1234
     grid.refreshLayout()
@@ -796,11 +789,11 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeSampleFile()
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var doc: HexDocument
     defer doc.close()
-    let documentOpened = doc.open(fileName.toString())
+    let documentOpened = doc.open(fileName)
     Swag.assert(documentOpened)
     doc.fileSize += 4096
     Swag.assert(not doc.ensure(0, doc.fileSize))
@@ -814,13 +807,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(4096)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
     let point = grid.localToSurface(Math.Point{grid.hexCellX(2) + 1, grid.rowTop(0) + 2})
@@ -844,13 +837,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeStreamedFile(4096)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600, dpiScale: 1.5)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
     let row    = 2'u64
@@ -866,7 +859,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 {
     let fileName = Gui.Testing.tempFilePath("scope-hex-empty-", ".bin")
     defer discard catch File.delete(fileName)
-    expect File.writeAllBytes(fileName, cast(const [..] u8) "")
+    expect File.writeAllText(fileName, "")
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
@@ -899,13 +892,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
         return
 
     let fileName = writeStreamedFile(HexCopyLimit + 37)
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.selectAll()
 
@@ -921,13 +914,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writeSampleFile()
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.commands.position.width <= 640)
     Swag.assert(view.byteOrderCombo.parent == view.commands and view.byteOrderCombo.selectedIndex == 0)
     Swag.assert(view.rowWidthCombo.parent == view.commands and view.rowWidthCombo.selectedIndex == 0)
@@ -955,7 +948,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 #test
 {
     let fileName = writePreviewFile()
-    defer discard catch File.delete(fileName.toString())
+    defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
     host.setup(860, 460)
@@ -965,7 +958,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let view = createTestViewer(&host, fileName.toString(), 860, 460)
+    let view = createTestViewer(&host, fileName, 860, 460)
     view.grid.setBytesPerRow(16, false)
     view.grid.moveCaret(0x80, false)
     view.grid.moveCaret(0x89, true)

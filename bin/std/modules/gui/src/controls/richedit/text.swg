@@ -65,7 +65,7 @@ impl RichEditCtrl
                 {
                     let pchar  = line.chars.storage()
                     let pstyle = line.styles.storage()
-                    for var i = 0; i < end.charPosInLine; i += 1
+                    for i in end.charPosInLine
                     {
                         result.text.add(pchar[i])
                         result.styles.add(pstyle[i])
@@ -147,7 +147,7 @@ impl RichEditCtrl
 
     mtd wrap(lineIndex: u64)
     {
-        if not (.flags & .WordWrap) do
+        if not .flags.has(.WordWrap) do
             return
 
         if not .font().getFont(.styles[0].fontMode) do
@@ -246,7 +246,7 @@ impl RichEditCtrl
             cp.lineIndex     += 1
             cp.charPosInLine = 0
         }
-        elif c == '\t' and (.flags & .TabToSpaces)
+        elif c == '\t' and .flags.has(.TabToSpaces)
         {
             let line = .lines[cp.lineIndex]!
             for .tabSize
@@ -406,10 +406,7 @@ impl RichEditCtrl
         .recomputeScroll = true
     }
 
-    func isWord(c: rune)->bool
-    {
-        return Unicode.isLetterOrDigit(c) or c == '_'
-    }
+    func isWord(c: rune)->bool => Unicode.isLetterOrDigit(c) or c == '_'
 
     func zapWordChar(c: rune)->bool
     {
@@ -425,7 +422,7 @@ impl RichEditCtrl
 
 public impl RichEditCtrl
 {
-    // Clear content
+    // Removes the whole document, its undo history, and the selection.
     mtd clear()
     {
         .clearUndo()
@@ -486,7 +483,7 @@ public impl RichEditCtrl
         .invalidate()
     }
 
-    // Append a text with a given style
+    // Appends `text` at the end of the document with the style index `txtStyle`, without recording an undo step.
     mtd addText(text: string, txtStyle: RichEditStyleRef = 0)
     {
         var cp: RichEditCursor
@@ -546,7 +543,10 @@ public impl RichEditCtrl
         return false
     }
 
-    // Insert a text with a given style
+    // Inserts `text` at the caret with style index zero.
+    //
+    // Call it between [[Gui.RichEditCtrl.pushUndo]] and [[Gui.RichEditCtrl.popUndo]], which
+    // commit the undo record it prepares.
     mtd insertText(text: string)
     {
         let undo = Memory.new'RichEditUndo()
@@ -564,7 +564,7 @@ public impl RichEditCtrl
         .setModified(true)
     }
 
-    // Insert a text with a style per character
+    // Inserts `text` at the caret with one style index per rune from `txtStyles`.
     mtd insertText(text: string, txtStyles: Array'u8)
     {
         let undo = Memory.new'RichEditUndo()
@@ -598,7 +598,7 @@ public impl RichEditCtrl
         return result
     }
 
-    // Insert a rune
+    // Types `ch` at the caret, replacing the selection, as one undoable step with the runes typed next to it.
     mtd insertRune(ch: rune)
     {
         let c = ch
@@ -724,10 +724,11 @@ public impl RichEditCtrl
         .setModified(true)
     }
 
-    // Insert text at the start of each selected line
+    // Inserts `txt` at the start of each selected line, as one undoable step.
     mtd insertBegLine(txt: string)
     {
-        var first = true
+        var first       = true
+        let insertedLen = Utf8.countRunes(cast(const [..] u8) txt)
 
         var beg = .selectionStart()
         let end = .selectionEnd()
@@ -754,9 +755,9 @@ public impl RichEditCtrl
             .popUndo()
 
             if beg.lineIndex == savepos0.lineIndex and savepos0.charPosInLine do
-                savepos0.charPosInLine += 1
+                savepos0.charPosInLine += insertedLen
             if beg.lineIndex == savepos1.lineIndex and savepos1.charPosInLine do
-                savepos1.charPosInLine += 1
+                savepos1.charPosInLine += insertedLen
 
             beg.lineIndex += 1
             first         = false
@@ -777,10 +778,13 @@ public impl RichEditCtrl
         .setModified(true)
     }
 
-    // Delete a given text at the start of each selected line
+    // Removes `txt`, or the whitespace up to the previous tab stop, before the text of each selected line.
+    //
+    // The removals form one undoable step. Unless `lastLine` is true, a selection within one line
+    // that starts at its first column leaves the line unchanged.
     mtd deleteBegLine(txt: string, lastLine: bool)
     {
-        var arrR   = Unicode.fromUtf8(txt)
+        let arrR   = Unicode.fromUtf8(txt)
         var first  = true
         let lenTxt = arrR.count
         var beg    = .selectionStart()
@@ -796,7 +800,7 @@ public impl RichEditCtrl
             beg.charPosInLine = 0
         }
 
-        let multiline = beg.lineIndex == end.lineIndex ? false : true
+        let multiline = beg.lineIndex != end.lineIndex
         let size      = .xGlyphSize()
         var savepos0  = .selBeg
         var savepos1  = .cursorPos
@@ -809,14 +813,14 @@ public impl RichEditCtrl
             {
                 while beg.charPosInLine < line.length() and Unicode.isSpace(line.chars[beg.charPosInLine])
                 {
-                    if Slice.equals(Swag.makeSlice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice()) do
+                    if beg.charPosInLine + lenTxt <= line.length() and Slice.equals(line.chars.toSlice()[beg.charPosInLine until beg.charPosInLine + lenTxt], arrR.toSlice()) do
                         break
                     beg.charPosInLine += 1
                 }
             }
 
             var beg1 = beg
-            if beg.charPosInLine < line.length() and Slice.equals(Swag.makeSlice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice())
+            if beg.charPosInLine + lenTxt <= line.length() and Slice.equals(line.chars.toSlice()[beg.charPosInLine until beg.charPosInLine + lenTxt], arrR.toSlice())
             {
                 beg1.charPosInLine += lenTxt
             }
@@ -883,7 +887,7 @@ public impl RichEditCtrl
         .setModified(true)
     }
 
-    // Evaluate the rendering size
+    // Returns the size the whole document needs, margins and padding included, in logical pixels.
     mtd evaluateSize()->{ w: f32, h: f32 }
     {
         var result: retval

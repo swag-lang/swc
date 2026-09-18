@@ -2,7 +2,7 @@ using Core
 
 public impl Image
 {
-    // Bit mask selecting destination channels for [[Image.setChannel]].
+    // Bit mask selecting destination channels for [[Pixel.Image.setChannel]].
     #[Swag.EnumFlags]
     enum ChannelMode
     {
@@ -14,7 +14,7 @@ public impl Image
         RGBA = RGB | Alpha            // All color and alpha channels.
     }
 
-    // Selects the value copied into channels by [[Image.setChannel]].
+    // Selects the value copied into channels by [[Pixel.Image.setChannel]].
     enum ChannelValueMode
     {
         Color       // Use the explicit `color` byte.
@@ -24,7 +24,9 @@ public impl Image
         Alpha       // Use the current alpha channel.
     }
 
-    // Change the alpha channel
+    // Sets the alpha channel of every pixel to `value`.
+    //
+    // A format without alpha is left unchanged.
     mtd setAlpha(value: u8 = 0)
     {
         if not .pixelFormat.hasAlpha() or not .pixelFormat.isPacked() do
@@ -61,7 +63,10 @@ public impl Image
         }
     }
 
-    // Change specified color channels
+    // Writes one value into the selected channels of every pixel.
+    //
+    // `value` selects what is written, and `color` is the byte used by
+    // [[Pixel.Image.ChannelValueMode.Color]]. Alpha is skipped for a format without alpha.
     mtd setChannel(mode: ChannelMode, value: ChannelValueMode, color: u8 = 0)
     {
         if not .pixelFormat.isPacked() do

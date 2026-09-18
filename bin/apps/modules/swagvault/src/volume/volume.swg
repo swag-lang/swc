@@ -4,30 +4,35 @@ using Core
 // keep temporary ciphertext away from the heap's large-allocation path.
 const MaximumIoBatchBlocks = 256'u64
 
+// One run of consecutive blocks sealed or opened in parallel, one block per job.
 struct CryptoBatch
 {
     keys:        const *Crypto.Keys
-    physical:    u64
-    records:     [..] u8
-    plain:       [..] u8
-    error:       any?
+    physical:    u64          // Container block of the first record.
+    records:     [..] u8      // Sealed records, `BlockRecordSize` bytes each.
+    plain:       [..] u8      // Plain blocks, `BlockSize` bytes each.
+    error:       any?         // First failure a job reported, or null.
     errorLock:   Sync.Mutex
-    invalidTags: s32
+    invalidTags: s32          // Number of records that failed authentication.
+}
+
+impl CryptoBatch
+{
+    // Keeps `err` as the batch failure unless a job has already reported one.
+    mtd keepFirstError(err: any?)
+    {
+        if err == null do
+            return
+        Sync.scopedLock(&.errorLock)
+        if .error == null do
+            .error = err
+    }
 }
 
 // Original block map of one node while a shrink is still reversible in memory.
 struct BlockMapBackup
 {
     blocks: Array'BlockMapping
-}
-
-private func keepFirstBatchError(batch: *CryptoBatch, err: any?)
-{
-    if err == null do
-        return
-    Sync.scopedLock(&batch.errorLock)
-    if batch.error == null do
-        batch.error = err
 }
 
 // Splits a path into its names, on either separator.
@@ -62,10 +67,8 @@ private func splitPath(path: string)->Array'string
 // Keeping the epoch in the format layer preserves compatibility with existing volumes.
 const VolumeTimestampEpoch = 504_911_232_000_000_000'u64
 
-func volumeTimeNow()->u64
-{
-    return Time.Timestamp.utcNow().ticks - VolumeTimestampEpoch
-}
+// Returns the current time in the serialized timestamp unit.
+func volumeTimeNow()->u64 => Time.Timestamp.utcNow().ticks - VolumeTimestampEpoch
 
 const FileAttributeReadOnly  = 0x00000001'u32
 const FileAttributeDirectory = 0x00000010'u32
@@ -121,10 +124,10 @@ impl VolumeProgress
         Atomic.exchange(&.canceled, 1'u8)
     }
 
-    // Whether the watcher asked the operation to stop.
+    // Returns whether the watcher asked the operation to stop.
     mtd isCanceled()->bool => Atomic.get(&.canceled) != 0
 
-    // Share of the operation that is done, from zero to one. Zero before it starts.
+    // Returns the share of the operation that is done, from zero to one. Zero before it starts.
     mtd ratio()->f32
     {
         let total = Atomic.get(&.total)
@@ -134,6 +137,12 @@ impl VolumeProgress
     }
 }
 
+// An open encrypted container: its keys, its geometry, its node table, and the changes not yet durable.
+//
+// A volume is opened with [[Volume.open]] or made with [[Volume.create]] and
+// [[Volume.createHidden]]. A namespace change goes to memory first and becomes durable through
+// [[Volume.commit]], which appends a journal record, or [[Volume.checkpoint]], which rewrites
+// the metadata image. Closing a volume checkpoints it and wipes its keys.
 #[Swag.NoCopy]
 struct Volume
 {
@@ -244,6 +253,8 @@ impl Volume
             try failWith("The container is mounted read only.", .WriteProtected)
     }
 
+    // Checkpoints pending changes, closes the file, and wipes every key the volume holds.
+    // Closing a closed volume only wipes again.
     mtd close()
     {
         if .file.isOpen()
@@ -799,8 +810,7 @@ impl Volume
     // caller's cancellation, as in [[Volume.create]]. A stopped growth fails with `.Canceled`
     // and puts the file back to its previous length.
     //
-    // Shrinking is not offered: blocks above the new limit would have to be evacuated first,
-    // and a container that has to be rewritten to lose space is not worth the risk.
+    // Shrinking is [[Volume.shrink]], which first moves the blocks above the new end.
     mtd grow(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
@@ -908,7 +918,7 @@ impl Volume
         }
     }
 
-    // Changes the physical capacity in either direction.
+    // Changes the capacity in either direction, through [[Volume.grow]] or [[Volume.shrink]].
     mtd resize(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         if requestedSize > .containerSize
@@ -1064,11 +1074,12 @@ impl Volume
         try .file.flush()
     }
 
+    // Reads and authenticates the header slot `slot`. An unusable slot comes back with `valid` false.
     mtd readHeader(slot: u32)->HeaderCandidate fail
     {
         var result: retval
         result.plain = try .readFramedRecord(HeaderAreaOffset + slot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, slot, HeaderPlainSize)
-        if not result.plain.count do
+        if result.plain.isEmpty() do
             return result
 
         let sequence = catch parseHeaderSequence(result.plain.toSlice()) as parseError
@@ -1527,10 +1538,7 @@ impl Volume
         .scalarsDirty = false
     }
 
-    mtd hasPendingChanges()->bool
-    {
-        return .touched.count != 0 or .metadataTouched.count != 0 or .removed.count != 0 or .scalarsDirty
-    }
+    mtd hasPendingChanges()->bool => not .touched.isEmpty() or not .metadataTouched.isEmpty() or not .removed.isEmpty() or .scalarsDirty
 
     // Makes every pending change durable.
     //
@@ -1606,7 +1614,7 @@ impl Volume
                 .journalRecordsRead += 1
 
             let plain = try .readFramedRecord(JournalAreaOffset + slot * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, slot, JournalPlainSize)
-            if not plain.count do
+            if plain.isEmpty() do
                 break
 
             var record = catch JournalRecord.decode(plain.toSlice(), .blockCount) as decodeError
@@ -1695,7 +1703,7 @@ impl Volume
     mtd resolve(path: string)->*Node?
     {
         let parts   = splitPath(path)
-        var current = .nodeById(1)
+        var current = .nodeById(RootNodeId)
         if not current do
             return null
         for part in parts
@@ -1711,9 +1719,9 @@ impl Volume
     mtd resolveParent(path: string)->{parent: *Node?, name: string}
     {
         let parts = splitPath(path)
-        if not parts.count do
+        if parts.isEmpty() do
             return {null, ""}
-        var parent = .nodeById(1)
+        var parent = .nodeById(RootNodeId)
         if not parent do
             return {null, parts[parts.count - 1]}
         for i in 0 until parts.count - 1
@@ -1779,7 +1787,7 @@ impl Volume
             let ciphertext   = batch.records[recordOffset + Crypto.NonceSize until recordOffset + Crypto.NonceSize + BlockSize]
             let tag          = batch.records[recordOffset + Crypto.NonceSize + BlockSize until recordOffset + BlockRecordSize]
             let opened       = catch Crypto.open(batch.keys, DataKind, batch.physical + index, nonce, ciphertext, tag, batch.plain[plainOffset until plainOffset + BlockSize]) as openError
-            keepFirstBatchError(batch, openError)
+            batch.keepFirstError(openError)
             if openError == null and not opened do
                 Atomic.add(&batch.invalidTags, 1)
         }
@@ -1812,7 +1820,7 @@ impl Volume
             let ciphertext   = batch.records[recordOffset + Crypto.NonceSize until recordOffset + Crypto.NonceSize + BlockSize]
             let tag          = batch.records[recordOffset + Crypto.NonceSize + BlockSize until recordOffset + BlockRecordSize]
             discard catch Core.Crypto.chacha20Poly1305Seal(batch.keys.record, nonce, batch.plain[plainOffset until plainOffset + BlockSize], Crypto.associatedData(DataKind, batch.physical + index), ciphertext, tag) as sealError
-            keepFirstBatchError(batch, sealError)
+            batch.keepFirstError(sealError)
         }
 
         if batch.error != null do
@@ -1938,10 +1946,8 @@ impl Volume
     mtd trimNode(node: *Node, newSize: u64)
     {
         let keepBlocks = (newSize + BlockSize - 1) / BlockSize
-        var index      = node.blocks.count
-        while index
+        for index in reversed(node.blocks.count)
         {
-            index -= 1
             let mapping = node.blocks[index]
             if mapping.logical >= keepBlocks
             {
@@ -2186,7 +2192,7 @@ impl Volume
     mtd deleteNode(id: u64) fail
     {
         try .requireWritable()
-        if id == 1 do
+        if id == RootNodeId do
             try failWith("Cannot delete the root directory.", .AccessDenied)
         let index = .nodeIndex(id)
         if index == Swag.U64.Max do
@@ -2205,7 +2211,7 @@ impl Volume
     mtd renameNode(id: u64, newPath: string, replace: bool) fail
     {
         try .requireWritable()
-        if id == 1 do
+        if id == RootNodeId do
             try failWith("Cannot rename the root directory.", .AccessDenied)
         let {parent, name} = .resolveParent(newPath)
         if parent == null or not parent.isDirectory() or not name.count do
@@ -2233,7 +2239,7 @@ impl Volume
         if node.isDirectory()
         {
             var ancestor = destinationParentId
-            while ancestor != 1
+            while ancestor != RootNodeId
             {
                 if ancestor == id do
                     try failWith("Cannot move a directory into itself.", .InvalidInput)
@@ -2249,10 +2255,7 @@ impl Volume
         try .commit()
     }
 
-    mtd freeBytes()->u64
-    {
-        return .blocks.freeBlockCount() * BlockSize
-    }
+    mtd freeBytes()->u64 => .blocks.freeBlockCount() * BlockSize
 
     mtd freeBlockCount()->u64 => .blocks.freeBlockCount()
 

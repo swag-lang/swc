@@ -3,10 +3,7 @@
 using Core, Core.Math, Pixel, Pdf
 
 // Builds a one-page document over a 200 by 100 page and returns it.
-private func transparencyDocument(resources, content: string, extra: const [..] u8)->Document
-{
-    return expect Document.decode(singlePagePdf(resources, cast(const [..] u8) content, extra).toSlice())
-}
+private func transparencyDocument(resources, content: string, extra: const [..] u8)->Document => expect Document.decode(singlePagePdf(resources, cast(const [..] u8) content, extra).toSlice())
 
 // A luminosity mask whose group paints white over the lower-left quarter of a 100 by 100 box.
 //

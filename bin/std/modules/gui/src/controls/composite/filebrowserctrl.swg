@@ -10,7 +10,7 @@ struct NavigationHistory
     public readonly
     {
         entries: Array'String     // Locations in visit order.
-        index = Swag.U64.Max      // Current entry index, or [[Swag.U64.Max]] when empty.
+        index = Swag.U64.Max      // Current entry index, or `Swag.U64.Max` when empty.
     }
 }
 
@@ -66,7 +66,7 @@ struct FileBrowserCtrl
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
         readonly
         {
@@ -211,7 +211,7 @@ private impl FileBrowserCtrl
         .treePathStr.add(String.from(path))
     }
 
-    // Rebuilds the locations pane: recent folders, shortcuts, then drives.
+    // Rebuilds the locations pane: shortcuts, then drives.
     mtd fillLocationsPane()
     {
         let treeCtrl = .treeCtrl
@@ -364,7 +364,7 @@ private impl FileBrowserCtrl
                     let fi = cast(const *FileInfo) l.userData0!
                     if fi.isDirectory()
                     {
-                        fileBrowser.setCurrentFolder(fi.fullname)
+                        fileBrowser.setCurrentFolder(fi.fullName)
                         evt.accepted = true
                     }
                     elif fileBrowser.options.mode != .SelectFolder
@@ -384,7 +384,7 @@ private impl FileBrowserCtrl
                 var fi = cast(const *FileInfo) l.userData0!
                 if fi.isDirectory()
                 {
-                    fileBrowser.setCurrentFolder(fi.fullname)
+                    fileBrowser.setCurrentFolder(fi.fullName)
                 }
                 elif fileBrowser.options.mode != .SelectFolder
                 {
@@ -413,7 +413,7 @@ private impl FileBrowserCtrl
 
                     if not txt.isEmpty() do
                         txt += ";"
-                    txt += Path.fileName(fi.fullname)
+                    txt += Path.fileName(fi.fullName)
                 }
 
                 if not txt.isEmpty() do
@@ -433,7 +433,7 @@ private impl FileBrowserCtrl
                 if not fi1.isDirectory() and fi2.isDirectory() do
                     return 1
 
-                let byName = Utf8.compare(fi1.fullname.toSlice(), fi2.fullname.toSlice(), .Latin1NoCase)
+                let byName = Utf8.compare(fi1.fullName.toSlice(), fi2.fullName.toSlice(), .Latin1NoCase)
                 switch col
                 {
                 case 0:
@@ -465,11 +465,11 @@ impl FileBrowserCtrl
         if not .options.state do
             return
 
-        let state = me .options.state
-        state.currentFolder       = me.currentFolder
-        state.nameColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(0)
-        state.modifiedColumnWidth = cast() me.listCtrl.header.itemWidthForColumn(1)
-        state.sizeColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(2)
+        let state = .options.state
+        state.currentFolder       = .currentFolder
+        state.nameColumnWidth     = cast() .listCtrl.header.itemWidthForColumn(0)
+        state.modifiedColumnWidth = cast() .listCtrl.header.itemWidthForColumn(1)
+        state.sizeColumnWidth     = cast() .listCtrl.header.itemWidthForColumn(2)
     }
 
     // Returns the inset every band of the browser keeps from the edges of its column.
@@ -479,10 +479,7 @@ impl FileBrowserCtrl
     // none: the first tool of the bar, the first column of the list and the first label of the
     // form each started at a different place, and the right edge of a field missed the right
     // edge of the list by the difference between their two paddings.
-    private func edgePadding(wnd: *Wnd)->f32
-    {
-        return wnd.themeMetrics().dialog_BtnPadding * 2
-    }
+    private func edgePadding(wnd: *Wnd)->f32 => wnd.themeMetrics().dialog_BtnPadding * 2
 
     // Creates an embedded file browser inside `parent`.
     #[Swag.Discardable]
@@ -758,7 +755,7 @@ impl FileBrowserCtrl
         return .setCurrentFolder(parent)
     }
 
-    // Refresh the file list of the current folder.
+    // Reloads the file list of the current folder.
     mtd refresh()
     {
         .fillFileList()
@@ -782,22 +779,12 @@ impl FileBrowserCtrl
 
         .currentEntries = catch Directory.enumerate(.currentFolder, options)
 
-        // SelectFolder mode has no file filters (it lists folders only): avoid
-        // indexing the empty 'filters' array.
-        var filterExtensions: string?
-        if me.options.mode != .SelectFolder and .options.filters.count
-        {
-            let item        = .comboType.selectedItem()!
-            let filterIndex = cast(u64) item.userData0
-            if filterIndex < .options.filters.count do
-                filterExtensions = .options.filters[filterIndex].extensions
-        }
-
-        let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)
+        let filterExtensions = .activeFilterExtensions()
+        let tokens           = Tokenize.split(filterExtensions orelse "", ';'rune)
 
         for &fi in .currentEntries
         {
-            let fname = Path.fileName(fi.fullname)!
+            let fname = Path.fileName(fi.fullName)!
 
             // Filter
             var show = true
@@ -932,22 +919,27 @@ impl FileBrowserCtrl
         return sel.front()
     }
 
+    // Returns the extensions of the file-type filter chosen in the type selector, or null for none.
+    //
+    // Folder selection has no filters, so it lists and returns folders only.
+    private mtd activeFilterExtensions()->string?
+    {
+        if .options.mode == .SelectFolder or .options.filters.isEmpty() do
+            return null
+
+        let filterIndex = cast(u64) .comboType.selectedItem()!.userData0
+        if filterIndex >= .options.filters.count do
+            return null
+        return .options.filters[filterIndex].extensions
+    }
+
     // Returns all selected full paths in display order.
     mtd selectedPaths()->Array'String
     {
         var result: retval
 
-        // SelectFolder mode has no filters: do not index the empty 'filters' array.
-        var filterExtensions: string?
-        if me.options.mode != .SelectFolder and .options.filters.count
-        {
-            let item        = .comboType.selectedItem()!
-            let filterIndex = cast(u64) item.userData0
-            if filterIndex < .options.filters.count do
-                filterExtensions = .options.filters[filterIndex].extensions
-        }
-
-        let tokens = Tokenize.split(.editFile.text(), ';'rune)
+        let filterExtensions = .activeFilterExtensions()
+        let tokens           = Tokenize.split(.editFile.text(), ';'rune)
         for t in tokens
         {
             // Be sure this is a valid file/folder name

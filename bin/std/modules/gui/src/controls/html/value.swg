@@ -404,8 +404,7 @@ private func htmlParseCalcTerm(text: string, context: HtmlLengthContext)->{ node
 private func htmlParseCalcExpression(pool: *HtmlValuePool, text: string, context: HtmlLengthContext)->u32
 {
     var scan = 0'u64
-    let root = htmlParseCalcSum(pool, text, &scan, context)
-    return root
+    return htmlParseCalcSum(pool, text, &scan, context)
 }
 
 private func htmlSkipCalcSpace(text: string, scan: *u64)

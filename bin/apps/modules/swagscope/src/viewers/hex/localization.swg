@@ -59,9 +59,9 @@ struct HexStrings
     ui_AnalysisText:           string = "Text"                                                                                                // String-table preview column.
     err_AnalysisShortRead:     string = "The file ends before the analysis range"                                                             // Failure when a file changes while it is being analyzed.
 
-    ui_CopyBytes: string = "Copy bytes"     // Copy the selection as hexadecimal byte pairs.
-    ui_CopyText:  string = "Copy text"      // Copy the selection as printable text.
-    ui_CopyDump:  string = "Copy dump"      // Copy the selection as an offset/hex/text dump.
+    ui_CopyBytes: string = "Copy bytes"     // Menu entry copying the selection as hexadecimal byte pairs.
+    ui_CopyText:  string = "Copy text"      // Menu entry copying the selection as printable text.
+    ui_CopyDump:  string = "Copy dump"      // Menu entry copying the selection as an offset/hex/text dump.
 
     // Copy entries when the selection is larger than what a clipboard should carry. The bound is
     // named on the command itself, because a clipboard that came back short explains nothing.

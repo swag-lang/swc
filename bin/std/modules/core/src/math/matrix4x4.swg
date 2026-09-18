@@ -18,7 +18,7 @@ impl Matrix4x4
         return result
     }
 
-    // Replaces every element with the identity matrix.
+    // Sets this matrix to the identity.
     mtd setIdentity()
     {
         Swag.init(me, 1)

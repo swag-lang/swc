@@ -148,8 +148,9 @@ private func variableHash(input: const [..] u8, destination: [..] u8) fail
     Swag.memcpy(destination.buffer + written, &tail[0], remaining)
 }
 
-// Regenerates the block of pseudo-random addresses used by the data-independent
-// passes, then reports the value for `offset`.
+// Regenerates the block of pseudo-random addresses used by the data-independent passes.
+//
+// The address counter in `input` advances first, so each call yields the next block of addresses.
 private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64)
 {
     input[6] += 1
@@ -251,7 +252,7 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
     }
 }
 
-// Derives `destination` with Argon2id, RFC 9106.
+// Derives a key from `password` and `salt` with Argon2id, RFC 9106, and fills `destination` with it.
 //
 // Argon2id spends the first half of its first pass on data-independent
 // addressing and everything after it on data-dependent addressing, which is what
@@ -278,8 +279,7 @@ public func argon2id(password, salt: const [..] u8, parameters: Argon2Parameters
     try argon2id(password, salt, "", "", parameters, destination)
 }
 
-// Derives `destination` with Argon2id, additionally binding a secret and an
-// associated-data string into the derivation.
+// Derives a key with Argon2id like the first overload, also binding `secret` and `associatedData` into it.
 //
 // `secret` is the RFC 9106 key input: a value the verifier holds but the
 // password database does not, at most 64 bytes. `associatedData` binds a context

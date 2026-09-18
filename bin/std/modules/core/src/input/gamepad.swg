@@ -29,11 +29,10 @@ impl Gamepad
     // Refreshes connection and control state for [[Core.Input.Gamepad.index]].
     mtd update() fail
     {
-        let newConnected = isConnected(.index)
-        if not newConnected
+        if not isConnected(.index)
         {
             if .connected do
-                clear(me)
+                .clear()
             .connected = false
         }
         else
@@ -44,44 +43,29 @@ impl Gamepad
         }
     }
 
-    // Reset the previous and current state
+    // Resets the previous and the current state.
     mtd clear()
     {
         .previousState.clear()
         .currentState.clear()
     }
 
-    // Determines whether specified input device button is pressed
-    mtd isButtonPressed(button: GamepadButton)->bool
-    {
-        return .currentState.pressed[button]
-    }
+    // Returns whether `button` is pressed in the latest state.
+    mtd isButtonPressed(button: GamepadButton)->bool => .currentState.pressed[button]
 
-    // Determines whether specified input device button has just been pressed
-    mtd isButtonJustPressed(button: GamepadButton)->bool
-    {
-        return .currentState.pressed[button] and not .previousState.pressed[button]
-    }
+    // Returns whether `button` became pressed during the latest update.
+    mtd isButtonJustPressed(button: GamepadButton)->bool => .currentState.pressed[button] and not .previousState.pressed[button]
 
-    // Determines whether specified input device button is released (not pressed)
-    mtd isButtonReleased(button: GamepadButton)->bool
-    {
-        return not .currentState.pressed[button]
-    }
+    // Returns whether `button` is released in the latest state.
+    mtd isButtonReleased(button: GamepadButton)->bool => not .currentState.pressed[button]
 
-    // Determines whether specified input device button has just been released
-    mtd isButtonJustReleased(button: GamepadButton)->bool
-    {
-        return not .currentState.pressed[button] and .previousState.pressed[button]
-    }
+    // Returns whether `button` became released during the latest update.
+    mtd isButtonJustReleased(button: GamepadButton)->bool => not .currentState.pressed[button] and .previousState.pressed[button]
 
     // Returns the normalized analog position of `control`.
-    mtd position(control: GamepadButton)->Point
-    {
-        return .currentState.position[control]
-    }
+    mtd position(control: GamepadButton)->Point => .currentState.position[control]
 
-    // Set the vibration motor speeds
+    // Sets the speeds of the left and right vibration motors, each from 0 to 1.
     mtd setVibration(left, right: f32) fail
     {
         try setVibration(.index, left, right)

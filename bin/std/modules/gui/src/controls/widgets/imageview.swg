@@ -596,6 +596,8 @@ impl ImageView
             .app().renderer.removeTexture(&.uploadedTexture)
         Swag.drop(&.image, 1)
         Swag.init(&.image, 1)
+        Swag.drop(&.drawing, 1)
+        Swag.init(&.drawing, 1)
         .planarWidth, .planarHeight = 0
         swap(&.movie, movie)
         .reportedMovieFailure = false

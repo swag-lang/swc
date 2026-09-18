@@ -51,7 +51,7 @@ struct TextEffect
 
         // Soft halo around the glyph. A fully transparent color disables it.
         glowColor:  Color
-        glowOffset: f32            // shifts the glow band outward
+        glowOffset: f32            // Shifts the glow band outward.
         glowInner:  f32 = 0.0      // Inner edge of the glow band.
         glowOuter:  f32 = 0.45     // Outer edge of the glow band.
         glowPower:  f32 = 1.0      // Glow falloff exponent.
@@ -69,19 +69,13 @@ struct TextEffect
 
 impl TextEffect
 {
-    // True if ? any single-pass face effect (outline/glow/bevel/dilate/softness) is on.
-    mtd const hasFaceEffects()->bool
-    {
-        return .outlineWidth > 0 or .glowColor.a > 0 or .bevel > 0 or .faceDilate != 0 or .softness != 0
-    }
+    // Returns whether an outline, glow, bevel, dilation, or softness face effect is active.
+    mtd const hasFaceEffects()->bool => .outlineWidth > 0 or .glowColor.a > 0 or .bevel > 0 or .faceDilate != 0 or .softness != 0
 
-    // True if a drop shadow must be rendered.
-    mtd const hasShadow()->bool
-    {
-        return .shadowColor.a > 0
-    }
+    // Returns whether a drop shadow must be rendered.
+    mtd const hasShadow()->bool => .shadowColor.a > 0
 
-    // Resolve the shader uniforms for the main glyph face.
+    // Resolves shader parameters for the main glyph face.
     mtd const faceParams()->FontEffectParams
     {
         var r: retval
@@ -369,12 +363,13 @@ impl Painter
         return result
     }
 
-    // Scale applied to text by the current transform (max of the two axis scales),
-    // in physical device pixels per drawing unit.
+    // Returns the scale the current transform applies to text, in physical device pixels per drawing unit.
+    //
+    // The larger of the two axis scales is used, multiplied by the content scale.
     mtd const textTransformScale()->f32
     {
-        let tr = .curState.transform
-        return Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22)) * .curContentScale
+        let scale = .curState.transform.axisScale()
+        return Math.max(scale.x, scale.y) * .curContentScale
     }
 
     // Resolves one glyph's left and right positions from scaled metrics.
@@ -449,7 +444,9 @@ impl Painter
         finishShapedRun(result, font)
     }
 
-    // Shape a single-font text run, returning a freshly allocated run.
+    // Shapes text into a new run.
+    //
+    // See [[Pixel.Painter.shapeRunInto]] to reuse the glyph storage of an existing run.
     func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)->ShapedRun
     {
         var result: retval
@@ -457,8 +454,10 @@ impl Painter
         return result
     }
 
-    // Rebuild a shaped run for another concrete font cache while preserving its
-    // glyph sequence and cluster mapping.
+    // Rebuilds a shaped run for another view of the same typeface.
+    //
+    // The glyph sequence and cluster mapping are preserved; advances and kerning come from
+    // `font`. `font` must use the typeface the run was shaped with.
     func shapeRunForFont(run: const *ShapedRun, font: *Font)->ShapedRun
     {
         Swag.assert(font != null, "invalid font")
@@ -524,7 +523,9 @@ impl Painter
         return result
     }
 
-    // Get a rune size for a given font
+    // Returns the advance and the height below the baseline of one rune, in pixels.
+    //
+    // A `null` font measures as zero.
     func measureRune(c: rune, font: *Font?)->Math.Point
     {
         var result: retval
@@ -538,14 +539,14 @@ impl Painter
         return result
     }
 
-    // Returns the metrics of a given text
+    // Returns the metrics of a string shaped with `font`.
     func measureString(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, wordSpacing = 0.0'f32)->StringMetrics
     {
         let shaped = shapeRun(text, font, tabSize, letterSpacing, wordSpacing)
         return shaped.metrics
     }
 
-    // Returns the metrics of an already shaped text run
+    // Returns the metrics of an already shaped run.
     func measureString(text: *ShapedRun)->StringMetrics => text.metrics
 
     // Measures the rendered horizontal advance up to byte `atByte`.
@@ -583,7 +584,7 @@ impl Painter
         return x
     }
 
-    // string convenience overload of `measureStringSnapped`.
+    // Shapes `text` with `font`, then measures it like the run overload.
     func measureStringSnapped(text: string, font: *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, deviceScale = 1.0'f32)->f32
     {
         let shaped = shapeRun(text, font, tabSize, letterSpacing)
@@ -620,10 +621,13 @@ impl Painter
         return Swag.U64.Max
     }
 
-    // Returns the bounding rectangle of a given text, scaled to the font draw size
+    // Returns the metrics of a glyph sequence, scaled to the draw size of `font`.
     func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics
     {
         var result: retval
+        if text.isEmpty() do
+            return result
+
         result.ascent  = Swag.F32.NegInf
         result.descent = Swag.F32.NegInf
         for refr, i in text
@@ -682,14 +686,15 @@ impl Painter
         }
     }
 
-    // Draw an already shaped text run
+    // Draws an already shaped run with its top-left corner at `(left, top)`.
     mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
         .drawShapedRun(left, top, shaped, font, brush, TextEffect{}, under, zoom)
     }
 
-    // Draw an already shaped text run, with MSDF text effects (outline/glow/bevel/
-    // shadow). Effects are ignored when the resolved draw font is not MSDF.
+    // Draws an already shaped run with MSDF text effects.
+    //
+    // Effects are ignored when the resolved draw font is not MSDF.
     mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
         if shaped.glyphs.isEmpty() do
@@ -796,7 +801,7 @@ impl Painter
         .endFont()
     }
 
-    // Draw a simple string (centered)
+    // Draws a single-line string centered on `(x, y)`.
     mtd drawStringCenter(x, y: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
     {
         let ms = measureString(text, font)
@@ -805,7 +810,11 @@ impl Painter
         .drawString(x - (ms.width * 0.5 * zoom), yr, text, font, color, under, zoom)
     }
 
-    // Draw a simple string
+    // Draws a single-line string with its top-left corner at `(left, top)`.
+    //
+    // The text is shaped with the draw font resolved for the current transform, so an
+    // automatic font draws crisp bitmap glyphs at small on-screen sizes. `zoom` scales the
+    // text from its top-left corner.
     mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
     {
         if text.count == 0 or .isInvisible(color) do
@@ -815,7 +824,6 @@ impl Painter
         .drawString(left, top, text, font, brush, under, zoom)
     }
 
-    // Draw a simple string
     mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
         if text.count == 0 or .isInvisible(brush) do
@@ -832,7 +840,9 @@ impl Painter
         .drawShapedRun(left, top, &.scratchShaped, font, brush, under, zoom)
     }
 
-    // Draw a simple string with MSDF text effects (outline/glow/bevel/shadow).
+    // Draws a single-line string with MSDF text effects.
+    //
+    // Effects are ignored when the resolved draw font is not MSDF.
     mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
         if text.count == 0 do
@@ -841,7 +851,7 @@ impl Painter
         .drawString(left, top, text, font, brush, effect, under, zoom)
     }
 
-    // Draw a simple string with a brush and MSDF text effects.
+    // Draws a single-line string with a brush and MSDF text effects.
     mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
         if text.count == 0 do
@@ -854,7 +864,7 @@ impl Painter
         .drawShapedRun(left, top, &.scratchShaped, font, brush, effect, under, zoom)
     }
 
-    // Recompute the layout for a given rectangle
+    // Lays out a rich string inside `pos`.
     //
     // `deviceScale` must match the scale the text is drawn with. Chunk widths are
     // measured with the same resolved draw font and device-snapped advances the
@@ -1240,10 +1250,11 @@ impl Painter
         text.boundRect.width = boundRight - text.boundRect.x
     }
 
-    // Draws a laid-out rich string.
+    // Draws a rich string inside `pos`, laying it out when needed.
     //
-    // A rich string can be multiline, and accepts private formats.
-    // The layout will be computed at the first call, and each time 'pos' has changed.
+    // The layout is recomputed on the first call, whenever `pos` or the device scale changes,
+    // and when `forceCompute` is true. With [[Pixel.StringFormatFlags.Clip]], drawing is
+    // clipped to `pos`.
     mtd drawRichString(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, forceCompute = false)
     {
         text.compute()

@@ -84,7 +84,7 @@ impl IWnd for Header
     // The width is what the columns are set to, not what their labels need: a column width
     // is chosen by the owning list or dragged by the reader, and a column deliberately
     // narrower than its label is a state the header supports rather than a misfit. Use
-    // [[Gui.Header.setItemMinimumWidth]] to keep a label from being squeezed out.
+    // [[Gui.Header.setItemWidthLimits]] to keep a label from being squeezed out.
     mtd impl measureContent(available: Math.Point)->Math.Point
     {
         discard available
@@ -93,7 +93,7 @@ impl IWnd for Header
         return {.contentWidth() + .padding.z, metrics.header_Height}
     }
 
-    mtd paintItem(bc: PaintContext, item: *HeaderItem, idx: u32, x: f32)
+    private mtd paintItem(bc: PaintContext, item: *HeaderItem, idx: u32, x: f32)
     {
         let painter = bc.painter
 
@@ -355,7 +355,9 @@ impl Header
         return result
     }
 
-    // Appends a logical column with a non-negative initial width.
+    // Appends a column whose logical identifier is its creation index, and returns it.
+    //
+    // A negative `width` is clamped to zero.
     #[Swag.Discardable]
     mtd addColumn(name: string, width = 100'f32, icon: Icon = {})->*HeaderItem
     {
@@ -473,6 +475,7 @@ impl Header
     }
 
     // Configures inclusive width limits by display-order index and clamps the current width.
+    //
     // A maximum of zero leaves the column unbounded.
     mtd setItemWidthLimits(index: u32, minimum: f32 = 0, maximum: f32 = 0)
     {

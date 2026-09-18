@@ -3,25 +3,25 @@
 
 using Errors
 
-// Names of the months used for formatting and parsing
+// English month names, used for formatting and parsing.
 internal const MonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
-// Names of the days of the week used for formatting and parsing
+// English day names, used for formatting and parsing.
 internal const DayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-// Day of the week enumeration
+// Identifies a day of the week.
 enum DayOfWeek
 {
-    Sunday    = 0     // Sunday
-    Monday    = 1     // Monday
-    Tuesday   = 2     // Tuesday
-    Wednesday = 3     // Wednesday
-    Thursday  = 4     // Thursday
-    Friday    = 5     // Friday
-    Saturday  = 6     // Saturday
+    Sunday    = 0
+    Monday    = 1
+    Tuesday   = 2
+    Wednesday = 3
+    Thursday  = 4
+    Friday    = 5
+    Saturday  = 6
 }
 
-// Supported formats for converting DateTime to/from string
+// Selects the text layout [[Core.Time.DateTime.toString]] produces.
 enum DateTimeFormat
 {
     DateIso           // 'YYYY-MM-DD'
@@ -53,7 +53,7 @@ internal struct WallClockFields
     millisecond: u16
 }
 
-// Represents an instant in time, typically expressed as a date and time of day
+// Stores a calendar date and a time of day, without a time zone.
 #[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct DateTime
 {
@@ -104,7 +104,7 @@ impl DateTime
         .setWallClock(readWallClock(.Local))
     }
 
-    // Returns true if this is a valid DateTime
+    // Returns whether every component is in range and the day exists in its month.
     mtd const isValid()->bool
     {
         if .year == 0 or .year > 9999 do
@@ -124,7 +124,7 @@ impl DateTime
         return true
     }
 
-    // Returns the day of the week for the current date
+    // Returns the day of the week of this date.
     mtd const dayOfWeek()->DayOfWeek
     {
         let m: u32 = (.month + 9) % 12
@@ -134,39 +134,39 @@ impl DateTime
         return cast(DayOfWeek) (dn % 7)
     }
 
-    // Returns the month name corresponding to a month number (1 to 12)
+    // Returns the English name of `month`, numbered from 1 to 12.
     func monthName(month: u16)->string
     {
         Swag.assert(month >= 1 and month <= 12)
         return MonthNames[month - 1]
     }
 
-    // Returns the name of the given day of the week
+    // Returns the English name of `day`.
     func dayOfWeekName(day: DayOfWeek)->string => DayOfWeekNames[cast(u32) day]
 
-    // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
+    // Parses an 8-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU8(buf: *string, eat: *u32)->u16 fail
     {
-        let {year, eat0, ovf} = try StrConv.parseU8(buf[])
+        let {value, eat0, ovf} = try StrConv.parseU8(buf[])
         if ovf do
             fail SyntaxError{}
         eat[] += eat0
         buf[] = Tokenize.eatCount(buf[], cast(u64) eat0)
-        return year
+        return value
     }
 
-    // Parses a 16-bit unsigned integer from the buffer and updates the consumed character count
+    // Parses a 16-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU16(buf: *string, eat: *u32)->u16 fail
     {
-        let {year, eat0, ovf} = try StrConv.parseU16(buf[])
+        let {value, eat0, ovf} = try StrConv.parseU16(buf[])
         if ovf do
             fail SyntaxError{}
         eat[] += eat0
         buf[] = Tokenize.eatCount(buf[], cast(u64) eat0)
-        return year
+        return value
     }
 
-    // Parses a separator character from the buffer and updates the consumed character count
+    // Parses the separator `sep` from the buffer and adds the consumed byte to `eat`.
     internal func parseSep(buf: *string, sep: u8, eat: *u32) fail
     {
         let view = buf[]
@@ -176,7 +176,13 @@ impl DateTime
         eat[] += 1
     }
 
-    // Converts a string to a DateTime using the expected format
+    // Parses a date, optionally followed by a time, at the start of `str` and returns it with the number of bytes consumed.
+    //
+    // The date is either `YYYY-MM-DD` or `DAYOFWEEK MONTH DAY YYYY` with English names, and the
+    // time, after one space, is `HH:MM`, optionally followed by `:SS` and `.ZZZ`. These are the
+    // layouts [[Core.Time.DateTime.toString]] writes. With `checkDate`, the day of the week
+    // must match the date and every component must be in range. Fails with a
+    // [[Core.Errors.SyntaxError]] otherwise.
     func parse(str: string, checkDate = true)->{ value: DateTime, eat: u32 } fail
     {
         var result: retval
@@ -194,7 +200,7 @@ impl DateTime
             for dow, idx in DayOfWeekNames
             {
                 let len = dow.count
-                if Swag.makeString(buf.buffer, Math.min(buf.count, len)) == dow
+                if buf[until Math.min(buf.count, len)] == dow
                 {
                     dayOfWeek  = cast() idx
                     buf        = Tokenize.eatCount(buf, cast(u64) len)
@@ -211,10 +217,10 @@ impl DateTime
             try parseSep(&buf, ' ', &result.eat)
 
             // Month name
-            for dow, idx in MonthNames
+            for name, idx in MonthNames
             {
-                let len = dow.count
-                if Swag.makeString(buf.buffer, Math.min(buf.count, len)) == dow
+                let len = name.count
+                if buf[until Math.min(buf.count, len)] == name
                 {
                     result.value.month = cast(u16) idx + 1
                     buf                = Tokenize.eatCount(buf, cast(u64) len)
@@ -293,7 +299,22 @@ impl DateTime
                Latin1.isDigit(buf[1])
             {
                 try parseSep(&buf, '.', &result.eat)
-                result.value.millisecond = try parseU16(&buf, &result.eat)
+                let start    = result.eat
+                var fraction = cast(u32) (try parseU16(&buf, &result.eat))
+                var digits   = result.eat - start
+                while digits < 3
+                {
+                    fraction *= 10
+                    digits += 1
+                }
+
+                while digits > 3
+                {
+                    fraction /= 10
+                    digits -= 1
+                }
+
+                result.value.millisecond = cast(u16) fraction
             }
         }
 
@@ -303,7 +324,7 @@ impl DateTime
         return result
     }
 
-    // Converts the DateTime to a string using the given format
+    // Returns this value as text in the layout `fmt` selects.
     mtd const toString(fmt = DateTimeFormat.DateTime)->String
     {
         switch #complete fmt
@@ -319,15 +340,12 @@ impl DateTime
         case .DateTimeIsoMs: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}", .year, .month, .day, .hour, .minute, .second, .millisecond)
         case .DateTimeIsoHm: return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
         }
-
-        var result: retval
-        return result
     }
 }
 
 impl Serialization.ISerialize for DateTime
 {
-    // Reads a DateTime from a textual encoder
+    // Reads the value from the text written by `write`; a binary decoder reads the fields instead.
     mtd impl read(decoder: Serialization.IDecoder)->bool fail
     {
         if decoder.isTextual()
@@ -340,17 +358,13 @@ impl Serialization.ISerialize for DateTime
         return false
     }
 
-    // Writes a DateTime to a textual encoder
+    // Writes the value as [[Core.Time.DateTimeFormat.DateTimeIsoMs]] text; a binary encoder writes the fields instead.
     mtd impl write(encoder: Serialization.IEncoder)->bool fail
     {
-        if encoder.isTextual()
-        {
-            let val = .toString(.DateTimeIsoMs)
-            encoder.writeString(val)
-            return true
-        }
-
-        return false
+        if not encoder.isTextual() do
+            return false
+        encoder.writeString(.toString(.DateTimeIsoMs))
+        return true
     }
 
     mtd impl readElement(type: Swag.TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail => false
@@ -362,31 +376,30 @@ impl Serialization.ISerialize for DateTime
 
 impl StrConv.IConvert for DateTime
 {
-    // Converts a DateTime to a string using a single-character format specifier (for use with Format.toString)
+    // Appends the layout a one-letter format selects, [[Core.Time.DateTimeFormat.DateTime]] by default.
+    //
+    // The letters `a` to `j` select, in order, `DateTime`, `DateTimeMs`, `DateTimeIso`,
+    // `DateTimeIsoMs`, `DateTimeIsoHm`, `DateIso`, `TimeIso`, `TimeIsoMs`, `TimeIsoHm`, and
+    // `Date`. Any other format uses the default.
     mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string?)
     {
-        var str: String
-        if strFormat.count == 0 or strFormat.count > 1 do
-            str = .toString(.DateTime)
-        else
+        var fmt = DateTimeFormat.DateTime
+        if strFormat.count == 1
         {
-            let fmt = strFormat!
-            switch fmt[0]
+            switch strFormat![0]
             {
-            case 'a': str = .toString(.DateTime)
-            case 'b': str = .toString(.DateTimeMs)
-            case 'c': str = .toString(.DateTimeIso)
-            case 'd': str = .toString(.DateTimeIsoMs)
-            case 'e': str = .toString(.DateTimeIsoHm)
-            case 'f': str = .toString(.DateIso)
-            case 'g': str = .toString(.TimeIso)
-            case 'h': str = .toString(.TimeIsoMs)
-            case 'i': str = .toString(.TimeIsoHm)
-            case 'j': str = .toString(.Date)
-            default:  str = .toString(.DateTime)
+            case 'b': fmt = .DateTimeMs
+            case 'c': fmt = .DateTimeIso
+            case 'd': fmt = .DateTimeIsoMs
+            case 'e': fmt = .DateTimeIsoHm
+            case 'f': fmt = .DateIso
+            case 'g': fmt = .TimeIso
+            case 'h': fmt = .TimeIsoMs
+            case 'i': fmt = .TimeIsoHm
+            case 'j': fmt = .Date
             }
         }
 
-        buf.addBytes(str)
+        buf.addBytes(.toString(fmt))
     }
 }

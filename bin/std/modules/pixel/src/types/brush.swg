@@ -40,9 +40,7 @@ struct GradientStop
 // ## Example
 //
 // ```swag
-// var brush = Brush.createLinearGradient({0, 0}, {160, 0},
-//                                        Color.fromArgb(Argb.DodgerBlue),
-//                                        Color.fromArgb(Argb.DeepPink))
+// var brush = Brush.createLinearGradient({0, 0}, {160, 0}, Color.fromArgb(Argb.DodgerBlue), Color.fromArgb(Argb.DeepPink))
 // brush.addGradientStop(0.5, Color.fromArgb(Argb.White))
 // ```
 struct Brush
@@ -154,31 +152,31 @@ impl Brush
         .hasPaintRect = true
     }
 
-    // Set the paint color multiplier used by textures, hatches and gradients.
+    // Sets the tint, the color that multiplies what textures, hatches, and gradients paint.
     mtd setTint(color: Color)
     {
         .color = color
     }
 
-    // Multiply the current paint color multiplier.
+    // Multiplies the tint by `color`, component by component.
     mtd multiplyTint(color: Color)
     {
         .color = Color.multiply(.color, color)
     }
 
-    // Set the paint opacity while preserving the current tint.
+    // Replaces the alpha of the tint, keeping its color components.
     mtd setOpacity(alpha: u8)
     {
         .color = .color.withAlpha(alpha)
     }
 
-    // Set the paint opacity while preserving the current tint.
+    // Replaces the alpha of the tint with a normalized value, clamped to [0, 1].
     mtd setOpacityF32(alpha: f32)
     {
         .color = .color.withAlphaF32(alpha)
     }
 
-    // Multiply the current paint opacity while preserving the current tint.
+    // Multiplies the alpha of the tint by `alpha`, clamped to [0, 1].
     mtd multiplyOpacity(alpha: f32)
     {
         let factor = Math.saturate(alpha)
@@ -199,7 +197,7 @@ impl Brush
     {
         var result: retval
         result.color   = Color.fromArgb(Argb.White)
-        result.type    = BrushType.Texture
+        result.type    = .Texture
         result.texture = texture
         result.uvMode  = .Fill
         return result
@@ -210,7 +208,7 @@ impl Brush
     {
         var result: retval
         result.color   = Color.fromArgb(Argb.White)
-        result.type    = BrushType.Texture
+        result.type    = .Texture
         result.texture = texture
         result.uvMode  = .Tile
         return result
@@ -221,7 +219,7 @@ impl Brush
     {
         var result: retval
         result.color  = color
-        result.type   = BrushType.Hatch
+        result.type   = .Hatch
         result.hatch  = style
         result.uvMode = .Tile
         return result
@@ -245,10 +243,7 @@ impl Brush
     }
 
     // Creates a two-stop linear gradient from path-space coordinates.
-    func createLinearGradient(x0, y0, x1, y1: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
-    {
-        return createLinearGradient(Math.Vector2{x0, y0}, Math.Vector2{x1, y1}, color0, color1, spread)
-    }
+    func createLinearGradient(x0, y0, x1, y1: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush => createLinearGradient(Math.Vector2{x0, y0}, Math.Vector2{x1, y1}, color0, color1, spread)
 
     // Creates a two-stop radial gradient from radius zero to `radius`.
     func createRadialGradient(center: Math.Vector2, radius: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
@@ -270,10 +265,7 @@ impl Brush
     }
 
     // Creates a two-stop radial gradient from center coordinates.
-    func createRadialGradient(centerX, centerY, radius: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
-    {
-        return createRadialGradient(Math.Vector2{centerX, centerY}, radius, color0, color1, spread)
-    }
+    func createRadialGradient(centerX, centerY, radius: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush => createRadialGradient(Math.Vector2{centerX, centerY}, radius, color0, color1, spread)
 
     // Creates a two-stop angular gradient over the specified angle interval.
     func createSweepGradient(center: Math.Vector2, startAngle, endAngle: Math.Angle, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
@@ -298,8 +290,5 @@ impl Brush
     func createSweepGradient(center: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush => createSweepGradient(center, 0.0'deg, 360.0'deg, color0, color1, spread)
 
     // Creates a two-stop full-turn sweep gradient from center coordinates.
-    func createSweepGradient(centerX, centerY: f32, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
-    {
-        return createSweepGradient(Math.Vector2{centerX, centerY}, color0, color1, spread)
-    }
+    func createSweepGradient(centerX, centerY: f32, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush => createSweepGradient(Math.Vector2{centerX, centerY}, color0, color1, spread)
 }

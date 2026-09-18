@@ -59,6 +59,7 @@ impl OrderedSet
     }
 
     // Selects the comparator used by subsequent operations.
+    //
     // The set must be empty so that no key was positioned by another ordering.
     mtd initialize(comparator: func(const *K, const *K)->s32)
     {
@@ -141,6 +142,7 @@ impl OrderedSet
     }
 
     // Returns the sorted keys in the half-open interval `[lower, upper)`.
+    //
     // The returned slice borrows the set and is invalidated by any insertion or removal.
     mtd const range(lower, upper: K)->const [..] K
     {
@@ -159,6 +161,7 @@ impl OrderedSet
     }
 
     // Adds `key` in sorted position and returns whether it was newly inserted.
+    //
     // The key is copied; pass it with `#move` to transfer it.
     #[Discardable]
     mtd add(key: #fwd K)->bool

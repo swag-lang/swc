@@ -2,6 +2,7 @@
 
 using Core, Gui
 
+// The viewer a panel created for one kind, kept while the panel shows another.
 struct ViewerSlot
 {
     viewer: IViewer?
@@ -25,12 +26,12 @@ struct ViewerPanel
     }
 
     defaultLevel:        Swag.BuildCfgBackendOptimLevel
-    sigCompileRequested: SigArray'func||(*ViewerPanel)
-    sigOptionsChanged:   SigArray'func||(*ViewerPanel)
-    cached:              [3] ViewerSlot
+    cached:              [3] ViewerSlot     // One slot per `ViewerKind`.
     viewer:              IViewer?
     kind:                ViewerKind
     sigChanged:          SigArray'func||(*ViewerPanel)
+    sigCompileRequested: SigArray'func||(*ViewerPanel)
+    sigOptionsChanged:   SigArray'func||(*ViewerPanel)
 }
 
 impl ViewerPanel
@@ -41,80 +42,105 @@ impl ViewerPanel
     {
         with let result = Wnd.create'ViewerPanel(parent, "prism.viewerPanel")
         {
-            .backgroundStyle        = .Panel
-            .padding                = 8
-            .sourceEditor           = sourceEditor
-            .cache                  = cache
-            .defaultLevel           = level
-            .header                 = Wnd.create'Wnd(result, {0, 0, 0, 36})
-            .header.dockStyle       = .Top
-            .header.backgroundStyle = .Transparent
-            .header.margin          = {0, 0, 0, 8}
-            .kindCombo              = ComboBox.create(.header, {}, "prism.viewer.kind")
-            .kindCombo.dockStyle    = .Center
+            .backgroundStyle = .Panel
+            .padding         = 8
+            .sourceEditor    = sourceEditor
+            .cache           = cache
+            .defaultLevel    = level
+        }
+
+        result.createHeader()
+        result.createBuildOptions()
+        result.retranslate()
+        result.selectViewer(.Microcode)
+        result.applyLayout()
+        return result
+    }
+
+    // Creates the header row: the viewer type, then the optimization level, playback, and build
+    // configuration actions docked to its right edge.
+    mtd createHeader()
+    {
+        with .header = Wnd.create'Wnd(me, {0, 0, 0, 36})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+            .margin          = {0, 0, 0, 8}
         }
 
         // Header fields follow their short entries instead of the default form-field width.
-        result.kindCombo.style.setStyleSheetMetrics("comboBox_Width 0")
-        result.optionsButton           = IconButton.create(result.header, result.theme().icon(.Options, 18), {0, 0, 36, 36}, "prism.buildOptions", flags: .Toggle)
-        result.optionsButton.dockStyle = .Right
-        result.optionsButton.margin    = {8, 0, 0, 0}
-        result.optionsButton.setIconSize(18, 18)
-        result.optionsButton.setCheckIndicator(.Frame)
-        result.optionsButton.sigCheckedChanged += func|panel = result|(button) { panel.showOptions(button.isChecked) }
-        result.pauseButton           = IconButton.create(result.header, result.theme().icon(.Pause, 18), {0, 0, 36, 36}, "prism.pause", flags: .Toggle)
-        result.pauseButton.dockStyle = .Right
-        result.pauseButton.margin    = {8, 0, 0, 0}
-        result.pauseButton.setIconSize(18, 18)
-        result.pauseButton.setCheckIndicator(.Frame)
-        result.pauseButton.sigCheckedChanged += func|panel = result|(button)
+        with .kindCombo = ComboBox.create(.header, {}, "prism.viewer.kind")
         {
-            panel.viewer!.setPaused(button.isChecked)
-            panel.refreshPlayback()
+            .dockStyle = .Center
+            .style.setStyleSheetMetrics("comboBox_Width 0")
+            .sigChanged += func|panel = me|(combo, index)
+            {
+                discard combo
+                panel.selectViewer(cast(ViewerKind) index)
+                panel.requestCompile()
+            }
         }
 
-        result.optimCombo = ComboBox.create(result.header, {0, 0, 72, 36}, "prism.optimize")
-        result.optimCombo.dockStyle = .Right
-        result.optimCombo.style.setStyleSheetMetrics("comboBox_Width 0")
-        result.optimCombo.margin = {8, 0, 0, 0}
-        for name in ["O0", "O1", "O2"] do
-            result.optimCombo.addItem(name)
-        result.optimCombo.setSelectedIndex(cast(u32) level, notify: false)
-        result.optimCombo.sigChanged += func|panel = result|(combo, index)
+        with .optionsButton = IconButton.create(.header, .theme().icon(.Options, 18), {0, 0, 36, 36}, "prism.buildOptions", flags: .Toggle)
         {
-            discard combo
-            discard index
-            panel.requestCompile()
+            .dockStyle = .Right
+            .margin    = {8, 0, 0, 0}
+            .setIconSize(18, 18)
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|panel = me|(button) { panel.showOptions(button.isChecked) }
         }
 
-        result.options = BuildOptions.create(result)
-        result.options.dockStyle = .Center
-        result.options.hide()
-        result.options.sigChanged += func|panel = result|(options)
+        with .pauseButton = IconButton.create(.header, .theme().icon(.Pause, 18), {0, 0, 36, 36}, "prism.pause", flags: .Toggle)
         {
-            discard options
-            panel.sigOptionsChanged.call(panel)
+            .dockStyle = .Right
+            .margin    = {8, 0, 0, 0}
+            .setIconSize(18, 18)
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|panel = me|(button)
+            {
+                panel.viewer!.setPaused(button.isChecked)
+                panel.refreshPlayback()
+            }
         }
 
-        result.options.sigReset += func|panel = result|(options)
+        with .optimCombo = ComboBox.create(.header, {0, 0, 72, 36}, "prism.optimize")
         {
-            discard options
-            panel.optimCombo.setSelectedIndex(cast(u32) panel.defaultLevel, notify: false)
-            panel.viewer!.setOptimization(panel.defaultLevel)
-            panel.requestCompile()
+            .dockStyle = .Right
+            .style.setStyleSheetMetrics("comboBox_Width 0")
+            .margin = {8, 0, 0, 0}
+            for name in ["O0", "O1", "O2"] do
+                .addItem(name)
+            .setSelectedIndex(cast(u32) me.defaultLevel, notify: false)
+            .sigChanged += func|panel = me|(combo, index)
+            {
+                discard combo
+                discard index
+                panel.requestCompile()
+            }
         }
+    }
 
-        result.retranslate()
-        result.selectViewer(.Microcode)
-        result.kindCombo.sigChanged += func|panel = result|(combo, index)
+    // Creates the build configuration editor, which takes the place of the viewer while it is open.
+    mtd createBuildOptions()
+    {
+        with .options = BuildOptions.create(me)
         {
-            discard combo
-            panel.selectViewer(cast(ViewerKind) index)
-            panel.requestCompile()
-        }
+            .dockStyle = .Center
+            .hide()
+            .sigChanged += func|panel = me|(options)
+            {
+                discard options
+                panel.sigOptionsChanged.call(panel)
+            }
 
-        result.applyLayout()
-        return result
+            .sigReset += func|panel = me|(options)
+            {
+                discard options
+                panel.optimCombo.setSelectedIndex(cast(u32) panel.defaultLevel, notify: false)
+                panel.viewer!.setOptimization(panel.defaultLevel)
+                panel.requestCompile()
+            }
+        }
     }
 
     mtd selectViewer(kind: ViewerKind)
@@ -167,14 +193,9 @@ impl ViewerPanel
         .applyLayout()
     }
 
-    mtd request(source: string)->Pipeline.BuildRequest
-    {
-        return {source: String.from(source), stage: String.from(.viewer!.inspectionStage()), kind: .kind, settings: .options.settings(cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)}
-    }
+    mtd request(source: string)->Pipeline.BuildRequest => {source: String.from(source), stage: String.from(.viewer!.inspectionStage()), kind: .kind, settings: .options.settings(cast(Swag.BuildCfgBackendOptimLevel) .optimCombo.selectedIndex)}
 
     mtd requestCompile() { .sigCompileRequested.call(me) }
-
-    mtd compile(source: string) { .compile(.request(source)) }
 
     mtd compile(request: Pipeline.BuildRequest)
     {

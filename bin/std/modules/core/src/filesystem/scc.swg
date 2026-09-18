@@ -253,8 +253,6 @@ private func alignUp(value: u64, alignment: u32)->u64
     return remainder ? value + effective - remainder : value
 }
 
-private func sameId(left, right: Guid128)->bool => left == right
-
 private func makeId(text: string)->Guid128
 {
     var result: Guid128
@@ -291,7 +289,7 @@ private func decodeHeader(bytes: const [..] u8)->Header fail
 
 private func findCodec(codecs: Array'ICodec, id: Guid128)->ICodec?
 {
-    for codec in codecs where sameId(codec.id(), id) do
+    for codec in codecs where codec.id() == id do
         return codec
     return null
 }
@@ -305,7 +303,7 @@ private func encodePayload(codecs: Array'ICodec, codecId: Guid128, source: const
         return result
     }
 
-    if sameId(codecId, deflateCodecId())
+    if codecId == deflateCodecId()
     {
         var codec: Core.Compress.ZLib
         return try codec.compress(source, .BestSpeed)
@@ -326,7 +324,7 @@ private func decodePayload(codecs: Array'ICodec, info: const *ChunkInfo, source:
         return result
     }
 
-    if sameId(info.codecId, deflateCodecId())
+    if info.codecId == deflateCodecId()
     {
         var codec: Core.Compress.ZLib
         return try codec.decompress(source, info.decodedSize)
@@ -401,9 +399,9 @@ impl Writer
     mtd registerCodec(codec: ICodec)
     {
         Swag.assert(not codec.id().isNull())
-        Swag.assert(not sameId(codec.id(), deflateCodecId()))
+        Swag.assert(codec.id() != deflateCodecId())
         for current in .codecs do
-            Swag.assert(not sameId(current.id(), codec.id()))
+            Swag.assert(current.id() != codec.id())
         .codecs.add(codec)
     }
 
@@ -413,7 +411,7 @@ impl Writer
         var id = options.id
         if id.isNull() do
             id = Guid128.random()
-        for chunk in .chunks where sameId(chunk.info.id, id) do
+        for chunk in .chunks where chunk.info.id == id do
             fail BadParameterError{"SCC chunk identifiers must be unique"}
 
         var pending: PendingChunk
@@ -437,7 +435,7 @@ impl Writer
     mtd saveAtomic(fileName: string) fail
     {
         .header.chunks.clear()
-        for &chunk in .chunks do
+        for chunk in .chunks do
             .header.chunks.add(chunk.info)
         try validateManifest(&.header.manifest, .header.chunks.toSlice())
 
@@ -446,7 +444,7 @@ impl Writer
         for i in .chunks.count
         {
             dataOffset = alignUp(dataOffset, .chunks[i].alignment)
-            if .chunks[i].info.storedSize > 0xFFFFFFFFFFFFFFFF - dataOffset do
+            if .chunks[i].info.storedSize > Swag.U64.Max - dataOffset do
                 fail OverflowError{"SCC chunk layout exceeds the addressable file size"}
             .chunks[i].info.offset   = dataOffset
             .header.chunks[i].offset = dataOffset
@@ -456,7 +454,7 @@ impl Writer
         .header.declaredFileSize = dataOffset
 
         headerBytes = try encodeHeader(&.header)
-        let firstDataOffset = .chunks.count ? .chunks[0].info.offset : alignUp(PrefixSize + headerBytes.count, 8)
+        let firstDataOffset = .chunks.isEmpty() ? alignUp(PrefixSize + headerBytes.count, 8) : .chunks[0].info.offset
         if PrefixSize + headerBytes.count > firstDataOffset do
             fail OverflowError{"SCC header grew after chunk offsets were assigned"}
 
@@ -601,9 +599,9 @@ impl Reader
     mtd registerCodec(codec: ICodec)
     {
         Swag.assert(not codec.id().isNull())
-        Swag.assert(not sameId(codec.id(), deflateCodecId()))
+        Swag.assert(codec.id() != deflateCodecId())
         for current in .codecs do
-            Swag.assert(not sameId(current.id(), codec.id()))
+            Swag.assert(current.id() != codec.id())
         .codecs.add(codec)
     }
 
@@ -625,7 +623,7 @@ impl Reader
     // Finds a chunk by identifier, or returns `null` when it is absent.
     mtd const findChunk(id: Guid128)->const *ChunkInfo?
     {
-        for &chunk in .header.chunks where sameId(chunk.id, id) do
+        for chunk in .header.chunks where chunk.id == id do
             return chunk
         return null
     }
@@ -633,7 +631,7 @@ impl Reader
     // Finds the first chunk carrying `roleId`, or returns `null` when it is absent.
     mtd const findRole(roleId: Guid128)->const *ChunkInfo?
     {
-        for &chunk in .header.chunks where sameId(chunk.roleId, roleId) do
+        for chunk in .header.chunks where chunk.roleId == roleId do
             return chunk
         return null
     }
@@ -661,7 +659,7 @@ impl Reader
         if not info do
             fail BadParameterError{"SCC has no chunk with this identifier"}
 
-        var stored = try .readStoredChunk(id)
+        let stored = try .readStoredChunk(id)
         let result = try decodePayload(.codecs, info, stored.toSlice())
         if result.count != info.decodedSize do
             fail InvalidFormatError{"SCC codec returned a different decoded size"}

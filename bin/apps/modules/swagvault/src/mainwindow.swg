@@ -431,7 +431,7 @@ internal func isCanceledError(err: any?)->bool
 internal func setMachineFont(wnd: *Wnd)
 {
     let theme = wnd.theme()
-    wnd.style.setFont(theme.createDefaultFontFS(theme.metrics.defaultFixedFontSize), .Regular)
+    wnd.style.setFont(theme.createDefaultFontFs(theme.metrics.defaultFixedFontSize), .Regular)
 }
 
 // Says a container size the way the capacity fields take it back.
@@ -1418,16 +1418,10 @@ impl MainWindow
     //
     // The password is not read: a container that opens without one is answered by an empty
     // field, and a wrong password is reported by the container, not by the form.
-    mtd canMount()->bool
-    {
-        return (.mountPath.text()).count != 0 and not .selectedMountPoint().isEmpty()
-    }
+    mtd canMount()->bool => (.mountPath.text()).count != 0 and not .selectedMountPoint().isEmpty()
 
     // Whether the open form names a container the two secondary actions can act on.
-    mtd canModifyVault()->bool
-    {
-        return (.mountPath.text()).count != 0
-    }
+    mtd canModifyVault()->bool => (.mountPath.text()).count != 0
 
     // Puts each action in step with what its form holds.
     //

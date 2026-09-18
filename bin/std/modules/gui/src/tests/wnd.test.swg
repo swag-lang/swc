@@ -80,7 +80,7 @@ impl IWnd for AncestorTestWnd {}
     Swag.assert(left.detachChild(child))
     Swag.assert(child.parent == null and child.surface == null)
     Swag.assert(grandChild.surface == null)
-    Swag.assert(left.children.count == 0)
+    Swag.assert(left.children.isEmpty())
 
     child.setParent(right)
     Swag.assert(child.parent == right and child.surface == right.surface)
@@ -250,7 +250,7 @@ impl IWnd for AncestorTestWnd {}
 
     child.destroy()
     host.pump()
-    Swag.assert(container.children.count == 0)
+    Swag.assert(container.children.isEmpty())
 }
 
 // A no-scroll window and everything it contains ignore scroll offsets above that boundary in

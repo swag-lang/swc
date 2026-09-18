@@ -36,7 +36,7 @@ struct BinaryRow
 //
 // A tree of owning nodes would carry the same information, but every consumer walks the rows in
 // order — the view builds its lines in one pass, the clipboard writes them in one pass, and a
-// search maps a byte offset by scanning them — so the depth is carried on the rows themselves.
+// jump maps a file offset by scanning them — so the depth is carried on the rows themselves.
 struct BinaryReport
 {
     formatName: String     // Short name of the format that was recognized.
@@ -47,22 +47,26 @@ struct BinaryReport
 
 impl BinaryReport
 {
-    // Opens a structure. Every row added until the matching [[BinaryReport.endGroup]] sits under it.
+    // Opens a structure that every row added until the matching [[BinaryReport.endGroup]] sits under.
     mtd beginGroup(label: string, value: string = "", detail: string = "", offset = Swag.U64.Max, length = 0'u64, open = false)
     {
-        var row: BinaryRow
-        row.kind   = .Group
-        row.level  = .level
-        row.label  = label
-        row.value  = value
-        row.detail = detail
-        row.offset = offset
-        row.length = length
-        row.open   = open
+        with var row: BinaryRow
+        {
+            .kind   = .Group
+            .level  = me.level
+            .label  = label
+            .value  = value
+            .detail = detail
+            .offset = offset
+            .length = length
+            .open   = open
+        }
+
         .rows.add(#move row)
         .level += 1
     }
 
+    // Closes the structure the last unmatched [[BinaryReport.beginGroup]] opened.
     mtd endGroup()
     {
         Swag.assert(.level > 0, "a report closed a group it never opened")
@@ -75,78 +79,96 @@ impl BinaryReport
     // formatting consistent across readers.
     mtd field(offset, length: u64, label, value: string, detail: string = "")
     {
-        var row: BinaryRow
-        row.kind   = .Field
-        row.level  = .level
-        row.label  = label
-        row.value  = value
-        row.detail = detail
-        row.offset = offset
-        row.length = length
+        with var row: BinaryRow
+        {
+            .kind   = .Field
+            .level  = me.level
+            .label  = label
+            .value  = value
+            .detail = detail
+            .offset = offset
+            .length = length
+        }
+
         .rows.add(#move row)
     }
 
     // Adds a value read as a hexadecimal number as wide as the field that holds it.
     mtd hexField(offset, length: u64, label: string, value: u64, detail: string = "")
     {
-        var row: BinaryRow
-        row.kind   = .Field
-        row.level  = .level
-        row.label  = label
-        row.value  = hexText(value, Math.clamp(length, 1'u64, 8) * 2)
-        row.detail = detail
-        row.offset = offset
-        row.length = length
+        with var row: BinaryRow
+        {
+            .kind   = .Field
+            .level  = me.level
+            .label  = label
+            .value  = hexText(value, Math.clamp(length, 1'u64, 8) * 2)
+            .detail = detail
+            .offset = offset
+            .length = length
+        }
+
         .rows.add(#move row)
     }
 
     // Adds a value read as a plain count.
     mtd numField(offset, length: u64, label: string, value: u64, detail: string = "")
     {
-        var row: BinaryRow
-        row.kind   = .Field
-        row.level  = .level
-        row.label  = label
-        row.value  = Format.toString("%", value)
-        row.detail = detail
-        row.offset = offset
-        row.length = length
+        with var row: BinaryRow
+        {
+            .kind   = .Field
+            .level  = me.level
+            .label  = label
+            .value  = Format.toString("%", value)
+            .detail = detail
+            .offset = offset
+            .length = length
+        }
+
         .rows.add(#move row)
     }
 
     // Adds a size or an address, in the two readings either is always wanted in at once.
     mtd sizeField(offset, length: u64, label: string, value: u64, detail: string = "")
     {
-        var row: BinaryRow
-        row.kind   = .Field
-        row.level  = .level
-        row.label  = label
-        row.value  = hexAndDecimalText(value, Math.clamp(length, 1'u64, 8) * 2)
-        row.detail = detail
-        row.offset = offset
-        row.length = length
+        with var row: BinaryRow
+        {
+            .kind   = .Field
+            .level  = me.level
+            .label  = label
+            .value  = hexAndDecimalText(value, Math.clamp(length, 1'u64, 8) * 2)
+            .detail = detail
+            .offset = offset
+            .length = length
+        }
+
         .rows.add(#move row)
     }
 
     // Adds one value that no single byte range produced, such as a total or a computed address.
     mtd derived(label, value: string, detail: string = "")
     {
-        var row: BinaryRow
-        row.kind   = .Field
-        row.level  = .level
-        row.label  = label
-        row.value  = value
-        row.detail = detail
+        with var row: BinaryRow
+        {
+            .kind   = .Field
+            .level  = me.level
+            .label  = label
+            .value  = value
+            .detail = detail
+        }
+
         .rows.add(#move row)
     }
 
     // Records what the file did not let the reader see, where the reader would have looked.
     mtd note(text: string)
     {
-        var row: BinaryRow
-        row.kind  = .Note
-        row.level = .level
-        row.label = text
+        with var row: BinaryRow
+        {
+            .kind  = .Note
+            .level = me.level
+            .label = text
+        }
+
         .rows.add(#move row)
     }
 
@@ -155,15 +177,15 @@ impl BinaryReport
     {
         if total <= shown do
             return
-        let text = Format.toString(binStrings().rep_NotListed, total - shown)
+        let text = Format.toString(binaryStrings().rep_NotListed, total - shown)
         .note(text.toString())
     }
 
     // Returns the innermost row whose byte range contains `offset`, or `Swag.U64.Max`.
     //
-    // This is how a match the host found in the raw bytes becomes a place in the structure: groups
-    // carry the range they cover, so an offset inside a section's payload lands on that section
-    // even though no field was ever decoded there.
+    // This is how a file offset becomes a place in the structure: groups carry the range they cover,
+    // so an offset inside a section's payload lands on that section even though no field was ever
+    // decoded there.
     mtd const rowAt(offset: u64)->u64
     {
         var best      = Swag.U64.Max
@@ -245,14 +267,11 @@ func hexText(value: u64, digits: u64)->String
         text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 
-    return String.from(Swag.makeString(text.storage(), text.count))
+    return String.from(cast(string) text.toSlice())
 }
 
 // Returns a value in the two readings a size or an address is always wanted in at once.
-func hexAndDecimalText(value: u64, digits: u64)->String
-{
-    return Format.toString("% (%)", hexText(value, digits), value)
-}
+func hexAndDecimalText(value: u64, digits: u64)->String => Format.toString("% (%)", hexText(value, digits), value)
 
 // Returns the names of every set bit of `value`, and the bits no name accounted for.
 func flagsText(value: u64, names: const [..] BinaryFlagName)->String
@@ -282,38 +301,14 @@ func flagsText(value: u64, names: const [..] BinaryFlagName)->String
 func epochText(seconds: u64)->String
 {
     if not seconds do
-        return String.from(binStrings().ui_NotSet)
+        return String.from(binaryStrings().ui_NotSet)
 
     // A stamp beyond the calendar the runtime spells is a reproducible-build cookie or a corrupt
     // field. Either way it is a number, and saying so beats printing a year in the far future.
     if seconds > 253_370_764_800 do
-        return String.from(binStrings().ui_NotDate)
+        return String.from(binaryStrings().ui_NotDate)
 
     let epoch = Time.Timestamp.fromDateTime({1970, 1, 1})
     let stamp = Time.Timestamp.fromTicks(epoch.ticks + seconds * Time.TicksPerSecond)
     return Format.toString("% UTC", stamp.toDateTime().toString(.DateTimeIso))
-}
-
-// Returns the mixed-endian textual form Microsoft tools print a GUID in.
-func guidText(image: *BinaryImage, offset: u64)->String
-{
-    if not image.has(offset, 16) do
-        return String.from(BinaryNoValue)
-
-    // The first three fields are stored little endian and the last two big endian, so the order the
-    // bytes are printed in is not the order they are stored in.
-    const Order = [3'u64, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15]
-
-    var text: Array'u8
-    for index in 16
-    {
-        if index == 4 or index == 6 or index == 8 or index == 10 do
-            text.add('-'u8)
-        let value  = image.bytes[offset + Order[index]]
-        let digits = [cast(u8) (value >> 4), value & 0xF]
-        for nibble in digits do
-            text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
-    }
-
-    return String.from(Swag.makeString(text.storage(), text.count))
 }

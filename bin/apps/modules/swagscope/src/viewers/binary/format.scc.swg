@@ -16,7 +16,7 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
 {
     image.bigEndian = false
 
-    let s          = binStrings()
+    let s          = binaryStrings()
     let major      = image.u16At(8)
     let minor      = image.u16At(10)
     let headerSize = image.u64At(16)
@@ -56,13 +56,13 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
     reportSccManifest(report, reader.manifest())
     reportSccChunks(report, reader.chunks())
 
-    let chunks = countText((reader.chunks()).count, s.word_Chunk, s.word_Chunks)
+    let chunks = countText(reader.chunks().count, s.word_Chunk, s.word_Chunks)
     report.summary = Format.toString("SCC %.% · %", major, minor, chunks)
 }
 
 private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manifest)
 {
-    let s = binStrings()
+    let s = binaryStrings()
     report.beginGroup(s.scc_Manifest, manifest.name.toString(), "", open: true)
 
     let version = Format.toString("%", manifest.version)
@@ -108,7 +108,7 @@ private func reportSccProperties(report: *BinaryReport, properties: const [..] S
     if not properties.count do
         return
 
-    let s     = binStrings()
+    let s     = binaryStrings()
     let total = countText(properties.count, s.word_Property, s.word_Properties)
     report.beginGroup(s.scc_Properties, total.toString(), "")
 
@@ -143,7 +143,7 @@ private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Ent
     if not entries.count do
         return
 
-    let s     = binStrings()
+    let s     = binaryStrings()
     let total = countText(entries.count, s.word_Entry, s.word_Entries)
     report.beginGroup(s.scc_Entries, total.toString(), "", open: true)
 
@@ -181,7 +181,7 @@ private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Ent
 
 private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.ChunkInfo)
 {
-    let s     = binStrings()
+    let s     = binaryStrings()
     let total = countText(chunks.count, s.word_Chunk, s.word_Chunks)
     report.beginGroup(s.scc_Chunks, total.toString(), "", open: true)
 
@@ -224,7 +224,7 @@ private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.Chunk
 
 private func sccCodecName(codecId: Guid128)->string
 {
-    let s = binStrings()
+    let s = binaryStrings()
     if codecId.isNull() do
         return s.scc_Stored
     if codecId == Scc.deflateCodecId() do

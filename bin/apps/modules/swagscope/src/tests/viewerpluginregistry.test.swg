@@ -3,20 +3,11 @@
 
 using Core, Gui
 
-func viewerRegistryFixturePath(name: string)->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
-}
+func viewerRegistryFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 
-private func choicePlugin(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->const *Viewer.Plugin
-{
-    return &registry.plugins[choice.pluginIndex]
-}
+private func choicePlugin(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->const *Viewer.Plugin => &registry.plugins[choice.pluginIndex]
 
-private func choiceName(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->string
-{
-    return choicePlugin(registry, choice).displayName()
-}
+private func choiceName(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->string => choicePlugin(registry, choice).displayName()
 
 private func createTestPlugin(host: Viewer.Host)
 {

@@ -175,7 +175,7 @@ public impl Context
 
         for entry in entries
         {
-            result.add(String.from(Path.fileName(entry.fullname.toString()) orelse ""))
+            result.add(String.from(Path.fileName(entry.fullName.toString()) orelse ""))
         }
 
         return result

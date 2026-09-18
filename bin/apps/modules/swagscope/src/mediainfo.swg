@@ -28,6 +28,7 @@ enum MediaInfoField
     Unavailable
 }
 
+// Visible strings of the media information panel.
 struct MediaInfoStrings
 {
     title:       string = "Information"
@@ -57,21 +58,24 @@ struct MediaInfoStrings
     unavailable: string = "Read error"
 }
 
-private const MediaFrenchName = "lang/fr/scope.media.tweak"
-private const MediaFrench     = #include("../datas/lang/fr/scope.media.tweak")
+private const FrenchMediaStringsName = "lang/fr/scope.media.tweak"
+private const FrenchMediaStrings     = #include("../datas/lang/fr/scope.media.tweak")
+
 private var g_MediaInfoStrings: MediaInfoStrings
 
+// Registers the media information string table and its embedded translation.
 func registerMediaInfoStrings(app: *Application)
 {
-    app.resources.addEmbedded(MediaFrenchName, MediaFrench)
+    app.resources.addEmbedded(FrenchMediaStringsName, FrenchMediaStrings)
     Gui.registerStrings'MediaInfoStrings(&g_MediaInfoStrings, "scope.media")
 }
 
 #run
 {
-    expect Gui.validateStrings'MediaInfoStrings(cast(string) MediaFrench)
+    expect Gui.validateStrings'MediaInfoStrings(cast(string) FrenchMediaStrings)
 }
 
+// One property of the panel, or the heading of a group of them.
 struct MediaInfoRow
 {
     field: MediaInfoField
@@ -82,6 +86,7 @@ struct MediaInfoRow
 
 impl MediaInfoRow
 {
+    // Returns the name of the row in the active language, or its own name for a format-owned tag.
     mtd const label()->string
     {
         let s = &g_MediaInfoStrings
@@ -120,6 +125,7 @@ struct MediaInfoData
 
 impl MediaInfoData
 {
+    // Appends a row named by the shared vocabulary.
     mtd add(field: MediaInfoField, value: string = "", group = false)
     {
         var row = MediaInfoRow{field: field, group: group}
@@ -127,6 +133,7 @@ impl MediaInfoData
         .rows.add(#move row)
     }
 
+    // Appends a row whose name the format owns, shown as written.
     mtd addText(name, value: string)
     {
         var row: MediaInfoRow
@@ -135,6 +142,7 @@ impl MediaInfoData
         .rows.add(#move row)
     }
 
+    // Appends the metadata group of a picture: decoded Exif properties, PNG text, or the size of opaque records.
     mtd addImageMetadata(records: const [..] ImageMetadata, pngText = false)
     {
         .add(.Metadata, group: true)
@@ -206,42 +214,54 @@ struct MediaInfoPanel
 
 impl MediaInfoPanel
 {
+    // Creates the panel and its toggle in the side lane of the viewer `host` is building.
     func create(host: Viewer.Host)->*MediaInfoPanel
     {
         registerMediaInfoStrings(host.application())
         let theme  = host.contentParent().theme()
         let side   = host.createSidePanel(368, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_MediaInfoStrings.title)
-        let result = Wnd.create'MediaInfoPanel(side.content)
-        result.dockStyle       = .Center
-        result.backgroundStyle = .Transparent
-        result.padding         = {12, 8, 12, 8}
-        result.toggle          = side.toggle
-
-        let size   = themeCompactButtonSize(result.themeMetrics())
-        let header = Wnd.create'Wnd(result, {0, 0, 0, size})
-        header.dockStyle              = .Top
-        header.backgroundStyle        = .Transparent
-        result.closeButton            = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
-        result.closeButton.dockStyle  = .Right
-        result.closeButton.sigPressed += func|panel = result|(button)
+        with let result = Wnd.create'MediaInfoPanel(side.content)
         {
-            discard button
-            panel.toggle.setChecked(false)
-            panel.toggle.sigCheckedChanged.call(panel.toggle)
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .padding         = {12, 8, 12, 8}
+            .toggle          = side.toggle
         }
 
-        result.copyButton = IconButton.create(header, theme.icon(.Copy, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
-        result.copyButton.dockStyle  = .Right
-        result.copyButton.sigPressed += func|panel = result|(button)
+        let size = themeCompactButtonSize(result.themeMetrics())
+        with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
         {
-            discard button
-            Clipboard.addString(panel.text().toString())
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
         }
 
-        result.title = Label.create(header, "")
-        result.title.dockStyle = .Center
-        result.title.setTextAlignment(.Left, .Center)
-        result.title.style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
+        with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
+        {
+            .dockStyle  = .Right
+            .sigPressed += func|panel = result|(button)
+            {
+                discard button
+                panel.toggle.setChecked(false)
+                panel.toggle.sigCheckedChanged.call(panel.toggle)
+            }
+        }
+
+        with result.copyButton = IconButton.create(header, theme.icon(.Copy, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
+        {
+            .dockStyle  = .Right
+            .sigPressed += func|panel = result|(button)
+            {
+                discard button
+                Clipboard.addString(panel.text().toString())
+            }
+        }
+
+        with result.title = Label.create(header, "")
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+            .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
+        }
 
         with result.list = ListCtrl.createMultiColumns(result)
         {
@@ -262,6 +282,7 @@ impl MediaInfoPanel
         return result
     }
 
+    // Returns every row as one line of text, for the clipboard.
     mtd text()->String
     {
         var result: retval
@@ -276,6 +297,7 @@ impl MediaInfoPanel
         return result
     }
 
+    // Takes the rows of `data` and shows them, every group expanded.
     mtd publish(data: *MediaInfoData)
     {
         .data = #move data[]

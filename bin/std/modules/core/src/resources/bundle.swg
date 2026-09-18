@@ -64,22 +64,14 @@ impl Bundle
         .embedded.add({name, bytes})
     }
 
-    // Reports whether `name` resolves through any provider.
-    mtd const has(name: string)->bool
-    {
-        if .diskPath(name).length do
-            return true
-        return .findEmbedded(name) != null
-    }
+    // Returns whether `name` resolves through any provider.
+    mtd const has(name: string)->bool => .isOverridden(name) or .findEmbedded(name) != null
 
-    // Reports whether a disk folder provides `name`, hiding any embedded fallback.
+    // Returns whether a disk folder provides `name`, hiding any embedded fallback.
     //
     // A caller that caches work derived from embedded bytes can use this to know
-    // when the cache does not describe what [[load]] would return.
-    mtd const isOverridden(name: string)->bool
-    {
-        return .diskPath(name).length != 0
-    }
+    // when the cache does not describe what [[Core.Resources.Bundle.load]] would return.
+    mtd const isOverridden(name: string)->bool => not .diskPath(name).isEmpty()
 
     // Loads the bytes of `name` from the first provider that owns it.
     //
@@ -89,7 +81,7 @@ impl Bundle
     mtd const load(name: string)->Array'u8 fail
     {
         let path = .diskPath(name)
-        if path.length do
+        if not path.isEmpty() do
             return try File.readAllBytes(path.toString())
 
         let entry = .findEmbedded(name)
@@ -115,16 +107,13 @@ impl Bundle
 
         for folder in .folders
         {
-            var options: Directory.EnumerationOptions
-            options.recurse         = true
-            options.wantDirectories = false
-            let files = catch Directory.enumerate(folder.toString(), options) as enumErr
+            let files = catch Directory.enumerate(folder.toString(), {recurse: true, wantDirectories: false}) as enumErr
             if enumErr != null do
                 continue
 
             for file in files
             {
-                let name = relativeResourceName(folder.toString(), file.fullname.toString())
+                let name = relativeResourceName(folder.toString(), file.fullName.toString())
                 if not Utf8.startsWith(name.toString(), prefix) do
                     continue
                 if not result.contains(name) do
@@ -167,15 +156,19 @@ impl Bundle
 }
 
 // Converts an absolute enumerated path back to a `/`-separated resource name.
-private func relativeResourceName(root: string, fullname: string)->String
+private func relativeResourceName(root: string, fullName: string)->String
 {
     var result: retval
 
-    // The enumeration returns `root` verbatim as the path prefix; what follows the
-    // separator is the resource name.
-    var rel = fullname
-    if fullname.count > root.count and Utf8.startsWith(fullname, root) do
-        rel = fullname[root.count + 1 to]
+    // The enumeration returns `root` verbatim as the path prefix. A root spelled with a
+    // trailing separator already ends with it; otherwise one follows it.
+    var rel = fullName
+    if fullName.count > root.count and Utf8.startsWith(fullName, root)
+    {
+        rel = fullName[root.count to]
+        if Path.isDirectorySeparator(rel[0]) do
+            rel = rel[1 to]
+    }
 
     result = rel
     result.replace("\\", "/")

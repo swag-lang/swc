@@ -66,7 +66,7 @@ impl Deque
         return &.backItems[index - .frontItems.count]
     }
 
-    // Assigns a new value to the element at logical `index` from the front.
+    // Assigns a copy of `value` to the element at logical `index` from the front.
     mtd opIndexSet(index: u64, value: T)
         where Reflection.canCopy(T)
     {
@@ -74,6 +74,7 @@ impl Deque
     }
 
     // Adds `value` at the front of the queue.
+    //
     // The value is copied; pass it with `#move` to transfer it.
     mtd pushFront(value: #fwd T)
     {
@@ -82,6 +83,7 @@ impl Deque
     }
 
     // Adds `value` at the back of the queue.
+    //
     // The value is copied; pass it with `#move` to transfer it.
     mtd pushBack(value: #fwd T)
     {
@@ -89,6 +91,7 @@ impl Deque
         .count += 1
     }
 
+    // Refills an empty front segment with the logical front half of the back segment.
     private mtd ensureFrontSegment()
     {
         if .frontItems.count or not .backItems.count do
@@ -101,24 +104,16 @@ impl Deque
         newFront.reserve(frontCount)
         newBack.reserve(sourceCount - frontCount)
 
-        var index = frontCount
-        while index
-        {
-            index -= 1
+        for index in reversed(frontCount) do
             newFront.add(#move .backItems[index])
-        }
-
-        index = frontCount
-        while index < sourceCount
-        {
+        for index in frontCount until sourceCount do
             newBack.add(#move .backItems[index])
-            index += 1
-        }
 
         .frontItems = #move newFront
         .backItems  = #move newBack
     }
 
+    // Refills an empty back segment with the logical back half of the front segment.
     private mtd ensureBackSegment()
     {
         if .backItems.count or not .frontItems.count do
@@ -132,25 +127,16 @@ impl Deque
         newFront.reserve(frontCount)
         newBack.reserve(backCount)
 
-        var index = frontCount
-        while index
-        {
-            index -= 1
+        for index in reversed(frontCount) do
             newFront.add(#move .frontItems[sourceCount - index - 1])
-        }
-
-        index = frontCount
-        while index < sourceCount
-        {
+        for index in frontCount until sourceCount do
             newBack.add(#move .frontItems[sourceCount - index - 1])
-            index += 1
-        }
 
         .frontItems = #move newFront
         .backItems  = #move newBack
     }
 
-    // Returns a pointer to the front element and asserts if the queue is empty.
+    // Returns the address of the front element and asserts if the queue is empty.
     //
     // This operation does not allocate, move elements, or invalidate existing borrows.
     mtd frontPtr()->*T
@@ -176,7 +162,7 @@ impl Deque
         return result
     }
 
-    // Returns a pointer to the back element and asserts if the queue is empty.
+    // Returns the address of the back element and asserts if the queue is empty.
     //
     // This operation does not allocate, move elements, or invalidate existing borrows.
     mtd backPtr()->*T

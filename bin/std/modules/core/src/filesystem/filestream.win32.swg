@@ -4,7 +4,7 @@
 
 using Win32
 
-impl FileStream
+internal impl FileStream
 {
     // Reads up to `length` bytes into caller-owned writable storage and returns the number read.
     mtd readNative(buffer: *void, length: u32)->u32 fail

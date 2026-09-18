@@ -19,12 +19,13 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
     return realSpecialDirectory(what)
 }
 
-// Returns the normalized path of a well-known system directory on the machine itself,
-// ignoring any sandbox.
+// Returns the normalized path of a well-known system directory on the machine itself, ignoring any sandbox.
 //
 // Reserved for code that genuinely has to reach the real system, such as locating a system
 // executable to launch. Anything that reads or writes an application's own data must go
-// through [[Env.getSpecialDirectory]] instead, so a test cannot touch the real thing.
+// through [[Core.Env.getSpecialDirectory]] instead, so a test cannot touch the real thing.
+//
+// Returns an empty string when the directory cannot be resolved.
 public func realSpecialDirectory(what: SpecialDirectory)->String
 {
     if what == SpecialDirectory.Temp
@@ -34,7 +35,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
         if err != null or len >= MAX_PATH do
             return ""
 
-        var result: retval = cast(string) Swag.makeSlice(&a[0], cast(u64) len)
+        var result: retval = cast(string) a[until len]
         Path.normalize(&result)
         return result
     }
@@ -122,12 +123,12 @@ public func getMonitors()->Array'Monitor
     }
 
     EnumDisplayMonitors(null, null, cast() &proc, cast #bit (LPARAM) cast(u64) &result)
-    result.sort(func||(a, b) { return a.bounds.x <=> b.bounds.x })
+    result.sort(func||(a, b) => a.bounds.x <=> b.bounds.x)
 
     return result
 }
 
-// Selects `path` in the platform file explorer.
+// Opens the platform file explorer with `path` selected and returns whether the shell accepted the request.
 #[Swag.Discardable]
 public func showInFileExplorer(path: string)->bool
 {
@@ -183,7 +184,9 @@ public func openFile(path: string)->bool
 // Opens `url` with the system's default handler.
 public func openUrl(url: string)
 {
-    discard catch ShellExecuteA(null, null, url.buffer, null, null, SW_SHOW)
+    // A 'string' view has no terminator of its own, and the wide call keeps non-ASCII URLs intact.
+    let wideUrl = Utf16.toZeroTerminated(url)
+    discard catch ShellExecuteW(null, null, wideUrl.buffer, null, null, SW_SHOW)
 }
 
 // Returns one virtual-desktop metric in physical pixels.
@@ -196,13 +199,11 @@ public func getSystemMetric(what: SystemMetric)->s32
     case .DesktopWidth:  return GetSystemMetrics(SM_CXVIRTUALSCREEN)
     case .DesktopHeight: return GetSystemMetrics(SM_CYVIRTUALSCREEN)
     }
-
-    unreachable
 }
 
-// Returns the user's preferred locale name, such as `"fr-FR"`, or an empty string
-// when the system cannot provide one. The part before `-` is the language tag an
-// application can hand to its localization layer.
+// Returns the user's preferred locale name, such as `"fr-FR"`, or an empty string when the system cannot provide one.
+//
+// The part before `-` is the language tag an application can hand to its localization layer.
 public func userLocaleName()->String
 {
     var name16: [LOCALE_NAME_MAX_LENGTH] u16
@@ -220,31 +221,32 @@ var g_SysInfo: SYSTEM_INFO
     GetSystemInfo(&g_SysInfo)
 }
 
-// Register an application in the system
+// Registers `appName` with the shell for the current user, under the display name `appFriendly`.
 //
-// Refused under a sandbox: this writes to the user's registry, which a test or a smoke run
-// has no business touching.
+// Registry writes that fail are ignored. Refused under a sandbox: this writes to the user's
+// registry, which a test or a smoke run has no business touching.
 public func registerApplication(appName, appFriendly: string)
 {
     if denySystemMutation(.ApplicationRegistration) do
         return
 
+    // The registry reads zero-terminated text, which a 'string' view does not guarantee.
+    let friendly = String.from(appFriendly)
     var hKey: HKEY
 
     let commandKey = Format.toString("Software\\Classes\\Applications\\%", appName)
     if RegCreateKeyExA(HKEY_CURRENT_USER, commandKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
-        RegSetValueExA(hKey, null, 0, REG_SZ, appFriendly.buffer, cast(u32) (appFriendly.count + 1))
-        RegSetValueExA(hKey, ("FriendlyAppName").buffer, 0, REG_SZ, appFriendly.buffer, cast(u32) (appFriendly.count + 1))
+        RegSetValueExA(hKey, null, 0, REG_SZ, friendly.buffer, cast(u32) (friendly.length + 1))
+        RegSetValueExA(hKey, ("FriendlyAppName").buffer, 0, REG_SZ, friendly.buffer, cast(u32) (friendly.length + 1))
         RegCloseKey(hKey)
     }
 
     // Register the application properly
-    let regAppKey = Format.toString("Software\\RegisteredApplications")
-    if RegCreateKeyExA(HKEY_CURRENT_USER, regAppKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
+    if RegCreateKeyExA(HKEY_CURRENT_USER, ("Software\\RegisteredApplications").buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
         let capabilitiesPath = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
-        RegSetValueExA(hKey, appFriendly.buffer, 0, REG_SZ, capabilitiesPath.buffer, cast(u32) (capabilitiesPath.length + 1))
+        RegSetValueExA(hKey, friendly.buffer, 0, REG_SZ, capabilitiesPath.buffer, cast(u32) (capabilitiesPath.length + 1))
         RegCloseKey(hKey)
     }
 
@@ -252,17 +254,17 @@ public func registerApplication(appName, appFriendly: string)
     let capKey = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
     if RegCreateKeyExA(HKEY_CURRENT_USER, capKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
-        RegSetValueExA(hKey, ("ApplicationName").buffer, 0, REG_SZ, appFriendly.buffer, cast(u32) (appFriendly.count + 1))
-
-        // RegSetValueExA(hKey, ("ApplicationDescription").buffer, 0, REG_SZ, appDescription.buffer, cast(u32) (appDescription.count + 1))
+        RegSetValueExA(hKey, ("ApplicationName").buffer, 0, REG_SZ, friendly.buffer, cast(u32) (friendly.length + 1))
         RegCloseKey(hKey)
     }
 }
 
-// Associate an extension to an executable
+// Offers `appName` in the shell's *Open with* list for `extension`, for the current user, and returns whether every registry write succeeded.
 //
-// Refused under a sandbox, which reports it as not associated: claiming a file extension
-// changes what the shell does on the whole machine.
+// The registered command runs `appPath` with the opened file, and the default application of
+// the extension is left alone; [[Core.Env.claimFileExtension]] takes the extension over
+// instead. Refused under a sandbox, which reports it as not associated: claiming a file
+// extension changes what the shell does on the whole machine.
 #[Swag.Discardable]
 public func associateFileExtension(extension, appName, appPath: string)->bool
 {
@@ -271,13 +273,9 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 
     var hKey: HKEY
 
-    /////
-
     let extKey = Format.toString("Software\\Classes\\%\\OpenWithProgids", extension)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, extKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS
-    {
+    if RegCreateKeyExA(HKEY_CURRENT_USER, extKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
         return false
-    }
 
     let valApp = Format.toString("%", appName)
     if RegSetValueExA(hKey, null, 0, REG_SZ, valApp.buffer, cast(u32) (valApp.length + 1)) != ERROR_SUCCESS
@@ -288,15 +286,12 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 
     RegCloseKey(hKey)
 
-    /////
-
     let supportedTypes = Format.toString("Software\\Classes\\Applications\\%\\SupportedTypes", appName)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, supportedTypes.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS
-    {
+    if RegCreateKeyExA(HKEY_CURRENT_USER, supportedTypes.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
         return false
-    }
 
-    if RegSetValueExA(hKey, extension.buffer, 0, REG_SZ, null, 0) != ERROR_SUCCESS
+    let extensionName = String.from(extension)
+    if RegSetValueExA(hKey, extensionName.buffer, 0, REG_SZ, null, 0) != ERROR_SUCCESS
     {
         RegCloseKey(hKey)
         return false
@@ -304,13 +299,9 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 
     RegCloseKey(hKey)
 
-    /////
-
     let commandKey = Format.toString("Software\\Classes\\Applications\\%\\shell\\open\\command", appName)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, commandKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS
-    {
+    if RegCreateKeyExA(HKEY_CURRENT_USER, commandKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
         return false
-    }
 
     var command = Format.toString("\"%\" \"%%1\"", appPath)
     command.replace("/", "\\")
@@ -326,7 +317,7 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 
 // Makes `appPath` the program the shell runs for `extension`, for the current user.
 //
-// This is the strong form of [[Env.associateFileExtension]]: that one offers the application in
+// This is the strong form of [[Core.Env.associateFileExtension]]: that one offers the application in
 // the *Open with* list and leaves the default alone, which is what an application wants for a
 // format it merely reads. This one takes the extension over, so opening one of those files —
 // from a double-click, from `cmd`, from anywhere the shell resolves a document — runs `appPath`.
@@ -423,8 +414,8 @@ var g_DpiAware: bool
 // Every window-creation path calls this before its first native window exists; an
 // application only needs it directly when it creates native windows on its own.
 // Once enabled, monitor and cursor coordinates are physical desktop pixels and the
-// system no longer stretches window content on scaled displays. Idempotent, and a
-// failure (for example when the awareness was already set by other means) is ignored.
+// system no longer stretches window content on scaled displays. Repeated calls do nothing,
+// and a failure (for example when the awareness was already set by other means) is ignored.
 public func enableDpiAwareness()
 {
     if g_DpiAware do
@@ -433,10 +424,7 @@ public func enableDpiAwareness()
     discard SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 }
 
-private func getWindowFromHandle(hWnd: HWND)->*Window?
-{
-    return cast(*Window?) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
-}
+private func getWindowFromHandle(hWnd: HWND)->*Window? => cast(*Window?) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
 
 private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
@@ -494,14 +482,14 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
 impl Window
 {
-    internal mtd setNativeHandle(nativeHandle: HWND)
+    mtd setNativeHandle(nativeHandle: HWND)
     {
         .nativeHandle = cast(const *void?) nativeHandle
     }
 
     private mtd const win32Handle()->HWND => cast(HWND) .nativeHandle
 
-    internal mtd rebindNative()
+    mtd rebindNative()
     {
         SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) me)
     }
@@ -516,7 +504,10 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     wc.style         = CS_OWNDC
     wc.lpfnWndProc   = cast() &envWindowProc
     wc.hInstance     = GetModuleHandleA(null)
-    wc.lpszClassName = options.identifier.buffer
+    // Both names are read up to their terminator, which a 'string' view does not guarantee.
+    let className = String.from(options.identifier)
+    let title     = String.from(options.title)
+    wc.lpszClassName = className.buffer
     try RegisterClassA(wc)
 
     var style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
@@ -527,14 +518,14 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     if options.flags.has(.Maximizable) do
         style |= WS_MAXIMIZEBOX
 
-    let hWnd = CreateWindowExA(0, options.identifier.buffer, options.title.buffer, style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
+    let hWnd = CreateWindowExA(0, className.buffer, title.buffer, style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
     if not hWnd do
         try failWinError(GetLastError())
 
     result.setNativeHandle(hWnd)
 }
 
-// Processes all pending window messages. Returns false when the application should exit.
+// Processes all pending window messages and returns false when the application should exit.
 public func processWindowMessages()->bool
 {
     var msg: MSG
@@ -566,8 +557,7 @@ public impl Window
 
     internal mtd closeNative() fail
     {
-        let handle = .win32Handle()
-        try DestroyWindow(handle)
+        try DestroyWindow(.win32Handle())
     }
 
     internal mtd requestPaintNative()
@@ -611,11 +601,11 @@ public impl Window
         try UpdateWindow(.win32Handle())
     }
 
-    // Far enough from every monitor that no desktop arrangement can bring the window into view.
-    const OffScreenOrigin = -32000
-
     internal mtd showOffScreenNative() fail
     {
+        // Far enough from every monitor that no desktop arrangement can bring the window into view.
+        const OffScreenOrigin = -32000
+
         let hWnd = .win32Handle()
         try SetWindowPos(hWnd, HWND_BOTTOM, OffScreenOrigin, OffScreenOrigin, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
         ShowWindow(hWnd, SW_SHOWNOACTIVATE)

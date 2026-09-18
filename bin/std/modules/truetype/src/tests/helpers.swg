@@ -19,10 +19,7 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
     return path
 }
 
-func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
-{
-    return expect File.readAllBytes(getTestDataPath(fileName))
-}
+func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8 => expect File.readAllBytes(getTestDataPath(fileName))
 
 // 'expect' needs a valid fallback, so it cannot produce a non-null slice directly. This hands
 // the same successful slice back as nullable, to be consumed as 'expect tableSlice(...)!'.
@@ -40,15 +37,9 @@ func writeBigU32(buffer: *Array'u8, offset: u64, value: u32)
     buffer[offset + 3] = cast(u8) (value & 0xFF)
 }
 
-func readBigU16(buffer: *Array'u8, offset: u64)->u16
-{
-    return cast(u16) buffer[offset] << 8 | buffer[offset + 1]
-}
+func readBigU16(buffer: *Array'u8, offset: u64)->u16 => cast(u16) buffer[offset] << 8 | buffer[offset + 1]
 
-func readBigU32(buffer: *Array'u8, offset: u64)->u32
-{
-    return cast(u32) buffer[offset] << 24 | cast(u32) buffer[offset + 1] << 16 | cast(u32) buffer[offset + 2] << 8 | buffer[offset + 3]
-}
+func readBigU32(buffer: *Array'u8, offset: u64)->u32 => cast(u32) buffer[offset] << 24 | cast(u32) buffer[offset + 1] << 16 | cast(u32) buffer[offset + 2] << 8 | buffer[offset + 3]
 
 // Packs the named font files into one `ttcf` collection, so a collection can be
 // exercised without checking a second multi-megabyte binary into the repository.

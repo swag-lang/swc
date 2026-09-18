@@ -41,9 +41,9 @@ func dcScaler(isLuma: bool, quant: u32)->u32
 // coefficient by the same step; the MPEG one weights each by its own position, and then repairs
 // the parity of the block so that the transform cannot drift, clause 7.4.4.5.
 //
-// `hasDcLevel` is false when the direct current was read through its own code rather than as a
-// coefficient, in which case it is already reconstructed and must not be scaled again.
-func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra, isLuma: bool)
+// An `intra` block keeps its direct-current coefficient as it is: that value was read through its
+// own code and already reconstructed, so it must not be scaled again.
+func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
 {
     if not layer.quantType
     {
@@ -99,8 +99,6 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra, isLuma
     // an intra block is repaired as well.
     if not intra and not (sum & 1) do
         block[][63] ^= 1
-
-    discard isLuma
 }
 
 // The cosines of the eight-point transform, `cos((2 * x + 1) * u * pi / 16) * (u ? 1 : 1/sqrt 2)`.

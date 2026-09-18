@@ -52,10 +52,7 @@ func __setErr(err: any)
     __setErrRaw(data, type)
 }
 
-func __hasErr()->bool
-{
-    return Swag.getContext().hasError != 0
-}
+func __hasErr()->bool => Swag.getContext().hasError != 0
 
 // Whether a failure is in flight, which is what a 'defer #fail' runs on and a 'defer #nofail'
 // stays out of.

@@ -40,11 +40,8 @@ private const ProbeBuildConfig = "release"
 // What one compilation of a snippet left behind.
 struct Result
 {
-    public
-    {
-        text:   String     // What the compiler wrote, including its terminal colors.
-        failed: bool       // Whether the compiler stopped before it could print a stage.
-    }
+    text:   String     // What the compiler wrote, including its terminal colors.
+    failed: bool       // Whether the compiler stopped before it could print a stage.
 }
 
 /*
@@ -66,10 +63,7 @@ struct Probe
 
 impl Probe
 {
-    mtd opDrop()
-    {
-        .close()
-    }
+    mtd opDrop() { .close() }
 
     // Removes the temporary module, leaving the probe ready to be opened again.
     mtd close()
@@ -243,9 +237,9 @@ func inspectedSource(source: string, stage: string)->String
         return result
     }
 
-    result.append(source[0 until cut])
+    result.append(source[until cut])
     result.appendFormat("#[Swag.PrintMicro(\"%\")]\n", stage)
-    result.append(source[cut until source.count])
+    result.append(source[cut to])
     return result
 }
 

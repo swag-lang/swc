@@ -28,8 +28,10 @@ private const IndesignPreviewCachePixelLimit     = 24 * 1024 * 1024'u64
 private const IndesignNoPreview                  = Swag.U64.Max
 private const IndesignPageLabelWidth             = 96.0
 
-// One validated master-page header. InDesign retains two header copies and selects the newer
-// sequence, so a partial overwrite of either first page does not make the document unreadable.
+// One validated master-page header.
+//
+// InDesign retains two header copies and selects the newer sequence, so a partial overwrite of
+// either first page does not make the document unreadable.
 private struct IndesignHeader
 {
     offset:        u64
@@ -39,9 +41,10 @@ private struct IndesignHeader
     storagePages:  u32
 }
 
-// One saved page preview is an actual document rendering supplied by InDesign. The index retains
-// only its base64 range; the reader decodes its pixels on demand and never invents a layout that
-// the document did not save.
+// One saved page preview, an actual document rendering supplied by InDesign.
+//
+// The index retains only its base64 range; the reader decodes its pixels on demand and never
+// invents a layout that the document did not save.
 struct IndesignPreview
 {
     page:         u32
@@ -81,8 +84,10 @@ private enum IndesignDocumentKind
     Markup
 }
 
-// The viewer keeps native saved pixels and IDML page scenes behind one asynchronous opening
-// operation. A selected source decides the rendering path before a window is attached.
+// One opened InDesign source: the saved pixels of a native document or the page scenes of an IDML package.
+//
+// Both kinds load behind one asynchronous opening operation, and the source decides the rendering
+// path before a window is attached.
 private struct IndesignViewerDocument
 {
     kind:   IndesignDocumentKind
@@ -90,10 +95,7 @@ private struct IndesignViewerDocument
     markup: IdmlDocument
 }
 
-private func indesignHas(bytes: const [..] u8, offset, count: u64)->bool
-{
-    return offset <= bytes.count and count <= bytes.count - offset
-}
+private func indesignHas(bytes: const [..] u8, offset, count: u64)->bool => offset <= bytes.count and count <= bytes.count - offset
 
 private func indesignMatches(bytes: const [..] u8, offset: u64, text: string)->bool
 {
@@ -158,8 +160,10 @@ private func indesignU64(bytes: const [..] u8, offset: u64)->u64
     return result
 }
 
-// Parses one master-page header. Object-stream byte order controls the version field, while the
-// sequence and storage-page fields are the little-endian master-page values InDesign writes.
+// Reports whether a valid master-page header starts at `offset`, and stores its fields in `result`.
+//
+// Object-stream byte order controls the version field, while the sequence and storage-page fields
+// are the little-endian master-page values InDesign writes.
 private func parseIndesignHeader(bytes: const [..] u8, offset: u64, result: *IndesignHeader)->bool
 {
     if not indesignHas(bytes, offset, IndesignHeaderMinimumSize) or not indesignMatchesSignature(bytes, offset) or not indesignMatches(bytes, offset + IndesignSignature.count, IndesignHeaderType) do
@@ -181,13 +185,12 @@ private func parseIndesignHeader(bytes: const [..] u8, offset: u64, result: *Ind
     return true
 }
 
-private func indesignBase64Byte(value: u8)->bool
-{
-    return value >= 'A' and value <= 'Z' or value >= 'a' and value <= 'z' or value >= '0' and value <= '9' or value == '+' or value == '/' or value == '='
-}
+private func indesignBase64Byte(value: u8)->bool => value >= 'A' and value <= 'Z' or value >= 'a' and value <= 'z' or value >= '0' and value <= '9' or value == '+' or value == '/' or value == '='
 
-// XMP serializes preview line breaks as character entities. Keep the base64 alphabet and skip a
-// whole entity rather than retaining its hexadecimal spelling as false image data.
+// Returns the base64 text of one saved preview, or an empty string when it breaks the preview limits.
+//
+// XMP serializes preview line breaks as character entities. The reader keeps the base64 alphabet
+// and skips a whole entity rather than retaining its hexadecimal spelling as false image data.
 private func indesignPreviewBase64(bytes: const [..] u8, start, end: u64)->String
 {
     if end < start or end - start > IndesignPreviewPayloadLimit do
@@ -222,7 +225,7 @@ private func indesignPreviewBase64(bytes: const [..] u8, start, end: u64)->Strin
         index += 1
     }
 
-    return result.isEmpty() ? {} : String.from(Swag.makeString(result.storage(), result.count))
+    return result.isEmpty() ? {} : String.from(cast(string) result.toSlice())
 }
 
 private func indesignPreviewPageNumber(bytes: const [..] u8, start, end: u64)->u32
@@ -248,13 +251,12 @@ private func indesignPreviewPageNumber(bytes: const [..] u8, start, end: u64)->u
     return result == Swag.U32.Max ? 0 : result
 }
 
-private func indesignJpegStartOfFrame(marker: u8)->bool
-{
-    return marker == 0xC0 or marker == 0xC1 or marker == 0xC2 or marker == 0xC3 or marker == 0xC5 or marker == 0xC6 or marker == 0xC7 or marker == 0xC9 or marker == 0xCA or marker == 0xCB or marker == 0xCD or marker == 0xCE or marker == 0xCF
-}
+private func indesignJpegStartOfFrame(marker: u8)->bool => marker == 0xC0 or marker == 0xC1 or marker == 0xC2 or marker == 0xC3 or marker == 0xC5 or marker == 0xC6 or marker == 0xC7 or marker == 0xC9 or marker == 0xCA or marker == 0xCB or marker == 0xCD or marker == 0xCE or marker == 0xCF
 
-// Reads JPEG dimensions before materializing pixels. A saved preview may be a valid JPEG whose
-// declared geometry would nevertheless exceed the reader's bounded cache.
+// Reads JPEG dimensions before materializing pixels, and reports whether they fit the preview limit.
+//
+// A saved preview may be a valid JPEG whose declared geometry would nevertheless exceed the
+// reader's bounded cache.
 private func indesignJpegGeometry(bytes: const [..] u8, result: *IndesignPreviewGeometry)->bool
 {
     if bytes.count < 4 or bytes[0] != 0xFF or bytes[1] != 0xD8 do
@@ -297,8 +299,10 @@ private func indesignJpegGeometry(bytes: const [..] u8, result: *IndesignPreview
     return false
 }
 
-// Finds every saved JPEG page preview without decoding their pixels. A document can retain several
-// XMP generations, so the last usable reference for a physical page wins.
+// Finds every saved JPEG page preview without decoding their pixels.
+//
+// A document can retain several XMP generations, so the last usable reference for a physical page
+// wins.
 private func indexIndesignPreviews(bytes: const [..] u8, start, end: u64)->Array'IndesignPreview
 {
     var result: retval
@@ -373,9 +377,10 @@ private func indesignAppendPreviews(result: *Array'IndesignPreview, source: cons
     }
 }
 
-// Locates XMP only inside complete InDesign continuous object streams following the declared
-// database pages. The matching trailer makes a byte sequence inside arbitrary document data unable
-// to impersonate an attached XMP packet.
+// Indexes the saved previews of the continuous object streams that follow the declared database pages.
+//
+// XMP is located only inside complete streams: the matching trailer makes a byte sequence inside
+// arbitrary document data unable to impersonate an attached XMP packet.
 private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, streamCount: *u64)->Array'IndesignPreview
 {
     var result: retval
@@ -429,8 +434,10 @@ private func indexIndesignObjectPreviews(bytes: const [..] u8, start, end: u64, 
     return result
 }
 
-// Decodes one indexed JPEG preview on a worker. Encoded-payload and pixel bounds make opening a
-// malformed document unable to retain the whole XMP payload or every document page at once.
+// Decodes one indexed JPEG preview on a worker.
+//
+// Encoded-payload and pixel bounds make opening a malformed document unable to retain the whole
+// XMP payload or every document page at once.
 private func loadIndesignPreview(fileName: string, preview: const *IndesignPreview)->Image fail
 {
     var file   = try File.MappedFile.open(fileName)
@@ -443,8 +450,7 @@ private func loadIndesignPreview(fileName: string, preview: const *IndesignPrevi
     if payload.isEmpty() do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
-    var previewBytes: Array'u8
-    previewBytes = catch Base64.decode(payload.toString()) as base64Error
+    let previewBytes = catch Base64.decode(payload.toString()) as base64Error
     if base64Error != null or previewBytes.count < 4 or previewBytes[0] != 0xFF or previewBytes[1] != 0xD8 or previewBytes[previewBytes.count - 2] != 0xFF or previewBytes[previewBytes.count - 1] != 0xD9 do
         fail InvalidFormatError{indesignStrings().err_Preview}
 
@@ -459,8 +465,10 @@ private func loadIndesignPreview(fileName: string, preview: const *IndesignPrevi
     return #move result
 }
 
-// Owns one selected page decode. The shared viewer background loader takes only a filename, while
-// this operation also needs the immutable preview range selected by the reader.
+// Owns one selected page decode.
+//
+// The shared viewer background loader takes only a filename, while this operation also needs the
+// immutable preview range selected by the reader.
 private struct IndesignPreviewLoad
 {
     using operation: Viewer.BackgroundOperation
@@ -514,6 +522,7 @@ private impl IndesignPreviewLoad
 }
 
 // Reads the master-page headers and indexes previews from validated continuous XMP object streams.
+//
 // Legacy documents that retained XMP inside their declared pages keep a bounded compatibility path.
 func loadIndesignDocument(fileName: string)->IndesignDocument fail
 {
@@ -566,13 +575,13 @@ private func loadIndesignViewerDocument(fileName: string)->IndesignViewerDocumen
     return result
 }
 
-// Describes the visual InDesign preview reader to the host.
+// Describes the InDesign document reader, for native documents and IDML packages, to the host.
 func indesignViewerPlugin()->Viewer.Plugin
 {
     with var result: retval
     {
         .key          = "indesign"
-        .resolveName  = &indesignViewerName
+        .resolveName  = func()->string => indesignStrings().ui_Name
         .attach       = &registerIndesignStrings
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32) ViewerIcons.Indesign
@@ -584,16 +593,13 @@ func indesignViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private func indesignViewerName()->string => indesignStrings().ui_Name
+private func indesignCommandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + IndesignPageLabelWidth + 16
 
-private func indesignCommandWidth(metrics: const *ThemeMetrics)->f32
-{
-    return 2 * themeActionButtonSize(metrics) + IndesignPageLabelWidth + 16
-}
-
-// Shows the saved page previews as a document surface. ImageView provides wheel zoom,
-// pointer-centred panning, and a double-click actual-size toggle, all on the pixels the document saved.
-internal struct IndesignViewer
+// Shows an InDesign document page by page: saved previews of a native file, composed pages of an IDML package.
+//
+// For saved previews, ImageView provides wheel zoom, pointer-centred panning, and a double-click
+// actual-size toggle, all on the pixels the document saved.
+struct IndesignViewer
 {
     using wnd: Wnd
 
@@ -987,7 +993,8 @@ private impl IndesignViewer
         }
     }
 
-    // Search each generated HTML page source and retain its page index for revealFileOffset.
+    // Collects the matches of each generated HTML page source, tagged with its page index for revealFileOffset.
+    //
     // Source matches may include markup; rendered text ranges belong to the HTML view.
     mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
@@ -1185,7 +1192,7 @@ private impl IWnd for IndesignViewer
     }
 }
 
-internal impl IndesignViewer
+impl IndesignViewer
 {
     func create(host: Viewer.Host)->*IndesignViewer
     {
@@ -1199,73 +1206,17 @@ internal impl IndesignViewer
             .reportLoadingChanged = services.reportLoadingChanged
         }
 
-        result.commands = host.createCommandGroup(indesignCommandWidth(result.themeMetrics()))
-        result.info     = host.createInfoGroup(ViewerZoomSlotWidth)
-        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        result.createPageCommands(host)
+        result.createZoomButton(host)
+        with result.imageView = ImageView.create(result)
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = indesignStrings().ui_PreviousPage
-            .enable(false)
-            .sigPressed += func|view = result|(button)
+            .backgroundStyle = .View
+            .dockStyle       = .Center
+            .sigZoomChanged += func|view = result|(imageView)
             {
-                discard button
-                if view.previewIndex do
-                    view.selectPreview(view.previewIndex - 1)
+                discard imageView
+                view.refreshZoom()
             }
-        }
-
-        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
-        {
-            .dockStyle = .Left
-            .toolTip   = indesignStrings().ui_NextPage
-            .enable(false)
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                if view.previewIndex + 1 < view.pageCount() do
-                    view.selectPreview(view.previewIndex + 1)
-            }
-        }
-
-        with result.pageLabel = IconButton.create(result.commands, {}, {0, 0, IndesignPageLabelWidth, themeActionButtonSize(result.themeMetrics())}, "scope.indesign.page", .CenterContent)
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-            .toolTip    = indesignStrings().ui_ChoosePage
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.showPageMenu()
-            }
-        }
-
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.indesign.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-            .toolTip    = indesignStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.showZoomMenu()
-            }
-        }
-
-        result.imageView = ImageView.create(result)
-        result.imageView.backgroundStyle = .View
-        result.imageView.dockStyle       = .Center
-        result.imageView.sigZoomChanged  += func|view = result|(imageView)
-        {
-            discard imageView
-            view.refreshZoom()
         }
 
         result.hookOnChildEvent = func|view = result|(wnd, evt)
@@ -1304,7 +1255,7 @@ internal impl IndesignViewer
                 }
 
             default:
-                discard evt
+                break
             }
 
             return false
@@ -1316,9 +1267,79 @@ internal impl IndesignViewer
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
+
+    // Creates the page commands: previous page, next page, and the page selector.
+    private mtd createPageCommands(host: Viewer.Host)
+    {
+        let metrics    = .themeMetrics()
+        let buttonSize = themeActionButtonSize(metrics)
+        .commands = host.createCommandGroup(indesignCommandWidth(metrics))
+        with .previousButton = IconButton.create(me.commands, me.theme().icon(.ChevronLeft, themeActionIconSize(metrics)), {0, 0, buttonSize, buttonSize})
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = indesignStrings().ui_PreviousPage
+            .enable(false)
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                if view.previewIndex do
+                    view.selectPreview(view.previewIndex - 1)
+            }
+        }
+
+        with .nextButton = IconButton.create(me.commands, me.theme().icon(.ChevronRight, themeActionIconSize(metrics)), {0, 0, buttonSize, buttonSize})
+        {
+            .dockStyle = .Left
+            .toolTip   = indesignStrings().ui_NextPage
+            .enable(false)
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                if view.previewIndex + 1 < view.pageCount() do
+                    view.selectPreview(view.previewIndex + 1)
+            }
+        }
+
+        with .pageLabel = IconButton.create(me.commands, {}, {0, 0, IndesignPageLabelWidth, buttonSize}, "scope.indesign.page", .CenterContent)
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
+            .toolTip    = indesignStrings().ui_ChoosePage
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.showPageMenu()
+            }
+        }
+    }
+
+    // Creates the zoom button of the information band.
+    private mtd createZoomButton(host: Viewer.Host)
+    {
+        .info = host.createInfoGroup(ViewerZoomSlotWidth)
+        with .zoomLabel = IconButton.create(me.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.indesign.zoom", .CenterContent)
+        {
+            .dockStyle = .Center
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
+            .toolTip    = indesignStrings().ui_ZoomMenu
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.showZoomMenu()
+            }
+        }
+    }
 }
 
-// Creates the integrated InDesign page-preview view.
+// Creates the integrated InDesign document view and connects its search and lifecycle to the host.
 func createIndesignViewer(host: Viewer.Host)
 {
     let view = IndesignViewer.create(host)
@@ -1330,7 +1351,7 @@ func createIndesignViewer(host: Viewer.Host)
         (cast #assume (*IndesignViewer) wnd).collectMatches(text, options, matches)
         return true
     },
-        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*IndesignViewer) wnd).revealMatch(match, text) },
+        revealMatch: func(wnd, match, text)->bool => (cast #assume (*IndesignViewer) wnd).revealMatch(match, text),
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
@@ -1340,5 +1361,5 @@ func createIndesignViewer(host: Viewer.Host)
     host.setLifecycle({
         isLoading: func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or view.previewLoadTimer != null },
         needsLoadingOverlay: func(wnd)->bool { let view = cast #assume (*IndesignViewer) wnd; return view.loadTimer != null or (view.previewLoadTimer != null and not view.hasPreviewContent) },
-        retire: func(wnd)->bool { return (cast #assume (*IndesignViewer) wnd).retire() }})
+        retire: func(wnd)->bool => (cast #assume (*IndesignViewer) wnd).retire()})
 }

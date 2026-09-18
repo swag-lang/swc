@@ -3,19 +3,7 @@
 
 using Swag
 
-func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
+func assertRuneArray(values: Array'rune, expected: const [..] rune)->bool => Slice.equals(values.toSlice(), expected)
 
 #test
 {

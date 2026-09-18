@@ -66,12 +66,12 @@ internal
 
     struct HuffmanTable
     {
-        fast:        [1 << FastBits] u16     // Fast associated with this value.
-        firstCode:   [16] u16                // First code associated with this value.
-        maxCode:     [17] s64                // Max code associated with this value.
-        firstSymbol: [16] u16                // First symbol associated with this value.
-        size:        [288] u8                // Size associated with this value.
-        value:       [288] u16               // Value associated with this value.
+        fast:        [1 << FastBits] u16     // Direct lookup of codes up to 'FastBits' long: code length << 9 | symbol, or 0.
+        firstCode:   [16] u16                // First canonical code of each code length.
+        maxCode:     [17] s64                // Exclusive upper bound of the codes of each length, left-aligned to 16 bits.
+        firstSymbol: [16] u16                // Slot in 'size' and 'value' of the first code of each length.
+        size:        [288] u8                // Code length of each slot, in canonical order.
+        value:       [288] u16               // Symbol of each slot, in canonical order.
     }
 
     impl HuffmanTable
@@ -133,7 +133,10 @@ internal
     }
 }
 
-// Represents inflate.
+// Decompresses data in the raw Deflate format (RFC 1951).
+//
+// Use [[Core.Compress.ZLib]] for a zlib stream, which wraps Deflate data with a header and a
+// checksum. One `Inflate` can decompress several inputs in turn.
 #[Swag.Opaque]
 public struct Inflate
 {
@@ -156,8 +159,8 @@ public struct Inflate
 
 impl Inflate
 {
-    // Defines inflate max distance.
-    public const InflateMaxDistance = 32768'u32
+    // Largest back-reference distance of the Deflate format, in bytes.
+    public const MaxDistance = 32768'u32
 
     mtd decode(ht: *HuffmanTable)->u16 fail
     {
@@ -227,7 +230,7 @@ impl Inflate
         if nb >= 64
         {
             cb  &= 0x00FFFFFFFFFFFFFF
-            nb  -= 8
+            nb  -= #wrap 8
             cur -= 1
         }
 
@@ -242,6 +245,12 @@ impl Inflate
                 cb  |= (cast(const *u64) (src! + cur))[] << #wrap nb
                 cur += cast(u64) ((63 - nb) >> 3)
                 nb  |= 56
+            }
+            elif nb > 64
+            {
+                // Near the end the refill stops with what is left, and the symbols above
+                // then consumed more bits than the input holds: the stream is truncated.
+                fail InvalidFormatError{"truncated input"}
             }
             elif nb <= 56
             {
@@ -266,7 +275,7 @@ impl Inflate
             {
                 let s = cast(u32) (b >> FastBits)
                 cb    >>= s
-                nb    -= s
+                nb    -= #wrap s
                 value = b & 511
             }
             else
@@ -283,7 +292,7 @@ impl Inflate
                 if repeatHt.size[b1] != s do
                     fail InvalidFormatError{"bad huffman code"}
                 cb    >>= s
-                nb    -= cast(u32) s
+                nb    -= #wrap cast(u32) s
                 value = repeatHt.value[b1]
             }
 
@@ -307,6 +316,8 @@ impl Inflate
 
             if value == 256
             {
+                if nb > 64 do
+                    fail InvalidFormatError{"truncated input"}
                 if nb != 64 do
                     cb &= (1'u64 << nb) - 1
                 .stream.codeBuffer = cb
@@ -326,7 +337,7 @@ impl Inflate
             {
                 length += cb & ((1'u64 << lextra) - 1)
                 cb     >>= lextra
-                nb     -= lextra
+                nb     -= #wrap lextra
             }
 
             var dvalue: u32
@@ -335,7 +346,7 @@ impl Inflate
             {
                 let s = cast(u32) (d >> FastBits)
                 cb     >>= s
-                nb     -= s
+                nb     -= #wrap s
                 dvalue = d & 511
             }
             else
@@ -352,7 +363,7 @@ impl Inflate
                 if repeatZ.size[b1] != s do
                     fail InvalidFormatError{"bad huffman code"}
                 cb     >>= s
-                nb     -= cast(u32) s
+                nb     -= #wrap cast(u32) s
                 dvalue = repeatZ.value[b1]
             }
 
@@ -362,7 +373,7 @@ impl Inflate
             {
                 distance += cb & ((1'u64 << dextra) - 1)
                 cb       >>= dextra
-                nb       -= dextra
+                nb       -= #wrap dextra
             }
 
             if count < distance do
@@ -435,12 +446,17 @@ impl Inflate
         }
     }
 
-    // Decompresses the associated stream, appending at most 'maxOutputSize' bytes to 'result'.
-    public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = InflateMaxDistance, maxOutputSize: u64 = Swag.U64.Max) fail
+    // Decompresses the Deflate data in `buf` and appends it to `result`.
+    //
+    // `winSize` is the window size announced by the container, clamped to
+    // [[Core.Compress.Inflate.MaxDistance]]. Fails with [[Core.Errors.InvalidFormatError]]
+    // for malformed data, and with [[Core.Errors.UnsupportedFormatError]] when the call would
+    // append more than `maxOutputSize` bytes.
+    public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = MaxDistance, maxOutputSize: u64 = Swag.U64.Max) fail
     {
         .stream.reset(buf)
         .adler.reset()
-        .windowSize  = Math.min(winSize, InflateMaxDistance)
+        .windowSize  = Math.min(winSize, MaxDistance)
         .outputLimit = maxOutputSize
         .outputStart = result.count
 
@@ -465,6 +481,8 @@ impl Inflate
                     fail InvalidFormatError{"invalid buffer, length mismatch"}
 
                 .stream.revert()
+                if uncompressedLen > .stream.size() - .stream.curByte do
+                    fail InvalidFormatError{"stored block is longer than the remaining input"}
                 if result.count - .outputStart > .outputLimit or uncompressedLen > .outputLimit - (result.count - .outputStart) do
                     fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
                 let newSlice = Swag.makeSlice(.stream.currentPointer(), uncompressedLen)

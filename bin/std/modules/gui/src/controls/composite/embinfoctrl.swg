@@ -35,7 +35,7 @@ struct InfoBar
         {
             kind:  InfoBarKind                        // Current semantic presentation.
             flags: InfoBarFlags                       // Current placement and lifetime options.
-            autoDismissDelay: Time.Duration = 4's     // Delay used by [[InfoBarFlags.AutoDismiss]].
+            autoDismissDelay: Time.Duration = 4's     // Delay used by [[Gui.InfoBarFlags.AutoDismiss]].
 
             late label:       *Label          // Message label owned by this bar.
             late closeButton: *IconButton     // Dismiss button owned by this bar.
@@ -124,7 +124,10 @@ private impl InfoBar
 
 impl InfoBar
 {
-    // Creates and lays out an information bar.
+    // Creates an information bar docked at the top of `parent` and lays the parent out again.
+    //
+    // [[Gui.InfoBarFlags.Bottom]] docks the bar at the bottom instead. `height` is in logical
+    // units, and `autoDismissDelay` applies with [[Gui.InfoBarFlags.AutoDismiss]].
     #[Swag.Discardable]
     func create(parent: *Wnd, message: string?, kind: InfoBarKind, flags = InfoBarFlags.None, height: f32 = 40, autoDismissDelay: Time.Duration = 4's)->*InfoBar
     {
@@ -157,7 +160,7 @@ impl InfoBar
         {
             .margin     = CloseMargin
             .dockStyle  = .Right
-            .sigPressed += func|bar|(btn) { bar.dismiss(); }
+            .sigPressed += func|bar|(btn) { bar.dismiss() }
         }
 
         if flags.has(.AutoDismiss) do
@@ -184,7 +187,7 @@ impl InfoBar
         .invalidate()
     }
 
-    // Emits [[sigDismissed]] and destroys the bar.
+    // Emits [[Gui.InfoBar.sigDismissed]] and destroys the bar.
     mtd dismiss()
     {
         .sigDismissed.call(me)

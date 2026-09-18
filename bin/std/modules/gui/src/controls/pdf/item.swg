@@ -270,8 +270,7 @@ impl Item
     // Returns the transform applied when this item is rendered.
     mtd const itemTransform()->Transform2 => .transform
 
-    // Returns the page-space region this item is confined to, or the whole page when the
-    // content stream established no clip for it.
+    // Returns the page-space region this item is confined to; `clipped` is false, and `rect` the whole page, without a clip.
     mtd const itemClip()->{ rect: Math.Rectangle, clipped: bool } => {.clip, .hasClip}
 
     // Returns the fill color of text and filled paths.
@@ -298,12 +297,12 @@ impl Item
     // Returns the stroke geometry of a path item, or the default solid style for another kind.
     mtd const pathStrokeStyle()->PathStrokeStyle => .kind == .Path ? .strokeStyle : PathStrokeStyle{}
 
-    // Returns a borrowed path list for a path item.
+    // Returns a borrowed path list for a path item, or null for another kind.
     //
     // The pointer remains valid until the owning page or its item array is mutated.
     mtd const pathValue()->const *LinePathList? => .kind == .Path ? &.path : null
 
-    // Returns a borrowed image for an image item.
+    // Returns a borrowed image for an image item, or null for another kind.
     //
     // The pointer remains valid until the owning page or its item array is mutated.
     mtd const imageValue()->const *Image? => .kind == .Image ? &.image : null

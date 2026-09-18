@@ -3,20 +3,6 @@
 
 using Swag
 
-func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
-{
-    if actual.count != expected.count do
-        return false
-
-    for index in actual.count
-    {
-        if actual[index] != expected[index] do
-            return false
-    }
-
-    return true
-}
-
 #test
 {
     let input: [3] u8 = [0xCA, 0x74, 0x05]
@@ -113,9 +99,9 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     let expected: [3] u8 = [0x10, 0x20, 0x30]
     var bytes:    [3] u8
-    stream.peekBytes(3, &bytes[0])
+    stream.readBytes(3, &bytes[0])
 
-    Swag.assert(assertBytes(bytes, expected))
+    Swag.assert(Slice.equals(bytes, expected))
     Swag.assert(stream.readBits(8) == 0x40)
     Swag.assert(stream.readBits(8) == 0x50)
 }
@@ -128,16 +114,16 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     littleEndianView.reset(input)
     let expectedDirect: [4] u8 = [0x10, 0x20, 0x30, 0x40]
     var direct:         [4] u8
-    littleEndianView.peek32(&direct[0])
-    Swag.assert(assertBytes(direct, expectedDirect))
+    littleEndianView.read32(&direct[0])
+    Swag.assert(Slice.equals(direct, expectedDirect))
 
     var bigEndianView: Compress.BitStream
     bigEndianView.reset(input)
     var converted: [4] u8
-    bigEndianView.peek32Be(&converted[0])
+    bigEndianView.read32Be(&converted[0])
 
     #static if BIG_ENDIAN do
-        Swag.assert(assertBytes(converted, expectedDirect))
+        Swag.assert(Slice.equals(converted, expectedDirect))
     else do
-        Swag.assert(assertBytes(converted, [0x40, 0x30, 0x20, 0x10]))
+        Swag.assert(Slice.equals(converted, [0x40, 0x30, 0x20, 0x10]))
 }

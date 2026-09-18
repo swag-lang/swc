@@ -5,15 +5,18 @@ using Core, Core.Errors, Gui
 // Describes OpenDocument text, spreadsheet, presentation, and drawing files to the host.
 func openDocumentViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "opendocument"
-    result.resolveName  = func()->string { return openDocumentStrings().ui_Name }
-    result.attach       = &registerOpenDocumentStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.OpenDocument
-    result.create       = &createOpenDocumentViewer
-    result.smokeFixture = "viewer.odt"
-    result.addSelectors(".odt;.ott;.fodt;.ods;.ots;.fods;.odp;.otp;.fodp;.odg;.otg;.fodg")
+    with var result: retval
+    {
+        .key          = "opendocument"
+        .resolveName  = func()->string => openDocumentStrings().ui_Name
+        .attach       = &registerOpenDocumentStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.OpenDocument
+        .create       = &createOpenDocumentViewer
+        .smokeFixture = "viewer.odt"
+        .addSelectors(".odt;.ott;.fodt;.ods;.ots;.fods;.odp;.otp;.fodp;.odg;.otg;.fodg")
+    }
+
     return result
 }
 
@@ -34,7 +37,7 @@ private const OpenDocumentApostrophe              = 39'u8
 private const OpenDocumentPageComboWidth          = 224.0
 
 // Distinguishes the document surfaces that share the OpenDocument container.
-internal enum OpenDocumentKind
+enum OpenDocumentKind
 {
     Text
     Spreadsheet
@@ -43,14 +46,14 @@ internal enum OpenDocumentKind
 }
 
 // One spreadsheet sheet, retaining its source name beside its reusable table model.
-internal struct OpenDocumentSheet
+struct OpenDocumentSheet
 {
     name:  String
     table: TableDocument
 }
 
 // One presentation slide, retaining its source name beside the isolated reader markup.
-internal struct OpenDocumentSlide
+struct OpenDocumentSlide
 {
     name: String
     html: String
@@ -90,7 +93,7 @@ private struct OpenDocumentBookmark
     target: String
 }
 
-// An image comes only from a validated local ODF package entry or an inline raster data URI.
+// One validated picture of the ODF package, converted to a data URI and keyed by its entry path.
 private struct OpenDocumentImage
 {
     path:      String
@@ -98,7 +101,7 @@ private struct OpenDocumentImage
     byteCount: u64
 }
 
-// Dimensions are reduced to a known safe pixel spelling before becoming generated HTML attributes.
+// The frame size of an image, reduced to a known safe pixel spelling before it becomes HTML attributes.
 private struct OpenDocumentImageSize
 {
     width:  String
@@ -106,7 +109,7 @@ private struct OpenDocumentImageSize
 }
 
 // Preserves the display-safe document properties without treating metadata as executable content.
-internal struct OpenDocumentMetadata
+struct OpenDocumentMetadata
 {
     title:   String
     subject: String
@@ -114,7 +117,7 @@ internal struct OpenDocumentMetadata
 }
 
 // One decoded document, ready for the reader surface appropriate to its kind.
-internal struct OpenDocumentContent
+struct OpenDocumentContent
 {
     kind:     OpenDocumentKind
     metadata: OpenDocumentMetadata
@@ -190,8 +193,10 @@ private func parseOpenDocumentTag(raw: string)->OpenDocumentTag
     return result
 }
 
-// Returns the raw XML attribute value. HTML output retains its entities; plain model values
-// decode them before reaching a table cell, page label, or other non-HTML surface.
+// Returns the raw value of the attribute named `wanted`, or an empty string when it is absent.
+//
+// HTML output retains its entities; plain model values decode them before reaching a table cell,
+// page label, or other non-HTML surface.
 private func openDocumentAttribute(attributes, wanted: string)->String
 {
     var at = 0'u64
@@ -424,7 +429,9 @@ private impl OpenDocumentMetadataReader
     }
 }
 
-// Reads an optional `meta.xml` payload with the same tag boundary checks as document content.
+// Reads the document properties of a `meta.xml` payload or of a flat XML document.
+//
+// The same tag boundary checks apply as for document content.
 private func parseOpenDocumentMetadata(source: string)->OpenDocumentMetadata fail
 {
     var reader: OpenDocumentMetadataReader
@@ -463,6 +470,7 @@ private func parseOpenDocumentMetadata(source: string)->OpenDocumentMetadata fai
     return #move reader.metadata
 }
 
+// Returns a positive integer attribute clamped to `maximum`, or 1 when it is absent or malformed.
 private func openDocumentPositiveAttribute(attributes, name: string, maximum: u64)->u64
 {
     let value = openDocumentAttribute(attributes, name)
@@ -538,7 +546,7 @@ private func openDocumentImageSize(attributes: string)->OpenDocumentImageSize
     return result
 }
 
-// Accepts only the raster data-URI forms the offline image decoder can render.
+// Returns the media type of a base64 raster data URI the offline image decoder renders, or an empty string.
 private func openDocumentInlineImageMediaType(uri: string)->string
 {
     let lowercase = String.from(uri).toLower()
@@ -1007,8 +1015,7 @@ private impl OpenDocumentReader
         case "text:a":
             .appendHtml("<a")
             let href = .linkHref(tag.attributes.toString())
-            if not href.isEmpty()
-                do
+            if not href.isEmpty() do
                 .appendHtml(Format.toString(" href=\"%\"", href.toString()))
             .appendHtml(">")
 
@@ -1054,8 +1061,7 @@ private impl OpenDocumentReader
             let repeated = openDocumentRepeated(tag.attributes.toString(), "table:number-columns-repeated")
             if .tableHeaderRows do
                 .appendHtml(repeated == 1 ? "<th>" : Format.toString("<th colspan=\"%\">", repeated))
-            else
-                    do
+            else do
                 .appendHtml(repeated == 1 ? "<td>" : Format.toString("<td colspan=\"%\">", repeated))
             if tag.selfClosing do
                 .appendHtml(openDocumentCellValue(tag.attributes.toString()).toString())
@@ -1156,12 +1162,8 @@ private impl OpenDocumentReader
             fail UnsupportedFormatError{Errors.mkString(openDocumentStrings().err_Cells)}
         let cells = .row.cells.count
         .sheet.table.rows.add(#move .row)
-        for repeated in .rowRepeat - 1
-        {
-            discard repeated
+        for .rowRepeat - 1 do
             .sheet.table.rows.add(.sheet.table.rows.back())
-        }
-
         .sheetCellCount += cells * .rowRepeat
         .row            = {}
         .rowRepeat      = 1
@@ -1334,7 +1336,7 @@ private impl OpenDocumentReader
 }
 
 // Parses ODF's XML body without executing linked resources, macros, or scripts.
-internal func parseOpenDocumentContent(source: string, kind: OpenDocumentKind)->OpenDocumentContent fail
+func parseOpenDocumentContent(source: string, kind: OpenDocumentKind)->OpenDocumentContent fail
 {
     var images: Array'OpenDocumentImage
     let metadata = try parseOpenDocumentMetadata(source)
@@ -1380,14 +1382,16 @@ private func appendOpenDocumentXml(reader: *OpenDocumentReader, source: string) 
 // Parses ODF XML after package-resident images have been reduced to safe data URIs.
 private func parseOpenDocumentContentWithImages(source, styles: string, kind: OpenDocumentKind, images: Array'OpenDocumentImage, metadata: OpenDocumentMetadata)->OpenDocumentContent fail
 {
-    var reader: OpenDocumentReader
-    reader.kind     = kind
-    reader.images   = #move images
-    reader.metadata = #move metadata
-    for image in reader.images
+    with var reader: OpenDocumentReader
     {
-        reader.imageCount     += 1
-        reader.imageByteCount += image.byteCount
+        .kind     = kind
+        .images   = #move images
+        .metadata = #move metadata
+        for image in .images
+        {
+            .imageCount     += 1
+            .imageByteCount += image.byteCount
+        }
     }
 
     if styles.count do
@@ -1531,14 +1535,14 @@ private func loadOpenDocumentContent(fileName: string)->OpenDocumentContent fail
     {
         let metadataBytes = catch loadZipEntry(fileName, meta) as metadataError
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
-            metadata = catch parseOpenDocumentMetadata(cast(string) metadataBytes.toSlice()) as metadataParseError
+            metadata = catch parseOpenDocumentMetadata(cast(string) metadataBytes.toSlice())
     }
 
     return try parseOpenDocumentContentWithImages(cast(string) bytes.toSlice(), styleSource.toString(), kind, #move images, #move metadata)
 }
 
-// Hosts the format reader while its ZIP payload is decoded away from the GUI thread.
-internal struct OpenDocumentViewer
+// Shows an OpenDocument file on the reader surface of its kind, decoding it away from the GUI thread.
+struct OpenDocumentViewer
 {
     using wnd: Wnd
 
@@ -1639,7 +1643,7 @@ private impl OpenDocumentViewer
 {
     mtd applyZoom()
     {
-        if not (.html != null) do
+        if .html == null do
             return
         var style = HtmlStyle.theme()
         style.bodyFontSize = cast(u32) Math.max(Math.round(16.0 * cast(f32) .zoomPercent / 100), 1)
@@ -1720,32 +1724,22 @@ private impl OpenDocumentViewer
         .reportDetails(me, .documentDetails(Format.toString(openDocumentStrings().ui_Details, .kindName()).toString()))
     }
 
+    // Returns the source name of a sheet, or a numbered label when the sheet has none.
     mtd sheetName(index: u64)->String
     {
-        var result: retval
         let name = .document.sheets[index].name
         if not name.isEmpty() do
-            result += name
-        else
-        {
-            result += Format.toString(openDocumentStrings().ui_Sheet, index + 1)
-        }
-
-        return result
+            return name
+        return Format.toString(openDocumentStrings().ui_Sheet, index + 1)
     }
 
+    // Returns the source name of a slide or drawing page, or a numbered label when it has none.
     mtd slideName(index: u64)->String
     {
-        var result: retval
         let name = .document.slides[index].name
         if not name.isEmpty() do
-            result += name
-        else
-        {
-            result += Format.toString(.document.kind == .Drawing ? openDocumentStrings().ui_Page : openDocumentStrings().ui_Slide, index + 1)
-        }
-
-        return result
+            return name
+        return Format.toString(.document.kind == .Drawing ? openDocumentStrings().ui_Page : openDocumentStrings().ui_Slide, index + 1)
     }
 
     mtd fillPageChoices()
@@ -1792,7 +1786,7 @@ private impl OpenDocumentViewer
 
     mtd showSheet(index: u64, clearSearch: bool)->bool
     {
-        if index >= .document.sheets.count or not (.table != null) do
+        if index >= .document.sheets.count or .table == null do
             return false
         if index == .sheetIndex
         {
@@ -1815,11 +1809,24 @@ private impl OpenDocumentViewer
         return true
     }
 
+    // Creates the reading surface for generated markup, whose activated links open in the system browser.
+    mtd createHtmlView(markup: string)
+    {
+        .html           = HtmlView.createText(me, markup)
+        .html.dockStyle = .Center
+        .applyZoom()
+        .html.sigLinkActivated += func(html, url)
+        {
+            discard html
+            Env.openUrl(url)
+        }
+    }
+
     mtd showSlide(index: u64, clearSearch: bool)->bool
     {
         if index >= .document.slides.count do
             return false
-        if index == .slideIndex and (.html != null)
+        if index == .slideIndex and .html != null
         {
             if clearSearch do
                 .html.clearSearch()
@@ -1828,16 +1835,8 @@ private impl OpenDocumentViewer
 
         if .html != null do
             .html.destroy()
-        .slideIndex     = index
-        .html           = HtmlView.createText(me, .document.slides[index].html.toString())
-        .html.dockStyle = .Center
-        .applyZoom()
-        .html.sigLinkActivated += func(html, url)
-        {
-            discard html
-            Env.openUrl(url)
-        }
-
+        .slideIndex = index
+        .createHtmlView(.document.slides[index].html.toString())
         .pageCombo.setSelectedIndex(cast(u32) index, notify: false)
         if clearSearch do
             .html.clearSearch()
@@ -1888,7 +1887,7 @@ private impl OpenDocumentViewer
     {
         for &sheet, index in .document.sheets
         {
-            if index == .sheetIndex and (.table != null) do
+            if index == .sheetIndex and .table != null do
                 .collectTableMatches(&.table.document, index, text, options, result)
             else do
                 .collectTableMatches(&sheet.table, index, text, options, result)
@@ -1917,15 +1916,7 @@ private impl OpenDocumentViewer
         }
         else
         {
-            .html = HtmlView.createText(me, .document.html.toString())
-            .html.dockStyle = .Center
-            .applyZoom()
-            .html.sigLinkActivated += func(html, url)
-            {
-                discard html
-                Env.openUrl(url)
-            }
-
+            .createHtmlView(.document.html.toString())
             .setInitialFocus(.html)
         }
 
@@ -1998,7 +1989,7 @@ private impl OpenDocumentViewer
             return .html.revealFileOffset(match.offset, text)
         }
 
-        if not (.html != null) do
+        if .html == null do
             return false
         return .html.revealFileOffset(match.offset, text)
     }
@@ -2007,12 +1998,12 @@ private impl OpenDocumentViewer
     {
         if .document.kind == .Spreadsheet
         {
-            if not (.table != null) do
+            if .table == null do
                 return false
             return .table.searchBounds(result)
         }
 
-        if not (.html != null) do
+        if .html == null do
             return false
         return .html.searchMatchRect(result)
     }
@@ -2053,26 +2044,9 @@ private impl OpenDocumentViewer
             .reportDetails        = services.reportDetails
             .reportChromeChanged  = services.reportChromeChanged
             .reportLoadingChanged = services.reportLoadingChanged
-            .info = host.createInfoGroup(ViewerZoomSlotWidth)
-            .info.hide()
         }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.opendocument.zoom", .CenterContent)
-        {
-            .dockStyle = .Center
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-            .toolTip    = openDocumentStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.showZoomMenu()
-            }
-        }
-
+        result.createZoomButton(host)
         result.hookOnChildEvent = func|view = result|(wnd, evt)
         {
             discard wnd
@@ -2098,23 +2072,50 @@ private impl OpenDocumentViewer
             }
         }
 
-        result.commands = host.createCommandGroup(OpenDocumentPageComboWidth)
-        result.commands.hide()
-        with result.pageCombo = ComboBox.create(result.commands, {0, 0, OpenDocumentPageComboWidth, 36})
+        result.createPageSelector(host)
+        result.load.start(host.fileName(), &loadOpenDocumentContent)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        return result
+    }
+
+    // Creates the reading-zoom button, hidden until a document that can zoom is published.
+    mtd createZoomButton(host: Viewer.Host)
+    {
+        .info = host.createInfoGroup(ViewerZoomSlotWidth)
+        .info.hide()
+        with .zoomLabel = IconButton.create(me.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.opendocument.zoom", .CenterContent)
+        {
+            .dockStyle = .Center
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
+            .toolTip    = openDocumentStrings().ui_ZoomMenu
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.showZoomMenu()
+            }
+        }
+    }
+
+    // Creates the sheet, slide, or page selector, hidden until a document offers several.
+    mtd createPageSelector(host: Viewer.Host)
+    {
+        .commands = host.createCommandGroup(OpenDocumentPageComboWidth)
+        .commands.hide()
+        with .pageCombo = ComboBox.create(me.commands, {0, 0, OpenDocumentPageComboWidth, 36})
         {
             .dockStyle = .Left
             .hide()
             .toolTip    = openDocumentStrings().ui_TipSheet
-            .sigChanged += func|view = result|(combo, index)
+            .sigChanged += func|view = me|(combo, index)
             {
                 discard combo
                 discard view.showPage(index, true)
             }
         }
-
-        result.load.start(host.fileName(), &loadOpenDocumentContent)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
-        return result
     }
 }
 
@@ -2132,7 +2133,7 @@ func createOpenDocumentViewer(host: Viewer.Host)
         (cast #assume (*OpenDocumentViewer) wnd).collectMatches(text, options, matches)
         return true
     },
-        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text) },
+        revealMatch: func(wnd, match, text)->bool => (cast #assume (*OpenDocumentViewer) wnd).revealMatch(match, text),
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
@@ -2140,7 +2141,7 @@ func createOpenDocumentViewer(host: Viewer.Host)
     },
         clear: func(wnd) { (cast #assume (*OpenDocumentViewer) wnd).clearSearch() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*OpenDocumentViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null,
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).loadTimer != null,
+        retire: func(wnd)->bool => (cast #assume (*OpenDocumentViewer) wnd).retire()})
 }

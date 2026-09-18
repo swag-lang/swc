@@ -70,7 +70,7 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
 {
     let monitors = Env.getMonitors()
 
-    // First pass: exact containment
+    // First pass: a monitor that contains the point.
     for m in monitors
     {
         let r = m.physicalBounds
@@ -78,8 +78,8 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
             return m
     }
 
-    // Second pass: nearest (min distance from point to monitor rect)
-    var bestM: retval
+    // Second pass: the monitor whose rectangle is the closest to the point.
+    var result: retval
     var bestD2 = Swag.F32.Inf
     for m in monitors
     {
@@ -92,17 +92,17 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
         if d2 < bestD2
         {
             bestD2 = d2
-            bestM  = m
+            result = m
         }
     }
 
-    return bestM
+    return result
 }
 
 // Returns the monitor with the largest intersection with `rectangle`.
 //
 // `rectangle` is in physical desktop pixels. The first monitor is returned when
-// the rectangle does not intersect a monitor.
+// the rectangle does not intersect a monitor, and a default value when there is none.
 func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
 {
     var result: retval
@@ -120,12 +120,10 @@ func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
         }
     }
 
-    if bestSurf == 0 do
+    if bestSurf == 0 and not monitors.isEmpty() do
         result = monitors[0]
     return result
 }
-
-private var g_CmdLineArgs: const [..] string?
 
 // Identifies a virtual-desktop system metric.
 enum SystemMetric

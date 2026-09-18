@@ -3,28 +3,34 @@
 
 using Swag, Core.Errors
 
-// Represents a folder mapping to a specific structure type with its data
+// Associates a registered struct instance with the type that describes its fields.
 struct Folder
 {
     public
     {
-        type: typeinfo     // Type information of the structure
-        data: [*] void     // Pointer to the actual structure instance
+        type: typeinfo     // Type of the registered struct
+        data: [*] void     // Borrowed address of the registered struct instance
     }
 }
 
-// Represents a tweak file parser that can load configuration into registered folders
+// Fills registered struct instances from a line-oriented tweak text.
+//
+// A line `/Name` selects the folder whose struct is named `Name`, with or without its namespace.
+// Every other line assigns one field, `name value`, where `name` reaches into a nested struct
+// through `.` and `value` can be `$other` to copy another field of the same folder once the
+// whole text is read. Empty lines and lines starting with `#` are ignored, and a `#` after a
+// value starts a comment. Lines that precede any folder line fill the last registered folder.
+//
+// The registered instances are borrowed and must outlive the parsing calls.
 struct TweakFile
 {
-    public folders: Array'Folder     // List of registered folders (structure instances) to fill
+    public folders: Array'Folder     // Registered struct instances, in registration order
 }
 
 // One value of a folder, located by name.
 //
 // A name reaches a nested struct through '.', so `signature.ground` names one value even though
-// the folder keeps `signature` as a single field. A folder whose fields are themselves structs
-// was otherwise unreachable: every line naming one failed on the value rather than on the name,
-// which is what left a registered image-rect folder impossible to write.
+// the folder keeps `signature` as a single field.
 private struct FieldPath
 {
     offset: u64           // Byte offset of the value inside the folder.
@@ -39,11 +45,11 @@ impl TweakFile
         var count = (try StrConv.parseIdentifier(str)).count
         while count + 1 < str.count and str[count] == '.'u8
         {
-            let part = try StrConv.parseIdentifier(Swag.makeString(str.buffer + count + 1, str.count - count - 1))
+            let part = try StrConv.parseIdentifier(str[count + 1 to])
             count += 1 + part.count
         }
 
-        return Swag.makeString(str.buffer, count)
+        return str[until count]
     }
 
     // Resolves `name` against `type`, one segment per '.'.
@@ -57,7 +63,7 @@ impl TweakFile
         {
             let dot     = Slice.findLinear(rest, '.'u8)
             let segment = dot == Swag.U64.Max ? rest.count : dot
-            let field   = Reflection.findField(current, Swag.makeString(rest.buffer, segment))
+            let field   = Reflection.findField(current, rest[until segment])
             if not field do
                 return {}
 
@@ -66,14 +72,16 @@ impl TweakFile
             if dot == Swag.U64.Max do
                 break
 
-            rest = Swag.makeString(rest.buffer + segment + 1, rest.count - segment - 1)
+            rest = rest[segment + 1 to]
         }
 
         result.type = current
         return result
     }
 
-    // Registers a new structure to be parsed as a folder
+    // Registers the struct instance `folder` so tweak lines can fill its fields.
+    //
+    // `folder` is borrowed and must outlive every later parsing call.
     mtd(T) registerFolder(folder: *T)
     {
         #static if not Reflection.isStruct(T) do
@@ -81,22 +89,24 @@ impl TweakFile
         .folders.add({#typeof(T), folder})
     }
 
-    // Reads and parses a tweak file from disk
+    // Reads the tweak file `fileName` and fills the registered folders from it.
     mtd parseFile(fileName: string) fail
     {
-        var buf   = try File.readAllBytes(fileName)
-        let lines = Tokenize.splitLines(cast(string) buf.toSlice())
-        try .parse(lines)
+        let bytes = try File.readAllBytes(fileName)
+        try .parse(Tokenize.splitLines(cast(string) bytes.toSlice()))
     }
 
-    // Parses tweak content from a string
+    // Fills the registered folders from the tweak text `content`.
     mtd parse(content: string) fail
     {
-        let lines = Tokenize.splitLines(content)
-        try .parse(lines)
+        try .parse(Tokenize.splitLines(content))
     }
 
-    // Parses tweak content from an array of lines
+    // Fills the registered folders from tweak `lines`.
+    //
+    // At least one folder must be registered. A malformed line fails with a
+    // [[Core.Errors.SyntaxError]] whose `line` is one-based; the fields assigned before it keep
+    // their new values.
     mtd parse(lines: Array'(string)) fail
     {
         Swag.assert(not .folders.isEmpty())
@@ -181,8 +191,7 @@ impl TweakFile
                 if path.type != otherPath.type do
                     fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", other)), line: idx + 1}
                 let folder = currentFolder
-                let refr   = Ref{folder, otherPath, path}
-                refs.add(refr)
+                refs.add(Ref{folder, otherPath, path})
                 one = Tokenize.eatSpaces(Tokenize.eatCount(one, other.count))
                 if one.count and one[0] != '#' do
                     fail SyntaxError{"invalid characters after value", line: idx + 1}
@@ -204,23 +213,25 @@ impl TweakFile
         }
 
         // Resolve references in a second pass
-        while refs.count
+        while not refs.isEmpty()
         {
             var toDo = 0'u64
             var refr = refs[toDo]
 
+            // Follow what each reference reads until one reads a settled value. A chain without
+            // a cycle visits every reference at most once, so a longer one has closed a loop.
+            var hops = 0'u64
             for
             {
                 var restart = false
-                for var j = 0; j < refs.count; j += 1
+                for j in refs.count where j != toDo
                 {
-                    if j == toDo do
-                        continue
                     let ref1 = refs[j]
                     if refr.folder == ref1.folder and refr.src.offset == ref1.dst.offset and refr.src.type == ref1.dst.type
                     {
-                        if j == 0 do
-                            fail SyntaxError{"tweakfile cycle between '$' references !"}
+                        hops += 1
+                        if hops >= refs.count do
+                            fail SyntaxError{"tweak references form a cycle through '$'"}
                         toDo    = j
                         refr    = refs[toDo]
                         restart = true

@@ -89,10 +89,7 @@ struct BarColor
 const BarColors: [8] BarColor = [{255, 255, 255}, {255, 255, 0}, {0, 255, 255}, {0, 255, 0}, {255, 0, 255}, {255, 0, 0}, {0, 0, 255}, {0, 0, 0}]
 
 // Returns the neutral value the corner block of frame `index` decodes to.
-func barsTimecodeGray(index: u64)->s32
-{
-    return videoLumaToGray(cast(u8) (16 + index % BarsTimecodePeriod))
-}
+func barsTimecodeGray(index: u64)->s32 => videoLumaToGray(cast(u8) (16 + index % BarsTimecodePeriod))
 
 // Asserts that a pixel taken at column `x`, below the corner block, holds the bar frame `index`
 // scrolled to that column.

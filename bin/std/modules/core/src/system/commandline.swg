@@ -6,7 +6,7 @@ using Core.Errors
 // Overrides the command-line name associated with a reflected field.
 attr ArgParams(nameAlias: string? = null)
 
-// Represents parse options.
+// Selects how [[Core.CommandLine.parse]] treats the tokens that designate no field.
 struct ParseOptions
 {
     public
@@ -16,12 +16,11 @@ struct ParseOptions
     }
 }
 
-// The 'IsSet' generic struct is a mirror of the user input struct.
+// Mirrors the fields of `T` as `bool` values that record which options a parse set.
 //
-// Each field has the same name as the original one, but with a 'bool' type.
-//
-// It will indicate, after the command line parsing, that the corresponding argument has been
-// specified or not by the user.
+// Each field has the name of the corresponding field of `T`. After
+// [[Core.CommandLine.parse]], a field is true when the command line assigned the matching
+// option.
 struct(T) IsSet
 {
     public
@@ -38,26 +37,24 @@ struct(T) IsSet
     }
 }
 
-// Result of the [parse] function
+// Describes what [[Core.CommandLine.parse]] found besides the values it stored.
 struct(T) Result
 {
     public
     {
-        isSet:       IsSet'T          // Whether this value is set.
+        isSet:       IsSet'T          // Which fields of `T` the command line assigned.
         positionals: Array'String     // The leading non-option tokens, in order, when 'capturePositionals' is set.
         unknown:     Array'String     // The tokens that named no field, verbatim and in order, when 'captureUnknown' is set.
     }
 }
 
-// Returns true if 'oneArg' is a valid option (starting with a delimiter)
-func isOption(oneArg: string, _options: ParseOptions)->bool
-{
-    if oneArg.count == 0 do
-        return false
-    return oneArg[0] == '-'
-}
+// Returns whether `oneArg` is an option, that is, whether it starts with '-'.
+func isOption(oneArg: string, _options: ParseOptions)->bool => oneArg.count != 0 and oneArg[0] == '-'
 
-// Returns whether value.
+// Returns whether `oneArg` can be the value of a field of type `typeField` rather than an option.
+//
+// A token that is not an option is always a value. A token starting with '-' is a value only
+// for a numeric field, when it spells a negative number.
 func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
 {
     if not isOption(oneArg, options) do
@@ -95,8 +92,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
     // Clean all arguments
     for it in args
     {
-        var oneArg = it
-        oneArg = Latin1.trim(oneArg)
+        let oneArg = Latin1.trim(it)
         if not oneArg.count do
             continue
 
@@ -124,27 +120,24 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
     return allArgs
 }
 
-// Clean and split a list of arguments
-// -option:value or -option=value => -option value
+// Returns `args` trimmed, without empty tokens, and with every `-option:value` or `-option=value` token split in two.
+//
+// The returned strings borrow from `args`.
 func splitArguments(args: const [..] string, options: ParseOptions)->Array'(string)
 {
-    var allArgs: retval
-
-    for it in splitArgumentsEx(args, options)
-    {
-        allArgs.add(it.value)
-    }
-
-    return allArgs
+    var result: retval
+    for it in splitArgumentsEx(args, options) do
+        result.add(it.value)
+    return result
 }
 
-// Represents field result.
+// Locates the field of a struct that an option designates.
 struct FieldResult
 {
     public
     {
-        field: const *Swag.TypeValue?     // Field associated with this value.
-        index: u64 = Swag.U64.Max         // Index associated with this value.
+        field: const *Swag.TypeValue?     // Designated field, or null when the option designates none.
+        index: u64 = Swag.U64.Max         // Index of the field in its struct, or [[Swag.U64.Max]] when there is none.
     }
 }
 
@@ -176,7 +169,10 @@ func isSameName(candidate: string, name: string)->bool
     return atCandidate == countCandidate and atName == countName
 }
 
-// Returns field.
+// Returns the field of `typeStruct` whose name or [[Core.CommandLine.ArgParams]] alias designates the option `name`.
+//
+// Names are matched like [[Core.CommandLine.isSameName]] does. The result has a null `field`
+// when no field matches.
 func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
     var result: retval
@@ -204,7 +200,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
     return result
 }
 
-// Parse all the arguments and fill the result
+// Parses `args` into the fields of `st` and returns which fields were set.
 //
 // An option is written `-name`, `--name`, `-name value`, or `-name:value` (`=` works like
 // `:`), and designates the field of `T` whose name or 'ArgParams' alias it matches, ignoring
@@ -262,8 +258,8 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             oneArg = Tokenize.eatCount(oneArg, 1)
 
         let fieldResult = getField(typeof, oneArg)
-        let typeParam   = fieldResult.field
-        if not typeParam
+        let field       = fieldResult.field
+        if not field
         {
             if options.captureUnknown
             {
@@ -277,11 +273,8 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             fail SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
         }
 
-        let field     = typeParam
         let typeField = field.pointedType orelse #typeof(u8)
-
-        var addr = cast([*] u8) st
-        addr += field.offset
+        let addr      = cast([*] u8) st + field.offset
 
         // Bool: Result is true if the option does not have an associated value
         if Reflection.isBool(typeField) and
@@ -342,7 +335,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
                 itp += 1
             }
 
-            if collect != null
+            if not collect.isEmpty()
             {
                 discard catch StrConv.parseValue(addr, typeField, collect.toString()) as err
                 if err != null do
@@ -354,10 +347,8 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]] for option [[%]]", typeField.name, oneArg))}
         }
 
-        // Set the associated 'isSet' boolean to true
-        var addrIsSet = cast([*] bool) &result.isSet
-        addrIsSet   += fieldResult.index
-        addrIsSet[] = true
+        // 'IsSet' holds one 'bool' per field of 'T', in field order.
+        (cast([*] bool) &result.isSet)[fieldResult.index] = true
     }
 
     return result

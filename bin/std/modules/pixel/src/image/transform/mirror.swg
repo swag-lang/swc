@@ -55,7 +55,7 @@ impl Image
         }
     }
 
-    // Flip image horizontally
+    // Mirrors the image left to right, in place.
     public mtd mirror()
     {
         Swag.assert(.pixels.buffer != null)
@@ -64,7 +64,7 @@ impl Image
         .applyWorkingBuffer()
     }
 
-    // Flip image horizontally
+    // Returns a left-to-right mirrored copy of the image.
     public mtd const mirrored()->Image
     {
         Swag.assert(.pixels.buffer != null)

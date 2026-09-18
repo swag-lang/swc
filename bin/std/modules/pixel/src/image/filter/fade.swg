@@ -2,7 +2,10 @@ using Core
 
 public impl Image
 {
-    // Fade to a given color. 'factor' is [0, 1]
+    // Blends the color channels toward `color`.
+    //
+    // `factor` is expected in [0, 1], from the original image at zero to `color` at one.
+    // Alpha is unchanged.
     mtd fade(color: Color, factor: f32 = 0.5)
     {
         if not .pixelFormat.isPacked() do

@@ -4,13 +4,16 @@ using Core
 
 impl Painter
 {
-    // Draw a texture image
+    // Draws a texture stretched over a destination rectangle.
+    //
+    // `color` tints the texture; the default white leaves it unchanged. The overloads without a
+    // size draw at the texture's own size, or at the size of `srcRect`.
     mtd drawTexture(x, y, width, height: f32, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         if width == 0 or height == 0 or .isInvisible(color) do
             return
 
-        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
+        let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .Fill}
         .fillRect(x, y, width, height, brush)
     }
 
@@ -24,17 +27,17 @@ impl Painter
         if .isInvisible(color) do
             return
 
-        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
+        let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .Fill}
         .fillRect(x, y, cast(f32) texture.width, cast(f32) texture.height, brush)
     }
 
-    // Draw a portion of an image
+    // Draws the `srcRect` texel rectangle of a texture stretched over a destination rectangle.
     mtd drawTexture(x, y, width, height: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         if srcRect.isEmpty() or width == 0 or height == 0 or .isInvisible(color) do
             return
 
-        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
+        let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
         .fillRect(x, y, width, height, brush)
     }
 
@@ -48,7 +51,7 @@ impl Painter
         if srcRect.isEmpty() or .isInvisible(color) do
             return
 
-        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
+        let brush = Brush{color: color, type: .Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
         .fillRect(x, y, srcRect.width, srcRect.height, brush)
     }
 }

@@ -9,13 +9,9 @@ alias HmacSha256Digest = [32] u8
 #[Swag.Opaque]
 struct HmacSha256
 {
-    inner: Hash.Sha256
-
-    public
-    {
-        outer:       Hash.Sha256
-        initialized: bool
-    }
+    inner:       Hash.Sha256
+    outer:       Hash.Sha256
+    initialized: bool
 }
 
 private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest
@@ -85,6 +81,7 @@ impl HmacSha256
     }
 
     // Finalizes the sequence, returns its authentication code, and clears the keyed state.
+    //
     // Call [[reset]] before reusing this value.
     mtd finalize()->HmacSha256Digest
     {

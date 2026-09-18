@@ -25,49 +25,58 @@ impl BuildOptions
     {
         let result = Wnd.create'BuildOptions(parent)
         result.backgroundStyle = .Transparent
-        let bar = Wnd.create'Wnd(result, {0, 0, 0, 36})
-        bar.dockStyle                = .Top
-        bar.margin                   = {0, 0, 0, 8}
-        result.resetButton           = IconButton.create(bar, result.theme().icon(.Undo, 18), {0, 0, 36, 36})
-        result.resetButton.dockStyle = .Right
-        result.resetButton.margin    = {8, 0, 0, 0}
-        result.resetButton.setIconSize(18, 18)
-        result.presetCombo = ComboBox.create(bar)
-        result.presetCombo.dockStyle = .Center
-        result.presetCombo.addItem("release")
-        result.presetCombo.addItem("devmode")
-        result.presetCombo.setSelectedIndex(0, notify: false)
-        result.editor = RichEditCtrl.create(result)
-        result.editor.dockStyle = .Center
-        result.editor.setLexer(&result.lexer)
-        result.editor.setText(Pipeline.BuildSettings.DefaultConfiguration)
-        result.editor.sigChanged += func|options = result|(editor)
+
+        with let bar = Wnd.create'Wnd(result, {0, 0, 0, 36})
         {
-            discard editor
-            options.sigChanged.call(options)
+            .dockStyle = .Top
+            .margin    = {0, 0, 0, 8}
         }
 
-        result.presetCombo.sigChanged += func|options = result|(combo, index)
+        with result.resetButton = IconButton.create(bar, result.theme().icon(.Undo, 18), {0, 0, 36, 36})
         {
-            discard combo
-            discard index
-            options.sigChanged.call(options)
+            .dockStyle = .Right
+            .margin    = {8, 0, 0, 0}
+            .setIconSize(18, 18)
+            .sigPressed += func|options = result|(button)
+            {
+                discard button
+                options.reset()
+            }
         }
 
-        result.resetButton.sigPressed += func|options = result|(button)
+        // The entries follow the order of `Pipeline.BuildPreset`, and name the compiler's build
+        // configurations, which are never translated.
+        with result.presetCombo = ComboBox.create(bar)
         {
-            discard button
-            options.reset()
+            .dockStyle = .Center
+            .addItem("release")
+            .addItem("devmode")
+            .setSelectedIndex(0, notify: false)
+            .sigChanged += func|options = result|(combo, index)
+            {
+                discard combo
+                discard index
+                options.sigChanged.call(options)
+            }
+        }
+
+        with result.editor = RichEditCtrl.create(result)
+        {
+            .dockStyle = .Center
+            .setLexer(&result.lexer)
+            .setText(Pipeline.BuildSettings.DefaultConfiguration)
+            .sigChanged += func|options = result|(editor)
+            {
+                discard editor
+                options.sigChanged.call(options)
+            }
         }
 
         result.retranslate()
         return result
     }
 
-    mtd settings(level: Swag.BuildCfgBackendOptimLevel)->Pipeline.BuildSettings
-    {
-        return {preset: cast(Pipeline.BuildPreset) .presetCombo.selectedIndex, optimization: level, configuration: .editor.text()}
-    }
+    mtd settings(level: Swag.BuildCfgBackendOptimLevel)->Pipeline.BuildSettings => {preset: cast(Pipeline.BuildPreset) .presetCombo.selectedIndex, optimization: level, configuration: .editor.text()}
 
     mtd reset()
     {

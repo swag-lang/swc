@@ -22,11 +22,12 @@ using Core, Pixel
 
 public impl Properties
 {
-    // Give the keyboard focus to the grid in navigation mode. Selects the first
-    // navigable row when none is selected yet.
+    // Gives the keyboard focus to the grid in navigation mode.
+    //
+    // When no row is selected yet and `fallbackToFirst` is true, the first navigable row is selected.
     mtd focusNavigation(fallbackToFirst = true)
     {
-        if not (.edView != null) do
+        if .edView == null do
             return
 
         // Keep the current selection (e.g. the row just clicked, even when it is a
@@ -52,9 +53,9 @@ internal impl Properties
 
         // Undo/redo shortcuts, available in navigation mode (an editor with the focus keeps
         // its own Ctrl+Z for in-place text editing). Ctrl+Y and Ctrl+Shift+Z both redo.
-        if cast(bool) (evt.modifiers & .Control)
+        if evt.modifiers.has(.Control)
         {
-            let shift = cast(bool) (evt.modifiers & .Shift)
+            let shift = evt.modifiers.has(.Shift)
             switch evt.key
             {
             case .Z:
@@ -74,7 +75,7 @@ internal impl Properties
 
         // An open combo drop-down is driven here (the grid keeps the focus), so the
         // arrows move the popup selection instead of the grid rows or the page.
-        if .selItem and (.selItem.comboBox != null) and .selItem.comboBox.popup
+        if .selItem and .selItem.comboBox != null and .selItem.comboBox.popup
         {
             let popup = .selItem.comboBox.popup
             switch evt.key
@@ -167,8 +168,8 @@ internal impl Properties
         if not .isEditing() do
             return false
 
-        let shift = cast(bool) (evt.modifiers & .Shift)
-        let alt   = cast(bool) (evt.modifiers & .Alt)
+        let shift = evt.modifiers.has(.Shift)
+        let alt   = evt.modifiers.has(.Alt)
 
         switch evt.key
         {
@@ -257,7 +258,7 @@ private impl Properties
     // section/category headers (no data, no type, no editor) are skipped.
     mtd isNavigable(item: *PropertiesItem?)->bool
     {
-        if not item or not (item.line != null) do
+        if not item or item.line == null do
             return false
         if not item.line.isVisible() do
             return false
@@ -272,10 +273,7 @@ private impl Properties
         return false
     }
 
-    mtd itemHasEditor(item: *PropertiesItem)->bool
-    {
-        return (item.editBox != null) or (item.comboBox != null) or (item.sliderBox != null) or (item.checkBox != null)
-    }
+    mtd itemHasEditor(item: *PropertiesItem)->bool => item.editBox != null or item.comboBox != null or item.sliderBox != null or (item.checkBox != null)
 
     mtd firstNavigable(forward: bool)->*PropertiesItem?
     {
@@ -423,7 +421,7 @@ private impl Properties
     // Scroll the grid so the given row is fully visible.
     mtd ensureItemVisible(item: *PropertiesItem?)
     {
-        if not item or not (item.line != null) do
+        if not item or item.line == null do
             return
 
         let lineTop       = item.line.position.y

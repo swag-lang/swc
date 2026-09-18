@@ -6,28 +6,28 @@
 #global public
 #global namespace Latin1
 
-// Selects char attribute.
+// Classifies a Latin-1 byte.
 #[Swag.EnumFlags]
 enum CharAttribute
 {
     Zero = 0                            // No flags are enabled.
-    Control                             // Selects control.
-    Punctuation                         // Selects punctuation.
-    BinDigit                            // Selects bin digit.
-    HexDigit                            // Selects hex digit.
-    Digit                               // Selects digit.
-    Symbol                              // Selects symbol.
-    Spacing                             // Selects spacing.
-    Upper                               // Selects upper.
-    Lower                               // Selects lower.
-    Printable                           // Selects printable.
-    LowerUtf8                           // Selects lower utf8.
-    UpperUtf8                           // Selects upper utf8.
-    Graphical = Printable | Spacing     // Selects graphical.
-    Letter    = Lower | Upper           // Selects letter.
+    Control                             // Control character.
+    Punctuation                         // Punctuation character.
+    BinDigit                            // Binary digit, '0' or '1'.
+    HexDigit                            // Hexadecimal digit.
+    Digit                               // Digit, including the Latin-1 superscripts and fractions.
+    Symbol                              // Symbol, such as a currency or mathematical sign.
+    Spacing                             // White space.
+    Upper                               // Upper-case letter.
+    Lower                               // Lower-case letter.
+    Printable                           // Printable character.
+    LowerUtf8                           // After a 0xC3 lead byte, a UTF-8 continuation byte that encodes a lower-case letter.
+    UpperUtf8                           // After a 0xC3 lead byte, a UTF-8 continuation byte that encodes an upper-case letter.
+    Graphical = Printable | Spacing     // Printable character or white space.
+    Letter    = Lower | Upper           // Letter of either case.
 }
 
-// Defines char properties.
+// The [[Core.Latin1.CharAttribute]] flags of each Latin-1 byte.
 const CharProperties: [256] CharAttribute = [
     Control,                                     // '\x00'
     Control,                                     // '\x01'

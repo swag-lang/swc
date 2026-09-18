@@ -3,10 +3,7 @@
 using Core, Pixel, Gui
 
 // Offers the page surface for a document that carries the PDF header, whatever it is called.
-private func pdfPluginProbe(content: Viewer.ProbeContent)->bool
-{
-    return content.startsWith("%PDF-")
-}
+private func pdfPluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("%PDF-")
 
 // Describes the PDF viewer to the host.
 func pdfViewerPlugin()->Viewer.Plugin
@@ -29,10 +26,7 @@ func pdfViewerPlugin()->Viewer.Plugin
 
 private const PdfPageWidth = 76.0
 
-private func pdfInfoWidth(metrics: const *ThemeMetrics)->f32
-{
-    return 2 * themeActionButtonSize(metrics) + PdfPageWidth + ViewerZoomSlotWidth + 16
-}
+private func pdfInfoWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + PdfPageWidth + ViewerZoomSlotWidth + 16
 
 // Keeps the page controls and zoom selector in one fixed-width run. Their authored cells are
 // wider than their current text and icons, so measuring each child by its contents would let the
@@ -64,15 +58,14 @@ private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
     var result: retval
     result.reader  = #move try Pdf.Reader.open(fileName)
     result.outline = result.reader.loadOutline()
-    let count = result.reader.pageCount()
-    if not count do
+    if not result.reader.pageCount() do
         fail Errors.InvalidFormatError{"PDF document contains no page"}
     result.page    = #move try result.reader.loadPage(0)
     result.details = "PDF"
     return #move result
 }
 
-internal struct PdfViewer
+struct PdfViewer
 {
     using wnd:            Wnd
     details:              String
@@ -212,10 +205,7 @@ private impl PdfViewer
         return .pdfView.revealTextMatch({match.major, match.offset, match.length})
     }
 
-    mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool
-    {
-        return .pdfView.textMatchRect({match.major, match.offset, match.length}, result)
-    }
+    mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect({match.major, match.offset, match.length}, result)
 
     mtd refreshNavigation()
     {
@@ -281,58 +271,79 @@ private impl PdfViewer
         }
     }
 
+    // Creates the page view of `fileName`, with its page and zoom controls in `info`, and starts
+    // opening the document in the background.
     func create(contentParent, info: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure? = null, reportDetails: Viewer.ReportDetails? = null, reportLoadingChanged: Viewer.ReportLoadingChanged? = null)->*PdfViewer
     {
-        let result = Wnd.create'PdfViewer(contentParent, "scope.pdf")
-        result.backgroundStyle      = .View
-        result.reportFailure        = reportFailure
-        result.reportDetails        = reportDetails
-        result.reportLoadingChanged = reportLoadingChanged
+        with let result = Wnd.create'PdfViewer(contentParent, "scope.pdf")
+        {
+            .backgroundStyle      = .View
+            .reportFailure        = reportFailure
+            .reportDetails        = reportDetails
+            .reportLoadingChanged = reportLoadingChanged
+            .info                 = info
+        }
 
-        result.info = info
+        result.createPageControls()
+        result.createZoomControl()
+        result.createPageView()
 
-        let actionSize = themeActionButtonSize(result.themeMetrics())
-        let iconSize   = themeActionIconSize(result.themeMetrics())
-        with result.previousButton = IconButton.create(result.info, result.theme().icon(.ChevronLeft, iconSize), {0, 0, actionSize, actionSize})
+        result.applyLayout()
+        result.refreshZoom()
+        result.load.start(fileName, &loadPdfViewerContent)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        return result
+    }
+
+    // Creates the previous-page, page-number, and next-page controls at the start of the information group.
+    mtd createPageControls()
+    {
+        let actionSize = themeActionButtonSize(.themeMetrics())
+        let iconSize   = themeActionIconSize(.themeMetrics())
+        with .previousButton = IconButton.create(.info, .theme().icon(.ChevronLeft, iconSize), {0, 0, actionSize, actionSize})
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = pdfStrings().ui_Previous
-            .sigPressed      += func|view = result|(button)
+            .sigPressed      += func|view = me|(button)
             {
                 discard button
                 view.pdfView.previousPage()
             }
         }
 
-        with result.pageLabel = IconButton.create(result.info, {}, {0, 0, PdfPageWidth, 32}, "scope.pdf.page", .CenterContent)
+        with .pageLabel = IconButton.create(.info, {}, {0, 0, PdfPageWidth, 32}, "scope.pdf.page", .CenterContent)
         {
             .dockStyle       = .Left
             .preferredSize.x = PdfPageWidth
             .margin.x        = 8
             .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = pdfStrings().ui_GoToPage
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.promptGoToPage()
             }
         }
 
-        with result.nextButton = IconButton.create(result.info, result.theme().icon(.ChevronRight, iconSize), {0, 0, actionSize, actionSize})
+        with .nextButton = IconButton.create(.info, .theme().icon(.ChevronRight, iconSize), {0, 0, actionSize, actionSize})
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
             .toolTip         = pdfStrings().ui_Next
-            .sigPressed      += func|view = result|(button)
+            .sigPressed      += func|view = me|(button)
             {
                 discard button
                 view.pdfView.nextPage()
             }
         }
+    }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.pdf.zoom", .CenterContent)
+    // Creates the zoom menu button at the end of the information group.
+    mtd createZoomControl()
+    {
+        with .zoomLabel = IconButton.create(.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.pdf.zoom", .CenterContent)
         {
             .dockStyle       = .Right
             .preferredSize.x = ViewerZoomButtonWidth
@@ -340,43 +351,41 @@ private impl PdfViewer
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = pdfStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.showZoomMenu()
             }
         }
+    }
 
-        with result.pdfView = PdfView.create(result)
+    // Creates the page view and keeps the controls in step with its page and zoom.
+    mtd createPageView()
+    {
+        with .pdfView = PdfView.create(me)
         {
             .dockStyle      = .Center
-            .sigPageChanged += func|view = result|(pdf)
+            .sigPageChanged += func|view = me|(pdf)
             {
                 discard pdf
                 view.refreshNavigation()
             }
 
-            .sigZoomChanged += func|view = result|(pdf)
+            .sigZoomChanged += func|view = me|(pdf)
             {
                 discard pdf
                 view.refreshZoom()
             }
 
-            .sigRenderError += func|view = result|(pdf, message)
+            .sigRenderError += func|view = me|(pdf, message)
             {
                 discard pdf
                 if view.reportFailure do
                     view.reportFailure(view, message)
             }
         }
-
-        result.applyLayout()
-        result.refreshZoom()
-        result.load.start(fileName, &loadPdfViewerContent)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
-        return result
     }
 }
 
@@ -385,11 +394,13 @@ func createPdfViewer(host: Viewer.Host)
 {
     let services  = host.services()
     let infoWidth = pdfInfoWidth(host.contentParent().themeMetrics())
-    let infoGroup = host.createInfoGroup(infoWidth)
-    let info      = Wnd.create'PdfInfoControls(infoGroup, {0, 0, infoWidth, 36})
-    info.dockStyle       = .Left
-    info.backgroundStyle = .Transparent
-    info.preferredSize.x = infoWidth
+    with let info = Wnd.create'PdfInfoControls(host.createInfoGroup(infoWidth), {0, 0, infoWidth, 36})
+    {
+        .dockStyle       = .Left
+        .backgroundStyle = .Transparent
+        .preferredSize.x = infoWidth
+    }
+
     let view = PdfViewer.create(host.contentParent(), info, host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
@@ -407,12 +418,12 @@ func createPdfViewer(host: Viewer.Host)
     // hands the host stable logical matches for counting and bidirectional navigation, a page at
     // a time as the extraction progresses on its worker.
     host.setSearch({
-        collectMatches: func(wnd, text, options, progress, matches)->bool { return (cast #assume (*PdfViewer) wnd).collectMatches(text, options, progress, matches) },
-        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*PdfViewer) wnd).revealMatch(match, text) },
-        matchBounds: func(wnd, match, bounds)->bool { return (cast #assume (*PdfViewer) wnd).searchBounds(match, bounds) },
+        collectMatches: func(wnd, text, options, progress, matches)->bool => (cast #assume (*PdfViewer) wnd).collectMatches(text, options, progress, matches),
+        revealMatch: func(wnd, match, text)->bool => (cast #assume (*PdfViewer) wnd).revealMatch(match, text),
+        matchBounds: func(wnd, match, bounds)->bool => (cast #assume (*PdfViewer) wnd).searchBounds(match, bounds),
         clear: func(wnd) { (cast #assume (*PdfViewer) wnd).pdfView.clearSelection() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast #assume (*PdfViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*PdfViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*PdfViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null,
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*PdfViewer) wnd).loadTimer != null,
+        retire: func(wnd)->bool => (cast #assume (*PdfViewer) wnd).retire()})
 }

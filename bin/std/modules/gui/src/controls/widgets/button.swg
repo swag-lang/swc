@@ -41,21 +41,21 @@ impl IWnd for Button
         if evt.id != .id do
             return
 
-        if evt.updatedFields & .Icon and (.icon.imageList != evt.icon.imageList or .icon.index != evt.icon.index)
+        if evt.updatedFields.has(.Icon) and (.icon.imageList != evt.icon.imageList or .icon.index != evt.icon.index)
         {
             evt.accepted = true
             .icon        = evt.icon
             .invalidate()
         }
 
-        if evt.updatedFields & .Name and .name != evt.name
+        if evt.updatedFields.has(.Name) and .name != evt.name
         {
             evt.accepted = true
             .name        = evt.name
             .invalidate()
         }
 
-        if evt.updatedFields & .Disabled
+        if evt.updatedFields.has(.Disabled)
         {
             evt.accepted = true
             .enable(not evt.disabled)
@@ -67,8 +67,8 @@ impl Button
 {
     // Replaces the displayed label, repaints, and lets the next layout pass re-measure it.
     //
-    // Pass `null` for a button that shows only its icon. The label is plain text; rich spans
-    // are set through `name` directly. A button carrying no explicit width follows its
+    // Pass `null` for a button that shows only its icon. `text` may carry the markers
+    // [[Pixel.RichString.set]] accepts. A button carrying no explicit width follows its
     // label, so re-labelling one after a language switch is enough to size it again.
     mtd setText(text: string?)
     {
@@ -77,7 +77,7 @@ impl Button
         .invalidateLayout()
     }
 
-    // Returns the displayed label as plain text.
+    // Returns the displayed label, including any formatting markers.
     mtd text()->string => .name.raw
 
     // Replaces the displayed icon and repaints the button.
@@ -122,7 +122,7 @@ impl Button
             format.fontStyle = .Bold
 
         var result = 0'f32
-        if (.name).count != 0
+        if not .name.isEmpty()
         {
             // Measured at the density the glyphs are really drawn at: laid out at a scale of
             // one and drawn at another, the run comes out wider than the width a caller sized
@@ -157,7 +157,7 @@ impl Button
         let inset = .themeMetrics().focusRing_Inset
 
         var result: retval = box
-        if (.name).count != 0 do
+        if not .name.isEmpty() do
             result.combine(.name.boundRect)
 
         // The same distance the ring keeps inside a control that has a shape, kept here outside

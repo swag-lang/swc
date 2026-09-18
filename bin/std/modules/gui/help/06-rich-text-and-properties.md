@@ -12,9 +12,9 @@ Keep model operations separate from painting:
 4. Respond to semantic notifications outside the editor.
 
 The property system builds editors from reflected values and metadata.
-[[Gui.Properties]] describes a property source,
-[[Gui.PropertiesItem]] represents one row, and [[Gui.PropertiesCtrl]] presents
-the editable tree. Attributes such as category, display name, and description
+[[Gui.Properties]] builds and edits the rows of reflected structures,
+[[Gui.PropertiesItem]] represents one row, and [[Gui.PropertiesCtrl]] frames the
+editor with optional search, section navigation, and tabs. Attributes such as category, display name, and description
 keep domain-specific labels beside the data model.
 
 Use the provided undo layer when edits must be reversible. Validation belongs at

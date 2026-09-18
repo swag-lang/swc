@@ -1,9 +1,10 @@
 using Swag
 
-// Manages a compact array of bit values.
-// Bits are represented as booleans, where 'true' indicates the bit is on (1)
-// and 'false' indicates the bit is off (0). This structure is memory-efficient
-// for storing a large number of boolean flags.
+// A resizable array of bits, stored 32 to a word.
+//
+// Each bit reads and writes as a `bool`, where `true` is a set bit. This makes it a compact store
+// for a large number of flags, and the bitwise operations work a word, or a vector of words, at a
+// time.
 public struct BitArray
 {
     public allocator: IAllocator?     // The allocator used for memory operations.
@@ -34,8 +35,7 @@ private impl BitArray
 
     mtd const constDataPtr()->const [*] u32 => cast(const [*] u32) .buffer!
 
-    // Frees the memory allocated by the bit array.
-    // Does nothing if the buffer is not allocated.
+    // Releases the storage and leaves the array empty; does nothing when nothing is allocated.
     mtd release()
     {
         if not .buffer do
@@ -46,8 +46,7 @@ private impl BitArray
         .capacityBytes = 0
     }
 
-    // Reallocates the private buffer to a new capacity.
-    // This is a low-level memory operation.
+    // Reallocates the storage to `newCapacityBytes` bytes.
     mtd realloc(newCapacityBytes: u64)
     {
         if not .allocator do
@@ -73,14 +72,13 @@ public impl BitArray
     // Returns the number of bits in the array.
     mtd const opCount()->u64 => .count
 
-    // Ensures the allocated memory is freed when the array goes out of scope.
+    // Releases the storage.
     mtd opDrop()
     {
         .release()
     }
 
-    // Handles the deep copy of the array when it is copied.
-    // A new buffer is allocated and the content is copied over.
+    // Gives a copied array its own storage holding the same bits.
     mtd opPostCopy()
     {
         if .buffer
@@ -96,29 +94,24 @@ public impl BitArray
         }
     }
 
-    // Returns the boolean value of the bit at a specific position.
+    // Returns the bit at `index`.
     mtd const opIndex(index: u64)->bool => .get(index)
 
-    // Sets the value of the bit at a specific position.
+    // Sets the bit at `index` to `value`.
     mtd opIndexSet(index: u64, value: bool)
     {
         .set(index, value)
     }
 
-    // Replaces the content of the bit array with values from a slice of booleans.
-    mtd opSet(what: const [..] bool)
+    // Replaces the content with one bit per element of `values`.
+    mtd opSet(values: const [..] bool)
     {
-        let len = what.count
-        .resize(len)
-        if not len do
-            return
-
-        for value, index in what do
+        .resize(values.count)
+        for value, index in values do
             .set(index, value)
     }
 
-    // Compares this bit array with another one for equality.
-    // Returns 'true' if both arrays have the same bit count and all bits are identical.
+    // Returns whether both arrays have the same bit count and identical bits.
     mtd const opEquals(other: BitArray)->bool
     {
         if .count != other.count do
@@ -158,9 +151,9 @@ public impl BitArray
         return true
     }
 
-    // Provides a way to iterate over each bit in the array.
-    // This is a macro that accepts a code block to execute for each bit.
-    // Block parameters: 'item' is the boolean value, 'index' the bit index.
+    // Visits every bit in order, binding `item` to its value and `index` to its position.
+    //
+    // Bits are visited by value only.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item: bool, index: u64))
         where not ptr
@@ -189,7 +182,9 @@ public impl BitArray
         }
     }
 
-    // Changes the number of bits and initializes every bit to `initialValue`.
+    // Sets the number of bits to `bitCount` and every bit to `initialValue`.
+    //
+    // The previous bits are not preserved. A zero `bitCount` releases the storage.
     mtd resize(bitCount: u64, initialValue = false)
     {
         if not bitCount
@@ -206,7 +201,7 @@ public impl BitArray
         .clearUnusedBits()
     }
 
-    // Sets all bits in the array to the specified boolean value.
+    // Sets every bit to `value`.
     mtd setAll(value: bool)
     {
         if not .count do
@@ -215,7 +210,7 @@ public impl BitArray
         .clearUnusedBits()
     }
 
-    // Sets the bit at a specific position to the specified value.
+    // Sets the bit at `index` to `value`.
     mtd set(index: u64, value: bool)
     {
         Swag.assert(index < .count)
@@ -229,7 +224,7 @@ public impl BitArray
             buffer[val] &= ~shift
     }
 
-    // Returns the boolean value of the bit at a specific position.
+    // Returns the bit at `index`.
     mtd const get(index: u64)->bool
     {
         Swag.assert(index < .count)
@@ -239,8 +234,7 @@ public impl BitArray
         return cast(bool) (.constDataPtr()[val] & shift)
     }
 
-    // Inverts the value of the bit at a specific position.
-    // Changes a 'true' bit to 'false' and a 'false' bit to 'true'.
+    // Inverts the bit at `index`.
     mtd invert(index: u64)
     {
         Swag.assert(index < .count)
@@ -251,8 +245,7 @@ public impl BitArray
         buffer[val] ^= shift
     }
 
-    // Inverts all bit values in the array.
-    // Bits set to 'true' are changed to 'false', and vice versa.
+    // Inverts every bit.
     mtd invert()
     {
         if not .count do
@@ -276,8 +269,9 @@ public impl BitArray
         .clearUnusedBits()
     }
 
-    // Performs a bitwise AND operation between this array and another.
-    // The current array is modified to store the result. Asserts that arrays are of the same size.
+    // Replaces every bit with its AND with the bit at the same index in `other`.
+    //
+    // Both arrays must have the same bit count.
     mtd andWith(other: BitArray)
     {
         Swag.assert(.count == other.count)
@@ -303,8 +297,9 @@ public impl BitArray
         .clearUnusedBits()
     }
 
-    // Performs a bitwise OR operation between this array and another.
-    // The current array is modified to store the result. Asserts that arrays are of the same size.
+    // Replaces every bit with its OR with the bit at the same index in `other`.
+    //
+    // Both arrays must have the same bit count.
     mtd orWith(other: BitArray)
     {
         Swag.assert(.count == other.count)
@@ -330,8 +325,9 @@ public impl BitArray
         .clearUnusedBits()
     }
 
-    // Performs a bitwise XOR operation between this array and another.
-    // The current array is modified to store the result. Asserts that arrays are of the same size.
+    // Replaces every bit with its XOR with the bit at the same index in `other`.
+    //
+    // Both arrays must have the same bit count.
     mtd xorWith(other: BitArray)
     {
         Swag.assert(.count == other.count)

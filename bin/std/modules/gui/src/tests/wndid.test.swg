@@ -3,12 +3,14 @@
 
 using Swag, Core
 
+// A scope whose command identifiers are qualified by its own name.
 struct GuiWndIdTestScope
 {
     newCmdId("Run")
     newCmdId("Cancel")
 }
 
+// A command identifier is its qualified name, whether a test scope or the module declares it.
 #test
 {
     Swag.assert(GuiWndIdTestScope.Run == "GuiWndIdTestScope.Run")

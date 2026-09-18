@@ -2,6 +2,7 @@
 
 using Swag, Core
 
+// Selecting and unselecting indices and ranges keeps the ranges merged, split, and counted exactly.
 #test
 {
     var model: SelModel
@@ -37,6 +38,7 @@ using Swag, Core
     Swag.assert(model.isEmpty())
 }
 
+// A reversed range is normalized, and unselecting either end trims it from that side.
 #test
 {
     var model: SelModel
@@ -57,6 +59,7 @@ using Swag, Core
     Swag.assert(model.isEmpty())
 }
 
+// Iterating a model visits every selected index once.
 #test
 {
     var model: SelModel
@@ -75,6 +78,8 @@ using Swag, Core
     Swag.assert(visitedSum == 19)
 }
 
+// Unselecting what is not selected changes nothing, selecting twice keeps one range, and unselecting
+// a middle run splits a range in two.
 #test
 {
     var model: SelModel
@@ -99,6 +104,7 @@ using Swag, Core
     Swag.assert(model.ranges()[1].end == 6)
 }
 
+// Selecting the gap between two ranges merges them, and iteration then visits the merged range in order.
 #test
 {
     var model: SelModel
@@ -110,7 +116,7 @@ using Swag, Core
     Swag.assert(model.ranges()[0].start == 1)
     Swag.assert(model.ranges()[0].end == 5)
 
-    var expected: u32 = 1
+    var expected = 1'u32
     for index in model
     {
         Swag.assert(index == expected)
@@ -120,6 +126,7 @@ using Swag, Core
     Swag.assert(expected == 6)
 }
 
+// Ranges that reach `U32.Max` merge and split without overflowing.
 #test
 {
     var model: SelModel

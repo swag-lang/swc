@@ -115,7 +115,7 @@ func day6A()
         arr.add(l.toSlice())
     }
 
-    Swag.assert(arr.count != 0)
+    Swag.assert(not arr.isEmpty())
     var dx    = 0, dy = -1
     var total = 1
     for

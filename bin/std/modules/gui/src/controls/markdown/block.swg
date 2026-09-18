@@ -55,10 +55,7 @@ private func appendBlock(blocks: *Array'Block, kind: BlockKind, text: String)
 {
     if text.isEmpty() and (kind < .AlertNote or kind > .AlertCaution) do
         return
-    var block: Block
-    block.kind = kind
-    block.text = #move text
-    blocks.add(#move block)
+    blocks.add(Block{kind, #move text})
 }
 
 private func alertKind(name: string)->BlockKind

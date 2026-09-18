@@ -2,16 +2,19 @@
 #global namespace Geometry
 #global public
 
-// Test if a point is inside an ellipse.
-// Uses the standard ellipse equation: (x-cx)²/rx² + (y-cy)²/ry² ≤ 1.
+// Returns whether `point` lies inside or on the axis-aligned ellipse centered at `center` with the radii `radiusX` and `radiusY`.
+//
+// Both radii must be positive, which is asserted.
 func ellipseContainsPoint(point, center: Vector2, radiusX, radiusY: f32)->bool
 {
     Swag.assert(radiusX > 0 and radiusY > 0)
     return (pow((point.x - center.x), 2) / pow(radiusX, 2)) + (pow((point.y - center.y), 2) / pow(radiusY, 2)) <= 1
 }
 
-// Test if a point is inside a triangle using cross product method.
-// Uses barycentric coordinates by checking if all cross products have the same sign.
+// Returns whether `point` lies inside or on an edge of the triangle `a`, `b`, `c`.
+//
+// The vertices may be given in either winding order: the point is inside when it lies on the
+// same side of all three edges.
 func triangleContainsPoint(point, a, b, c: Vector2)->bool
 {
     let ax  = c.x - b.x
@@ -27,28 +30,27 @@ func triangleContainsPoint(point, a, b, c: Vector2)->bool
     let cpx = point.x - c.x
     let cpy = point.y - c.y
 
-    let aCROSSbp = ax * bpy - ay * bpx
-    let cCROSSap = cx * apy - cy * apx
-    let bCROSScp = bx * cpy - by * cpx
+    let aCrossBp = ax * bpy - ay * bpx
+    let cCrossAp = cx * apy - cy * apx
+    let bCrossCp = bx * cpy - by * cpx
 
-    return ((aCROSSbp >= 0) and (bCROSScp >= 0) and (cCROSSap >= 0)) or ((aCROSSbp <= 0) and (bCROSScp <= 0) and (cCROSSap <= 0))
+    return ((aCrossBp >= 0) and (bCrossCp >= 0) and (cCrossAp >= 0)) or ((aCrossBp <= 0) and (bCrossCp <= 0) and (cCrossAp <= 0))
 }
 
-// Calculate the perpendicular distance from a point to an infinite line.
-// Projects the point onto the line and returns the distance to the projection.
+// Returns the distance from `point` to the infinite line through `lineStart` and `lineEnd`.
+//
+// When the two points coincide there is no line, and the distance to `lineStart` is returned.
 func distanceFromPointToLine(point, lineStart, lineEnd: Vector2)->f32
 {
-    let toPt = point - lineStart
-    var seg  = lineEnd - lineStart
-    seg.normalizeOrZero()
-    let dot = toPt.dot(seg)
-    seg *= dot
-    let cross = toPt - seg
-    return cross.length()
+    // What remains of the offset once its component along the line is removed is perpendicular to it.
+    let toPoint   = point - lineStart
+    let direction = (lineEnd - lineStart).normalizedOrZero()
+    return (toPoint - direction * toPoint.dot(direction)).length()
 }
 
-// Calculate the shortest distance from a point to a line segment.
-// Handles endpoints by clamping the projection to the segment bounds.
+// Returns the shortest distance from `point` to the segment from `segmentStart` to `segmentEnd`.
+//
+// A segment whose ends coincide is treated as the point `segmentStart`.
 func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
 {
     let ab = segmentEnd - segmentStart
@@ -66,15 +68,16 @@ func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
     if abae < 0 do
         return ae.length()
 
-    let x1  = ab.x
-    let y1  = ab.y
-    let x2  = ae.x
-    let y2  = ae.y
-    let mod = Math.sqrt(x1 * x1 + y1 * y1)
-    return Math.abs(x1 * y2 - y1 * x2) / mod
+    // The projection falls inside the segment: the parallelogram area over the base length is
+    // the height.
+    return Math.abs(ab.cross(ae)) / ab.length()
 }
 
-// Find the closest points between two line segments and their distance.
+// Returns the closest pair of points between two segments and the distance separating them.
+//
+// `first` lies on the segment from `firstStart` to `firstEnd`, and `second` on the segment from
+// `secondStart` to `secondEnd`. A segment whose ends coincide is treated as a point. When several
+// pairs are equally close, as with overlapping parallel segments, one of them is returned.
 // @LICENCE: BSL-1.0
 // @ORIGIN: Geometric Tools by David Eberly, https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h
 // @MODIFIED: Adapted to Swag's two-dimensional vector API.
@@ -256,8 +259,8 @@ func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: 
     return result
 }
 
-// Calculate intersection coefficients for two infinite lines.
-// Returns parametric coefficients 'd0' and 'd1' where intersection = start + d * (end - start).
+// Returns where two infinite lines cross, as a factor along each: the crossing is
+// `start + factor * (end - start)` on both lines.
 private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilon: f32)->{ intersects: bool, firstFactor: f32, secondFactor: f32 }
 {
     var result: retval
@@ -266,11 +269,9 @@ private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilo
     let ub = (end0.x - start0.x) * (start0.y - start1.y) - (end0.y - start0.y) * (start0.x - start1.x)
     let d  = (end1.y - start1.y) * (end0.x - start0.x) - (end1.x - start1.x) * (end0.y - start0.y)
 
-    // Parallel lines
-    if Math.abs(d) < epsilon
-    {
+    // Parallel or coincident lines have no single crossing.
+    if Math.abs(d) < epsilon do
         return result
-    }
 
     result.intersects   = true
     result.firstFactor  = ua / d
@@ -278,8 +279,11 @@ private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilo
     return result
 }
 
-// Find the intersection point of two infinite lines.
-// Returns the intersection point if lines are not parallel, otherwise returns failure.
+// Returns the point where the infinite line through `start0` and `end0` crosses the one through `start1` and `end1`.
+//
+// `intersects` is false, and `point` is zero, when the lines are parallel or coincident. The
+// test compares the cross product of the two direction vectors with `epsilon`, so it depends on
+// their lengths as well as on the angle between them.
 func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ intersects: bool, point: Vector2 }
 {
     var result: retval
@@ -294,8 +298,12 @@ func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32
     return result
 }
 
-// Find the intersection point of two line segments.
-// Returns the intersection point only if it lies within both segment bounds.
+// Returns the point where the segment from `start0` to `end0` meets the segment from `start1` to `end1`.
+//
+// `intersects` reports whether the segments meet, and `point` is only meaningful when they do. `epsilon` is the
+// tolerance of both the parallelism test and the segment ends, so segments that touch at an end
+// intersect. Collinear segments that overlap report one end of their overlap, and a segment whose
+// ends coincide is treated as a point.
 func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ intersects: bool, point: Vector2 }
 {
     var result: retval
@@ -386,26 +394,31 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
     return result
 }
 
-// Test if a point is inside a polygon using ray casting algorithm.
-// Implementation of the PNPoly algorithm by W. Randolph Franklin.
+// Returns whether `point` lies inside the polygon whose vertices are `polygon`, in order.
+//
+// The last vertex connects back to the first, and a self-intersecting polygon follows the
+// even-odd rule. A point exactly on an edge may land on either side, and an empty polygon
+// contains nothing. This is the PNPoly algorithm by W. Randolph Franklin.
 func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->bool
 {
+    if polygon.isEmpty() do
+        return false
+
+    // A horizontal ray leaving the point crosses the outline an odd number of times exactly
+    // when the point is inside, so every crossed edge flips the answer.
     var contains = false
-    if not polygon.count do
-        return contains
-    let buffer = polygon.storage()
-    var verti  = buffer
-    var vertj  = buffer + cast(s32) polygon.count - 1
-    for polygon.count
+    var previous = polygon.count - 1
+    for index in polygon.count
     {
-        if ((verti.y > point.y) != (vertj.y > point.y)) and
-           (point.x < (vertj.x - verti.x) * (point.y - verti.y) / (vertj.y - verti.y) + verti.x)
+        let vi = polygon[index]
+        let vj = polygon[previous]
+        if ((vi.y > point.y) != (vj.y > point.y)) and
+           (point.x < (vj.x - vi.x) * (point.y - vi.y) / (vj.y - vi.y) + vi.x)
         {
             contains = not contains
         }
 
-        vertj = verti
-        verti += 1
+        previous = index
     }
 
     return contains

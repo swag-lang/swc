@@ -5,20 +5,11 @@
 //
 #global namespace Webp
 
-func vp8Abs(value: s32)->s32
-{
-    return value < 0 ? -value : value
-}
+func vp8Abs(value: s32)->s32 => value < 0 ? -value : value
 
-func vp8Clamp15(value: s32)->s32
-{
-    return vp8Clip(value, -16, 15)
-}
+func vp8Clamp15(value: s32)->s32 => vp8Clip(value, -16, 15)
 
-func vp8Clamp127(value: s32)->s32
-{
-    return vp8Clip(value, -128, 127)
-}
+func vp8Clamp127(value: s32)->s32 => vp8Clip(value, -128, 127)
 
 func vp8Filter2(pixels: [*] u8, level, index, iStep, jStep: s32)
 {

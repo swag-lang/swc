@@ -5,55 +5,55 @@ using Swag
 
 #[ConstExpr, Inline]
 {
-    // Returns whether native.
+    // Returns whether `t` is a native type, such as an integer, a float, a `bool`, a `string`, or `any`.
     func isNative(t: typeinfo?) => t and t.kind == .Native
 
-    // Returns whether pointer.
+    // Returns whether `t` is a pointer type.
     func isPointer(t: typeinfo?) => t and t.kind == .Pointer
 
-    // Returns whether enum.
+    // Returns whether `t` is an enum type.
     func isEnum(t: typeinfo?) => t and t.kind == .Enum
 
-    // Returns whether struct.
+    // Returns whether `t` is a struct type.
     func isStruct(t: typeinfo?) => t and t.kind == .Struct
 
-    // Returns whether static array.
+    // Returns whether `t` is a static array type.
     func isStaticArray(t: typeinfo?) => t and t.kind == .Array
 
-    // Returns whether slice.
+    // Returns whether `t` is a slice type.
     func isSlice(t: typeinfo?) => t and t.kind == .Slice
 
-    // Returns whether type alias.
+    // Returns whether `t` is a type alias.
     func isTypeAlias(t: typeinfo?) => t and t.kind == .Alias
 
-    // Returns whether interface.
+    // Returns whether `t` is an interface type.
     func isInterface(t: typeinfo?) => t and t.kind == .Interface
 
-    // Returns whether integer.
+    // Returns whether `t` is a native integer type.
     func isInteger(t: typeinfo?) => t and t.flags & .Integer
 
-    // Returns whether float.
+    // Returns whether `t` is a native floating-point type.
     func isFloat(t: typeinfo?) => t and t.flags & .Float
 
-    // Returns whether generic.
+    // Returns whether `t` is a generic type.
     func isGeneric(t: typeinfo?) => t and t.flags & .Generic
 
-    // Returns whether tuple.
+    // Returns whether `t` is a tuple type.
     func isTuple(t: typeinfo?) => t and t.flags & .Tuple
 
-    // Returns whether type.
+    // Returns whether `t` is a pointer to type information, such as `typeinfo`.
     func isType(t: typeinfo?) => t and t.flags & .PointerTypeInfo
 
-    // Returns whether pointer ref.
+    // Returns whether `t` is a reference type.
     func isPointerRef(t: typeinfo?) => t and t.flags & .PointerRef
 
-    // Returns whether pointer arithmetic.
+    // Returns whether `t` is a block pointer that supports pointer arithmetic.
     func isPointerArithmetic(t: typeinfo?) => t and t.flags & .PointerArithmetic
 
-    // Returns whether the type is an enum marked with #[Swag.EnumFlags].
+    // Returns whether `t` is an enum marked with `#[Swag.EnumFlags]`.
     func isFlagsEnum(t: typeinfo?)->bool => isEnum(t) and hasAttribute(t, EnumFlags)
 
-    // Returns whether simple native.
+    // Returns whether `t` is a native type other than `any` and `string`.
     func isSimpleNative(t: typeinfo?)->bool
     {
         if not isNative(t) do
@@ -63,7 +63,7 @@ using Swag
         return tt.nativeKind != .Any and tt.nativeKind != .String
     }
 
-    // Returns whether rune.
+    // Returns whether `t` is the native `rune` type.
     func isRune(t: typeinfo?)->bool
     {
         if not isNative(t) do
@@ -73,7 +73,7 @@ using Swag
         return tt.nativeKind == .Rune
     }
 
-    // Returns whether any.
+    // Returns whether `t` is the native `any` type.
     func isAny(t: typeinfo?)->bool
     {
         if not isNative(t) do
@@ -83,7 +83,7 @@ using Swag
         return tt.nativeKind == .Any
     }
 
-    // Returns whether bool.
+    // Returns whether `t` is the native `bool` type.
     func isBool(t: typeinfo?)->bool
     {
         if not isNative(t) do
@@ -93,7 +93,7 @@ using Swag
         return tt.nativeKind == .Bool
     }
 
-    // Returns whether string.
+    // Returns whether `t` is the native `string` type.
     func isString(t: typeinfo?)->bool
     {
         if not isNative(t) do
@@ -137,7 +137,11 @@ using Swag
         return result
     }
 
-    // Assigns a runtime-typed value, preserving its copy and drop semantics.
+    // Copies the value of runtime type `type` at `source` over the value at `destination`.
+    //
+    // The previous destination value is dropped first, and the copy then runs its post-copy
+    // hook. Nothing happens when a pointer or `type` is null, or when `destination` and
+    // `source` are the same address. Panics when values of `type` cannot be copied.
     func assign(destination: *void?, source: const *void?, type: typeinfo?)
     {
         if not destination or not source or not type or destination == source do
@@ -149,15 +153,14 @@ using Swag
             return
         }
 
-        let nnDst  = destination
-        let nnSrc  = source
-        let nnType = type
-        Memory.dropType(nnDst, nnType)
-        Memory.copyValueStorage(nnDst, nnSrc, nnType)
-        Memory.postCopyType(nnDst, nnType)
+        Memory.dropType(destination, type)
+        Memory.copyValueStorage(destination, source, type)
+        Memory.postCopyType(destination, type)
     }
 
-    // Resets a runtime-typed value to its declared default value.
+    // Resets the value of runtime type `type` at `destination` to its declared default value.
+    //
+    // Panics when `destination` or `type` is null, or when `type` has no default initialization.
     func reset(destination: *void?, type: typeinfo?)
     {
         if not destination or not type
@@ -166,15 +169,13 @@ using Swag
             return
         }
 
-        let nnDst  = destination
-        let nnType = type
-        if not Memory.canDefaultInit(nnType)
+        if not Memory.canDefaultInit(type)
         {
             Swag.panic("Reflection.reset cannot default-initialize this type", #curlocation)
             return
         }
 
-        Memory.resetValueStorage(nnDst, nnType)
+        Memory.resetValueStorage(destination, type)
     }
 }
 
@@ -303,15 +304,18 @@ private func registerTypeGraphNoLock(type: typeinfo?)
     }
 }
 
-// Registers a type and every type reachable from its reflected graph.
+// Registers `type` and every type reachable from its reflected graph.
+//
+// Registered types can then be found by [[Core.Reflection.typeFromCrc]] and [[Core.Reflection.typeFromName]].
+// Types exported by loaded modules are registered automatically at startup.
 func registerType(type: typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
     registerTypeGraphNoLock(type)
 }
 
-// #premain can be called more than once if we compile/run more than one
-// module using Core at the same time. So lock !
+// #premain can run more than once when several modules using Core are compiled or run at
+// the same time, so registration takes the lock.
 #premain
 {
     Sync.scopedLock(&g_HashLock)
@@ -338,24 +342,20 @@ func registerType(type: typeinfo)
     }
 }
 
-// Returns the registered type associated with a CRC, or null.
+// Returns the registered type whose CRC is `crc`, or null when none is registered.
 func typeFromCrc(crc: u32)->typeinfo?
 {
     Sync.sharedLock(&g_HashLock)
-    let e = g_HashCrcToType.tryFind(crc)
-    if not e do
-        return null
-    return e.value
+    return g_HashCrcToType.tryFind(crc)?.value
 }
 
-// Returns the registered type associated with a name, or null.
+// Returns the registered type named `name`, or null when none is registered.
+//
+// `name` is the type's full name; a type without a full name is registered under its bare name.
 func typeFromName(name: string)->typeinfo?
 {
     Sync.sharedLock(&g_HashLock)
-    let e = g_HashNameToType.tryFind(name)
-    if not e do
-        return null
-    return e.value
+    return g_HashNameToType.tryFind(name)?.value
 }
 
 // Returns the registered struct associated with a stable serialization key.
@@ -364,8 +364,5 @@ func typeFromName(name: string)->typeinfo?
 internal func typeFromKey(key: string)->typeinfo?
 {
     Sync.sharedLock(&g_HashLock)
-    let e = g_HashKeyToType.tryFind(key)
-    if not e do
-        return null
-    return e.value
+    return g_HashKeyToType.tryFind(key)?.value
 }

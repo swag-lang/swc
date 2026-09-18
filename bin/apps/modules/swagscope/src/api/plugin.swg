@@ -49,15 +49,9 @@ impl ProbeContent
 {
     // Reports whether the file opens with `signature`, byte for byte.
     //
-    // This is how a format that puts a magic number at offset zero recognizes itself.
-    mtd const startsWith(signature: string)->bool
-    {
-        if .head.count < signature.count do
-            return false
-        for index in signature.count where .head[index] != signature[index] do
-            return false
-        return true
-    }
+    // This is how a format that puts a magic number at offset zero recognizes itself. `signature`
+    // is never empty: a format without a magic number is recognized some other way.
+    mtd const startsWith(signature: string)->bool => Utf8.startsWith(.head, signature)
 
     // Reports whether the file opens with `marker`, past a byte-order mark and any leading blank,
     // and whatever the letter case.

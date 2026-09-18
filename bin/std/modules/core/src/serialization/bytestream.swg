@@ -17,7 +17,7 @@ public struct ByteStream
 
 public impl ByteStream
 {
-    // Creates a byte stream for reading from a buffer
+    // Creates a stream that reads the borrowed bytes of `readBuffer`.
     func openRead(readBuffer: const [..] u8)->ByteStream
     {
         var result: retval
@@ -25,7 +25,7 @@ public impl ByteStream
         return result
     }
 
-    // Creates a byte stream for writing to a buffer
+    // Creates a stream that writes into the borrowed array `writeBuffer`, growing it as needed.
     func openWrite(writeBuffer: *Array'u8)->ByteStream
     {
         var result: retval
@@ -39,7 +39,7 @@ public impl ByteStream
     // Returns the unread bytes as a borrowed string.
     mtd remainingString()->string => Swag.makeString(.data() + .seek, .length() - .seek)
 
-    // Returns the total length of the buffer (read or write)
+    // Returns the total length of the underlying buffer, in bytes.
     mtd const length()->u64 => .writeBuffer ? .writeBuffer.count : (.readBuffer).count
 
     // Kept in the exported dependency because public generic methods expand in
@@ -47,25 +47,24 @@ public impl ByteStream
     #[Swag.NoDoc]
     mtd data()->const [*] u8 => .writeBuffer ? .writeBuffer.buffer! : (.readBuffer).buffer!
 
-    // Returns true if the end of the buffer was reached during reading
+    // Returns whether [[Core.ByteStream.advance]], [[Core.ByteStream.readU8]], or [[Core.ByteStream.setPosition]] reached the end of the buffer.
     mtd const isEof()->bool => .eof
 
-    // Writes a native value of type 'T' to the stream
+    // Writes `val` as the host lays it out and advances past it.
     mtd(T) writeNative(val: T)
     {
-        Swag.assert(writeBuffer != null)
+        Swag.assert(.writeBuffer != null)
 
-        let wb = writeBuffer!
-        if seek + #sizeof(T) > wb.count do
-            wb.grow(seek + #sizeof(T))
-        let buffer = wb.storage()
-        var ptr    = cast(*T) (buffer + seek)
+        let wb = .writeBuffer!
+        if .seek + #sizeof(T) > wb.count do
+            wb.grow(.seek + #sizeof(T))
+        let ptr = cast(*T) (wb.storage() + .seek)
         ptr[]    = val
-        seek     += #sizeof(T)
-        wb.count = Math.max(wb.count, seek)
+        .seek    += #sizeof(T)
+        wb.count = Math.max(wb.count, .seek)
     }
 
-    // Writes a slice of bytes to the stream
+    // Writes the bytes of `slice` and advances past them.
     mtd writeBytes(slice: const [..] u8)
     {
         Swag.assert(.writeBuffer != null)
@@ -84,7 +83,7 @@ public impl ByteStream
         wb.count = Math.max(wb.count, .seek)
     }
 
-    // Reads a native value of type 'T' from the stream
+    // Reads a value of type `T` laid out as the host stores it, and advances past it.
     mtd(T) readNative()->T fail
     {
         if .seek + #sizeof(T) > .length() do
@@ -94,7 +93,7 @@ public impl ByteStream
         return val
     }
 
-    // Reads 'count' bytes from the stream into 'dest'
+    // Copies the next `count` bytes to `dest` and advances past them.
     mtd readBytes(dest: *u8?, count: u64) fail
     {
         if .seek + count > .length() do
@@ -103,7 +102,7 @@ public impl ByteStream
         .seek += count
     }
 
-    // Writes a value of type 'T' in little-endian byte order.
+    // Writes a value of type `T` in little-endian byte order.
     //
     // Use this instead of [[Core.ByteStream.writeNative]] for a persisted or transmitted format,
     // so the bytes do not depend on the architecture that produced them.
@@ -112,23 +111,17 @@ public impl ByteStream
         .writeNative'T(Math.nativeToLittleEndian(value))
     }
 
-    // Reads a little-endian value of type 'T'.
-    mtd(T) readLittleEndian()->T fail
-    {
-        return Math.littleEndianToNative(try .readNative'T())
-    }
+    // Reads a little-endian value of type `T`.
+    mtd(T) readLittleEndian()->T fail => Math.littleEndianToNative(try .readNative'T())
 
-    // Writes a value of type 'T' in big-endian byte order.
+    // Writes a value of type `T` in big-endian byte order.
     mtd(T) writeBigEndian(value: T)
     {
         .writeNative'T(Math.nativeToBigEndian(value))
     }
 
-    // Reads a big-endian value of type 'T'.
-    mtd(T) readBigEndian()->T fail
-    {
-        return Math.bigEndianToNative(try .readNative'T())
-    }
+    // Reads a big-endian value of type `T`.
+    mtd(T) readBigEndian()->T fail => Math.bigEndianToNative(try .readNative'T())
 
     // Writes an unsigned value as a LEB128 varint.
     //
@@ -174,15 +167,15 @@ public impl ByteStream
 
     // Writes a string as a little-endian `u32` byte count followed by its bytes.
     //
-    // This is the framing [[readSizedString]] expects. The count is a byte count,
+    // This is the framing [[Core.ByteStream.readSizedString]] expects. The count is a byte count,
     // not a character count.
     mtd writeSizedString(value: string)
     {
         .writeLittleEndian(cast(u32) value.count)
-        .writeBytes(Swag.makeSlice(value.buffer, value.count))
+        .writeBytes(cast(const [..] u8) value)
     }
 
-    // Reads a string written by [[writeSizedString]].
+    // Reads a string written by [[Core.ByteStream.writeSizedString]].
     //
     // Fails when the stored byte count exceeds `maxLength` or the remaining
     // bytes, so a corrupted or hostile input cannot request a huge allocation.
@@ -192,13 +185,15 @@ public impl ByteStream
         let count = cast(u64) (try .readLittleEndian'u32())
         if count > maxLength do
             fail OverflowError{"sized string is too long"}
+        if count > .remainingBytes().count do
+            fail OverflowError{"sized string is longer than the remaining input"}
         result.reserve(count)
         try .readBytes(result.buffer, count)
         result.length = count
         return result
     }
 
-    // Reads and consumes a single byte
+    // Reads one byte and advances past it, or returns zero at the end of the buffer.
     mtd readU8()->u8
     {
         let c = .peekU8()
@@ -206,7 +201,7 @@ public impl ByteStream
         return c
     }
 
-    // Peeks at a single byte without consuming it
+    // Returns the byte at the current position without consuming it, or zero at the end of the buffer.
     mtd peekU8()->u8
     {
         if .seek >= .length() do

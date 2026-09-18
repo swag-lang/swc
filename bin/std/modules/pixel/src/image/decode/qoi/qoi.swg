@@ -32,16 +32,10 @@ func readU32BigEndian(source: const [*] u8)->u32
 }
 
 #[Swag.Inline]
-func hash(pixel: Pixel)->u8
-{
-    return cast(u8) ((cast(u32) pixel.r * 3 + cast(u32) pixel.g * 5 + cast(u32) pixel.b * 7 + cast(u32) pixel.a * 11) & 63)
-}
+func hash(pixel: Pixel)->u8 => cast(u8) ((cast(u32) pixel.r * 3 + cast(u32) pixel.g * 5 + cast(u32) pixel.b * 7 + cast(u32) pixel.a * 11) & 63)
 
 #[Swag.Inline]
-func addWrapped(value: u8, delta: s32)->u8
-{
-    return cast(u8) ((cast(s32) value + delta) & 0xFF)
-}
+func addWrapped(value: u8, delta: s32)->u8 => cast(u8) ((cast(s32) value + delta) & 0xFF)
 
 #[Swag.Inline]
 func writePixel(image: *Image, sourceIndex: u64, pixel: Pixel)

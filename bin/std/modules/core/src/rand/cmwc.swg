@@ -15,7 +15,7 @@ struct ComplementaryMultiplyWithCarry4096
 
 impl ComplementaryMultiplyWithCarry4096
 {
-    // Seeds the generator with a 32-bit unsigned value.
+    // Seeds the generator with a 32-bit value.
     mtd seedU32(value: u32)
     {
         var generator: MultiplyWithCarry32
@@ -26,14 +26,16 @@ impl ComplementaryMultiplyWithCarry4096
         .carry = value % 809430660
     }
 
-    // Generates the next 32-bit unsigned random number.
+    // Returns the next pseudorandom 32-bit value.
+    //
+    // A generator that was never seeded seeds itself with a fixed value first.
     #[Swag.Safety(.Overflow, false)]
     mtd nextU32()->u32
     {
         const a = 18782'u64
         const r = 0xFFFFFFFE
 
-        // Be sure we have seeded
+        // An index past the state means the generator was never seeded.
         if .index > 4095 do
             .seedU32(362436)
 

@@ -185,15 +185,9 @@ func currentModeName()->string
     unreachable
 }
 
-func boolWord(value: bool)->string
-{
-    return value ? "on" : "off"
-}
+func boolWord(value: bool)->string => value ? "on" : "off"
 
-func stateSummary()->String
-{
-    return Format.toString("Dirty: %    Grid: %    Guides: %    Mode: %    Pinned: %    Commands: %", boolWord(g_DocumentDirty), boolWord(g_ShowGrid), boolWord(g_ShowGuides), currentModeName(), boolWord(g_ContextPinned), g_ActionCount)
-}
+func stateSummary()->String => Format.toString("Dirty: %    Grid: %    Guides: %    Mode: %    Pinned: %    Commands: %", boolWord(g_DocumentDirty), boolWord(g_ShowGrid), boolWord(g_ShowGuides), currentModeName(), boolWord(g_ContextPinned), g_ActionCount)
 
 func updateHeader()
 {

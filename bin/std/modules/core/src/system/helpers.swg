@@ -2,7 +2,7 @@
 
 using Swag
 
-// Returns whether every bit in value is present in flags.
+// Returns whether `flags` contains at least one bit of `value`.
 #[Inline]
 func(T) has(flags, value: T)->bool
     where Reflection.isEnum(T)
@@ -10,7 +10,7 @@ func(T) has(flags, value: T)->bool
     return flags & value != 0
 }
 
-// Returns whether flags contains exactly value.
+// Returns whether `flags` equals `value` exactly.
 #[Inline]
 func(T) equals(flags, value: T)->bool
     where Reflection.isEnum(T)
@@ -18,7 +18,7 @@ func(T) equals(flags, value: T)->bool
     return flags == value
 }
 
-// Adds value to a flag set.
+// Adds the bits of `value` to the flag set `flags`.
 #[Inline]
 func(T) add(flags: *T, value: T)
     where Reflection.isEnum(T)
@@ -26,7 +26,7 @@ func(T) add(flags: *T, value: T)
     flags[] |= value
 }
 
-// Removes value from a flag set.
+// Removes the bits of `value` from the flag set `flags`.
 #[Inline]
 func(T) remove(flags: *T, value: T)
     where Reflection.isEnum(T)
@@ -34,7 +34,7 @@ func(T) remove(flags: *T, value: T)
     flags[] &= ~value
 }
 
-// Replaces a flag set with value.
+// Replaces the flag set `flags` with `value`.
 #[Inline]
 func(T) set(flags: *T, value: T)
     where Reflection.isEnum(T)
@@ -42,7 +42,7 @@ func(T) set(flags: *T, value: T)
     flags[] = value
 }
 
-// Toggles value in a flag set.
+// Toggles the bits of `value` in the flag set `flags`.
 #[Inline]
 func(T) toggle(flags: *T, value: T)
     where Reflection.isEnum(T)

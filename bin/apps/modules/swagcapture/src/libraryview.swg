@@ -14,33 +14,41 @@ func ratingLabel(rating: u8)->String
     }
 }
 
-internal var g_UpdatingLib: bool
-internal var g_DirtyList:   bool = true
-internal const ItemMargin      = 8.0
-internal const RatingGlyphSize = 12.0
-internal const RatingGlyphGap  = 2.0
+var g_UpdatingLib: bool
+var g_DirtyList:   bool = true
+const ItemMargin      = 8.0
+const RatingGlyphSize = 12.0
+const RatingGlyphGap  = 2.0
 
 // How often the visible set is rebuilt while the previews are still streaming in. Each
 // loaded capture marks the list dirty, so without a cadence the rebuild runs on every
 // frame of the load, and each rebuild is proportional to the whole library.
-internal const ListRefreshDelay = 200
+const ListRefreshDelay = 200
 
 // How far beyond the viewport, in viewport heights, a decoded thumbnail is kept before its
 // texture is released. Zero releases a thumbnail the pixel it leaves the view and decodes it
 // again the pixel it comes back, which is what a scroll does continuously.
-internal const TextureKeepBand = 0.5
+const TextureKeepBand = 0.5
 
 // How many retained thumbnails one paint is allowed to decode. A capture's preview is a PNG of
 // about 140 KB and costs a couple of milliseconds to unpack, and a scroll brings a whole row —
 // nine cells at the small preview size — into view on the same frame. Unpacking them all there
 // drops that frame; the cells left over are decoded by the frames that follow, which the paint
 // asks for while any remain.
-internal const MaxPreviewDecodesPerPaint = 3
+const MaxPreviewDecodesPerPaint = 3
 
 enum LibraryItemKind
 {
     Capture
     Image
+}
+
+// The selection and the focus of the grid, by file, so they survive a rebuild of the
+// visible set.
+struct LibrarySelection
+{
+    files:   Array'String
+    focused: String
 }
 
 struct LibraryItem
@@ -128,8 +136,8 @@ impl IWnd for LibraryView
             .hotItem = ht
         }
 
-        let shiftPressed = cast(bool) (evt.modifiers & .Shift)
-        let ctrlPressed  = cast(bool) (evt.modifiers & .Control)
+        let shiftPressed = evt.modifiers.has(.Shift)
+        let ctrlPressed  = evt.modifiers.has(.Control)
 
         if evt.kind == .Released and .hotItem != Swag.U32.Max and evt.button == .Left
         {
@@ -218,7 +226,7 @@ impl IWnd for LibraryView
             switch result
             {
             case "capture.library.open":     .openItem(focused)
-            case "capture.library.reveal":   discard Env.showInFileExplorer(focused.fi.fullname)
+            case "capture.library.reveal":   discard Env.showInFileExplorer(focused.fi.fullName)
             case "capture.library.tags":     .libWnd.editSelectedTags()
             case "capture.library.export":   .libWnd.exportSelected()
             case "capture.library.favorite": .libWnd.toggleSelectedFavorite()
@@ -352,7 +360,7 @@ impl IWnd for LibraryView
                 infos.showLinked     = .libWnd.showLinkOverlay
             }
 
-            RecentView.IWnd.paintRecent(me, painter, it.texture, it.rect, infos)
+            RecentView.paintRecent(me, painter, it.texture, it.rect, infos)
 
             // User-given name, drawn along the bottom of the thumbnail with a soft
             // shadow so it stays readable over any background.
@@ -362,11 +370,11 @@ impl IWnd for LibraryView
             elif capture and not capture.sourceApplication.isEmpty() do
                 label = capture.sourceApplication
             elif it.kind == .Image do
-                label = Path.fileName(it.fi.fullname) orelse ""
+                label = Path.fileName(it.fi.fullName) orelse ""
 
             if label.count
             {
-                let font = me .font().regular!
+                let font = me.font().regular!
                 let cx   = it.rect.horzCenter()
                 let by   = it.rect.bottom() - 8
                 painter.drawStringCenter(cx + 1, by + 1, label, font, Color.fromArgb(0xC0, Argb.Black))
@@ -375,7 +383,7 @@ impl IWnd for LibraryView
 
             if it.kind == .Image
             {
-                let font = me .theme().res.fontDefaultFs.regular!
+                let font = me.theme().res.fontDefaultFs.regular!
                 let text = appStrings().ui_ImageBadge
                 let ms   = Painter.measureString(text, font)
                 let rc   = Math.Rectangle{it.rect.x + 8, it.rect.y + 8, ms.width + 12, font.height + 4}
@@ -385,7 +393,7 @@ impl IWnd for LibraryView
 
             if capture and capture.favorite
             {
-                let font = me .theme().res.fontDefault.bold!
+                let font = me.theme().res.fontDefault.bold!
                 let text = "♥"
                 let ms   = Painter.measureString(text, font)
                 painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
@@ -469,18 +477,15 @@ impl LibraryView
         g_UpdatingLib = true
         if .imgSpin != null do
             .imgSpin.show()
-        try
-        {
-            try .thread.init(func|view = me|(th: Thread) { view.loadFiles(th); })
-            try .thread.start()
-        }
+        try .thread.init(func|view = me|(th: Thread) { view.loadFiles(th) })
+        try .thread.start()
     }
 
     mtd openItem(item: *LibraryItem)
     {
         if item.kind == .Image
         {
-            .mainWnd.loadExternalImage(item.fi.fullname)
+            .mainWnd.loadExternalImage(item.fi.fullName)
             return
         }
 
@@ -491,8 +496,8 @@ impl LibraryView
             return
 
         catch capture.materializePreview()
-        catch File.touch(item.fi.fullname)
-        .mainWnd.recentWnd.addRecent(item.fi.fullname, capture.preview, front: true, sel: true, linked: capture.linkedImage)
+        catch File.touch(item.fi.fullName)
+        .mainWnd.recentWnd.addRecent(item.fi.fullName, capture.preview, front: true, sel: true, linked: capture.linkedImage)
         if not capture.previewBytes.isEmpty() do
             capture.preview = {}
         .mainWnd.recentWnd.setScrollPos(0, 0)
@@ -502,39 +507,29 @@ impl LibraryView
 
     mtd const numImagesPerLine()->u32
     {
-        let {w, ?}     = .getPreviewSize()
-        let clientRect = .paddedClientRect()
-        let n          = clientRect.width / (w + ItemMargin)
-        return cast(u32) n
+        let {w, ?} = .getPreviewSize()
+        return cast(u32) (.paddedClientRect().width / (w + ItemMargin))
     }
 
+    // Returns the size of one grid cell. Every preview has the 4:3 frame of a capture thumbnail.
     mtd const getPreviewSize()->{ w: f32, h: f32 }
     {
-        var H: f32 = 128.0
-        var W: f32 = 0
+        var h: f32 = 128.0
         switch .libWnd.previewSize
         {
-        case .Small:
-            H = 128
-            W = H * 4.0 / 3.0
-
-        case .Medium:
-            H = 256
-            W = H * 4.0 / 3.0
-
-        case .Big:
-            H = 512
-            W = H * 4.0 / 3.0
+        case .Small:  h = 128
+        case .Medium: h = 256
+        case .Big:    h = 512
         }
 
-        return {W, H}
+        return {h * 4.0 / 3.0, h}
     }
 
     mtd updateRecent(capture: *Capture)
     {
         for it in .items
         {
-            if capture.file == it.fi.fullname
+            if capture.file == it.fi.fullName
             {
                 if it.capture
                 {
@@ -578,23 +573,44 @@ impl LibraryView
                 return true
         }
 
-        if Utf8.indexOf(it.fi.fullname.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+        if Utf8.indexOf(it.fi.fullName.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
             return true
         return false
     }
 
-    mtd filter()
+    // Returns the files of the selected and focused cells.
+    mtd rememberSelection()->LibrarySelection
     {
-        var selectedFiles: Array'String
-        var focusedFile:   String
+        var result: retval
         for item, i in .items
         {
             if .selModel.isSelected(cast() i) do
-                selectedFiles.add(item.fi.fullname)
+                result.files.add(item.fi.fullName)
             if i == .focusItem do
-                focusedFile = item.fi.fullname
+                result.focused = item.fi.fullName
         }
 
+        return result
+    }
+
+    // Selects and focuses again the cells showing the files of `selection`, wherever the
+    // rebuild placed them.
+    mtd restoreSelection(selection: LibrarySelection)
+    {
+        .selModel.clear()
+        .focusItem = Swag.U32.Max
+        for item, i in .items
+        {
+            if selection.files.contains(item.fi.fullName) do
+                .selModel.select(cast() i)
+            if item.fi.fullName == selection.focused do
+                .focusItem = cast(u32) i
+        }
+    }
+
+    mtd filter()
+    {
+        let selection = .rememberSelection()
         .items.clear()
         let search = .libWnd.searchText.toString()
 
@@ -681,16 +697,7 @@ impl LibraryView
             .items.add(itn)
         }
 
-        .selModel.clear()
-        .focusItem = Swag.U32.Max
-        for item, i in .items
-        {
-            if selectedFiles.contains(item.fi.fullname) do
-                .selModel.select(cast() i)
-            if item.fi.fullname == focusedFile do
-                .focusItem = cast(u32) i
-        }
-
+        .restoreSelection(selection)
         .invalidate()
     }
 
@@ -698,7 +705,7 @@ impl LibraryView
     {
         if it.kind == .Capture
         {
-            let capture:       *Capture? = catch Capture.load(it.fi.fullname, preview: true, deferPreviewDecode: true)
+            let capture:       *Capture? = catch Capture.load(it.fi.fullName, preview: true, deferPreviewDecode: true)
             var haar:          ImageStatistics.HaarFeatures
             var width, height: s32
             if capture
@@ -725,7 +732,7 @@ impl LibraryView
         }
         else
         {
-            var image = catch Image.load(it.fi.fullname)
+            var image = catch Image.load(it.fi.fullName)
             var haar: ImageStatistics.HaarFeatures
             var width, height: s32
             if image.isValid()
@@ -788,12 +795,7 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
-        var remaining: Array'*LibraryItem
-        for it in .items do
-            remaining.add(it)
-        if remaining.isEmpty() do
-            return
-
+        var remaining = .items
         var nitems: Array'*LibraryItem
 
         var toCompare: *LibraryItem?
@@ -865,8 +867,8 @@ impl LibraryView
                 value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
 
             case .Name:
-                let nameA = captureA and not captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullname) orelse "")
-                let nameB = captureB and not captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullname) orelse "")
+                let nameA = captureA and not captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullName) orelse "")
+                let nameB = captureB and not captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullName) orelse "")
                 value = Utf8.compare(nameA, nameB, .Latin1NoCase)
 
             case .Application:
@@ -887,7 +889,7 @@ impl LibraryView
             }
 
             if not value do
-                value = Utf8.compare(a.fi.fullname.toSlice(), b.fi.fullname.toSlice(), .Latin1NoCase)
+                value = Utf8.compare(a.fi.fullName.toSlice(), b.fi.fullName.toSlice(), .Latin1NoCase)
 
             if libWnd.invertSort do
                 return -value
@@ -900,15 +902,7 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
-        var selectedFiles: Array'String
-        var focusedFile:   String
-        for item, i in .items
-        {
-            if .selModel.isSelected(cast() i) do
-                selectedFiles.add(item.fi.fullname)
-            if i == .focusItem do
-                focusedFile = item.fi.fullname
-        }
+        let selection = .rememberSelection()
 
         .mutexLoaded.lock()
         defer .mutexLoaded.unlock()
@@ -918,16 +912,7 @@ impl LibraryView
         else do
             .sortFiles()
 
-        .selModel.clear()
-        .focusItem = Swag.U32.Max
-        for item, i in .items
-        {
-            if selectedFiles.contains(item.fi.fullname) do
-                .selModel.select(cast() i)
-            if item.fi.fullname == focusedFile do
-                .focusItem = cast(u32) i
-        }
-
+        .restoreSelection(selection)
         .invalidate()
     }
 
@@ -941,17 +926,11 @@ impl LibraryView
         // listed straight from disk.
         var res: Array'File.FileInfo
         let cf = .libWnd.currentFolder()
-        if Library.getFolder() == cf
-        {
-            for fi in g_Library.files do
-                res.add(fi)
-        }
-        else
-        {
+        if Library.getFolder() == cf do
+            res = g_Library.files
+        else do
             res = catch Library.enumerateSupportedFiles(cf)
-        }
 
-        // Add items
         // 'items' only borrows pointers owned by 'allItems'. Drop those borrows before their
         // owners so filter() never snapshots selection state through destroyed LibraryItems.
         .items.clear()
@@ -963,13 +942,13 @@ impl LibraryView
         {
             let ptr = .allItems.addNew()
             ptr.fi   = fi
-            ptr.kind = Capture.isFileName(fi.fullname) ? .Capture : .Image
+            ptr.kind = Capture.isFileName(fi.fullName) ? .Capture : .Image
         }
 
         .filter()
         .sort()
 
-        // Launch thread to read all captures
+        // The previews are read on a worker thread.
         try .startLoading()
 
         .invalidate()

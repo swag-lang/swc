@@ -77,10 +77,7 @@ func loadFonts() fail
     g_HelpFont     = g_Renderer.fonts.createFont(g_TypeFace, 13)
 }
 
-func cloneImage(image: Image)->Image
-{
-    return Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
-}
+func cloneImage(image: Image)->Image => Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
 
 func normalizeShowcaseImage(image: Image)->Image
 {

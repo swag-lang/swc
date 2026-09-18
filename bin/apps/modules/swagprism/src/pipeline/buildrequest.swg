@@ -77,12 +77,7 @@ impl BuildRequest
     `using`, so scanning the source for the namespace answers the question. A snippet that names it
     in a comment or a string buys a slower compilation, never a wrong one.
     */
-    mtd needsDependency()->bool
-    {
-        if .kind != .Microcode do
-            return true
-        return Utf8.indexOf(cast(const [..] u8) .source.toString(), "Core") != Swag.U64.Max
-    }
+    mtd needsDependency()->bool => .kind != .Microcode or .source.contains("Core")
 
     mtd moduleSource()->String
     {

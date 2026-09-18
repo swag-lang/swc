@@ -2,7 +2,7 @@ using Core
 
 impl Image
 {
-    // Clockwise rotation applied by [[Image.rotate]] and [[Image.rotated]].
+    // Clockwise rotation applied by [[Pixel.Image.rotate]] and [[Pixel.Image.rotated]].
     public enum Rotation
     {
         Clockwise90      // Rotate clockwise by 90 degrees.

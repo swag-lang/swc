@@ -3,22 +3,19 @@
 
 using Swag
 
-// Represents numeric array.
+// Stores `N` numeric components of type `T`, with arithmetic applied component by component.
 struct(T, N: u32) NumericArray
 {
-    public buf: [N] T     // Buf associated with this value.
+    public buf: [N] T     // Components in index order
 }
 
 impl NumericArray
 {
     // Returns the component at the zero-based index, which must be less than `N`.
     #[Inline]
-    mtd const opIndex(idx: u64)->T
-    {
-        return .buf[idx]
-    }
+    mtd const opIndex(idx: u64)->T => .buf[idx]
 
-    // Reports whether every corresponding component compares equal.
+    // Returns whether every component equals the matching component of `other`.
     mtd const opEquals(other: NumericArray)->bool
     {
         for i in N
@@ -30,7 +27,7 @@ impl NumericArray
         return true
     }
 
-    // Applies addition, subtraction, multiplication, or division component by component.
+    // Returns the component-wise sum, difference, product, or quotient with `other`.
     mtd(op: Swag.Operator) const opBinary(other: NumericArray)->NumericArray
         where op == .Add or op == .Sub or op == .Mul or op == .Div
     {
@@ -49,7 +46,7 @@ impl NumericArray
         return result
     }
 
-    // Applies a compound arithmetic assignment with 'value' to every component.
+    // Applies `+=`, `-=`, `*=`, or `/=` with the scalar `value` to every component.
     mtd(op: Swag.Operator) opAssign(value: T)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
@@ -65,7 +62,7 @@ impl NumericArray
         }
     }
 
-    // Applies a compound arithmetic assignment component by component.
+    // Applies `+=`, `-=`, `*=`, or `/=` component by component with `value`.
     func(op: Swag.Operator) opAssign(me, value: NumericArray)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
     {
@@ -81,7 +78,7 @@ impl NumericArray
         }
     }
 
-    // Assigns the same value to every component.
+    // Sets every component to `what`.
     #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: T)
     {
@@ -89,7 +86,7 @@ impl NumericArray
             .buf[i] = what
     }
 
-    // Copies exactly `N` components from the supplied slice.
+    // Copies the components from `what`, which must hold exactly `N` values.
     #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: const [..] T)
     {
@@ -109,7 +106,7 @@ impl NumericArray
         return result
     }
 
-    // Set all values
+    // Sets the components from `values`, which must hold exactly `N` values.
     #[Safety(.BoundCheck, false)]
     mtd set(values: T...)
     {
@@ -118,7 +115,7 @@ impl NumericArray
             .buf[i] = values[i]
     }
 
-    // Multiply & add
+    // Multiplies every component by `value1`, then adds `value2`, in place.
     #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: T)
     {
@@ -126,11 +123,11 @@ impl NumericArray
             .buf[i] = (.buf[i] * value1) + value2
     }
 
-    // Multiply & Add
+    // Multiplies every component by the matching component of `value1`, then adds the matching component of `value2`, in place.
     #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: NumericArray)
     {
         for i in N do
-            .buf[i] = (.buf[i] * value1[i]) + value2.buf[i]
+            .buf[i] = (.buf[i] * value1.buf[i]) + value2.buf[i]
     }
 }

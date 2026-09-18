@@ -86,19 +86,10 @@ impl IWnd for FrameWnd
         case .Round:  subRectBk = &rects.frameWnd_RoundBk
         }
 
-        // Display focus borders when the focus wnd is a child of me
-        var showFocus = .frameFlags.has(.FocusBorder)
-        if showFocus
-        {
-            let focus = .focusedWindow()
-            if not focus or not .isAncestorOf(focus) do
-                showFocus = false
-        }
-
         switch
         {
-        case bc.isDisabled: colorBk = colors.frameWnd_DisabledBk
-        case showFocus:     colorBk = colors.frameWnd_FocusBk
+        case bc.isDisabled:           colorBk = colors.frameWnd_DisabledBk
+        case me.showsFocusBorder():   colorBk = colors.frameWnd_FocusBk
         default:            colorBk = colors.frameWnd_Bk
         }
 
@@ -111,7 +102,7 @@ impl IWnd for FrameWnd
     {
         if .frameForm == .Transparent do
             return
-        if not (.frameFlags & .Borders) do
+        if not .frameFlags.has(.Borders) do
             return
 
         let bc      = evt.paintContext
@@ -130,19 +121,10 @@ impl IWnd for FrameWnd
         case .Round:  subRectBorder = &rects.frameWnd_RoundBorder
         }
 
-        // Display focus borders when the focus wnd is a child of me
-        var showFocus = .frameFlags.has(.FocusBorder)
-        if showFocus
-        {
-            let focus = .focusedWindow()
-            if not focus or not .isAncestorOf(focus) do
-                showFocus = false
-        }
-
         switch
         {
-        case bc.isDisabled: colorBorder = colors.frameWnd_DisabledBorder
-        case showFocus:     colorBorder = colors.frameWnd_FocusBorder
+        case bc.isDisabled:       colorBorder = colors.frameWnd_DisabledBorder
+        case me.showsFocusBorder(): colorBorder = colors.frameWnd_FocusBorder
         default:            colorBorder = colors.frameWnd_Border
         }
 
@@ -203,7 +185,7 @@ impl IWnd for FrameWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if not (.view != null) do
+        if .view == null do
             return
         var rect = .paddedClientRect()
         rect.applyPadding(.view.margin)
@@ -230,7 +212,7 @@ impl FrameWnd
     // Replaces and destroys the current view, then attaches `what` to this frame.
     mtd setView(what: *Wnd)
     {
-        if (.view != null) and .view == what do
+        if .view == what do
             return
         if .view != null do
             .view.destroy()
@@ -282,4 +264,7 @@ impl FrameWnd
 
         .sendResizeEvent()
     }
+
+    // Reports whether the frame asks for a focused border and a descendant holds the focus.
+    private mtd showsFocusBorder()->bool => .frameFlags.has(.FocusBorder) and .isAncestorOf(.focusedWindow())
 }

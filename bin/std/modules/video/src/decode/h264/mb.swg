@@ -2207,10 +2207,7 @@ const NoReferenceIdentity = 0's8
 // A record is two vectors then these two bytes, so a packed store publishing whole records has
 // to present them as a lane rather than as two fields.
 #[Swag.Inline]
-func packedReferences(refIdx, refId: s8)->s16
-{
-    return cast #bit (s16) (cast(u16) (cast #bit (u8) refIdx) | (cast(u16) (cast #bit (u8) refId) << 8))
-}
+func packedReferences(refIdx, refId: s8)->s16 => cast #bit (s16) (cast(u16) (cast #bit (u8) refIdx) | (cast(u16) (cast #bit (u8) refId) << 8))
 
 // Partition shape of each B macroblock type 1..21, Table 7-14.
 const BShapes: [23] u8 = [

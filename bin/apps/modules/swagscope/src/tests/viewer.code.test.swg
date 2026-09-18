@@ -3,10 +3,7 @@
 
 using Core, Pixel, Gui
 
-func codeFixturePath(name: string)->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
-}
+func codeFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 
 // Builds the Swag document the highlighting test lexes.
 //
@@ -91,7 +88,7 @@ struct CodeLanguageSample
     let source   = swagSampleSource()
     let fileName = Gui.Testing.tempFilePath("scope-code-", ".swg")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -129,13 +126,12 @@ struct CodeLanguageSample
 // End opens a bounded tail window instead of materializing every preceding byte.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_code_stream_%.swg", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-code-stream-", ".swg")
     defer discard catch File.delete(fileName)
     var source: String
     for 2_000 do
         source += "func streamedValue()->u32 => 42\n"
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -155,14 +151,13 @@ struct CodeLanguageSample
 // appended without an intervening paint, while the focused editor honors every navigation tier.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_code_large_scroll_%.swg", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-code-large-scroll-", ".swg")
     defer discard catch File.delete(fileName)
     var source: String
     for 90_000 do
         source += "func streamedValue()->u32 => 42\n"
     Swag.assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.storage(), source.length))
+    discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -301,10 +296,9 @@ struct CodeLanguageSample
 
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("viewer_code_tokens_%.swg", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-code-tokens-", ".swg")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "readonly value #sanity Swag.safetyPanic #raw do")
+    discard expect File.writeAllText(fileName, "readonly value #sanity Swag.safetyPanic #raw do")
 
     var host: Testing.HeadlessHost
     host.setup(640, 160)

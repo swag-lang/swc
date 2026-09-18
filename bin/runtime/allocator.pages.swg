@@ -151,10 +151,7 @@ func atomicAddU64(addr: *u64, delta: u64)
 
 // Reserves address space without committing it. The reservation is over-sized so a
 // segment-aligned window always fits inside it, because a reservation cannot be released in parts.
-private func osReserve(size: u64)->[*] u8?
-{
-    return __hostPageReserve(size)
-}
+private func osReserve(size: u64)->[*] u8? => __hostPageReserve(size)
 
 func allocatorOsCommit(address: u64, size: u64)->bool
 {
@@ -633,7 +630,4 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
 }
 
 #[Swag.Inline]
-func allocatorSegmentOf(page: *AllocatorPage)->*AllocatorSegment
-{
-    return cast(*AllocatorSegment) (cast(u64) page & ~(AllocatorSegmentSize - 1))
-}
+func allocatorSegmentOf(page: *AllocatorPage)->*AllocatorSegment => cast(*AllocatorSegment) (cast(u64) page & ~(AllocatorSegmentSize - 1))

@@ -1,6 +1,6 @@
 #global internal
 
-using Core, Pixel
+using Core
 
 // Bytes an entropy estimate is taken over. Byte disorder is a property of the whole file, and a
 // quarter of a megabyte says as much about it as ten do.
@@ -22,13 +22,6 @@ enum BinaryFormatKind
     Font           // An sfnt font or a collection of them.
     Scc            // A Swag Chunk Container.
     Icon           // A Windows icon containing one or more image resources.
-}
-
-// One image understood inside a binary container, with the short label shown under it.
-struct BinaryPreview
-{
-    image: Image
-    label: String
 }
 
 // One opened file and everything that could be extracted from it.
@@ -97,7 +90,7 @@ impl BinaryDocument
     // are done — and it still has to be read first.
     private mtd prependFileSummary()
     {
-        let s = binStrings()
+        let s = binaryStrings()
 
         var head: BinaryReport
         head.beginGroup(s.rep_File, .report.formatName.toString(), .report.summary.toString(), offset: 0, length: .image.fileSize, open: true)
@@ -153,7 +146,7 @@ impl BinaryDocument
                 text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
         }
 
-        return String.from(Swag.makeString(text.storage(), text.count))
+        return String.from(cast(string) text.toSlice())
     }
 
     // Returns the same leading bytes as the letters a reader recognizes them by.
@@ -171,7 +164,7 @@ impl BinaryDocument
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(Swag.makeString(text.storage(), text.count))
+        return String.from(cast(string) text.toSlice())
     }
 
     // Returns the Shannon entropy of the beginning of the file, in bits per byte.
@@ -250,7 +243,7 @@ private struct BinarySignature
 // before anything else, and the entropy above says whether looking further is even worth it.
 func reportUnknownBinary(image: *BinaryImage, report: *BinaryReport)
 {
-    let s    = binStrings()
+    let s    = binaryStrings()
     let name = binarySignatureName(image)
 
     if name.count

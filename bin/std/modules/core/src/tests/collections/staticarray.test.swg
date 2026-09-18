@@ -33,20 +33,6 @@ func resetStaticArrayDropTrace()
     StaticArrayDropCount = 0
 }
 
-func assertStaticIntArray(values: StaticArray'(s32, 4'u64), expected: const [..] s32)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
-
 func visitStructStaticArray(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
 {
     for value, index in values[] where value.value != 12
@@ -81,7 +67,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     values = seed
 
     Swag.assert(values.count == 4)
-    Swag.assert(assertStaticIntArray(values, seed))
+    Swag.assert(Slice.equals(values.toSlice(), seed))
 }
 
 #test
@@ -106,7 +92,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     values.insertAt(values.count, #move moved)
 
     let expected: [3] s32 = [1, 2, 3]
-    Swag.assert(assertStaticIntArray(values, expected))
+    Swag.assert(Slice.equals(values.toSlice(), expected))
 }
 
 #test

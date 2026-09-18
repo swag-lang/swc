@@ -209,10 +209,7 @@ private struct SubstitutedGroup
 // actually falls is a property of the face, not of the size, so a run drawn at zero would
 // sit wherever the chosen face happens to put its ascender — and two runs of one line drawn
 // with different faces would not share a baseline at all.
-private func baselineOffset(item: const *Item, font: *Font)->f32
-{
-    return item.fontSize - font.ascent
-}
+private func baselineOffset(item: const *Item, font: *Font)->f32 => item.fontSize - font.ascent
 
 // Draws a run through the embedded font program, addressed the way the document keys it.
 //
@@ -415,9 +412,8 @@ private func clipFillRule(clip: const *ClipPath)->PathFillRule => clip.evenOdd ?
 // Returns how many page points the longer side of an image's unit square spans.
 internal func unitSquareScale(transform: Transform2)->f32
 {
-    let width  = Math.sqrt(transform.m11 * transform.m11 + transform.m12 * transform.m12)
-    let height = Math.sqrt(transform.m21 * transform.m21 + transform.m22 * transform.m22)
-    return Math.max(width, height)
+    let scale = transform.axisScale()
+    return Math.max(scale.x, scale.y)
 }
 
 // Writes one clip shape into the painter's clipping region, in page coordinates.

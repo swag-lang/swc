@@ -41,42 +41,58 @@ impl PreviewViewer
 {
     func create(parent: *ViewerPanel, editor: *RichEditCtrl, gui: bool, level: Swag.BuildCfgBackendOptimLevel)->*PreviewViewer
     {
-        let result = Wnd.create'PreviewViewer(parent, "prism.preview")
-        result.backgroundStyle        = .Transparent
-        result.probe                  = Memory.new'Pipeline.PreviewProbe()
-        result.panel                  = parent
-        result.cache                  = parent.cache
-        result.sourceEditor           = editor
-        result.gui                    = gui
-        result.level                  = level
-        result.status                 = Label.create(result, "", {0, 0, 0, 28}, null, .SecondaryText)
-        result.status.dockStyle       = .Bottom
-        result.canvas                 = Wnd.create'PreviewCanvas(result, "prism.preview.canvas")
-        result.canvas.dockStyle       = .Center
-        result.canvas.backgroundStyle = .Transparent
-        result.canvas.sigClick        += func|viewer = result|(point)
+        with let result = Wnd.create'PreviewViewer(parent, "prism.preview")
         {
-            if not viewer.gui or viewer.paused or not viewer.running or not Atomic.get(&viewer.probe.ready) do
-                return
-            let header = viewer.probe.channel.header()
-            let click  = Atomic.get(&header.click)
-            if click != Atomic.get(&header.clicked) do
-                return
-            header.clickX = cast(u32) point.x
-            header.clickY = cast(u32) point.y
-            Atomic.exchange(&header.click, click + 1)
+            .backgroundStyle = .Transparent
+            .probe           = Memory.new'Pipeline.PreviewProbe()
+            .panel           = parent
+            .cache           = parent.cache
+            .sourceEditor    = editor
+            .gui             = gui
+            .level           = level
         }
 
-        result.output = RichEditCtrl.create(result)
-        result.output.dockStyle = .Center
-        result.output.setFlags(.ReadOnly)
-        result.output.setLexer(&result.outputText)
+        result.status = Label.create(result, "", {0, 0, 0, 28}, null, .SecondaryText)
+        result.status.dockStyle = .Bottom
+
+        with result.canvas = Wnd.create'PreviewCanvas(result, "prism.preview.canvas")
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .sigClick += func|viewer = result|(point) { viewer.forwardClick(point) }
+        }
+
+        with result.output = RichEditCtrl.create(result)
+        {
+            .dockStyle = .Center
+            .setFlags(.ReadOnly)
+            .setLexer(&result.outputText)
+        }
+
         result.canvas.hide()
         result.image = Image.create(Pipeline.FrameChannel.Width, Pipeline.FrameChannel.Height, .BGRA8)
         result.retranslate()
         return result
     }
 
+    // Hands a click on the frame to the interface running in the child process.
+    //
+    // The child takes one click at a time: a click arriving before it has replayed the previous one
+    // is dropped rather than overwriting coordinates it may be reading.
+    mtd forwardClick(point: Math.Point)
+    {
+        if not .gui or .paused or not .running or not Atomic.get(&.probe.ready) do
+            return
+        let header = .probe.channel.header()
+        let click  = Atomic.get(&header.click)
+        if click != Atomic.get(&header.clicked) do
+            return
+        header.clickX = cast(u32) point.x
+        header.clickY = cast(u32) point.y
+        Atomic.exchange(&header.click, click + 1)
+    }
+
+    // Compiles `source` with this viewer's panel settings.
     mtd compileSource(source: string) { .compileRequest(.panel.request(source)) }
 
     mtd compileRequest(request: Pipeline.BuildRequest)

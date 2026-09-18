@@ -112,7 +112,7 @@ impl Writer
         return result
     }
 
-    // Reports whether a registered encoder claims `fileName`, by its extension alone.
+    // Returns whether a registered encoder claims `fileName`, by its extension alone.
     func canCreate(fileName: string)->bool => findEncoder(fileName) != null
 
     // Returns the registered encoder claiming `fileName`, or `null` when none does.
@@ -245,8 +245,8 @@ impl Writer
     // Returns the format of the encoded stream.
     mtd const streamFormat()->StreamFormat => .format
 
-    // Returns the file the writer streams, or an empty string for a memory stream.
-    mtd const sourcePath()->string => .sink.path()
+    // Returns the file the writer streams to, or an empty string for a memory stream.
+    mtd const destinationPath()->string => .sink.path()
 
     // Releases the encoder instance. The sink closes itself with the writer.
     private mtd release()
@@ -264,7 +264,7 @@ impl Writer
     }
 }
 
-// Initialize predefined encoders
+// Registers the built-in encoders.
 #init
 {
     Writer.registerEncoder'(Y4m.Encoder)()

@@ -2,19 +2,22 @@
 
 using Core, Pixel
 
-// Identifies one rune position and preferred horizontal coordinate in a rich document.
+// Identifies one rune position in a [[Gui.RichEditCtrl]] document.
+//
+// A cursor addresses a display line: with word wrap, one authored line spans several of them.
+// Use [[Gui.RichEditCtrl.cursorFromLogicalPosition]] to convert an authored position.
 struct RichEditCursor
 {
     public
     {
-        lineIndex:     u64     // Index of line.
-        charPosInLine: u64     // Char pos in line associated with this value.
+        lineIndex:     u64     // Zero-based display line.
+        charPosInLine: u64     // Rune offset within that line.
     }
 }
 
 impl RichEditCtrl
 {
-    // Returns text draw info.
+    // Returns the draw metrics of the face the style index `styleIdx` selects.
     mtd computeTextDrawInfo(styleIdx: RichEditStyleRef)->TextDrawInfo
     {
         let fontR = .font().getFont(.styles[styleIdx].fontMode)
@@ -23,7 +26,7 @@ impl RichEditCtrl
         return {}
     }
 
-    // Returns line height.
+    // Returns the height of one display line in logical pixels, line spacing included.
     mtd lineHeight()->f32
     {
         let fontR = .font().getFont(.styles[0].fontMode)
@@ -61,7 +64,7 @@ impl RichEditCtrl
         return step.rightX
     }
 
-    // Returns rune size.
+    // Returns the advance of rune `i` of `line` drawn from `x`, and the line height.
     mtd runeSize(line: *RichEditLine?, i: u64, x: f32)->Math.Point
     {
         var size: retval
@@ -121,7 +124,7 @@ impl RichEditCtrl
         return result
     }
 
-    // Returns cursor display pos.
+    // Returns where `cp` is drawn in the text view: its left edge, and the bottom of its line.
     mtd cursorDisplayPosition(cp: RichEditCursor)->Math.Point
     {
         var result: retval
@@ -140,7 +143,9 @@ impl RichEditCtrl
         return result
     }
 
-    // Returns tab offset.
+    // Returns the distance from `x` to the next tab stop, in logical pixels.
+    //
+    // When `numBlanks` is not null, it receives how many space advances `x` lies past the previous stop.
     mtd tabAdvance(x: s32, numBlanks: *s32? = null)->s32
     {
         let of        = cast(s32) (x - .leftMargin())
@@ -158,7 +163,7 @@ impl RichEditCtrl
         return tab
     }
 
-    // Returns x extent.
+    // Returns the width of the letter X in the default face, and the line height.
     mtd xGlyphSize()->Math.Point
     {
         let fontR = .font().getFont(.styles[0].fontMode)
@@ -171,7 +176,7 @@ impl RichEditCtrl
         return result
     }
 
-    // Returns caret pos.
+    // Returns the rectangle the caret is drawn in at `cp`: a bar, or an underline in overwrite mode.
     mtd caretRect(cp: RichEditCursor)->Math.Rectangle
     {
         let pt   = .cursorDisplayPosition(cp)
@@ -238,10 +243,12 @@ impl RichEditCtrl
         .scrollWnd.setScrollPos(sx, sy)
     }
 
-    // Returns cursor pos from point.
+    // Returns the cursor closest to `pt`, a point of the text view, skipping lines a fold hides.
     mtd cursorAt(pt: Math.Point)->RichEditCursor
     {
         var cp: retval
+        if .lines.isEmpty() do
+            return cp
 
         var found = false
 
@@ -324,7 +331,7 @@ impl RichEditCtrl
         return cp
     }
 
-    // Sets cursor pos.
+    // Moves the caret to `cp` without changing the selection anchor.
     mtd setCursorPos(cp: RichEditCursor)
     {
         .cursorPos = cp
@@ -414,8 +421,8 @@ impl RichEditCtrl
         return true
     }
 
+    // Moves a cursor to the closest position on the following visual line.
     #[Swag.Discardable]
-    // Moves the cursor one visual line downward.
     mtd moveCursorDown(cp: *RichEditCursor)->bool
     {
         let pt = .cursorDisplayPosition(cp)

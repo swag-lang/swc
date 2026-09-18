@@ -29,6 +29,7 @@ impl PriorityQueue
     }
 
     // Selects the comparator used by subsequent operations.
+    //
     // The queue must be empty so that no element was positioned by another ordering.
     mtd initialize(comparator: func(const *T, const *T)->s32)
     {
@@ -69,6 +70,7 @@ impl PriorityQueue
     }
 
     // Adds `value` to the queue.
+    //
     // The value is copied; pass it with `#move` to transfer it.
     mtd push(value: #fwd T)
     {
@@ -86,7 +88,8 @@ impl PriorityQueue
         }
     }
 
-    // Returns a pointer to the highest-priority element and asserts if the queue is empty.
+    // Returns the address of the highest-priority element and asserts if the queue is empty.
+    //
     // Mutating it in a way that changes its priority violates the heap ordering.
     mtd peekPtr()->*T
     {

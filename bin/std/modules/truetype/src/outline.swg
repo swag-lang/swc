@@ -64,12 +64,7 @@ public impl Outline
 
     internal mtd reset()
     {
-        .contourCount = 0
-        .pointCount   = 0
-        .points       = null
-        .tags         = null
-        .contours     = null
-        .flags        = 0
+        Swag.init(me, 1)
     }
 
     internal mtd setView(points: [*] Vector?, tags: [*] u8?, contours: [*] s16?, pointCount, contourCount: s16)
@@ -163,20 +158,11 @@ func midpoint(a, b: Vector)->Vector
     return result
 }
 
-func pointsEqual(a, b: Vector)->bool
-{
-    return a.x == b.x and a.y == b.y
-}
+func pointsEqual(a, b: Vector)->bool => a.x == b.x and a.y == b.y
 
-func isOnCurve(tag: u8)->bool
-{
-    return (tag & CURVE_TAG_ON) != 0
-}
+func isOnCurve(tag: u8)->bool => (tag & CURVE_TAG_ON) != 0
 
-func isCubicControl(tag: u8)->bool
-{
-    return (tag & (CURVE_TAG_ON | CURVE_TAG_CUBIC)) == CURVE_TAG_CUBIC
-}
+func isCubicControl(tag: u8)->bool => (tag & (CURVE_TAG_ON | CURVE_TAG_CUBIC)) == CURVE_TAG_CUBIC
 
 func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
 {

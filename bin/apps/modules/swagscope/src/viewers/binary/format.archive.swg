@@ -8,7 +8,7 @@ private const ArMagic = "!<arch>\n"
 // Size of the fixed header in front of every member.
 private const ArHeaderSize = 60'u64
 
-// Returns whether the file is a `ar` archive, which is what a static or import library is.
+// Returns whether the file is an `ar` archive, which is what a static or import library is.
 func isArchive(image: *BinaryImage)->bool => image.matches(0, ArMagic)
 
 // Adds every member of an archive, and what the members that are not objects are for.
@@ -19,7 +19,7 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
 {
     image.bigEndian = false
 
-    let s = binStrings()
+    let s = binaryStrings()
     report.beginGroup(s.ar_Archive, ArMagic[0 until 7], "", offset: 0, length: 8, open: true)
     report.endGroup()
 
@@ -60,15 +60,15 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
         let stored  = StrConv.toDisplaySize(size)
 
         report.beginGroup(name.toString(), stored.toString(), "", offset: dataAt, length: size)
-        arReportHeader(image, report, at, size)
+        reportArHeader(image, report, at, size)
 
         if rawName == "/" or rawName == "/SYM64/" do
-            arReportLinkerMember(image, report, dataAt, size, rawName == "/" and at == offsets[0])
+            reportArLinkerMember(image, report, dataAt, size, rawName == "/" and at == offsets[0])
         elif rawName == "//" do
             report.derived(s.ar_LongNames, stored.toString())
         elif image.u16At(dataAt) == 0 and image.u16At(dataAt + 2) == 0xFFFF
         {
-            arReportImportMember(image, report, dataAt)
+            reportArImportMember(image, report, dataAt)
             imports += 1
         }
         elif isCoffObject(image) or image.has(dataAt, PeFileHeaderSize)
@@ -88,14 +88,14 @@ func reportArchive(image: *BinaryImage, report: *BinaryReport)
     report.listCut(offsets.count, offsets.count)
     report.endGroup()
 
-    let counted = countText(offsets.count, s.word_Member, s.word_Members)
     report.formatName = String.from(imports > objects ? "Import library" : "Static library")
-    report.summary    = Format.toString("% · %", report.formatName, counted)
+    report.summary    = Format.toString("% · %", report.formatName, members)
 }
 
-private func arReportHeader(image: *BinaryImage, report: *BinaryReport, at, size: u64)
+// Adds the fields of the fixed header in front of one member.
+private func reportArHeader(image: *BinaryImage, report: *BinaryReport, at, size: u64)
 {
-    let s        = binStrings()
+    let s        = binaryStrings()
     let modified = epochText(arDecimalAt(image, at + 16, 12))
     let owner    = image.fixedTextAt(at + 28, 12)
     let mode     = image.fixedTextAt(at + 40, 8)
@@ -109,9 +109,9 @@ private func arReportHeader(image: *BinaryImage, report: *BinaryReport, at, size
 }
 
 // Adds the symbol index a linker reads before anything else in the archive.
-private func arReportLinkerMember(image: *BinaryImage, report: *BinaryReport, at, size: u64, first: bool)
+private func reportArLinkerMember(image: *BinaryImage, report: *BinaryReport, at, size: u64, first: bool)
 {
-    let s = binStrings()
+    let s = binaryStrings()
     report.beginGroup(s.ar_Linker, "", s.ar_LinkerDesc, offset: at, length: size)
 
     // The first directory is written big endian whatever the target, and the second little endian.
@@ -153,9 +153,9 @@ private func arReportLinkerMember(image: *BinaryImage, report: *BinaryReport, at
 }
 
 // Adds one short import record, the member form a linker turns into a thunk rather than into code.
-private func arReportImportMember(image: *BinaryImage, report: *BinaryReport, at: u64)
+private func reportArImportMember(image: *BinaryImage, report: *BinaryReport, at: u64)
 {
-    let s       = binStrings()
+    let s       = binaryStrings()
     let machine = image.u16At(at + 6)
     let ordinal = image.u16At(at + 16)
     let flags   = image.u16At(at + 18)
@@ -192,13 +192,8 @@ private func arImportTypeName(value: u16)->string
 // Returns where the member holding the long file names starts, or `Swag.U64.Max`.
 private func arLongNamesAt(image: *BinaryImage, offsets: const [..] u64)->u64
 {
-    for at in offsets
-    {
-        let name = image.fixedTextAt(at, 16)
-        if name == "//" do
-            return at + ArHeaderSize
-    }
-
+    for at in offsets where image.fixedTextAt(at, 16) == "//" do
+        return at + ArHeaderSize
     return Swag.U64.Max
 }
 

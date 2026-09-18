@@ -7,7 +7,7 @@ using Core, Core.Errors
 // The declared values are the reference English wording, and each field is one
 // translatable key. A language file overrides fields by name, so a file that omits a
 // key keeps the reference value and a translation only carries what it changes. Read
-// the active table through [[strings]]; never keep a copy across a language switch.
+// the active table through [[Gui.strings]]; never keep a copy across a language switch.
 struct Strings
 {
     public
@@ -67,7 +67,7 @@ struct Strings
         browser_TipRecent:      string = "Recent folders"                              // Tooltip of the recent-folders button.
         browser_TipUp:          string = "Parent folder (Alt+Up)"                      // Tooltip of the parent-folder button.
         browser_TipRefresh:     string = "Refresh (F5)"                                // Tooltip of the refresh button.
-        browser_TipNewFolder:   string = "Create a folder in the current location"     // Tooltip of [[browser_NewFolder]].
+        browser_TipNewFolder:   string = "Create a folder in the current location"     // Tooltip of [[Gui.Strings.browser_NewFolder]].
         browser_FolderName:     string = "Folder Name"                                 // Name field label when picking a folder.
         browser_FileName:       string = "File Name"                                   // Name field label when picking a file.
         browser_Folders:        string = "Folders"                                     // Type filter entry when picking a folder.
@@ -213,8 +213,9 @@ func registerStrings(type: typeinfo, table: *void, file: string)
     discard catch applyTableLanguage(state.tables.backPtr(), state.resources, state.language.toString())
 }
 
-// Returns the active language tag, `"en"` by default. The value is borrowed and
-// stays valid until the next language switch.
+// Returns the active language tag, `"en"` by default.
+//
+// The value is borrowed and stays valid until the next language switch.
 func activeLanguage()->string => g_Localization.language.isEmpty() ? ReferenceLanguage : g_Localization.language.toString()
 
 // Tag of the reference wording declared by the string tables.
@@ -298,7 +299,7 @@ func systemLanguage()->string
 //
 // `resources` is remembered while the tag stays active, so a table registered later is
 // translated from the same bundle instead of waiting for the next switch. Prefer
-// [[Application.setLanguage]], which also notifies every surface. GUI thread only.
+// [[Gui.Application.setLanguage]], which also notifies every surface. GUI thread only.
 func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
 {
     Swag.assert(tag.count != 0, "empty language tag")
@@ -373,15 +374,8 @@ internal func registerDefaultStrings(bundle: *Resources.Bundle)
     bundle.addEmbedded(FrenchStringsName, FrenchStrings)
 }
 
-private func langResourceName(tag: string, file: String)->String
-{
-    var result: retval = "lang/"
-    result += tag
-    result += "/"
-    result += file
-    result += ".tweak"
-    return result
-}
+// Returns the resource name of the `tag` translation of the table stored in `file`.
+private func langResourceName(tag: string, file: String)->String => Format.toString("lang/%/%.tweak", tag, file.toString())
 
 // Restores the declared reference strings of a table, then releases its translations.
 //
@@ -407,7 +401,7 @@ private func resetTable(table: *StringTable)
 //
 // A line is `key value`, where `key` is a field name of the table and the value runs
 // to the end of the line, leading blanks excluded. A value starting with `"` decodes
-// as a quoted literal, which allows leading blanks and `""t`/`""n` escapes. A line
+// as a quoted literal, which allows leading blanks and `\t`/`\n` escapes. A line
 // starting with `#` is a comment; there are no inline comments, since prose owns the
 // rest of the line. With a pool, decoded values are copied there and the table fields
 // are pointed at them; without one, the content is only validated.

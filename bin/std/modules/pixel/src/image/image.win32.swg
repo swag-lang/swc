@@ -89,8 +89,5 @@ impl Image
     }
 
     // Creates an image from a Windows bitmap handle.
-    func from(hbitmap: HBITMAP)->Image fail
-    {
-        return try fromBitmapHandle(hbitmap)
-    }
+    func from(hbitmap: HBITMAP)->Image fail => try fromBitmapHandle(hbitmap)
 }

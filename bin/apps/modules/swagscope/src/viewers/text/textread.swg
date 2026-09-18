@@ -2,7 +2,7 @@
 
 using Core
 
-// A single immutable read request. The GUI only consumes its result after the task finishes.
+// One background read of part of a text file. The GUI consumes its result only once the task has finished.
 struct TextRead
 {
     using operation: Viewer.BackgroundOperation
@@ -22,6 +22,7 @@ struct TextRead
 
 impl TextRead
 {
+    // Reads the requested chunk on the worker, moving a random seek off a split character.
     mtd read() fail
     {
         var stream = try File.openReadLive(.fileName.toString())
@@ -30,7 +31,7 @@ impl TextRead
         {
             var head: [4] u8
             let count = try stream.read(head)
-            .contentStart = Text.hasBom(head[0 until count], .encoding) ? Text.bomLength(.encoding) : 0
+            .contentStart = Text.hasBom(head[until count], .encoding) ? Text.bomLength(.encoding) : 0
             .start        = Math.max(.start, .contentStart)
             .start        -= (.start - .contentStart) % Text.unitSize(.encoding)
         }
@@ -68,6 +69,10 @@ impl TextRead
         }
     }
 
+    // Starts reading about `limit` bytes of `fileName` from `start` on a worker.
+    //
+    // `replace` asks for a new resident window, which may begin inside a character; otherwise the
+    // chunk continues the text already shown.
     mtd startRead(fileName: string, encoding: Text.Encoding, start, limit: u64, replace: bool)
     {
         Swag.assert(not .started)

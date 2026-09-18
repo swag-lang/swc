@@ -20,7 +20,7 @@ struct OpenDocumentStrings
     ui_TipPage:      string = "Select drawing page"
     ui_DetailsPage:  string = "OpenDocument drawing · %"
     ui_DetailsSlide: string = "OpenDocument · presentation · %"
-    ui_DetailsSheet: string = "OpenDocument Â· spreadsheet Â· %"
+    ui_DetailsSheet: string = "OpenDocument · spreadsheet · %"
     ui_Column:       string = "Column %"
     err_MimeType:    string = "the archive does not identify an OpenDocument format"
     err_Content:     string = "the OpenDocument archive has no content.xml entry"

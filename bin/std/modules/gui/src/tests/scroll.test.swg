@@ -58,6 +58,7 @@ using Swag, Core
 var ScrollHeadlessPosCount:  u32
 var ScrollHeadlessSizeCount: u32
 
+// Counts one scroll-position notification.
 func scrollHeadlessPos(s: *ScrollWnd, o, n: Math.Point)
 {
     discard s
@@ -66,6 +67,7 @@ func scrollHeadlessPos(s: *ScrollWnd, o, n: Math.Point)
     ScrollHeadlessPosCount += 1
 }
 
+// Counts one scroll-size notification.
 func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
 {
     discard s
@@ -153,15 +155,16 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
     Swag.assert(outer.view.surfaceRect().contains(first.surfaceRect()))
 }
 
-// A viewport type built by composition is still a scrolling viewport: focus reveals through it
-// exactly as it does through a ScrollWnd created by its own type. The reveal walk names the
-// ancestor by its runtime type, so an exact comparison would silently skip every derived
-// viewport - which is what the standard applications and gui10 are made of.
+// A viewport type built by composition over a `ScrollWnd`.
 struct ScrollHeadlessViewport
 {
     using scrollWnd: ScrollWnd
 }
 
+// A viewport type built by composition is still a scrolling viewport: focus reveals through it
+// exactly as it does through a `ScrollWnd` created by its own type. The reveal walk names the
+// ancestor by its runtime type, so an exact comparison would silently skip every derived
+// viewport, which is what the standard applications and gui10 are made of.
 #test
 {
     var host: Testing.HeadlessHost

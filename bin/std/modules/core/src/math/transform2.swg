@@ -1,49 +1,48 @@
 #global namespace Math
 #global public
 
-// 2D transformation matrix structure
+// Stores a 2D affine transform as a 3 by 2 matrix applied to row vectors.
+//
+// A point (x, y) maps to (x * m11 + y * m21 + tx, x * m12 + y * m22 + ty): the first two rows
+// rotate, scale, and skew, and the last row translates.
 struct Transform2
 {
     public
     {
-        m11, m12: f32     // First row of the 2D transformation matrix
-        m21, m22: f32     // Second row of the 2D transformation matrix
-        m31, m32: f32     // Translation components of the transformation
+        m11, m12: f32     // First row of the linear part, where the X axis goes
+        m21, m22: f32     // Second row of the linear part, where the Y axis goes
+        m31, m32: f32     // Translation, also reachable as tx and ty
 
         #[Swag.Offset("m11")]
-        m: [2, 2] f32     // 2x2 matrix view for rotation/scale components
+        m: [2, 2] f32     // Linear part as an array indexed by row, then column
         #[Swag.Offset("m31")]
-        tx: f32     // Translation component along X-axis
+        tx: f32     // Translation along the X axis, stored in m31
         #[Swag.Offset("m32")]
-        ty: f32     // Translation component along Y-axis
+        ty: f32     // Translation along the Y axis, stored in m32
     }
 }
 
 impl Transform2
 {
-    const Identity = Transform2{1, 0, 0, 1, 0, 0}     // Identity transform (no rotation, scale 1, no translation)
+    const Identity = Transform2{1, 0, 0, 1, 0, 0}     // Identity transform, which leaves every point in place
 
-    // Set transform to identity
+    // Resets this transform to the identity.
     mtd setIdentity()
     {
         me[] = Identity
     }
 
-    // Checks if the transform is the identity matrix
-    mtd const isIdentity()->bool
-    {
-        return .m11 == 1 and .m12 == 0 and .m21 == 0 and .m22 == 1 and .tx == 0 and .ty == 0
-    }
+    // Returns whether this transform is exactly the identity.
+    mtd const isIdentity()->bool => .m11 == 1 and .m12 == 0 and .m21 == 0 and .m22 == 1 and .tx == 0 and .ty == 0
 
-    // Checks if the linear part is the identity, i.e. the transform is a pure
-    // translation (no rotation, no scale). An axis-aligned shape stays axis
-    // aligned and pixel-snapped under such a transform.
-    mtd const isTranslationOnly()->bool
-    {
-        return .m11 == 1 and .m12 == 0 and .m21 == 0 and .m22 == 1
-    }
+    // Returns whether the linear part is exactly the identity, so the transform only translates.
+    //
+    // An axis-aligned shape stays axis aligned and pixel-snapped under such a transform.
+    mtd const isTranslationOnly()->bool => .m11 == 1 and .m12 == 0 and .m21 == 0 and .m22 == 1
 
-    // Creates a rotation matrix, with a given center of rotation
+    // Creates a rotation by `angle` radians about the point (`centerX`, `centerY`).
+    //
+    // A positive angle turns the X axis toward the Y axis.
     func createRotation(angle: f32, centerX, centerY: f32)->Transform2
     {
         let s  = Math.sin(angle)
@@ -63,7 +62,9 @@ impl Transform2
         return result
     }
 
-    // Creates a scale matrix, with a given center
+    // Creates a scale by `scaleX` and `scaleY` about the point (`centerX`, `centerY`).
+    //
+    // The center stays in place, and a negative factor mirrors across it.
     func createScale(scaleX, scaleY: f32, centerX, centerY: f32)->Transform2
     {
         with var result: retval
@@ -79,7 +80,7 @@ impl Transform2
         return result
     }
 
-    // Creates a translation matrix
+    // Creates a translation by `x` along the X axis and `y` along the Y axis.
     func createTranslation(x, y: f32)->Transform2
     {
         with var result: retval
@@ -95,7 +96,7 @@ impl Transform2
         return result
     }
 
-    // Sets the translation components directly
+    // Replaces the translation with `translation`, keeping the linear part.
     mtd setTranslation(translation: Vector2)
     {
         .tx = translation.x
@@ -103,18 +104,27 @@ impl Transform2
     }
 
     // Returns the translation components.
-    mtd const translation()->Vector2
-    {
-        return Vector2{.tx, .ty}
-    }
+    mtd const translation()->Vector2 => Vector2{.tx, .ty}
 
-    // Applies the transform to a 2D point
+    // Returns `point` mapped through this transform.
     mtd const transformPoint(point: Vector2)->Vector2
     {
         let rx = point.x * .m11 + point.y * .m21 + .tx
         let ry = point.x * .m12 + point.y * .m22 + .ty
         return Vector2{rx, ry}
     }
+
+    // Returns `vector` mapped through the linear part of this transform, without the translation.
+    //
+    // Use it for directions and offsets, which a translation must not move, and
+    // [[Core.Math.Transform2.transformPoint]] for positions.
+    mtd const transformVector(vector: Vector2)->Vector2 => Vector2{vector.x * .m11 + vector.y * .m21, vector.x * .m12 + vector.y * .m22}
+
+    // Returns how much the transform stretches each axis: the lengths of the transformed unit X
+    // and unit Y vectors.
+    //
+    // A rotation or a reflection leaves both at 1; the translation plays no part.
+    mtd const axisScale()->Vector2 => {Math.sqrt(.m11 * .m11 + .m12 * .m12), Math.sqrt(.m21 * .m21 + .m22 * .m22)}
 
     // Returns the axis-aligned rectangle enclosing `rect` once transformed.
     //
@@ -141,18 +151,20 @@ impl Transform2
     //
     // A singular transform — one that flattens the plane onto a line or a point — has no
     // inverse. The identity is returned for it rather than a matrix of infinities, so a caller
-    // mapping through the result still gets finite coordinates.
+    // mapping through the result still gets finite coordinates. A transform counts as singular
+    // when the determinant of its linear part is zero or too small for its reciprocal to be
+    // finite; a tiny but valid scale still inverts.
     //
     // ```swag
     // let local = placement.inverse().transformPoint(pagePoint)
     // ```
     mtd const inverse()->Transform2
     {
-        let det = .m11 * .m22 - .m12 * .m21
-        if isZeroEpsilon(det) do
+        let det   = .m11 * .m22 - .m12 * .m21
+        let scale = 1.0 / det
+        if det == 0 or not isFinite(scale) do
             return Identity
 
-        let scale = 1.0 / det
         var result: retval
         result.m11 = .m22 * scale
         result.m12 = -.m12 * scale
@@ -163,19 +175,20 @@ impl Transform2
         return result
     }
 
-    // Multiplies the current transform by another transformation matrix
-    mtd multiply(matrix2: Transform2)
+    // Composes `other` after this transform, in place.
+    //
+    // The result applies this transform first and `other` second: it maps a point `p` to
+    // `other.transformPoint(transformPoint(p))`. `other` may be this transform itself.
+    mtd multiply(other: Transform2)
     {
-        let sm11 = .m11
-        .m11 = sm11 * matrix2.m11 + .m12 * matrix2.m21
-        .m12 = sm11 * matrix2.m12 + .m12 * matrix2.m22
-
-        let sm21 = .m21
-        .m21 = sm21 * matrix2.m11 + .m22 * matrix2.m21
-        .m22 = sm21 * matrix2.m12 + .m22 * matrix2.m22
-
-        let stx = .tx
-        .tx = stx * matrix2.m11 + .ty * matrix2.m21 + matrix2.tx
-        .ty = stx * matrix2.m12 + .ty * matrix2.m22 + matrix2.ty
+        // `other` is read through its address and can alias `me`: every product is computed
+        // before the first field is written.
+        let m11 = .m11 * other.m11 + .m12 * other.m21
+        let m12 = .m11 * other.m12 + .m12 * other.m22
+        let m21 = .m21 * other.m11 + .m22 * other.m21
+        let m22 = .m21 * other.m12 + .m22 * other.m22
+        let tx  = .tx * other.m11 + .ty * other.m21 + other.tx
+        let ty  = .tx * other.m12 + .ty * other.m22 + other.ty
+        me[] = {m11, m12, m21, m22, tx, ty}
     }
 }

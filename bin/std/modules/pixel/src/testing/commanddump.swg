@@ -3,7 +3,7 @@
 
 using Swag, Core, Core.Math
 
-// Granularity of a [[Testing.dumpPainter]] snapshot.
+// Selects the granularity of a [[Pixel.Testing.dumpPainter]] snapshot.
 //
 // Only 'Full' records texture coordinates, and they are the one part of a snapshot that is not
 // self-contained: glyph coordinates depend on the packing order of a glyph cache shared by the
@@ -87,10 +87,7 @@ private
         return result
     }
 
-    func fmtColor(color: Color)->String
-    {
-        return Format.toString("%{X08}", color.argb)
-    }
+    func fmtColor(color: Color)->String => Format.toString("%{X08}", color.argb)
 
     func(T) fmtEnum(value: T)->String
     {
@@ -137,7 +134,7 @@ private
 
             // A typeface loaded from a file is named by its path. Keeping only the file name makes
             // the label identical whatever the checkout directory is.
-            let label = Path.fileName(font.cache.typeFace.fullname)
+            let label = Path.fileName(font.cache.typeFace.fullName)
             .legend.appendFormat("# font#% % size=% mode=%\n", idx, label, font.size, fmtEnum(font.mode))
             return Format.toString("font#%", idx)
         }

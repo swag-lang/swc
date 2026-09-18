@@ -3,10 +3,7 @@
 
 using Core, Pixel, Gui, TrueType
 
-func fontFixturePath()->String
-{
-    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "segoeui.ttf")
-}
+func fontFixturePath()->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "segoeui.ttf")
 
 func containsCharacter(characters: const [..] rune, expected: rune)->bool
 {
@@ -52,7 +49,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     view.document.previousPage()
     Swag.assert(view.document.pageStart == firstStart)
     view.document.goToCharacterPage(0x370)
-    Swag.assert(view.document.pageStart >= 0x370 and view.document.history.count != 0)
+    Swag.assert(view.document.pageStart >= 0x370 and not view.document.history.isEmpty())
 
     let oldPlaceholder = String.from(view.sampleEdit.name.raw)
     expect host.app.setLanguage("fr")

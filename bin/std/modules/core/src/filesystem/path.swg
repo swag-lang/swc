@@ -12,18 +12,22 @@ const DirectorySeparator    = '/'u8                       // Preferred directory
 const AltDirectorySeparator = WINDOWS ? '\\'u8 : 0'u8     // Accepted alternate separator, or zero when none exists.
 const VolumeSeparator       = WINDOWS ? ':'u8 : 0'u8      // Volume separator, or zero when paths have no volume prefix.
 
-// Returns true if the given character is a directory separator
+// Returns whether `c` is the preferred or the alternate directory separator.
 #[Inline, ConstExpr]
 func isDirectorySeparator(c: u8)->bool => c == DirectorySeparator or AltDirectorySeparator != 0 and c == AltDirectorySeparator
 
-// Returns whether `fullname` is a lexically valid path on the selected target.
-func isValidPathName(fullname: string)->bool
+// Returns whether `c` ends the directory part of a path: a directory separator or the volume separator.
+#[Inline, ConstExpr]
+private func endsDirectoryPart(c: u8)->bool => isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator
+
+// Returns whether `path` is a lexically valid path on the selected target.
+func isValidPathName(path: string)->bool
 {
-    if fullname.count == 0 do
+    if path.count == 0 do
         return false
 
-    let extendedSyntax = TargetHasWindowsPathSyntax and fullname.count >= 4 and isDirectorySeparator(fullname[0]) and isDirectorySeparator(fullname[1]) and fullname[2] == '?' and isDirectorySeparator(fullname[3])
-    for c, index in fullname
+    let extendedSyntax = TargetHasWindowsPathSyntax and path.count >= 4 and isDirectorySeparator(path[0]) and isDirectorySeparator(path[1]) and path[2] == '?' and isDirectorySeparator(path[3])
+    for c, index in path
     {
         if c == 0 do
             return false
@@ -38,12 +42,12 @@ func isValidPathName(fullname: string)->bool
     return true
 }
 
-// Returns whether `fullname` is a lexically valid single file name on the selected target.
-func isValidFileName(fullname: string)->bool
+// Returns whether `path` is a lexically valid single file name on the selected target.
+func isValidFileName(path: string)->bool
 {
-    if fullname.count == 0 do
+    if path.count == 0 do
         return false
-    for c in fullname
+    for c in path
     {
         if c == 0 or isDirectorySeparator(c) do
             return false
@@ -55,12 +59,12 @@ func isValidFileName(fullname: string)->bool
 }
 
 // Returns the length of the root prefix under the selected target's lexical policy.
-func rootLength(fullname: string)->u32
+func rootLength(path: string)->u32
 {
-    if fullname.count == 0 do
+    if path.count == 0 do
         return 0
     if not TargetHasWindowsPathSyntax do
-        return isDirectorySeparator(fullname[0]) ? 1 : 0
+        return isDirectorySeparator(path[0]) ? 1 : 0
 
     func startsWithOrdinal(source, value: string)->bool
     {
@@ -74,13 +78,13 @@ func rootLength(fullname: string)->u32
     var index                 = 0'u32
     var volumeSeparatorLength = 2'u32
     var uncRootLength         = 2'u32
-    let pathLength            = fullname.count
+    let pathLength            = path.count
 
     const ExtendedPathPrefix = #raw "\\?\"
     const UncExtendedPathPrefix = #raw "\\?\UNC\"
 
-    let extendedSyntax    = startsWithOrdinal(fullname, ExtendedPathPrefix)
-    let extendedUncSyntax = startsWithOrdinal(fullname, UncExtendedPathPrefix)
+    let extendedSyntax    = startsWithOrdinal(path, ExtendedPathPrefix)
+    let extendedUncSyntax = startsWithOrdinal(path, UncExtendedPathPrefix)
     if extendedSyntax
     {
         if extendedUncSyntax do
@@ -89,16 +93,16 @@ func rootLength(fullname: string)->u32
             volumeSeparatorLength += ExtendedPathPrefix.count
     }
 
-    if (not extendedSyntax or extendedUncSyntax) and isDirectorySeparator(fullname[0])
+    if (not extendedSyntax or extendedUncSyntax) and isDirectorySeparator(path[0])
     {
         index = 1
-        if extendedUncSyntax or pathLength > 1 and isDirectorySeparator(fullname[1])
+        if extendedUncSyntax or pathLength > 1 and isDirectorySeparator(path[1])
         {
             index = uncRootLength
             var separatorCount = 2
             while index < pathLength
             {
-                if isDirectorySeparator(fullname[index])
+                if isDirectorySeparator(path[index])
                 {
                     separatorCount -= 1
                     if not separatorCount
@@ -112,149 +116,124 @@ func rootLength(fullname: string)->u32
             }
         }
     }
-    elif pathLength >= volumeSeparatorLength and fullname[volumeSeparatorLength - 1] == VolumeSeparator
+    elif pathLength >= volumeSeparatorLength and path[volumeSeparatorLength - 1] == VolumeSeparator
     {
         index = volumeSeparatorLength
-        if pathLength >= volumeSeparatorLength + 1 and isDirectorySeparator(fullname[volumeSeparatorLength]) do
+        if pathLength >= volumeSeparatorLength + 1 and isDirectorySeparator(path[volumeSeparatorLength]) do
             index += 1
     }
 
     return index
 }
 
-// Returns the root part of the path, null if not found
+// Returns the root prefix of `path`, or null when the path is relative.
 #[ConstExpr]
-func rootName(fullname: string?)->string?
+func rootName(path: string?)->string?
 {
-    if fullname == null do
+    if path == null do
         return null
-    let path = fullname
     Swag.assert(isValidPathName(path))
+
     let length = rootLength(path)
     if not length do
         return null
-    return cast() Swag.makeSlice(path.buffer, cast(u64) length)
+    return path[until length]
 }
 
-// Returns true if the given path is rooted (starts with a separator or a drive letter and colon)
+// Returns whether `path` starts with a directory separator or a volume prefix such as `C:`.
 #[ConstExpr]
-func isRooted(fullname: string?)->bool
+func isRooted(path: string?)->bool
 {
-    if fullname == null do
+    if path == null do
         return false
-    let path = fullname
     Swag.assert(isValidPathName(path))
-    let countof = path.count
-    if countof >= 1 and isDirectorySeparator(path[0]) do
+
+    if path.count >= 1 and isDirectorySeparator(path[0]) do
         return true
-    if VolumeSeparator != 0 and countof >= 2 and path[1] == VolumeSeparator do
-        return true
-    return false
+    return VolumeSeparator != 0 and path.count >= 2 and path[1] == VolumeSeparator
 }
 
-// Returns the directory part of the path, null if not found
+// Returns the directory part of `path`, or null when the path names no directory.
+//
+// A root such as `/` or `C:/` is not a directory part: `directoryName("/file")` is null.
 #[ConstExpr]
-func directoryName(fullname: string?)->string?
+func directoryName(path: string?)->string?
 {
-    if fullname == null do
+    if path == null do
         return null
-    let path = fullname
     Swag.assert(isValidPathName(path))
 
-    let countof = path.count
-    var cpt     = countof
-    while cpt
+    for index in reversed(path.count) where isDirectorySeparator(path[index])
     {
-        cpt -= 1
-        let c = path[cpt]
-        if isDirectorySeparator(c)
-        {
-            if cpt == 0 do
-                return null
-            if VolumeSeparator != 0 and cpt == 2 and path[1] == VolumeSeparator do
-                return null
-            return cast() Swag.makeSlice(path.buffer, cast(u64) cpt)
-        }
+        if index == 0 do
+            return null
+        if VolumeSeparator != 0 and index == 2 and path[1] == VolumeSeparator do
+            return null
+        return path[until index]
     }
 
     return null
 }
 
-// Returns the file name part of the path, null if not found
+// Returns the file name part of `path`, or null when the path ends with a separator.
 #[ConstExpr]
-func fileName(fullname: string?)->string?
+func fileName(path: string?)->string?
 {
-    if fullname == null do
+    if path == null do
         return null
-    let path = fullname
     Swag.assert(isValidPathName(path))
 
-    let countof = path.count
-    var cpt     = countof
-    while cpt
+    for index in reversed(path.count) where endsDirectoryPart(path[index])
     {
-        cpt -= 1
-        let c = path[cpt]
-        if isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator
-        {
-            if cpt == countof - 1 do
-                return null
-            return cast() Swag.makeSlice(path.buffer + cpt + 1, cast(u64) (countof - cpt) - 1)
-        }
+        if index == path.count - 1 do
+            return null
+        return path[index + 1 to]
     }
 
     return path
 }
 
-// Returns the file name without its extension, null if not found
+// Returns the file name part of `path` without its extension, or null when the path ends with a separator.
 #[ConstExpr]
-func fileNameWithoutExtension(fullname: string?)->string?
+func fileNameWithoutExtension(path: string?)->string?
 {
-    if fullname == null do
+    if path == null do
         return null
-    let path = fullname
     Swag.assert(isValidPathName(path))
 
-    let countof = path.count
-    var cpt     = countof
-    var last    = countof
-    while cpt
+    var extensionStart = path.count
+    for index in reversed(path.count)
     {
-        cpt -= 1
-        let c = path[cpt]
-        if c == '.' and last == countof do
-            last = cpt
-        elif isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator
+        let c = path[index]
+        if c == '.' and extensionStart == path.count do
+            extensionStart = index
+        elif endsDirectoryPart(c)
         {
-            if cpt == countof - 1 do
+            if index == path.count - 1 do
                 return null
-            return cast() Swag.makeSlice(path.buffer + cpt + 1, cast(u64) (last - cpt) - 1)
+            return path[index + 1 until extensionStart]
         }
     }
 
-    if last != countof do
-        return cast() Swag.makeSlice(path.buffer, cast(u64) last)
-    return path
+    return path[until extensionStart]
 }
 
-// Returns the file name extension, including the '.' character
-// Returns null if no extension was found
+// Returns the extension of the file name part of `path`, including its '.' character.
+//
+// Returns null when the file name has no extension.
 #[ConstExpr]
-func extension(fullname: string?)->string?
+func extension(path: string?)->string?
 {
-    if fullname == null do
+    if path == null do
         return null
-    let path = fullname
     Swag.assert(isValidPathName(path))
 
-    var cpt = path.count
-    while cpt
+    for index in reversed(path.count)
     {
-        cpt -= 1
-        let c = path[cpt]
+        let c = path[index]
         if c == '.' do
-            return cast() Swag.makeSlice(path.buffer + cpt, cast(u64) path.count - cpt)
-        if isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator do
+            return path[index to]
+        if endsDirectoryPart(c) do
             break
     }
 
@@ -264,55 +243,34 @@ func extension(fullname: string?)->string?
 // Returns the file name extension in Unicode lowercase, including the '.' character.
 //
 // Returns an empty string if no extension was found.
-func lowercaseExtension(fullname: string?)->String => String.toLower(extension(fullname), .Unicode)
+func lowercaseExtension(path: string?)->String => String.toLower(extension(path), .Unicode)
 
 // Returns whether the path has `expectedExtension` under the target's case policy.
-func hasExtension(fullname, expectedExtension: string)->bool
+func hasExtension(path, expectedExtension: string)->bool
 {
     if TargetPathCaseSensitive do
-        return extension(fullname) == expectedExtension
-    return equals(extension(fullname) orelse "", expectedExtension)
+        return extension(path) == expectedExtension
+    return equals(extension(path) orelse "", expectedExtension)
 }
 
-// Returns true if the file name contains an extension
+// Returns whether the file name part of `path` has an extension.
 #[ConstExpr]
-func hasExtension(fullname: string?)->bool
-{
-    if fullname == null do
-        return false
-    let path = fullname
-    Swag.assert(isValidPathName(path))
+func hasExtension(path: string?)->bool => extension(path) != null
 
-    var cpt = path.count
-    while cpt
-    {
-        cpt -= 1
-        let c = path[cpt]
-        if c == '.' do
-            return true
-        if isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator do
-            break
-    }
-
-    return false
-}
-
-// Combines multiple path segments into one, adding a directory separator between them if necessary
-func combine(fullnames: (string?)...)->String
+// Joins path segments, inserting a directory separator after a segment that does not end with one.
+//
+// Null and empty segments are skipped.
+func combine(parts: (string?)...)->String
 {
     var result: retval
-    for one in fullnames
+    for one in parts
     {
         let part = one orelse ""
         if part.count == 0 do
             continue
 
-        if result.length
-        {
-            let c = result.back()
-            if not isDirectorySeparator(c) do
-                result += DirectorySeparator
-        }
+        if not result.isEmpty() and not isDirectorySeparator(result.back()) do
+            result += DirectorySeparator
 
         result += part
     }
@@ -348,8 +306,8 @@ func equals(path1, path2: string)->bool
 }
 
 // Replaces the target's alternate separator with its preferred separator.
-func normalize(fullname: *String)
+func normalize(path: *String)
 {
     if AltDirectorySeparator do
-        fullname.replace(cast(rune) AltDirectorySeparator, "/")
+        path.replace(cast(rune) AltDirectorySeparator, "/")
 }

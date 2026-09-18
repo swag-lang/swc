@@ -22,8 +22,8 @@ func assertOffsetCleanPreservesPathIdentity()
 
     Swag.assert(paths.paths[0].serial == 10)
     Swag.assert(paths.paths[1].serial == 20)
-    Swag.assert(paths.paths[0].polygon.points.count != 0)
-    Swag.assert(paths.paths[1].polygon.points.count != 0)
+    Swag.assert(not paths.paths[0].polygon.points.isEmpty())
+    Swag.assert(not paths.paths[1].polygon.points.isEmpty())
 }
 
 #test

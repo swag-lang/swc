@@ -18,7 +18,7 @@ using Swag
 func systemExecutablePath(name: string)->String
 {
     let fontsDir = Env.realSpecialDirectory(Env.SpecialDirectory.Font)
-    Swag.assert(fontsDir.length != 0)
+    Swag.assert(not fontsDir.isEmpty())
 
     let windowsDir = Path.directoryName(fontsDir.toString())
     Swag.assert(windowsDir != null)

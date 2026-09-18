@@ -15,7 +15,7 @@ internal impl Properties
     // families. The first entry is the theme's default font and stores an empty name.
     mtd refreshFontName(item: *PropertiesItem)
     {
-        if not (item.comboBox != null) do
+        if item.comboBox == null do
             return
 
         if .fieldIsMixed(item)

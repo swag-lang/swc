@@ -5,12 +5,11 @@
 #[Swag.Inline]
 func(T) forEachMutable(values: [..] T, action: func||(*T))
 {
-    for i in values.count do
-        action(&values[i])
+    for &value in values do
+        action(value)
 }
 
-// Map the content of a slice to an array of type 'R'.
-// The lambda must return the value of 'R' for each element of the slice.
+// Returns an array holding the result of `transform` for every element, in order.
 func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array'R
 {
     var result: retval
@@ -19,30 +18,28 @@ func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array'R
     return result
 }
 
-// Reduce the content of a slice to one single value.
-// The lambda is called with the previous reduced value and each element of the slice.
-// The first reduced value is the first element of the slice.
+// Folds the elements from left to right into one value with `combine`.
+//
+// The first element is the initial accumulator, and `combine` receives the accumulator and the
+// next element. The slice must not be empty.
 func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 {
     Swag.assert(values.count > 0, "cannot reduce an empty slice")
     var result = values[0]
-    if values.count == 1 do
-        return result
-    for i in 1 to values.count - 1 do
+    for i in 1 until values.count do
         result = combine(result, values[i])
     return result
 }
 
-// Get the minimum value of a slice, and the corresponding value index.
+// Returns the smallest element and its index.
+//
+// When several elements are the smallest, the first one is returned. The slice must not be empty.
 func(T) min(values: const [..] T)->{ value: T, index: u64 }
 {
     Swag.assert(values.count > 0, "cannot get the minimum of an empty slice")
     var result: retval
     result.value = values[0]
-    if values.count == 1 do
-        return result
-
-    for i in 1 to values.count - 1
+    for i in 1 until values.count
     {
         if values[i] < result.value
         {
@@ -54,16 +51,15 @@ func(T) min(values: const [..] T)->{ value: T, index: u64 }
     return result
 }
 
-// Get the maximum value of a slice, and the corresponding value index.
+// Returns the greatest element and its index.
+//
+// When several elements are the greatest, the first one is returned. The slice must not be empty.
 func(T) max(values: const [..] T)->{ value: T, index: u64 }
 {
     Swag.assert(values.count > 0, "cannot get the maximum of an empty slice")
     var result: retval
     result.value = values[0]
-    if values.count == 1 do
-        return result
-
-    for i in 1 to values.count - 1
+    for i in 1 until values.count
     {
         if values[i] > result.value
         {
@@ -75,43 +71,37 @@ func(T) max(values: const [..] T)->{ value: T, index: u64 }
     return result
 }
 
-// Returns true if 'cb' returns true for all values
+// Returns whether `predicate` holds for every element.
+//
+// Returns true for an empty slice.
 func(T) allOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
-    for v in values
-    {
-        if not predicate(v) do
-            return false
-    }
-
+    for v in values where not predicate(v) do
+        return false
     return true
 }
 
-// Returns true if 'cb' returns true for at least one value
+// Returns whether `predicate` holds for at least one element.
+//
+// Returns false for an empty slice.
 func(T) anyOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
-    for v in values
-    {
-        if predicate(v) do
-            return true
-    }
-
+    for v in values where predicate(v) do
+        return true
     return false
 }
 
-// Returns true if 'cb' returns false for all values
+// Returns whether `predicate` holds for no element.
+//
+// Returns true for an empty slice.
 func(T) noneOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
-    for v in values
-    {
-        if predicate(v) do
-            return false
-    }
-
+    for v in values where predicate(v) do
+        return false
     return true
 }
 
-// Reverse the content of a slice
+// Reverses the order of the elements in place.
 func(T) reverse(values: [..] T)
 {
     if values.count <= 1 do
@@ -127,9 +117,11 @@ func(T) reverse(values: [..] T)
     }
 }
 
-// Get a permutation of the slice
-// Shuffle the slice until no more permutation is possible, and then returns 'false'.
-// To obtain all permutations, the slice must be sorted the first time.
+// Rearranges the elements into the next permutation in lexicographic order.
+//
+// Returns false, leaving the slice unchanged, when it already holds the last permutation, which is
+// the descending order. Starting from ascending order and calling it until it returns false visits
+// every distinct permutation once.
 func(T) nextPermutation(values: [..] T)->bool
 {
     let count = values.count

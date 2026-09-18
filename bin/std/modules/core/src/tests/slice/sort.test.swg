@@ -3,24 +3,10 @@
 
 using Swag
 
-func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for value, index in values
-    {
-        if value != expected[index] do
-            return false
-    }
-
-    return true
-}
-
 #test
 {
     let backing: [1] s32 = [42]
-    let empty = Swag.makeSlice(backing.buffer, 0)
+    let empty = backing[until 0]
 
     Swag.assert(Slice.isSorted(empty))
     Swag.assert(Slice.isSorted(empty, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
@@ -51,22 +37,22 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
     Slice.sort(values)
 
     let expected: [5] s32 = [1, 2, 3, 4, 5]
-    Swag.assert(assertIntSlice(values, expected))
+    Swag.assert(Slice.equals(values, expected))
     Swag.assert(Slice.isSorted(values))
 
     Slice.reverse(values)
     let reversed: [5] s32 = [5, 4, 3, 2, 1]
-    Swag.assert(assertIntSlice(values, reversed))
+    Swag.assert(Slice.equals(values, reversed))
     Swag.assert(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 
 #test
 {
     var values: [12] s32 = [9, 4, 7, 3, 8, 2, 6, 1, 5, 0, 11, 10]
-    Slice.sort(values, true)
+    Slice.sort(values, descending: true)
 
     let expected: [12] s32 = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    Swag.assert(assertIntSlice(values, expected))
+    Swag.assert(Slice.equals(values, expected))
     Swag.assert(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 

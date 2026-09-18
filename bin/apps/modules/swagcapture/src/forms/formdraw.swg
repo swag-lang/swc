@@ -129,10 +129,7 @@ impl IForm for FormDraw
         }
     }
 
-    mtd impl isInside(pt: Math.Point)->bool
-    {
-        return Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
-    }
+    mtd impl isInside(pt: Math.Point)->bool => Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
 
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 

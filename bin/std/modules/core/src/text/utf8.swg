@@ -6,16 +6,16 @@
 #global public
 #global namespace Utf8
 
-// Defines rune error.
+// The replacement character U+FFFD, which decoding returns for an invalid sequence.
 const RuneError = 0xFFFD'rune
 
-// Defines max runes.
-const MaxRunes = 0x10FFFF'rune
+// The highest Unicode code point, U+10FFFF.
+const MaxRune = 0x10FFFF'rune
 
-// Defines surrogate min.
+// The first code point of the UTF-16 surrogate range, which UTF-8 cannot encode.
 const SurrogateMin = 0xD800'rune
 
-// Defines surrogate max.
+// The last code point of the UTF-16 surrogate range, which UTF-8 cannot encode.
 const SurrogateMax = 0xDFFF'rune
 
 private
@@ -29,11 +29,9 @@ private
     const LoCB = 0b10000000'u8
     const HiCB = 0b10111111'u8
 
-    // These names of these constants are chosen to give nice alignment in the
-    // table below. The first nibble is an index into AcceptRanges or F for
-    // special one-byte cases. The second nibble is the Rune length or the
-
-    // Status for the special one-byte case.
+    // The names of these constants are chosen to give nice alignment in the table below. The
+    // first nibble is an index into AcceptRanges, or F for the special one-byte cases. The second
+    // nibble is the rune length, or the status for the special one-byte cases.
     const XX = 0xF1     // invalid: size 1
     const AS = 0xF0     // ASCII: size 1
     const S1 = 0x02     // accept 0, size 2
@@ -44,7 +42,7 @@ private
     const S6 = 0x04     // accept 0, size 4
     const S7 = 0x44     // accept 4, size 4
 
-    // first is information about the first byte in a UTF-8 sequence.
+    // Information about the first byte of a UTF-8 sequence.
     const First: [256] u8 = [
         //   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
         AS, AS, AS, AS, AS, AS, AS, AS, AS, AS, AS, AS, AS, AS, AS, AS,
@@ -80,10 +78,11 @@ private
         // 0xE0-0xEF
         S5, S6, S6, S6, S7, XX, XX, XX, XX, XX, XX, XX, XX, XX, XX, XX]
 
+    // The valid range of the second byte of a sequence, which depends on its first byte.
     struct AcceptRange
     {
-        lo: u8     // Lo associated with this value.
-        hi: u8     // Hi associated with this value.
+        lo: u8     // Lowest valid second byte.
+        hi: u8     // Highest valid second byte.
     }
 
     const AcceptRanges: [?] AcceptRange = [
@@ -233,7 +232,7 @@ private func lastIndexOfAnyAscii(src: const [*] u8, length: u64, what: const [..
 private func lastIndexOfSubslice(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
     let whatLength   = what.count
-    let lastByte     = Swag.makeSlice(what.buffer + whatLength - 1, 1)
+    let lastByte     = what[whatLength - 1 to]
     var searchLength = length
     while searchLength >= whatLength
     {
@@ -349,8 +348,10 @@ private func lastIndexOfSubsliceNoCase(src: const [*] u8, length: u64, what: con
     return Swag.U64.Max
 }
 
-// Get the last unicode rune of the utf8 slice, and the number of
-// bytes to encode it
+// Decodes the last rune of `buffer` and returns it with the number of bytes it occupies.
+//
+// An invalid or truncated trailing sequence returns `RuneError` with `eat` 1, and an empty
+// `buffer` returns `RuneError` with `eat` 0.
 func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 {
     var result: retval
@@ -407,9 +408,10 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
     return result
 }
 
-// Get the unicode rune pointed by 'buffer', and the number of bytes to encode it
+// Decodes the first rune of `buffer` and returns it with the number of bytes it occupies.
 //
-// Will return 'RuneError' for an invalid utf8 sequence
+// An invalid or truncated sequence returns `RuneError` with `eat` 1, and an empty `buffer`
+// returns `RuneError` with `eat` 0.
 func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 {
     var result: retval
@@ -498,10 +500,10 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
     return result
 }
 
-// Convert rune 'src' to an utf8 sequence, and returns
-// the number of bytes that were needed to make the conversion.
+// Encodes `src` as UTF-8 into `dest` and returns the number of bytes written.
 //
-// 'dest' must be at least 4 bytes long
+// `dest` must hold at least 4 bytes. A rune UTF-8 cannot encode, a surrogate or a value above
+// `MaxRune`, is written as `RuneError`.
 func encodeRune(dest: [..] u8, src: rune)->u32
 {
     Swag.assert(dest.count >= 4, "destination buffer is too small")
@@ -538,10 +540,10 @@ func encodeRune(dest: [..] u8, src: rune)->u32
     }
 }
 
-// Convert a rune array to an utf8 buffer
+// Encodes the runes of `src` as UTF-8 into `dest` and returns the number of bytes written.
 //
-// Returns the number of bytes written in the destination buffer
-// 'dest' must be at least 4 bytes long
+// Size `dest` for the worst case of 4 bytes per rune. A rune UTF-8 cannot encode is written as
+// `RuneError`.
 func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
     const ContinuationsToLow   = cast(Math.Simd.U8x16) [4'u8, 5, 6, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
@@ -608,7 +610,7 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
                 continue
             }
 
-            if destLength >= 16 and Math.Simd.allTrue(cast #bit(Math.Simd.U32x4) ((values >= Math.Simd.splat(0x10000's32)) & (values <= Math.Simd.splat(cast(s32) MaxRunes))))
+            if destLength >= 16 and Math.Simd.allTrue(cast #bit(Math.Simd.U32x4) ((values >= Math.Simd.splat(0x10000's32)) & (values <= Math.Simd.splat(cast(s32) MaxRune))))
             {
                 let lead         = (values >> 18) | Math.Simd.splat(0xF0's32)
                 let continuation = ((values >> 12) & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
@@ -640,19 +642,22 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
     return total
 }
 
-// Convert an unicode buffer to a String
+// Returns a new [[Core.String]] holding the UTF-8 encoding of the runes of `src`.
 func fromUnicode(src: const [..] rune)->String
 {
+    // Four bytes per rune in the worst case, and one more for the terminator.
     var result: retval
-    result.reserve(4 * src.count)
-    result.length = fromUnicode(Swag.makeSlice(result.buffer, result.capacity), src)
+    result.reserve(4 * src.count + 1)
+    let buffer = result.buffer!
+    result.length         = fromUnicode(Swag.makeSlice(buffer, 4 * src.count), src)
+    buffer[result.length] = 0
     return result
 }
 
-// Convert an utf16 array to an utf8 buffer
+// Converts the UTF-16 units of `src` to UTF-8 in `dest` and returns the number of bytes written.
 //
-// Returns the number of bytes written in the destination buffer.
-// 'dest' must be at least 4 bytes long
+// Size `dest` for the worst case of 4 bytes per unit. An unpaired surrogate is written as
+// `RuneError`.
 func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 {
     const ContinuationsToLow   = cast(Math.Simd.U8x16) [8'u8, 9, 10, 11, 12, 13, 14, 15, 128, 128, 128, 128, 128, 128, 128, 128]
@@ -769,7 +774,7 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
     return count
 }
 
-// Convert an utf16 buffer to a String
+// Returns a new [[Core.String]] holding the UTF-8 conversion of the UTF-16 units of `src`.
 func fromUtf16(src: const [..] u16)->String
 {
     var result: retval
@@ -781,21 +786,12 @@ func fromUtf16(src: const [..] u16)->String
     return result
 }
 
-// Returns true if the given unicode rune can be encoded in utf8
-func isValidRune(c: rune)->bool
-{
-    switch
-    {
-    case 0 <= c and c < SurrogateMin:        return true
-    case SurrogateMax < c and c <= MaxRunes: return true
-    }
+// Returns whether `c` is a Unicode scalar value, which UTF-8 can encode.
+func isValidRune(c: rune)->bool => (0 <= c and c < SurrogateMin) or (SurrogateMax < c and c <= MaxRune)
 
-    return false
-}
-
-// Returns the number of bytes to encode the first rune of the utf8 buffer
+// Returns the number of bytes that encode the first rune of `buffer`.
 //
-// If it's an invalid encoding, returns 1.
+// Returns 1 for an empty `buffer` or an invalid sequence, so a scanner always advances.
 func countBytesAt(buffer: const [..] u8)->u32
 {
     let dataof  = buffer.buffer
@@ -838,7 +834,9 @@ func countBytesAt(buffer: const [..] u8)->u32
     return 4
 }
 
-// Returns the byte index of the given rune index
+// Returns the byte offset of the rune at index `charIndex` in `buffer`.
+//
+// `success` is false when `buffer` holds `charIndex` runes or fewer.
 func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bool }
 {
     var result: retval
@@ -880,7 +878,9 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
     return result
 }
 
-// Returns the number of runes in an utf8 buffer
+// Returns the number of runes in `buffer`.
+//
+// Each byte of an invalid sequence counts as one rune, as decoding replaces it with `RuneError`.
 func countRunes(buffer: const [..] u8)->u64
 {
     var dataof  = buffer.buffer
@@ -907,8 +907,7 @@ func countRunes(buffer: const [..] u8)->u64
     return cpt
 }
 
-// Find the first occurence of rune 'what', and returns the byte index of it.
-// Returns 'Swag.U64.Max' if not found
+// Returns the byte index of the first `what` at or after `startByteIndex`, or `Swag.U64.Max` when it is absent.
 func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
 {
     // The ASCII case is what a scanner asks for, and it is one comparison per byte rather than a
@@ -929,7 +928,9 @@ func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
     return indexOfAny(src, [what], startByteIndex)
 }
 
-// Find the given string, and returns the byte index of it
+// Returns the byte index of the first `what` at or after `startByteIndex`, or `Swag.U64.Max` when it is absent.
+//
+// `comparisonType` selects the case policy. An empty `what` is never found.
 func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = src.count
@@ -947,7 +948,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
 
     if comparisonType == .Latin1 or comparisonType == .Unicode
     {
-        let result = Slice.findSubslice(Swag.makeSlice(src.buffer + startByteIndex, length - startByteIndex), what)
+        let result = Slice.findSubslice(src[startByteIndex to], what)
         return result == Swag.U64.Max ? result : startByteIndex + result
     }
 
@@ -962,8 +963,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
     var remain = length - startByteIndex
     while countof <= remain
     {
-        let res = compare(Swag.makeSlice(scan, countof), what, comparisonType)
-        if res == 0 do
+        if compare(Swag.makeSlice(scan, countof), what, comparisonType) == 0 do
             return idx
         scan, idx += 1
         remain    -= 1
@@ -972,8 +972,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
     return Swag.U64.Max
 }
 
-// Find one of the runes in 'what', and returns the byte index of it.
-// Returns 'Swag.U64.Max' if not found
+// Returns the index of the first byte at or after `startByteIndex` that is one of `what`, or `Swag.U64.Max` when there is none.
 func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)->u64
 {
     let length = src.count
@@ -1009,7 +1008,7 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
     return Swag.U64.Max
 }
 
-// Find one of the runes in 'what', and returns the byte index of it
+// Returns the byte index of the first rune at or after `startByteIndex` that is one of `what`, or `Swag.U64.Max` when there is none.
 func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u64)->u64
 {
     let length = src.count
@@ -1035,7 +1034,7 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
             ascii[index] = cast(u8) value
             if index + 1 == countof
             {
-                let result = indexOfAnyAscii(src.buffer + startByteIndex, length - startByteIndex, Swag.makeSlice(ascii.buffer, countof))
+                let result = indexOfAnyAscii(src.buffer + startByteIndex, length - startByteIndex, ascii[until countof])
                 return result == Swag.U64.Max ? result : startByteIndex + result
             }
         }
@@ -1046,7 +1045,7 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
     var remain = length - startByteIndex
     while remain
     {
-        let res = Utf8.decodeRune(Swag.makeSlice(scan, remain))
+        let res = decodeRune(Swag.makeSlice(scan, remain))
         if not res.eat do
             break
         if Slice.contains(what, res.c) do
@@ -1058,24 +1057,26 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
     return Swag.U64.Max
 }
 
-// Returns true if 'src' contains the string 'what'
+// Returns whether `src` contains the text `what`.
+//
+// An empty `what` is never found.
 func contains(src: const [..] u8, what: string)->bool => indexOf(src, what) != Swag.U64.Max
 
-// Returns true if 'src' contains the string 'what'
+// Returns whether `src` contains the rune `what`.
 func contains(src: const [..] u8, what: rune)->bool => indexOf(src, what) != Swag.U64.Max
 
-// Returns true if 'src' contains the string 'what'
+// Returns whether `src` contains the byte `what`.
 func contains(src: const [..] u8, what: u8)->bool => Slice.contains(src, what)
 
-// Returns true if 'src' contains the slice 'what'
+// Returns whether `src` contains the byte sequence `what`.
+//
+// An empty `what` is always found.
 func contains(src, what: const [..] u8)->bool => Slice.findSubslice(src, what) != Swag.U64.Max
 
-// Find the last rune occurence of 'what', and returns the byte index of it.
-// Returns 'Swag.U64.Max' if not found
+// Returns the byte index of the last `what`, or `Swag.U64.Max` when it is absent.
 func lastIndexOf(src: const [..] u8, what: rune)->u64 => lastIndexOfAny(src, [what])
 
-// Returns the last index (in bytes) of a any of the runes in 'what'.
-// Returns 'Swag.U64.Max' if not found
+// Returns the byte index of the last rune that is one of `what`, or `Swag.U64.Max` when there is none.
 func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 {
     let length = src.count
@@ -1094,17 +1095,14 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
                 break
             ascii[index] = cast(u8) value
             if index + 1 == countof do
-                return lastIndexOfAnyAscii(src.buffer, length, Swag.makeSlice(ascii.buffer, countof))
+                return lastIndexOfAnyAscii(src.buffer, length, ascii[until countof])
         }
     }
-
-    let dataof = src.buffer
 
     var byteIdx = length
     for
     {
-        let sl       = Swag.makeSlice(dataof, byteIdx)
-        let {c, eat} = decodeLastRune(sl)
+        let {c, eat} = decodeLastRune(src[until byteIdx])
         if eat == 0 do
             return Swag.U64.Max
 
@@ -1116,8 +1114,7 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
     return Swag.U64.Max
 }
 
-// Returns the last index (in bytes) of a any of the bytes in 'what'.
-// Returns 'Swag.U64.Max' if not found
+// Returns the index of the last byte that is one of `what`, or `Swag.U64.Max` when there is none.
 func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 {
     let length = src.count
@@ -1141,8 +1138,10 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
     return Swag.U64.Max
 }
 
-// Returns the last index (in bytes) of a string.
-// Returns 'Swag.U64.Max' if not found
+// Returns the byte index of the last `what`, or `Swag.U64.Max` when it is absent.
+//
+// `comparisonType` selects the case policy. An empty `what` matches at the end of a non-empty
+// `src`.
 func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = src.count
@@ -1162,8 +1161,7 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
     var dataof = src.buffer + idx
     for
     {
-        let res = compare(Swag.makeSlice(dataof, lengthStr), what, comparisonType)
-        if res == 0 do
+        if compare(Swag.makeSlice(dataof, lengthStr), what, comparisonType) == 0 do
             return idx
         if not idx do
             return Swag.U64.Max
@@ -1173,7 +1171,9 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
     return Swag.U64.Max
 }
 
-// Return true if the string starts with 'str'
+// Returns whether `src` starts with `str` under the case policy `comparisonType`.
+//
+// An empty `src` returns false, even for an empty `str`.
 func startsWith(src: const [..] u8?, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = src.count
@@ -1182,11 +1182,12 @@ func startsWith(src: const [..] u8?, str: string, comparisonType = ComparisonTyp
     let countof = str.count
     if countof > length do
         return false
-    let buffer = src.buffer
-    return compare(Swag.makeSlice(buffer, countof), str, comparisonType) == 0
+    return compare(src![until countof], str, comparisonType) == 0
 }
 
-// Return true if the string ends with 'str'
+// Returns whether `src` ends with `str` under the case policy `comparisonType`.
+//
+// An empty `src` returns false, even for an empty `str`.
 func endsWith(src: const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = src.count
@@ -1195,11 +1196,10 @@ func endsWith(src: const [..] u8, str: string, comparisonType = ComparisonType.L
     let countof = str.count
     if countof > length do
         return false
-    let buffer = src.buffer
-    return compare(Swag.makeSlice((buffer + length) - countof, countof), str, comparisonType) == 0
+    return compare(src[length - countof to], str, comparisonType) == 0
 }
 
-// Returns the first rune of the slice
+// Returns the first rune of `src`, or 0 when `src` is empty.
 func firstRune(src: const [..] u8)->rune
 {
     let countof = src.count
@@ -1208,11 +1208,11 @@ func firstRune(src: const [..] u8)->rune
     let dataof = src.buffer
     if Latin1.isAscii(dataof[0]) do
         return cast(rune) dataof[0]
-    let {c, ?} = Utf8.decodeRune(Swag.makeSlice(dataof, countof))
+    let {c, ?} = decodeRune(src)
     return c
 }
 
-// Returns the last rune of the slice
+// Returns the last rune of `src`, or 0 when `src` is empty.
 func lastRune(src: const [..] u8)->rune
 {
     let countof = src.count
@@ -1221,17 +1221,17 @@ func lastRune(src: const [..] u8)->rune
     let dataof = src.buffer
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune) dataof[countof - 1]
-    let {c, ?} = Utf8.decodeLastRune(Swag.makeSlice(dataof, countof))
+    let {c, ?} = decodeLastRune(src)
     return c
 }
 
-// Selects comparison type.
+// Selects how two UTF-8 texts are compared.
 enum ComparisonType
 {
-    Latin1            // Selects latin1.
+    Latin1            // Compares bytes exactly.
     Latin1NoCase      // Ignores ASCII and encoded Latin-1 case pairs; preserves other UTF-8 bytes.
-    Unicode           // Selects unicode.
-    UnicodeNoCase     // Selects unicode no case.
+    Unicode           // Compares bytes exactly, like `Latin1`.
+    UnicodeNoCase     // Ignores case with Unicode simple case mapping.
 }
 
 // Compares UTF-8 buffers with the selected case policy, returning -1, 0 or 1.
@@ -1240,8 +1240,6 @@ enum ComparisonType
 // characters. Use `.UnicodeNoCase` for Unicode simple case mapping. No mode normalizes text.
 func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s32
 {
-    using ComparisonType
-
     switch #complete comparisonType
     {
     case .Latin1:
@@ -1259,7 +1257,6 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
         var data        = src.buffer
         var otherData   = dst.buffer
 
-        var result:     s32
         var c1, c2:     rune
         var eat1, eat2: u32
         for
@@ -1271,9 +1268,7 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 
             if c1 != c2
             {
-                c1     = Core.Unicode.toLower(c1)
-                c2     = Core.Unicode.toLower(c2)
-                result = cast(s32) c1 - cast(s32) c2
+                let result = cast(s32) Core.Unicode.toLower(c1) - cast(s32) Core.Unicode.toLower(c2)
                 if result != 0 do
                     return Math.sign(result)
             }
@@ -1294,25 +1289,22 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
     return 0
 }
 
-// Macro to visit the unicode characters of the utf8 sequence.
-// Block parameters:
-// - 'c':       the character
-// - 'charIdx': the character index
-// - 'byteIdx': the byte index of that character within the utf8 sequence
+// Runs `stmt` for each rune of `buffer`, in order.
+//
+// The block receives:
+// - `c`, the decoded rune, `RuneError` for each byte of an invalid sequence;
+// - `charIdx`, the zero-based rune index;
+// - `byteIdx`, the byte offset of the rune in `buffer`.
 #[Swag.Macro]
 func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
 {
-    var count = buffer.count
-    if not count do
-        return
-
+    var count      = buffer.count
     var curByteIdx = 0'u64
     var curCharIdx = 0'u64
     var scan       = buffer.buffer
     while count
     {
-        let sl = Swag.makeSlice(scan, count)
-        let {curRune, eat} = decodeRune(sl)
+        let {curRune, eat} = decodeRune(Swag.makeSlice(scan, count))
         if eat == 0 do
             break
 
@@ -1327,7 +1319,7 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
     }
 }
 
-// Returns true if the utf8 sequence is valid
+// Returns whether `buffer` is well-formed UTF-8.
 func isValid(buffer: const [..] u8)->bool
 {
     var p       = buffer.buffer
@@ -1398,12 +1390,14 @@ func isValid(buffer: const [..] u8)->bool
     return true
 }
 
-// Defines beautify name.
+// Returns a camel-case identifier as capitalized, space-separated words for display.
+//
+// The first rune is upper-cased, and a space goes before each upper-case rune that follows a
+// rune of another kind: `myFieldName` becomes `My Field Name`.
 func beautifyName(name: const [..] u8)->String
 {
     var result: retval
 
-    var first    = true
     var wasUpper = true
     visitRunes(name)
     {
@@ -1420,11 +1414,8 @@ func beautifyName(name: const [..] u8)->String
             wasUpper = false
         }
 
-        if first
-        {
+        if charIdx == 0 do
             result += Unicode.toUpper(c)
-            first  = false
-        }
         else do
             result += c
     }

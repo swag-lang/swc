@@ -67,17 +67,17 @@ impl MappedFile
         var remaining = Math.min(try source.size(), maxBytes)
         while remaining
         {
-            let count = try source.read(buffer[0 until Math.min(remaining, buffer.count)])
+            let count = try source.read(buffer[until Math.min(remaining, buffer.count)])
             if not count do
                 fail Errors.InvalidFormatError{}
-            try result.stream.writeAll(buffer[0 until count])
+            try result.stream.writeAll(buffer[until count])
             remaining -= count
         }
 
         return result
     }
 
-    // Releases this value's open file handle. Repeated calls do nothing.
+    // Releases this value's open file handle; repeated calls do nothing.
     mtd close()
     {
         .stream.close()
@@ -172,7 +172,7 @@ struct MappedRegion
 
 impl MappedRegion
 {
-    // Releases this region's view and native handles. Repeated calls do nothing.
+    // Releases this region's view and native handles; repeated calls do nothing.
     mtd close()
     {
         .closeNative()

@@ -22,7 +22,7 @@ private const PortabilityExcludedRoots = [
 // Each entry owns an irreducible host mechanism, an optional native adapter, or a native
 // integration test. Adding a platform suffix does not add a file to this list.
 private const NativeSourceFiles = [
-    "bin/runtime/os_windows.swg",
+    "bin/runtime/os.win32.swg",
     "bin/std/modules/core/src/crypto/security.win32.swg",
     "bin/std/modules/core/src/diagnostics/console.win32.swg",
     "bin/std/modules/core/src/diagnostics/debugger.win32.swg",
@@ -139,7 +139,7 @@ private const NativeDeclarationApprovals = [
     "bin/std/modules/pixel/src/text/fontfamily.win32.swg",
     "face: LOGFONTW",
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
-    "public func createFromHfont(fullname: string, hfont: HFONT)->*TypeFace fail"]
+    "public func createFromHfont(fullName: string, hfont: HFONT)->*TypeFace fail"]
 
 private struct PortabilityParseState
 {
@@ -175,8 +175,8 @@ public func auditPortability(context: *Context)->s32 fail
 
     for path in NativeSourceFiles
     {
-        let fullname = Path.combine(context.root.toString(), path)
-        if File.exists(fullname) do
+        let fullName = Path.combine(context.root.toString(), path)
+        if File.exists(fullName) do
             continue
         Console.println("error: portability approval names missing source ", path)
         errors += 1
@@ -202,7 +202,7 @@ private func auditPortabilityRoot(context: *Context, root: string)->u32 fail
     let files     = try Directory.enumerateFiles(directory.toString(), ".swg", recurse: true)
     for file in files
     {
-        let relative = portabilityRelativePath(context, file.fullname.toString())
+        let relative = portabilityRelativePath(context, file.fullName.toString())
         if isUnderAny(relative.toString(), PortabilityExcludedRoots) do
             continue
         errors += try auditPortabilityFile(context, relative.toString())
@@ -213,8 +213,8 @@ private func auditPortabilityRoot(context: *Context, root: string)->u32 fail
 
 private func auditPortabilityFile(context: *Context, path: string)->u32 fail
 {
-    let fullname = Path.combine(context.root.toString(), path)
-    let content  = try File.readAllText(fullname.toString())
+    let fullName = Path.combine(context.root.toString(), path)
+    let content  = try File.readAllText(fullName.toString())
 
     let interop     = isUnderAny(path, NativeInteropRoots)
     let native      = interop or isApprovedPath(path, NativeSourceFiles) or isUnderAny(path, NativeSourceRoots)
@@ -492,11 +492,11 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
     return result
 }
 
-private func portabilityRelativePath(context: *Context, fullname: string)->String
+private func portabilityRelativePath(context: *Context, fullName: string)->String
 {
     let rootLength = (context.root.toString()).count
-    let start      = rootLength < fullname.count and (fullname[rootLength] == '/' or fullname[rootLength] == '\\') ? rootLength + 1 : rootLength
-    var result     = String.from(fullname[start until fullname.count])
+    let start      = rootLength < fullName.count and (fullName[rootLength] == '/' or fullName[rootLength] == '\\') ? rootLength + 1 : rootLength
+    var result     = String.from(fullName[start until fullName.count])
     result.replace("\\", "/")
     return result
 }
@@ -584,9 +584,15 @@ private func containsIdentifierPrefix(text: string, prefix: string)->bool
 
 private func isApprovedDeclaration(path: string, line: string)->bool
 {
+    // An approval names a declaration: giving it an expression body keeps it approved.
+    let arrow       = Utf8.indexOf(line, " => ")
+    let declaration = arrow == Swag.U64.Max ? line : line[until arrow]
     for index in NativeDeclarationApprovals.count / 2
     {
-        if samePath(path, NativeDeclarationApprovals[index * 2]) and line == NativeDeclarationApprovals[index * 2 + 1] do
+        if not samePath(path, NativeDeclarationApprovals[index * 2]) do
+            continue
+        let approved = NativeDeclarationApprovals[index * 2 + 1]
+        if line == approved or declaration == approved do
             return true
     }
 

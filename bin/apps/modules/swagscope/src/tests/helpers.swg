@@ -14,9 +14,12 @@ func assertViewerInfoButton(button: *IconButton, width = ViewerZoomButtonWidth)
 // Wraps one synthetic creation callback in the descriptor shape the host works with.
 func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 {
-    var result: retval
-    result.key    = "test"
-    result.create = create
+    with var result: retval
+    {
+        .key    = "test"
+        .create = create
+    }
+
     return result
 }
 
@@ -41,7 +44,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
     plugin.create(host)
     if waitForText and plugin.key == TextViewerKey and result.view
     {
-        let view = cast #assume (*TextView) result.view
+        let view = cast #assume (*TextViewer) result.view
         if view.read.started
         {
             view.read.task.wait()
@@ -107,7 +110,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
             let instance = &window.instances[index]
             if instance.view and window.choices[index].key == TextViewerKey
             {
-                let view = cast #assume (*TextView) instance.view
+                let view = cast #assume (*TextViewer) instance.view
                 if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
                     view.statisticsThread.wait()
             }
@@ -121,6 +124,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
     Swag.assert(window.pendingFile.isEmpty())
 }
 
+// Completes file classification, then the selected viewer's own loading, and lets the activity mark go.
 func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     completeViewerWindowClassification(host, window)
@@ -133,7 +137,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
             break
         if window.choices[window.activeChoiceIndex].key == TextViewerKey
         {
-            let view = cast #assume (*TextView) instance.view
+            let view = cast #assume (*TextViewer) instance.view
             completeTextReads(host, view)
             host.fireTimer(view.loadTimer)
         }
@@ -151,7 +155,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
 }
 
 // Completes queued text reads at the GUI publication boundary, including superseded requests.
-func completeTextReads(host: *Testing.HeadlessHost, view: *TextView)
+func completeTextReads(host: *Testing.HeadlessHost, view: *TextViewer)
 {
     for 64
     {

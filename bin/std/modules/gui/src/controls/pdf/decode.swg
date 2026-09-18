@@ -1567,14 +1567,9 @@ private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, 
 private func metadataString(parser: *PdfParser, dictId: u32, key: string)->String
 {
     let raw = parser.stringValue(parser.dict(dictId, key))
-    if raw.count >= 2 and raw[0] == 0xFE and raw[1] == 0xFF
-    {
-        var result = #move Text.decode(cast(const [..] u8) raw[2 until], .Utf16Be)
-        return #move result
-    }
-
-    var result = #move Text.decode(cast(const [..] u8) raw, .Windows1252)
-    return #move result
+    if raw.count >= 2 and raw[0] == 0xFE and raw[1] == 0xFF do
+        return Text.decode(cast(const [..] u8) raw[2 until], .Utf16Be)
+    return Text.decode(cast(const [..] u8) raw, .Windows1252)
 }
 
 // Returns the catalog a trailer named, once the whole chain has been read.

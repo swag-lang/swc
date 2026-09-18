@@ -7,62 +7,62 @@ struct RichEditLexerSwag
 {
     public
     {
-        #[Swag.Incomplete]
         // Identifies a syntax style emitted by the Swag lexer.
+        #[Swag.Incomplete]
         enum Style: RichEditStyleRef
         {
-            Default          // Selects default.
-            Comment          // Selects comment.
-            Keyword          // Selects keyword.
-            Control          // Selects control.
-            Intrinsic        // Selects intrinsic.
+            Default          // Text no other style claims.
+            Comment          // Line and block comments.
+            Keyword          // Keywords, modifiers, and constants such as `true`.
+            Control          // Control-flow keywords such as `if` and `for`.
+            Intrinsic        // Intrinsics and special operator functions.
             Builtin          // Compiler builtin functions such as `Swag.sqrt` and `Swag.memcpy`.
-            Function         // Selects function.
-            Preprocessor     // Selects preprocessor.
-            CharEscape       // Selects char escape.
-            Type             // Selects type.
-            Class            // Selects class.
-            String           // Selects string.
-            Character        // Selects character.
-            Numeric          // Selects numeric.
-            Error            // Selects error.
-            Namespace        // Selects the built-in `Swag` namespace.
+            Function         // Function calls and compiler functions.
+            Preprocessor     // Compiler directives, compiler globals, and attributes.
+            CharEscape       // Compiler constants such as `#os` and `#file`.
+            Type             // Built-in type names.
+            Class            // User-defined type names.
+            String           // String literals.
+            Character        // Character literals.
+            Numeric          // Numeric literals.
+            Error            // Malformed tokens.
+            Namespace        // The built-in `Swag` namespace.
         }
     }
 
-    #[Swag.Incomplete]
     // Identifies the lexical state carried between lines.
+    #[Swag.Incomplete]
     enum State: s32
     {
-        Default               // Selects default.
-        LineComment           // Selects line comment.
-        Comment               // Selects comment.
-        Keyword               // Selects keyword.
-        Declaration           // Selects declaration.
-        Control               // Selects control.
-        Intrinsic             // Selects intrinsic.
+        Default
+        LineComment
+        Comment
+        Keyword
+        Declaration
+        Control
+        Intrinsic
         Namespace             // Built-in `Swag` namespace.
         Builtin               // Compiler builtin function.
-        Compiler              // Selects compiler.
-        CompilerFunction      // Selects compiler function.
-        CompilerGlobal        // Selects compiler global.
-        CompilerStatement     // Selects compiler statement.
-        Modifier              // Selects modifier.
-        FunctionCall          // Selects function call.
-        FunctionSpecOp        // Selects function spec op.
-        Type                  // Selects type.
-        StorageModifier       // Selects storage modifier.
-        UserType              // Selects user type.
-        Constant              // Selects constant.
-        String                // Selects string.
-        RawString             // Selects raw string.
-        Character             // Selects character.
-        Numeric               // Selects numeric.
-        NumericHex            // Selects numeric hex.
-        NumericBin            // Selects numeric bin.
-        NumericFrac           // Selects numeric frac.
-        Attribute             // Selects attribute.
-        Error                 // Selects error.
+        Compiler
+        CompilerFunction
+        CompilerGlobal
+        CompilerStatement
+        Modifier
+        FunctionCall
+        FunctionSpecOp
+        Type
+        StorageModifier
+        UserType
+        Constant
+        String
+        RawString
+        Character
+        Numeric
+        NumericHex
+        NumericBin
+        NumericFrac
+        Attribute
+        Error
     }
 
     mapStyles: [State] Style

@@ -27,7 +27,7 @@ struct SurfaceState
     }
 }
 
-// Top-level drawable window managed by an [[Application]].
+// Top-level drawable window managed by an [[Gui.Application]].
 struct Surface
 {
     public
@@ -151,10 +151,7 @@ impl Surface
     //
     // The window tree, painting, and mouse surface positions live in this space;
     // multiply by [[Gui.Surface.dpiScale]] to obtain physical pixels.
-    mtd const size()->Math.Point
-    {
-        return {.position.width / .dpiScale, .position.height / .dpiScale}
-    }
+    mtd const size()->Math.Point => {.position.width / .dpiScale, .position.height / .dpiScale}
 
     // Sets the surface scale outside the native creation path.
     //
@@ -167,7 +164,7 @@ impl Surface
         .dpiScale = scale
 
         // A move to a denser monitor must resharpen the shared theme atlas.
-        if (.app.theme != null) and .app.theme.initialized and (.app.renderer != null) do
+        if .app.theme != null and .app.theme.initialized and (.app.renderer != null) do
             .app.theme.ensureAtlasScale(.app.renderer, scale)
     }
 
@@ -179,12 +176,11 @@ impl Surface
 
     // Adds and removes runtime-changeable surface flags.
     //
-    // [[SurfaceFlags.ToolWindow]] is fixed when the native window is created and cannot be
+    // [[Gui.SurfaceFlags.ToolWindow]] is fixed when the native window is created and cannot be
     // changed with this method.
     mtd updateFlags(add: SurfaceFlags = .None, remove = SurfaceFlags.None)
     {
-        // Cannot be changed at runtime
-        Swag.assert(not (add & .ToolWindow) and not (remove & .ToolWindow))
+        Swag.assert(not add.has(.ToolWindow) and not remove.has(.ToolWindow), "a tool window is chosen at creation")
 
         .flags.add(add)
         .flags.remove(remove)
@@ -846,7 +842,7 @@ impl Surface
         switch key
         {
         case .Tab:
-            let backward = cast(bool) (modifiers & Input.KeyModifiers.Shift)
+            let backward = modifiers.has(.Shift)
             .app.setFocusVisible(true)
             return from.focusNext(not backward)
 
@@ -870,7 +866,7 @@ impl Surface
     // Replaces and destroys the current user view, then attaches `view` to this surface.
     mtd setView(view: *Wnd)
     {
-        if (.wnd.view != null) and .wnd.view == view do
+        if .wnd.view == view do
             return
         if .wnd.view != null do
             .wnd.view.destroy()
@@ -882,7 +878,7 @@ impl Surface
     private mtd serializeState(ser: *Serializer) fail
     {
         // Save position and surface state
-        if (.wnd.view != null) and .wnd.view.id != null
+        if .wnd.view != null and .wnd.view.id != null
         {
             // What is persisted is the window the user sized, with the transparent margin taken
             // back out of it. The margin is chrome the theme owns: left in the stored rectangle,

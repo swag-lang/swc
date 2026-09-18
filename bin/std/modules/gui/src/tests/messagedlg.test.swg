@@ -26,7 +26,7 @@ func unbreakableMessage()->String
     defer host.shutdown()
 
     let message  = unbreakableMessage()
-    with let dlg = MessageDlg.create(&host.surface, message.toString(), {})
+    with let dlg = MessageDlg.create(&host.surface, message.toString())
     {
         .addButton("Ok", Dialog.BtnOk, true)
     }

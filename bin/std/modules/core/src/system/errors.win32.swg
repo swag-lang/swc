@@ -3,9 +3,12 @@
 
 using Win32
 
-// Translate a captured Win32 SystemError into a domain error. The caller captures the error
-// from the failing Win32 call ('catch Win32Call(...) as err') and hands it here; 'err' is null
-// when the call succeeded, in which case there is nothing to translate.
+// Fails with the domain error matching a captured Win32 [[Swag.SystemError]], or returns when `err` is null.
+//
+// The caller captures the error of the failing Win32 call with `catch Win32Call(...) as err`
+// and hands it here. A missing file or an invalid name becomes a
+// [[Core.Errors.FileNotFoundError]] or a [[Core.Errors.InvalidFileNameError]] naming `val0`;
+// any other error is propagated unchanged.
 func transformWinErrors(err: any?, val0: string? = null) fail
 {
     if err == null do

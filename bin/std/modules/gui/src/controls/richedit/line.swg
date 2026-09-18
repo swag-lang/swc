@@ -78,25 +78,15 @@ impl RichEditLine
     mtd insertRunes(insIndex: u64, src: RichEditLine, srcIndex, srcCount: u64)
     {
         .dirtyStyle = true
-        var srcI = srcIndex
-        for var i = insIndex; i < insIndex + srcCount; i += 1
-        {
-            .chars.insertAt(i, src.chars[srcI])
-            .styles.insertAt(i, src.styles[srcI])
-            srcI += 1
-        }
+        .chars.insertAt(insIndex, src.chars.toSlice()[srcIndex until srcIndex + srcCount])
+        .styles.insertAt(insIndex, src.styles.toSlice()[srcIndex until srcIndex + srcCount])
     }
 
     mtd insertRunes(insIndex: u64, runes: const [..] rune, styles: const [..] u8)
     {
         .dirtyStyle = true
-        var srcI = 0'u64
-        for var i = insIndex; i < insIndex + runes.count; i += 1
-        {
-            .chars.insertAt(i, runes[srcI])
-            .styles.insertAt(i, styles[srcI])
-            srcI += 1
-        }
+        .chars.insertAt(insIndex, runes)
+        .styles.insertAt(insIndex, styles[until runes.count])
     }
 
     mtd removeRunes(srcIndex, count: u64)

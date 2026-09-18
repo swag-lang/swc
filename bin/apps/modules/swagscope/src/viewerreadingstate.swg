@@ -2,6 +2,7 @@
 
 using Core, Gui
 
+// One scrolled viewport of a view, found again through the child indices that lead to it.
 struct ViewerScrollState
 {
     path:     Array'u32
@@ -9,6 +10,7 @@ struct ViewerScrollState
 }
 
 // A reload keeps the selected viewer, its reading scale, and each scrolled viewport.
+//
 // Paths contain child indices, never pointers into the retired window tree.
 struct ViewerReadingState
 {
@@ -49,10 +51,11 @@ impl ViewerReadingState
         {
             path.add(cast(u32) index)
             .captureScrolls(child[], path)
-            path.removeAtOrdered(path.count - 1)
+            discard path.popBack()
         }
     }
 
+    // Records what `session` shows, under the viewer `key` and the active `search`, before a reload.
     mtd capture(session: *ViewerSession, key, search: string)
     {
         .viewer = key
@@ -60,10 +63,9 @@ impl ViewerReadingState
         .scrolls.clear()
         var path: Array'u32
         .captureScrolls(session.view!, &path)
-        let target = session.view
-        switch target
+        switch session.view
         {
-        case TextView as view:
+        case TextViewer as view:
             .zoom     = view.zoomPercent
             .wrapping = view.wrapping
 
@@ -107,12 +109,12 @@ impl ViewerReadingState
             .zoom = (cast #assume (*MarkdownZoomButton) session.info.children[0]).zoomPercent
     }
 
+    // Applies the recorded reading scale to the reloaded `session`, then arms [[ViewerReadingState.restore]].
     mtd applySettings(session: *ViewerSession)
     {
-        let target = session.view!
-        switch target
+        switch session.view!
         {
-        case TextView as view:
+        case TextViewer as view:
             view.setZoom(.zoom)
             if view.wrapping != .wrapping do
                 view.toggleWrap()
@@ -133,7 +135,9 @@ impl ViewerReadingState
         .contentSettingsApplied = false
     }
 
-    // Wait for the initial viewport, apply the saved position once, then let streaming settle.
+    // Brings the recorded position back to the reloaded `session`, and reports whether it is done.
+    //
+    // It waits for the initial viewport, applies the saved position once, then lets streaming settle.
     mtd restore(session: *ViewerSession)->bool
     {
         if not session.view do
@@ -146,8 +150,7 @@ impl ViewerReadingState
         // Reapplying an unreachable position interrupts the viewer's own seek and scroll
         // animation on every watch tick, so a shorter replacement can never finish loading.
         .contentSettingsApplied = true
-        let target = session.view
-        switch target
+        switch session.view
         {
         case PdfViewer as view:
             view.pdfView.setPageLayout(.pdfLayout)

@@ -400,7 +400,7 @@ impl Ast
         case '.':
             .advance()
             var cls: RuneClass
-            cls.add(0, MaxRune)
+            cls.add(0, Utf8.MaxRune)
             if not .flags.dotAll
             {
                 cls.negate()
@@ -719,7 +719,7 @@ impl Ast
             }
         }
 
-        if value > MaxRune do
+        if value > Utf8.MaxRune do
             fail SyntaxError{"hexadecimal escape is above the largest scalar value"}
         return cast(rune) value
     }

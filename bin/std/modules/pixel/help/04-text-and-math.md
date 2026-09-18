@@ -2,6 +2,7 @@
 
 Text has three layers. [[Pixel.TypeFace]] owns font-file data, [[Pixel.Font]]
 selects a size and rendering mode, and [[Pixel.Painter]] records shaped glyphs.
+Fonts are created and owned by a [[Pixel.FontCache]]; every renderer has one.
 Use [[Pixel.RichString]] when a paragraph needs style runs, wrapping, alignment,
 or hit-testable links.
 
@@ -10,9 +11,11 @@ or hit-testable links.
 ```swag
 using Pixel
 
-let font = try Font.create("Inter-Regular.ttf", 20)
+var cpu: RenderCpu
+let renderer: IRenderer = &cpu
+var painter = Painter.create(renderer)
+let font = try renderer.fontCache().createFont("Inter-Regular.ttf", 20)
 
-var painter: Painter
 painter.begin()
 painter.drawString(24, 32, "Hello, Pixel", font, Color.fromRgb(245, 245, 245))
 painter.end()
@@ -25,9 +28,9 @@ matters more than automatic quality.
 
 ## Rich text
 
-[[Pixel.RichString.set]] parses Pixel's lightweight inline markup.
-[[Pixel.RichString.compute]] rebuilds shaped chunks after text or layout inputs
-change, and [[Pixel.Painter.drawRichString]] records the result.
+[[Pixel.RichString.set]] takes text written in Pixel's lightweight inline markup.
+[[Pixel.RichString.compute]] splits it into styled chunks after the text changes,
+and [[Pixel.Painter.drawRichString]] lays the chunks out and records the result.
 
 Keep the [[Pixel.FontFamily]] and formatting inputs alive while computing and
 drawing the text. The rich string retains its source text and derived layout state,

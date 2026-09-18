@@ -1,7 +1,8 @@
 /*
-Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed ISO-BMFF and
-Matroska readers also expose streamed sound tracks through [[Audio.SoundFile]] and timed text
-through [[Video.Subtitle.Track]]. Standalone subtitle documents use the same track and cue model.
+Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed AVI, ISO-BMFF, and
+Matroska readers also expose streamed sound tracks through [[Audio.SoundFile]], and Matroska readers
+expose timed text through [[Video.Subtitle.Track]]. Standalone subtitle documents use the same track
+and cue model.
 
 Reading and writing are streamed: [[Video.Reader]] opens a stream by reading its
 metadata and decodes one frame at a time, and [[Video.Writer]] encodes one frame
@@ -47,7 +48,8 @@ Four codecs ship in the box:
   packet offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and coded display reordering.
 - Matroska (`.mkv`) reads H.264, H.265, and MPEG-4 Part 2 pictures and exposes every AAC-LC, AC-3,
-  independent E-AC-3, DTS Core, FLAC, and MPEG Layer III audio track with up to eight channels. A picture
+  independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight
+  channels that its decoder supports. A picture
   track remuxed from a legacy file is read as well: such a track names its codec through a Video
   for Windows header, states its setup headers inside the stream rather than in the container, and
   may store a bidirectional plane behind the plane it refers forward to. Display order is then

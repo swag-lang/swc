@@ -23,7 +23,7 @@ func reportSfntFont(image: *BinaryImage, report: *BinaryReport)
     // Everything in an sfnt container is big endian, including the collection header.
     image.bigEndian = true
 
-    let s = binStrings()
+    let s = binaryStrings()
     if image.matches(0, "ttcf")
     {
         reportFontCollection(image, report)
@@ -37,7 +37,7 @@ func reportSfntFont(image: *BinaryImage, report: *BinaryReport)
 
 private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
 {
-    let s     = binStrings()
+    let s     = binaryStrings()
     let count = cast(u64) image.u32At(8)
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
@@ -63,9 +63,7 @@ private func reportFontCollection(image: *BinaryImage, report: *BinaryReport)
 // Adds the tables of the font whose directory starts at `at`, and returns the family it names.
 private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u64, open: bool)->String
 {
-    var result: retval
-
-    let s     = binStrings()
+    let s     = binaryStrings()
     let count = cast(u64) image.u16At(at + 4)
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
@@ -110,9 +108,9 @@ private func reportFontTables(image: *BinaryImage, report: *BinaryReport, at: u6
     if maxpAt != Swag.U64.Max and image.has(maxpAt, 6) do
         report.numField(maxpAt + 4, 2, s.font_Glyphs, cast(u64) image.u16At(maxpAt + 4))
 
-    if nameAt != Swag.U64.Max do
-        result = reportFontNames(image, report, nameAt, open)
-    return result
+    if nameAt == Swag.U64.Max do
+        return {}
+    return reportFontNames(image, report, nameAt, open)
 }
 
 // Adds the naming table, and returns the family the font calls itself.
@@ -120,7 +118,7 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
 {
     var result: retval
 
-    let s         = binStrings()
+    let s         = binaryStrings()
     let count     = cast(u64) image.u16At(at + 2)
     let stringsAt = at + cast(u64) image.u16At(at + 4)
     let shown     = Math.min(count, BinaryListLimit)
@@ -159,7 +157,7 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
 // Returns which of the naming table's entries are worth showing, and under what heading.
 private func fontNameLabel(nameId: u16)->string
 {
-    let s = binStrings()
+    let s = binaryStrings()
     switch nameId
     {
     case 0: return "Copyright"

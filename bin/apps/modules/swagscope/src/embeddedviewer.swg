@@ -33,10 +33,7 @@ struct EmbeddedViewer
     currentSideButton: *IconButton?
 }
 
-private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer
-{
-    return view.ancestorByType'EmbeddedViewer()!
-}
+private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer => view.ancestorByType'EmbeddedViewer()!
 
 private func reportEmbeddedFailure(view: *Wnd, reason: string)
 {
@@ -45,8 +42,7 @@ private func reportEmbeddedFailure(view: *Wnd, reason: string)
 
 private func reportEmbeddedDetails(view: *Wnd, details: string)
 {
-    let embedded = embeddedViewerFor(view)
-    for &instance in embedded.instances where instance.view == view
+    for &instance in embeddedViewerFor(view).instances where instance.view == view
     {
         instance.details = details
         return
@@ -99,16 +95,8 @@ impl Viewer.Embedded for EmbeddedViewer
     {
         for &instance in .instances where not instance.retireView() do
             return false
-
-        for &instance in .instances
-        {
-            instance.actions?.destroy()
-            instance.info?.destroy()
-            instance.commands?.destroy()
-            instance.sidePanelButton?.destroy()
-            instance.sidePanelHost?.destroy()
-            instance.view?.destroy()
-        }
+        for &instance in .instances do
+            instance.destroyWindows()
 
         .instances.clear()
         .choices.clear()
@@ -222,12 +210,7 @@ private impl EmbeddedViewer
         if not next.failureReason.isEmpty()
         {
             let reason = #move next.failureReason
-            next.actions?.destroy()
-            next.info?.destroy()
-            next.commands?.destroy()
-            next.sidePanelButton?.destroy()
-            next.sidePanelHost?.destroy()
-            next.view?.destroy()
+            next.destroyWindows()
             next      = {}
             next.failureReason = #move reason
             next.view = ViewerErrorView.create(.document, next.failureReason.toString())
@@ -257,12 +240,7 @@ private impl EmbeddedViewer
         {
             if not instance.retireView() do
                 return
-            instance.actions?.destroy()
-            instance.info?.destroy()
-            instance.commands?.destroy()
-            instance.sidePanelButton?.destroy()
-            instance.sidePanelHost?.destroy()
-            instance.view?.destroy()
+            instance.destroyWindows()
             instance[]              = {}
             instance.failureReason  = reason
             instance.view           = ViewerErrorView.create(.document, reason)

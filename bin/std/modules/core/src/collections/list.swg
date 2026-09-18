@@ -2,7 +2,7 @@
 
 using Swag
 
-// Represents a single node in a doubly-linked 'List'.
+// A node of a doubly linked [[Core.List]], holding one value.
 struct(T) ListEntry
 {
     public readonly
@@ -14,8 +14,10 @@ struct(T) ListEntry
     public value: T     // The value stored in the node.
 }
 
-// A generic, doubly-linked list.
-// Provides efficient insertion and deletion of elements.
+// A doubly linked list that owns its nodes and their values.
+//
+// Insertion and removal at a known node take constant time, and a node stays at the same address
+// until it is removed, so node pointers survive changes to the rest of the list.
 struct(T) List
 {
     public readonly
@@ -89,19 +91,18 @@ impl List
         }
     }
 
-    // Ensures all nodes are deallocated when the list goes out of scope.
+    // Deletes every node.
     mtd opDrop()
     {
         .clear()
     }
 
-    // Provides a way to iterate over each element in the list.
-    // This is a macro that accepts a code block to execute for each element.
-    // Visiting by pointer is supported.
-    // Block parameters:
-    // - 'item':  The value of the element (or a pointer to it).
-    // - 'node':  A pointer to the list node ('ListEntry').
-    // - 'index': The index of the element.
+    // Visits every element from head to tail.
+    //
+    // The visited code receives:
+    // - `item`, the value, or a pointer to it when visiting by address or when it is a struct.
+    // - `node`, the address of the [[Core.ListEntry]] holding it.
+    // - `index`, its zero-based position.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, node, index: u64))
     {
@@ -129,7 +130,7 @@ impl List
     // Returns an immutable zero-allocation view that traverses the list from tail to head.
     mtd const reversed()->ReversedList'T => {source: me}
 
-    // Removes and deallocates all elements from the list.
+    // Deletes every node and leaves the list empty.
     mtd clear()
     {
         var n = .head
@@ -144,7 +145,7 @@ impl List
         .count       = 0
     }
 
-    // Removes and deallocates `node`.
+    // Unlinks and deletes `node`, which must belong to this list.
     mtd remove(node: *ListEntry)
     {
         if node.prev do
@@ -161,9 +162,9 @@ impl List
         Memory.delete(node)
     }
 
-    // Adds a new element to the front of the list.
-    // The value is copied; pass it with '#move' to move it instead.
-    // Returns a pointer to the newly created list node.
+    // Adds `value` in a new node at the head of the list and returns that node.
+    //
+    // The value is copied; pass it with `#move` to move it instead.
     #[Discardable]
     mtd addFront(value: #fwd T)->*ListEntry
     {
@@ -184,9 +185,9 @@ impl List
         return n
     }
 
-    // Adds a new element to the back of the list.
-    // The value is copied; pass it with '#move' to move it instead.
-    // Returns a pointer to the newly created list node.
+    // Adds `value` in a new node at the tail of the list and returns that node.
+    //
+    // The value is copied; pass it with `#move` to move it instead.
     #[Discardable]
     mtd addBack(value: #fwd T)->*ListEntry
     {
@@ -207,9 +208,9 @@ impl List
         return n
     }
 
-    // Inserts a new element before a specified node.
-    // The value is copied; pass it with '#move' to move it instead.
-    // Returns a pointer to the newly created list node.
+    // Inserts `value` in a new node before `node` and returns the new node.
+    //
+    // `node` must belong to this list. The value is copied; pass it with `#move` to move it instead.
     #[Discardable]
     mtd insertBefore(node: *ListEntry, value: #fwd T)->*ListEntry
     {
@@ -227,9 +228,9 @@ impl List
         return n
     }
 
-    // Inserts a new element after a specified node.
-    // The value is copied; pass it with '#move' to move it instead.
-    // Returns a pointer to the newly created list node.
+    // Inserts `value` in a new node after `node` and returns the new node.
+    //
+    // `node` must belong to this list. The value is copied; pass it with `#move` to move it instead.
     #[Discardable]
     mtd insertAfter(node: *ListEntry, value: #fwd T)->*ListEntry
     {

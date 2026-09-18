@@ -54,10 +54,7 @@ func previewWav()->Array'u8
     return result
 }
 
-func waveformFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/waveform.samples.txt")
-}
+func waveformFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/waveform.samples.txt")
 
 func writeU16(bytes: *Array'u8, offset: u64, value: u16)
 {
@@ -145,10 +142,9 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("scope_sound_%.wav", Guid64.random()).toString())
+    let fileName = Gui.Testing.tempFilePath("scope-sound-", ".wav")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, TinyWav)
+    expect File.writeAllBytes(fileName, TinyWav)
 
     Swag.assert(acquireSoundEngine(.NoSound))
     defer releaseSoundEngine()
@@ -179,9 +175,9 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     Swag.assert(view.waveform.readyCount == 4)
     Swag.assert(view.timeline.isEnabled() and view.timeLabel.text() == "0:00 / 0:01")
 
-    // A second file opened after the engine exists must decode exactly like the first one: the
-    // waveform of every file but the first went missing when a failure inside the engine was
-    // swallowed on its way out of the module.
+    // A second file opened after the engine exists must decode exactly like the first one: a
+    // failure swallowed inside the engine on its way out of the module would leave every waveform
+    // but the first one empty.
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var replacementResult   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: replacementCommands)
     Swag.assert(replacementResult.view != null)
@@ -233,11 +229,10 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 #[Swag.TestTag("golden")]
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), "viewer.sound.preview.wav")
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "viewer.sound.preview.wav")
     defer discard catch File.delete(fileName)
     let wav = previewWav()
-    discard expect File.writeAllBytes(fileName, wav.toSlice())
+    expect File.writeAllBytes(fileName, wav.toSlice())
 
     Swag.assert(acquireSoundEngine(.NoSound))
     defer releaseSoundEngine()
@@ -265,7 +260,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     // Photographed mid-playback: the picture has to show the played part apart from the rest, the
     // play head between them, and the graduated scale under both.
     view.elapsed = view.duration * 0.38
-    view.updatePlaybackUi()
+    view.refreshTransport()
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
 
@@ -323,7 +318,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 // on whether a playback device can be opened.
 #test
 {
-    let pacmanWav = Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "pacman_beginning.wav")
+    let pacmanWav = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/pacman_beginning.wav")
     let sound     = expect SoundFile.load(pacmanWav.toString())
     Swag.assert(sound.sampleRateHz() == 11_025)
     Swag.assert(sound.numChannels() == 1)
@@ -368,11 +363,10 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 // first sample without leaving the playing state, and any other answer stops it.
 #test
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), "viewer.sound.finish.wav")
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "viewer.sound.finish.wav")
     defer discard catch File.delete(fileName)
     let wav = previewWav()
-    discard expect File.writeAllBytes(fileName, wav.toSlice())
+    expect File.writeAllBytes(fileName, wav.toSlice())
 
     Swag.assert(acquireSoundEngine(.NoSound))
     defer releaseSoundEngine()

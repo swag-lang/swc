@@ -17,8 +17,6 @@ struct BinaryStrings
     ui_ColValue:     string = "Value"                                                                  // Header of the decoded value column.
     ui_ColOffset:    string = "Offset"                                                                 // Header of the file offset column.
     ui_ColDetail:    string = "Meaning"                                                                // Header of the explanation column.
-    ui_TipExpand:    string = "Expand everything (Ctrl+E)"                                             // Tooltip while the tree is collapsed.
-    ui_TipCollapse:  string = "Collapse everything (Ctrl+E)"                                           // Tooltip while the tree is expanded.
     ui_MenuCopyAll:  string = "Copy the whole report"                                                  // Menu entry copying every row.
     ui_MenuCopyLine: string = "Copy this line"                                                         // Menu entry copying the selected row.
     ui_MenuExpand:   string = "Expand everything"                                                      // Menu entry opening every group.
@@ -67,7 +65,6 @@ struct BinaryStrings
     shr_BuildId:     string = "Build identity"                                            // Row giving a build fingerprint.
     shr_Interpreter: string = "Interpreter"                                               // Row giving the program interpreter or loader.
     shr_Entry:       string = "Entry point"                                               // Row giving where execution starts.
-    shr_Malformed:   string = "the chain of records stops before the end of the file"     // Broken layout.
 
     rep_File:        string = "File"                                             // Group naming the file itself.
     rep_Size:        string = "Size"                                             // Row giving the size on disk.
@@ -211,7 +208,6 @@ struct BinaryStrings
     mo_CommandsDesc: string = "what the loader is told to do"     // Meaning of the load commands.
     mo_Fat:          string = "Universal binary"                  // Group of a multi-architecture wrapper.
     mo_FatDesc:      string = "one image per architecture"        // Meaning of a universal binary.
-    mo_Architecture: string = "Architecture"                      // One slice of a universal binary.
     mo_Protection:   string = "maximum %, initial %"              // Page protection of one segment.
     mo_Slice:        string = "slice %"                           // Label of one architecture slice.
 
@@ -273,10 +269,15 @@ private var g_BinaryStrings: BinaryStrings
 // before replacing that snapshot.
 tls private var g_BinaryStringsOverride: const *BinaryStrings?
 
-// Returns the visible strings of the binary viewer in the active language.
-func binStrings()->const *BinaryStrings => g_BinaryStringsOverride ? g_BinaryStringsOverride! : &g_BinaryStrings
+// Returns the visible strings of the binary viewer.
+//
+// A background decoder reads the snapshot its thread selected; every other caller reads the active
+// language.
+func binaryStrings()->const *BinaryStrings => g_BinaryStringsOverride ? g_BinaryStringsOverride! : &g_BinaryStrings
 
-// Selects a stable string-table snapshot for the current background decoder.
+// Makes `strings` the table [[binaryStrings]] returns on the calling thread.
+//
+// Passing `null` restores the shared table of the active language.
 func setBinaryStringsOverride(strings: const *BinaryStrings?)
 {
     g_BinaryStringsOverride = strings
@@ -293,10 +294,7 @@ func registerBinaryStrings(app: *Application)
 }
 
 // Returns `count` followed by the noun in the form that count calls for.
-func countText(count: u64, singular, plural: string)->String
-{
-    return Format.toString("% %", count, count == 1 ? singular : plural)
-}
+func countText(count: u64, singular, plural: string)->String => Format.toString("% %", count, count == 1 ? singular : plural)
 
 #run
 {

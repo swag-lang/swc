@@ -80,10 +80,7 @@ func msdfNormDir(dx, dy: f64)->{ x: f64, y: f64 }
     return result
 }
 
-func msdfIsDegenerate(x0, y0, x1, y1: f64)->bool
-{
-    return Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001)
-}
+func msdfIsDegenerate(x0, y0, x1, y1: f64)->bool => Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001)
 
 func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64, color = MSDF_BLACK)
 {
@@ -554,7 +551,7 @@ func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32
     sweep.reserve(segs.count)
     for &s, i in segs do
         sweep.add(MsdfSweep{s.minY, cast(u32) i})
-    sweep.sort(func||(l, r) { return l.minY <=> r.minY })
+    sweep.sort(func||(l, r) => l.minY <=> r.minY)
 
     var cuts: Array'MsdfCut
     for i in sweep.count
@@ -606,7 +603,7 @@ func msdfResolveBoundary(segs: const [..] MsdfSeg, contourStarts: const [..] u32
         }
     }
 
-    cuts.sort(func||(l, r) { return l.seg == r.seg ? l.t <=> r.t : l.seg <=> r.seg })
+    cuts.sort(func||(l, r) => l.seg == r.seg ? l.t <=> r.t : l.seg <=> r.seg)
 
     var nextCut = 0'u64
     for &s, i in segs
@@ -895,10 +892,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
     return result
 }
 
-func msdfMedian(a, b, c: f64)->f64
-{
-    return Math.max(Math.min(a, b), Math.min(Math.max(a, b), c))
-}
+func msdfMedian(a, b, c: f64)->f64 => Math.max(Math.min(a, b), Math.min(Math.max(a, b), c))
 
 struct MsdfRowCtx
 {

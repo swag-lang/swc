@@ -1,7 +1,10 @@
 #global namespace Random
 #global public
 
-// Produces pseudorandom values from the selected algorithm.
+// Produces pseudorandom values from the algorithm `T`.
+//
+// A generator that was never seeded seeds itself from the clock and the current thread on its
+// first draw. Seed it explicitly for a reproducible sequence.
 #[Swag.Opaque]
 struct(T = MultiplyWithCarry32) Generator
 {
@@ -17,7 +20,7 @@ struct(T = MultiplyWithCarry32) Generator
 
 impl Generator
 {
-    // Seed random generator with a 32 bits value
+    // Seeds the generator with a 32-bit value.
     #[Swag.Inline]
     mtd seedU32(seed: u32)
     {
@@ -28,7 +31,7 @@ impl Generator
             return .rng.seedU64(cast(u64) seed)
     }
 
-    // Seed random generator with a 64 bits value
+    // Seeds the generator with a 64-bit value.
     #[Swag.Inline]
     mtd seedU64(seed: u64)
     {
@@ -39,7 +42,7 @@ impl Generator
             return .rng.seedU32(cast #wrap (u32) seed)
     }
 
-    // Returns an unsigned 32 bits random value
+    // Returns the next 32-bit unsigned value.
     #[Swag.Inline]
     mtd nextU32()->u32
     {
@@ -52,7 +55,7 @@ impl Generator
             return cast #wrap (u32) .rng.nextU64()
     }
 
-    // Returns an unsigned 64 bits random value
+    // Returns the next 64-bit unsigned value.
     #[Swag.Inline]
     mtd nextU64()->u64
     {
@@ -71,30 +74,25 @@ impl Generator
         .seedU64(Time.monotonicMicroseconds() ^ Env.Process.currentThreadId())
     }
 
-    // Returns a signed 32 bits random value
+    // Returns the next 32-bit signed value.
     #[Swag.Inline]
-    mtd nextS32()->s32
-    {
-        return cast #bit (s32) .nextU32()
-    }
+    mtd nextS32()->s32 => cast #bit (s32) .nextU32()
 
-    // Returns a signed 64 bits random value
+    // Returns the next 64-bit signed value.
     #[Swag.Inline]
-    mtd nextS64()->s64
-    {
-        return cast #bit (s64) .nextU64()
-    }
+    mtd nextS64()->s64 => cast #bit (s64) .nextU64()
 
-    // Range is [0..1[, so 1.0 will never be returned
+    // Returns a value in the half-open interval `[0, 1)`, with 24 bits of precision.
     #[Swag.Inline]
     mtd nextF32()->f32 => cast(f32) (.nextU32() >> 8) * (1'f32 / 16777216'f32)
 
-    // Range is [0..1[, so 1.0 will never be returned
+    // Returns a value in the half-open interval `[0, 1)`, with 53 bits of precision.
     #[Swag.Inline]
     mtd nextF64()->f64 => cast(f64) (.nextU64() >> 11) * (1'f64 / 9007199254740992'f64)
 
-    // Returns an unsigned random value in a given range
-    // 'max' is excluded
+    // Returns a uniformly distributed value in the half-open interval `[min, max)`.
+    //
+    // `max` must be greater than `min`.
     mtd nextU32(min, max: u32)->u32
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
@@ -107,8 +105,9 @@ impl Generator
         return min + value
     }
 
-    // Returns an unsigned random value in a given range
-    // 'max' is excluded
+    // Returns a uniformly distributed value in the half-open interval `[min, max)`.
+    //
+    // `max` must be greater than `min`.
     mtd nextU64(min, max: u64)->u64
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
@@ -121,8 +120,9 @@ impl Generator
         return min + value
     }
 
-    // Returns a signed random value in a given range
-    // 'max' is excluded
+    // Returns a uniformly distributed value in the half-open interval `[min, max)`.
+    //
+    // `max` must be greater than `min`.
     #[Swag.Safety(.Overflow, false)]
     mtd nextS32(min, max: s32)->s32
     {
@@ -138,8 +138,9 @@ impl Generator
         return cast #bit (s32) cast #wrap (u32) (minBits + value)
     }
 
-    // Returns a signed random value in a given range
-    // 'max' is excluded
+    // Returns a uniformly distributed value in the half-open interval `[min, max)`.
+    //
+    // `max` must be greater than `min`.
     #[Swag.Safety(.Overflow, false)]
     mtd nextS64(min, max: s64)->s64
     {
@@ -155,8 +156,9 @@ impl Generator
         return cast #bit (s64) cast #wrap (u64) (minBits + value)
     }
 
-    // Returns a float value in a given range
-    // 'max' is excluded
+    // Returns a value in the half-open interval `[min, max)`.
+    //
+    // `max` must be greater than `min`.
     mtd nextF32(min, max: f32)->f32
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
@@ -165,8 +167,9 @@ impl Generator
         return min + (value * range)
     }
 
-    // Returns a float value in a given range
-    // 'max' is excluded
+    // Returns a value in the half-open interval `[min, max)`.
+    //
+    // `max` must be greater than `min`.
     mtd nextF64(min, max: f64)->f64
     {
         Swag.assert(max > min, "[[max]] must be greater than [[min]]")
@@ -175,13 +178,10 @@ impl Generator
         return min + (value * range)
     }
 
-    // Returns a random bool
-    mtd nextBool()->bool
-    {
-        return .nextU32(0, 2) == 0 ? false : true
-    }
+    // Returns `true` or `false` with equal probability.
+    mtd nextBool()->bool => .nextU32(0, 2) != 0
 
-    // Randomizes the order of a slice using Fisher-Yates shuffling.
+    // Randomizes the order of the elements of `slice` in place with a Fisher-Yates shuffle.
     mtd(V) shuffle(slice: [..] V)
     {
         let count = slice.count

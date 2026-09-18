@@ -26,7 +26,7 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
     {
         Swag.assert(not (wnd is ScrollWnd))
         Swag.assert(not (wnd is RichEditCtrl))
-        Swag.assert(wnd.focusPolicy == FocusPolicy.None)
+        Swag.assert(wnd.focusPolicy == .None)
     }
 
     // The text fits the box the tip committed, on both axes.
@@ -49,6 +49,15 @@ func showTip(owner: *Wnd, text: string)->*Label
 {
     ToolTip.show(owner, {40, 40}, text, 0's)
     return cast #assume (*Label) owner.app().toolTip.current!.view
+}
+
+// Returns an annotation far taller than any tip may grow.
+func longAnnotation()->String
+{
+    var result: retval
+    for 40 do
+        result += "every sentence adds another line to this annotation. "
+    return result
 }
 
 // A tip holding one short line is exactly as large as that line, and shows nothing else.
@@ -121,12 +130,9 @@ func showTip(owner: *Wnd, text: string)->*Label
     host.setup(600, 400)
     defer host.shutdown()
 
-    var long: String
-    for 40 do
-        long += "every sentence adds another line to this annotation. "
-
-    let btn = PushButton.create(&host.root, "Help", {20, 20, 100, 30})
-    let lbl = showTip(btn, long.toString())
+    let long = longAnnotation()
+    let btn  = PushButton.create(&host.root, "Help", {20, 20, 100, 30})
+    let lbl  = showTip(btn, long.toString())
 
     let tip = host.app.toolTip.current!
     assertPassiveAndFits(tip, lbl)
@@ -144,12 +150,9 @@ func showTip(owner: *Wnd, text: string)->*Label
     host.setup(240, 110)
     defer host.shutdown()
 
-    var long: String
-    for 40 do
-        long += "every sentence adds another line to this annotation. "
-
-    let btn = PushButton.create(&host.root, "Help", {10, 10, 60, 24})
-    let lbl = showTip(btn, long.toString())
+    let long = longAnnotation()
+    let btn  = PushButton.create(&host.root, "Help", {10, 10, 60, 24})
+    let lbl  = showTip(btn, long.toString())
 
     assertPassiveAndFits(host.app.toolTip.current!, lbl)
 }
@@ -252,10 +255,7 @@ var g_LinkText:  String
     let wrapped = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&wrapped, "tooltip.wrapped")
 
-    var long: String
-    for 40 do
-        long += "every sentence adds another line to this annotation. "
-
+    let long = longAnnotation()
     discard showTip(btn, long.toString())
     host.settleAnimations(&host.surfaceWnd)
     let truncated = host.render(&host.surfaceWnd)
@@ -265,6 +265,4 @@ var g_LinkText:  String
     host.settleAnimations(&host.surfaceWnd)
     let rich = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&rich, "tooltip.rich")
-
-    host.app.toolTip.hide()
 }

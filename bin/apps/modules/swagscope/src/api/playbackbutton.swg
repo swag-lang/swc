@@ -41,19 +41,22 @@ impl PlaybackButton
     func create(parent: *Wnd, view: *Wnd, playback: PlaybackApi, showSlideDuration = false)->*PlaybackButton
     {
         let metrics = parent.themeMetrics()
-        let result  = Wnd.create'PlaybackButton(parent, null, {0, 0, themeDropDownButtonWidth(metrics), themeActionButtonSize(metrics)})
-        result.view              = view
-        result.playback          = playback
-        result.showSlideDuration = showSlideDuration
-        result.focusPolicy       = .Tab
-        result.wndFlags          |= .ActivatesOnKey
-        result.padding           = metrics.btnIcon_Padding
-        result.updateFlags(.CenterContent)
-        result.setArrowPosition(.RightUpward)
-        result.toolTip = appStrings().ui_PlayMode
-        result.enable(playback.isAvailable())
-        result.refreshIcon()
-        result.sigPressed += func(button) { (cast #assume (*PlaybackButton) button).showMenu() }
+        with let result = Wnd.create'PlaybackButton(parent, null, {0, 0, themeDropDownButtonWidth(metrics), themeActionButtonSize(metrics)})
+        {
+            .view              = view
+            .playback          = playback
+            .showSlideDuration = showSlideDuration
+            .focusPolicy       = .Tab
+            .wndFlags          |= .ActivatesOnKey
+            .padding           = metrics.btnIcon_Padding
+            .updateFlags(.CenterContent)
+            .setArrowPosition(.RightUpward)
+            .toolTip = appStrings().ui_PlayMode
+            .enable(playback.isAvailable())
+            .refreshIcon()
+            .sigPressed += func(button) { (cast #assume (*PlaybackButton) button).showMenu() }
+        }
+
         return result
     }
 

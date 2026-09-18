@@ -71,7 +71,7 @@ internal impl Properties
         // box) wraps the whole thing so the bar reads as part of the row. The column separator
         // is the exception: it must stop at the value cell, since the bar spans full width.
         var valueCellBottom = r.bottom()
-        if .isGridLike() and (item.validationLabel != null) and item.validationLabel.isVisible() do
+        if .isGridLike() and item.validationLabel != null and item.validationLabel.isVisible() do
             valueCellBottom = item.validationLabel.position.y - .valBarPaddingY
 
         // Background. Group headers (section/category) get a band; data rows stay transparent —

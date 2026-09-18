@@ -40,12 +40,12 @@ struct PlanarFrame
         strideLuma:   u32     // Bytes between luma rows, equal to `width`.
         strideChroma: u32     // Bytes between chroma rows.
 
-        // How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0,
-        // none for 4:4:4.
+        // How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0, none for 4:4:4.
         chromaShift: s32 = 1
 
-        // Whether the samples use the studio range of 16 to 235, which is what a camera or a
-        // screen recorder writes, rather than the full range of 0 to 255.
+        // Whether the samples use the studio range of 16 to 235 rather than the full range of 0 to 255.
+        //
+        // The studio range is what a camera or a screen recorder writes.
         studioRange: bool = true
 
         // Matrix the renderer uses to convert these planes to RGB.
@@ -55,8 +55,8 @@ struct PlanarFrame
 
 impl PlanarFrame
 {
-    // Reports whether the picture holds samples.
-    mtd const isValid()->bool => .width > 0 and .height > 0 and .luma.count != 0
+    // Returns whether the picture holds samples.
+    mtd const isValid()->bool => .width > 0 and .height > 0 and not .luma.isEmpty()
 
     // Returns the number of chroma rows: the luma rows shifted down and rounded up.
     mtd const chromaHeight()->s32 => (.height + (1 << .chromaShift) - 1) >> .chromaShift
@@ -80,8 +80,9 @@ impl PlanarFrame
             studioRange: .studioRange}
     }
 
-    // Resizes the planes for a picture of `width` by `height` whose chroma planes are
-    // `chromaShift` halvings smaller, keeping the storage it can.
+    // Resizes the planes for a picture of `width` by `height`, keeping the storage it can.
+    //
+    // The chroma planes are `chromaShift` halvings smaller than the luma plane in each direction.
     mtd resize(width, height: s32, chromaShift = 1's32)
     {
         let round       = (1's32 << chromaShift) - 1

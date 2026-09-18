@@ -25,10 +25,7 @@ struct FormShape
 
 impl IForm for FormShape
 {
-    mtd impl canRotate()->bool
-    {
-        return .subKind == .None
-    }
+    mtd impl canRotate()->bool => .subKind == .None
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {

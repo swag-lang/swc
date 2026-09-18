@@ -119,10 +119,7 @@ struct LosslessTransform
     pixels:   Array'u8
 }
 
-func losslessTileCount(size: s32, bits: u32)->s32
-{
-    return (size + cast(s32) (1 << bits) - 1) >> bits
-}
+func losslessTileCount(size: s32, bits: u32)->s32 => (size + cast(s32) (1 << bits) - 1) >> bits
 
 func losslessReverseByte(value: u8)->u8
 {
@@ -538,7 +535,7 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
     for realIndex in maxGroupIndex + 1
     {
         var group: *LosslessHuffmanGroup?
-        if mapping.count == 0 do
+        if mapping.isEmpty() do
             group = groupData + realIndex
         elif mapping[realIndex] != -1 do
             group = groupData + mapping[realIndex]
@@ -694,20 +691,11 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
     }
 }
 
-func losslessWrap8(value: s32)->u8
-{
-    return cast(u8) (value & 0xFF)
-}
+func losslessWrap8(value: s32)->u8 => cast(u8) (value & 0xFF)
 
-func losslessAverage(a, b: u8)->u8
-{
-    return cast(u8) ((cast(u32) a + b) / 2)
-}
+func losslessAverage(a, b: u8)->u8 => cast(u8) ((cast(u32) a + b) / 2)
 
-func losslessClampAddSubtractFull(a, b, c: u8)->u8
-{
-    return cast(u8) Math.clamp(cast(s32) a + b - c, 0, 255)
-}
+func losslessClampAddSubtractFull(a, b, c: u8)->u8 => cast(u8) Math.clamp(cast(s32) a + b - c, 0, 255)
 
 func losslessClampAddSubtractHalf(a, b: u8)->u8
 {

@@ -2,7 +2,8 @@
 
 using Core, Pixel, Gui
 
-internal enum CodeLanguage
+// Languages the generic lexer knows how to color.
+enum CodeLanguage
 {
     C
     Cpp
@@ -62,17 +63,18 @@ internal enum CodeLanguage
     Nix
 }
 
-internal struct CodeShebang
+// The language an interpreter line names.
+struct CodeShebang
 {
-    found:    bool
-    language: CodeLanguage
+    found:    bool             // Whether the source opens with an interpreter line.
+    language: CodeLanguage     // Language that line names, meaningful only when `found` is set.
 }
 
 // Reads the interpreter named by an extensionless script, from the beginning of its source.
 //
 // The line is what a script without a suffix uses to name the language it is written in, so it is
 // read from the bytes rather than from the file: the classifier has already read them.
-internal func codeShebang(source: string)->CodeShebang
+func codeShebang(source: string)->CodeShebang
 {
     if not Utf8.startsWith(source, "#!") do
         return {}
@@ -108,6 +110,7 @@ private func codeFileShebang(fileName: string)->CodeShebang
     return codeShebang(head.toString())
 }
 
+// Reports whether the head of a `.m` file reads as Objective-C rather than MATLAB.
 private func codeLooksLikeObjectiveC(fileName: string)->bool
 {
     var stream = catch File.openReadLive(fileName) as openError
@@ -124,10 +127,10 @@ private func codeLooksLikeObjectiveC(fileName: string)->bool
     return false
 }
 
-internal func codeLanguage(fileName: string)->CodeLanguage
+// Returns the language of a source file from its name, reading its head when the name is ambiguous or missing.
+func codeLanguage(fileName: string)->CodeLanguage
 {
-    var baseName = String.from(Path.fileName(fileName) orelse "")
-    baseName = baseName.toLower()
+    let baseName = String.from(Path.fileName(fileName) orelse "").toLower()
     switch baseName.toString()
     {
     case "makefile", "gnumakefile", "bsdmakefile": return .Makefile
@@ -204,7 +207,8 @@ internal func codeLanguage(fileName: string)->CodeLanguage
     return shebang.found ? shebang.language : .C
 }
 
-internal func codeLanguageName(language: CodeLanguage)->string
+// Returns the name a language is known by.
+func codeLanguageName(language: CodeLanguage)->string
 {
     switch #complete language
     {
@@ -274,9 +278,9 @@ private enum GenericCodeState: s32
     MarkupComment
 }
 
-internal struct GenericCodeLexer
+struct GenericCodeLexer
 {
-    internal enum Style: RichEditStyleRef
+    enum Style: RichEditStyleRef
     {
         Default
         Comment
@@ -407,7 +411,7 @@ private func codeMatches(line: *RichEditLine, at: u64, text: string)->bool
 private func codeIdentifierStart(value: rune)->bool => Unicode.isLetter(value) or value == '_' or value == '$' or value == '@' or value == '\\'
 private func codeIdentifier(value: rune)->bool      => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@' or value == '\\'
 
-internal impl IRichEditLexer for GenericCodeLexer
+impl IRichEditLexer for GenericCodeLexer
 {
     mtd impl setup(ed: *RichEditCtrl)
     {

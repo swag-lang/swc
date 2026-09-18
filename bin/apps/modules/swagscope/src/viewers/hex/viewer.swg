@@ -27,7 +27,7 @@ private const HexComboWidth     = 120.0
 private const HexInspectorWidth = 420.0
 private const HexInfoWidth      = HexInspectorWidth + ViewerZoomSlotWidth
 
-// Writes an unsigned scalar in the binary spelling used by the inspector.
+// Returns `value`, a `bits`-bit scalar, as `0b` and one binary digit per bit, as the inspector spells it.
 private func formatHexBinaryScalar(value, bits: u64)->String
 {
     var text: Array'u8
@@ -40,10 +40,10 @@ private func formatHexBinaryScalar(value, bits: u64)->String
         text.add(value & (1'u64 << shift) ? '1'u8 : '0'u8)
     }
 
-    return String.from(Swag.makeString(text.storage(), text.count))
+    return String.from(cast(string) text.toSlice())
 }
 
-// Writes an unsigned scalar in the octal spelling used by the inspector.
+// Returns `value`, a `bits`-bit scalar, as `0o` and its octal digits, as the inspector spells it.
 private func formatHexOctalScalar(value, bits: u64)->String
 {
     let digits = (bits + 2) / 3
@@ -57,9 +57,10 @@ private func formatHexOctalScalar(value, bits: u64)->String
         text.add('0'u8 + cast(u8) ((value >> shift) & 7))
     }
 
-    return String.from(Swag.makeString(text.storage(), text.count))
+    return String.from(cast(string) text.toSlice())
 }
 
+// Opens `fileName` and makes its first window resident, outside the GUI thread.
 private func loadHexDocument(fileName: string)->HexDocument fail
 {
     var result: retval
@@ -75,7 +76,7 @@ private func loadHexDocument(fileName: string)->HexDocument fail
 // The view owns the grid the bytes are read in and the compact command group the host places in
 // its action bar. Everything below streams — no part of this view ever holds more than one window
 // of the file.
-internal struct HexViewer
+struct HexViewer
 {
     using wnd: Wnd
 
@@ -91,7 +92,6 @@ internal struct HexViewer
         grid:           *HexGridView
     }
 
-    info:                 *Wnd?
     inspectorLabel:       *Label?
     zoomLabel:            *IconButton?
     searchPattern:        HexSearchPattern
@@ -172,8 +172,11 @@ private impl IWnd for HexViewer
     }
 }
 
-internal impl HexViewer
+impl HexViewer
 {
+    // Stops the background load and analysis, and reports whether the view can be destroyed.
+    //
+    // A false result means a worker still borrows the view; the host polls again.
     mtd retire()->bool
     {
         if not .load.retire() do
@@ -203,6 +206,9 @@ internal impl HexViewer
         return result
     }
 
+    // Shows the analysis panel and analyzes the selection, or the whole file when one byte is selected.
+    //
+    // An analysis already running keeps going; the panel only shows it again.
     mtd startAnalysis()
     {
         if .analysis.started
@@ -227,6 +233,10 @@ internal impl HexViewer
         .analysisTimer = .addTimer(Viewer.BackgroundPollInterval)
     }
 
+    // Hides the analysis panel and cancels a running analysis.
+    //
+    // A checked host toggle is unchecked first, and its signal comes back here, so the toggle and
+    // the panel never disagree.
     mtd closeAnalysis()
     {
         if .analysisButton.isChecked
@@ -282,9 +292,9 @@ internal impl HexViewer
         .grid.setBytesPerRow(4'u64 << index, false)
     }
 
-    // Each selector follows its widest localized entry. The command group then reserves exactly
-    // the sum of those fields and their leading gaps instead of truncating short vocabularies or
-    // carrying unused room for them.
+    // Sizes each selector to its widest localized entry, and the command group to exactly those widths and their leading gaps.
+    //
+    // A fixed width would truncate a long vocabulary and leave unused room around a short one.
     private mtd fitCommandBar()
     {
         let rowWidth  = Math.ceil(.rowWidthCombo.itf.measureContent({}).x)
@@ -359,12 +369,7 @@ internal impl HexViewer
         .refreshInspector()
     }
 
-    private mtd offsetText(offset: u64)->String
-    {
-        var bytes: Array'u8
-        appendHexDigits(&bytes, offset, .grid.offsetDigits)
-        return String.from(Swag.makeString(bytes.storage(), bytes.count))
-    }
+    private mtd offsetText(offset: u64)->String => formatHexDigits(offset, .grid.offsetDigits)
 
     private mtd refreshZoom()
     {
@@ -378,12 +383,15 @@ internal impl HexViewer
         if not .zoomLabel do
             return
         let base = .themeMetrics().defaultFixedFontSize
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("75%", "scope.hex.zoom75")
-        menu.addItem("100%", "scope.hex.zoom100")
-        menu.addItem("125%", "scope.hex.zoom125")
-        menu.addItem("150%", "scope.hex.zoom150")
-        menu.addItem("200%", "scope.hex.zoom200")
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem("75%", "scope.hex.zoom75")
+            .addItem("100%", "scope.hex.zoom100")
+            .addItem("125%", "scope.hex.zoom125")
+            .addItem("150%", "scope.hex.zoom150")
+            .addItem("200%", "scope.hex.zoom200")
+        }
+
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.hex.zoom75":  .grid.setFontSize(cast(u32) Math.max(Math.round(cast(f32) base * 0.75), 1))
@@ -396,7 +404,7 @@ internal impl HexViewer
 
     private mtd inspectorScalar(bytes: const [..] u8, size: u64)->u64
     {
-        var result: retval
+        var result = 0'u64
         for index in size
         {
             let position = .grid.bigEndian ? index : size - 1 - index
@@ -427,8 +435,9 @@ internal impl HexViewer
         }
     }
 
-    // Keeps the most useful exact-caret readings in the information band. The compact line is
-    // glanceable; its tooltip spells the same bytes at every common scalar width.
+    // Shows the caret offset, its position in the file, the selection length, and the active value in the information band.
+    //
+    // The compact line is glanceable; its tooltip spells the same bytes at every common scalar width.
     mtd refreshInspector()
     {
         if not .inspectorLabel do
@@ -513,7 +522,7 @@ internal impl HexViewer
         .searchPattern.collectMatches(source, baseOffset, result)
     }
 
-    // Reveals the byte range the host's search matched.
+    // Reveals the byte range the host's search matched, and reports whether `offset` lies inside the file.
     mtd revealOffset(offset, length: u64)->bool
     {
         if not .grid.revealRange(offset, length) do
@@ -523,7 +532,7 @@ internal impl HexViewer
     }
 }
 
-internal impl HexViewer
+impl HexViewer
 {
     func create(host: Viewer.Host)->*HexViewer
     {
@@ -537,44 +546,28 @@ internal impl HexViewer
             .fileName             = host.fileName()
         }
 
-        result.commands = host.createCommandGroup(HexCommandWidth)
+        result.createCommandBar(host)
+        result.createAnalysisPanel(host)
+        result.createInfoGroup(host)
+        result.createGrid()
 
-        let sidePanel = host.createSidePanel(HexAnalysisPanelWidth, result.theme().icon(.Information, themeActionIconSize(result.themeMetrics())), hexStrings().ui_AnalysisTip)
-        result.analysisButton = sidePanel.toggle
-        result.analysisButton.enable(false)
-        result.analysisButton.sigCheckedChanged += func|view = result|(button)
-        {
-            if button.isChecked do
-                view.startAnalysis()
-            else do
-                view.closeAnalysis()
-        }
+        result.fitCommandBar()
+        result.applyLayout()
+        result.grid.refreshLayout()
+        result.refreshInspector()
+        result.refreshZoom()
+        result.setInitialFocus(result.grid)
+        result.load.start(host.fileName(), &loadHexDocument)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        return result
+    }
 
-        result.info = host.createInfoGroup(HexInfoWidth)
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.hex.zoom", .CenterContent)
-        {
-            .dockStyle = .Right
-            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-            .setText("100%")
-            .setArrowPosition(.RightDownward)
-            .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-            .toolTip    = hexStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.showZoomMenu()
-            }
-        }
+    // Creates the command group: the row width, value width, representation, and byte order selectors.
+    private mtd createCommandBar(host: Viewer.Host)
+    {
+        .commands = host.createCommandGroup(HexCommandWidth)
 
-        with result.inspectorLabel = Label.create(result.info, "", {0, 0, HexInspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
-        {
-            .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Right, .OpticalCenter)
-        }
-
-        with result.rowWidthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
+        with .rowWidthCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -585,7 +578,7 @@ internal impl HexViewer
             .addItem("32")
             .addItem("64")
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = result|(combo, index)
+            .sigChanged += func|view = me|(combo, index)
             {
                 discard combo
                 discard index
@@ -593,7 +586,7 @@ internal impl HexViewer
             }
         }
 
-        with result.widthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
+        with .widthCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -603,7 +596,7 @@ internal impl HexViewer
             .addItem(hexStrings().ui_Width32)
             .addItem(hexStrings().ui_Width64)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = result|(combo, index)
+            .sigChanged += func|view = me|(combo, index)
             {
                 discard combo
                 discard index
@@ -611,7 +604,7 @@ internal impl HexViewer
             }
         }
 
-        with result.formatCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
+        with .formatCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -620,7 +613,7 @@ internal impl HexViewer
             .addItem(hexStrings().ui_FormatUns)
             .addItem(hexStrings().ui_FormatSigned)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = result|(combo, index)
+            .sigChanged += func|view = me|(combo, index)
             {
                 discard combo
                 discard index
@@ -628,7 +621,7 @@ internal impl HexViewer
             }
         }
 
-        with result.byteOrderCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
+        with .byteOrderCombo = ComboBox.create(.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -636,70 +629,106 @@ internal impl HexViewer
             .addItem(hexStrings().ui_EndianLittle)
             .addItem(hexStrings().ui_EndianBig)
             .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = result|(combo, index)
+            .sigChanged += func|view = me|(combo, index)
             {
                 discard combo
                 discard index
                 view.applyByteOrder()
             }
         }
+    }
 
-        result.analysisView = HexAnalysisView.create(sidePanel.content)
-        result.analysisView.sigAnalyze += func|view = result|(panel)
+    // Creates the analysis side panel, and wires the host toggle that opens it.
+    private mtd createAnalysisPanel(host: Viewer.Host)
+    {
+        let sidePanel = host.createSidePanel(HexAnalysisPanelWidth, .theme().icon(.Information, themeActionIconSize(.themeMetrics())), hexStrings().ui_AnalysisTip)
+        with .analysisButton = sidePanel.toggle
         {
-            discard panel
-            view.startAnalysis()
+            .enable(false)
+            .sigCheckedChanged += func|view = me|(button)
+            {
+                if button.isChecked do
+                    view.startAnalysis()
+                else do
+                    view.closeAnalysis()
+            }
         }
 
-        result.analysisView.sigCancel += func|view = result|(panel)
+        with .analysisView = HexAnalysisView.create(sidePanel.content)
         {
-            discard panel
-            view.analysis.cancel()
+            .sigAnalyze += func|view = me|(panel)
+            {
+                discard panel
+                view.startAnalysis()
+            }
+
+            .sigCancel += func|view = me|(panel)
+            {
+                discard panel
+                view.analysis.cancel()
+            }
+
+            .sigClose += func|view = me|(panel)
+            {
+                discard panel
+                view.closeAnalysis()
+            }
+
+            .sigNavigate += func|view = me|(panel, offset, length)
+            {
+                discard panel
+                discard view.grid.revealRange(offset, length)
+                view.refreshInspector()
+                view.grid.setFocus()
+            }
+        }
+    }
+
+    // Creates the information group: the zoom menu and the caret inspector.
+    private mtd createInfoGroup(host: Viewer.Host)
+    {
+        let info = host.createInfoGroup(HexInfoWidth)
+        with .zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.hex.zoom", .CenterContent)
+        {
+            .dockStyle = .Right
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
+            .toolTip    = hexStrings().ui_ZoomMenu
+            .sigPressed += func|view = me|(button)
+            {
+                discard button
+                view.showZoomMenu()
+            }
         }
 
-        result.analysisView.sigClose += func|view = result|(panel)
+        with .inspectorLabel = Label.create(info, "", {0, 0, HexInspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
         {
-            discard panel
-            view.closeAnalysis()
+            .dockStyle = .Center
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Right, .OpticalCenter)
         }
+    }
 
-        result.analysisView.sigNavigate += func|view = result|(panel, offset, length)
+    // Creates the byte grid, whose caret and zoom feed the information group.
+    private mtd createGrid()
+    {
+        with .grid = HexGridView.create(me)
         {
-            discard panel
-            discard view.grid.revealRange(offset, length)
-            view.refreshInspector()
-            view.grid.setFocus()
-        }
+            .sigCaretChanged += func|view = me|(grid)
+            {
+                discard grid
+                view.refreshInspector()
+            }
 
-        result.grid = HexGridView.create(result)
-        result.grid.sigCaretChanged += func|view = result|(grid)
-        {
-            discard grid
-            view.refreshInspector()
+            .sigZoomChanged += func|view = me|(grid)
+            {
+                discard grid
+                view.refreshZoom()
+            }
         }
-
-        result.grid.sigZoomChanged += func|view = result|(grid)
-        {
-            discard grid
-            view.refreshZoom()
-        }
-
-        if services.reportFailure
-        {
-            let report: Viewer.ReportFailure = services.reportFailure
-            result.grid.doc.reportFailure = func|result, report|(reason) { report(cast(*Wnd) result, reason) }
-        }
-
-        result.details.clear()
-        result.fitCommandBar()
-        result.applyLayout()
-        result.grid.refreshLayout()
-        result.refreshInspector()
-        result.refreshZoom()
-        result.setInitialFocus(result.grid)
-        result.load.start(host.fileName(), &loadHexDocument)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
-        return result
     }
 }
 
@@ -723,11 +752,11 @@ func createHexViewer(host: Viewer.Host)
     },
         clear: func(wnd) { (cast #assume (*HexViewer) wnd).grid.clearSearchMatch() },
         describe: func(wnd, presentation) { (cast #assume (*HexViewer) wnd).describeSearch(presentation) },
-        prepare: func(wnd, query, plan)->EditBoxCheckResult { return (cast #assume (*HexViewer) wnd).prepareSearch(query, plan) },
+        prepare: func(wnd, query, plan)->EditBoxCheckResult => (cast #assume (*HexViewer) wnd).prepareSearch(query, plan),
         collectFileMatches: func(wnd, source, baseOffset, matches) { (cast #assume (*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) },
         useMatches: func(wnd, matches) { (cast #assume (*HexViewer) wnd).grid.setSearchMatches(matches) }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast #assume (*HexViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*HexViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*HexViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null,
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*HexViewer) wnd).loadTimer != null,
+        retire: func(wnd)->bool => (cast #assume (*HexViewer) wnd).retire()})
 }

@@ -10,7 +10,8 @@ private const MidiQuarterWidth  = 64.0
 private const MidiMinZoom       = 0.01'f32
 private const MidiMaxZoom       = 16.0'f32
 
-internal struct MidiRollView
+// Paints a MIDI document as a scrolling piano roll under a summary header.
+struct MidiRollView
 {
     using wnd: Wnd
 
@@ -36,52 +37,12 @@ internal struct MidiRollView
     sigZoomChanged: SigArray'func||(*MidiRollView)
 }
 
-private func midiViewKeyName(value: s32)->string
-{
-    switch value
-    {
-    case -7: return "C-flat"
-    case -6: return "G-flat"
-    case -5: return "D-flat"
-    case -4: return "A-flat"
-    case -3: return "E-flat"
-    case -2: return "B-flat"
-    case -1: return "F"
-    case 0:  return "C"
-    case 1:  return "G"
-    case 2:  return "D"
-    case 3:  return "A"
-    case 4:  return "E"
-    case 5:  return "B"
-    case 6:  return "F-sharp"
-    case 7:  return "C-sharp"
-    }
-
-    return "?"
-}
-
+// Names a key in scientific pitch notation, where middle C, key 60, is C4.
 private func midiPitchName(key: u8)->String
 {
-    var name: string = "B"
-    switch key % 12
-    {
-    case 0:  name = "C"
-    case 1:  name = "C#"
-    case 2:  name = "D"
-    case 3:  name = "D#"
-    case 4:  name = "E"
-    case 5:  name = "F"
-    case 6:  name = "F#"
-    case 7:  name = "G"
-    case 8:  name = "G#"
-    case 9:  name = "A"
-    case 10: name = "A#"
-    case 11: name = "B"
-    }
-
-    var result = String.from(name)
-    let octave = Format.toString("%", cast(s32) key / 12 - 1)
-    result.append(octave.toString())
+    const Names: [12] string = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    var result = String.from(Names[key % 12])
+    result += Format.toString("%", cast(s32) key / 12 - 1)
     return result
 }
 
@@ -91,33 +52,7 @@ private func midiIsBlackKey(key: u8)->bool
     return note == 1 or note == 3 or note == 6 or note == 8 or note == 10
 }
 
-internal func midiMeterText(document: const *MidiDocument)->String
-{
-    if document.timeSignatures.count
-    {
-        let meter = &document.timeSignatures[0]
-        return Format.toString("%/%", meter.numerator, meter.denominator)
-    }
-
-    return String.from("4/4")
-}
-
-internal func midiKeyText(document: const *MidiDocument)->String
-{
-    if not document.keySignatures.count do
-        return Format.toString("C %", midiStrings().ui_Major)
-    let key = &document.keySignatures[0]
-    return Format.toString("% %", midiViewKeyName(key.sharps), key.minor ? midiStrings().ui_Minor : midiStrings().ui_Major)
-}
-
-internal func midiBpm(document: const *MidiDocument)->u32
-{
-    if not document.tempos.count or not document.tempos[0].microsPerQuarter do
-        return 120
-    return 60_000_000'u32 / document.tempos[0].microsPerQuarter
-}
-
-internal impl MidiRollView
+impl MidiRollView
 {
     mtd selectedNoteCount()->u64
     {
@@ -128,16 +63,7 @@ internal impl MidiRollView
         return .document.tracks[.selectedTrack].noteCount
     }
 
-    mtd summaryText()->String
-    {
-        return Format.toString(midiStrings().ui_Summary,
-                               .document.tracks.count,
-                               .selectedNoteCount(),
-                               Viewer.durationText(.document.durationSeconds),
-                               midiBpm(&.document),
-                               midiMeterText(&.document),
-                               midiKeyText(&.document))
-    }
+    mtd summaryText()->String => Format.toString(midiStrings().ui_Summary, .document.tracks.count, .selectedNoteCount(), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
 
     mtd refreshLayout()
     {
@@ -188,6 +114,14 @@ internal impl MidiRollView
         .fit = true
         .refreshLayout()
         .scroll.setScrollPos(0, 0)
+    }
+
+    // Creates the title, label, and code fonts from the current theme.
+    mtd refreshFonts()
+    {
+        .titleFont = .theme().createDefaultFont(24, .Bold)
+        .labelFont = .theme().createDefaultFont(11, .Bold)
+        .codeFont  = .theme().createDefaultFontFs(11)
     }
 
     mtd paintHeader(painter: *Painter)
@@ -285,7 +219,7 @@ internal impl MidiRollView
     }
 }
 
-internal impl IWnd for MidiRollView
+impl IWnd for MidiRollView
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
@@ -298,9 +232,7 @@ internal impl IWnd for MidiRollView
     {
         if evt.kind == .ThemeChanged
         {
-            .titleFont = .theme().createDefaultFont(24, .Bold)
-            .labelFont = .theme().createDefaultFont(11, .Bold)
-            .codeFont  = .theme().createDefaultFontFS(11)
+            .refreshFonts()
             .refreshLayout()
         }
         else do
@@ -334,7 +266,7 @@ internal impl IWnd for MidiRollView
         painter.setParams(.Antialiased)
         .paintHeader(painter)
         .paintGrid(painter)
-        if .document.notes.count do
+        if not .document.notes.isEmpty() do
             .paintNotes(painter)
         else
         {
@@ -346,24 +278,27 @@ internal impl IWnd for MidiRollView
     }
 }
 
-internal impl MidiRollView
+impl MidiRollView
 {
     func create(parent: *Wnd, document: MidiDocument)->*MidiRollView
     {
-        let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})
-        scroll.dockStyle = .Center
-        scroll.updateFlags(.CompactBars | .TransparentBars)
+        with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})
+        {
+            .dockStyle = .Center
+            .updateFlags(.CompactBars | .TransparentBars)
+        }
 
-        let result = scroll.createView'MidiRollView()
-        result.scroll          = scroll
-        result.document        = #move document
-        result.backgroundStyle = .View
-        result.focusPolicy     = .Tab
-        result.wndFlags        |= WndFlags.NoFocusRing
-        result.titleFont       = result.theme().createDefaultFont(24, .Bold)
-        result.labelFont       = result.theme().createDefaultFont(11, .Bold)
-        result.codeFont        = result.theme().createDefaultFontFS(11)
-        result.refreshLayout()
+        with let result = scroll.createView'MidiRollView()
+        {
+            .scroll          = scroll
+            .document        = #move document
+            .backgroundStyle = .View
+            .focusPolicy     = .Tab
+            .wndFlags        |= .NoFocusRing
+            .refreshFonts()
+            .refreshLayout()
+        }
+
         return result
     }
 }

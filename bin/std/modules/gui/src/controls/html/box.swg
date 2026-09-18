@@ -147,5 +147,5 @@ impl HtmlBox
     mtd const isTableStructure()->bool => .kind == .Table or .kind == .TableRow or .kind == .TableCell
 
     // Reports whether the box lays its children out as lines of text rather than as blocks.
-    mtd const hasInlineContent()->bool => .items.count != 0
+    mtd const hasInlineContent()->bool => not .items.isEmpty()
 }

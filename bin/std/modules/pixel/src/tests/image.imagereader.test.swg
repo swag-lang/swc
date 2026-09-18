@@ -198,7 +198,7 @@ using Swag, Core
     {
         var probe = expect ImageReader.load(getTestDataPath(name), {decodePixels: false})
         let image = expect probe.read(0)
-        Swag.assert(image.width > 0 and image.height > 0 and image.pixels.count == 0)
+        Swag.assert(image.width > 0 and image.height > 0 and image.pixels.isEmpty())
         var limited = catch ImageReader.load(getTestDataPath(name), {maxFrames: 1}) as frameError
         Swag.assert(frameError != null)
         limited = catch ImageReader.load(getTestDataPath(name), {maxPixels: 1}) as pixelError

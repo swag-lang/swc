@@ -34,8 +34,7 @@ interface IDecoder
     // constant and must not read the decoder's own state.
     mtd format()->StreamFormat
 
-    // Reads the stream header, positions `source` on the first frame, and reports what the
-    // stream contains.
+    // Reads the stream header, positions `source` on the first frame, and describes the stream.
     //
     // Fails when the stream is not in this decoder's format, is malformed, or uses features
     // the decoder does not support.
@@ -99,7 +98,7 @@ interface ISubtitleDecoder
 // the entropy decode, the reconstruction and the loop filter together.
 interface IPlanarDecoder
 {
-    // Reports whether the open stream decodes to planar pictures.
+    // Returns whether the open stream decodes to planar pictures.
     //
     // A container carries more than one codec, so the capability is answered per stream and not
     // per decoder: an ISO-BMFF reader implements this and still says no for a Motion JPEG track.
@@ -185,7 +184,7 @@ impl Reader
         return result
     }
 
-    // Reports whether a registered decoder claims `fileName`, by its extension alone.
+    // Returns whether a registered decoder claims `fileName`, by its extension alone.
     func canOpen(fileName: string)->bool => findDecoder(fileName) != null
 
     // Returns the registered decoder claiming `fileName`, or `null` when none does.
@@ -232,11 +231,10 @@ impl Reader
     // Selects the decoder for `fileName`, creates its instance, and opens the source with it.
     private mtd start(fileName: string) fail
     {
-        let found = findDecoder(fileName)
-        if not found do
+        let selected = findDecoder(fileName)
+        if not selected do
             fail UnsupportedFormatError{"no video decoder accepts this file extension"}
 
-        let selected = found
         .format      = selected.format
         .decoderType = selected.type
 
@@ -279,7 +277,7 @@ impl Reader
         .source.close()
     }
 
-    // Reports whether the reader still owns an open stream.
+    // Returns whether the reader still owns an open stream.
     mtd const isOpen()->bool => .decoder != null
 
     // Returns everything the decoder reported about the stream.
@@ -329,10 +327,7 @@ impl Reader
     // Returns sound track `index`, owned by this reader, or `null` past the end.
     //
     // The track streams from its own file cursor and remains valid until the reader is closed.
-    mtd const audioTrack(index: u32)->const *SoundFile?
-    {
-        return .audioDecoder ? .audioDecoder.audioTrack(index) : null
-    }
+    mtd const audioTrack(index: u32)->const *SoundFile? => .audioDecoder ? .audioDecoder.audioTrack(index) : null
 
     // Returns the number of decoded subtitle tracks carried by the opened stream.
     mtd const subtitleTrackCount()->u32 => .subtitleDecoder ? .subtitleDecoder.subtitleTrackCount() : 0
@@ -341,10 +336,7 @@ impl Reader
     //
     // The returned track remains valid until the reader is closed. Its cues use the same media
     // timeline as [[Video.Reader.frameTimestamp]].
-    mtd const subtitleTrack(index: u32)->const *Subtitle.Track?
-    {
-        return .subtitleDecoder ? .subtitleDecoder.subtitleTrack(index) : null
-    }
+    mtd const subtitleTrack(index: u32)->const *Subtitle.Track? => .subtitleDecoder ? .subtitleDecoder.subtitleTrack(index) : null
 
     // Returns the exact presentation time of frame `index` in seconds.
     //
@@ -368,7 +360,7 @@ impl Reader
         return Math.min(cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator()), .frameCount())
     }
 
-    // Reports whether this stream can be decoded without converting its pictures to RGB.
+    // Returns whether this stream can be decoded without converting its pictures to RGB.
     //
     // See [[Video.Reader.decodeFramePlanesInto]] for what that is worth.
     mtd const hasPlanarFrames()->bool => .planarDecoder != null and .planarDecoder.hasPlanarFrames()
@@ -401,12 +393,7 @@ impl Reader
     // Returns the first frame at or after `index` that decodes without any earlier frame.
     //
     // See [[Video.IDecoder.syncFrameAt]]; the result is the frame count when none remains.
-    mtd const syncFrameAt(index: u64)->u64
-    {
-        if not .decoder do
-            return 0
-        return .decoder.syncFrameAt(index)
-    }
+    mtd const syncFrameAt(index: u64)->u64 => .decoder?.syncFrameAt(index) orelse 0
 
     // Returns the stream duration in seconds, or zero when the format cannot report it.
     mtd const durationInSeconds()->f64
@@ -430,8 +417,7 @@ impl Reader
         return result
     }
 
-    // Decodes frame `index` into `target`, reusing its pixel storage when it already matches
-    // the stream geometry.
+    // Decodes frame `index` into `target`, reusing its pixel storage when it matches the stream geometry.
     //
     // Decoding frames in order never seeks and never rereads what it already read, so a player
     // costs one frame of memory and one frame of work per displayed frame, whatever the length
@@ -459,7 +445,7 @@ impl Reader
     }
 }
 
-// Initialize predefined decoders
+// Registers the built-in decoders.
 #init
 {
     Reader.registerDecoder'(Y4m.Decoder)()

@@ -70,8 +70,8 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 // never named. A gradient-filled chart region must not become an opaque black rectangle.
 #test
 {
-    Swag.assert(filledColors("", "/Missing cs 0 0 5 5 re f", "").count == 0)
-    Swag.assert(filledColors("", "/Pattern cs /P0 scn 0 0 5 5 re f", "").count == 0)
+    Swag.assert(filledColors("", "/Missing cs 0 0 5 5 re f", "").isEmpty())
+    Swag.assert(filledColors("", "/Pattern cs /P0 scn 0 0 5 5 re f", "").isEmpty())
 }
 
 // A stroke whose own space is sound survives the loss of the fill beside it.

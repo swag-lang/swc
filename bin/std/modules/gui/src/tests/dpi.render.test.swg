@@ -3,11 +3,22 @@
 
 using Swag, Core, Pixel
 
-// Image rows are stored bottom-up; pixelColor answers in top-down coordinates, the
-// space every window rectangle in these tests is written in.
-func pixelAt(image: const *Image, x, y: s32)->u32
+// Returns the ARGB value of the pixel at `x`, `y` of `image`, counted from the top.
+//
+// Image rows are stored bottom-up; `pixelColor` answers in top-down coordinates, the space every
+// window rectangle in these tests is written in.
+func pixelAt(image: const *Image, x, y: s32)->u32 => image.pixelColor(x, y).argb
+
+// Renders a view-background child at logical (16, 8, 32, 24) on a 96 x 64 host scaled by `dpiScale`.
+func renderViewChild(dpiScale: f32)->Image
 {
-    return image.pixelColor(x, y).argb
+    var host: Testing.HeadlessHost
+    host.setup(96, 64, dpiScale)
+    defer host.shutdown()
+
+    let child = Wnd.create'Wnd(&host.root, {16, 8, 32, 24})
+    child.backgroundStyle = .View
+    return host.render()
 }
 
 // The plain application grounds are available as window background styles, so a composed
@@ -105,19 +116,8 @@ func pixelAt(image: const *Image, x, y: s32)->u32
 // image is the same picture with doubled geometry, not a different layout.
 #test
 {
-    var host1: Testing.HeadlessHost
-    host1.setup(96, 64)
-    let child1 = Wnd.create'Wnd(&host1.root, {16, 8, 32, 24})
-    child1.backgroundStyle = .View
-    let image1 = host1.render()
-    host1.shutdown()
-
-    var host2: Testing.HeadlessHost
-    host2.setup(96, 64, dpiScale: 2)
-    defer host2.shutdown()
-    let child2 = Wnd.create'Wnd(&host2.root, {16, 8, 32, 24})
-    child2.backgroundStyle = .View
-    let image2 = host2.render()
+    let image1 = renderViewChild(1)
+    let image2 = renderViewChild(2)
 
     // Compare well inside each region, away from antialiased edges.
     Swag.assert(pixelAt(&image1, 24, 20) == pixelAt(&image2, 48, 40))

@@ -514,7 +514,9 @@ impl ColorPicker
         return result
     }
 
-    // Replaces the HSL and alpha components, clamped to [0, 1].
+    // Replaces the HSL and alpha components, each clamped to [0, 1].
+    //
+    // When `notify` is true and a component changed, emits [[Gui.ColorPicker.sigColorChanged]].
     mtd setHsla(hue, saturation, lightness, alpha: f32, notify = true)
     {
         let newHue        = Math.clamp(hue, 0, 1)
@@ -542,7 +544,7 @@ impl ColorPicker
         .setHsla(hue, saturation, lightness, .alpha, notify)
     }
 
-    // Replaces the selected color.
+    // Replaces the selected color and, when `notify` is true and it changed, emits [[Gui.ColorPicker.sigColorChanged]].
     mtd setColor(color: Color, notify = true)
     {
         let {newAlpha, newRed, newGreen, newBlue} = color.toArgbF32()

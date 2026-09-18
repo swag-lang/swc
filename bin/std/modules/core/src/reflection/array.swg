@@ -3,7 +3,7 @@
 
 using Swag
 
-// Returns whether the type is a Core dynamic array.
+// Returns whether `t` is an instance of [[Core.Array]].
 func isDynamicArray(t: typeinfo?)->bool
 {
     if not t or not isStruct(t) do
@@ -16,7 +16,7 @@ func isDynamicArray(t: typeinfo?)->bool
     return tt.fromGeneric.fullname == arrayGeneric.fullname
 }
 
-// Returns a dynamic array's element type, or null for another kind of type.
+// Returns the element type of a [[Core.Array]] type, or null when `t` is not one.
 func dynamicArrayElementType(t: typeinfo?)->typeinfo?
 {
     if not isDynamicArray(t) do
@@ -27,37 +27,39 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
     return generics[0].pointedType
 }
 
-// Removes every element from a runtime-typed dynamic array.
+// Drops every element of the [[Core.Array]] at `arrayPointer`, whose element type is `elementType`.
+//
+// The array keeps its capacity. Nothing happens when a pointer or `elementType` is null.
 func clearDynamicArray(arrayPointer: *void?, elementType: typeinfo?)
 {
     if not arrayPointer or not elementType do
         return
 
-    let arr    = cast(*Array'u8) arrayPointer
-    let nnType = elementType
-
-    if hasDrop(nnType)
+    let arr = cast(*Array'u8) arrayPointer
+    if hasDrop(elementType)
     {
         var scan = arr.buffer
         for arr.count
         {
-            Memory.dropType(scan, nnType)
-            scan += nnType.sizeof
+            Memory.dropType(scan, elementType)
+            scan += elementType.sizeof
         }
     }
 
     arr.count = 0
 }
 
-// Removes an element from a runtime-typed dynamic array while preserving value lifecycles.
+// Removes the element at `index` from the [[Core.Array]] at `arrayPointer`, whose element type is `elementType`.
+//
+// The removed element is dropped, and the following elements move down one slot, running their
+// post-move hook, so the order is preserved. `index` must be in range.
 func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, index: u64)
 {
     if not arrayPointer or not elementType do
         return
 
     let arr       = cast(*Array'u8) arrayPointer
-    let nnType    = elementType
-    let sizeValue = nnType.sizeof
+    let sizeValue = elementType.sizeof
 
     if index >= arr.count
     {
@@ -66,17 +68,17 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
     }
 
     let removed = arr.buffer + index * sizeValue
-    Memory.dropType(removed, nnType)
+    Memory.dropType(removed, elementType)
 
     if index != arr.count - 1
     {
         let countMove = arr.count - index - 1
-        if hasPostMove(nnType)
+        if hasPostMove(elementType)
         {
             for i in index until arr.count - 1
             {
                 Memory.copy(arr.buffer + i * sizeValue, arr.buffer + (i + 1) * sizeValue, sizeValue)
-                Memory.postMoveType(arr.buffer + (i * sizeValue), nnType)
+                Memory.postMoveType(arr.buffer + (i * sizeValue), elementType)
             }
         }
         else do
@@ -87,19 +89,19 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
     Memory.clear((arr.buffer + arr.count * sizeValue)!, sizeValue)
 }
 
-// Swap two elements (by index) inside a contiguous buffer of 'valueType'. Works for both a
-// static array buffer and a 'Core.Array' buffer (pass arr.buffer), handling structs that need
-// a post-move fixup after their bytes are relocated.
+// Swaps the values at `indexA` and `indexB` in a contiguous buffer of `valueType` values.
+//
+// `basePointer` can address a static array or the `buffer` of a [[Core.Array]]. Values whose type
+// has a post-move hook are fixed up after their bytes are relocated.
 func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB: u64)
 {
     if not basePointer or not valueType or indexA == indexB do
         return
 
-    let nnType = valueType
-    let size   = nnType.sizeof
-    let base   = cast([*] u8) basePointer
-    let pa     = base + indexA * size
-    let pb     = base + indexB * size
+    let size = valueType.sizeof
+    let base = cast([*] u8) basePointer
+    let pa   = base + indexA * size
+    let pb   = base + indexB * size
 
     let allocator = Swag.getContext().allocator
     let tmp       = cast([*] u8) Memory.alloc(size, allocator)
@@ -110,17 +112,20 @@ func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB
     Memory.copy(pb, tmp, size)
 
     // Each element kept its own bytes but landed at a new address: fix up self-references.
-    if hasPostMove(nnType)
+    if hasPostMove(valueType)
     {
-        Memory.postMoveType(pa, nnType)
-        Memory.postMoveType(pb, nnType)
+        Memory.postMoveType(pa, valueType)
+        Memory.postMoveType(pb, valueType)
     }
 }
 
-// Add an element in a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType).
-// With 'defaultInitSlot' false, the new slot is only zeroed and the CALLER must fully
-// initialize it (deserialization does): this supports element types that have no
-// implicit default, like non-null interfaces.
+// Appends a slot to the [[Core.Array]] at `arrayPointer`, whose element type is `elementType`, and returns its address.
+//
+// With `initialize` true, the new slot receives the element type's default value. With
+// `initialize` false, the slot is only zeroed and the caller must fully initialize it, as
+// deserialization does; this supports element types without an implicit default, such as
+// non-null interfaces. Panics when a pointer is null or when a default value is requested
+// for a type that has none.
 func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, initialize: bool = true)->*void?
 {
     if not arrayPointer or not elementType
@@ -129,19 +134,17 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         return null
     }
 
-    let nnType = elementType
-    if initialize and not Memory.canDefaultInit(nnType)
+    if initialize and not Memory.canDefaultInit(elementType)
     {
         Swag.panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
         return null
     }
 
-    // We will treat the array as a buffer of bytes, just to be able to access the fields
+    // Views the array as a buffer of bytes to reach its fields without the element type.
     let arr       = cast(*Array'u8) arrayPointer
-    let sizeValue = nnType.sizeof
+    let sizeValue = elementType.sizeof
 
-    // If we need to reallocate the buffer, we will also have to deal with
-    // structures specials functions
+    // Growing relocates every value, so values with a post-move hook are fixed up afterwards.
     if arr.count >= arr.capacity
     {
         if arr.allocator == null do
@@ -153,14 +156,13 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         let newBuffer   = cast([*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
         Memory.clear(newBuffer, newCapacity * sizeValue)
 
-        // Move old values to the new buffer
         Memory.copy(newBuffer, oldBuffer, arr.count * sizeValue)
-        if hasPostMove(nnType)
+        if hasPostMove(elementType)
         {
             var buf = newBuffer
             for arr.count
             {
-                Memory.postMoveType(buf, nnType)
+                Memory.postMoveType(buf, elementType)
                 buf += sizeValue
             }
         }
@@ -170,12 +172,12 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         arr.capacity = newCapacity
     }
 
-    let result = arr.buffer + (arr.count * nnType.sizeof)
+    let result = arr.buffer + (arr.count * sizeValue)
     arr.count += 1
     if initialize do
-        Memory.defaultInit(result, nnType)
+        Memory.defaultInit(result, elementType)
     else do
-        Memory.clear(result!, nnType.sizeof)
+        Memory.clear(result!, sizeValue)
 
     return result
 }

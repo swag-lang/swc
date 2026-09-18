@@ -2,7 +2,7 @@ using Threading, Time
 
 // The date column. It is wider than the editor's tool column on purpose: the tool column carries
 // one word per row and this one carries a sentence — "All Items" is two words in English and
-// three in French, and a column sized to the English clipped the French in the very first row.
+// three in French, and a column sized to the English would clip the French in the very first row.
 const SideBarWidth = 280.0
 const LibButtonGap = 12.0
 
@@ -52,6 +52,13 @@ struct LibraryNamedFilter
     name:       String
     executable: String
     count:      u64
+}
+
+impl LibraryNamedFilter
+{
+    // Returns whether both entries name the same filter with the same count. Names compare
+    // without case, the way the side bar groups them.
+    mtd const opEquals(other: LibraryNamedFilter)->bool => .count == other.count and Utf8.compare(.name.toSlice(), other.name.toSlice(), .Latin1NoCase) == 0 and .executable == other.executable
 }
 
 struct LibraryWnd
@@ -123,7 +130,7 @@ impl LibraryWnd
 {
     mtd applyLanguage()
     {
-        if not (.viewBtn != null) do
+        if .viewBtn == null do
             return
 
         .viewBtn.setText(appStrings().ui_BarView)
@@ -171,33 +178,20 @@ impl LibraryWnd
         }
     }
 
-    mtd const hasSelected()->bool
-    {
-        return not .view.selModel.isEmpty()
-    }
+    mtd const hasSelected()->bool => not .view.selModel.isEmpty()
 
+    // Moves the selected captures to the recycle bin. The names are snapshotted first:
+    // g_Library.removeFile() fires onDeleteFile, whose handler removes entries from
+    // .view.items, and deleting from the list being iterated would skip entries and
+    // desync the selection.
     mtd removeSelected()
     {
-        // g_Library.removeFile() fires onDeleteFile, whose handler removes entries
-        // from .view.items. Snapshot the selected file names (owned copies) first so
-        // we never delete from the list we are iterating, which would skip entries
-        // and desync the selection/indices.
-        var toRemove: Array'String
-        for it, i in .view.items
-        {
-            if it.filtered do
-                continue
-
-            if .view.selModel.isSelected(cast() i) do
-                toRemove.add(it.fi.fullname)
-        }
-
-        for name in toRemove do
+        for name in .selectedFiles() do
             g_Library.removeFile(name)
     }
 
-    // Snapshot the selected trash file names first (see removeSelected), then act on the
-    // copies so refilling the grid mid-loop cannot desync indices.
+    // Returns owned copies of the selected, visible file names, so a caller can act on them
+    // while refilling the grid moves the items they came from.
     mtd selectedFiles()->Array'String
     {
         var res: retval
@@ -206,13 +200,13 @@ impl LibraryWnd
             if it.filtered do
                 continue
             if .view.selModel.isSelected(cast() i) do
-                res.add(it.fi.fullname)
+                res.add(it.fi.fullName)
         }
 
         return res
     }
 
-    // Bring the selected captures back from the recycle bin into the library.
+    // Brings the selected captures back from the recycle bin into the library.
     mtd restoreSelected()
     {
         for name in .selectedFiles()
@@ -226,7 +220,7 @@ impl LibraryWnd
         .invalidate()
     }
 
-    // Erase the selected captures from the recycle bin for good.
+    // Erases the selected captures from the recycle bin for good.
     mtd deleteForeverSelected()
     {
         for name in .selectedFiles() do
@@ -345,25 +339,8 @@ impl LibraryWnd
             }
         }
 
-        result.sort(func(a, b) { return Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase) })
+        result.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))
         return result
-    }
-
-    mtd const namedFiltersEqual(a, b: const [..] LibraryNamedFilter)->bool
-    {
-        if a.count != b.count do
-            return false
-        for value, i in a
-        {
-            if value.count != b[i].count or
-               Utf8.compare(value.name.toSlice(), b[i].name.toSlice(), .Latin1NoCase) != 0 or
-               value.executable != b[i].executable
-            {
-                return false
-            }
-        }
-
-        return true
     }
 
     mtd addNamedFilterGroup(name: string, kind: LibrarySidebarFilter, values: *Array'LibraryNamedFilter)
@@ -401,7 +378,7 @@ impl LibraryWnd
     // what prevents a fixed-width rail from manufacturing a horizontal scroll bar.
     mtd layoutSidebarColumns()
     {
-        if not (.listCtrl != null) do
+        if .listCtrl == null do
             return
         let available = .listCtrl.listView.paddedClientRect().width
         if available <= 0 do
@@ -461,7 +438,7 @@ impl LibraryWnd
         var item = line.setItem(1, Format.toString("% ", g_Library.files.count))
         item.horzAlign = .Right
 
-        g_Library.files.sort(func(a, b) { return b.lastWriteTime <=> a.lastWriteTime })
+        g_Library.files.sort(func(a, b) => b.lastWriteTime <=> a.lastWriteTime)
 
         var lastDateTime:    DateTime
         var hasLastDateTime: bool
@@ -552,12 +529,12 @@ impl LibraryWnd
 
     mtd refreshAutomaticFilters(force = false)
     {
-        if not (.listCtrl != null) do
+        if .listCtrl == null do
             return
 
         let applications = .collectNamedFilters(true)
         let tags         = .collectNamedFilters(false)
-        if not force and .namedFiltersEqual(.sidebarApplications.toSlice(), applications.toSlice()) and .namedFiltersEqual(.sidebarTags.toSlice(), tags.toSlice()) do
+        if not force and Slice.equals(.sidebarApplications.toSlice(), applications.toSlice()) and Slice.equals(.sidebarTags.toSlice(), tags.toSlice()) do
             return
 
         .sidebarApplications = applications
@@ -583,7 +560,7 @@ impl LibraryWnd
 
                 for item, i in libWnd.view.items
                 {
-                    if item.fi.fullname == file
+                    if item.fi.fullName == file
                     {
                         libWnd.view.selModel.unselect(cast() i)
                         libWnd.view.items.removeAtOrdered(i)
@@ -593,7 +570,7 @@ impl LibraryWnd
 
                 for item, i in libWnd.view.allItems
                 {
-                    if item!.fi.fullname != file do
+                    if item!.fi.fullName != file do
                         continue
                     libWnd.view.allItems.deleteAt(i)
                     break
@@ -675,7 +652,7 @@ impl LibraryWnd
 
     mtd updateFolderMode()
     {
-        if not (.sideBar != null) do
+        if .sideBar == null do
             return
         if .currentFolder() == Library.getFolder() do
             .sideBar.show()
@@ -701,40 +678,24 @@ impl LibraryWnd
             return
 
         let folder = dialog.selectedPath()
-        if makeLibrary
-        {
-            discard catch g_Library.setFolder(folder) as err
-            if err != null
-            {
-                MessageDlg.error(.main.surface, appStrings().msg_FailedOpenLibrary, err)
-                return
-            }
-
-            .main.libraryFolder = folder
-            .curFolder.clear()
-            .trashMode = false
-            .view.filterYear, .view.filterMonth, .view.filterDay = 0
-            .listCtrl.clear()
-            .fill()
-            .updateFolderMode()
-            .updateBreadcrumb()
-            .main.saveAppState()
-            return
-        }
-
-        .navigateFolder(folder)
+        if makeLibrary do
+            .setLibraryFolder(folder)
+        else do
+            .navigateFolder(folder)
     }
 
-    mtd useDefaultFolder()
+    // Makes `folder` the persistent library root, the default folder when it is empty, and
+    // shows it from its top level. The choice is kept only when the folder can be used.
+    mtd setLibraryFolder(folder: String)
     {
-        discard catch g_Library.setFolder("") as err
+        discard catch g_Library.setFolder(folder) as err
         if err != null
         {
             MessageDlg.error(.main.surface!, appStrings().msg_FailedOpenLibrary, err)
             return
         }
 
-        .main.libraryFolder.clear()
+        .main.libraryFolder = folder
         .curFolder.clear()
         .trashMode = false
         .view.filterYear, .view.filterMonth, .view.filterDay = 0
@@ -767,7 +728,7 @@ impl LibraryWnd
         case "capture.library.root":    .navigateFolder(Library.getFolder())
         case "capture.library.browse":  .chooseFolder(false)
         case "capture.library.choose":  .chooseFolder(true)
-        case "capture.library.default": .useDefaultFolder()
+        case "capture.library.default": .setLibraryFolder("")
         }
     }
 
@@ -786,12 +747,12 @@ impl LibraryWnd
         let id = result
         if Utf8.startsWith(id, "capture.library.app:")
         {
-            .applicationFilter = String.from(id[("capture.library.app:").count until id.count])
+            .applicationFilter = String.from(id[("capture.library.app:").count to])
             .view.filter()
         }
         elif Utf8.startsWith(id, "capture.library.tag:")
         {
-            .tagFilter = String.from(id[("capture.library.tag:").count until id.count])
+            .tagFilter = String.from(id[("capture.library.tag:").count to])
             .view.filter()
         }
     }
@@ -854,7 +815,7 @@ impl LibraryWnd
     {
         var result: retval
         for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast() i) do
-            result.add(item.fi.fullname)
+            result.add(item.fi.fullName)
         return result
     }
 
@@ -862,7 +823,7 @@ impl LibraryWnd
     {
         .view.mutexLoaded.lock()
         defer .view.mutexLoaded.unlock()
-        for item in .view.allItems where item!.capture and item!.fi.fullname == file
+        for item in .view.allItems where item!.capture and item!.fi.fullName == file
         {
             item!.capture!.tags    = capture.tags
             item.capture!.favorite = capture.favorite
@@ -914,7 +875,7 @@ impl LibraryWnd
         var text: String
         if files.count == 1
         {
-            for item in .view.items where item.capture and item.fi.fullname == files[0]
+            for item in .view.items where item.capture and item.fi.fullName == files[0]
             {
                 for tag in item.capture.tags
                 {
@@ -967,8 +928,7 @@ impl LibraryWnd
 
     mtd rateSelected(value: u8)
     {
-        let files = .selectedCaptureFiles()
-        for file in files do
+        for file in .selectedCaptureFiles() do
             .updateMetadata(file, rating: &value)
     }
 
@@ -1017,15 +977,15 @@ impl LibraryWnd
         }
     }
 
-    // Switch between the normal library and the recycle bin: both are just folders, so
+    // Switches between the normal library and the recycle bin: both are just folders, so
     // this is a folder navigation to the Swag Capture folder or its recycle bin.
     mtd setTrashMode(trash: bool)
     {
         .navigateFolder(trash ? Library.getTrashFolder() : Library.getFolder())
     }
 
-    // The real on-disk folder the library is currently showing (the Swag Capture folder by
-    // default, its recycle bin, or any folder navigated to from the breadcrumb).
+    // Returns the real on-disk folder the library is showing: the Swag Capture folder by
+    // default, its recycle bin, or any folder navigated to from the breadcrumb.
     mtd currentFolder()->String
     {
         if .curFolder.isEmpty() do
@@ -1033,11 +993,11 @@ impl LibraryWnd
         return .curFolder
     }
 
-    // Rebuild the breadcrumb from the current folder path: one level per path component,
+    // Rebuilds the breadcrumb from the current folder path: one level per path component,
     // each carrying its full path in 'tag' so navigation can act on it.
     mtd updateBreadcrumb()
     {
-        if not (.breadcrumb != null) do
+        if .breadcrumb == null do
             return
         .breadcrumb.clear()
 
@@ -1066,9 +1026,9 @@ impl LibraryWnd
         }
 
         // Add levels root-first.
-        for idx in fulls.count.reversed()
+        for full in fulls.reversed()
         {
-            let fp = fulls[idx].toString()
+            let fp = full.toString()
             var nm = Path.fileName(fp) orelse ""
             if nm.count == 0 do
                 nm = fp
@@ -1082,7 +1042,7 @@ impl LibraryWnd
         }
     }
 
-    // Fill a level's drop-down with the real sub-directories of that level's folder.
+    // Fills a level's drop-down with the real sub-directories of that level's folder.
     mtd fillBreadcrumbMenu(bc: *BreadcrumbCtrl, index: u64, menu: *MenuCtrl)
     {
         if index >= bc.items.count do
@@ -1103,16 +1063,16 @@ impl LibraryWnd
         .menuPaths.clear()
         .menuPaths.reserve(dirs.count)
         for d in dirs do
-            .menuPaths.add(String.from(d.fullname))
+            .menuPaths.add(String.from(d.fullName))
 
         for d, i in dirs
         {
-            let name = Path.fileName(d.fullname) orelse d.fullname.toString()
-            menu.addItem(name, .menuPaths[i].toString(), checked: d.fullname == currentChild)
+            let name = Path.fileName(d.fullName) orelse d.fullName.toString()
+            menu.addItem(name, .menuPaths[i].toString(), checked: d.fullName == currentChild)
         }
     }
 
-    // Navigate the library to a folder chosen from the breadcrumb (its body or a chevron
+    // Navigates the library to a folder chosen from the breadcrumb (its body or a chevron
     // entry). The Swag Capture folder keeps its full features (date sidebar, delete-to-trash);
     // the recycle bin and any other folder are simply browsed by listing supported items.
     mtd navigateFolder(path: String)
@@ -1143,8 +1103,8 @@ impl LibraryWnd
         // One rule holds both modes of the window: what can be picked stands on the left,
         // what is picked is shown on the right. The editor puts its tools on the left and
         // the selected form on the right; the library puts its dates on the left and the
-        // captures themselves fill the rest. The date list used to sit on the right, so
-        // switching modes swapped the meaning of the same edge.
+        // captures themselves fill the rest. A date list on the right would swap the meaning
+        // of the same edge when switching modes.
         with res.sideBar = Wnd.create'Wnd(res, {0, 0, SideBarWidth, 0})
         {
             .dockStyle       = .Left
@@ -1154,9 +1114,9 @@ impl LibraryWnd
         }
 
         // The path and command rows are chrome and the captures are content. One panel holding
-        // both made the recessed capture ground read as a square dropped inside a larger box, so
-        // each role stands on its own panel, parted by the same gutter that already separates the
-        // rail from this column.
+        // both would make the recessed capture ground read as a square dropped inside a larger
+        // box, so each role stands on its own panel, parted by the same gutter that already
+        // separates the rail from this column.
         with res.barPanel = Wnd.create'Wnd(res, {0, 0, 0, 2 * themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
@@ -1164,25 +1124,43 @@ impl LibraryWnd
             .margin.w        = metrics.panel_GutterSize
         }
 
-        with res.captureHost = Wnd.create'ScrollWnd(res)
+        res.createCaptureGrid()
+        res.createDateList()
+        res.createBreadcrumb()
+        res.createCommandBar()
+
+        res.setPreviewSize(.Small)
+        res.setSortMethod(res.sortMethod)
+        res.updateBreadcrumb()
+        return res
+    }
+
+    // The captures themselves, on a recessed ground of their own.
+    mtd createCaptureGrid()
+    {
+        with .captureHost = Wnd.create'ScrollWnd(me)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Panel
             .style.addStyleSheetColors("wnd_Bk $view_Bk")
         }
 
-        with let view = Wnd.create'LibraryView(res.captureHost)
+        with .view = Wnd.create'LibraryView(me.captureHost)
         {
-            .libWnd    = res
+            .libWnd    = me
             .padding   = 8
-            .scrollWnd = res.captureHost
-            .mainWnd   = parent
+            .scrollWnd = me.captureHost
+            .mainWnd   = me.main
         }
 
-        res.captureHost.setView(view)
-        res.view = view
+        .captureHost.setView(.view)
+    }
 
-        with let list = ListCtrl.createMultiColumns(res.sideBar)
+    // The date list of the side bar, followed by the application and tag groups once the
+    // previews have loaded.
+    mtd createDateList()
+    {
+        with .listCtrl = ListCtrl.createMultiColumns(me.sideBar)
         {
             .addColumn("name", SideBarWidth - LibCountWidth - LibRowIndent)
             .addColumn("count", LibCountWidth)
@@ -1194,30 +1172,53 @@ impl LibraryWnd
             .backgroundStyle = .Transparent
             .updateFlags(.ReserveExpandMargin)
             .dockStyle = .Center
-            .sigSelectionChanged += func|res|(list)
+            .sigSelectionChanged += func|libWnd = me|(list)
             {
                 let sel = list.selectedLine()
                 if not sel do
                     return
-                res.applySidebarFilter(sel)
+                libWnd.applySidebarFilter(sel)
             }
         }
+    }
 
-        res.listCtrl = list
-
-        // Folder path bar: shows the real library folder and lets the user walk it
-        // (its sub-folders, incl. the recycle bin, are reachable from the chevrons).
-        with res.breadcrumb = BreadcrumbCtrl.create(res.barPanel, {0, 0, 0, themeActionButtonSize(metrics)})
+    // The folder path bar: it shows the real library folder and lets the user walk it, since
+    // its sub-folders, the recycle bin included, are reachable from the chevrons.
+    mtd createBreadcrumb()
+    {
+        with .breadcrumb = BreadcrumbCtrl.create(me.barPanel, {0, 0, 0, themeActionButtonSize(me.themeMetrics())})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .sigItemPressed  += func|res|(bc, idx) { res.navigateFolder(bc.items[idx].tag.toString()) }
-            .sigFillMenu     += func|res|(bc, idx, menu) { res.fillBreadcrumbMenu(bc, idx, menu) }
-            .sigMenuSelected += func|res|(bc, idx, id) { res.navigateFolder(id) }
+            .sigItemPressed  += func|libWnd = me|(bc, idx) { libWnd.navigateFolder(bc.items[idx].tag.toString()) }
+            .sigFillMenu     += func|libWnd = me|(bc, idx, menu) { libWnd.fillBreadcrumbMenu(bc, idx, menu) }
+            .sigMenuSelected += func|libWnd = me|(bc, idx, id) { libWnd.navigateFolder(id) }
+        }
+    }
+
+    // One named drop-down of the command bar: a glyph, the word beside it, and the arrow that
+    // says a menu opens.
+    mtd createMenuButton(icon: Icon, text: string)->*IconButton
+    {
+        with let btn = IconButton.create(me.commandBar, icon, {0, 0, 0, themeActionButtonSize(me.themeMetrics())})
+        {
+            .preferredSize.x = 0
+            .setText(text)
+            .updateFlags(.CenterContent)
+            .setTextPosition(.Right)
+            .setArrowPosition(.RightDownward)
         }
 
-        // Top bar
-        with res.commandBar = StackLayoutCtrl.create(res.barPanel, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
+        return btn
+    }
+
+    // The command row of the library: the presentation menus, the folder menu, the loading
+    // state, and the live search against the right edge.
+    mtd createCommandBar()
+    {
+        let metrics  = .themeMetrics()
+        let iconSize = themeActionIconSize(metrics)
+        with .commandBar = StackLayoutCtrl.create(me.barPanel, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .spacing         = LibButtonGap
@@ -1225,108 +1226,69 @@ impl LibraryWnd
             .backgroundStyle = .Transparent
         }
 
-        // View: thumbnail size and optional information painted over thumbnails share
-        // one menu, because both control presentation rather than library contents.
-        with res.viewBtn = IconButton.create(res.commandBar, res.theme().icon(.ActualSize, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
+        // Thumbnail size and the information painted over thumbnails share one menu, because
+        // both control presentation rather than library contents.
+        .viewBtn = .createMenuButton(.theme().icon(.ActualSize, iconSize), appStrings().ui_BarView)
+        .viewBtn.sigPressed += func|libWnd = me|(btn)
         {
-            .preferredSize.x = 0
-            .setText(appStrings().ui_BarView)
-            .updateFlags(.CenterContent)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightDownward)
-            .sigPressed += func|res|(btn)
+            with let menu = MenuCtrl.createPopup(libWnd)
             {
-                with var menu = MenuCtrl.createPopup(res)
-                {
-                    menu.updateFlags(.HideShortcuts)
-                    .addItem(ActionRecentSize.LibSmall)
-                    .addItem(ActionRecentSize.LibMedium)
-                    .addItem(ActionRecentSize.LibBig)
-                    .addSeparator()
+                .updateFlags(.HideShortcuts)
+                .addItem(ActionRecentSize.LibSmall)
+                .addItem(ActionRecentSize.LibMedium)
+                .addItem(ActionRecentSize.LibBig)
+                .addSeparator()
 
-                    .addItem(ActionLibView.Ratings)
-                    .addItem(ActionLibView.LinkMarkers)
-                }
-
-                discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
+                .addItem(ActionLibView.Ratings)
+                .addItem(ActionLibView.LinkMarkers)
             }
+
+            discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
         }
 
-        // Sort
-        with res.sortBtn = IconButton.create(res.commandBar, res.theme().icon(.Sort, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
+        .sortBtn = .createMenuButton(.theme().icon(.Sort, iconSize), appStrings().ui_BarSort)
+        .sortBtn.sigPressed += func|libWnd = me|(btn)
         {
-            .preferredSize.x = 0
-            .setText(appStrings().ui_BarSort)
-            .updateFlags(.CenterContent)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightDownward)
-            .sigPressed += func|res|(btn)
+            with let menu = MenuCtrl.createPopup(libWnd)
             {
-                with var menu = MenuCtrl.createPopup(res)
-                {
-                    menu.updateFlags(.HideShortcuts)
-                    .addItem(ActionLibSort.Recent)
-                    .addItem(ActionLibSort.Modified)
-                    .addItem(ActionLibSort.Name)
-                    .addItem(ActionLibSort.Application)
-                    .addItem(ActionLibSort.WindowTitle)
-                    .addItem(ActionLibSort.Dimensions)
-                    .addItem(ActionLibSort.FileSize)
-                    .addItem(ActionLibSort.Similar)
-                    .addSeparator()
-                    .addItem(ActionLibSort.Invert)
-                }
-
-                discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
+                .updateFlags(.HideShortcuts)
+                .addItem(ActionLibSort.Recent)
+                .addItem(ActionLibSort.Modified)
+                .addItem(ActionLibSort.Name)
+                .addItem(ActionLibSort.Application)
+                .addItem(ActionLibSort.WindowTitle)
+                .addItem(ActionLibSort.Dimensions)
+                .addItem(ActionLibSort.FileSize)
+                .addItem(ActionLibSort.Similar)
+                .addSeparator()
+                .addItem(ActionLibSort.Invert)
             }
+
+            discard menu.doModal(cast #assume (*IconButton) btn, autoDestroy: true)
         }
 
-        // Filter
-        with res.filterBtn = IconButton.create(res.commandBar, res.theme().icon(.Filter, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
-        {
-            .preferredSize.x = 0
-            .setText(appStrings().ui_BarFilter)
-            .updateFlags(.CenterContent)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightDownward)
-            .sigPressed += func|res|(btn)
-            {
-                res.showFilterMenu(cast #assume (*IconButton) btn)
-            }
-        }
+        .filterBtn = .createMenuButton(.theme().icon(.Filter, iconSize), appStrings().ui_BarFilter)
+        .filterBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFilterMenu(cast #assume (*IconButton) btn) }
 
         // Library roots and ordinary image folders are explicit choices, named like every
         // neighbouring command instead of leaving one unexplained glyph in the sentence.
-        with res.folderBtn = IconButton.create(res.commandBar, res.theme().icon(.OpenFile, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
-        {
-            .preferredSize.x = 0
-            .setText(appStrings().ui_BarFolders)
-            .updateFlags(.CenterContent)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightDownward)
-            .toolTip    = appStrings().tip_LibraryFolders
-            .sigPressed += func|res|(btn) { res.showFolderMenu(cast #assume (*IconButton) btn) }
-        }
+        .folderBtn = .createMenuButton(.theme().icon(.OpenFile, iconSize), appStrings().ui_BarFolders)
+        .folderBtn.toolTip    = appStrings().tip_LibraryFolders
+        .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(cast #assume (*IconButton) btn) }
 
         // Loading state stays with the commands it updates, before the flexible gap, so it
         // appears without moving the search field away from the right edge.
-        view.imgSpin = Spinner.create(res.commandBar, {0, 0, themeActionIconSize(metrics), themeActionIconSize(metrics)})
-        view.imgSpin.hide()
+        .view.imgSpin = Spinner.create(.commandBar, {0, 0, iconSize, iconSize})
+        .view.imgSpin.hide()
 
-        let spacer = Wnd.create'Wnd(res.commandBar)
+        let spacer = Wnd.create'Wnd(.commandBar)
         spacer.layoutSpec.policyX = .Expand
 
-        // Live search
-        with res.searchEdit = EditBox.create(res.commandBar, "", {0, 0, 220, themeActionButtonSize(metrics)}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with .searchEdit = EditBox.create(me.commandBar, "", {0, 0, 220, themeActionButtonSize(metrics)}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .setForm(.Rectangle)
             .setPlaceholder(appStrings().ui_Search)
-            .sigTextChanged += func|res|(ed) { res.setSearch(ed.text()) }
+            .sigTextChanged += func|libWnd = me|(ed) { libWnd.setSearch(ed.text()) }
         }
-
-        res.setPreviewSize(.Small)
-        res.setSortMethod(res.sortMethod)
-        res.updateBreadcrumb()
-        return res
     }
 }

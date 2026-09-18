@@ -37,20 +37,20 @@ public struct PopupMenuItem
 {
     public
     {
-        using item: Item           // Embedded item state.
+        using item: Item           // Embedded label, icon, identifier, and user data.
         rightName:  RichString     // Optional right-aligned shortcut label.
 
         // Re-reads 'name' on every layout, or `null` when the label was set once.
         nameResolver: MenuLabelResolver?
 
-        late popup: *MenuCtrl                           // Popup associated with this value.
-        pos:        f32                                 // Pos associated with this value.
-        size:       f32                                 // Size associated with this value.
-        rg:         CommandStateEvent.RenderingHint     // Rg associated with this value.
-        separator:  bool                                // Separator associated with this value.
-        disabled:   bool                                // Disabled associated with this value.
-        checked:    bool                                // Checked associated with this value.
-        hidden:     bool                                // Hidden associated with this value.
+        late popup: *MenuCtrl                           // Child menu this item opens, for a submenu item.
+        pos:        f32                                 // Leading edge along the menu axis, set by the layout pass.
+        size:       f32                                 // Extent along the menu axis, set by the layout pass.
+        rg:         CommandStateEvent.RenderingHint     // Rendering hint, such as membership of an exclusive group.
+        separator:  bool                                // Whether the item is a separator.
+        disabled:   bool                                // Whether the item cannot be chosen.
+        checked:    bool                                // Whether the item shows a check or radio mark.
+        hidden:     bool                                // Whether the item is left out of the menu.
     }
 
     submenuOpensLeft: bool     // Resolved opening side used by layout and painting.
@@ -61,7 +61,7 @@ public struct MenuCtrl
 {
     public
     {
-        using frameWnd: FrameWnd     // Embedded frame window state.
+        using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
         sigCommandSelected: SigArray'func||(*MenuCtrl, WndId)      // Emitted after a command is selected.
         onPrepareItem:      (func(*MenuCtrl, *PopupMenuItem))?     // Updates an item before menu layout is computed.
@@ -149,7 +149,7 @@ public impl IWnd for MenuCtrl
             var backPos = labelPos
             backPos.x     -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
-            if selected and (it.popup != null) and .subVisible == it.popup
+            if selected and it.popup != null and .subVisible == it.popup
             {
                 // Fill past the bar, outline only to it — the same split the popup makes in
                 // [[Gui.MenuCtrl.paintPopupBarAnchor]], and for the same reason.
@@ -515,7 +515,7 @@ impl MenuCtrl
     private mtd resolveSubmenuDirections()
     {
         let surfaceRect = .surfaceRect()
-        for i in .items where (i!.popup != null) and not i!.hidden
+        for i in .items where i!.popup != null and not i!.hidden
         {
             let item = i!
             item.popup.updateState()
@@ -526,10 +526,7 @@ impl MenuCtrl
         .invalidate()
     }
 
-    private mtd hasPopupBarAnchor()->bool
-    {
-        return (.popupBarItemIdx != Swag.U32.Max and .ownerMenu and .ownerMenu.bar) or .popupAnchorButton != null
-    }
+    private mtd hasPopupBarAnchor()->bool => (.popupBarItemIdx != Swag.U32.Max and .ownerMenu and .ownerMenu.bar) or .popupAnchorButton != null
 
     private mtd clearPopupBarAnchor()
     {
@@ -552,10 +549,7 @@ impl MenuCtrl
         .popupButtonOpensUp      = button.arrowPosition == .RightUpward
     }
 
-    private mtd getPopupBarAnchorHeight()->f32
-    {
-        return .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
-    }
+    private mtd getPopupBarAnchorHeight()->f32 => .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
 
     // Reports whether the body of an attached popup still fits on the side its tab opens to.
     //
@@ -604,10 +598,7 @@ impl MenuCtrl
         return result
     }
 
-    private mtd getBarItemHeight()->f32
-    {
-        return Math.min(.clientRect().height, .themeMetrics().menuBar_Height)
-    }
+    private mtd getBarItemHeight()->f32 => Math.min(.clientRect().height, .themeMetrics().menuBar_Height)
 
     private mtd getBarLabelRect(item: *PopupMenuItem)->Math.Rectangle
     {
@@ -817,7 +808,9 @@ impl MenuCtrl
         .timer = null
     }
 
-    // Updates state.
+    // Refreshes every item from the command state its identifier computes.
+    //
+    // The label, icon, shortcut, and flags an answer updates replace those of the item.
     public mtd updateState()
     {
         for i in .items
@@ -933,7 +926,7 @@ impl MenuCtrl
 
     mtd showHotPopup()
     {
-        if .hotIdx == Swag.U32.Max or not (.items[.hotIdx]!.popup != null)
+        if .hotIdx == Swag.U32.Max or .items[.hotIdx]!.popup == null
         {
             .selectedIdx = Swag.U32.Max
             return
@@ -988,10 +981,7 @@ impl MenuCtrl
         return Swag.U32.Max
     }
 
-    mtd hitTest(surfacePos: Math.Point)->u32
-    {
-        return .bar ? .hitTestBar(surfacePos) : .hitTestPopup(surfacePos)
-    }
+    mtd hitTest(surfacePos: Math.Point)->u32 => .bar ? .hitTestBar(surfacePos) : .hitTestPopup(surfacePos)
 
     mtd computeLayoutBar()
     {
@@ -1024,7 +1014,7 @@ impl MenuCtrl
         }
     }
 
-    // Computes layout popup.
+    // Recomputes the size of a popup menu and the position of each of its items.
     public mtd computeLayoutPopup()
     {
         let metrics = .themeMetrics()
@@ -1359,8 +1349,9 @@ public impl MenuCtrl
         return mitem
     }
 
-    // Add a separator. Consecutive separators (and a leading one) are collapsed so callers
-    // can unconditionally separate groups without producing duplicate dividers.
+    // Adds a separator unless the menu is empty or already ends with one.
+    //
+    // Callers can therefore separate groups unconditionally without producing duplicate dividers.
     mtd addSeparator()
     {
         let last = .items.last()
@@ -1378,13 +1369,12 @@ public impl MenuCtrl
     // with a notch. A [[Gui.IconButtonArrowPosition.RightUpward]] marker opens the menu above the
     // button; every other marker opens it below. When `autoDestroy` is true, the menu destroys
     // itself after the modal loop.
-    mtd doModal(button: *IconButton, autoDestroy: bool = false)->WndId?
-    {
-        return .doModalImpl({}, .TopLeft, autoDestroy, button)
-    }
+    mtd doModal(button: *IconButton, autoDestroy: bool = false)->WndId? => .doModalImpl({}, .TopLeft, autoDestroy, button)
 
-    // Runs a popup menu modally and returns its selected command, or null when dismissed.
-    // When `autoDestroy` is true, the menu destroys itself after the modal loop ends.
+    // Runs a popup menu modally at `surfacePos` and returns its selected command, or null when dismissed.
+    //
+    // `pos` says how the menu is placed around `surfacePos`. When `autoDestroy` is true, the
+    // menu destroys itself after the modal loop ends.
     mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->WndId? => .doModalImpl(surfacePos, pos, autoDestroy, null)
 
     private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: *IconButton?)->WndId?

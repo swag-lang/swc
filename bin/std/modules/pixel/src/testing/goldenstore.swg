@@ -15,7 +15,7 @@ struct ImageGoldenOptions
 
 // Compares the display list recorded by 'painter' against the golden named 'name'.
 //
-// The painter is serialized with [[Testing.dumpPainter]], so this asserts on the *commands* a
+// The painter is serialized with [[Pixel.Testing.dumpPainter]], so this asserts on the *commands* a
 // drawing emits, not on the pixels it would produce: it needs no GPU and no window, and its
 // result is identical on every machine.
 //
@@ -38,7 +38,7 @@ func assertGolden(painter: const *Painter, name: string, level = DumpLevel.Full,
 
 // Compares arbitrary text against the golden named 'name'.
 //
-// Behaves exactly like [[Testing.assertGolden]] but takes the snapshot text directly, for callers
+// Behaves exactly like [[Pixel.Testing.assertGolden]] but takes the snapshot text directly, for callers
 // that build their own normalized representation. Both sides are compared with end of lines
 // normalized to '\n', so a CRLF checkout never changes the outcome.
 func assertGoldenText(text: string, name: string, loc = #callerlocation)
@@ -56,7 +56,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
         return
     }
 
-    let expected = catch File.readAllText(path.toString(), .Utf8, normalizeEol: true) as errRead
+    let expected = catch File.readAllText(path, normalizeEol: true) as errRead
     if errRead != null
     {
         Console.println("[golden] cannot read ", path)
@@ -103,8 +103,8 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // Compares owned pixels against the PNG golden named `name`.
 //
 // Goldens live beside the calling test under `goldens/<name>.png`. A missing golden is created
-// and passes, like [[Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
-// first differing pixel, and fails. [[Testing.ImageGoldenOptions]] can tolerate bounded codec or
+// and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
+// first differing pixel, and fails. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
 // raster differences; both limits default to exact comparison.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
@@ -159,10 +159,7 @@ private
         firstActual:     Color
     }
 
-    func isWithinTolerance(difference: const *ImageDifference, options: ImageGoldenOptions)->bool
-    {
-        return difference.sameSize and difference.differentPixels <= options.maxDifferentPixels
-    }
+    func isWithinTolerance(difference: const *ImageDifference, options: ImageGoldenOptions)->bool => difference.sameSize and difference.differentPixels <= options.maxDifferentPixels
 
     func compareImages(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
     {

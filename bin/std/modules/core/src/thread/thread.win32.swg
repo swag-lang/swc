@@ -53,10 +53,7 @@ func waitManyNative(handles: const [..] ThreadHandle)
     expect WaitForMultipleObjects(cast(u32) handles.count, cast(const *HANDLE) handles.buffer, TRUE, INFINITE)
 }
 
-func isDoneNative(handle: ThreadHandle)->bool
-{
-    return expect WaitForSingleObject(handle, 0) != WAIT_TIMEOUT
-}
+func isDoneNative(handle: ThreadHandle)->bool => expect WaitForSingleObject(handle, 0) != WAIT_TIMEOUT
 
 func closeNative(handle: ThreadHandle)
 {

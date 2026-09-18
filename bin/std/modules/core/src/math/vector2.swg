@@ -1,37 +1,38 @@
 #global namespace Math
 #global public
 
-// A 2D vector struct representing a point or direction in 2D space.
-// Contains x and y components as 32-bit floating point values.
+// Stores a two-dimensional vector of `f32` components.
+//
+// The same type serves as a position and as a direction. Angles are in radians, and a positive
+// angle turns the X axis toward the Y axis, which is counter-clockwise when Y points up.
 #[Serialization.Final]
 struct Vector2
 {
-    public x, y: f32     // X and Y components of the vector
+    public x, y: f32     // Components along the X and Y axes
 }
 
 impl Vector2
 {
-    // Common vector constants
     const Zero     = Vector2{0, 0}                             // Zero vector (0, 0)
-    const One      = Vector2{1, 1}                             // Unit vector in both directions (1, 1)
-    const UnitX    = Vector2{1, 0}                             // Unit vector along X-axis (1, 0)
-    const UnitY    = Vector2{0, 1}                             // Unit vector along Y-axis (0, 1)
-    const NegUnitX = Vector2{-1, 0}                            // Negative unit vector along X-axis (-1, 0)
-    const NegUnitY = Vector2{0, -1}                            // Negative unit vector along Y-axis (0, -1)
-    const Max      = Vector2{Swag.F32.Max, Swag.F32.Max}       // Maximum possible vector values
-    const NegMax   = Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Negative maximum vector values
-    const Min      = Vector2{Swag.F32.Min, Swag.F32.Min}       // Minimum possible vector values
+    const One      = Vector2{1, 1}                             // Both components set to one (1, 1)
+    const UnitX    = Vector2{1, 0}                             // Unit vector along the X axis (1, 0)
+    const UnitY    = Vector2{0, 1}                             // Unit vector along the Y axis (0, 1)
+    const NegUnitX = Vector2{-1, 0}                            // Unit vector along the negative X axis (-1, 0)
+    const NegUnitY = Vector2{0, -1}                            // Unit vector along the negative Y axis (0, -1)
+    const Max      = Vector2{Swag.F32.Max, Swag.F32.Max}       // Largest finite `f32` in every component
+    const NegMax   = Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
+    const Min      = Vector2{Swag.F32.Min, Swag.F32.Min}       // Smallest positive normalized `f32` in every component, not the most negative value
 
-    // Set both components to the same scalar value.
-    // This allows assignment like 'vec = 5.0' to set both components to 5.0.
+    // Sets both components to `value`.
+    //
+    // This is what lets a scalar initialize or assign a vector, as in `vec = 5.0`.
     #[Swag.Inline]
     mtd opSet(value: f32)
     {
         .x, .y = value
     }
 
-    // Compound assignment operators for vector-vector operations (+=, -=, *=, /=).
-    // Performs component-wise operations with another vector.
+    // Applies `+=`, `-=`, `*=`, or `/=` component by component with `other`.
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(other: Vector2)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
@@ -56,8 +57,7 @@ impl Vector2
         }
     }
 
-    // Compound assignment operators for vector-scalar operations (+=, -=, *=, /=).
-    // Applies the scalar 'value' to both components of the vector.
+    // Applies `+=`, `-=`, `*=`, or `/=` with the scalar `value` to every component.
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(value: f32)
         where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign
@@ -82,8 +82,7 @@ impl Vector2
         }
     }
 
-    // Binary operators for vector-vector operations (+, -, *, /).
-    // Performs component-wise operations between two vectors and returns the result.
+    // Returns the component-wise sum, difference, product, or quotient with `other`.
     #[Swag.Inline]
     mtd(op: Swag.Operator) const opBinary(other: Vector2)->Vector2
         where op == .Add or op == .Sub or op == .Mul or op == .Div
@@ -97,8 +96,9 @@ impl Vector2
         }
     }
 
-    // Binary operators for vector-scalar operations (+, -, *, /).
-    // Applies the scalar 'value' to both components and returns the result.
+    // Returns this vector with `+`, `-`, `*`, or `/` applied to every component and the scalar `value`.
+    //
+    // Addition and multiplication are commutative, so the scalar may also come first.
     #[Swag.Inline, Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(value: f32)->Vector2
         where op == .Add or op == .Sub or op == .Mul or op == .Div
@@ -112,8 +112,7 @@ impl Vector2
         }
     }
 
-    // Apply unary operations to the vector.
-    // Currently supports negation (-) to return a vector with both components negated.
+    // Returns this vector with both components negated.
     #[Swag.Inline]
     mtd(op: Swag.Operator) const opUnary()->Vector2
         where op == .Neg
@@ -121,8 +120,7 @@ impl Vector2
         return Vector2{-.x, -.y}
     }
 
-    // Set both components of the vector.
-    // Parameters 'x' and 'y' specify the new component values.
+    // Sets the components to `x` and `y`.
     #[Swag.Inline]
     mtd set(x, y: f32)
     {
@@ -130,47 +128,42 @@ impl Vector2
         .y = y
     }
 
-    // Returns the length (magnitude) of the vector.
-    // Calculated using the Euclidean distance formula: sqrt(x² + y²).
+    // Returns the Euclidean length of the vector.
     #[Swag.Inline]
     mtd const length()->f32 => sqrt((.x * .x) + (.y * .y))
 
     // Returns the squared length of the vector.
-    // Faster than 'length()' when only comparing magnitudes since it avoids the square root operation.
+    //
+    // It avoids the square root of [[Core.Math.Vector2.length]], which is enough to compare lengths.
     #[Swag.Inline]
     mtd const lengthSquared()->f32 => (.x * .x) + (.y * .y)
 
-    // Returns the dot product between this vector and 'other'.
-    // The dot product is calculated as: (x₁ × x₂) + (y₁ × y₂).
+    // Returns the dot product of this vector and `other`.
     #[Swag.Inline]
     mtd const dot(other: Vector2)->f32 => (.x * other.x) + (.y * other.y)
 
-    // Returns the perpendicular vector in the 2D plane scaled by 'axis'.
-    // The 'axis' parameter determines the sign and scale of the result.
+    // Returns the cross product of this vector with a Z-axis vector of length `axis`.
+    //
+    // The result lies in the plane: it is [[Core.Math.Vector2.perpendicularClockwise]] scaled by `axis`.
     #[Swag.Inline]
-    mtd const cross(axis: f32)->Vector2
-    {
-        return {.y * axis, -.x * axis}
-    }
+    mtd const cross(axis: f32)->Vector2 => {.y * axis, -.x * axis}
 
-    // Returns the Z component of the cross product (scalar cross product in 2D).
-    // Calculates the determinant of the 2x2 matrix formed by the two vectors.
+    // Returns the Z component of the cross product of this vector and `other`.
+    //
+    // It is positive when the shorter turn from this vector to `other` goes the way the X axis
+    // turns toward the Y axis, negative when it goes the other way, and zero when the two vectors
+    // are parallel.
     #[Swag.Inline]
-    mtd const cross(other: Vector2)->f32
-    {
-        return .x * other.y - .y * other.x
-    }
+    mtd const cross(other: Vector2)->f32 => .x * other.y - .y * other.x
 
-    // Set both vector components to zero.
-    // Equivalent to assigning the 'Zero' constant but modifies the current instance.
+    // Sets both components to zero.
     #[Swag.Inline]
     mtd setZero()
     {
         .x, .y = 0
     }
 
-    // Negate the vector in-place.
-    // Multiplies both components by -1, effectively reversing the vector direction.
+    // Negates both components in place, reversing the direction of the vector.
     #[Swag.Inline]
     mtd negate()
     {
@@ -178,24 +171,19 @@ impl Vector2
         .y = -.y
     }
 
-    // Returns true if this vector is exactly zero.
-    // Performs exact floating-point comparison, which may not work well with computed values.
+    // Returns whether both components are exactly zero.
+    //
+    // Use [[Core.Math.Vector2.isZeroEpsilon]] for computed values.
     #[Swag.Inline]
-    mtd const isZero()->bool
-    {
-        return .x == 0 and .y == 0
-    }
+    mtd const isZero()->bool => .x == 0 and .y == 0
 
-    // Returns true if this vector is zero within an epsilon tolerance.
-    // Uses 'eps' parameter to handle floating-point precision issues.
+    // Returns whether both components are closer to zero than `eps`.
     mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool => Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps)
 
-    // Returns true if this vector is equal to 'other' within an epsilon tolerance.
-    // Compares each component separately using the specified 'eps' tolerance.
+    // Returns whether every component is closer than `eps` to the matching component of `other`.
     mtd const isEqualEpsilon(other: Vector2, eps = ConstF32.Epsilon)->bool => Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
 
-    // Returns the Euclidean distance between this vector and 'dest'.
-    // Calculated as the length of the difference vector between the two positions.
+    // Returns the Euclidean distance between this vector and `dest`.
     mtd const distanceTo(dest: Vector2)->f32
     {
         let xn = (.x - dest.x)
@@ -203,8 +191,9 @@ impl Vector2
         return sqrt((xn * xn) + (yn * yn))
     }
 
-    // Returns the squared distance between this vector and 'dest'.
-    // Faster than 'distance()' when only comparing distances since it avoids the square root operation.
+    // Returns the squared distance between this vector and `dest`.
+    //
+    // It avoids the square root of [[Core.Math.Vector2.distanceTo]], which is enough to compare distances.
     mtd const distanceSquaredTo(dest: Vector2)->f32
     {
         let xn = (.x - dest.x)
@@ -212,8 +201,10 @@ impl Vector2
         return (xn * xn) + (yn * yn)
     }
 
-    // Normalize this vector in-place to unit length.
-    // Sets the vector's length to 1 while preserving its direction. Asserts that the vector is not zero.
+    // Scales this vector to unit length in place.
+    //
+    // The length must not be near zero, which is asserted. Use
+    // [[Core.Math.Vector2.normalizeOrZero]] when it can be.
     mtd normalize()
     {
         var norm = sqrt((.x * .x) + (.y * .y))
@@ -223,8 +214,10 @@ impl Vector2
         .y   *= norm
     }
 
-    // Returns this vector normalized to unit length without modifying the original.
-    // Creates a new vector with length 1 in the same direction. Asserts that the vector is not zero.
+    // Returns this vector scaled to unit length.
+    //
+    // The length must not be near zero, which is asserted. Use
+    // [[Core.Math.Vector2.normalizedOrZero]] when it can be.
     mtd const normalized()->Vector2
     {
         var norm = sqrt((.x * .x) + (.y * .y))
@@ -233,8 +226,7 @@ impl Vector2
         return Vector2{.x * norm, .y * norm}
     }
 
-    // Set the vector to the specified length safely.
-    // First normalizes the vector safely, then scales it to 'newLength'. Handles zero-length vectors.
+    // Scales this vector to the length `newLength`, or sets it to zero when its length is near zero.
     mtd setLengthOrZero(newLength: f32)
     {
         .normalizeOrZero()
@@ -242,8 +234,9 @@ impl Vector2
         .y *= newLength
     }
 
-    // Set the vector to the specified length.
-    // First normalizes the vector, then scales it to 'newLength'. Assumes the vector is not zero.
+    // Scales this vector to the length `newLength`, keeping its direction.
+    //
+    // The current length must not be near zero, which is asserted.
     mtd setLength(newLength: f32)
     {
         .normalize()
@@ -251,8 +244,7 @@ impl Vector2
         .y *= newLength
     }
 
-    // Normalize this vector in-place safely.
-    // Sets the vector to unit length, or to zero if the original length is near zero.
+    // Scales this vector to unit length in place, or sets it to zero when its length is near zero.
     mtd normalizeOrZero()
     {
         var norm = sqrt((.x * .x) + (.y * .y))
@@ -267,8 +259,7 @@ impl Vector2
         .y   *= norm
     }
 
-    // Returns this vector normalized safely without modifying the original.
-    // Returns a unit vector in the same direction, or the zero vector if length is near zero.
+    // Returns this vector scaled to unit length, or the zero vector when its length is near zero.
     mtd const normalizedOrZero()->Vector2
     {
         var norm = sqrt((.x * .x) + (.y * .y))
@@ -278,8 +269,7 @@ impl Vector2
         return Vector2{.x * norm, .y * norm}
     }
 
-    // Returns a vector containing the minimum components of two vectors.
-    // Each component of the result is the smaller of the corresponding components in 'a' and 'b'.
+    // Returns the component-wise minimum of `a` and `b`.
     func min(a, b: Vector2)->Vector2
     {
         var result: retval
@@ -288,8 +278,7 @@ impl Vector2
         return result
     }
 
-    // Returns a vector containing the maximum components of two vectors.
-    // Each component of the result is the larger of the corresponding components in 'a' and 'b'.
+    // Returns the component-wise maximum of `a` and `b`.
     func max(a, b: Vector2)->Vector2
     {
         var result: retval
@@ -298,32 +287,32 @@ impl Vector2
         return result
     }
 
-    // Apply floor function to both components in-place.
-    // Rounds each component down to the nearest integer value.
+    // Rounds both components down to integer values in place.
     mtd floor()
     {
         .x = Math.floor(.x)
         .y = Math.floor(.y)
     }
 
-    // Apply ceiling function to both components in-place.
-    // Rounds each component up to the nearest integer value.
+    // Rounds both components up to integer values in place.
     mtd ceil()
     {
         .x = Math.ceil(.x)
         .y = Math.ceil(.y)
     }
 
-    // Apply rounding function to both components in-place.
-    // Rounds each component to the nearest integer value.
+    // Rounds both components to the nearest integer values in place.
+    //
+    // A component halfway between two integers rounds away from zero.
     mtd round()
     {
         .x = Math.round(.x)
         .y = Math.round(.y)
     }
 
-    // Rotate the vector by a given angle around the origin.
-    // Uses standard 2D rotation matrix transformation with the specified 'angle'.
+    // Rotates this vector about the origin by `angle`.
+    //
+    // A positive angle turns the X axis toward the Y axis.
     mtd rotateBy(angle: Math.Angle)
     {
         let s  = Math.sin(angle.radians)
@@ -334,16 +323,26 @@ impl Vector2
         .y = (s * tx) + (c * ty)
     }
 
-    // Returns the cosine of the angle between this vector and 'other'.
-    // Calculated using the dot product formula: dot(a,b) / (|a| * |b|).
-    mtd const angleCosineTo(other: Vector2)->f32 => .dot(other) / (.length() * other.length())
+    // Returns the cosine of the angle between this vector and `other`, within [-1, 1].
+    //
+    // The result is NaN when either vector is zero.
+    mtd const angleCosineTo(other: Vector2)->f32
+    {
+        // Rounding can push the ratio for nearly parallel vectors just past 1 in magnitude,
+        // outside the domain of acos. The comparisons leave a NaN untouched.
+        let cosine = .dot(other) / (.length() * other.length())
+        return cosine > 1 ? 1 : (cosine < -1 ? -1 : cosine)
+    }
 
-    // Returns the angle between this vector and 'other' in radians.
-    // The result is in the range [0, π] using the arc cosine of the normalized dot product.
+    // Returns the unsigned angle between this vector and `other`, in radians within [0, π].
+    //
+    // The result is NaN when either vector is zero.
     mtd const angleTo(other: Vector2)->f32 => Math.acos(.angleCosineTo(other))
 
-    // Returns the angle between this vector and 'other' in the range [0, 2π].
-    // Uses the cross product to determine the sign and adjust the angle accordingly.
+    // Returns the angle that turns this vector onto `other`, in radians within [0, 2π).
+    //
+    // The angle is measured in the direction that turns the X axis toward the Y axis. The result
+    // is NaN when either vector is zero.
     mtd const orientedAngleTo(other: Vector2)->f32
     {
         var angle = Math.acos(.angleCosineTo(other))
@@ -353,9 +352,9 @@ impl Vector2
         return angle
     }
 
-    // Perform linear interpolation between two vectors.
-    // Interpolates each component separately using the given 'factor' (0.0 to 1.0).
-    // When 'factor' is 0.0, returns 'src'; when 1.0, returns 'dst'.
+    // Returns the linear interpolation from `src` to `dst` at `factor`.
+    //
+    // A `factor` of 0 gives `src` and 1 gives `dst`. It is not clamped, so other values extrapolate.
     func lerp(src, dst: Vector2, factor: f32)->Vector2
     {
         var result: retval
@@ -364,23 +363,19 @@ impl Vector2
         return result
     }
 
-    // Clamp this vector's components between 'min' and 'max' values.
-    // Each component is independently clamped to stay within the specified range.
+    // Clamps every component in place between the matching components of `min` and `max`.
     mtd clamp(min, max: Vector2)
     {
         .x = Math.clamp(.x, min.x, max.x)
         .y = Math.clamp(.y, min.y, max.y)
     }
 
-    // Returns a new vector with components clamped between 'min' and 'max' values.
-    // Each component is independently clamped to stay within the specified range.
-    mtd const clamped(min, max: Vector2)->Vector2
-    {
-        return Vector2{Math.clamp(.x, min.x, max.x), Math.clamp(.y, min.y, max.y)}
-    }
+    // Returns this vector with every component clamped between the matching components of `min` and `max`.
+    mtd const clamped(min, max: Vector2)->Vector2 => Vector2{Math.clamp(.x, min.x, max.x), Math.clamp(.y, min.y, max.y)}
 
-    // Clamp this vector's length to be within 'minLength' and 'maxLength'.
-    // Preserves the vector's direction while constraining its magnitude.
+    // Scales this vector in place so that its length lies between `minLength` and `maxLength`.
+    //
+    // The direction is kept, so a vector shorter than `minLength` must not be zero, which is asserted.
     mtd clampLength(minLength, maxLength: f32)
     {
         let len = .length()
@@ -390,8 +385,9 @@ impl Vector2
             .setLength(maxLength)
     }
 
-    // Returns a new vector with length clamped between 'minLength' and 'maxLength'.
-    // Preserves the vector's direction while constraining its magnitude.
+    // Returns this vector scaled so that its length lies between `minLength` and `maxLength`.
+    //
+    // The direction is kept, so a vector shorter than `minLength` must not be zero, which is asserted.
     mtd const clampedLength(minLength, maxLength: f32)->Vector2
     {
         let len = .length()
@@ -402,37 +398,29 @@ impl Vector2
         return me
     }
 
-    // Returns the absolute value of each component.
-    // Creates a new vector where each component is its absolute value.
-    mtd const absolute()->Vector2
-    {
-        return Vector2{Math.abs(.x), Math.abs(.y)}
-    }
+    // Returns this vector with the absolute value of every component.
+    mtd const absolute()->Vector2 => Vector2{Math.abs(.x), Math.abs(.y)}
 
-    // Apply absolute value to both components in-place.
-    // Makes both components positive by removing their sign.
+    // Replaces both components with their absolute values.
     mtd makeAbsolute()
     {
         .x = Math.abs(.x)
         .y = Math.abs(.y)
     }
 
-    // Returns a vector perpendicular to this one (rotated 90 degrees counter-clockwise).
-    // The perpendicular vector has the same length but is rotated 90° CCW.
-    mtd const perpendicular()->Vector2
-    {
-        return Vector2{-.y, .x}
-    }
+    // Returns this vector turned a quarter turn from the X axis toward the Y axis.
+    //
+    // That is counter-clockwise when Y points up. The length is unchanged.
+    mtd const perpendicular()->Vector2 => Vector2{-.y, .x}
 
-    // Returns a vector perpendicular to this one (rotated 90 degrees clockwise).
-    // The perpendicular vector has the same length but is rotated 90° CW.
-    mtd const perpendicularClockwise()->Vector2
-    {
-        return Vector2{.y, -.x}
-    }
+    // Returns this vector turned a quarter turn from the Y axis toward the X axis.
+    //
+    // That is clockwise when Y points up. The length is unchanged.
+    mtd const perpendicularClockwise()->Vector2 => Vector2{.y, -.x}
 
-    // Project this vector onto 'other' vector.
-    // Returns the component of this vector in the direction of 'other'.
+    // Returns the projection of this vector onto the direction of `other`.
+    //
+    // The result is the zero vector when `other` is near zero.
     mtd const projectedOnto(other: Vector2)->Vector2
     {
         let dotProduct    = .dot(other)
@@ -442,31 +430,28 @@ impl Vector2
         return other * (dotProduct / otherLengthSq)
     }
 
-    // Reflect this vector across a surface with the given 'normal'.
-    // The 'normal' should be a unit vector pointing away from the surface.
+    // Returns this vector reflected off a surface whose normal is `normal`.
+    //
+    // `normal` must have unit length. The component along it is reversed and the component along
+    // the surface is kept.
     mtd const reflected(normal: Vector2)->Vector2
     {
         let scale = 2.0 * .dot(normal)
         return Vector2{.x - normal.x * scale, .y - normal.y * scale}
     }
 
-    // Returns the component-wise sign of the vector (-1, 0, or 1 for each component).
-    // Each component becomes -1 if negative, 0 if zero, or 1 if positive.
-    mtd const sign()->Vector2
-    {
-        return Vector2{Math.sign(.x), Math.sign(.y)}
-    }
+    // Returns the sign of every component, as -1, 0, or 1.
+    mtd const sign()->Vector2 => Vector2{Math.sign(.x), Math.sign(.y)}
 
-    // Returns true if all components are finite (not infinite or NaN).
-    // Useful for validating vector values after calculations.
+    // Returns whether every component is finite, neither infinite nor NaN.
     mtd const isFinite()->bool => Math.isFinite(.x) and Math.isFinite(.y)
 
-    // Returns true if any component is NaN (Not a Number).
-    // Useful for detecting invalid vector values after calculations.
+    // Returns whether any component is NaN.
     mtd const isNaN()->bool => Math.isNaN(.x) or Math.isNaN(.y)
 
-    // Move this vector towards 'target' by a maximum distance of 'maxDistance'.
-    // If the distance to 'target' is less than 'maxDistance', moves directly to target.
+    // Moves this vector toward `target` by at most `maxDistance`.
+    //
+    // It lands exactly on `target` once that is within `maxDistance`.
     mtd moveTowards(target: Vector2, maxDistance: f32)
     {
         let dir  = target - me
@@ -477,8 +462,9 @@ impl Vector2
             me[] += dir * (maxDistance / dist)
     }
 
-    // Returns a vector moved towards 'target' by a maximum distance of 'maxDistance'.
-    // If the distance to 'target' is less than 'maxDistance', returns the target directly.
+    // Returns this vector moved toward `target` by at most `maxDistance`.
+    //
+    // The result is exactly `target` once that is within `maxDistance`.
     mtd const movedTowards(target: Vector2, maxDistance: f32)->Vector2
     {
         let dir  = target - me
@@ -488,9 +474,10 @@ impl Vector2
         return me[] + (dir * (maxDistance / dist))
     }
 
-    // Perform smooth damping interpolation towards 'target'.
-    // Uses 'smoothTime' and 'deltaTime' for frame-rate independent smooth movement.
-    // 'currentVelocity' is modified to track the current rate of change.
+    // Returns `current` moved toward `target` along a critically damped spring over `deltaTime`.
+    //
+    // Each component follows [[Core.Math.smoothDamp]]. `currentVelocity` carries the velocity from
+    // one call to the next and is updated in place.
     func smoothDamp(current, target: Vector2, currentVelocity: *Vector2, smoothTime, deltaTime: f32)->Vector2
     {
         var result: retval
@@ -499,26 +486,22 @@ impl Vector2
         return result
     }
 
-    // Create a vector from polar coordinates.
-    // 'angle' is in radians, 'radius' is the distance from origin.
-    func fromPolar(angle, radius: f32)->Vector2
-    {
-        return Vector2{radius * cos(angle), radius * sin(angle)}
-    }
+    // Creates a vector from the polar coordinates `angle`, in radians, and `radius`.
+    //
+    // The angle is measured from the positive X axis toward the Y axis.
+    func fromPolar(angle, radius: f32)->Vector2 => Vector2{radius * cos(angle), radius * sin(angle)}
 
-    // Convert this vector to polar coordinates.
-    // Returns angle in radians and radius (magnitude) as a tuple-like struct.
-    mtd const toPolar()->{ angle: f32, radius: f32 }
-    {
-        return {Math.atan2(.y, .x), .length()}
-    }
+    // Returns the polar coordinates of this vector: its angle in radians within [-π, π], and its length.
+    mtd const toPolar()->{ angle: f32, radius: f32 } => {Math.atan2(.y, .x), .length()}
 
-    // Returns the angle of this vector in radians.
-    // The angle is measured from the positive X-axis, counter-clockwise.
+    // Returns the angle of this vector from the positive X axis, in radians within [-π, π].
+    //
+    // A positive angle turns toward the Y axis.
     mtd const toAngle()->f32 => Math.atan2(.y, .x)
 
-    // Rotate this vector to face the specified 'angle' in radians.
-    // Preserves the vector's magnitude while changing its direction.
+    // Turns this vector to the direction `angle`, in radians, keeping its length.
+    //
+    // The angle is measured from the positive X axis toward the Y axis.
     mtd setAngle(angle: f32)
     {
         let magnitude = .length()

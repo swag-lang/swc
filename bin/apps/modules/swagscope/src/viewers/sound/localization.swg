@@ -34,10 +34,7 @@ private var g_SoundStrings: SoundStrings
 func soundStrings()->const *SoundStrings => &g_SoundStrings
 
 // Returns `count` followed by the noun in the form that count calls for.
-func channelCountText(count: u32)->String
-{
-    return Format.toString("% %", count, count == 1 ? soundStrings().word_Channel : soundStrings().word_Channels)
-}
+func channelCountText(count: u32)->String => Format.toString("% %", count, count == 1 ? soundStrings().word_Channel : soundStrings().word_Channels)
 
 // Registers this viewer's string table with the application.
 //

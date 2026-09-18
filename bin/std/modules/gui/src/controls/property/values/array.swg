@@ -68,10 +68,7 @@ internal impl Properties
     }
 
     // True when 'item' wraps an array value: a fixed-size [N]T or a dynamic Core.Array.
-    mtd isArrayItem(item: *PropertiesItem)->bool
-    {
-        return item.type and (Reflection.isStaticArray(item.type) or Reflection.isDynamicArray(item.type))
-    }
+    mtd isArrayItem(item: *PropertiesItem)->bool => item.type and (Reflection.isStaticArray(item.type) or Reflection.isDynamicArray(item.type))
 
     // Buffer base, element type and element count of an array item (static or dynamic).
     mtd arrayElementInfo(arrayItem: *PropertiesItem)->{ base: [*] u8?, valueType: typeinfo?, count: u64 }

@@ -196,21 +196,15 @@ private impl Track
         if not .isEnabled or .hasEncodings or .kind != VideoTrackType do
             return false
         if .codecId == AvcCodecId or .codecId == HevcCodecId or .codecId == Mpeg4CodecId do
-            return .codecPrivate.count != 0
+            return not .codecPrivate.isEmpty()
         return .isVfwMpeg4()
     }
 
     mtd const isHevcVideo()->bool => .codecId == HevcCodecId
 
-    mtd const isPlayableSubtitle()->bool
-    {
-        return .isEnabled and not .hasEncodings and .kind == SubtitleTrackType and (.codecId == Utf8SubtitleCodecId or .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId)
-    }
+    mtd const isPlayableSubtitle()->bool => .isEnabled and not .hasEncodings and .kind == SubtitleTrackType and (.codecId == Utf8SubtitleCodecId or .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId)
 
-    mtd const subtitleFormat()->Subtitle.Format
-    {
-        return .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId ? .SubStationAlpha : .MatroskaText
-    }
+    mtd const subtitleFormat()->Subtitle.Format => .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId ? .SubStationAlpha : .MatroskaText
 
     // Whether a Video for Windows header names a codec this decoder reads.
     mtd const isVfwMpeg4()->bool
@@ -276,7 +270,7 @@ private impl Track
             return false
         if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or not .channels or .channels > 8 do
             return false
-        return not Audio.packetEncodingNeedsConfig(encoding) or .codecPrivate.count != 0
+        return not Audio.packetEncodingNeedsConfig(encoding) or not .codecPrivate.isEmpty()
     }
 
     mtd const leadingTrimFrames()->u64 fail
@@ -389,7 +383,7 @@ private impl Layout
         }
 
         let video = &.tracks[.selectedVideo]
-        if indexPictures and not video.videoSamples.count do
+        if indexPictures and video.videoSamples.isEmpty() do
             fail InvalidFormatError{"Matroska video track has no blocks"}
         return true
     }
@@ -523,7 +517,7 @@ private impl Layout
     // tracks are unsupported never returned.
     mtd const hasAudioThrough(timestampNanoseconds: s64)->bool
     {
-        if not .audioTracks.count do
+        if .audioTracks.isEmpty() do
             return true
         for trackIndex in .audioTracks
         {
@@ -542,7 +536,7 @@ private impl Layout
     {
         if not .hasAudioThrough(timestampNanoseconds) do
             return false
-        if not .subtitleTracks.count do
+        if .subtitleTracks.isEmpty() do
             return true
         return .hasClusterTimestamp and .lastClusterTimestamp >= timestampNanoseconds
     }
@@ -641,7 +635,7 @@ private impl Layout
     // Finds the last cue not later than `timestampNanoseconds`.
     mtd const cueAtOrBefore(timestampNanoseconds: u64)->const *CueEntry?
     {
-        if not .cues.count do
+        if .cues.isEmpty() do
             return null
         let timestamp = timestampNanoseconds / .timestampScale
         var low       = 0'u64
@@ -661,7 +655,7 @@ private impl Layout
     // Finds the first random-access point not earlier than `timestampNanoseconds`.
     mtd const cueAtOrAfter(timestampNanoseconds: u64)->const *CueEntry?
     {
-        if not .cues.count do
+        if .cues.isEmpty() do
             return null
         var timestamp = timestampNanoseconds / .timestampScale
         if timestampNanoseconds % .timestampScale do
@@ -908,7 +902,7 @@ private impl Layout
 
         if not hasTimestamp or clusterOffset == NoOffset do
             return
-        if .cues.count and timestamp < .cues[.cues.count - 1].timestamp do
+        if not .cues.isEmpty() and timestamp < .cues[.cues.count - 1].timestamp do
             fail InvalidFormatError{"Matroska cue timestamps are not ordered"}
         .cues.add({timestamp, clusterOffset})
     }
@@ -1619,7 +1613,7 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
     for trackIndex in layout.audioTracks
     {
         let track = &layout.tracks[trackIndex]
-        if not track.audioPackets.count do
+        if track.audioPackets.isEmpty() do
             continue
         let timelineStart = Math.max(cast(f64) track.audioStart / 1_000_000_000.0, 0)
         let leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
@@ -1641,7 +1635,7 @@ private func buildSubtitleTracks(bytes: const [..] u8, layout: *Layout, result: 
             if sample.offset > bytes.count or sample.size > bytes.count - sample.offset do
                 fail InvalidFormatError{"Matroska subtitle packet is truncated"}
             var payload: String
-            if source.headerStrip.count do
+            if not source.headerStrip.isEmpty() do
                 payload += cast(string) source.headerStrip.toSlice()
             payload += cast(string) bytes[sample.offset until sample.offset + sample.size]
             track.addEncodedCue(sample.startSeconds, sample.endSeconds, payload.toString())
@@ -1737,7 +1731,7 @@ private impl Decoder
     mtd configureMetadata(layout: *Layout) fail
     {
         var video = &layout.tracks[layout.selectedVideo]
-        if video.needsInlineSetup() and not video.setup.count
+        if video.needsInlineSetup() and video.setup.isEmpty()
         {
             // A track that carries its layer in the stream needs one sample read before it can
             // answer anything about itself.
@@ -1903,7 +1897,7 @@ private impl Decoder
         }
 
         let video = &layout.tracks[layout.selectedVideo]
-        if not video.videoSamples.count do
+        if video.videoSamples.isEmpty() do
             fail BadParameterError{"Matroska frame index exceeds the stream frame count"}
 
         // Complete one following cluster before handing packets to H.264 so B-picture reorder

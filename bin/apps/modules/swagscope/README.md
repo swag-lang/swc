@@ -212,7 +212,7 @@ callbacks, and the application never names a format.
 
 Every viewer is written this way, the plain text one included. That is the point of the
 arrangement: a viewer compiled into the executable and a viewer that will one day arrive as a
-separate binary have the same shape, so the API is kept honest by the fifteen viewers already
+separate binary have the same shape, so the API is kept honest by every viewer already
 using it rather than by intention. Runtime discovery of external binaries is future work — it
 needs a native entry point, a trust and discovery policy, and an ABI adapter that checks
 `Viewer.ApiVersion` — and the source API deliberately does not pretend that loading arbitrary
@@ -253,7 +253,6 @@ The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a v
 plugin can open. The key is never translated or reused because remembered viewer choices persist
 it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons`
 case in grid order; a separately built plugin would name a cell of the document it embeds itself.
-
 
 Keep tests at `src/tests/viewer.<format>.test.swg`, fixtures in `src/tests/datas`, and image goldens
 in `src/tests/goldens`. The OpenDocument suite also opens immutable external CC0 fixtures from all

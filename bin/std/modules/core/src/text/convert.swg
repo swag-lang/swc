@@ -3,43 +3,43 @@
 
 using Swag, Globalization
 
-// Represents convert format.
+// Holds the default formats of the numbers a conversion writes.
 struct ConvertFormat
 {
     public
     {
-        formatInt:   ConvertFormatInt       // Format int associated with this value.
-        formatFloat: ConvertFormatFloat     // Format float associated with this value.
+        formatInt:   ConvertFormatInt       // Format of integers.
+        formatFloat: ConvertFormatFloat     // Format of floating-point numbers.
     }
 }
 
-// Format structure to convert a float to a string
+// Describes how a floating-point number is converted to text.
 struct ConvertFormatFloat
 {
     public
     {
-        precision: s8 = -1        // -1 is for 'most possible precision'
-        fmt:       u8 = 'f'u8     // Fmt associated with this value.
-        forceSign: bool           // Force sign associated with this value.
+        precision: s8 = -1        // Digits after the decimal point, or -1 for as many as the value needs.
+        fmt:       u8 = 'f'u8     // Output format: 'e', 'E', 'f', 'g' or 'G'.
+        forceSign: bool           // Whether a positive number also gets a sign.
     }
 }
 
 impl ConvertFormatFloat
 {
-    // Set some format options with a given user string.
-    // Format is `[+][fmt][precision]`
+    // Sets the options that the user format `strFormat` specifies, leaving the others unchanged.
     //
+    // The format is `[+][fmt][precision]`:
     // + '+'
-    //     To force the positive sign if the number is positive
+    //     Forces the sign of a positive number.
     // + 'fmt'
-    //     This is the output format:
+    //     Selects the output format:
     //     | e | -d.dddde±dd, a decimal exponent
     //     | E | -d.ddddE±dd, a decimal exponent
     //     | f | -ddd.dddd, no exponent
     //     | g | 'e' for large exponents, 'f' otherwise
     //     | G | 'E' for large exponents, 'f' otherwise
     // + 'precision'
-    //     A number which is the precision of the fractional part
+    //     Sets the number of digits after the decimal point.
     mtd setFormat(strFormat: string?)
     {
         let buffer  = strFormat.buffer
@@ -78,37 +78,34 @@ impl ConvertFormatFloat
     }
 }
 
-// Format structure to convert an integer to a string
-//
-// If 'signed' is 'true', the value to convert must be stored in 'signedValue', otherwise it must
-// be stored in 'unsignedValue'.
+// Describes how an integer is converted to text.
 struct ConvertFormatInt
 {
     public
     {
-        base:      u32 = 10     // Base associated with this value.
-        padding:   u8           // Padding associated with this value.
-        width:     u8           // Width in logical units.
-        forceSign: bool         // Force sign associated with this value.
+        base:      u32 = 10     // Numeric base, from 2 to 16.
+        padding:   u8           // ASCII character that pads the output to `width`, or 0 for none.
+        width:     u8           // Minimum width of the padded output, sign included, in characters.
+        forceSign: bool         // Whether a positive number also gets a sign.
     }
 }
 
 impl ConvertFormatInt
 {
-    // Set some format options with a given user string.
-    // The format is `[+][fmt][padding][width]'
+    // Sets the options that the user format `strFormat` specifies, leaving the others unchanged.
     //
-    // + `+'
-    //     To force the positive sign if the number is positive
+    // The format is `[+][fmt][padding][width]`:
+    // + '+'
+    //     Forces the sign of a positive number.
     // + 'fmt'
-    //     This is the output format:
+    //     Selects the output format:
     //     | B | Binary
     //     | D | Decimal
     //     | X | Hexadecimal
     // + 'padding'
-    //     The padding character, in ascii. It's mandatory before the next field
+    //     Sets the ASCII padding character, which must come before a width.
     // + 'width'
-    //     The width of the output, in number of characters
+    //     Sets the minimum width of the output, in characters.
     mtd setFormat(strFormat: string?)
     {
         let buffer  = strFormat.buffer
@@ -157,7 +154,11 @@ impl ConvertFormatInt
     }
 }
 
-// Convert a value to an utf8 string, and append the result in a ConcatBuffer
+// Appends the text of `value` to `buf`, formatted by `convFmt` and the user format `strFormat`.
+//
+// Numbers follow their format, a pointer is written in hexadecimal, an enum value by name, a
+// slice or an array as a bracketed list, and a struct through [[Core.StrConv.convertStruct]].
+// A type the conversion does not know is written as '?'.
 func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     var valueData = value.buffer
@@ -209,7 +210,7 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     {
         let enumName = Reflection.enumName(type, valueData)
         if not enumName.isEmpty() do
-            buf.addBytes(Swag.makeSlice(enumName.buffer, cast(u64) enumName.length))
+            buf.addBytes(enumName.toSlice())
         else do
             buf.addBytes("?")
         return
@@ -315,7 +316,10 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     buf.addBytes("?")
 }
 
-// Convert a structure content to an utf8 string, and put the result in a ConcatBuffer
+// Appends the text of the struct `value` to `buf`.
+//
+// A [[Core.String]] is written as is, a struct that implements [[Core.StrConv.IConvert]] writes
+// itself, and any other struct is written as `{field = value, ...}`.
 func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     let kindof = cast #assume(const *Swag.TypeInfoStruct) Swag.kindOf(value)
@@ -326,13 +330,12 @@ func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat
     if kindof == String
     {
         let ptrStr = cast(const *String) ptr!
-        buf.addBytes(Swag.makeSlice(ptrStr.buffer, ptrStr.length))
+        buf.addBytes(ptrStr.toSlice())
         return
     }
 
     // A structure with an implementation of IConvert
-    let itf = Swag.makeInterface(ptr, kindof, IConvert)
-    if itf != null
+    if let itf = Swag.makeInterface(ptr, kindof, IConvert)
     {
         itf.convert(buf, convFmt, strFormat)
         return
@@ -353,7 +356,7 @@ func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat
     buf.addBytes("}")
 }
 
-// Convert a float to an utf8 string, and put the result in a ConcatBuffer
+// Appends the text of the floating-point `value` to `buf`, formatted by `fmt`.
 func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat)
 {
     let kindof = cast #assume(const *Swag.TypeInfoNative) Swag.kindOf(value)
@@ -368,10 +371,10 @@ func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat
     case .F64: value64 = (cast(const *f64) dataof!)[]
     }
 
-    Dtoa.parse(buf, value64, fmt.fmt, cast(s64) fmt.precision, fmt.forceSign)
+    Dtoa.append(buf, value64, fmt.fmt, cast(s64) fmt.precision, fmt.forceSign)
 }
 
-// Convert an integer to an utf8 string, and put the result in a ConcatBuffer
+// Appends the text of the integer `value` to `buf`, formatted by `fmt`.
 func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 {
     let kindof = cast #assume(const *Swag.TypeInfoNative) Swag.kindOf(value)
@@ -477,10 +480,10 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
         cpt      -= 1
     }
 
-    buf.addBytes(cast([..] u8) Swag.makeSlice(&tmp[cpt + 1], cast(u64) 63 - cpt))
+    buf.addBytes(tmp[cpt + 1 to])
 }
 
-// Convert a float to an utf8 string, and put the result in a ConcatBuffer
+// Appends the text of the floating-point `value` to `buf`, formatted by `convFmt` and the user format `strFormat`.
 func convertFloatAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     Swag.assert(Swag.kindOf(value).flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
@@ -490,7 +493,7 @@ func convertFloatAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertForm
     convertFloat(buf, value, fmt)
 }
 
-// Convert an integer to an utf8 string, and put the result in a ConcatBuffer
+// Appends the text of the integer `value` to `buf`, formatted by `convFmt` and the user format `strFormat`.
 func convertIntAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, strFormat: string?)
 {
     Swag.assert(Swag.kindOf(value).flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
@@ -500,13 +503,13 @@ func convertIntAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat
     convertInt(buf, value, fmt)
 }
 
-// Convert a 'bool' to a string, and put the result in a ConcatBuffer
+// Appends `true` or `false` to `buf`.
 func convertBool(buf: *ConcatBuffer, value: bool)
 {
     buf.addBytes(value ? "true" : "false")
 }
 
-// Convert a 'rune' to a string, and put the result in a ConcatBuffer
+// Appends the UTF-8 encoding of `value` to `buf`, or '?' for the zero rune.
 func convertRune(buf: *ConcatBuffer, value: rune)
 {
     var arr: [4] u8
@@ -515,11 +518,14 @@ func convertRune(buf: *ConcatBuffer, value: rune)
     else
     {
         let count = Utf8.encodeRune(arr, value)
-        buf.addBytes(Swag.makeSlice(&arr[0], cast(u64) count))
+        buf.addBytes(arr[until count])
     }
 }
 
-// Templated version. Convert a value of type 'T'
+// Appends the text of `value` to `buf`, choosing the conversion from the type `T` at compile time.
+//
+// An integer or a floating-point number uses its default format overridden by `strFormat`, and
+// ignores `convFmt`. Other types go through [[Core.StrConv.convertAny]].
 func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat: string?)
 {
     #static if Reflection.isInteger(T)

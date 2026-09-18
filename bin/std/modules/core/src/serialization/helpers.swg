@@ -19,9 +19,7 @@ internal func wireFieldKey(val: Swag.TypeValue)->string
             return cast #assume (string) key
     }
 
-    if val.name == null do
-        return ""
-    return val.name
+    return val.name orelse ""
 }
 
 // Returns the canonical schema of a root type, or an empty schema when the type does
@@ -91,7 +89,10 @@ internal func wireTypeCrc(type: typeinfo?)->u32
     return getTypeInfoCrc(resolved)
 }
 
-// Determin if a type can be serialized by a simple copy
+// Returns whether values of `type` serialize as a raw copy of their bytes, with their size in bytes.
+//
+// Integers, floats, Booleans, and runes do, and so does a plain-data struct marked
+// [[Core.Serialization.Final]]. Any other type, or a null one, returns false and zero.
 public func isPodFinal(type: typeinfo?)->{ raw: bool, sizeof: u64 }
 {
     if type

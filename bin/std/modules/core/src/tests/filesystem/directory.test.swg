@@ -10,6 +10,6 @@ using Swag
 
     discard catch Directory.create(dirName) as err
     Swag.assert(err != null)
-    Swag.assert((err is Errors.InvalidFileNameError))
+    Swag.assert(err is Errors.InvalidFileNameError)
     Swag.assert(not Directory.exists(dirName))
 }

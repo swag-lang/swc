@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Names the hook event type.
+// Intercepts an event before a window processes it, and returns `true` to consume it.
 alias HookEvent = func||(*Wnd, IEvent)->bool
 
 // Selects automatic placement within the parent's padded client rectangle.
@@ -135,7 +135,7 @@ struct KeyShortcut
     }
 }
 
-// Receives lifecycle, input, paint, command, and notification events for a [Wnd].
+// Receives lifecycle, input, paint, command, and notification events for a [[Gui.Wnd]].
 interface IWnd
 {
     // Dispatches an arbitrary event to its typed callback.
@@ -284,8 +284,11 @@ struct Wnd
         parent: *Wnd?     // Structural parent responsible for position, layout, and lifetime.
         owner:  *Wnd?     // Logical owner used by popup and command routing when distinct from `parent`.
 
-        // The child list is maintained by the window itself: attach through [setParent] and
-        // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
+        // Child windows in paint order, back to front.
+        //
+        // The list is maintained by the window itself: attach through [[Gui.Wnd.setParent]] and
+        // detach through [[Gui.Wnd.detachChild]] so parent, surface, style, and layout state stay
+        // consistent.
         readonly children: Array'(*Wnd)
 
         name:    RichString     // Display text with optional rich spans.
@@ -351,8 +354,8 @@ struct Wnd
 
     public
     {
-        hookOnEvent:      HookEvent?     // Will be called before processing the event of the window
-        hookOnChildEvent: HookEvent?     // Will be called before processing whatever event of a child window
+        hookOnEvent:      HookEvent?     // Runs before this window processes an event; returning `true` consumes it.
+        hookOnChildEvent: HookEvent?     // Runs before a descendant or owned window processes an event; returning `true` consumes it.
     }
 }
 
@@ -585,10 +588,15 @@ impl Wnd
     #[Swag.Inline]
     func(T) create(parent: *Wnd? = null, id: WndId? = null, hook: HookEvent? = null)->*T => create'T(parent, "", {}, id, hook)
 
-    #[Swag.Inline]
     // Allocates a concrete window with an empty name at `position`.
+    #[Swag.Inline]
     func(T) create(parent: *Wnd?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T => create'T(parent, "", position, id, hook)
 
+    // Allocates a concrete window of type `T` named `name` at `position`.
+    //
+    // With a `parent`, the window is attached at once and receives its create and resize
+    // events; without one, it waits for [[Gui.Wnd.setParent]]. `position` also becomes the
+    // preferred layout size. The application releases the window after [[Gui.Wnd.destroy]].
     func(T) create(parent: *Wnd?, name: string?, position: Math.Rectangle, id: WndId? = null, hook: HookEvent? = null)->*T
     {
         with let res = Memory.new'T()
@@ -612,7 +620,10 @@ impl Wnd
         return res
     }
 
-    // Destroy the window
+    // Destroys this window and its subtree immediately.
+    //
+    // Every window of the subtree receives its destroy event before this returns; storage is
+    // still released at the end of the frame. Prefer [[Gui.Wnd.destroy]] from an event handler.
     mtd destroyNow()
     {
         let srfn = .surface!
@@ -620,13 +631,17 @@ impl Wnd
 
         // Each child's destroyWnd removes it from '.children': iterating the array while it
         // shrinks would skip every other child, so always consume the back one.
-        while .children.count do
+        while not .children.isEmpty() do
             .children.back().destroyNow()
 
         srfn.app.destroyWnd(me)
     }
 
-    // Destroy the window
+    // Schedules this window and its subtree for destruction at the end of the frame.
+    //
+    // The window is hidden at once and hands the keyboard focus to the next traversal stop; its
+    // destroy event and the release of its storage follow once dispatch is safe, so this is the
+    // form to call from an event handler.
     mtd destroy()
     {
         let srfn = .surface!
@@ -703,7 +718,7 @@ impl Wnd
             .assignSurface(who.surface)
 
             // Add the window at the back, or before the first topmost window
-            if not who.children.count do
+            if who.children.isEmpty() do
                 who.children.add(me)
             else
             {
@@ -731,16 +746,13 @@ impl Wnd
     }
 
     // Returns the explicit owner when present, otherwise the structural parent.
-    mtd ownerOrParent()->*Wnd?
-    {
-        return .owner orelse .parent
-    }
+    mtd ownerOrParent()->*Wnd? => .owner orelse .parent
 
     //////////////////////////////////////////////
     // State
     //////////////////////////////////////////////
 
-    // Show the window
+    // Shows the window, or hides it when `b` is false.
     mtd show(b = true)
     {
         if not b
@@ -755,7 +767,7 @@ impl Wnd
         .parent!.invalidate()
     }
 
-    // Hide the window
+    // Hides the window and hands the keyboard focus it holds to the next traversal stop.
     mtd hide()
     {
         if .wndFlags.has(.Hidden) do
@@ -767,7 +779,10 @@ impl Wnd
         .parent!.invalidate()
     }
 
-    // Enable/Disable the window
+    // Enables the window, or disables it when `state` is false.
+    //
+    // A disabled window rejects input, gives up the keyboard focus, and paints its disabled
+    // presentation, as do its descendants.
     mtd enable(state = true)
     {
         if state
@@ -789,7 +804,7 @@ impl Wnd
         .invalidate()
     }
 
-    // Disable the window
+    // Disables the window, like `enable(false)`.
     mtd disable()
     {
         .enable(false)
@@ -839,7 +854,9 @@ impl Wnd
     // Paint
     //////////////////////////////////////////////
 
-    // Computes style.
+    // Resolves the style of this window against its application style.
+    //
+    // A detached window keeps its current style until it is attached to a surface.
     mtd computeStyle()
     {
         let srf = .surface
@@ -1058,7 +1075,7 @@ impl Wnd
     // Grows a rectangle of this window to everything the window may paint into.
     //
     // A window draws a border, a focus ring or a shadow outside its logical rectangle, so the
-    // region [invalidate] marks dirty is wider than [position]. A paint pass rejects a window on
+    // region `invalidate` marks dirty is wider than `position`. A paint pass rejects a window on
     // the same rectangle, and that is why the two share this: rejecting on a tighter bound than
     // the one that was dirtied would leave the difference stale on screen.
     internal mtd const paintExtent(rect: Math.Rectangle)->Math.Rectangle
@@ -1069,7 +1086,7 @@ impl Wnd
         return result
     }
 
-    // Force the window to be repainted
+    // Schedules this window, including the margin it may paint outside its rectangle, for repainting.
     mtd invalidate()
     {
         .surface?.invalidateRect(.paintExtent(.surfaceRect()))
@@ -1083,9 +1100,10 @@ impl Wnd
 
     // Returns the rectangle this window paints into, in parent coordinates.
     //
-    // Presentation state moves and scales the painted image without moving [position], so this is
-    // where the window is seen while [presentationOffset] or [presentationScale] is not at rest.
-    // Layout, hit testing, and focus keep using [position].
+    // Presentation state moves and scales the painted image without moving [[Gui.Wnd.position]],
+    // so this is where the window is seen while [[Gui.Wnd.presentationOffset]] or
+    // [[Gui.Wnd.presentationScale]] is not at rest. Layout, hit testing, and focus keep using
+    // [[Gui.Wnd.position]].
     mtd const presentationRect()->Math.Rectangle
     {
         var result: retval = .position
@@ -1137,7 +1155,7 @@ impl Wnd
         .invalidatePresentation()
     }
 
-    // Changes the paint-only scale applied around [presentationPivot].
+    // Changes the paint-only scale applied around [[Gui.Wnd.presentationPivot]].
     //
     // Both factors must be positive. The subtree is composited once and then resampled, so a
     // factor far above one softens text; scale is meant for arrival, emphasis, and press
@@ -1152,7 +1170,7 @@ impl Wnd
         .invalidatePresentation()
     }
 
-    // Changes the fixed point of [presentationScale], normalized inside the logical rectangle.
+    // Changes the fixed point of [[Gui.Wnd.presentationScale]], normalized inside the logical rectangle.
     //
     // `{0.5, 0.5}` scales about the center, `{0, 0}` about the top-left corner. Values outside
     // the unit square are accepted and place the fixed point beyond the window.
@@ -1229,10 +1247,7 @@ impl Wnd
     }
 
     // Returns the component-wise sum of legacy and container layout margins.
-    mtd layoutMargin()->Math.Vector4
-    {
-        return .margin + .layoutSpec.margin
-    }
+    mtd layoutMargin()->Math.Vector4 => .margin + .layoutSpec.margin
 
     // Resolves minimum, preferred, and maximum size for the available space.
     //
@@ -1381,7 +1396,11 @@ impl Wnd
     // Coordinates
     //////////////////////////////////////////////
 
-    // Be sure rect is fully inside the parent rectangle (if possible)
+    // Moves this window back inside its parent's rectangle, keeping `marginW` and `marginH` of room.
+    //
+    // An edge crossing the far side of the parent is pulled back, or, with `simX` or `simY`,
+    // the window flips to the other side of where it was placed, as a popup does against a
+    // screen edge. The near edges are then kept visible too.
     mtd fitPosInParent(marginW, marginH: f32 = 0, simX, simY = false)
     {
         let parent = .parent!
@@ -1411,18 +1430,18 @@ impl Wnd
             .setPosition(pos)
     }
 
-    // Convert a physical screen coordinate to a logical surface coordinate (relative to my surface)
+    // Converts a physical screen position to logical coordinates of this window's surface.
     mtd const screenToSurface(pos: Math.Point)->Math.Point
     {
         let srfn = .surface!
         return {(pos.x - srfn.position.x) / srfn.dpiScale, (pos.y - srfn.position.y) / srfn.dpiScale}
     }
 
-    // Number of physical device pixels covered by one logical unit of this window.
+    // Returns the number of physical device pixels covered by one logical unit of this window.
     //
     // Pass it to [[Pixel.Painter.measureStringSnapped]] and
     // [[Pixel.Painter.computeTextDrawInfo]] so measured positions land on the same
-    // device grid the text is drawn with.
+    // device grid the text is drawn with. A detached window answers one.
     mtd const deviceScale()->f32
     {
         if not .surface do
@@ -1430,21 +1449,21 @@ impl Wnd
         return .surface.dpiScale
     }
 
-    // Convert a surface coordinate to a local coordinate (relative to me)
+    // Converts a position in surface coordinates to this window's local coordinates.
     mtd const surfaceToLocal(pos: Math.Point)->Math.Point
     {
         let r = .surfaceRect()
         return {pos.x - r.x, pos.y - r.y}
     }
 
-    // Convert a local coordinate to a surface coordinate
+    // Converts a position in this window's local coordinates to surface coordinates.
     mtd const localToSurface(pos: Math.Point)->Math.Point
     {
         let r = .surfaceRect()
         return {pos.x + r.x, pos.y + r.y}
     }
 
-    // Convert a local coordinate to a surface coordinate
+    // Converts a rectangle in this window's local coordinates to surface coordinates.
     mtd const localToSurface(pos: Math.Rectangle)->Math.Rectangle
     {
         let r = .surfaceRect()
@@ -1452,12 +1471,9 @@ impl Wnd
     }
 
     // Returns the unpadded local client rectangle.
-    mtd const clientRect()->Math.Rectangle
-    {
-        return {0, 0, .position.width, .position.height}
-    }
+    mtd const clientRect()->Math.Rectangle => {0, 0, .position.width, .position.height}
 
-    // Returns the local client rectangle inset by [padding].
+    // Returns the local client rectangle inset by [[Gui.Wnd.padding]].
     mtd const paddedClientRect()->Math.Rectangle
     {
         var result: retval = .clientRect()
@@ -1620,21 +1636,25 @@ impl Wnd
         swap(parent.children.buffer + idx, parent.children.buffer + idxToReplace)
     }
 
-    // Move and size the wnd
+    // Moves and resizes the window, in logical units relative to the parent client origin.
+    //
+    // With `computeLayout`, the size also becomes [[Gui.Wnd.preferredSize]] and the children
+    // are arranged again. A layout container passes false to place a child without rewriting
+    // what that child prefers.
     mtd setPosition(rect: Math.Rectangle, computeLayout = true)
     {
         .move(rect.x, rect.y)
         .resize(rect.width, rect.height, computeLayout)
     }
 
-    // Move and size the wnd
+    // Moves and resizes the window from separate coordinates.
     mtd setPosition(x, y, w, h: f32, computeLayout = true)
     {
         .move(x, y)
         .resize(w, h, computeLayout)
     }
 
-    // Move the wnd
+    // Moves the window to `x`, `y` in parent coordinates, rounded to whole logical units.
     mtd move(x, y: f32)
     {
         if .position.x == x and .position.y == y do
@@ -1683,7 +1703,10 @@ impl Wnd
             pos.height = Math.min(pos.height, .maxSize.y)
     }
 
-    // Resize the wnd
+    // Resizes the window, rounded to whole logical units and clamped to its size limits.
+    //
+    // With `computeLayout`, the size also becomes [[Gui.Wnd.preferredSize]] and the children
+    // are arranged again when the size changed.
     mtd resize(width, height: f32, computeLayout = true)
     {
         var pos = Math.Rectangle{0, 0, Math.round(width), Math.round(height)}
@@ -1709,12 +1732,16 @@ impl Wnd
             .applyLayout(evt.oldSize)
     }
 
-    // Apply the current layout (children constraints)
+    // Places the children by their anchor and dock styles, then lays out each visible child.
     mtd applyLayout()
     {
         .applyLayout({.position.width, .position.height})
     }
 
+    // Places the children after a resize from `oldSize`.
+    //
+    // Anchored children keep their distance to the right and bottom edges, or grow with the
+    // window, by the difference between `oldSize` and the current size.
     mtd applyLayout(oldSize: Math.Point)
     {
         var clientRect = .paddedClientRect()
@@ -1742,8 +1769,7 @@ impl Wnd
 
             if c.anchorStyle & .Width and oldSize.x > 0
             {
-                if .position.width - oldSize.x do
-                    pos.width += .position.width - oldSize.x
+                pos.width += .position.width - oldSize.x
             }
 
             if c.anchorStyle & .Height and oldSize.y > 0
@@ -1844,16 +1870,18 @@ impl Wnd
         }
     }
 
-    // Returns the topmost descendant at parent-space coordinates.
+    // Returns the topmost window of this subtree at `x`, `y` in parent coordinates.
+    //
+    // The result is this window when no child is there, and `null` when the position is outside
+    // it. Hidden and disabled children are skipped unless `includeHidden` or `includeDisabled`
+    // asks for them.
     mtd windowAt(x, y: f32, includeDisabled, includeHidden = false)->*Wnd?
     {
         if not .position.contains(x, y) do
             return null
 
-        // Top level window is the last one painted, so it's the last
-        // in the array.
-        // So we must visit in reverse order
-        for var i = cast(s32) .children.count - 1; i >= 0; i -= 1
+        // The last child is painted last, so it is the one on top.
+        for i in reversed(.children.count)
         {
             let c = .children[i]
             if c.wndFlags.has(.Hidden) and not includeHidden do
@@ -1904,7 +1932,7 @@ impl Wnd
         return false
     }
 
-    // Retrieve the child with the given id
+    // Returns the first descendant whose identifier is `childId`, searched depth first, or `null`.
     mtd childById(childId: string)->*Wnd?
     {
         for c in .children
@@ -1919,7 +1947,7 @@ impl Wnd
         return null
     }
 
-    // Retrieve the parent with the given id
+    // Returns the nearest ancestor whose identifier is `parentId`, or `null`.
     mtd ancestorById(parentId: string)->*Wnd?
     {
         var p = .parent
@@ -1933,7 +1961,7 @@ impl Wnd
         return null
     }
 
-    // Borrows the nearest structural ancestor compatible with window type 'T', or returns null.
+    // Borrows the nearest structural ancestor compatible with window type `T`, or returns `null`.
     //
     // Starts at the parent, so the result never denotes this window. The borrow remains valid
     // until that ancestor is destroyed; reparenting changes which ancestor a later lookup finds.
@@ -1968,10 +1996,7 @@ impl Wnd
     }
 
     // Returns the window that currently owns pointer capture.
-    mtd mouseCapture()->*Wnd?
-    {
-        return .surface!.app.mouseCapture()
-    }
+    mtd mouseCapture()->*Wnd? => .surface!.app.mouseCapture()
 
     //////////////////////////////////////////////
     // Keyboard
@@ -2109,7 +2134,10 @@ impl Wnd
         .ownerNotifyEvent(.ChildFocusChanged)
     }
 
-    // Returns the keyboard-focused window on this surface, if any.
+    // Returns the window holding the application's keyboard focus, or `null`.
+    //
+    // The focus may stand on another surface of the same application. A detached window answers
+    // `null`.
     mtd focusedWindow()->*Wnd?
     {
         let surface = .surface
@@ -2321,7 +2349,9 @@ impl Wnd
     // Events
     //////////////////////////////////////////////
 
-    // Register a new timer for the given 'target'
+    // Creates a repeating timer that sends [[Gui.TimerEvent]] values to this window.
+    //
+    // See [[Gui.Application.addTimer]] for ownership.
     mtd addTimer(time: Time.Duration)->*Timer => .app().addTimer(time, me)
 
     // Removes a timer previously created for this window.
@@ -2330,13 +2360,16 @@ impl Wnd
         .app().removeTimer(timer)
     }
 
-    // Posts quit event.
+    // Posts a request to leave the application's event loop.
     mtd postQuitEvent()
     {
         .surface!.app.postQuitEvent()
     }
 
-    // Posts event.
+    // Queues `evt` for delivery to this window during the next frame.
+    //
+    // Allocate the event with [[Gui.Event.create]]: the queue owns it and releases it after
+    // dispatch.
     mtd postEvent(evt: IEvent)
     {
         let srfn = .surface!
@@ -2345,14 +2378,14 @@ impl Wnd
         srfn.app.postEvent(evt)
     }
 
-    // Posts invalidate event.
+    // Queues a repaint of this window for the next frame.
     mtd postInvalidateEvent()
     {
         let evt = Event.create'InvalidateEvent()
         .postEvent(evt)
     }
 
-    // Sends event.
+    // Delivers `evt` to this window immediately, through the owner and parent routing chain.
     mtd sendEvent(evt: IEvent)
     {
         let srfn = .surface!
@@ -2361,14 +2394,14 @@ impl Wnd
         srfn.app.sendEvent(evt)
     }
 
-    // Sends state event.
+    // Sends a [[Gui.StateEvent]] of `kind` to this window.
     mtd sendStateEvent(kind: StateEvent.Kind)
     {
         var evt = StateEvent{kind: kind}
         .sendEvent(&evt)
     }
 
-    // Sends hide state event.
+    // Sends a `Hide` state event to this window and to every locally visible descendant.
     mtd sendHideStateEvent()
     {
         .sendStateEvent(.Hide)
@@ -2379,7 +2412,7 @@ impl Wnd
         }
     }
 
-    // Sends disable state event.
+    // Sends a `Disable` state event to this window and to every locally visible descendant.
     mtd sendDisableStateEvent()
     {
         .sendStateEvent(.Disable)
@@ -2390,7 +2423,7 @@ impl Wnd
         }
     }
 
-    // Sends resize event.
+    // Sends a [[Gui.ResizeEvent]] for the current size, so the window lays itself out again.
     mtd sendResizeEvent()
     {
         var evt = ResizeEvent{}
@@ -2399,7 +2432,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
-    // Posts resize event.
+    // Queues a [[Gui.ResizeEvent]] for the current size, delivered during the next frame.
     mtd postResizeEvent()
     {
         let evt = Event.create'ResizeEvent()
@@ -2408,7 +2441,7 @@ impl Wnd
         .postEvent(evt)
     }
 
-    // Sends create event.
+    // Sends the [[Gui.CreateEvent]] of this window; later calls do nothing.
     mtd sendCreateEvent()
     {
         if .createEventDone do
@@ -2418,7 +2451,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
-    // Posts command event.
+    // Queues the command `cmdId` from this window for the next frame; a `null` identifier posts nothing.
     mtd postCommandEvent(cmdId: WndId?)
     {
         if cmdId == null do
@@ -2440,7 +2473,7 @@ impl Wnd
             .itf.onEvent(evt)
     }
 
-    // Send a notification event
+    // Sends a [[Gui.NotifyEvent]] of `kind` to this window.
     mtd notifyEvent(kind: NotifyEvent.Kind)
     {
         var ntfy = NotifyEvent{}
@@ -2448,7 +2481,7 @@ impl Wnd
         .sendEvent(&ntfy)
     }
 
-    // Send a notification event
+    // Sends a [[Gui.NotifyEvent]] of `kind` to the owner of this window, or to its parent.
     mtd ownerNotifyEvent(kind: NotifyEvent.Kind)
     {
         let p = .ownerOrParent()
@@ -2461,8 +2494,10 @@ impl Wnd
     // Commands
     //////////////////////////////////////////////
 
-    // Main function to update command state of various windows/widgets.
-    // This will update the state of this window, and all of its children
+    // Computes and applies the command state of this window, or of its children when it declines.
+    //
+    // A window whose compute pass answers for its own identifier applies the result to itself
+    // and stops there; otherwise the pass descends to every child.
     mtd updateCommandState()
     {
         var evtState = .sendComputeCommandStateEvent(.id)
@@ -2477,8 +2512,9 @@ impl Wnd
             c.updateCommandState()
     }
 
-    // Send the command state event with the given id to the window.
-    // Computes and returns presentation state for `cmdId`, including resolved shortcuts.
+    // Computes and returns the presentation state of `cmdId`, including its resolved shortcut.
+    //
+    // A `null` identifier returns an empty state.
     mtd sendComputeCommandStateEvent(cmdId: WndId?)->CommandStateEvent
     {
         if cmdId == null do
@@ -2495,9 +2531,9 @@ impl Wnd
 
         // Is there a keyboard shortcut or a global hot key ?
         var sk = .keyShortcutName(safeCmdId)
-        if not sk.length do
+        if sk.isEmpty() do
             sk = .app().hotKeyShortcutName(safeCmdId)
-        if sk.length
+        if not sk.isEmpty()
         {
             evtState.updatedFields.add(.Shortcut)
             evtState.shortcut = sk
@@ -2506,8 +2542,9 @@ impl Wnd
         return evtState
     }
 
-    // Send the command event with the given id to the window.
-    // The command will be updated first, and if it is not disabled, it will be sent.
+    // Sends the command `cmdId` to this window, unless its computed state disables it.
+    //
+    // A `null` identifier sends nothing.
     mtd sendCommandEvent(cmdId: WndId?)
     {
         if cmdId == null do
@@ -2533,11 +2570,10 @@ impl Wnd
     // Actions
     //////////////////////////////////////////////
 
-    // Register one new action
+    // Registers the stateless action type `T`, which implements [[Gui.IActionUI]], on this window.
     mtd(T) registerAction()
     {
-        var itfAct = Swag.makeInterface(null, #typeof(T), IActionUI)
-        .actions.add(itfAct)
+        .actions.add(Swag.makeInterface(null, #typeof(T), IActionUI))
     }
 
     private mtd updateAction(evt: *CommandStateEvent)->bool

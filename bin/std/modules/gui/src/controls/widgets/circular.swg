@@ -14,7 +14,7 @@ enum CircularFlags
 // Selects how discrete positions are drawn around the track.
 enum CircularStepForm
 {
-    None = 0     // No option is selected.
+    None = 0     // Draws no step indicators.
     Dot          // Draws a dot at each indicated position.
     Tick         // Draws a radial tick at each indicated position.
 }
@@ -22,7 +22,7 @@ enum CircularStepForm
 // Selects how current values are marked on the track.
 enum CircularMarkerForm
 {
-    None = 0     // No option is selected.
+    None = 0     // Draws no value markers.
     Circle       // Draws a circular thumb centered on the track.
     Needle       // Draws a radial needle from the center.
 }
@@ -32,30 +32,24 @@ struct Circular
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
-        // Configuration flags and visual settings
         flags:      CircularFlags                    // Active value-behavior flags.
-        stepForm:   CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
-        markerForm: CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
+        stepForm:   CircularStepForm   = .Tick       // Visual form of the step indicators.
+        markerForm: CircularMarkerForm = .Circle     // Visual form of the value markers.
 
-        // Angular configuration (in radians)
-        startAngle: f32 = 0                       // Starting angle of the circular range (0 = top)
-        endAngle:   f32 = Math.ConstF32.TwoPi     // Ending angle of the circular range (2π = full circle)
+        startAngle: f32 = 0                       // Angle of the minimum value, in radians clockwise from the top.
+        endAngle:   f32 = Math.ConstF32.TwoPi     // Angle of the maximum value, in radians clockwise from the top.
 
-        // Step visualization settings
-        tickCount:             u32 = 20     // Number of step indicators to draw
-        tickInnerRadiusFactor: f32 = 2      // Distance from main circle to inner edge of ticks
-        tickOuterRadiusFactor: f32 = 6      // Distance from main circle to outer edge of ticks
-        circleGap:             f32 = 0      // Gap between inner and outer circles (0 = single circle)
+        tickCount:             u32 = 20     // Number of step indicators drawn around the track.
+        tickInnerRadiusFactor: f32 = 2      // Distance from the track to the inner end of a step indicator, in logical units.
+        tickOuterRadiusFactor: f32 = 6      // Distance from the track to the outer end of a step indicator, in logical units.
+        circleGap:             f32 = 0      // Gap between two concentric track circles; zero draws a single circle.
+        rangeColor:            Color        // Explicit range-arc color, or transparent for the theme color.
 
-        // Colors
-        rangeColor: Color     // Color for the range arc (when in range mode)
-
-        // Event signals
-        sigStartChange: SigArray'func||(*Circular)     // Fired when user starts changing value
-        sigChanged:     SigArray'func||(*Circular)     // Fired when value changes
-        sigEndChange:   SigArray'func||(*Circular)     // Fired when user finishes changing value
+        sigStartChange: SigArray'func||(*Circular)     // Emitted when a user-style change transaction starts.
+        sigChanged:     SigArray'func||(*Circular)     // Emitted after either value changes.
+        sigEndChange:   SigArray'func||(*Circular)     // Emitted when a user-style change transaction ends.
     }
 
     lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
@@ -64,25 +58,23 @@ struct Circular
     max:        f32 = 1     // Inclusive value-space maximum.
     steps:      f32         // Configured step normalized to the value range.
 
-    // Internal state tracking
-    isMoving:       bool     // True when user is dragging a marker
-    isLowerPressed: bool     // True when primary marker is being pressed
-    isUpperPressed: bool     // True when secondary marker is being pressed
-    isLowerHot:     bool     // True when mouse is hovering over primary marker
-    isUpperHot:     bool     // True when mouse is hovering over secondary marker
-    hasLowerValue:  bool     // True if primary value has been set
-    hasUpperValue:  bool     // True if secondary value has been set
+    // Drag and hover state of the two markers. The mouse events maintain all of it.
+    isMoving:       bool     // Whether a drag gesture is in progress.
+    isLowerPressed: bool     // Whether the first marker is held down.
+    isUpperPressed: bool     // Whether the second marker is held down.
+    isLowerHot:     bool     // Whether the mouse is over the first marker.
+    isUpperHot:     bool     // Whether the mouse is over the second marker.
+    hasLowerValue:  bool     // Whether the first value was established.
+    hasUpperValue:  bool     // Whether the second value was established.
 
-    // Calculated geometry (updated in updateGeometry())
-    radius:       f32     // Radius of the main circular track
-    centerX:      f32     // X coordinate of circle center
-    centerY:      f32     // Y coordinate of circle center
-    correcMoving: f32     // Movement correction factor
+    // Track geometry, computed by `updateGeometry`.
+    radius:       f32     // Radius of the main circular track.
+    centerX:      f32     // X coordinate of the track center.
+    centerY:      f32     // Y coordinate of the track center.
 
-    // Animation blending for smooth color transitions
-    lowerMarkerAnimation: BlendColor     // Color animation for primary marker
-    upperMarkerAnimation: BlendColor     // Color animation for secondary marker
-    aniStep: BlendColor                  // Color animation for step indicators
+    lowerMarkerAnimation: BlendColor     // Color animation of the first marker.
+    upperMarkerAnimation: BlendColor     // Color animation of the second marker.
+    aniStep: BlendColor                  // Color animation of the step indicators.
 }
 
 impl IWnd for Circular
@@ -197,23 +189,18 @@ impl IWnd for Circular
                 if .isLowerHot
                 {
                     .isLowerPressed = true
-                    .correcMoving   = 0
                 }
                 elif .isUpperHot
                 {
                     .isUpperPressed = true
-                    .correcMoving   = 0
                 }
                 elif not .flags.has(.Range)
                 {
-                    .correcMoving   = 0
                     .isLowerPressed = true
                     .setLowerRatio(normalizedValue)
                 }
                 else
                 {
-                    .correcMoving = 0
-
                     // Determine which marker is closest
                     let m = (.lowerRatio + .upperRatio) * 0.5
                     if normalizedValue <= m
@@ -404,7 +391,7 @@ private impl Circular
         let dotRadius   = (.tickOuterRadiusFactor - .tickInnerRadiusFactor) * 0.5
         let dotDistance = .radius + (.tickOuterRadiusFactor + .tickInnerRadiusFactor) * 0.5
 
-        for var i: u32 = 0; i < .tickCount; i += 1
+        for i in .tickCount
         {
             let angle = .startAngle + stepAngle * cast(f32) i
 
@@ -426,7 +413,7 @@ private impl Circular
         let innerRadius = .radius + .tickInnerRadiusFactor
         let outerRadius = .radius + .tickOuterRadiusFactor
 
-        for var i: u32 = 0; i < .tickCount; i += 1
+        for i in .tickCount
         {
             let angle = .startAngle + stepAngle * cast(f32) i
 
@@ -577,7 +564,7 @@ impl Circular
 
     // Sets the single value without emitting start/end transaction signals.
     //
-    // [sigChanged] is still emitted when the effective value changes.
+    // [[Gui.Circular.sigChanged]] is still emitted when the effective value changes.
     mtd setValueWithoutGesture(f: f32)
     {
         .setLowerRatio((f - .min) / (.max - .min))
@@ -623,10 +610,14 @@ impl Circular
     }
 
     // Configures inclusive bounds and an optional value-space step.
-    func setBounds(me, min, max: f32, steps: f32 = 0)
+    //
+    // `steps` may span the complete range, which creates a two-value control at the bounds. The
+    // current values keep their relative positions on the track, so configure the bounds before
+    // setting values.
+    mtd setBounds(min, max: f32, steps: f32 = 0)
     {
         Swag.assert(min < max)
-        Swag.assert(steps >= 0 and steps < (max - min))
+        Swag.assert(steps >= 0 and steps <= (max - min))
         .min = min
         .max = max
         if steps > 0 do
@@ -637,7 +628,7 @@ impl Circular
     }
 
     // Configures the clockwise angular span used for the value range.
-    func setAngleRange(me, startAngle, endAngle: Math.Angle)
+    mtd setAngleRange(startAngle, endAngle: Math.Angle)
     {
         Swag.assert(endAngle.radians > startAngle.radians)
         Swag.assert((endAngle.radians - startAngle.radians) <= Math.ConstF32.TwoPi)
@@ -649,21 +640,19 @@ impl Circular
     // Changes the visual form of step indicators.
     mtd setStepForm(form: CircularStepForm)
     {
-        if .stepForm != form
-        {
-            .stepForm = form
-            .invalidate()
-        }
+        if .stepForm == form do
+            return
+        .stepForm = form
+        .invalidate()
     }
 
     // Changes the number of dot or tick step indicators.
     mtd setStepCount(count: u32)
     {
-        if .tickCount != count
-        {
-            .tickCount = count
-            .invalidate()
-        }
+        if .tickCount == count do
+            return
+        .tickCount = count
+        .invalidate()
     }
 
     // Creates a circular slider, optionally with independent range markers.

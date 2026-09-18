@@ -35,7 +35,7 @@ func day2A()
             prev = a
         }
 
-        total += bad == false ? 1 : 0
+        total += bad ? 0 : 1
     }
 
     Swag.assert(total == 549)

@@ -2,6 +2,7 @@
 
 using Core, Gui
 
+// Visible strings of the archive viewer.
 struct ArchiveStrings
 {
     ui_Name:              string = "Archive"
@@ -15,20 +16,22 @@ struct ArchiveStrings
     ui_SearchPlaceholder: string = "Filter archive entries"
 }
 
-private const FrenchArchiveStringsName = "lang/fr/scope.archive.tweak"
-private const FrenchArchiveStrings     = #include("../../../datas/lang/fr/scope.archive.tweak")
+private const FrenchStringsName = "lang/fr/scope.archive.tweak"
+private const FrenchStrings     = #include("../../../datas/lang/fr/scope.archive.tweak")
 
 private var g_ArchiveStrings: ArchiveStrings
 
+// Returns the visible strings of the archive viewer in the active language.
 func archiveStrings()->const *ArchiveStrings => &g_ArchiveStrings
 
+// Registers this viewer's strings before the registry names its plugin.
 func registerArchiveStrings(app: *Application)
 {
-    app.resources.addEmbedded(FrenchArchiveStringsName, FrenchArchiveStrings)
+    app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
     Gui.registerStrings'ArchiveStrings(&g_ArchiveStrings, "scope.archive")
 }
 
 #run
 {
-    expect Gui.validateStrings'ArchiveStrings(cast(string) FrenchArchiveStrings)
+    expect Gui.validateStrings'ArchiveStrings(cast(string) FrenchStrings)
 }

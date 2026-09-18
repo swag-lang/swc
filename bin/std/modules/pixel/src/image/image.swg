@@ -5,6 +5,8 @@ using Swag, Core, Core.Serialization
 // Owns a two-dimensional, tightly packed pixel buffer.
 //
 // Pixels are stored row by row without padding in the format given by [[Pixel.PixelFormat]].
+// The buffer is bottom-up: its first row is the bottom row of the picture. Coordinates taken by
+// image operations, such as [[Pixel.Image.pixelColor]] and [[Pixel.Image.crop]], are top-left.
 // Copying an image copies its owned byte array; temporary working storage is never shared.
 //
 // ## Example
@@ -19,7 +21,7 @@ struct Image
     public
     {
         #[Core.Serialization.Key("pixels")]
-        pixels: Array'u8     // Owned, row-major pixel bytes.
+        pixels: Array'u8     // Owned pixel bytes, bottom row first.
 
         #[Core.Serialization.Key("metadata")]
         metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
@@ -76,10 +78,7 @@ internal struct PixelValue
 }
 
 #[Swag.Inline]
-internal func colorPixelValue(color: Color)->PixelValue
-{
-    return {color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0}
-}
+internal func colorPixelValue(color: Color)->PixelValue => {color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0}
 
 internal func hslPixelValue(hue, saturation, lightness: f32)->PixelValue
 {
@@ -302,8 +301,9 @@ impl Image
 
     // Creates a tightly packed image with positive dimensions.
     //
-    // When `buffer` is provided, its bytes are copied into the new image. Its length
-    // must exactly match the byte count implied by the dimensions and format.
+    // When `buffer` is provided, its bytes are copied into the new image, bottom row first. Its
+    // length must exactly match the byte count implied by the dimensions and format. Otherwise
+    // the pixel bytes are left uninitialized.
     //
     // ## Example
     //
@@ -342,8 +342,7 @@ impl Image
     // Visits every pixel in storage order.
     //
     // The injected `pixel` value is the address of the current pixel and `index` is
-    // its zero-based row-major ordinal. Set `back` to use reverse visitation where
-    // supported by the macro invocation.
+    // its zero-based ordinal in the buffer, bottom row first.
     #[Swag.Macro]
     func(ptr: bool) opVisit(me, stmt: #code(var pixel, var index: u64))
     {
@@ -358,7 +357,7 @@ impl Image
 
     // Initializes image geometry without allocating pixels.
     //
-    // This resets `pixels`, metadata, and temporary storage. Call [[Image.allocPixels]]
+    // This resets `pixels`, metadata, and temporary storage. Call [[Pixel.Image.allocPixels]]
     // afterward, or supply storage through a higher-level creation operation.
     internal mtd init(width, height: s32, pixelFormat: PixelFormat, alphaMode = AlphaMode.Straight)
     {
@@ -424,10 +423,7 @@ impl Image
     // Returns the allocated working image.
     //
     // The caller must have called an `allocWorkingBuffer` overload first.
-    internal mtd safeWorkingBuffer()->*Image
-    {
-        return .workingBuffer!
-    }
+    internal mtd safeWorkingBuffer()->*Image => .workingBuffer!
 
     // Releases the working image, if any.
     internal mtd freeWorkingBuffer()
@@ -472,12 +468,11 @@ impl Image
     //
     // `stride` must be positive. Each injected invocation receives:
     //
-    // | pix       | address of the pixel
-    // | image     | the processed image
-    // | index     | the pixel index
-    // | x         | the pixel x coordinates
-    // | y         | the pixel y coordinates
-    // | userData  | as passed to the macro
+    // - `pix`, the address of the pixel;
+    // - `image`, the processed image;
+    // - `index`, the ordinal of the pixel in the buffer;
+    // - `x` and `y`, its column and buffer row, where row zero is the bottom of the picture;
+    // - `userData`, the `pixelUserData` passed to the macro.
     #[Swag.Macro]
     mtd visitPixels(pixelUserData: *void? = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
     {
@@ -665,7 +660,9 @@ impl Image
         return result
     }
 
-    // Returns the color at the given coordinate, clamped to the image bounds.
+    // Returns the color at a top-left pixel coordinate, clamped to the image bounds.
+    //
+    // Pixels of any format and alpha association are returned as straight-alpha 8-bit colors.
     mtd const pixelColor(pixX, pixY: s32)->Color
     {
         Swag.assert(.isValid(), "image is invalid")
@@ -727,11 +724,6 @@ impl Image
         return cast(f32) .width / cast(f32) .height
     }
 
-    // Reports whether the image has equal width and height.
-    mtd const isSquare()->bool
-    {
-        if not .isValid() do
-            return false
-        return .width == .height
-    }
+    // Reports whether the image owns pixels and has equal width and height.
+    mtd const isSquare()->bool => .isValid() and .width == .height
 }

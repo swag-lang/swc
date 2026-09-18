@@ -4,11 +4,13 @@
 
 using Core, Win32, Pixel
 
-// Names the value format type.
+// Identifies a clipboard format, as returned by [[Gui.Clipboard.registerFormat]].
 alias ValueFormat = u64
 
 private var g_PngFormat: UINT
 
+// Publishes a copy of `bytes` under `fmt` on the clipboard the caller opened.
+//
 // The clipboard takes ownership only when publication succeeds. A failed transfer keeps
 // ownership here, and the movable block is unlocked before either transfer or destruction.
 private func addNativeData(fmt: UINT, bytes: const [..] u8)
@@ -31,13 +33,13 @@ private func addNativeData(fmt: UINT, bytes: const [..] u8)
     transferred = SetClipboardData(fmt, hglob) != null
 }
 
-// Registers a named native clipboard format.
-func registerFormat(name: string)->ValueFormat fail
-{
-    return try RegisterClipboardFormatA(name.buffer)
-}
+// Returns the clipboard format registered under `name`, registering it on first use.
+//
+// Every process that registers the same name receives the same format, which is how two
+// applications agree on a private one. Fails when the system refuses the registration.
+func registerFormat(name: string)->ValueFormat fail => try RegisterClipboardFormatA(name.buffer)
 
-// Reports whether the clipboard contains `fmt`.
+// Reports whether the clipboard holds data in format `fmt`.
 func hasFormat(fmt: ValueFormat)->bool
 {
     if g_Fake.enabled do
@@ -47,10 +49,13 @@ func hasFormat(fmt: ValueFormat)->bool
         return false
     defer discard CloseClipboard()
 
-    return IsClipboardFormatAvailable(cast(UINT) fmt) ? true : false
+    return IsClipboardFormatAvailable(cast(UINT) fmt) != 0
 }
 
-// Reports whether `fmt` exists and, when provided, carries the requested type fingerprint.
+// Reports whether the clipboard holds a payload under `fmt` that matches `type`.
+//
+// A `null` `type` only asks whether `fmt` is present. Otherwise the payload must have been
+// published by [[Gui.Clipboard.addTypedData]] with the fingerprint of `type`.
 func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
 {
     if g_Fake.enabled
@@ -84,7 +89,10 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
     return false
 }
 
-// Adds or replaces a raw payload and optional type fingerprint without clearing other formats.
+// Publishes a copy of `data` under `fmt`, tagged with the fingerprint of `type`, without clearing the other formats.
+//
+// A payload already stored under `fmt` is replaced. A `null` `type` stores no fingerprint, so
+// only a query with a `null` type finds the payload.
 func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
 {
     if g_Fake.enabled do
@@ -98,7 +106,10 @@ func addTypedData(fmt: ValueFormat, type: typeinfo?, data: const [..] u8)
     addNativeData(cast(UINT) fmt, bytes.toSlice())
 }
 
-// Returns a copy of the raw payload stored under `fmt`, when its optional type matches.
+// Returns a copy of the payload stored under `fmt`, or an empty array when none matches `type`.
+//
+// Matching follows [[Gui.Clipboard.hasTypedData]], except that the payload must also have been
+// published by [[Gui.Clipboard.addTypedData]] when `type` is `null`.
 func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
 {
     if g_Fake.enabled do
@@ -128,7 +139,9 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
     return result
 }
 
-// Reports whether the clipboard contains a decodable image.
+// Reports whether the clipboard offers an image, as a device-independent bitmap or as PNG.
+//
+// Nothing is decoded, so [[Gui.Clipboard.getImage]] can still answer an invalid image.
 func hasImage()->bool
 {
     if g_Fake.enabled do
@@ -138,18 +151,15 @@ func hasImage()->bool
         return false
     defer discard CloseClipboard()
 
-    if IsClipboardFormatAvailable(CF_DIB) do
-        return true
-    if IsClipboardFormatAvailable(g_PngFormat) do
-        return true
-
-    return false
+    return IsClipboardFormatAvailable(CF_DIB) != 0 or IsClipboardFormatAvailable(g_PngFormat) != 0
 }
 
-// Replaces the clipboard contents with `image` in native bitmap and PNG formats.
+// Replaces the clipboard content with `image`, published as a device-independent bitmap and as PNG.
+//
+// A format the image fails to encode to is left out.
 func addImage(image: Image)
 {
-    // Mirrors the OS path below: adding an image empties the clipboard first
+    // Mirrors the OS path below: adding an image empties the clipboard first.
     if g_Fake.enabled
     {
         fakeClear()
@@ -175,7 +185,10 @@ func addImage(image: Image)
         addNativeData(g_PngFormat, png.toSlice())
 }
 
-// Returns a decoded copy of the clipboard image, or an invalid image when unavailable.
+// Returns a decoded copy of the clipboard image, or an invalid image when there is none.
+//
+// PNG is read in preference to the bitmap when both are offered. An image that fails to decode
+// also answers an invalid image.
 func getImage()->Image
 {
     var result: retval
@@ -234,24 +247,22 @@ func hasString()->bool
         return false
     defer discard CloseClipboard()
 
-    if IsClipboardFormatAvailable(CF_UNICODETEXT) do
-        return true
-    if IsClipboardFormatAvailable(CF_TEXT) do
-        return true
-
-    return false
+    return IsClipboardFormatAvailable(CF_UNICODETEXT) != 0 or IsClipboardFormatAvailable(CF_TEXT) != 0
 }
 
-// Adds or replaces UTF-8 text in UTF-16 and legacy formats without clearing other formats.
+// Publishes `str` as clipboard text without removing the other formats.
+//
+// The UTF-8 text is stored as UTF-16 and as ANSI text in the system code page, replacing any
+// text already there. Use [[Gui.Clipboard.setString]] for a standalone copy action.
 func addString(str: string)
 {
     writeString(str, false)
 }
 
-// Replaces every clipboard format with UTF-8 text in UTF-16 and legacy formats.
+// Replaces the whole clipboard content with `str` as text.
 //
-// Use this for a standalone copy action. Use [[Clipboard.addString]] to attach text to
-// an existing clipboard value while preserving its other formats.
+// Use this for a standalone copy action, and [[Gui.Clipboard.addString]] to attach text to a
+// value published under other formats. Nothing is written when the clipboard cannot be emptied.
 func setString(str: string)
 {
     writeString(str, true)
@@ -277,13 +288,15 @@ private func writeString(str: string, replace: bool)
         return
 
     let ansi = NativeText.encodeAnsi(str)
-    if ansi.count do
+    if not ansi.isEmpty() do
         addNativeData(CF_TEXT, ansi.toSlice())
     let wide = Utf16.toZeroTerminated(str)
     addNativeData(CF_UNICODETEXT, Swag.makeSlice(cast(const [*] u8) wide.storage(), wide.count * 2))
 }
 
-// Returns clipboard text converted to UTF-8, or an empty string when unavailable.
+// Returns the clipboard text converted to UTF-8, or an empty string when there is none.
+//
+// UTF-16 text is read in preference to ANSI text when both are offered.
 func getString()->String
 {
     var result: retval
@@ -299,8 +312,7 @@ func getString()->String
         return result
     defer discard CloseClipboard()
 
-    let formats = [CF_UNICODETEXT, CF_TEXT]
-    for format in formats
+    for format in [CF_UNICODETEXT, CF_TEXT]
     {
         if not IsClipboardFormatAvailable(format) do
             continue
@@ -316,7 +328,7 @@ func getString()->String
     return result
 }
 
-// Removes every value from the clipboard.
+// Removes every format from the clipboard.
 func clear()
 {
     if g_Fake.enabled

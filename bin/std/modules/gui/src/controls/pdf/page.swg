@@ -3,10 +3,7 @@
 
 using Core, Core.Math, Pixel
 
-private func isFiniteTransform(transform: Transform2)->bool
-{
-    return Math.isFinite(transform.m11) and Math.isFinite(transform.m12) and Math.isFinite(transform.m21) and Math.isFinite(transform.m22) and Math.isFinite(transform.tx) and Math.isFinite(transform.ty)
-}
+private func isFiniteTransform(transform: Transform2)->bool => Math.isFinite(transform.m11) and Math.isFinite(transform.m12) and Math.isFinite(transform.m21) and Math.isFinite(transform.m22) and Math.isFinite(transform.tx) and Math.isFinite(transform.ty)
 
 private func isValidStrokeStyle(style: const *PathStrokeStyle)->bool
 {
@@ -99,12 +96,15 @@ impl Page
     mtd addText(text: string, x, y, size: f32, color = Color.fromArgb(Argb.Black), font = StandardFont.Helvetica)
     {
         Swag.assert(size > 0 and Math.isFinite(size) and Math.isFinite(x) and Math.isFinite(y), "invalid text placement")
-        var item = Item.createText()
-        item.text         = text
-        item.fontSize     = size
-        item.fillColor    = color
-        item.standardFont = font
-        item.transform    = Transform2.createTranslation(x, y)
+        with var item = Item.createText()
+        {
+            .text         = text
+            .fontSize     = size
+            .fillColor    = color
+            .standardFont = font
+            .transform    = Transform2.createTranslation(x, y)
+        }
+
         .items.add(#move item)
     }
 
@@ -118,14 +118,17 @@ impl Page
         Swag.assert(fill or stroke, "path has no paint operation")
         Swag.assert(not stroke or (strokeWidth >= 0 and Math.isFinite(strokeWidth)), "invalid stroke width")
         Swag.assert(not stroke or isValidStrokeStyle(&strokeStyle), "invalid path stroke style")
-        var item = Item.createPath()
-        item.path        = path
-        item.hasFill     = fill
-        item.fillColor   = fillColor
-        item.hasStroke   = stroke
-        item.strokeColor = strokeColor
-        item.strokeWidth = strokeWidth
-        item.strokeStyle = normalizedStrokeStyle(strokeStyle)
+        with var item = Item.createPath()
+        {
+            .path        = path
+            .hasFill     = fill
+            .fillColor   = fillColor
+            .hasStroke   = stroke
+            .strokeColor = strokeColor
+            .strokeWidth = strokeWidth
+            .strokeStyle = normalizedStrokeStyle(strokeStyle)
+        }
+
         .items.add(#move item)
     }
 
@@ -137,9 +140,12 @@ impl Page
     {
         Swag.assert(image.isValid(), "invalid image")
         Swag.assert(width > 0 and height > 0 and Math.isFinite(width) and Math.isFinite(height) and Math.isFinite(x) and Math.isFinite(y), "invalid image placement")
-        var item = Item.createImage()
-        item.image     = image
-        item.transform = Transform2{width, 0, 0, height, x, y}
+        with var item = Item.createImage()
+        {
+            .image     = image
+            .transform = Transform2{width, 0, 0, height, x, y}
+        }
+
         .items.add(#move item)
     }
 
@@ -194,7 +200,7 @@ impl Page
         .items[index].fillColor = color
     }
 
-    // Replaces the stroke color of a path item.
+    // Replaces the stroke color of a path item and enables its stroke.
     mtd setPathStrokeColor(index: u64, color: Color)
     {
         Swag.assert(index < .items.count and .items[index].kind == .Path, "item is not a path")
@@ -215,7 +221,7 @@ impl Page
         .items[index].refreshPaintBounds()
     }
 
-    // Replaces the cap, join, miter, and dash geometry of a path stroke.
+    // Replaces the cap, join, miter, and dash geometry of a path stroke and enables the stroke.
     //
     // Dash lengths and phase are expressed in PDF points; the phase may be negative. An odd-length pattern is repeated once, as required by PDF, before its painted and blank intervals alternate.
     mtd setPathStrokeStyle(index: u64, style: PathStrokeStyle)
@@ -241,8 +247,7 @@ impl Page
     // again — another scale, another region — does not pay that preparation twice.
     mtd render(options: RenderOptions = {})->Image fail
     {
-        var result = #move try renderPage(me, options)
-        return #move result
+        return try renderPage(me, options)
     }
 
     // Prepares the page's vector geometry for a draw at `scale` device pixels per point.

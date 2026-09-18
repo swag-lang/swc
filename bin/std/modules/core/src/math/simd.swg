@@ -1,10 +1,9 @@
 #global export
 #global namespace Math
-#global public
 
 using Swag
 
-// Packed 128-bit vector operations over the '#simd [N] T' types.
+// Provides packed 128-bit vector operations over the `#simd [N] T` types.
 //
 // The aliases name every legal 16-byte vector shape, lane type by lane count, and the
 // functions give the packed hardware intrinsics their product spelling: memory transfers,
@@ -104,7 +103,7 @@ namespace Simd
         // Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.
         func mulAddPairs(x, y: S16x8)->S32x4 => Swag.vecmadd(x, y)
 
-        // The half of a lane product that `*` drops: the bits above the lane width.
+        // Returns the high half of every lane product, the bits above the lane width that `*` drops.
         //
         // With the low half from `*`, the two are the whole product, and
         // [[Core.Math.Simd.mulWidenLow]] puts them back together.
@@ -117,7 +116,7 @@ namespace Simd
         func mulHigh(x, y: U64x2)->U64x2 => Swag.vecmulhi(x, y)
         func mulHigh(x, y: S64x2)->S64x2 => Swag.vecmulhi(x, y)
 
-        // The exact products of the low half of the lanes, in lanes twice as wide.
+        // Returns the exact products of the low half of the lanes, in lanes twice as wide.
         //
         // Nothing is lost: the low and high halves of each product interleave back
         // into the double-width lane they belong to.
@@ -128,7 +127,7 @@ namespace Simd
         func mulWidenLow(x, y: U32x4)->U64x2 => cast #bit (U64x2) Swag.vecinterleavelo(x * y, Swag.vecmulhi(x, y))
         func mulWidenLow(x, y: S32x4)->S64x2 => cast #bit (S64x2) Swag.vecinterleavelo(cast #bit (U32x4) (x * y), cast #bit (U32x4) Swag.vecmulhi(x, y))
 
-        // The same for the high half of the lanes.
+        // Returns the exact products of the high half of the lanes, in lanes twice as wide.
         func mulWidenHigh(x, y: U8x16)->U16x8 => cast #bit (U16x8) Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y))
         func mulWidenHigh(x, y: S8x16)->S16x8 => cast #bit (S16x8) Swag.vecinterleavehi(cast #bit (U8x16) (x * y), cast #bit (U8x16) Swag.vecmulhi(x, y))
         func mulWidenHigh(x, y: U16x8)->U32x4 => cast #bit (U32x4) Swag.vecinterleavehi(x * y, Swag.vecmulhi(x, y))
@@ -358,12 +357,19 @@ namespace Simd
         func select(mask: U64x2, ifTrue, ifFalse: S64x2)->S64x2 => Swag.vecselect(mask, ifTrue, ifFalse)
         func select(mask: U64x2, ifTrue, ifFalse: F64x2)->F64x2 => Swag.vecselect(mask, ifTrue, ifFalse)
 
-        // Carry-less multiplication of one 64-bit lane of each source into a full
-        // 128-bit product; the suffix names the lane taken from each side. This is
-        // the primitive CRC folding is made of.
-        func clmulLowLow(x, y: U64x2)->U64x2   => Swag.vecclmul(x, y, 0x00)
-        func clmulHighLow(x, y: U64x2)->U64x2  => Swag.vecclmul(x, y, 0x01)
-        func clmulLowHigh(x, y: U64x2)->U64x2  => Swag.vecclmul(x, y, 0x10)
+        // Multiplies the low lanes of `x` and `y` without carries, into a full 128-bit product.
+        //
+        // In every `clmul` form, the suffix names the lane taken from `x`, then the one taken from
+        // `y`. Carry-less multiplication is the primitive CRC folding is made of.
+        func clmulLowLow(x, y: U64x2)->U64x2 => Swag.vecclmul(x, y, 0x00)
+
+        // Multiplies the high lane of `x` by the low lane of `y` without carries, into a full 128-bit product.
+        func clmulHighLow(x, y: U64x2)->U64x2 => Swag.vecclmul(x, y, 0x01)
+
+        // Multiplies the low lane of `x` by the high lane of `y` without carries, into a full 128-bit product.
+        func clmulLowHigh(x, y: U64x2)->U64x2 => Swag.vecclmul(x, y, 0x10)
+
+        // Multiplies the high lanes of `x` and `y` without carries, into a full 128-bit product.
         func clmulHighHigh(x, y: U64x2)->U64x2 => Swag.vecclmul(x, y, 0x11)
 
         // Gathers the lane sign bits into the low bits of an integer, lane zero in bit zero.

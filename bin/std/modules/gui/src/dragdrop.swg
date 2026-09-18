@@ -17,7 +17,7 @@ enum DropEffect
     Link         // Records a reference to the payload rather than its content.
 }
 
-// One file a payload carries by content instead of by a path on disk.
+// Describes one file a payload carries by content instead of by a path on disk.
 //
 // A mail attachment is the shape this exists for: it has a name and it has bytes, and no file on
 // any disk holds it. A source offers one so a picture reaches a folder or a message without being
@@ -62,8 +62,9 @@ impl DragContent
 
     // Returns the content of the file, producing it on the first call.
     //
-    // Every later call answers the same bytes. A producer that cannot make them answers an empty
-    // slice from then on, which is what a target reads as a file it was offered and cannot have.
+    // Every later call answers the same bytes, borrowed from this value. A producer that cannot
+    // make them answers an empty slice from then on, which is what a target reads as a file it was
+    // offered and cannot have.
     mtd data()->const [..] u8
     {
         if not .produced
@@ -80,7 +81,7 @@ impl DragContent
     mtd const isReady()->bool => .produced or not .producer
 }
 
-// Payload of one drag gesture, in both directions.
+// Holds the payload of one drag gesture, in both directions.
 //
 // A target reads it: the value belongs to the framework and is borrowed for the duration of one
 // [[Gui.DragDropEvent]] callback and no longer, so a window that wants to keep a path, a text or
@@ -123,21 +124,22 @@ struct DragData
 impl DragData
 {
     // Reports whether the source offers at least one file path.
-    mtd const hasFiles()->bool => .files.count != 0
+    mtd const hasFiles()->bool => not .files.isEmpty()
 
     // Reports whether the source offers at least one file by content.
-    mtd const hasContents()->bool => .contents.count != 0
+    mtd const hasContents()->bool => not .contents.isEmpty()
 
     // Reports whether the source offers text.
     mtd const hasText()->bool => not .text.isEmpty()
 
     // Reports whether the source offers an image, without decoding or encoding anything.
-    mtd const hasImage()->bool => .imageBytes.count != 0 or .imageValue.isValid()
+    mtd const hasImage()->bool => not .imageBytes.isEmpty() or .imageValue.isValid()
 
     // Returns the only path offered by the source, or `null` unless it offers exactly one.
     //
     // This is what a control accepting a single document asks: a drag of three files is not a
-    // drop it can honour, and answering `null` says so without the caller counting first.
+    // drop it can honour, and answering `null` says so without the caller counting first. The
+    // returned string borrows the payload.
     mtd const singleFile()->string?
     {
         if .files.count != 1 do
@@ -154,7 +156,7 @@ impl DragData
         if not .imageDecoded
         {
             .imageDecoded = true
-            if .imageBytes.count do
+            if not .imageBytes.isEmpty() do
                 .imageValue = catch Pixel.Image.decode(.imageName.toString(), .imageBytes.toSlice(), {})
         }
 
@@ -170,7 +172,7 @@ impl DragData
         Swag.init(me, 1)
     }
 
-    // Appends one path to the payload.
+    // Appends `path` to the files the payload offers by path.
     //
     // A source offers its files in the order it adds them, and that is the order the target
     // reads them back in.
@@ -179,13 +181,15 @@ impl DragData
         .files.add(path)
     }
 
-    // Appends one file the payload carries itself, with the content already in hand.
+    // Appends one file the payload carries by content, with the content already in hand.
+    //
+    // `name` is the file name the target creates, with no folder part, and `bytes` is copied.
     mtd addContent(name: String, bytes: const [..] u8)
     {
         .contents.add(DragContent.from(name, bytes))
     }
 
-    // Appends one file the payload carries itself, with the content produced on demand.
+    // Appends one file the payload carries by content, with the content produced on demand.
     //
     // This is what keeps a cancelled gesture from costing anything: `producer` runs when a target
     // asks for the bytes and never otherwise, so a drag released over nothing writes, encodes and
@@ -198,6 +202,8 @@ impl DragData
     }
 
     // Returns the content of the offered file at `index`, producing it if that has not happened.
+    //
+    // The slice borrows the payload. See [[Gui.DragContent.data]].
     mtd contentData(index: u64)->const [..] u8 => .contents[index].data()
 
     // Replaces the text of the payload.
@@ -280,10 +286,10 @@ struct DragDropEvent
             Drop      // The payload was released over this window.
         }
 
-        using base: Event                         // Embedded base state.
+        using base: Event                         // Routing state shared by every GUI event.
         kind:       Kind                          // Gesture phase being reported.
         late data:  *DragData                     // Payload being dragged, borrowed for this call.
-        surfacePos: Math.Point                    // Pointer position in surface coordinates.
+        surfacePos: Math.Point                    // Pointer position in logical surface coordinates.
         modifiers:  Input.KeyModifiers = None     // Modifiers held during the gesture.
         allowed:    DropEffect         = None     // Effects the source permits.
         effect:     DropEffect         = None     // Effect this target commits to; `None` rejects.
@@ -345,13 +351,12 @@ impl Application
     // pointer arrives and exactly once when it goes. `surface` is the one whose drop target the
     // platform called, and `screenPos` is in physical screen pixels, like every other position
     // crossing the platform boundary.
-    internal mtd dragUpdate(surface: *Surface, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
-    {
-        return .dragUpdateTo(skipDisabled(surface.windowAt(screenPos)), screenPos, data, allowed, modifiers)
-    }
+    internal mtd dragUpdate(surface: *Surface, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect => .dragUpdateTo(skipDisabled(surface.windowAt(screenPos)), screenPos, data, allowed, modifiers)
 
-    // Same, for a target already resolved. A harness driving a gesture without a desktop under it
-    // says which window the pointer is over instead of hit-testing a surface it never registered.
+    // Moves the drag to `target`, already resolved, and returns the effect it commits to.
+    //
+    // A harness driving a gesture without a desktop under it says which window the pointer is
+    // over instead of hit-testing a surface it never registered.
     internal mtd dragUpdateTo(target: *Wnd?, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
     {
         .dragScreenPos = screenPos
@@ -379,19 +384,18 @@ impl Application
         if not target do
             return
 
-        discard .sendDragEvent(target, .Leave, .dragScreenPos, data, .None, Input.KeyModifiers.None)
+        discard .sendDragEvent(target, .Leave, .dragScreenPos, data, .None, .None)
     }
 
     // Releases the payload over the window under `screenPos` and returns the effect it performed.
     //
     // The window is told the gesture left it whatever it answers, so a drop highlight is cleared
     // by the same path as a cancelled drag.
-    internal mtd dragDrop(surface: *Surface, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
-    {
-        return .dragDropTo(skipDisabled(surface.windowAt(screenPos)), screenPos, data, allowed, modifiers)
-    }
+    internal mtd dragDrop(surface: *Surface, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect => .dragDropTo(skipDisabled(surface.windowAt(screenPos)), screenPos, data, allowed, modifiers)
 
-    // Same, for a target already resolved. See [[Gui.Application.dragUpdateTo]].
+    // Releases the payload over `target`, already resolved, and returns the effect it performed.
+    //
+    // See [[Gui.Application.dragUpdateTo]] for why a harness resolves the target itself.
     internal mtd dragDropTo(target: *Wnd?, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
     {
         .dragScreenPos = screenPos

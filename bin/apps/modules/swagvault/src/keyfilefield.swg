@@ -21,6 +21,7 @@ struct KeyFileField
     paths: Array'String
 }
 
+// Writes 64 bytes from the system's secure random generator to a new file at `path`.
 private func writeRandomKeyFile(path: string) fail
 {
     var random: [64] u8
@@ -43,7 +44,7 @@ impl IWnd for KeyFileField
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if not (.remove != null) do
+        if .remove == null do
             return
         let room = .clientRect()
         let gap  = .themeMetrics().dialog_BtnPadding
@@ -109,12 +110,14 @@ private impl KeyFileField
 
     mtd chooseExisting()
     {
-        var options: FileDlgOptions
-        options.mode  = .SelectFiles
-        options.title = appStrings().dlg_TitleKeyFiles
-        options.confirmButtonText = appStrings().dlg_BtnAdd
-        options.shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
-        options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+        with var options: FileDlgOptions
+        {
+            .mode              = .SelectFiles
+            .title             = appStrings().dlg_TitleKeyFiles
+            .confirmButtonText = appStrings().dlg_BtnAdd
+            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
+            .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+        }
 
         let dialog = FileDlg.create(.surface!, options)
         if dialog.doModal() == Dialog.BtnOk do
@@ -123,13 +126,15 @@ private impl KeyFileField
 
     mtd generateRandom()
     {
-        var options: FileDlgOptions
-        options.mode              = .CreateFile
-        options.title             = appStrings().dlg_TitleGenerateKey
-        options.confirmButtonText = appStrings().dlg_BtnCreate
-        options.initialName       = "vault.key"
-        options.shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
-        options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+        with var options: FileDlgOptions
+        {
+            .mode              = .CreateFile
+            .title             = appStrings().dlg_TitleGenerateKey
+            .confirmButtonText = appStrings().dlg_BtnCreate
+            .initialName       = "vault.key"
+            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
+            .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+        }
 
         let dialog = FileDlg.create(.surface!, options)
         if dialog.doModal() != Dialog.BtnOk do
@@ -161,6 +166,8 @@ private impl KeyFileField
 
 impl KeyFileField
 {
+    // Creates an empty selector in `parent`. `canGenerate` offers the action that creates a random
+    // key file, which only makes sense where a new access is being chosen.
     func create(parent: *Wnd, canGenerate = true)->*KeyFileField
     {
         let result = Wnd.create'KeyFileField(parent)
@@ -204,6 +211,7 @@ impl KeyFileField
         return result
     }
 
+    // Writes the tooltips, and the empty-list entry, in the active language.
     mtd retranslate()
     {
         let texts = appStrings()
@@ -214,6 +222,7 @@ impl KeyFileField
             .rebuild()
     }
 
+    // Replaces the selection with a copy of `paths`, in order.
     mtd setPaths(paths: const [..] String)
     {
         .paths.clear()
@@ -222,6 +231,7 @@ impl KeyFileField
         .rebuild()
     }
 
+    // Replaces `destination` with a copy of the selected paths, in order.
     mtd copyPaths(destination: *Array'String)
     {
         destination.clear()
@@ -229,6 +239,7 @@ impl KeyFileField
             destination.add(String.from(path.toString()))
     }
 
+    // Returns whether the selection is exactly `paths`, in the same order.
     mtd samePaths(paths: const [..] String)->bool
     {
         if .paths.count != paths.count do

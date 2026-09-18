@@ -120,10 +120,7 @@ internal struct ColorEditor {}
 
 internal impl IPropertyEditor for ColorEditor
 {
-    mtd impl canEdit(type: typeinfo?)->bool
-    {
-        return type == Color
-    }
+    mtd impl canEdit(type: typeinfo?)->bool => type == Color
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem => list.constructColor(value, data, parent!)
 }

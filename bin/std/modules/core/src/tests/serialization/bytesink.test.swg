@@ -3,15 +3,6 @@
 
 using Swag, Core.Errors
 
-func sinkBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
-{
-    if actual.count != expected.count do
-        return false
-    for value, index in actual where value != expected[index] do
-        return false
-    return true
-}
-
 // Returns a payload larger than the write window, filled with a pattern a misplaced write breaks.
 func sinkLargePayload()->Array'u8
 {
@@ -69,7 +60,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     // A patch cannot reach past what was written, and an empty one changes nothing.
     const Overrun: [3] u8 = [0, 0, 0]
     discard catch sink.patch(expected.count - 2, Overrun) as pastEnd
-    Swag.assert((pastEnd is BadParameterError))
+    Swag.assert(pastEnd is BadParameterError)
     var none: Array'u8
     expect sink.patch(expected.count, none.toSlice())
     return expected
@@ -88,7 +79,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     expect sink.close()
 
     let actual = expect File.readAllBytes(fileName)
-    Swag.assert(sinkBytesEqual(actual.toSlice(), expected.toSlice()))
+    Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
 }
 
 // A memory sink appends after whatever its buffer already holds, and its offsets stay relative
@@ -105,8 +96,8 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
 
     let actual = buffer.toArray()
     Swag.assert(actual.count == 6 + expected.count)
-    Swag.assert(sinkBytesEqual(actual.toSlice()[0 until 6], cast(const [..] u8) "prefix"))
-    Swag.assert(sinkBytesEqual(actual.toSlice()[6 until actual.count], expected.toSlice()))
+    Swag.assert(Slice.equals(actual.toSlice()[0 until 6], cast(const [..] u8) "prefix"))
+    Swag.assert(Slice.equals(actual.toSlice()[6 until actual.count], expected.toSlice()))
 }
 
 // A struct is written as it is laid out, and a flush hands the window to the file without
@@ -130,7 +121,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     expect sink.close()
 
     let actual = expect File.readAllBytes(fileName)
-    Swag.assert(sinkBytesEqual(actual.toSlice(), [7'u8, 9, 3]))
+    Swag.assert(Slice.equals(actual.toSlice(), [7'u8, 9, 3]))
 }
 
 // A memory sink appends even when the caller previously moved its buffer cursor backwards.

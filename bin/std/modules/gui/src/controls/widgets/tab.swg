@@ -124,7 +124,7 @@ impl IWnd for Tab
         return {width + padding.x + padding.z, .barHeight + padding.y + padding.w}
     }
 
-    mtd paintItem(painter: *Painter, v: *TabItem, idx: u32)
+    private mtd paintItem(painter: *Painter, v: *TabItem, idx: u32)
     {
         var clientRect = .clientRect()
         clientRect.height = Math.min(.barHeight, clientRect.height)
@@ -714,6 +714,8 @@ impl Tab
     }
 
     // Appends a tab and transfers ownership of its optional page view to this control.
+    //
+    // The first tab added becomes the selected one; the page of any later tab starts hidden.
     #[Swag.Discardable]
     mtd addItem(name: string, icon: Icon = {}, view: *Wnd? = null)->*TabItem
     {
@@ -762,8 +764,7 @@ impl Tab
         .app().animator.cancel(me, AnimationChannel.from("Gui.Tab.SelectionRail"))
 
         let wasSelected = .selectedIndex == index
-        let view        = .items[index]!.view
-        view?.destroy()
+        .items[index]!.view?.destroy()
         .items.deleteAt(index)
 
         if .items.isEmpty()
@@ -792,11 +793,8 @@ impl Tab
     mtd clear()
     {
         .closePopups()
-        for item in .items
-        {
-            let view = item!.view
-            view?.destroy()
-        }
+        for item in .items do
+            item!.view?.destroy()
 
         .items.clear()
         .selectedIndex     = Swag.U32.Max

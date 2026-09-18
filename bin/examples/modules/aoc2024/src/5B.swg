@@ -25,7 +25,7 @@ func day5B()
 
     for f in lines
     {
-        if f.count == 0
+        if f.isEmpty()
         {
             first = false
             continue
@@ -40,7 +40,7 @@ func day5B()
         else
         {
             var update = Slice.map(Tokenize.split(f[], ','u8).toSlice(), func(x) => expect StrConv.toS32(x))
-            Swag.assert(update.count != 0)
+            Swag.assert(not update.isEmpty())
 
             var isOrdered = true
             for beforeIndex in update.count

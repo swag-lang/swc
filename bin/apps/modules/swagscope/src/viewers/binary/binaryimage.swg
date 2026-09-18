@@ -27,7 +27,9 @@ struct BinaryImage
 
 impl BinaryImage
 {
-    // Loads the beginning of `fileName` and reports whether anything could be read.
+    // Loads the beginning of `fileName`, and returns whether anything could be read.
+    //
+    // On failure, [[BinaryImage.failureReason]] says why.
     mtd load(fileName: string)->bool
     {
         .bytes = cast(const [..] u8) ""
@@ -64,10 +66,7 @@ impl BinaryImage
     }
 
     // Returns whether `[offset, offset + count)` sits inside the loaded prefix.
-    mtd const has(offset, count: u64)->bool
-    {
-        return offset <= .bytes.count and count <= .bytes.count - offset
-    }
+    mtd const has(offset, count: u64)->bool => offset <= .bytes.count and count <= .bytes.count - offset
 
     // Returns whether the file is larger than the prefix that was loaded.
     mtd const isBounded()->bool => .fileSize > .bytes.count
@@ -83,15 +82,7 @@ impl BinaryImage
         return true
     }
 
-    // Returns `[offset, offset + count)`, or an empty slice when the prefix does not hold it.
-    mtd const slice(offset, count: u64)->const [..] u8
-    {
-        if not .has(offset, count) do
-            return .bytes[0 until 0]
-        return .bytes[offset until offset + count]
-    }
-
-    // Assembles `size` bytes at `offset` in the image byte order.
+    // Returns the unsigned integer stored in `size` bytes at `offset`, in the image byte order.
     mtd scalarAt(offset, size: u64)->u64
     {
         if not .has(offset, size)
@@ -134,7 +125,7 @@ impl BinaryImage
         return .printableAt(offset, end - offset)
     }
 
-    // Returns the fixed-width text at `offset`, cut at its first NUL and trimmed of trailing blanks.
+    // Returns the `length`-byte field at `offset` as text, without the NULs and blanks that pad its end.
     mtd fixedTextAt(offset, length: u64)->String
     {
         if not .has(offset, length)
@@ -182,6 +173,40 @@ impl BinaryImage
         return result
     }
 
+    // Returns the GUID at `offset` in the mixed-endian form Microsoft tools print it in.
+    //
+    // The first three fields are stored little endian and the last two big endian, so the order the
+    // bytes are printed in is not the order they are stored in.
+    mtd const guidTextAt(offset: u64)->String => .identifierTextAt(offset, mixedEndian: true)
+
+    // Returns the UUID at `offset` in the plain byte order Apple's tools print it in.
+    mtd const uuidTextAt(offset: u64)->String => .identifierTextAt(offset, mixedEndian: false)
+
+    // Returns the sixteen bytes at `offset` in the hexadecimal 8-4-4-4-12 grouping of an identifier.
+    //
+    // `mixedEndian` reads the first three fields little endian. A prefix too short to hold the bytes
+    // gives [[BinaryNoValue]].
+    private mtd const identifierTextAt(offset: u64, mixedEndian: bool)->String
+    {
+        if not .has(offset, 16) do
+            return String.from(BinaryNoValue)
+
+        const MixedOrder = [3'u64, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15]
+
+        var text: Array'u8
+        for index in 16'u64
+        {
+            if index == 4 or index == 6 or index == 8 or index == 10 do
+                text.add('-'u8)
+            let value  = .bytes[offset + (mixedEndian ? MixedOrder[index] : index)]
+            let digits = [cast(u8) (value >> 4), value & 0xF]
+            for nibble in digits do
+                text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
+        }
+
+        return String.from(cast(string) text.toSlice())
+    }
+
     // Returns `length` bytes at `offset` with every unprintable byte shown as a dot.
     private mtd const printableAt(offset, length: u64)->String
     {
@@ -196,6 +221,6 @@ impl BinaryImage
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(Swag.makeString(text.storage(), text.count))
+        return String.from(cast(string) text.toSlice())
     }
 }

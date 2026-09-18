@@ -71,7 +71,7 @@ struct ThemeColors
         wnd_Border: Color
 
         wnd_BtnCloseBk:          Color     // Ground of a hovered close button.
-        wnd_BtnCloseHotBk:       Color     // Ground of a close button under the pointer.
+        wnd_BtnCloseHotBk:       Color     // Ground of a close button under the press.
         wnd_BtnCloseHotIcon:     Color     // Glyph of a close button under the pointer.
         wnd_BtnClosePressedIcon: Color     // Glyph of a close button under the press.
 
@@ -517,10 +517,7 @@ impl ThemeColors
     // A light fill darkens and a dark one lightens. Always lightening looks obvious until
     // the fill is Voltage, which is already at the top of red and green: mixing it with
     // white can only raise blue, and the button reports nothing the eye can catch.
-    private func shiftState(base: Color, amount: f32)->Color
-    {
-        return base.relativeLuminance() > 0.5 ? Color.darker(base, amount) : Color.lighter(base, amount)
-    }
+    private func shiftState(base: Color, amount: f32)->Color => base.relativeLuminance() > 0.5 ? Color.darker(base, amount) : Color.lighter(base, amount)
 
     // Derives the hover and press states of a filled action from the color it is filled
     // with, so a palette declares that color once.
@@ -1080,7 +1077,7 @@ impl ThemeColors
         .apply(swagDarkPalette())
     }
 
-    // The neutral dark palette.
+    // Returns the neutral dark palette.
     func darkPalette()->ThemePalette
     {
         var result: retval
@@ -1148,7 +1145,7 @@ impl ThemeColors
         return result
     }
 
-    // The neutral light palette.
+    // Returns the neutral light palette.
     func lightPalette()->ThemePalette
     {
         var result: retval
@@ -1206,7 +1203,7 @@ impl ThemeColors
         return result
     }
 
-    // The dark Swag palette: Voltage and Arc over Ink.
+    // Returns the dark Swag palette: Voltage and Arc over Ink.
     //
     // The signature is the mark's own yellow, and nothing here washes a row with it: Voltage is
     // a color to point with, never a color to read on. That is exactly what the second tone is

@@ -75,7 +75,12 @@ impl Image
         }
     }
 
-    // Mix with another image
+    // Draws `srcImage` into the image, in place.
+    //
+    // `(x, y)` places the bottom-left corner of `srcImage` in buffer coordinates: `x` counts
+    // columns from the left and `y` counts rows up from the bottom of the picture. The part of
+    // `srcImage` outside the image is ignored. [[Pixel.Image.MixMode.SourceOver]] requires a
+    // source format with alpha.
     public mtd mix(srcImage: Image, x, y: s32, mode = MixMode.Copy)
     {
         Swag.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
@@ -85,7 +90,7 @@ impl Image
         .applyWorkingBuffer()
     }
 
-    // Mix with another image
+    // Returns a copy of the image with `srcImage` drawn at `(x, y)`, placed as by [[Pixel.Image.mix]].
     public mtd const mixed(srcImage: Image, x, y: s32, mode = MixMode.Copy)->Image
     {
         Swag.assert(.pixels.buffer != null)

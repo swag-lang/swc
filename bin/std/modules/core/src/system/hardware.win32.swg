@@ -1,13 +1,14 @@
 #global if WINDOWS
+#global public
 #global namespace Hardware
 
 using Win32
 
 // Returns the number of logical processors available to the process.
-public func processorCount()->u32 => cast(u32) Env.g_SysInfo.dwNumberOfProcessors
+func processorCount()->u32 => cast(u32) Env.g_SysInfo.dwNumberOfProcessors
 
 // Returns the first adapter MAC address packed into the low bytes, or zero when unavailable.
-public func macAddress()->u64
+func macAddress()->u64
 {
     var info:   [16] IP_ADAPTER_INFO
     var length: DWORD = #sizeof(info)

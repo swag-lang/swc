@@ -16,12 +16,7 @@ using Swag
     var zl2: Compress.ZLib
     let decompressed = expect zl2.decompress(compressed.toSlice())
     Swag.assert(decompressed.count == 4000)
-
-    var ok = true
-    for i in 4000 do
-        if decompressed[i] != original[i] do
-            ok = false
-    Swag.assert(ok)
+    Swag.assert(Slice.equals(decompressed.toSlice(), original))
 }
 
 // An output limit is enforced while decoding, including within a repeated match, so callers can
@@ -54,9 +49,8 @@ using Swag
         input.clear()
         for i in distance do
             input.add(cast(u8) ((i * 19 + distance) & 0xFF))
-        for repeat in 300
+        for 300
         {
-            discard repeat
             for i in distance do
                 input.add(input[i])
         }
@@ -118,11 +112,7 @@ func nextSeed(seed: *u32)->u32
     var reader: Compress.ZLib
     let decoded = expect reader.decompress(compressed.toSlice())
     Swag.assert(decoded.count == payload.count)
-
-    var ok = true
-    for index in payload.count where decoded[index] != payload[index] do
-        ok = false
-    Swag.assert(ok)
+    Swag.assert(Slice.equals(decoded.toSlice(), payload.toSlice()))
 }
 
 func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
@@ -133,16 +123,14 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var reader: Compress.ZLib
     let decoded = expect reader.decompress(compressed.toSlice())
     Swag.assert(decoded.count == input.count)
-    for i in input.count do
-        Swag.assert(decoded[i] == input[i])
+    Swag.assert(Slice.equals(decoded.toSlice(), input))
 
     // Again with the decoded size known up front: that path pre-sizes the output,
     // so the block loop never grows it and takes different branches.
     var hinted: Compress.ZLib
     let sized = expect hinted.decompress(compressed.toSlice(), input.count)
     Swag.assert(sized.count == input.count)
-    for i in input.count do
-        Swag.assert(sized[i] == input[i])
+    Swag.assert(Slice.equals(sized.toSlice(), input))
 }
 
 // Every length in a window around the eight-byte step of the block loop, at every
@@ -188,7 +176,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var noisy: Array'u8
     var seed = 0x2545F491'u32
-    for i in 40000
+    for 40000
     {
         seed ^= seed << #wrap 13
         seed ^= seed >> 17
@@ -200,8 +188,37 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     roundTrip(noisy.toSlice(), .Default)
 
     var flat: Array'u8
-    for i in 40000 do
+    for 40000 do
         flat.add(0xA5)
     roundTrip(flat.toSlice(), .BestSpeed)
     roundTrip(flat.toSlice(), .BestCompression)
+}
+
+// A truncated stream fails instead of decoding past the end of its input.
+#test
+{
+    var original: [4000] u8
+    for i in 4000 do
+        original[i] = cast #bit (u8) ((i * 7919 + i * i * 31) >> 3)
+
+    var deflater: Compress.Deflate
+    deflater.init(.Default, flags: .Zero)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, original)
+
+    var inflater: Compress.Inflate
+    var decoded:  Array'u8
+    catch inflater.decompress(&decoded, compressed.toSlice()[until compressed.count / 2]) as truncated
+    Swag.assert(truncated is Errors.InvalidFormatError)
+}
+
+// A stored block longer than the remaining input fails instead of reading past it.
+#test
+{
+    // Final stored block announcing 0xFFFF bytes, followed by two.
+    let stored: [7] u8 = [0x01, 0xFF, 0xFF, 0x00, 0x00, 0x41, 0x42]
+    var inflater: Compress.Inflate
+    var decoded:  Array'u8
+    catch inflater.decompress(&decoded, stored) as overlong
+    Swag.assert(overlong is Errors.InvalidFormatError)
 }

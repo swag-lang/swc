@@ -10,8 +10,8 @@ using Core
 // The two header slots alternate: a checkpoint always writes the slot that is
 // not currently active, so a power loss mid-write leaves the previous one
 // intact. Between checkpoints, each metadata change appends one small record to
-// the circular journal, which is what keeps a change O(1) instead of a rewrite
-// of the whole metadata blob.
+// the circular journal, which is what keeps the cost of a change constant instead
+// of a rewrite of the whole metadata blob.
 //
 // Every record carries its own nonce and authentication tag, and the tag covers
 // the record's kind and position, so a record cannot be moved, duplicated, or
@@ -20,8 +20,8 @@ using Core
 const BlockSize       = 4096'u64
 const BlockRecordSize = BlockSize + Crypto.NonceSize + Crypto.TagSize
 
-// The header now holds only the volume scalars and the index of the metadata
-// pages, so it no longer has to grow with the number of files.
+// The header holds only the volume scalars and the index of the metadata pages,
+// so its size does not depend on the number of files.
 const HeaderSlotSize         = #command == Swag.CompilerCommand.Test ? 16'u64 * 1024 : 1'u64 * 1024 * 1024
 const HeaderLocatorCheckSize = 12'u64
 const HeaderRecordPrefixSize = Crypto.RecordLocatorSize + Crypto.NonceSize

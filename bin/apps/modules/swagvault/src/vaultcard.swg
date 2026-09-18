@@ -7,46 +7,60 @@ using Core, Gui
 // The form panels of the main window share this shape, and only their fields differ.
 struct VaultCard
 {
-    late panel:    *StackLayoutCtrl
-    late body:     *StackLayoutCtrl
-    late form:     *FormLayoutCtrl
-    late actions:  *StackLayoutCtrl
-    late title:    *Label
-    late subtitle: *Label
+    late
+    {
+        panel:    *StackLayoutCtrl
+        body:     *StackLayoutCtrl
+        form:     *FormLayoutCtrl
+        actions:  *StackLayoutCtrl
+        title:    *Label
+        subtitle: *Label
+    }
 }
 
 impl VaultCard
 {
+    // Creates the card in `parent`, with its heading, its explanation, and an empty form and
+    // action row for the caller to fill before [[VaultCard.endForm]].
     func create(parent: *Wnd, title, subtitle: string)->VaultCard
     {
-        let panel = StackLayoutCtrl.create(parent, .Top)
-        panel.spacing         = 0
-        panel.backgroundStyle = .Panel
-        panel.padding         = {28, 24, 28, 24}
+        with let panel = StackLayoutCtrl.create(parent, .Top)
+        {
+            .spacing         = 0
+            .backgroundStyle = .Panel
+            .padding         = {28, 24, 28, 24}
+        }
 
-        let titleLabel = Label.create(panel, title, {0, 0, 0, 30})
-        titleLabel.setTextAlignment(.Left, .Center)
-        titleLabel.style.setFont(panel.theme().createDefaultFont(20, .Bold), .Regular)
+        let metrics = panel.themeMetrics()
+        with let titleLabel = Label.create(panel, title, {0, 0, 0, 30})
+        {
+            .setTextAlignment(.Left, .Center)
+            .style.setFont(panel.theme().createDefaultFont(20, .Bold), .Regular)
+        }
 
         // The explanation wraps, so its height is the text's to decide: a hand-tuned one
         // cuts the last line off as soon as the sentence is said in more words.
-        let subtitleLabel = Label.create(panel, subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
-        subtitleLabel.margin = {0, 4, 0, 0}
-        subtitleLabel.setTextAlignment(.Left, .Top)
-        subtitleLabel.setLineGap(cast(s32) (panel.themeMetrics().dialog_BtnPadding / 2))
+        with let subtitleLabel = Label.create(panel, subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        {
+            .margin = {0, 4, 0, 0}
+            .setTextAlignment(.Left, .Top)
+            .setLineGap(cast(s32) (metrics.dialog_BtnPadding / 2))
+        }
 
         // Center shorter forms and their actions together within the shared page height.
-        let body = StackLayoutCtrl.create(panel, .VerticalCenter)
-        body.layoutSpec.policyY = .Expand
-        body.backgroundStyle    = .Transparent
-        body.margin             = {0, panel.themeMetrics().dialog_BtnPadding * 2, 0, 0}
-        body.spacing            = panel.themeMetrics().dialog_BtnPadding * 2
+        with let body = StackLayoutCtrl.create(panel, .VerticalCenter)
+        {
+            .layoutSpec.policyY = .Expand
+            .backgroundStyle    = .Transparent
+            .margin             = {0, metrics.dialog_BtnPadding * 2, 0, 0}
+            .spacing            = metrics.dialog_BtnPadding * 2
+        }
 
         let form    = FormLayoutCtrl.create(body, VaultForm.options(body))
-        let actions = StackLayoutCtrl.create(body, .Right, {0, 0, 0, panel.themeMetrics().btnPush_Height})
+        let actions = StackLayoutCtrl.create(body, .Right, {0, 0, 0, metrics.btnPush_Height})
         form.layoutSpec.policyX    = .Expand
         actions.layoutSpec.policyX = .Expand
-        actions.spacing            = panel.themeMetrics().dialog_BtnPadding
+        actions.spacing            = metrics.dialog_BtnPadding
         panel.applyLayout()
         return {panel, body, form, actions, titleLabel, subtitleLabel}
     }

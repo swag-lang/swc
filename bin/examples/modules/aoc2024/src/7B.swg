@@ -33,10 +33,7 @@ Determine which equations could possibly be true. What is their total calibratio
 
 using Core
 
-func appendNumbers(a, b: u64)->u64
-{
-    return a * cast(s64) Math.nextPowerOfTen(cast(f64) b) + b
-}
+func appendNumbers(a, b: u64)->u64 => a * cast(s64) Math.nextPowerOfTen(cast(f64) b) + b
 
 func day7B()
 {

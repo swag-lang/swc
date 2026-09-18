@@ -29,6 +29,7 @@ public:
     ConstantRef      addMaterializedPayloadConstant(const ConstantValue& value);
     ConstantRef      addUniqueMaterializedPayloadConstant(const ConstantValue& value);
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
+    const std::byte* floatSignMask(bool is64, DataSegmentRef& outRef) const;
 
     ConstantRef          cstNull() const { return cstNull_; }
     ConstantRef          cstTrue() const { return cstBool_true_; }
@@ -196,6 +197,11 @@ private:
     ConstantRef cstS32_1_      = ConstantRef::invalid();
     ConstantRef cstS32_neg1_   = ConstantRef::invalid();
     ConstantRef cstNull_       = ConstantRef::invalid();
+
+    const std::byte* floatSignMask32_ = nullptr;
+    const std::byte* floatSignMask64_ = nullptr;
+    DataSegmentRef   floatSignMaskRef32_;
+    DataSegmentRef   floatSignMaskRef64_;
 };
 
 SWC_END_NAMESPACE();

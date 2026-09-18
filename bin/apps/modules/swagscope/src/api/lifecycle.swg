@@ -42,6 +42,7 @@ struct BackgroundOperation
 
 impl BackgroundOperation
 {
+    // Reports whether a started operation has finished running on its worker.
     mtd const isDone()->bool => .started and .task.isDone()
 
     // Blocks until the worker has released the operation.
@@ -72,6 +73,10 @@ struct(T) BackgroundLoad
 
 impl BackgroundLoad
 {
+    // Starts `load` on a worker for `fileName`; the operation must not already be running.
+    //
+    // A failure of `load` is captured rather than propagated, and [[Viewer.BackgroundLoad.finish]]
+    // hands it back as a message.
     mtd start(fileName: string, load: func(string)->T fail)
     {
         Swag.assert(not .started)
@@ -87,7 +92,9 @@ impl BackgroundLoad
         })
     }
 
-    // Publishes the loaded value and returns the captured failure message.
+    // Moves the loaded value into `value` and returns the captured failure message.
+    //
+    // The operation must be done. The message is empty when the load succeeded.
     mtd finish(value: *T)->String
     {
         Swag.assert(.isDone())

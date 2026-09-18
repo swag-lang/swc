@@ -28,10 +28,10 @@ public struct Plan
     public
     {
         structType: const *Swag.TypeInfoStruct?     // The type this plan describes.
-        version:    u32                             // Value of the 'Serialization.Version' attribute, 0 when absent.
-        hasVersion: bool                            // Whether the type carries a 'Serialization.Version' attribute.
+        version:    u32                             // Value of the [[Core.Serialization.Version]] attribute, 0 when absent.
+        hasVersion: bool                            // Whether the type carries a [[Core.Serialization.Version]] attribute.
         podFinal:   bool                            // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
-        hasCustom:  bool                            // Whether the type implements 'ISerialize' and drives its own fields.
+        hasCustom:  bool                            // Whether the type implements [[Core.Serialization.ISerialize]] and drives its own fields.
         fields:     Array'PlanField                 // The serializable fields, in declaration order.
         keyToIndex: HashTable'(string, u64)         // Maps a field key to its index in 'fields'.
     }
@@ -39,7 +39,7 @@ public struct Plan
 
 public impl Plan
 {
-    // Returns the plan field matching a wire key, or null.
+    // Returns the plan field whose wire key is `key`, or null when there is none.
     mtd const fieldByKey(key: string)->const *PlanField?
     {
         let e = .keyToIndex.tryFind(key)
@@ -88,10 +88,9 @@ private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
         pf.wireCrc    = wireTypeCrc(field.pointedType)
         pf.compressed = Reflection.hasAttribute(field, Compress) or Reflection.hasAttribute(field.pointedType, Compress)
 
-        for &existing in plan.fields
+        for existing in plan.fields where existing.key == pf.key
         {
-            if existing.key == pf.key do
-                fail SerializationError{Errors.mkString(Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]", structType.fullname, existing.value.name, field.name, pf.key)), field: field}
+            fail SerializationError{Errors.mkString(Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]", structType.fullname, existing.value.name, field.name, pf.key)), field: field}
         }
 
         plan.fields.add(#move pf)

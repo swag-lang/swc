@@ -3,12 +3,6 @@
 
 using Swag
 
-func sameChaChaBytes(left, right: const [..] u8)->bool
-{
-    return left.count == right.count and
-           Swag.memcmp(left.buffer, right.buffer, left.count) == 0
-}
-
 func testKey()->[Crypto.ChaCha20KeySize] u8
 {
     var result: retval
@@ -17,10 +11,7 @@ func testKey()->[Crypto.ChaCha20KeySize] u8
     return result
 }
 
-func testNonce()->[Crypto.ChaCha20NonceSize] u8
-{
-    return [0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x4A, 0x00, 0x00, 0x00, 0x00]
-}
+func testNonce()->[Crypto.ChaCha20NonceSize] u8 => [0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x4A, 0x00, 0x00, 0x00, 0x00]
 
 func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter: u32)
 {
@@ -54,7 +45,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         0xCB, 0xD0, 0x83, 0xE8, 0xA2, 0x50, 0x3C, 0x4E]
 
     let block = expect Crypto.chacha20Block(key, 1, nonce)
-    Swag.assert(sameChaChaBytes(block, expected))
+    Swag.assert(Slice.equals(block, expected))
 }
 
 // Encryption is the key stream folded into the input, and folding it twice gives the input back.
@@ -72,7 +63,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     let original = data
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
-    Swag.assert(not sameChaChaBytes(data, original))
+    Swag.assert(not Slice.equals(data, original))
 
     // Each block of the result is the matching key-stream block folded into the input, so the
     // counter advances by exactly one block and never repeats one.
@@ -86,7 +77,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     }
 
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
-    Swag.assert(sameChaChaBytes(data, original))
+    Swag.assert(Slice.equals(data, original))
 }
 
 // Four-block batches, their neighboring tails, and exact in-place operation match the public
@@ -110,20 +101,20 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
             expected[index] = 0xA5
         }
 
-        scalarChaCha20Xor(key, nonce, Swag.makeSlice(source.buffer, length), Swag.makeSlice(expected.buffer, length), 7)
-        expect Crypto.chacha20Xor(key, nonce, Swag.makeSlice(source.buffer, length), Swag.makeSlice(actual.buffer, length), 7)
-        Swag.assert(sameChaChaBytes(actual, expected))
+        scalarChaCha20Xor(key, nonce, source[until length], expected[until length], 7)
+        expect Crypto.chacha20Xor(key, nonce, source[until length], actual[until length], 7)
+        Swag.assert(Slice.equals(actual, expected))
 
         Memory.copy(actual.buffer, source.buffer, source.count)
-        expect Crypto.chacha20Xor(key, nonce, Swag.makeSlice(actual.buffer, length), Swag.makeSlice(actual.buffer, length), 7)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, length) == 0)
+        expect Crypto.chacha20Xor(key, nonce, actual[until length], actual[until length], 7)
+        Swag.assert(Slice.equals(actual[until length], expected[until length]))
         for i in length until actual.count do
             Swag.assert(actual[i] == source[i])
     }
 
     scalarChaCha20Xor(key, nonce, source[until 256], expected[until 256], Swag.U32.Max - 3)
     expect Crypto.chacha20Xor(key, nonce, source[until 256], actual[until 256], Swag.U32.Max - 3)
-    Swag.assert(Memory.compare(actual.buffer, expected.buffer, 256) == 0)
+    Swag.assert(Slice.equals(actual[until 256], expected[until 256]))
 }
 
 // Native partitions match the single-block definition, including unaligned buffers, tails,
@@ -156,11 +147,11 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         let first     = Swag.U32.Max - cast(u32) (blocks - 1)
         scalarChaCha20Xor(key, nonce, input, reference, first)
         expect Crypto.chacha20Xor(key, nonce, input, output, first)
-        Swag.assert(sameChaChaBytes(actual.toSlice(), expected.toSlice()))
+        Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
 
         Memory.copy(actual.storage(), source.storage(), source.count)
         expect Crypto.chacha20Xor(key, nonce, output, output, first)
-        Swag.assert(sameChaChaBytes(output, reference))
+        Swag.assert(Slice.equals(output, reference))
         Swag.assert(actual[0] == source[0])
         for index in length + 1 until actual.count do
             Swag.assert(actual[index] == source[index])
@@ -186,7 +177,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         var encrypted: Array'u8
         encrypted.resize(input.count)
         expect Crypto.chacha20Xor(keyPtr[], noncePtr[], input, encrypted.toSlice(), first)
-        Swag.assert(sameChaChaBytes(encrypted.toSlice(), reference))
+        Swag.assert(Slice.equals(encrypted.toSlice(), reference))
     }
 }
 

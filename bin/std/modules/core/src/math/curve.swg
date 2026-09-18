@@ -53,7 +53,7 @@ enum CurvePreset
 
 impl CurvePreset
 {
-    // Returns the ordinate of this classic shape at `x`, clamped to the unit interval.
+    // Returns the ordinate of this classic shape at the abscissa `x`, which is clamped to the unit interval.
     //
     // This reads the shared curve of the preset and allocates nothing, so plotting a preview and
     // running an animation go through one evaluator and cannot drift apart.
@@ -383,7 +383,7 @@ impl Curve
         .keys.clear()
     }
 
-    // Reports whether the curve holds no key at all.
+    // Returns whether the curve holds no key at all.
     mtd const isEmpty() => .keys.isEmpty()
 
     // Inserts `key` at its place in abscissa order and returns the index it landed on.
@@ -412,7 +412,7 @@ impl Curve
     // Restores the abscissa order after keys were edited in place.
     mtd sortKeys()
     {
-        .keys.sort(func||(left, right) { return left.x <=> right.x })
+        .keys.sort(func||(left, right) => left.x <=> right.x)
     }
 
     // Gives the key at `index` one slope on both sides, making the curve smooth across it.
@@ -501,9 +501,7 @@ impl Curve
                 high = mid
         }
 
-        let k0 = .keys[low]
-        let k1 = .keys[high]
-        return segmentValue(k0, k1, x)
+        return segmentValue(.keys[low], .keys[high], x)
     }
 
     // Returns the user-space ordinate at the user-space abscissa `x`.
@@ -518,52 +516,48 @@ impl Curve
         return Math.lerp(.startY, .endY, .evaluateNormalized(normalized))
     }
 
-    // Evaluate a cubic polynomial at parameter 't'.
-    // Uses Horner's method for efficient computation: P(t) = ((p0*t + p1)*t + p2)*t + p3.
+    // Returns the cubic polynomial `p0 * t³ + p1 * t² + p2 * t + p3` evaluated at `t`, component by component.
     func evaluatePolynomial(p0, p1, p2, p3: Vector2, t: f32)->Vector2
     {
-        // Using Horner's method: P(t) = ((p0*t + p1)*t + p2)*t + p3
+        // Horner's form needs three multiplications per component instead of six.
         return Vector2{x: ((p0.x * t + p1.x) * t + p2.x) * t + p3.x, y: ((p0.y * t + p1.y) * t + p2.y) * t + p3.y}
     }
 
-    // Evaluate a quadratic Bézier curve at parameter 't'.
-    // Formula: (1-t)²start + 2t(1-t)ctrl + t²end where 't' ranges from 0.0 to 1.0.
+    // Returns the point at the parameter `t` of the quadratic Bézier curve from `start` to `end` whose control point is `ctrl`.
+    //
+    // The point is `(1 - t)² * start + 2t(1 - t) * ctrl + t² * end`. `t` runs from 0 at `start`
+    // to 1 at `end` and is not clamped.
     func evaluateBezier(start, end, ctrl: Vector2, t: f32)->Vector2
     {
-        let it  = 1.0 - t
-        let it2 = it * it
-        let t2  = t * t
-
-        // Quadratic Bézier: (1-t)²start + 2t(1-t)ctrl + t²end
-        let a = it2              // (1-t)²
-        let b = 2.0 * t * it     // 2t(1-t)
-        let c = t2               // t²
-
+        let it = 1.0 - t
+        let a  = it * it
+        let b  = 2.0 * t * it
+        let c  = t * t
         return Vector2{x: a * start.x + b * ctrl.x + c * end.x, y: a * start.y + b * ctrl.y + c * end.y}
     }
 
-    // Evaluate a cubic Bézier curve at parameter 't'.
-    // Formula: (1-t)³start + 3t(1-t)²ctrl1 + 3t²(1-t)ctrl2 + t³end where 't' ranges from 0.0 to 1.0.
+    // Returns the point at the parameter `t` of the cubic Bézier curve from `start` to `end` whose control points are `ctrl1` and `ctrl2`.
+    //
+    // The point is `(1 - t)³ * start + 3t(1 - t)² * ctrl1 + 3t²(1 - t) * ctrl2 + t³ * end`. `t`
+    // runs from 0 at `start` to 1 at `end` and is not clamped.
     func evaluateBezier(start, end, ctrl1, ctrl2: Vector2, t: f32)->Vector2
     {
         let it  = 1.0 - t
         let t2  = t * t
         let it2 = it * it
-
-        // Use Horner's method for more efficient computation
-        let a = it2 * it          // (1-t)³
-        let b = 3.0 * t * it2     // 3t(1-t)²
-        let c = 3.0 * t2 * it     // 3t²(1-t)
-        let d = t2 * t            // t³
-
+        let a   = it2 * it
+        let b   = 3.0 * t * it2
+        let c   = 3.0 * t2 * it
+        let d   = t2 * t
         return Vector2{x: a * start.x + b * ctrl1.x + c * ctrl2.x + d * end.x, y: a * start.y + b * ctrl1.y + c * ctrl2.y + d * end.y}
     }
 
-    // Find roots of quadratic equation ax² + bx + c = 0 within the range [0, 1].
-    // Returns an array containing valid roots that fall within the parameter range.
+    // Returns the real roots of `a * t² + b * t + c` that lie within [0, 1].
+    //
+    // A near-zero `a` reduces the equation to a linear one.
     internal func solveQuadratic(a: f32, b: f32, c: f32)->Array'f32
     {
-        var roots: Array'f32
+        var roots: retval
 
         if Math.abs(a) < 1e-6
         {
@@ -595,8 +589,10 @@ impl Curve
         return roots
     }
 
-    // Calculate the axis-aligned bounding box of a cubic Bézier curve.
-    // Finds extrema by solving the derivative equation and evaluating the curve at critical points.
+    // Returns the axis-aligned bounding box of the cubic Bézier curve from `start` to `end` whose control points are `ctrl0` and `ctrl1`.
+    //
+    // The box is tight: it holds the extremes the curve actually reaches, which usually lie well
+    // inside the box of the control points.
     func bezierBounds(start, end, ctrl0, ctrl1: Vector2)->Rectangle
     {
         // Start with endpoints
@@ -639,8 +635,9 @@ impl Curve
         return Rectangle{minX, minY, maxX - minX, maxY - minY}
     }
 
-    // Calculate the axis-aligned bounding box of a quadratic Bézier curve.
-    // Finds extrema by solving the linear derivative equation for critical points.
+    // Returns the axis-aligned bounding box of the quadratic Bézier curve from `start` to `end` whose control point is `ctrl`.
+    //
+    // The box is tight: it holds the extremes the curve actually reaches, not the control point.
     func bezierBounds(start, end, ctrl: Vector2)->Rectangle
     {
         // Start with endpoints

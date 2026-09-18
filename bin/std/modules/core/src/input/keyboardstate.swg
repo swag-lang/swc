@@ -22,7 +22,7 @@ impl KeyboardState
         .pressed[key] = pressed
     }
 
-    // Compute current keyboard state
+    // Captures the current state of every key.
     mtd update()
     {
         .updateNative()
@@ -30,7 +30,7 @@ impl KeyboardState
             .pressed[key] = .native.isKeyPressed(key)
     }
 
-    // Reset keyboard state
+    // Marks every key as released.
     mtd clear()
     {
         Memory.clear(&.pressed, #sizeof(.pressed))

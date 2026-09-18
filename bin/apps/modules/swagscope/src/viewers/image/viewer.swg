@@ -29,16 +29,11 @@ func imageViewerPlugin()->Viewer.Plugin
 private const ImageInfoWidth = 156.0
 private const SvgRasterLimit = 2048.0
 
-private func imageCommandWidth(metrics: const *ThemeMetrics)->f32
-{
-    return 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
-}
+private func imageCommandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
 
-private func imageSetCommandWidth(metrics: const *ThemeMetrics)->f32
-{
-    return imageCommandWidth(metrics) + themeActionButtonSize(metrics) + 10 + 128 + 12 + 58
-}
+private func imageSetCommandWidth(metrics: const *ThemeMetrics)->f32 => imageCommandWidth(metrics) + themeActionButtonSize(metrics) + 10 + 128 + 12 + 58
 
+// What the worker decodes for the picture viewer, handed to the view in one move.
 struct ImageViewerContent
 {
     image:       Image
@@ -53,7 +48,7 @@ struct ImageViewerContent
 //
 // The viewer itself shows the drawing as vectors, so this is for the callers that genuinely
 // need pixels — a thumbnail, an export, a comparison against a decoded picture.
-internal func loadViewerImage(fileName: string)->Image fail
+func loadViewerImage(fileName: string)->Image fail
 {
     if Path.lowercaseExtension(fileName) != ".svg"
     {
@@ -70,7 +65,8 @@ internal func loadViewerImage(fileName: string)->Image fail
     return drawing.rasterize(width, height, 1)
 }
 
-internal func loadViewerDrawing(fileName: string)->Svg.Drawing fail
+// Parses the vector document of an SVG file.
+func loadViewerDrawing(fileName: string)->Svg.Drawing fail
 {
     var file   = try File.MappedFile.open(fileName)
     let region = try file.mapAll()
@@ -80,8 +76,7 @@ internal func loadViewerDrawing(fileName: string)->Svg.Drawing fail
 private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
 {
     var result: retval
-    var extension = String.from(Path.extension(fileName) orelse "")
-    extension = extension.toLower()
+    let extension = String.from(Path.extension(fileName) orelse "").toLower()
     result.information.add(.Image, group: true)
     result.information.add(.Format, extension.toUpper().toString())
     if extension == ".svg"
@@ -104,14 +99,10 @@ private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
         result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height).toString())
         result.information.add(.PixelFormat, Format.toString("%", frame.pixelFormat).toString())
         result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel).toString())
-        if result.movie.frameCount > 1
-        {
+        if result.movie.frameCount > 1 do
             result.information.add(.Frames, Format.toString("%", result.movie.frameCount).toString())
-        }
-        else
-        {
+        else do
             result.image = frame[]
-        }
 
         result.information.addImageMetadata(frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
         if result.movie.frameCount <= 1 do
@@ -130,7 +121,7 @@ private func formatViewBoxExtent(value: f32)->String
 }
 
 // Keeps decoded facts independent of the language active while the worker was running.
-internal struct ImageViewerFacts
+struct ImageViewerFacts
 {
     width, height: String
     bits:          u32
@@ -150,7 +141,7 @@ private impl ImageViewerFacts
     }
 }
 
-internal struct ImageViewer
+struct ImageViewer
 {
     using wnd: Wnd
     details:   String
@@ -186,7 +177,7 @@ internal struct ImageViewer
     failureReason:        String
 }
 
-internal impl ImageViewer
+impl ImageViewer
 {
     mtd refreshZoom()
     {
@@ -503,54 +494,75 @@ private impl ImageViewer
         result.info        = host.createInfoGroup(ImageInfoWidth)
         result.information = MediaInfoPanel.create(host)
 
-        with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        result.createCommandBar(services.playback)
+        result.createFrameControls()
+        result.createZoomControl()
+        result.createImageView()
+
+        result.applyLayout()
+        result.setInitialFocus(result.imageView)
+        result.load.start(host.fileName(), &loadImageViewerContent)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
+        return result
+    }
+
+    // Creates the folder navigation, the transform menu, and the play-mode menu in the command group.
+    mtd createCommandBar(playback: Viewer.PlaybackApi)
+    {
+        with .previousButton = IconButton.create(.actions, .theme().icon(.ChevronLeft, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipPrevious
-            .enable(navigateFile != null)
-            .sigPressed += func|view = result|(button)
+            .enable(me.navigateFile != null)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.navigate(-1)
             }
         }
 
-        with result.nextButton = IconButton.create(result.actions, result.theme().icon(.ChevronRight, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+        with .nextButton = IconButton.create(.actions, .theme().icon(.ChevronRight, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipNext
-            .enable(navigateFile != null)
-            .sigPressed += func|view = result|(button)
+            .enable(me.navigateFile != null)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.navigate(1)
             }
         }
 
-        with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
+        with .transformButton = IconButton.create(.actions, .theme().icon(.Redo, themeActionIconSize(.themeMetrics())), {0, 0, themeDropDownButtonWidth(.themeMetrics()), themeActionButtonSize(.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Left
             .margin.x  = 8
             .toolTip   = imageStrings().ui_TipTransform
             .setArrowPosition(.RightUpward)
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.showTransformMenu()
             }
         }
 
-        result.playModeButton = Viewer.PlaybackButton.create(result.actions, result, services.playback, showSlideDuration: true)
-        result.playModeButton.dockStyle = .Left
-        result.playModeButton.margin.x  = 8
+        with .playModeButton = Viewer.PlaybackButton.create(.actions, me, playback, showSlideDuration: true)
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+        }
+    }
 
-        with result.playButton = IconButton.create(result.actions, result.theme().icon(.Pause, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
+    // Creates the transport of an animated picture, hidden until the picture turns out to have frames.
+    mtd createFrameControls()
+    {
+        with .playButton = IconButton.create(.actions, .theme().icon(.Pause, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())})
         {
             .dockStyle = .Left
             .margin.x  = 10
             .toolTip   = imageStrings().ui_TipPlay
             .hide()
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.imageView.setPaused(not view.imageView.movie.isPaused)
@@ -558,65 +570,69 @@ private impl ImageViewer
             }
         }
 
-        with result.timeline = Slider.create(result.actions, {0, 0, 128, 36})
+        with .timeline = Slider.create(.actions, {0, 0, 128, 36})
         {
             .dockStyle = .Left
             .margin    = {6, 1, 6, 1}
             .hide()
-            .sigChanged += func|view = result|(slider)
+            .sigChanged += func|view = me|(slider)
             {
                 view.imageView.setFrameIndex(cast(s32) Math.round(slider.value()))
             }
         }
 
-        with result.frameLabel = Label.create(result.actions, "", {0, 0, 58, 36}, null, .SecondaryText)
+        with .frameLabel = Label.create(.actions, "", {0, 0, 58, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
             .setTextAlignment(.Center, .Center)
             .hide()
         }
+    }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ImageInfoWidth - 2 * ViewerInfoControlInset, 32}, "scope.image.zoom", .CenterContent)
+    // Creates the zoom menu button in the information group.
+    mtd createZoomControl()
+    {
+        with .zoomLabel = IconButton.create(.info, {}, {0, 0, ImageInfoWidth - 2 * ViewerInfoControlInset, 32}, "scope.image.zoom", .CenterContent)
         {
             .dockStyle = .Center
             .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = imageStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.showZoomMenu()
             }
         }
+    }
 
-        result.imageView = ImageView.create(result)
-        result.imageView.dockStyle      = .Center
-        result.imageView.sigZoomChanged += func|view = result|(imageView)
+    // Creates the picture view and keeps the zoom readout and the frame transport in step with it.
+    mtd createImageView()
+    {
+        with .imageView = ImageView.create(me)
         {
-            discard imageView
-            view.refreshZoom()
-        }
+            .dockStyle      = .Center
+            .sigZoomChanged += func|view = me|(imageView)
+            {
+                discard imageView
+                view.refreshZoom()
+            }
 
-        result.imageView.sigFrameChanged += func|view = result|(imageView)
-        {
-            discard imageView
-            view.refreshFrame()
-        }
+            .sigFrameChanged += func|view = me|(imageView)
+            {
+                discard imageView
+                view.refreshFrame()
+            }
 
-        result.imageView.sigDecodeFailed += func|view = result|(imageView)
-        {
-            if view.reportFailure do
-                view.reportFailure(view, imageView.movie.failureReason.toString())
+            .sigDecodeFailed += func|view = me|(imageView)
+            {
+                if view.reportFailure do
+                    view.reportFailure(view, imageView.movie.failureReason.toString())
+            }
         }
-
-        result.applyLayout()
-        result.setInitialFocus(result.imageView)
-        result.load.start(host.fileName(), &loadImageViewerContent)
-        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
-        return result
     }
 }
 
@@ -626,7 +642,7 @@ func createImageViewer(host: Viewer.Host)
     let view = ImageViewer.create(host)
     host.attachView(view)
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast #assume (*ImageViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*ImageViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*ImageViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool => (cast #assume (*ImageViewer) wnd).loadTimer != null,
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*ImageViewer) wnd).loadTimer != null,
+        retire: func(wnd)->bool => (cast #assume (*ImageViewer) wnd).retire()})
 }

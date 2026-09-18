@@ -31,7 +31,7 @@ impl TypedPayload
         let remaining = stream.remainingBytes()
         if count > remaining.count do
             fail Errors.InvalidFormatError{"clipboard payload is truncated"}
-        result.data = remaining[0 until count]
+        result.data = remaining[until count]
         return result
     }
 

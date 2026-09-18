@@ -108,7 +108,7 @@ namespace WinFsp
         let parent = volume.resolveParent(name).parent
         if not parent do
             return StatusObjectNameNotFound
-        var securityBytes = Swag.makeSlice(cast(const [*] u8) ("").buffer, 0)
+        var securityBytes = cast(const [..] u8) ""
         if securitySize do
             securityBytes = Swag.makeSlice(cast(const [*] u8) security!, securitySize)
         let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) as err
@@ -390,10 +390,7 @@ namespace WinFsp
         return StatusSuccess
     }
 
-    func sameName(left: string, right: string)->bool
-    {
-        return Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), .UnicodeNoCase) == 0
-    }
+    func sameName(left: string, right: string)->bool => Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), .UnicodeNoCase) == 0
 
     func callbackReadDirectory(context: *void?, nodeId: u64, marker: const [*] u8?, emit: EmitDirFn, emitContext: *void?, complete: *u8)->s32
     {

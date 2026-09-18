@@ -128,15 +128,9 @@ func __hostThreadStorageFree(id: u64)
         discard __Win32RT.FlsFree(cast(u32) (id - 1))
 }
 
-func __hostThreadStorageGet(id: u64)->*void?
-{
-    return id ? __Win32RT.FlsGetValue(cast(u32) (id - 1)) : null
-}
+func __hostThreadStorageGet(id: u64)->*void? => id ? __Win32RT.FlsGetValue(cast(u32) (id - 1)) : null
 
-func __hostThreadStorageSet(id: u64, value: *void?)->bool
-{
-    return id != 0 and __Win32RT.FlsSetValue(cast(u32) (id - 1), value) != 0
-}
+func __hostThreadStorageSet(id: u64, value: *void?)->bool => id != 0 and __Win32RT.FlsSetValue(cast(u32) (id - 1), value) != 0
 
 func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
 
@@ -145,10 +139,7 @@ func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
 ////////////////////////////////////////////////////////////
 
 // Starts one host thread running `entry` with `param`, or returns null when the host refuses.
-func __hostThreadCreate(entry: func(*void?)->u32, param: *void?)->*void?
-{
-    return __Win32RT.CreateThread(null, 0, entry, param, 0, null)
-}
+func __hostThreadCreate(entry: func(*void?)->u32, param: *void?)->*void? => __Win32RT.CreateThread(null, 0, entry, param, 0, null)
 
 // Waits for a host thread to finish and releases the handle this runtime owns for it.
 func __hostThreadJoin(handle: *void?)
@@ -210,10 +201,7 @@ func __hostConditionWake(condition: *__Win32RT.CONDITION_VARIABLE)    => __Win32
 func __hostConditionWakeAll(condition: *__Win32RT.CONDITION_VARIABLE) => __Win32RT.WakeAllConditionVariable(condition)
 
 // Atomically releases `lock`, waits for a wake, and reacquires it. Returns false on timeout.
-func __hostConditionWait(condition: *__Win32RT.CONDITION_VARIABLE, lock: *__Win32RT.SRWLOCK, milliseconds: u32)->bool
-{
-    return __Win32RT.SleepConditionVariableSRW(condition, lock, milliseconds, 0) != __Win32RT.FALSE
-}
+func __hostConditionWait(condition: *__Win32RT.CONDITION_VARIABLE, lock: *__Win32RT.SRWLOCK, milliseconds: u32)->bool => __Win32RT.SleepConditionVariableSRW(condition, lock, milliseconds, 0) != __Win32RT.FALSE
 
 ////////////////////////////////////////////////////////////
 // PROCESS-WIDE ANCHOR
@@ -282,15 +270,9 @@ private func __hostAppendHex(name: *[64] __Win32RT.WCHAR, length: *u64, value: u
     }
 }
 
-func __hostPageReserve(size: u64)->[*] u8?
-{
-    return cast([*] u8?) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
-}
+func __hostPageReserve(size: u64)->[*] u8? => cast([*] u8?) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
 
-func __hostPageCommit(address: *void?, size: u64)->bool
-{
-    return __Win32RT.VirtualAlloc(address, size, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE) != null
-}
+func __hostPageCommit(address: *void?, size: u64)->bool => __Win32RT.VirtualAlloc(address, size, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE) != null
 
 func __hostPageDecommit(address: *void?, size: u64)
 {
@@ -581,10 +563,7 @@ private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
     return 0
 }
 
-func __hostTestInstallHardwareFilter()->*void?
-{
-    return __Win32RT.SetUnhandledExceptionFilter(cast() &__hostTestUnhandledFilter)
-}
+func __hostTestInstallHardwareFilter()->*void? => __Win32RT.SetUnhandledExceptionFilter(cast() &__hostTestUnhandledFilter)
 
 func __hostTestRestoreHardwareFilter(previous: *void?)
 {

@@ -16,7 +16,6 @@ ui_ChoosePage        Choisir un aperçu enregistré
 ui_PreviousDocumentPage Page précédente
 ui_NextDocumentPage  Page suivante
 ui_ChooseDocumentPage Choisir une page
-ui_PageEntry         Page % · % × %
 ui_GoToPage          Aller à la page
 ui_PageRange         Numéro de page entre 1 et %.
 err_Header           le fichier ne contient pas d'en-tête de document InDesign valide

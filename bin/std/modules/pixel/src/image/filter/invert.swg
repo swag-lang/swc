@@ -2,7 +2,7 @@ using Core
 
 public impl Image
 {
-    // Invert colors
+    // Inverts the color channels, leaving alpha unchanged.
     mtd invert()
     {
         if not .pixelFormat.isPacked() do

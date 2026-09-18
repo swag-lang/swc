@@ -47,7 +47,7 @@ struct FileDlgOptions
     }
 }
 
-// Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
+// Modal file dialog hosting the reusable [[Gui.FileBrowserCtrl]] composite.
 struct FileDlg
 {
     public using dialog: Dialog     // Embedded dialog state.
@@ -90,7 +90,7 @@ private impl FileDlg
         options.width  = 440
         options.height = 220
 
-        let dlg  = FormDlg.create(me .surface!, options)
+        let dlg  = FormDlg.create(.surface!, options)
         let edit = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint)
         dlg.form.computeLayout()
         edit.selectAll()
@@ -102,8 +102,7 @@ private impl FileDlg
             if btnid != Dialog.BtnOk do
                 return true
 
-            var folderName: String
-            folderName = edit.text()
+            var folderName: String = edit.text()
             folderName.trim()
             if folderName.isEmpty()
             {
@@ -147,12 +146,14 @@ private impl FileDlg
 
 impl FileDlg
 {
-    // Creates the file dialog (own OS surface), hosting a FileBrowserCtrl.
+    // Creates a file dialog on its own surface, centered on `from` or placed where [[Gui.FileDlgOptions.state]] last left it.
     //
     // Without [[Gui.FileDlgOptions.title]] and [[Gui.FileDlgOptions.confirmButtonText]],
     // the surface title and the confirmation label follow the dialog mode ("Open",
     // "Save", "Select Folder"). Confirming while the name editor targets an existing
-    // folder navigates into it instead of accepting.
+    // folder navigates into it instead of accepting, and saving over an existing file asks
+    // first. Run it with [[Gui.Dialog.doModal]]; when the result is `Dialog.BtnOk`, read
+    // [[Gui.FileDlg.selectedPath]] or [[Gui.FileDlg.selectedPaths]].
     #[Swag.Discardable]
     func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
     {

@@ -16,7 +16,9 @@ private func sameAttributeType(left: typeinfo?, right: typeinfo?)->bool
     return false
 }
 
-// Returns the given attribute value, or null
+// Returns the parameter named `value` of the `attribute` attached to a reflected field or value, or null.
+//
+// Returns null when `type` is null, does not carry `attribute`, or the attribute has no such parameter.
 #[ConstExpr]
 func attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: string?)->any?
 {
@@ -26,7 +28,9 @@ func attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: s
     return attributeValue(attrib, value)
 }
 
-// Returns the given attribute value, or null
+// Returns the parameter named `value` of the `attribute` attached to a reflected field or value, or `defaultValue`.
+//
+// The parameter is read as a `T`; the caller guarantees that `T` matches its declared type.
 #[ConstExpr]
 func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value: string?, defaultValue: T)->T
 {
@@ -39,7 +43,7 @@ func(T) attributeValue(type: const *Swag.TypeValue?, attribute: typeinfo?, value
     return cast #assume (T) attribVal
 }
 
-// Returns the given attribute value, or null
+// Returns the parameter named `value` of the `attribute` attached to a function, struct, or enum type, or null.
 #[ConstExpr]
 func attributeValue(type: typeinfo?, attribute: typeinfo?, value: string?)->any?
 {
@@ -49,7 +53,7 @@ func attributeValue(type: typeinfo?, attribute: typeinfo?, value: string?)->any?
     return attributeValue(attrib, value)
 }
 
-// Returns the given attribute value, or null
+// Returns the parameter named `value` of a reflected attribute, or null.
 #[ConstExpr]
 func attributeValue(attribute: const *Swag.Attribute?, value: string?)->any?
 {
@@ -60,7 +64,7 @@ func attributeValue(attribute: const *Swag.Attribute?, value: string?)->any?
     return null
 }
 
-// Returns the given associated attributes to 'value'
+// Returns every instance of `attribute` attached to a reflected field or value.
 #[ConstExpr]
 func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
 {
@@ -72,7 +76,7 @@ func attributes(value: const *Swag.TypeValue?, attribute: typeinfo?)->Array'(con
     return result
 }
 
-// Returns the given associated 'attribute' to 'value' or null
+// Returns the first instance of `attribute` attached to a reflected field or value, or null.
 #[ConstExpr]
 func attribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->const *Swag.Attribute?
 {
@@ -83,14 +87,13 @@ func attribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->const *Swag
     return null
 }
 
-// Returns true if the given 'value' has the associated 'attribute'
+// Returns whether a reflected field or value carries `attribute`.
 #[ConstExpr]
-func hasAttribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->bool
-{
-    return Reflection.attribute(value, attribute) != null
-}
+func hasAttribute(value: const *Swag.TypeValue?, attribute: typeinfo?)->bool => Reflection.attribute(value, attribute) != null
 
-// Returns the given associated attributes to 'type'
+// Returns every instance of `attribute` attached to `type`.
+//
+// Only function, struct, and enum types carry attributes; any other type returns an empty array.
 #[ConstExpr]
 func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attribute)
 {
@@ -98,21 +101,20 @@ func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attri
     if not type do
         return result
 
-    let safeType = type
-    switch safeType.kind
+    switch type.kind
     {
     case .Func:
-        let typeFunc = cast #assume(const *TypeInfoFunc) safeType
+        let typeFunc = cast #assume(const *TypeInfoFunc) type
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case .Struct:
-        let typeStruct = cast #assume(const *TypeInfoStruct) safeType
+        let typeStruct = cast #assume(const *TypeInfoStruct) type
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case .Enum:
-        let typeEnum = cast #assume(const *TypeInfoEnum) safeType
+        let typeEnum = cast #assume(const *TypeInfoEnum) type
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
     }
@@ -120,28 +122,29 @@ func attributes(type: typeinfo?, attribute: typeinfo?)->Array'(const *Swag.Attri
     return result
 }
 
-// Returns the given associated 'attribute' to 'type' or null
+// Returns the first instance of `attribute` attached to `type`, or null.
+//
+// Only function, struct, and enum types carry attributes; any other type returns null.
 #[ConstExpr]
 func attribute(type: typeinfo?, attribute: typeinfo?)->const *Swag.Attribute?
 {
     if not type do
         return null
 
-    let safeType = type
-    switch safeType.kind
+    switch type.kind
     {
     case .Func:
-        let typeFunc = cast #assume(const *TypeInfoFunc) safeType
+        let typeFunc = cast #assume(const *TypeInfoFunc) type
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case .Struct:
-        let typeStruct = cast #assume(const *TypeInfoStruct) safeType
+        let typeStruct = cast #assume(const *TypeInfoStruct) type
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case .Enum:
-        let typeEnum = cast #assume(const *TypeInfoEnum) safeType
+        let typeEnum = cast #assume(const *TypeInfoEnum) type
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it
     }
@@ -149,9 +152,6 @@ func attribute(type: typeinfo?, attribute: typeinfo?)->const *Swag.Attribute?
     return null
 }
 
-// Returns true if the given 'type' has the associated 'attribute'
+// Returns whether `type` carries `attribute`.
 #[ConstExpr]
-func hasAttribute(type: typeinfo?, attribute: typeinfo?)->bool
-{
-    return Reflection.attribute(type, attribute) != null
-}
+func hasAttribute(type: typeinfo?, attribute: typeinfo?)->bool => Reflection.attribute(type, attribute) != null

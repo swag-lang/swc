@@ -2,10 +2,10 @@
 
 namespace StrConv
 {
-    // Defines the operations supported by i convert.
+    // Lets a type write its own text when [[Core.StrConv.convertAny]] formats it.
     interface IConvert
     {
-        // Defines convert.
+        // Appends the text of the value to `buf`, honoring `convFmt` and the user format `strFormat`.
         mtd const convert(buf: *ConcatBuffer, convFmt: ConvertFormat, strFormat: string?)
     }
 }

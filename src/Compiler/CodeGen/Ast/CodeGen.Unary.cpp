@@ -86,22 +86,19 @@ namespace
         if (info.storageTypeInfo->isFloat())
         {
             // XORing the scalar lane's sign bit preserves every payload bit, including
-            // signed zero and NaN. The x64 bitwise forms read a complete XMM operand,
-            // so keep the mask at 16 bytes even though only its first lane is observed.
-            std::array<char, 16> signMask = {};
-            signMask[info.opBits == MicroOpBits::B64 ? 7 : 3] = static_cast<char>(0x80);
-
-            DataSegmentRef         maskRef;
-            const std::string_view maskStorage = codeGen.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef);
+            // signed zero and NaN. The x64 bitwise forms read a complete, aligned XMM
+            // operand, which the constant manager provides once per lane width.
+            DataSegmentRef   maskRef;
+            const std::byte* maskStorage = codeGen.cstMgr().floatSignMask(info.opBits == MicroOpBits::B64, maskRef);
             builder.emitOpBinaryRegMem(resultPayload.reg, MicroReg::instructionPointer(), 0, MicroOp::FloatXor, info.opBits);
             builder.addRelocation({
                 .kind           = MicroRelocation::Kind::ConstantAddress,
                 .form           = MicroRelocation::Form::Relative32,
                 .instructionRef = builder.instructions().lastInstructionRef(),
-                .targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data()),
+                .targetAddress  = reinterpret_cast<uint64_t>(maskStorage),
                 .constantShard  = maskRef.shardIndex,
                 .constantOffset = maskRef.offset,
-                .constantCopySize = static_cast<uint32_t>(signMask.size()),
+                .constantCopySize = 16,
             });
             return Result::Continue;
         }

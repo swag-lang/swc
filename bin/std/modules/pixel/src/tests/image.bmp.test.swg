@@ -88,7 +88,7 @@ private func checkBmp16Masks(masks: Bmp.Masks)
 #test
 {
     let path = getTestDataPath("test.bmp")
-    Swag.assert(path.count > 0)
+    Swag.assert(not path.isEmpty())
     Swag.assert(File.exists(path))
 }
 

@@ -243,15 +243,9 @@ struct Vp8Decoder
     cStride: s32
 }
 
-func vp8Clip(value, minimum, maximum: s32)->s32
-{
-    return Math.min(Math.max(value, minimum), maximum)
-}
+func vp8Clip(value, minimum, maximum: s32)->s32 => Math.min(Math.max(value, minimum), maximum)
 
-func vp8TokenIndex(plane, band: s32, context, probability: u8)->u64
-{
-    return cast(u64) (((plane * VP8_TOKEN_BANDS + band) * VP8_TOKEN_CONTEXTS + context) * VP8_TOKEN_PROBS + probability)
-}
+func vp8TokenIndex(plane, band: s32, context, probability: u8)->u64 => cast(u64) (((plane * VP8_TOKEN_BANDS + band) * VP8_TOKEN_CONTEXTS + context) * VP8_TOKEN_PROBS + probability)
 
 func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
 {

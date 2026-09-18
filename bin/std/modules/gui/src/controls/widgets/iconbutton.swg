@@ -765,8 +765,9 @@ private impl IconButton
 
 impl IconButton
 {
-    // Paints the compact identity of this button inside the tab an attached menu owns while it
-    // is open. Menu buttons use one horizontal reading order here: glyph, wording, disclosure.
+    // Paints the compact identity of this button inside the tab an attached menu owns while it is open.
+    //
+    // Menu buttons use one horizontal reading order here: glyph, wording, disclosure.
     // The popup supplies the selected background and border, while this helper preserves the
     // exact glyph sizes, font and spacing of the closed button.
     internal mtd paintMenuAnchorContent(painter: *Painter, rect: Math.Rectangle, color: Color)
@@ -900,7 +901,7 @@ impl IconButton
         return res
     }
 
-    // Changes checked state silently for a radio or toggle button.
+    // Changes the checked state of a radio or toggle button without emitting a signal or command.
     mtd setChecked(checked: bool)
     {
         Swag.assert(.flags.has(.Radio) or .flags.has(.Toggle))
@@ -959,12 +960,16 @@ impl IconButton
         .invalidate()
     }
 
-    // Creates and owns a popup anchored above or below the button.
+    // Creates a `width` by `height` popup frame anchored to the button and makes it the owned popup.
+    //
+    // The frame opens below the button, or above it when it does not fit below and there is more
+    // room above, and stays inside the top view. A popup already open is closed first; [[Gui.IconButton.hidePopup]]
+    // destroys the new one.
     mtd createAnchorPopup(width, height: f32)->*FrameWnd
     {
         Swag.assert(width >= 0 and height >= 0)
         if .popup do
-            me.hidePopup()
+            .hidePopup()
         let pos          = .surfaceRect()
         let topView      = .topView()
         let metrics      = .themeMetrics()

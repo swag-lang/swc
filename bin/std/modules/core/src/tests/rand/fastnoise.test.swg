@@ -9,16 +9,7 @@ func assertFastNoise(value, expected: f32)
     Swag.assert(value >= -1'f32 and value <= 1'f32)
 }
 
-func initFastNoise()->Noise.FastNoise
-{
-    var noise: retval
-    noise.seed       = 42
-    noise.frequency  = 0.125
-    noise.octaves    = 3
-    noise.lacunarity = 2.25
-    noise.gain       = 0.4
-    return noise
-}
+func initFastNoise()->Noise.FastNoise => {seed: 42, frequency: 0.125, octaves: 3, lacunarity: 2.25, gain: 0.4}
 
 #test
 {

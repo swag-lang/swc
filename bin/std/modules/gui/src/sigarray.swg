@@ -5,11 +5,8 @@ using Core
 // Ordered collection of callbacks that can be suspended as a nested scope.
 struct(T) SigArray
 {
-    internal
-    {
-        callbacks:    Array'T     // Registered callbacks in invocation order.
-        suspendDepth: u32         // Number of unmatched `disable` calls.
-    }
+    callbacks:    Array'T     // Registered callbacks in invocation order.
+    suspendDepth: u32         // Number of unmatched `disable` calls.
 }
 
 impl SigArray
@@ -62,7 +59,7 @@ impl SigArray
         if .suspendDepth do
             return
 
-        // Be sure the call has the right number of arguments
+        // The arguments are forwarded by position, so their count must match the signature.
         Swag.assert(params.count == (#typeof(T).parameters).count)
 
         for fn in .callbacks

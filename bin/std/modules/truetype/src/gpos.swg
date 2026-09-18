@@ -218,7 +218,7 @@ func parseGpos(faceData: *FaceImpl) fail
         }
     }
 
-    if faceData.gposPairSubtables.count != 0 do
+    if not faceData.gposPairSubtables.isEmpty() do
         faceData.gposTable = table
 }
 

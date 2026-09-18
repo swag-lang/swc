@@ -238,10 +238,7 @@ impl Decoder
     }
 
     // Reports whether two positions sit in the same parallel merge region, clause 8.5.3.2.3.
-    private mtd const sameMergeRegion(x0, y0, x1, y1: s32, level: u32)->bool
-    {
-        return (x0 >> level) == (x1 >> level) and (y0 >> level) == (y1 >> level)
-    }
+    private mtd const sameMergeRegion(x0, y0, x1, y1: s32, level: u32)->bool => (x0 >> level) == (x1 >> level) and (y0 >> level) == (y1 >> level)
 
     // Reports whether two prediction blocks carry identical motion.
     private mtd const sameMotion(left, right: const *PuMotion)->bool

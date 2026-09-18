@@ -6,10 +6,7 @@ using Core, Gui
 //
 // The two spellings a document begins with are the only markers taken. Anything looser claims an
 // XML file, a template, or a source file that merely mentions a tag.
-private func htmlPluginProbe(content: Viewer.ProbeContent)->bool
-{
-    return content.opensWith("<!doctype html") or content.opensWith("<html")
-}
+private func htmlPluginProbe(content: Viewer.ProbeContent)->bool => content.opensWith("<!doctype html") or content.opensWith("<html")
 
 // Describes the HTML viewer to the host.
 func htmlViewerPlugin()->Viewer.Plugin
@@ -31,7 +28,7 @@ func htmlViewerPlugin()->Viewer.Plugin
     return result
 }
 
-internal struct HtmlViewer
+struct HtmlViewer
 {
     using wnd: Wnd
 
@@ -83,15 +80,64 @@ private impl HtmlViewer
         case "scope.html.zoom200": .setZoom(200)
         }
     }
+
+    // Creates the zoom menu button in the host's information group `info`.
+    mtd createZoomControl(info: *Wnd)
+    {
+        with .zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.html.zoom", .CenterContent)
+        {
+            .dockStyle = .Center
+            .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
+            .setText("100%")
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
+            .toolTip    = htmlStrings().ui_ZoomMenu
+            .sigPressed += func|viewer = me|(button)
+            {
+                discard button
+                viewer.showZoomMenu()
+            }
+        }
+    }
+
+    // Routes the zoom shortcuts to the page, wherever the keyboard focus is inside it.
+    mtd hookZoomKeys()
+    {
+        .hookOnChildEvent = func|viewer = me|(wnd, evt)
+        {
+            discard wnd
+            switch evt
+            {
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
+                viewer.setZoom(viewer.zoomPercent + 25)
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
+                viewer.setZoom(viewer.zoomPercent > 50 ? viewer.zoomPercent - 25 : 50)
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
+                viewer.setZoom(100)
+                return true
+
+            default:
+                return false
+            }
+        }
+    }
 }
 
 // Creates the integrated reusable HTML view.
 func createHtmlViewer(host: Viewer.Host)
 {
-    let result = Wnd.create'HtmlViewer(host.contentParent(), "scope.html")
-    result.backgroundStyle = .View
-    result.view = HtmlView.createFile(result, host.fileName())
-    result.view.dockStyle  = .Center
+    with let result = Wnd.create'HtmlViewer(host.contentParent(), "scope.html")
+    {
+        .backgroundStyle = .View
+        .view            = HtmlView.createFile(result, host.fileName())
+        .view.dockStyle  = .Center
+    }
+
     if not result.view.failureReason.isEmpty()
     {
         host.reject(result.view.failureReason.toString())
@@ -99,44 +145,8 @@ func createHtmlViewer(host: Viewer.Host)
         return
     }
 
-    let info = host.createInfoGroup(ViewerZoomSlotWidth)
-    with result.zoomLabel = IconButton.create(info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.html.zoom", .CenterContent)
-    {
-        .dockStyle = .Center
-        .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-        .setText("100%")
-        .setArrowPosition(.RightDownward)
-        .setForm(.Rectangle)
-        .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-        .toolTip    = htmlStrings().ui_ZoomMenu
-        .sigPressed += func|viewer = result|(button)
-        {
-            discard button
-            viewer.showZoomMenu()
-        }
-    }
-
-    result.hookOnChildEvent = func|viewer = result|(wnd, evt)
-    {
-        discard wnd
-        switch evt
-        {
-        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Add or keyEvt.key == .OemPlus) and keyEvt.modifiers.has(.Control):
-            viewer.setZoom(viewer.zoomPercent + 25)
-            return true
-
-        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Subtract or keyEvt.key == .OemMinus) and keyEvt.modifiers.has(.Control):
-            viewer.setZoom(viewer.zoomPercent > 50 ? viewer.zoomPercent - 25 : 50)
-            return true
-
-        case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .D0 and keyEvt.modifiers.has(.Control):
-            viewer.setZoom(100)
-            return true
-
-        default:
-            return false
-        }
-    }
+    result.createZoomControl(host.createInfoGroup(ViewerZoomSlotWidth))
+    result.hookZoomKeys()
 
     let services = host.services()
     if services.reportFailure
@@ -155,14 +165,14 @@ func createHtmlViewer(host: Viewer.Host)
     DocumentOutline.create(host).bindHtml(result.view)
     host.setDetails(htmlStrings().ui_Details)
     host.setSearch({
-        revealMatch: func(wnd, match, text)->bool { return (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text) },
+        revealMatch: func(wnd, match, text)->bool => (cast #assume (*HtmlViewer) wnd).view.revealFileOffset(match.offset, text),
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return (cast #assume (*HtmlViewer) wnd).view.searchMatchRect(bounds)
     },
         clear: func(wnd) { (cast #assume (*HtmlViewer) wnd).view.clearSearch() }})
-    host.setLifecycle({isLoading: func(wnd)->bool { return (cast #assume (*HtmlViewer) wnd).view.isLoading() }})
+    host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*HtmlViewer) wnd).view.isLoading()})
     result.view.sigLinkActivated += func(html, url)
     {
         discard html

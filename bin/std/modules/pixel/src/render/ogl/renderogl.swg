@@ -54,9 +54,7 @@ const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0     // Sentinel t
 alias RenderTargetSurfaceHandle = u64                                            // Opaque renderer depth/stencil-surface identifier.
 const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0     // Sentinel that identifies no surface.
 
-// Executes [[Pixel.Painter]] command streams through OpenGL.
-//
-// The two chroma planes of a planar texture, held beside the luma handle the caller carries.
+// Holds the two chroma planes of a planar texture, beside the luma handle the caller carries.
 //
 // Public only because it names the type of a renderer field, which the generated module surface
 // spells out; nothing outside this backend has any use for it.
@@ -83,8 +81,10 @@ public struct ClipMask
     height:      s32
 }
 
+// Executes [[Pixel.Painter]] command streams through OpenGL.
+//
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
-// render targets. Create it as an [[Pixel.IRenderer]], create a
+// render targets. Borrow it as an [[Pixel.IRenderer]], create a
 // [[Pixel.RenderContext]], call `init`, then bracket frames with `begin` and `end`.
 // The artistic blend modes use advanced blend equations, with explicit barriers when the
 // context does not provide coherent ordering; call
@@ -226,15 +226,9 @@ private impl RenderOgl
         }
     }
 
-    mtd const usesKhrAdvancedBlending()->bool
-    {
-        return .advancedBlending == AdvancedBlendingKhrCoherent or .advancedBlending == AdvancedBlendingKhrBarrier
-    }
+    mtd const usesKhrAdvancedBlending()->bool => .advancedBlending == AdvancedBlendingKhrCoherent or .advancedBlending == AdvancedBlendingKhrBarrier
 
-    mtd const requiresAdvancedBlendBarrier()->bool
-    {
-        return .advancedBlending == AdvancedBlendingKhrBarrier or .advancedBlending == AdvancedBlendingNvBarrier
-    }
+    mtd const requiresAdvancedBlendBarrier()->bool => .advancedBlending == AdvancedBlendingKhrBarrier or .advancedBlending == AdvancedBlendingNvBarrier
 
     // Starts a new framebuffer-touching pass on contexts whose advanced equations are not
     // coherent. Once a command stream selects an artistic mode, every later touch is isolated:
@@ -604,7 +598,7 @@ impl RenderOgl
         .native.swapBuffers(oglContext(.curRC)[])
     }
 
-    // Set the current rendering context
+    // Makes `rc` the current rendering context.
     internal mtd setCurrentContextImpl(rc: RenderContext)
     {
         // Selecting a drawable makes it the target everything reports and draws against
@@ -617,7 +611,7 @@ impl RenderOgl
         .resetTransformImpl()
     }
 
-    // Clear current render buffers
+    // Clears the current render buffers.
     internal mtd clearImpl()
     {
         glClearStencil(0)
@@ -634,13 +628,13 @@ impl RenderOgl
         return {.curRC.width, .curRC.height}
     }
 
-    // Force the scissor
+    // Restricts following writes to a surface-space rectangle.
     internal mtd setScissorRectImpl(rect: Math.Rectangle)
     {
         .applyScissor(rect)
     }
 
-    // Reset the scissor
+    // Disables the surface-space scissor rectangle.
     internal mtd resetScissorRectImpl()
     {
         .clearScissor()
@@ -853,7 +847,7 @@ impl RenderOgl
         .hatchTextures[DiagonalCross]         = generateTexture(Hatch.DiagonalCross, 8, 8)
     }
 
-    // Set the current render target
+    // Binds an off-screen target for following direct operations or painter submission.
     internal mtd bindRenderTargetImpl(rt: *RenderTarget, vp: *Math.Rectangle? = null)
     {
         Swag.assert(rt != null)
@@ -886,7 +880,7 @@ impl RenderOgl
         return result
     }
 
-    // Get current render target pixels
+    // Reads the active target into a new image, then restores the previous target.
     internal mtd unbindRenderTargetToImageImpl(x, y, w, h: s32)->Image
     {
         let curRT = .curRT!
@@ -904,7 +898,7 @@ impl RenderOgl
         return result
     }
 
-    // Go back to the previous render target, or frame buffer
+    // Restores the previous render target, or the frame buffer.
     internal mtd unbindRenderTargetImpl()
     {
         if .stackRT.count
@@ -922,7 +916,7 @@ impl RenderOgl
         }
     }
 
-    // Create a render target
+    // Creates an off-screen target owned by this renderer.
     internal mtd createRenderTargetImpl(w, h: s32)->RenderTarget
     {
         Swag.assert(w > 0 and h > 0)
@@ -950,7 +944,7 @@ impl RenderOgl
         return result
     }
 
-    // Delete a render target
+    // Releases an off-screen target and invalidates its descriptor.
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
         if rt.handle == InvalidRenderTargetHandle or not rt.colorBuffer.isValid() do
@@ -1029,14 +1023,14 @@ impl RenderOgl
         planes.value.factors = view.conversionFactors()
     }
 
-    // Load and register an image for rendering
+    // Loads an image file into a texture owned by this renderer.
     internal mtd addImageImpl(fullName: string)->Texture fail
     {
         let image = try Image.load(fullName)
         return .addImageImpl(&image)
     }
 
-    // Register an image for rendering
+    // Copies an image into a texture owned by this renderer.
     internal mtd addImageImpl(image: const *Image)->Texture
     {
         if not image.isValid()
@@ -1140,7 +1134,7 @@ impl RenderOgl
         }
     }
 
-    // Update content of texture
+    // Replaces all bytes of a texture owned by this renderer.
     internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
     {
         let fmt       = pixelFormatToNative(texture.pixelFormat)
@@ -1165,7 +1159,7 @@ impl RenderOgl
         return result
     }
 
-    // Unregister a texture created with 'addImage'
+    // Releases a texture created by `addImage` and invalidates its descriptor.
     internal mtd removeTextureImpl(texture: *Texture)
     {
         if not texture.isValid() do
@@ -1186,42 +1180,42 @@ impl RenderOgl
         texture.clear()
     }
 
-    // Translate the world transform
+    // Translates following painter submissions in surface pixels.
     internal mtd translateTransformImpl(x, y: f32)
     {
         let tr = Transform2.createTranslation(x, y)
         .worldTransform.multiply(tr)
     }
 
-    // Rotate the world transform
+    // Rotates following painter submissions around the surface origin.
     internal mtd rotateTransformImpl(angle: Math.Angle)
     {
         let tr = Transform2.createRotation(angle.radians, 0, 0)
         .worldTransform.multiply(tr)
     }
 
-    // Rotate the world transform
+    // Rotates following painter submissions around a surface-space center.
     internal mtd rotateTransformImpl(angle: Math.Angle, centerX, centerY: f32)
     {
         let tr = Transform2.createRotation(angle.radians, centerX, centerY)
         .worldTransform.multiply(tr)
     }
 
-    // Scale the world transform
+    // Scales following painter submissions independently on both axes.
     internal mtd scaleTransformImpl(x, y: f32)
     {
         let tr = Transform2.createScale(x, y, 0, 0)
         .worldTransform.multiply(tr)
     }
 
-    // Scale the world transform
+    // Scales following painter submissions uniformly.
     internal mtd scaleTransformImpl(x: f32)
     {
         let tr = Transform2.createScale(x, x, 0, 0)
         .worldTransform.multiply(tr)
     }
 
-    // Reset the world transform
+    // Restores the identity world transform.
     internal mtd resetTransformImpl()
     {
         .worldTransform.setIdentity()
@@ -1775,7 +1769,7 @@ impl RenderOgl
         }
     }
 
-    // Draw the given painter
+    // Executes a completed painter command stream.
     internal mtd drawImpl(dc: *Painter)
     {
         let {width, height} = .targetSizeImpl()
@@ -1834,7 +1828,9 @@ impl RenderOgl
         .finishAdvancedBlendPass()
     }
 
-    // Set the current shader
+    // Makes `shader` the current OpenGL program, or the built-in antialiased program when `null`.
+    //
+    // The matrices, blending, and clipping uniforms of the program are refreshed.
     mtd setShader(shader: *ShaderBase? = null)
     {
         .curShader = shader orelse &.shaderAA
@@ -1961,7 +1957,7 @@ impl RenderOgl
         return rt
     }
 
-    // Release the given render target
+    // Returns a pooled target to this renderer; `null` is ignored.
     internal mtd releaseRenderTargetImpl(tgt: *RenderTarget?)
     {
         if not tgt do
@@ -1969,7 +1965,7 @@ impl RenderOgl
         .stackReleasedRT.add(tgt)
     }
 
-    // Create the given shader
+    // Compiles and links a shader program into `base`.
     internal mtd createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
     {
         var buf: String = shaderSource(vertex)

@@ -14,12 +14,12 @@ that solves the problem.
 | Render recorded commands with OpenGL | [[Pixel.RenderOgl]] |
 | Render deterministic pixels without a GPU | [[Pixel.RenderCpu]] |
 | Draw into an image without managing a frame | [[Pixel.ImageCanvas]] |
-| Load and lay out fonts | [[Pixel.TypeFace]], [[Pixel.Font]], and [[Pixel.RichString]] |
+| Load and lay out fonts | [[Pixel.TypeFace]], [[Pixel.FontCache]], [[Pixel.Font]], and [[Pixel.RichString]] |
 
 ## A first image
 
-An [[Pixel.Image]] owns a tightly packed, row-major pixel buffer. The pixel format
-determines how many bytes belong to each pixel.
+An [[Pixel.Image]] owns a tightly packed pixel buffer, stored bottom row first. The
+pixel format determines how many bytes belong to each pixel.
 
 ```swag
 using Pixel

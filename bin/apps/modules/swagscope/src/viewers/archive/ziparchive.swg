@@ -26,6 +26,7 @@ private const ZipCp437High: [128] rune = [
     0x0393, 0x03C0, 0x03A3, 0x03C3, 0x00B5, 0x03C4, 0x03A6, 0x0398, 0x03A9, 0x03B4, 0x221E, 0x03C6, 0x03B5, 0x2229, 0x2261, 0x00B1,
     0x2265, 0x2264, 0x2320, 0x2321, 0x00F7, 0x2248, 0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0]
 
+// One file or directory recorded in the central directory of a ZIP archive.
 struct ZipEntry
 {
     path:             String
@@ -38,12 +39,24 @@ struct ZipEntry
     isDirectory:      bool
 }
 
+// The central directory of a ZIP archive, with its entries sorted by path.
 struct ZipArchive
 {
     entries:          Array'ZipEntry
-    compressedSize:   u64
-    uncompressedSize: u64
+    compressedSize:   u64 // Sum over the file entries; directories do not count
+    uncompressedSize: u64 // Sum over the file entries; directories do not count
     comment:          String
+}
+
+impl ZipArchive
+{
+    // Returns the entry stored at `path`, or null when the archive has none.
+    mtd const tryFindEntry(path: string)->const *ZipEntry?
+    {
+        for entry in .entries where entry.path == path do
+            return entry
+        return null
+    }
 }
 
 private func zipU16(bytes: const [..] u8, at: u64)->u16 fail
@@ -67,12 +80,13 @@ private func zipU64(bytes: const [..] u8, at: u64)->u64 fail
     return low | (high << 32)
 }
 
+// Decodes a stored name or comment: as UTF-8 when `utf8` is set and the bytes are valid, as CP437 otherwise.
 func zipText(bytes: const [..] u8, utf8: bool)->String
 {
     if not bytes.count do
         return {}
     if utf8 and Utf8.isValid(bytes) do
-        return String.from(Swag.makeString(bytes.buffer, bytes.count))
+        return String.from(cast(string) bytes)
 
     var result: retval
     for value in bytes
@@ -86,6 +100,9 @@ func zipText(bytes: const [..] u8, utf8: bool)->String
     return result
 }
 
+// Normalizes a stored path to single forward slashes, without a leading or trailing one.
+//
+// Control characters become U+FFFD, so a name cannot disturb the tree that shows it.
 private func cleanZipPath(path: string)->String
 {
     var result: retval
@@ -114,6 +131,7 @@ private func cleanZipPath(path: string)->String
     return result
 }
 
+// Replaces each directory field saturated at its 16- or 32-bit maximum with its ZIP64 extra-field value.
 private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *u64) fail
 {
     var at = 0'u64
@@ -166,19 +184,23 @@ private func applyZip64Extra(extra: const [..] u8, plain, packed, local, disk: *
     }
 }
 
-private func zipDirectoryLocation(file: *File.MappedFile, endOffset: u64, endBytes: const [..] u8, endAt: u64)->{ offset, size, count: u64 } fail
+// Returns where the central directory lies and how many entries it holds.
+//
+// `tail` is the mapped end of the file starting at `tailOffset`, and `endAt` locates the end
+// record inside it. A saturated field sends the lookup through the ZIP64 locator and end record.
+private func zipDirectoryLocation(file: *File.MappedFile, tailOffset: u64, tail: const [..] u8, endAt: u64)->{ offset, size, count: u64 } fail
 {
     var result: retval
-    result.count  = cast(u64) try zipU16(endBytes, endAt + 10)
-    result.size   = cast(u64) try zipU32(endBytes, endAt + 12)
-    result.offset = cast(u64) try zipU32(endBytes, endAt + 16)
+    result.count  = cast(u64) try zipU16(tail, endAt + 10)
+    result.size   = cast(u64) try zipU32(tail, endAt + 12)
+    result.offset = cast(u64) try zipU32(tail, endAt + 16)
 
     if result.count != ZipValue16Overflow and result.size != ZipValue32Overflow and result.offset != ZipValue32Overflow do
         return result
-    if endOffset + endAt < 20 do
+    if tailOffset + endAt < 20 do
         fail Errors.InvalidFormatError{"ZIP64 end locator is missing"}
 
-    let locatorOffset = endOffset + endAt - 20
+    let locatorOffset = tailOffset + endAt - 20
     let locator       = try file.map(locatorOffset, 20)
     if try zipU32(locator.bytes(), 0) != Zip64LocatorSignature do
         fail Errors.InvalidFormatError{"ZIP64 end locator is missing"}
@@ -202,6 +224,10 @@ private func zipDirectoryLocation(file: *File.MappedFile, endOffset: u64, endByt
     return result
 }
 
+// Reads the central directory of a ZIP file.
+//
+// The end record must close the file exactly. Multi-disk archives and directories beyond the
+// entry and size limits fail before any entry is decoded.
 func loadZipArchive(fileName: string)->ZipArchive fail
 {
     var result: retval
@@ -215,22 +241,16 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     let tail       = try file.map(tailOffset, tailSize)
     let bytes      = tail.bytes()
     var endAt      = Swag.U64.Max
-    var scan       = tailSize - 22
-    while true
+    for scan in reversed(tailSize - 21)
     {
-        if try zipU32(bytes, scan) == ZipEndSignature
+        if try zipU32(bytes, scan) != ZipEndSignature do
+            continue
+        let commentLength = cast(u64) try zipU16(bytes, scan + 20)
+        if scan + 22 + commentLength == tailSize
         {
-            let commentLength = cast(u64) try zipU16(bytes, scan + 20)
-            if scan + 22 + commentLength == tailSize
-            {
-                endAt = scan
-                break
-            }
-        }
-
-        if not scan do
+            endAt = scan
             break
-        scan -= 1
+        }
     }
 
     if endAt == Swag.U64.Max do
@@ -260,9 +280,8 @@ func loadZipArchive(fileName: string)->ZipArchive fail
     let region = try file.map(directory.offset, directory.size)
     let data   = region.bytes()
     var at     = 0'u64
-    for index in directory.count
+    for directory.count
     {
-        discard index
         if at > data.count or 46 > data.count - at do
             fail Errors.InvalidFormatError{"ZIP central directory ends inside an entry"}
         if try zipU32(data, at) != ZipDirectorySignature do
@@ -312,15 +331,15 @@ func loadZipArchive(fileName: string)->ZipArchive fail
         at += totalLength
     }
 
-    result.entries.sort(func(a, b) { return Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase) })
+    result.entries.sort(func(a, b) => Utf8.compare(a.path.toSlice(), b.path.toSlice(), .Latin1NoCase))
     return result
 }
 
 // Reads and validates one bounded archive entry without materializing a temporary file.
 //
 // Archive previews write this result to a disposable path, while container readers such as ODF
-// consume trusted XML in memory. Both paths therefore share the same size, compression, and CRC
-// boundary.
+// and IDML consume their XML in memory. Both paths therefore share the same size, compression,
+// and CRC boundary.
 func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fail
 {
     if entry.isDirectory do
@@ -375,7 +394,7 @@ func loadZipEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fai
     return #move plain
 }
 
-// Extracts one validated archive entry for an embedded file viewer.
+// Writes one validated archive entry to `destination`, where an embedded file viewer opens it.
 func extractZipEntry(archiveFileName: string, entry: const *ZipEntry, destination: string) fail
 {
     let plain = try loadZipEntry(archiveFileName, entry)

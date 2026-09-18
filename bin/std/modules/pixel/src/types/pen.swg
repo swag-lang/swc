@@ -53,8 +53,8 @@ enum BorderPos
 
 // Describes how a path is stroked.
 //
-// Lengths and scale factors are expressed in path-space pixels. Use the factory
-// functions for common solid, dashed, and hatched pens.
+// Lengths are expressed in path-space pixels. Use the factory functions for common solid,
+// dashed, and hatched pens.
 //
 // A non-zero `outlineSize` adds a border of that width outside the stroke. The border is
 // the stroke's own silhouette pushed out, so it keeps the same width along the shaft, around
@@ -116,17 +116,11 @@ impl Pen
     }
 
     // Creates a continuous pen painted with a repeating hatch.
-    func createHatch(type: HatchStyle, color: Color, size: f32 = 1)->Pen
+    func createHatch(style: HatchStyle, color: Color, size: f32 = 1)->Pen
     {
-        with var result: retval
-        {
-            .brush.color  = color
-            .brush.type   = .Hatch
-            .brush.hatch  = type
-            .size         = size
-            .brush.uvMode = .Tile
-        }
-
+        var result: retval
+        result.brush = Brush.createHatch(style, color)
+        result.size  = size
         return result
     }
 }

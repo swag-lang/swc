@@ -7,8 +7,6 @@ ui_ColField       Champ
 ui_ColValue       Valeur
 ui_ColOffset      Décalage
 ui_ColDetail      Signification
-ui_TipExpand      Tout déplier (Ctrl+E)
-ui_TipCollapse    Tout replier (Ctrl+E)
 ui_MenuCopyAll    Copier tout le rapport
 ui_MenuCopyLine   Copier cette ligne
 ui_MenuExpand     Tout déplier
@@ -57,7 +55,6 @@ shr_Libraries     Bibliothèques requises
 shr_BuildId       Identité de compilation
 shr_Interpreter   Interpréteur
 shr_Entry         Point d'entrée
-shr_Malformed     la chaîne d'enregistrements s'arrête avant la fin du fichier
 
 rep_File          Fichier
 rep_Size          Taille
@@ -201,7 +198,6 @@ mo_Commands       Commandes de chargement
 mo_CommandsDesc   ce qui est demandé au chargeur
 mo_Fat            Binaire universel
 mo_FatDesc        une image par architecture
-mo_Architecture   Architecture
 mo_Protection     maximum %, initiale %
 mo_Slice          tranche %
 

@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// An empty imagerect is a valid, hit-testable window.
+// An empty `ImageRect` is a valid, hit-testable window.
 #test
 {
     var host: Testing.HeadlessHost
@@ -23,7 +23,8 @@ using Swag, Core
     defer host.shutdown()
     let image   = Pixel.Image.create(4, 2, .RGBA8)
     var texture = host.app.renderer.addImage(image)
-    let atlas   = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
+    defer host.app.renderer.removeTexture(&texture)
+    let atlas = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
 
     Swag.assert(atlas.isValid())
     Swag.assert(atlas.columnCount() == 2)
@@ -34,11 +35,13 @@ using Swag, Core
     movie.setSpriteSheet(atlas)
     Swag.assert(movie.isValid())
     Swag.assert(movie.frameIndex == 0)
-    Swag.assert(movie.update(movie.frameDurationSeconds))
+    var advanced = movie.update(movie.frameDurationSeconds)
+    Swag.assert(advanced)
     Swag.assert(movie.frameIndex == 1)
 
     movie.setPaused(true)
-    Swag.assert(not movie.update(movie.frameDurationSeconds))
+    advanced = movie.update(movie.frameDurationSeconds)
+    Swag.assert(not advanced)
     Swag.assert(movie.frameIndex == 1)
 
     movie.setPaused(false)
@@ -52,8 +55,6 @@ using Swag, Core
     Swag.assert(movie.frameCount == 0)
     Swag.assert(movie.cachesFrames)
     Swag.assert(movie.loops)
-
-    host.app.renderer.removeTexture(&texture)
 }
 
 // ImageRect owns textures uploaded from Image values and releases them on clear.
@@ -81,8 +82,9 @@ using Swag, Core
     defer host.shutdown()
     let image   = Pixel.Image.create(4, 2, .RGBA8)
     var texture = host.app.renderer.addImage(image)
-    let atlas   = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
-    let view    = ImageRect.create(&host.root, {20, 20, 120, 120})
+    defer host.app.renderer.removeTexture(&texture)
+    let atlas = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
+    let view  = ImageRect.create(&host.root, {20, 20, 120, 120})
 
     view.setImageList(atlas)
     Swag.assert(view.movie.frameCount == 2)
@@ -93,6 +95,4 @@ using Swag, Core
     Swag.assert(not view.movie.isPaused)
     view.setFrameIndex(50)
     Swag.assert(view.movie.frameIndex == 1)
-
-    host.app.renderer.removeTexture(&texture)
 }

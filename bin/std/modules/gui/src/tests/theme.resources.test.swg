@@ -23,8 +23,8 @@ using Swag, Core, Pixel
 
     const Red = #raw """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#ff0000"/></svg>"""
     const Blue = #raw """<svg xmlns="http://www.w3.org/2000/svg" width="48" height="24"><rect width="48" height="24" fill="#0000ff"/></svg>"""
-    discard expect File.writeAllBytes(widgetsPath, cast(const [..] u8) Red)
-    discard expect File.writeAllBytes(iconsPath, cast(const [..] u8) Red)
+    discard expect File.writeAllText(widgetsPath, Red)
+    discard expect File.writeAllText(iconsPath, Red)
     var first: Testing.HeadlessHost
     first.app.resources.addFolder(root.toString())
     first.setup(80, 60)
@@ -35,8 +35,8 @@ using Swag, Core, Pixel
     let firstPixels = first.theme.res.icons.atlas!.image(&first.renderer, 24)
     Swag.assert(firstPixels.pixelColor(12, 12).argb == 0xFFFF0000)
 
-    discard expect File.writeAllBytes(widgetsPath, cast(const [..] u8) Blue)
-    discard expect File.writeAllBytes(iconsPath, cast(const [..] u8) Blue)
+    discard expect File.writeAllText(widgetsPath, Blue)
+    discard expect File.writeAllText(iconsPath, Blue)
     var second: Testing.HeadlessHost
     second.app.resources.addFolder(root.toString())
     second.setup(80, 60)
@@ -52,8 +52,8 @@ using Swag, Core, Pixel
     Swag.assert(original.theme.res.icons.atlas == originalAtlas)
 
     // Empty and malformed files both fall back, even after an override was cached elsewhere.
-    discard expect File.writeAllBytes(widgetsPath, cast(const [..] u8) "")
-    discard expect File.writeAllBytes(iconsPath, cast(const [..] u8) "<svg")
+    discard expect File.writeAllText(widgetsPath, "")
+    discard expect File.writeAllText(iconsPath, "<svg")
     var fallback: Testing.HeadlessHost
     fallback.app.resources.addFolder(root.toString())
     fallback.setup(80, 60)

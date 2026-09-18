@@ -4,8 +4,8 @@ using Pixel
 #[Swag.Opaque]
 public struct PaintImage
 {
-    // Called to paint one image. This is the only thing a caller sets.
-    public paint: (func||(app: *Application, painter: *Painter))?     // The offscreen application, its painter and the surface backing the render target.
+    // Callback painting one image with the offscreen application and its painter; the only field a caller sets.
+    public paint: (func||(app: *Application, painter: *Painter))?
 
     private
     {
@@ -47,7 +47,7 @@ impl PaintImage
         return false
     }
 
-    // Releases resources owned by this value.
+    // Destroys the offscreen surface.
     public mtd opDrop()
     {
         if .surface != null do

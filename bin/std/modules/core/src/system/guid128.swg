@@ -2,17 +2,14 @@
 
 using Core.Errors
 
-// Thread-local storage for random number generation and identifier counter.
-
+// Each thread draws identifiers from its own generator, so creation never takes a lock.
 tls
 {
-    private var g_Rng:     Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool                         // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32                          // Thread-local counter for timestamp-based identifiers
+    private var g_Rng:     Random.MersenneTwister64     // Generator of this thread
+    private var g_RngInit: bool                         // Whether the generator of this thread is seeded
 }
 
-// Initialize the random number generator with high-entropy seed.
-// Uses multiple time-based and hardware-based entropy sources for better randomness.
+// Seeds the generator of the calling thread on first use, from the clocks and the MAC address.
 #[Swag.Inline]
 private func initRng()
 {
@@ -54,6 +51,9 @@ impl Guid128
     mtd const opEquals(other: Guid128)->bool => .words[0] == other.words[0] and .words[1] == other.words[1]
 
     // Creates a random RFC 4122 version-4 UUID.
+    //
+    // The bits come from a per-thread Mersenne Twister seeded from the clocks and the MAC
+    // address: unique enough for identities, but predictable, so never a secret or a token.
     func random()->Guid128
     {
         initRng()
@@ -74,7 +74,7 @@ impl Guid128
     // Returns whether all bits are zero.
     mtd const isNull()->bool => .words[0] == 0 and .words[1] == 0
 
-    // Convert guid to a string of the form xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx
+    // Writes the canonical lowercase form, `xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx`, to the 36 bytes of `result`.
     #[Swag.Safety(.BoundCheck, false)]
     mtd const toString(result: [..] u8)
     {
@@ -143,7 +143,9 @@ impl Guid128
         return result
     }
 
-    // Tries to parse the canonical `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` form.
+    // Parses the canonical `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` form into `result` and returns whether it succeeded.
+    //
+    // Hexadecimal digits are accepted in either case. `result` is unchanged on failure.
     func tryParse(str: string, result: *Guid128)->bool
     {
         if str.count != 36 do
@@ -174,23 +176,17 @@ impl Guid128
     }
 }
 
-// String conversion interface implementation for Guid128.
-// Enables automatic string conversion in formatting contexts.
+// Formats a [[Core.Guid128]] in its canonical lowercase UUID form.
 impl StrConv.IConvert for Guid128
 {
-    // Convert the identifier to its string representation for display.
-    // Uses the standard UUID format with hyphens.
     mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string?)
     {
         buf.addBytes(.toString())
     }
 }
 
-// Hash interface implementation for Guid128.
-// Enables use of Guid128 as keys in hash tables and sets.
+// Hashes the 16 bytes of a [[Core.Guid128]] with CRC-32, so it can key a hash table or a set.
 impl Hash.IHash32 for Guid128
 {
-    // Compute a 32-bit hash value for the identifier.
-    // Uses CRC32 algorithm on the entire 16-byte identifier data.
     mtd const impl compute()->u32 => Hash.Crc32.compute(Swag.makeSlice(&.bytes[0], 16))
 }

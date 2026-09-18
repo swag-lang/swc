@@ -4,27 +4,28 @@
 
 using Win32
 
-// Represents mutex.
+// Serializes access to shared data between threads.
+//
+// The lock is not reentrant: a thread that locks it twice deadlocks. Pair each
+// [[Core.Sync.Mutex.lock]] with an [[Core.Sync.Mutex.unlock]] on the same thread, or use
+// [[Core.Sync.scopedLock]].
 struct Mutex
 {
-    public v: SRWLOCK = SRWLOCK_INIT     // V associated with this value.
+    public v: SRWLOCK = SRWLOCK_INIT     // Native lock state, managed by the methods.
 }
 
 impl Mutex
 {
-    // Try to lock the mutex, and return 'true' if it's the case
-    mtd tryLock()->bool
-    {
-        return TryAcquireSRWLockExclusive(&.v) ? true : false
-    }
+    // Acquires the mutex when it is free and returns whether it did, without waiting.
+    mtd tryLock()->bool => TryAcquireSRWLockExclusive(&.v) ? true : false
 
-    // Lock mutex
+    // Acquires the mutex, waiting until it is free.
     mtd lock()
     {
         AcquireSRWLockExclusive(&.v)
     }
 
-    // Unlock mutex
+    // Releases the mutex held by the calling thread.
     mtd unlock()
     {
         ReleaseSRWLockExclusive(&.v)

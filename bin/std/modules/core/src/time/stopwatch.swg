@@ -13,7 +13,7 @@ public struct Stopwatch
 
 public impl Stopwatch
 {
-    // Starts or resumes measuring elapsed time
+    // Starts or resumes measuring elapsed time; a running stopwatch is unchanged.
     mtd start()
     {
         if not .running
@@ -23,7 +23,7 @@ public impl Stopwatch
         }
     }
 
-    // Stops measuring elapsed time and accumulates the result
+    // Stops measuring and adds the current period to the elapsed time.
     mtd stop()
     {
         if .running
@@ -33,23 +33,23 @@ public impl Stopwatch
         }
     }
 
-    // Resets the stopwatch and clears the elapsed time
+    // Stops the stopwatch and clears the elapsed time.
     mtd reset()
     {
         Swag.init(me, 1)
     }
 
-    // Resets the stopwatch and immediately starts measuring elapsed time
+    // Clears the elapsed time and starts measuring again.
     mtd restart()
     {
-        Swag.init(me, 1)
+        .reset()
         .start()
     }
 
     // Returns whether the stopwatch is currently running.
-    mtd const isRunning() => .running
+    mtd const isRunning()->bool => .running
 
-    // Returns elapsed ticks, including the current running period.
+    // Returns the elapsed time in ticks of [[Core.Time.monotonicFrequency]], including the current running period.
     mtd const elapsedTicks()->u64 => .running ? .accumulated + monotonicTicks() - .startTimestamp : .accumulated
 
     // Returns total elapsed time in milliseconds.
@@ -68,7 +68,7 @@ public impl Stopwatch
         return (ticks / frequency) * 1000000 + ((ticks % frequency) * 1000000) / frequency
     }
 
-    // Measures elapsed time for the current scope and prints the result when the scope ends
+    // Measures the rest of the calling scope and prints `name` with the elapsed milliseconds when it ends.
     #[Swag.Mixin]
     func scopeMeasure(name: string = "stopwatch")
     {

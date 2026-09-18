@@ -75,10 +75,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
     }
 }
 
-func rle4Index(value: u8, index: u32)->u32
-{
-    return cast(u32) ((index & 1) ? (value & 0x0F) : (value >> 4))
-}
+func rle4Index(value: u8, index: u32)->u32 => cast(u32) ((index & 1) ? (value & 0x0F) : (value >> 4))
 
 func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) fail
 {

@@ -3,7 +3,9 @@
 
 using Core, Win32
 
-// CF_TEXT uses the Windows ANSI code page, not UTF-8. Zero selects the system code page.
+// Encodes `text` as zero-terminated ANSI text in `codePage`, or returns an empty array when it cannot.
+//
+// `CF_TEXT` uses the Windows ANSI code page, not UTF-8. Zero selects the system code page.
 func encodeAnsi(text: string, codePage: u32 = 0)->Array'u8
 {
     var result: retval
@@ -20,6 +22,8 @@ func encodeAnsi(text: string, codePage: u32 = 0)->Array'u8
     return result
 }
 
+// Decodes zero-terminated UTF-16 bytes into UTF-8, or returns an empty string when `bytes` holds no terminator.
+//
 // External native strings must carry a terminator within their actual storage extent.
 func decodeUnicode(bytes: const [..] u8)->String
 {
@@ -30,9 +34,10 @@ func decodeUnicode(bytes: const [..] u8)->String
     let count = Utf16.lengthUntilZero(wide)
     if count == wide.count do
         return result
-    return Utf8.fromUtf16(wide[0 until count])
+    return Utf8.fromUtf16(wide[until count])
 }
 
+// Decodes zero-terminated ANSI bytes in `codePage` into UTF-8, or returns an empty string when `bytes` holds no terminator.
 func decodeAnsi(bytes: const [..] u8, codePage: u32 = 0)->String
 {
     var result: retval

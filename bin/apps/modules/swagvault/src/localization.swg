@@ -133,7 +133,7 @@ struct AppStrings
     msg_UnmountSyncStopped:  string = "The drive was unmounted, but final synchronization stopped."
     msg_Unmounted:           string = "Drive unmounted safely."
     msg_Resizing:            string = "Resizing the container... %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
-    msg_Camouflaging:        string = "Refreshing physical camouflage... %{#0}%%"
+    msg_Camouflaging:        string = "Refreshing physical camouflage... %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
     msg_ResizeCanceled:      string = "Resizing stopped. The vault kept its previous size."
     msg_ResizeStopped:       string = "Resizing stopped."
     msg_ResizeFailed:        string = "Could not resize the container."

@@ -76,6 +76,18 @@ func expectTransform(actual, expected: Math.Transform2)
     expectVec2(centered.transformPoint(Math.Vector2{11, 20}), Math.Vector2{10, 21})
 }
 
+// A vector goes through the rotation and the scale, but the translation that moves a point leaves it alone.
+#test
+{
+    var transform = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
+    transform.multiply(Math.Transform2.createScale(2, 3, 0, 0))
+    transform.multiply(Math.Transform2.createTranslation(5, 7))
+    expectVec2(transform.transformVector(Math.Vector2{1, 0}), Math.Vector2{0, 3})
+    expectVec2(transform.transformVector(Math.Vector2{0, 1}), Math.Vector2{-2, 0})
+    expectVec2(transform.transformPoint(Math.Vector2{1, 0}), Math.Vector2{5, 10})
+    expectVec2(Math.Transform2.createTranslation(5, 7).transformVector(Math.Vector2{3, -4}), Math.Vector2{3, -4})
+}
+
 #test
 {
     var transform = Math.Transform2.createTranslation(2, 3)
@@ -130,4 +142,25 @@ func expectRect(actual, expected: Math.Rectangle)
 
     // A transform that collapses the plane onto a line cannot be undone.
     expectTransform(Math.Transform2{1, 2, 2, 4, 5, 6}.inverse(), Math.Transform2.Identity)
+}
+
+// Multiplying a transform by itself reads every factor before writing the result.
+#test
+{
+    var quarter = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
+    quarter.multiply(quarter)
+    expectTransform(quarter, Math.Transform2.createRotation(Math.ConstF32.Pi, 0, 0))
+
+    var skew = Math.Transform2{1, 0.5, 0.25, 1, 3, -2}
+    var expected = skew
+    expected.multiply(Math.Transform2{1, 0.5, 0.25, 1, 3, -2})
+    skew.multiply(skew)
+    expectTransform(skew, expected)
+}
+
+// A tiny scale is not singular: it inverts to the matching large scale.
+#test
+{
+    let tiny = Math.Transform2.createScale(0.0005, 0.0005, 0, 0)
+    expectVec2(tiny.inverse().transformPoint(Math.Vector2{1, 1}), Math.Vector2{2000, 2000})
 }

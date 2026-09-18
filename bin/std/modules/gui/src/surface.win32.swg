@@ -116,10 +116,10 @@ struct NativeSurface
 {
     public
     {
-        hWnd:         HWND       // H wnd associated with this value.
-        lastDeadChar: WPARAM     // Last dead char associated with this value.
-        topMost:      bool       // Top most associated with this value.
-        trayIcon:     HICON      // Tray icon associated with this value.
+        hWnd:         HWND       // Native window handle, or `null` before creation and after destruction.
+        lastDeadChar: WPARAM     // Dead key waiting to combine with the next character, or zero.
+        topMost:      bool       // Whether the native window is in the topmost Z-order group.
+        trayIcon:     HICON      // Notification-area icon owned by the surface, or `null`.
 
         // Whether an application-initiated SetWindowPos is in flight. A programmatic
         // placement is already expressed in the target monitor's physical pixels, so the
@@ -501,7 +501,7 @@ private impl Surface
         SetFocus(.hWnd)
     }
 
-    // Creates a new (invisible) surface
+    // Creates the hidden native window of a surface.
     //
     // `width` and `height` are logical units; the created window is sized in the
     // physical pixels of the monitor it appears on.
@@ -635,15 +635,16 @@ impl Surface
         discard DwmSetWindowAttribute(.hWnd, DWMWA_BORDER_COLOR, cast(LPCVOID) &borderColor, #sizeof(borderColor))
     }
 
-    // Show 'icon' for this surface in the notification area (system tray), with an
-    // optional tooltip. Portable [[Gui.SysUserEvent.TrayAction]] values report icon
-    // activation and context-menu requests. The icon is removed automatically when
-    // the surface is destroyed.
+    // Shows `icon` for this surface in the notification area, with an optional tooltip.
     //
-    // This uses the legacy (version 0) NOTIFYICON behaviour on purpose: the callback
-    // carries the mouse message directly in 'lParam', which is what the window proc
-    // forwards as 'param1'. NIM_SETVERSION/NOTIFYICON_VERSION_4 would change that
-    // layout and is intentionally not used.
+    // Interactions reach the surface view as a [[Gui.SysUserEvent]] whose
+    // [[Gui.SysUserEvent.TrayAction]] reports icon activation and context-menu requests. A
+    // second call replaces the icon, and the icon is removed automatically when the surface is
+    // destroyed. Nothing is shown without a native window or when `icon` cannot be converted.
+    //
+    // This uses the legacy (version 0) NOTIFYICON behavior on purpose: the callback carries
+    // the mouse message directly in `lParam`, which is what the window procedure translates.
+    // NIM_SETVERSION/NOTIFYICON_VERSION_4 would change that layout.
     mtd setTrayIcon(icon: Pixel.Image, tip: string? = null)
     {
         if not .app.renderer.needsNativeWindow() do
@@ -764,7 +765,10 @@ impl Surface
         .applyNativeDwmStyle()
     }
 
-    // Send a custom message to the surface application with name 'surfaceId'
+    // Sends a custom message to the surface created with `surfaceId`, possibly in another process, and returns whether it was found.
+    //
+    // The target surface view receives a [[Gui.SysUserEvent]] of kind `CustomMessage` carrying
+    // `id` and `param`. The call waits until the message has been handled.
     func sendCustomMessage(surfaceId: string, id: u32, param: u64)->bool
     {
         let hwnd = Win32.FindWindowA(("Swag.Gui.Surface").buffer, surfaceId.buffer)

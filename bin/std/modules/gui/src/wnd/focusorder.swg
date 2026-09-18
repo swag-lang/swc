@@ -25,8 +25,8 @@ private struct FocusCandidate
 //   over, and a stack that packs from the right hands back what it was given, reversed.
 //
 // Every window whose policy is [[Gui.FocusPolicy.Tab]] is a stop, wherever it sits in the tree.
-// A composite is therefore one stop because it says so once and leaves its inner windows on
-// [[Gui.FocusPolicy.Click]], and a tab control can be a stop for its bar while the page it shows
+// A composite is therefore one stop because it says so once and declares its inner windows
+// [[Gui.FocusPolicy.Inner]], and a tab control can be a stop for its bar while the page it shows
 // keeps offering the stops of its own content. Hidden and disabled subtrees are left out
 // entirely, and radio buttons sharing a group count as one stop, entered on the option that is
 // checked.

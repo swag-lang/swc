@@ -4,7 +4,13 @@ using Serialization
 
 var g_ValueFormat: ValueFormat
 
-// Copies a supported value or serializable typed value to the clipboard.
+// Publishes the value `value` points to, of type `type`, on the clipboard.
+//
+// A `string` or a [[Core.String]] is published as text through [[Gui.Clipboard.addString]], and a
+// [[Pixel.Image]] replaces the clipboard content through [[Gui.Clipboard.addImage]]. Any other type
+// is serialized with [[Core.Serialization.Write.TagBin]] and published through
+// [[Gui.Clipboard.addTypedData]] with the fingerprint of `type`, so only a reader asking for that
+// same type finds it.
 public func addTypedValue(value: *void, type: typeinfo)
 {
     switch type
@@ -13,8 +19,7 @@ public func addTypedValue(value: *void, type: typeinfo)
         return addString((cast(const *string) value)[])
 
     case Core.String:
-        let str = cast(*Core.String) value
-        return addString(str.toString())
+        return addString((cast(const *Core.String) value).toString())
 
     case Pixel.Image:
         return addImage((cast(const *Pixel.Image) value)[])
@@ -34,7 +39,10 @@ public func addTypedValue(value: *void, type: typeinfo)
     addTypedData(g_ValueFormat, type, buf.toSlice()!)
 }
 
-// Reports whether the clipboard contains a value compatible with `type`.
+// Reports whether the clipboard holds a value compatible with `type`.
+//
+// Text is compatible with `string` and [[Core.String]], and an image with [[Pixel.Image]]. Any
+// other type needs a payload that [[Gui.Clipboard.addTypedValue]] published for that same type.
 public func hasTypedValue(type: typeinfo)->bool
 {
     switch type
@@ -46,7 +54,12 @@ public func hasTypedValue(type: typeinfo)->bool
     return hasTypedData(g_ValueFormat, type)
 }
 
-// Decodes a clipboard value into initialized storage and reports success.
+// Reads the clipboard value into the storage `value` points to, of type `type`, and reports whether it succeeded.
+//
+// The storage must be initialized, because the value it holds is replaced. A [[Core.String]]
+// receives the clipboard text and a [[Pixel.Image]] the clipboard image. Any other type is decoded
+// from a payload that [[Gui.Clipboard.addTypedValue]] published for that same type. A `string`
+// is not supported and answers `false`.
 public func getTypedValue(value: *void, type: typeinfo)->bool
 {
     if not hasTypedValue(type) do

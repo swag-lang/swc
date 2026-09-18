@@ -18,8 +18,7 @@ enum ThemeIcons
     // The chevron family: one solid triangle per direction, and the only marker the interface
     // uses to say "there is more this way". A drop-down, a submenu, a tree branch, a property
     // row, a sort order and the arrow of a menu button are all one of these four, so a reader
-    // learns the shape once. Draw them at [[Gui.ThemeMetrics.chevron_Size]]; they were seven
-    // glyphs in two disagreeing styles, two of them exact duplicates of two others.
+    // learns the shape once. Draw them at [[Gui.ThemeMetrics.chevron_Size]].
     ChevronUp          // Points up: an ascending sort, a value that grows.
     ChevronDown        // Points down: a drop-down, an expanded branch, a descending sort.
     ChevronLeft        // Points left: a step back, a panel that closes leftward.

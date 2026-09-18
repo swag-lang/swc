@@ -139,7 +139,7 @@ impl IPropertyNotify for PropHeadlessRoData
     Swag.assert(not prop.items[1]!.line.isVisible())
 
     prop.clear()
-    Swag.assert(prop.items.count == 0)
+    Swag.assert(prop.items.isEmpty())
     Swag.assert(not prop.selItem)
 }
 
@@ -367,7 +367,7 @@ struct PropHeadlessArrayData
     prop.edView.sendResizeEvent()
 
     // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
-    Swag.assert((prop.items[1]!.label != null) and (prop.items[2]!.label != null) and (prop.items[4]!.label != null))
+    Swag.assert(prop.items[1]!.label != null and prop.items[2]!.label != null and (prop.items[4]!.label != null))
 
     // For each value row, the inner value line must start at or below the label bottom.
     func assertBelowLabel(item: *PropertiesItem)
@@ -1076,7 +1076,7 @@ impl Gui.IPropertyNotify for ValData
         switch item.typeValue.crc
         {
         case Reflection.fieldCrc(ValData, #nameof(ValData.name)):
-            if .name.length == 0 do
+            if .name.isEmpty() do
                 return {.Error, "Name is required."}
 
         case Reflection.fieldCrc(ValData, #nameof(ValData.count)):
@@ -1105,7 +1105,7 @@ impl Gui.IPropertyNotify for ValData
     Swag.assert(nameItem.validation == .Error)     // empty name flagged on build
     Swag.assert(nameItem.validationMsg == "Name is required.")
     Swag.assert(countItem.validation == .None)
-    Swag.assert((nameItem.validationLabel != null) and nameItem.validationLabel.isVisible())
+    Swag.assert(nameItem.validationLabel != null and nameItem.validationLabel.isVisible())
     Swag.assert(nameItem.validationLabel.textPadding.y > 0)
     Swag.assert(Math.abs(nameItem.validationLabel.textPadding.y + nameItem.validationLabel.textPadding.w) < 0.01)
 
@@ -1162,7 +1162,7 @@ impl Gui.IPropertyNotify for ValData
     let normalItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.normal))!
     let lockedItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.locked))!
     let dynamicItem = findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))!
-    Swag.assert((normalItem.editBox != null) and (lockedItem.editBox != null) and (dynamicItem.editBox != null))
+    Swag.assert(normalItem.editBox != null and lockedItem.editBox != null and (dynamicItem.editBox != null))
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
     // read-only fields (attribute + dynamic) are. They are not changeable either.
@@ -1299,10 +1299,7 @@ struct PropAngleEditor {}
 
 impl IPropertyEditor for PropAngleEditor
 {
-    mtd impl canEdit(type: typeinfo?)->bool
-    {
-        return type == PropHeadlessAngle
-    }
+    mtd impl canEdit(type: typeinfo?)->bool => type == PropHeadlessAngle
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {
@@ -1427,7 +1424,7 @@ impl IPropertyNotify for PropDefaultCustom
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     Swag.assert(not countItem.isModified)
     Swag.assert(prop.canReset(countItem))
-    Swag.assert(not (countItem.revertButton != null) or not countItem.revertButton.isVisible())
+    Swag.assert(countItem.revertButton == null or not countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
     let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))!
@@ -1442,7 +1439,7 @@ impl IPropertyNotify for PropDefaultCustom
     data.enabled = false
     prop.updateStates()
     Swag.assert(enabledItem.isModified)
-    Swag.assert(not (enabledItem.revertButton != null))
+    Swag.assert(enabledItem.revertButton == null)
     let contentWidth = cast(f32) prop.editorWidth - prop.leftMargin - prop.rightMargin
     Swag.assert(enabledItem.checkBox.parent!.position.width > contentWidth)
 
@@ -1451,7 +1448,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.validateNative(countItem)
     Swag.assert(data.count == 99)
     Swag.assert(countItem.isModified)
-    Swag.assert(not (countItem.revertButton != null))
+    Swag.assert(countItem.revertButton == null)
 
     // Reset (the context-menu action path) restores the declared default.
     prop.resetItemDefault(countItem)
@@ -1949,10 +1946,7 @@ struct PropFilterHost {}
 
 impl IPropertyNotify for PropFilterHost
 {
-    mtd impl isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
-    {
-        return enumValue.name != "Hidden"
-    }
+    mtd impl isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool => enumValue.name != "Hidden"
 }
 
 // The host notify can hide enum values (isEnumValueVisible): the combo omits them and
@@ -2199,13 +2193,13 @@ struct PropAlignData
     for item in prop.items
     {
         let it = item!
-        if not (it.label != null) do
+        if it.label == null do
             continue
         if it.label.text() == "Nombres" do
             sawCategory = true
         if it.label.text() == "Nombre" do
             sawLabel = true
-        if (it.comboBox != null) and it.comboBox.items.count == 2 and it.comboBox.items[0]!.name.raw == "Droite" do
+        if it.comboBox != null and it.comboBox.items.count == 2 and it.comboBox.items[0]!.name.raw == "Droite" do
             sawCombo = true
     }
 

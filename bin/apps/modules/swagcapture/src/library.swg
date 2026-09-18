@@ -10,7 +10,7 @@ struct Library
 
     // Resolved default folder, kept because the documents folder is a shell lookup and the
     // library grid asks for the folder once per item. See 'getDefaultFolder'.
-    internal defaultFolder: String
+    defaultFolder: String
 }
 
 impl Library
@@ -81,7 +81,7 @@ impl Library
     {
         var result: retval
         let files = try Directory.enumerateFiles(getTrashFolder())
-        for file in files where Capture.isFileName(file.fullname) do
+        for file in files where Capture.isFileName(file.fullName) do
             result.add(file)
         return result
     }
@@ -92,16 +92,12 @@ impl Library
     {
         var result: retval
         let files = try Directory.enumerateFiles(folder)
-        for fi in files
-        {
-            if Capture.isFileName(fi.fullname) or Image.canLoad(fi.fullname) do
-                result.add(fi)
-        }
-
+        for fi in files where Capture.isFileName(fi.fullName) or Image.canLoad(fi.fullName) do
+            result.add(fi)
         return result
     }
 
-    // Pick a destination inside 'folder' for 'name' that does not collide with an
+    // Picks a destination inside 'folder' for 'name' that does not collide with an
     // existing file, prefixing "<n>_" as needed. Both the trash and the restore paths
     // must stay unique so one delete/restore never overwrites another capture.
     func uniqueName(folder: String, name: String)->String
@@ -146,10 +142,10 @@ impl Library
         if err != null do
             return
         for fi in files do
-            discard catch File.delete(fi.fullname)
+            discard catch File.delete(fi.fullName)
     }
 
-    // Bring a trashed capture back into the library folder. Returns the restored path
+    // Brings a trashed capture back into the library folder. Returns the restored path
     // (empty on failure) so the caller can register it again.
     func restoreFile(trashFile: String)->String => moveFile(getFolder(), trashFile)
 
@@ -185,7 +181,7 @@ impl Library
 
         for fi, idx in .files
         {
-            if fi.fullname == stableName
+            if fi.fullName == stableName
             {
                 let trashed = moveFile(getTrashFolder(), stableName)
                 if not trashed.isEmpty()

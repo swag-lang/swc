@@ -5,15 +5,15 @@
 using Win32
 
 // Returns metadata for a file or directory.
-func info(fullname: string)->FileInfo fail
+func info(fullName: string)->FileInfo fail
 {
     var result:    retval
     var attrDatas: WIN32_FILE_ATTRIBUTE_DATA
 
-    let winPath = Utf16.toZeroTerminated(fullname)
+    let winPath = Utf16.toZeroTerminated(fullName)
     try GetFileAttributesExW(winPath.buffer, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attrDatas)
 
-    result.fullname   = fullname
+    result.fullName   = fullName
     result.attributes = FileAttributes.fromDWORD(attrDatas.dwFileAttributes)
     result.size       = attrDatas.nFileSizeLow + (cast(u64) attrDatas.nFileSizeHigh << 32)
 

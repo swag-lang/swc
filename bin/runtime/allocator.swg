@@ -201,10 +201,7 @@ private func allocatorThreadHeapFlsId()->u64
     return candidate
 }
 
-func currentAllocatorThreadHeap()->*AllocatorThreadHeap?
-{
-    return cast(*AllocatorThreadHeap?) __hostThreadStorageGet(allocatorThreadHeapFlsId())
-}
+func currentAllocatorThreadHeap()->*AllocatorThreadHeap? => cast(*AllocatorThreadHeap?) __hostThreadStorageGet(allocatorThreadHeapFlsId())
 
 private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
 {
@@ -212,10 +209,7 @@ private func setCurrentAllocatorThreadHeap(heap: *AllocatorThreadHeap?)
     Swag.assert(installed)
 }
 
-private func currentThreadId()->u64
-{
-    return __hostCurrentThreadId()
-}
+private func currentThreadId()->u64 => __hostCurrentThreadId()
 
 impl Allocator
 {
@@ -256,10 +250,7 @@ impl Allocator
         return 9 + (bucket - 7) * 4 + step
     }
 
-    func classUnitShift(index: u32)->u32
-    {
-        return index >= AllocatorMediumFirstClass ? AllocatorMediumUnitShift : AllocatorSmallUnitShift
-    }
+    func classUnitShift(index: u32)->u32 => index >= AllocatorMediumFirstClass ? AllocatorMediumUnitShift : AllocatorSmallUnitShift
 
     func memAlign(value: u64, alignment: u32)->u64
     {
@@ -281,19 +272,19 @@ impl Allocator
         size /= 1024
         if size < 1024
         {
-            Swag.print(size, " Kb")
+            Swag.print(size, " KB")
             return
         }
 
         size /= 1024
         if size < 1024
         {
-            Swag.print(size, " Mb")
+            Swag.print(size, " MB")
             return
         }
 
         size /= 1024
-        Swag.print(size, " Gb")
+        Swag.print(size, " GB")
     }
 
     mtd setup()
@@ -316,15 +307,9 @@ impl Allocator
         .electricMode       = electricMode
     }
 
-    mtd installed()->bool
-    {
-        return .installMagic == InstalledMagic
-    }
+    mtd installed()->bool => .installMagic == InstalledMagic
 
-    mtd diagnosticMode()->bool
-    {
-        return .trackAllocations or .captureAllocStack or .electricMode or .breakOnAllocId != 0
-    }
+    mtd diagnosticMode()->bool => .trackAllocations or .captureAllocStack or .electricMode or .breakOnAllocId != 0
 
     // ###################################################################################
     // Operating system blocks, used by the header path and by the thread-heap records
@@ -678,10 +663,7 @@ impl Allocator
     mtd footer(header: *AllocatorHeader)->*AllocatorFooter => cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
 
     // An electric block has no footer: only alignment slack separates its payload from the guard.
-    mtd footerMagic(header: *AllocatorHeader)->u32
-    {
-        return header.isElectric ? header.magic : .footer(header).magic
-    }
+    mtd footerMagic(header: *AllocatorHeader)->u32 => header.isElectric ? header.magic : .footer(header).magic
 
     mtd setFooterMagic(header: *AllocatorHeader, value: u32)
     {
@@ -1538,10 +1520,7 @@ impl IAllocator for Allocator
     }
 }
 
-func defaultAllocator()->*Allocator
-{
-    return &g_DefaultAllocator
-}
+func defaultAllocator()->*Allocator => &g_DefaultAllocator
 
 // Gives the calling thread's pages back without waiting for the thread to exit.
 func releaseAllocatorThreadCache()

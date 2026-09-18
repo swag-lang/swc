@@ -68,7 +68,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     var buffer:  ConcatBuffer
     {
         let empty = buffer.toArray(backing)
-        Swag.assert(empty.count == 0 and allocator.stats().countAlloc == 0)
+        Swag.assert(empty.isEmpty() and allocator.stats().countAlloc == 0)
         buffer.setBucketSize(4)
         buffer.addBytes("first")
         buffer.addBytes("second")

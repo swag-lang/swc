@@ -1,28 +1,26 @@
 #global public
 #global namespace Tokenize
 
-// Removes surrounding double quotes from the string, if present
+// Returns `str` without its surrounding double quotes, or `str` itself when it is not quoted.
 func eatQuotes(str: string)->string
 {
     let countof = str.count
     if countof < 2 do
         return str
     if str[0] == '"' and str[countof - 1] == '"' do
-        return Swag.makeString(str.buffer + 1, countof - 2)
+        return str[1 until countof - 1]
     return str
 }
 
-// Eats 'count' bytes from the beginning of the string and returns the remaining string
+// Returns `str` without its first `count` bytes, or an empty view when it is not longer.
 func eatCount(str: string, count: u64)->string
 {
     if str == null do
         return str
-    let countof = str.count
-    let cpt     = Math.min(count, countof)
-    return Swag.makeString(str.buffer + cpt, countof - cpt)
+    return str[Math.min(count, str.count) to]
 }
 
-// Removes leading space characters from the string and returns the trimmed result
+// Returns `str` without its leading Latin-1 white space.
 func eatSpaces(str: string)->string
 {
     let countof = str.count
@@ -32,12 +30,12 @@ func eatSpaces(str: string)->string
     var cpt = 0'u64
     while cpt < countof and Latin1.isSpace(str[cpt]) do
         cpt += 1
-    return Swag.makeString(str.buffer + cpt, countof - cpt)
+    return str[cpt to]
 }
 
-// Splits the string into an array of lines using newline or carriage return as delimiters
-// Note that this returns an array of native strings, not copies.
-// All strings will be invalid if 'src' is destroyed
+// Splits `src` into lines, each ended by a line feed, a carriage return, or both.
+//
+// The lines are views that borrow the bytes of `src`, which must outlive them.
 func splitLines(src: string)->Array'(string)
 {
     var result: retval
@@ -56,8 +54,7 @@ func splitLines(src: string)->Array'(string)
             cpt += 1
         }
 
-        let onestr = Swag.makeString(dataof, cast(u64) (end - dataof))
-        result.add(onestr)
+        result.add(Swag.makeString(dataof, cast(u64) (end - dataof)))
         if cpt < countof - 1 and end[] == '\r' and end[1] == '\n' do
             end, cpt += 1
         end, cpt += 1
@@ -74,9 +71,11 @@ private func addSplitPart(result: *Array'(string), value: string, removeEmpty: b
     result.add(value)
 }
 
-// Splits the string into substrings using a byte as separator
-// Note that this returns an array of native strings, not copies.
-// All strings will be invalid if 'src' String is destroyed
+// Splits `src` at each byte `separator`.
+//
+// When `maxSplit` is not 0, at most `maxSplit` cuts are made and the last part holds the rest.
+// Empty parts are dropped when `removeEmpty` is true. The parts are views that borrow the bytes
+// of `src`, which must outlive them.
 func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
     let countof = src.count
@@ -105,9 +104,9 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
     return result
 }
 
-// Splits the string into substrings using another string as separator
-// Note that this returns an array of native strings, not copies.
-// All strings will be invalid if 'src' String is destroyed
+// Splits `src` at each occurrence of `separator`, like the byte overload.
+//
+// An empty `separator` leaves `src` whole.
 func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
     let countof = src.count
@@ -147,14 +146,10 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
     return result
 }
 
-// Splits the string into substrings using a rune as separator
-// Note that this returns an array of native strings, not copies.
-// All strings will be invalid if 'src' is destroyed
+// Splits `src` at each rune `separator`, like the byte overload.
 func split(src: string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)->Array'(string) => splitAny(src, [separator], maxSplit, removeEmpty)
 
-// Splits the string into substrings using any rune from the given array as separator
-// Note that this returns an array of native strings, not copies.
-// All strings will be invalid if 'src' String is destroyed
+// Splits `src` at each rune that is one of `separators`, like [[Core.Tokenize.split]].
 func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
     let countof = src.count
@@ -190,24 +185,24 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
     return result
 }
 
-// Returns the prefix before the first Latin-1 whitespace character.
+// Returns the part of `str` before its first Latin-1 white space.
 func prefixToWhitespace(str: string)->string
 {
     let countof = str.count
     var cpt     = 0'u64
     while cpt < countof and not Latin1.isSpace(str[cpt]) do
         cpt += 1
-    return Swag.makeString(str.buffer, cpt)
+    return str[until cpt]
 }
 
-// Returns the leading Latin-1 alphanumeric characters.
+// Returns the leading Latin-1 letters and digits of `str`.
 func alphanumericPrefix(str: string)->string
 {
     let countof = str.count
     var cpt     = 0'u64
     while cpt < countof and (Latin1.isDigit(str[cpt]) or Latin1.isLetter(str[cpt])) do
         cpt += 1
-    return Swag.makeString(str.buffer, cpt)
+    return str[until cpt]
 }
 
 // Returns bytes from `startByteIndex` through the next `delimiter`.

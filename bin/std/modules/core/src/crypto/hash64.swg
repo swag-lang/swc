@@ -35,14 +35,18 @@ private func hashDynamicStorage(type: typeinfo, data: const [*] u8)->u64
     }
 }
 
-// Defines the operations supported by i hash64.
+// Lets a type supply its own 64-bit hash to [[Core.Hash.hash64]].
 public interface IHash64
 {
-    // Defines compute.
+    // Returns the 64-bit hash of this value.
     mtd const compute()->u64
 }
 
-// Hash the given value and returns the corresponding u64
+// Returns a 64-bit hash of `value`.
+//
+// A string hashes its bytes. A struct that implements [[Core.Hash.IHash64]] or
+// [[Core.Hash.IHash32]] supplies its own hash; another struct hashes its bytes, skipping
+// the dynamic identity slots it contains. Other values hash their bits.
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash64(value: T)->u64
 {

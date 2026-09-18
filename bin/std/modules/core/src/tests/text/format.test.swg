@@ -12,10 +12,7 @@ func assertFormatString(value: String, expected: string)->bool
            Memory.compare(text.buffer, expected.buffer, expected.count) == 0
 }
 
-func formatReferencedString(value: String)->String
-{
-    return Format.toString("%", value)
-}
+func formatReferencedString(value: String)->String => Format.toString("%", value)
 
 #test
 {

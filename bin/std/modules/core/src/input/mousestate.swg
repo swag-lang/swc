@@ -15,7 +15,6 @@ struct MouseState
     }
 }
 
-// Represents a mouse state with cursor position and button press information
 impl MouseState
 {
     internal mtd setPressed(button: MouseButton, pressed: bool)
@@ -34,16 +33,16 @@ impl MouseState
         .pressedPos[button]  = position
     }
 
-    // Compute the actual state of the mouse
+    // Captures the cursor position and the button states, recording the time and position of each new press.
     mtd update()
     {
         .position = mousePosition()
 
         for v in MouseButton
         {
-            let b = .pressed[v]
+            let wasPressed = .pressed[v]
             .pressed[v] = Mouse.isButtonPressed(v)
-            if not b and .pressed[v]
+            if not wasPressed and .pressed[v]
             {
                 .pressedTime[v] = Time.monotonicMilliseconds()
                 .pressedPos[v]  = .position
@@ -51,7 +50,7 @@ impl MouseState
         }
     }
 
-    // Reset the state to its default value
+    // Releases every button, forgets the recorded presses, and samples the current cursor position.
     mtd clear()
     {
         Swag.init(me, 1)

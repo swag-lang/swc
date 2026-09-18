@@ -70,6 +70,7 @@ namespace
         FloatAdd,
         FloatSub,
         FloatMul,
+        FloatDiv,
         ShiftLeft,
         ShiftRight,
         RotateLeft,
@@ -517,6 +518,11 @@ namespace
                     return false;
                 outOp = LaneOp::FloatMul;
                 return true;
+            case MicroOp::FloatDivide:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::FloatDiv;
+                return true;
             default:
                 return false;
         }
@@ -735,6 +741,9 @@ namespace
                             break;
                         case LaneOp::FloatMul:
                             vecOp = MicroOp::VecMulF32;
+                            break;
+                        case LaneOp::FloatDiv:
+                            vecOp = MicroOp::VecDivF32;
                             break;
                         default:
                             return K_INVALID_ID;

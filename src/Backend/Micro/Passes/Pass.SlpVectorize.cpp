@@ -482,7 +482,15 @@ namespace
     bool isLaneTransparentCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (inst.op == MicroInstrOpcode::LoadRegReg)
-            return (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64) && !ops[0].reg.isAnyFloat() && !ops[1].reg.isAnyFloat();
+        {
+            // A scalar float copy carries its low 32-bit lane unchanged. Its
+            // upper vector lanes are irrelevant to a graph made exclusively
+            // from scalar f32 operations, so it is as transparent as an
+            // integer lane copy here.
+            if (ops[2].opBits == MicroOpBits::B32)
+                return true;
+            return ops[2].opBits == MicroOpBits::B64 && !ops[0].reg.isAnyFloat() && !ops[1].reg.isAnyFloat();
+        }
         if (inst.op == MicroInstrOpcode::LoadZeroExtRegReg)
             return ops[2].opBits == MicroOpBits::B64 && ops[3].opBits == MicroOpBits::B32;
         return false;
@@ -539,6 +547,13 @@ namespace
                 if (opBits != MicroOpBits::B32)
                     return false;
                 outOp = LaneOp::FloatMax;
+                return true;
+            // Scalar FloatAnd is a bitwise operation on the f32 bit pattern.
+            // VecAnd applies that same operation independently to every lane.
+            case MicroOp::FloatAnd:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::And;
                 return true;
             default:
                 return false;
@@ -904,6 +919,26 @@ namespace
                 }
 
                 case SlpValueKind::Const:
+                {
+                    if (n0.imm != n1.imm || n0.imm != n2.imm || n0.imm != n3.imm)
+                        return K_INVALID_ID;
+
+                    const uint32_t splatValue = static_cast<uint32_t>(n0.imm);
+                    const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                    uint32_t       splatReg   = K_INVALID_ID;
+                    if (splatIt != plan_->splatRegs.end())
+                    {
+                        splatReg = splatIt->second;
+                    }
+                    else
+                    {
+                        splatReg = allocReg();
+                        plan_->splatRegs.emplace(splatValue, splatReg);
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat32, .dst = splatReg, .imm = splatValue});
+                    }
+                    remember(tuple, sorted, splatReg);
+                    return splatReg;
+                }
                 case SlpValueKind::Opaque:
                     return K_INVALID_ID;
             }

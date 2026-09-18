@@ -442,6 +442,329 @@ namespace
         return false;
     }
 
+    // A set of register values, as disjoint closed intervals of unsigned numbers
+    // at a compare's width, sorted.
+    using ValueIntervals = SmallVector<std::pair<uint64_t, uint64_t>, 2>;
+
+    // The values of `x` for which `cmp x, imm ; j<cond>` jumps. A signed order
+    // is the unsigned one with the sign bit flipped.
+    bool tryGetTakenValues(ValueIntervals& out, const MicroCond cond, uint64_t imm, const MicroOpBits opBits)
+    {
+        out.clear();
+        const uint64_t mask    = getBitsMask(opBits);
+        const uint64_t signBit = (mask >> 1) + 1;
+        imm &= mask;
+
+        bool isSigned = false;
+        switch (cond)
+        {
+            case MicroCond::Less:
+            case MicroCond::LessOrEqual:
+            case MicroCond::Greater:
+            case MicroCond::GreaterOrEqual:
+                isSigned = true;
+                imm ^= signBit;
+                break;
+            default:
+                break;
+        }
+
+        uint64_t lo = 0;
+        uint64_t hi = 0;
+        switch (cond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::Zero:
+                out.push_back({imm, imm});
+                return true;
+            case MicroCond::NotEqual:
+            case MicroCond::NotZero:
+                if (imm)
+                    out.push_back({0, imm - 1});
+                if (imm != mask)
+                    out.push_back({imm + 1, mask});
+                return true;
+            case MicroCond::Below:
+            case MicroCond::Less:
+                if (!imm)
+                    return true;
+                hi = imm - 1;
+                break;
+            case MicroCond::BelowOrEqual:
+            case MicroCond::NotAbove:
+            case MicroCond::LessOrEqual:
+                hi = imm;
+                break;
+            case MicroCond::Above:
+            case MicroCond::Greater:
+                if (imm == mask)
+                    return true;
+                lo = imm + 1;
+                hi = mask;
+                break;
+            case MicroCond::AboveOrEqual:
+            case MicroCond::GreaterOrEqual:
+                lo = imm;
+                hi = mask;
+                break;
+            default:
+                return false;
+        }
+
+        if (!isSigned)
+            out.push_back({lo, hi});
+        else if (hi < signBit)
+            out.push_back({lo + signBit, hi + signBit});
+        else if (lo >= signBit)
+            out.push_back({lo - signBit, hi - signBit});
+        else
+        {
+            out.push_back({0, hi - signBit});
+            out.push_back({lo + signBit, mask});
+        }
+
+        return true;
+    }
+
+    bool areValuesCovered(const ValueIntervals& inner, const ValueIntervals& outer)
+    {
+        for (const auto& [lo, hi] : inner)
+        {
+            bool covered = false;
+            for (const auto& [outerLo, outerHi] : outer)
+                covered |= outerLo <= lo && hi <= outerHi;
+            if (!covered)
+                return false;
+        }
+
+        return true;
+    }
+
+    bool doValuesMeet(const ValueIntervals& lhs, const ValueIntervals& rhs)
+    {
+        for (const auto& [lhsLo, lhsHi] : lhs)
+        {
+            for (const auto& [rhsLo, rhsHi] : rhs)
+            {
+                if (lhsLo <= rhsHi && rhsLo <= lhsHi)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    // A conditional jump a dominating one already decides, as LLVM's jump
+    // threading folds a branch whose condition a single-predecessor chain
+    // implies (processImpliedCondition):
+    //
+    //     cmp n, 0 ; je .Ret         cmp n, 0 ; je .Ret
+    //     ...                  ->    ...
+    //     cmp n, 0 ; jbe .Skip       (never taken: n != 0 here)
+    //
+    // The walk climbs the one path that reaches the compare, through straight
+    // lines and labels a single jump reaches, and stops where the register is
+    // written. Each jump on the way that tests the same register, holding the
+    // same SSA value, says by the edge the path takes out of it which values
+    // it can hold; when those all make the test jump, it jumps always, and
+    // when none does, never. `a == null or b == null` tests two registers:
+    // the first says nothing of the second.
+    bool foldImpliedBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState)
+    {
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+        const uint32_t count = static_cast<uint32_t>(layout.order.size());
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        std::unordered_map<uint32_t, uint32_t> labelJumpOrdinal;
+        for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
+        {
+            const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
+            if (!inst)
+                return false;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::JumpCondImm || inst->op == MicroInstrOpcode::LoadLabelAddress ||
+                inst->op == MicroInstrOpcode::JumpTableData)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+            {
+                ++labelReferences[labelId];
+                labelJumpOrdinal[labelId] = ordinal;
+            }
+        }
+
+        // `cmp R, imm` right before the jump at `jumpOrdinal`.
+        const auto compareBefore = [&](const uint32_t jumpOrdinal, MicroReg& outReg, MicroOpBits& outBits, uint64_t& outImm) {
+            if (!jumpOrdinal)
+                return false;
+            const MicroInstr* cmp = storage.ptr(layout.order[jumpOrdinal - 1]);
+            if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
+                return false;
+            const MicroInstrOperand* cmpOps = cmp->ops(operands);
+            if (!cmpOps[0].reg.isVirtualInt() || cmpOps[2].hasWideImmediateValue())
+                return false;
+            outReg  = cmpOps[0].reg;
+            outBits = cmpOps[1].opBits;
+            outImm  = cmpOps[2].valueU64;
+            return getNumBits(outBits) != 0;
+        };
+
+        const auto fallsIntoLabel = [&](const uint32_t labelOrdinal) {
+            if (!labelOrdinal)
+                return true;
+            const MicroInstr* prev = storage.ptr(layout.order[labelOrdinal - 1]);
+            return !prev || !(prev->op == MicroInstrOpcode::Ret || prev->op == MicroInstrOpcode::JumpReg ||
+                              MicroInstrInfo::isUnconditionalJumpInstruction(*prev, prev->ops(operands)));
+        };
+
+        struct Decision
+        {
+            MicroInstrRef jumpRef;
+            MicroInstrRef compareRef;
+            bool          taken = false;
+        };
+        std::vector<Decision> decisions;
+
+        constexpr uint32_t K_MAX_WALK = 256;
+        for (uint32_t ordinal = 1; ordinal < count; ++ordinal)
+        {
+            const MicroInstr*        jump    = storage.ptr(layout.order[ordinal]);
+            const MicroInstrOperand* jumpOps = jump->ops(operands);
+            if (jump->op != MicroInstrOpcode::JumpCond || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            MicroReg    reg  = MicroReg::invalid();
+            MicroOpBits bits = MicroOpBits::Zero;
+            uint64_t    imm  = 0;
+            if (!compareBefore(ordinal, reg, bits, imm))
+                continue;
+            ValueIntervals tested;
+            if (!tryGetTakenValues(tested, jumpOps[0].cpuCond, imm, bits))
+                continue;
+            const MicroSsaState::ReachingDef value = ssaState.reachingDef(reg, layout.order[ordinal - 1]);
+            if (!value.valid())
+                continue;
+
+            std::unordered_set<uint32_t> visitedLabels;
+            int64_t                      at      = static_cast<int64_t>(ordinal) - 2;
+            bool                         decided = false;
+            bool                         taken   = false;
+            for (uint32_t step = 0; at >= 0 && step < K_MAX_WALK && !decided; ++step)
+            {
+                const uint32_t           current  = static_cast<uint32_t>(at);
+                const MicroInstr*        inst     = storage.ptr(layout.order[current]);
+                const MicroInstrOperand* instOps  = inst->ops(operands);
+                MicroCond                factCond = MicroCond::Unconditional;
+                uint32_t                 factJump = 0;
+
+                if (inst->op == MicroInstrOpcode::Label)
+                {
+                    uint32_t labelId = 0;
+                    if (!tryGetLabelId(labelId, *inst, instOps) || !visitedLabels.insert(labelId).second)
+                        break;
+                    const auto     refIt      = labelReferences.find(labelId);
+                    const uint32_t references = refIt == labelReferences.end() ? 0 : refIt->second;
+                    const bool     fallsInto  = fallsIntoLabel(current);
+                    if (!references)
+                    {
+                        if (!fallsInto)
+                            break;
+                        --at;
+                        continue;
+                    }
+                    if (references != 1 || fallsInto)
+                        break;
+
+                    const uint32_t           from     = labelJumpOrdinal[labelId];
+                    const MicroInstrOperand* fromOps  = storage.ptr(layout.order[from])->ops(operands);
+                    factCond                          = fromOps[0].cpuCond;
+                    factJump                          = from;
+                    at                                = static_cast<int64_t>(from) - 1;
+                }
+                else if (inst->op == MicroInstrOpcode::JumpCond)
+                {
+                    // The path falls through: the jump was not taken.
+                    if (instOps[0].cpuCond == MicroCond::Unconditional || !MicroPassHelpers::invertCondition(factCond, instOps[0].cpuCond))
+                        break;
+                    factJump = current;
+                    --at;
+                }
+                else
+                {
+                    if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::JumpReg)
+                        break;
+                    // Above a write of the register, the facts speak of an older value.
+                    const MicroInstrUseDef* useDef = ssaState.instrUseDef(layout.order[current]);
+                    if (!useDef)
+                        break;
+                    bool writesReg = false;
+                    for (const MicroReg def : useDef->defs)
+                        writesReg |= def == reg;
+                    if (writesReg)
+                        break;
+                    --at;
+                    continue;
+                }
+
+                if (factCond == MicroCond::Unconditional)
+                    continue;
+
+                MicroReg    factReg  = MicroReg::invalid();
+                MicroOpBits factBits = MicroOpBits::Zero;
+                uint64_t    factImm  = 0;
+                if (!compareBefore(factJump, factReg, factBits, factImm) || factReg != reg || factBits != bits)
+                    continue;
+                const MicroSsaState::ReachingDef factValue = ssaState.reachingDef(factReg, layout.order[factJump - 1]);
+                if (!factValue.valid() || factValue.valueId != value.valueId)
+                    continue;
+                ValueIntervals known;
+                if (!tryGetTakenValues(known, factCond, factImm, factBits) || known.empty())
+                    continue;
+
+                if (areValuesCovered(known, tested))
+                {
+                    decided = true;
+                    taken   = true;
+                }
+                else if (!doValuesMeet(known, tested))
+                {
+                    decided = true;
+                    taken   = false;
+                }
+            }
+
+            if (decided)
+                decisions.push_back({.jumpRef = layout.order[ordinal], .compareRef = layout.order[ordinal - 1], .taken = taken});
+        }
+
+        bool changed = false;
+        for (const Decision& decision : decisions)
+        {
+            MicroInstr*        jump    = storage.ptr(decision.jumpRef);
+            MicroInstrOperand* jumpOps = jump ? jump->ops(operands) : nullptr;
+            if (!jumpOps)
+                continue;
+
+            // The compare fed this jump alone: it goes with it, rather than
+            // leave a dead flag definition before whatever follows.
+            const bool compareDies = MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, decision.jumpRef);
+
+            uint32_t targetLabelId = 0;
+            if (!decision.taken || (tryGetJumpTargetLabelId(targetLabelId, *jump, jumpOps) &&
+                                    isTargetInImmediateLabelRun(layout, storage, operands, decision.jumpRef, targetLabelId)))
+                changed |= storage.erase(decision.jumpRef);
+            else
+            {
+                jumpOps[0].cpuCond = MicroCond::Unconditional;
+                changed            = true;
+            }
+            if (compareDies)
+                storage.erase(decision.compareRef);
+        }
+
+        return changed;
+    }
+
     bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {
         ProgramLayout layout;
@@ -6683,6 +7006,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     bool changed = false;
     if (ssaState && ssaState->isValid())
         changed |= foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags);
+    // The SSA snapshot describes the code before any fold above.
+    if (!changed && ssaState && ssaState->isValid())
+        changed |= foldImpliedBranches(storage, operands, *ssaState);
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

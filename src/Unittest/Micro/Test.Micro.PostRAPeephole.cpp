@@ -107,6 +107,52 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_MultiplyShiftResultUsesCopyDestination)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(rax, ApInt(0xAAAAAAAB, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(rcx, rax, MicroOp::MultiplySigned, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rcx, ApInt(33, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitLoadRegReg(rax, rcx, MicroOpBits::B32);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+
+    bool retargetedMultiply = false;
+    bool retargetedShift    = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops &&
+            ops[0].reg == rax && ops[1].reg == rcx && ops[3].microOp == MicroOp::MultiplySigned)
+            retargetedMultiply = true;
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops &&
+            ops[0].reg == rax && ops[2].microOp == MicroOp::ShiftRight && ops[3].valueU64 == 33)
+            retargetedShift = true;
+    }
+    if (!retargetedMultiply || !retargetedShift)
+        return Result::Error;
+
+    // A 31-bit shift can leave bit 32 set. Keep the narrowing copy that clears
+    // the upper half instead of retargeting the 64-bit chain.
+    MicroBuilder narrow(ctx);
+    narrow.emitLoadRegImm(rax, ApInt(0xAAAAAAAB, 64), MicroOpBits::B64);
+    narrow.emitOpBinaryRegReg(rcx, rax, MicroOp::MultiplySigned, MicroOpBits::B64);
+    narrow.emitOpBinaryRegImm(rcx, ApInt(31, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+    narrow.emitLoadRegReg(rax, rcx, MicroOpBits::B32);
+    narrow.emitRet();
+    X64Encoder narrowEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(narrow, &narrowEncoder));
+    return Backend::Unittest::countOpcode(narrow, MicroInstrOpcode::LoadRegReg) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_BooleanOrSelectUsesComparisonFlags)
 {
     const MicroReg     rsp     = CallConv::get(CallConvKind::Swag).stackPointer;

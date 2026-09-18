@@ -87,6 +87,7 @@ namespace
             case MicroOp::ConvertFloatToFloat:
             case MicroOp::ConvertFloatToInt:
             case MicroOp::ConvertIntToFloat:
+            case MicroOp::ConvertInt64ToFloat32:
             case MicroOp::ConvertUIntToFloat64:
             case MicroOp::FloatAdd:
             case MicroOp::FloatAnd:

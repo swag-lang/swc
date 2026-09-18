@@ -11,6 +11,9 @@ func float32ToU64(value: f32)->u64 { return cast(u64) value }
 #[Swag.NoInline]
 func float64ToU64(value: f64)->u64 { return cast(u64) value }
 
+#[Swag.NoInline]
+func signed64ToF32(value: s64)->f32 { return cast(f32) value }
+
 // Exercise both sides of the signed conversion boundary and the largest source
 // value below 2^64. The inputs are exact in their respective floating-point types.
 #test
@@ -47,6 +50,14 @@ func float64ToU64(value: f64)->u64 { return cast(u64) value }
     var a: s64 = -10
     takes_f64(a)
     Swag.assert(gFloatF64 == -10.0)
+}
+
+#test
+{
+    var a: s64 = 5_000_000_000
+    let converted = signed64ToF32(a)
+    Swag.assert(converted > 4_990_000_000.0)
+    Swag.assert(converted < 5_010_000_000.0)
 }
 
 #test

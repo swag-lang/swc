@@ -128,15 +128,9 @@ namespace
             if (!promotedTypeRef.isValid())
                 return promotedTypeRef;
 
-            const TypeInfo& promotedType = codeGen.typeMgr().get(promotedTypeRef);
-            // Integer compares run at their natural promoted width. An N-bit
-            // comparison reads only the low N bits, so it is correct regardless of
-            // the register's upper bits and needs no widening sign/zero-extend
-            // (which the previous 32 -> 64 widening emitted on every compare).
-            // Floats still widen f32 -> f64 for the backend's comparison form.
-            if (promotedType.isFloat() && promotedType.payloadFloatBitsOr(64) == 32)
-                return codeGen.typeMgr().typeFloat(64);
-
+            // Compare at the promoted type's natural width. Sema has already
+            // converted mixed numeric operands to that common type, and x64 has
+            // direct scalar comparison forms for both f32 and f64.
             return promotedTypeRef;
         }
 
@@ -365,29 +359,6 @@ namespace
 
         builder.placeLabel(doneLabel);
         return Result::Continue;
-    }
-
-    // Integer compares run at their natural width (see resolveCompareTypeRef);
-    // only floats are widened to the backend's f64 comparison form.
-    void widenCompareRegsIfNeeded(MicroReg& leftReg, MicroReg& rightReg, CodeGen& codeGen, const TypeInfo& compareType, MicroOpBits& ioOpBits)
-    {
-        if (ioOpBits != MicroOpBits::B32)
-            return;
-
-        MicroBuilder& builder = codeGen.builder();
-        if (compareType.isFloat())
-        {
-            constexpr auto widenedBits  = MicroOpBits::B64;
-            const MicroReg widenedLeft  = codeGen.nextVirtualFloatRegister();
-            const MicroReg widenedRight = codeGen.nextVirtualFloatRegister();
-            builder.emitClearReg(widenedLeft, widenedBits);
-            builder.emitOpBinaryRegReg(widenedLeft, leftReg, MicroOp::ConvertFloatToFloat, ioOpBits);
-            builder.emitClearReg(widenedRight, widenedBits);
-            builder.emitOpBinaryRegReg(widenedRight, rightReg, MicroOp::ConvertFloatToFloat, ioOpBits);
-            leftReg  = widenedLeft;
-            rightReg = widenedRight;
-            ioOpBits = widenedBits;
-        }
     }
 
     CodeGenCompareHelpers::CompareCondition buildCompareCondition(TokenId tokId, const TypeInfo& compareType)
@@ -911,7 +882,6 @@ namespace
         MicroReg leftReg, rightReg;
         materializeCompareOperand(leftReg, codeGen, leftOperandPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightReg, codeGen, rightOperandPayload, rightOperandTypeRef, compareTypeRef);
-        widenCompareRegsIfNeeded(leftReg, rightReg, codeGen, compareType, opBits);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
@@ -947,7 +917,6 @@ namespace
         MicroReg leftReg, rightReg;
         materializeCompareOperand(leftReg, codeGen, leftOperandPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightReg, codeGen, rightOperandPayload, rightOperandTypeRef, compareTypeRef);
-        widenCompareRegsIfNeeded(leftReg, rightReg, codeGen, compareType, opBits);
 
         MicroBuilder& builder = codeGen.builder();
 

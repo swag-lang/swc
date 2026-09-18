@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
+#include "Backend/ABI/ABICall.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
@@ -417,6 +418,65 @@ namespace
 
         return remapped;
     }
+
+    // A leaf whose only frame-pointer references are incoming stack arguments
+    // can address them from the unchanged entry stack pointer. The offsets
+    // produced by lowering assume `push fp; mov fp, sp`, so removing that push
+    // moves every incoming slot down by one pointer. Reject any other frame or
+    // stack use: saved registers, local allocations and calls all change the
+    // stack-pointer value seen by the body.
+    bool rewriteLeafIncomingArgsToStackPointer(MicroPassContext& context, const CallConv& conv)
+    {
+        if (!conv.framePointer.isValid() || !conv.stackPointer.isValid() || hasCallInstruction(context))
+            return false;
+
+        const uint64_t firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
+        SmallVector<MicroInstrRef> accesses;
+        auto&                      operands = *context.operands;
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            MicroInstr*              inst = context.instructions->ptr(it.current);
+            MicroInstrOperand*       ops  = inst ? inst->ops(operands) : nullptr;
+            const MicroInstrDef&     info = MicroInstr::info(inst->op);
+            SmallVector<MicroInstrRegOperandRef> regOperands;
+            inst->collectRegOperands(operands, regOperands, context.encoder);
+
+            if (inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop ||
+                definesStackPointer(context, *inst, conv.stackPointer))
+                return false;
+
+            bool namesFramePointer = false;
+            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            {
+                if (!regOperand.reg || *regOperand.reg != conv.framePointer)
+                    continue;
+                namesFramePointer = true;
+                if (!ops || regOperand.def || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
+                    regOperand.reg != &ops[info.memBaseOperandIndex].reg)
+                    return false;
+            }
+
+            if (!namesFramePointer)
+                continue;
+            if (ops[info.memBaseOperandIndex].reg != conv.framePointer ||
+                ops[info.memOffsetOperandIndex].valueU64 < firstIncomingArgOffset)
+                return false;
+            accesses.push_back(it.current);
+        }
+
+        if (accesses.empty())
+            return false;
+
+        for (const MicroInstrRef ref : accesses)
+        {
+            MicroInstr*          inst = context.instructions->ptr(ref);
+            MicroInstrOperand*   ops  = inst->ops(operands);
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            ops[info.memBaseOperandIndex].reg = conv.stackPointer;
+            ops[info.memOffsetOperandIndex].valueU64 -= sizeof(void*);
+        }
+        return true;
+    }
 }
 
 Result MicroPrologEpilogPass::run(MicroPassContext& context)
@@ -436,9 +496,16 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     const CallConv& conv                              = CallConv::get(context.callConvKind);
     const bool      remappedPersistentRegsToTransient = remapPersistentIntRegsToUnusedTransient(context, conv);
     buildSavedRegsPlan(context, conv);
+    bool rewroteIncomingArgs = false;
+    if (useFramePointer_ && pushedRegs_.empty() && savedRegSlots_.empty())
+    {
+        rewroteIncomingArgs = rewriteLeafIncomingArgsToStackPointer(context, conv);
+        if (rewroteIncomingArgs)
+            buildSavedRegsPlan(context, conv);
+    }
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
     {
-        context.passChanged = remappedPersistentRegsToTransient;
+        context.passChanged = remappedPersistentRegsToTransient || rewroteIncomingArgs;
         return Result::Continue;
     }
 
@@ -455,7 +522,7 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
         }
     }
 
-    context.passChanged = beginIt.current.isValid() || remappedPersistentRegsToTransient;
+    context.passChanged = beginIt.current.isValid() || remappedPersistentRegsToTransient || rewroteIncomingArgs;
     return Result::Continue;
 }
 

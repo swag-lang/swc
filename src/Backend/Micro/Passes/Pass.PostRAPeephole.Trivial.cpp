@@ -35,45 +35,44 @@ namespace PostRaPeephole
     }
 
     // A float clear is kept as a rule: it zeroes the lanes a partial write
-    // such as cvtsi2ss leaves alone. The next instruction may instead replace
-    // the whole register - another clear, a scalar load from memory, a move
-    // from an integer register - and then the clear does nothing:
+    // such as cvtsi2ss leaves alone. When the next instruction replaces the
+    // whole register instead - another clear, a scalar load from memory, a
+    // move from an integer register - the clear does nothing:
     //
     //     xorps xmm0, xmm0 ; movss xmm0, [rip + c]    ->    movss xmm0, [rip + c]
     //
     // A float constant materialized over a conversion kept the clear that
-    // conversion needed.
+    // conversion needed. The rule anchors on the write, after the folds that
+    // consume it along with its clear.
     bool tryEraseFloatClearBeforeFullWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || inst.op != MicroInstrOpcode::ClearReg || !ops[0].reg.isFloat())
+        if (!ops || !ops[0].reg.isFloat())
             return false;
         const MicroReg reg = ops[0].reg;
 
-        const MicroInstrRef      nextRef = ctx.nextRef(ref);
-        const MicroInstr*        next    = ctx.instruction(nextRef);
-        const MicroInstrOperand* nextOps = next ? next->ops(*ctx.operands) : nullptr;
-        if (!nextOps || nextOps[0].reg != reg)
-            return false;
-
-        bool replacesWholeRegister = false;
-        switch (next->op)
+        switch (inst.op)
         {
             case MicroInstrOpcode::ClearReg:
-                replacesWholeRegister = true;
                 break;
             case MicroInstrOpcode::LoadRegMem:
-                replacesWholeRegister = nextOps[2].opBits == MicroOpBits::B32 || nextOps[2].opBits == MicroOpBits::B64;
+                if (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64)
+                    return false;
                 break;
             case MicroInstrOpcode::LoadRegReg:
-                replacesWholeRegister = nextOps[1].reg.isInt();
+                if (!ops[1].reg.isInt())
+                    return false;
                 break;
             default:
-                break;
+                return false;
         }
-        if (!replacesWholeRegister || !ctx.claimAll({ref, nextRef}))
+
+        const MicroInstrRef      clearRef = ctx.previousRef(ref);
+        const MicroInstr*        clear    = ctx.instruction(clearRef);
+        const MicroInstrOperand* clearOps = clear ? clear->ops(*ctx.operands) : nullptr;
+        if (!clearOps || clear->op != MicroInstrOpcode::ClearReg || clearOps[0].reg != reg || !ctx.claimAll({clearRef, ref}))
             return false;
-        ctx.emitErase(ref);
+        ctx.emitErase(clearRef);
         return true;
     }
 }

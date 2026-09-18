@@ -29,7 +29,6 @@ namespace
         r.add(MicroInstrOpcode::Nop, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseZeroExtendedSelfCopy);
-        r.add(MicroInstrOpcode::ClearReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
         r.add(MicroInstrOpcode::CmpRegImm, tryFoldConditionalBitwiseNot);
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftNoCopy);
@@ -92,6 +91,9 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
+        r.add(MicroInstrOpcode::LoadRegMem, tryEraseFloatClearBeforeFullWrite);
+        r.add(MicroInstrOpcode::ClearReg, tryEraseFloatClearBeforeFullWrite);
+        r.add(MicroInstrOpcode::LoadRegReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedByteAverage);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);

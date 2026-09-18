@@ -6,6 +6,27 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.054 — A '#nodrop #move' from a local faults after a '#relocate' shift
+
+- Recorded: 2026-09-18 17:22
+- Area: compiler/codegen, move-assignment lifecycle (`emitAssignLifecycle`) under lifecycle safety
+- Evidence: in a generic `struct(T) Vec` method, with `T = Core.String` (a type with dynamic
+  inline storage), `var staged: T = #fwd value`, then a shift loop
+  `buffer[idx] = #relocate buffer[idx - 1]`, then `buffer[index] = #nodrop #move staged` faults in
+  `__memoryCopyForward` reading address `0xFFFF_FFFF_FFFF_FFFF` inside the last statement, in a
+  native `core` test. The same statement works without the shift loop, with `#nodrop staged` (a
+  copy), with `#relocate staged`, and when the slot is re-initialized with `Swag.init` after the
+  loop. The loop's `#relocate` poisons its sources under lifecycle safety, so the slot being
+  written holds `0xFF` bytes; something in the move path reads it although `#nodrop` declares it
+  uninitialized. A JIT reproduction with a hand-written inline-storage struct and a plain function
+  does not fault.
+- Shipped workaround: `Array.insertAt` and `Array.add` hand the staged value over with
+  `#relocate`, which is also the exact meaning wanted there (uninitialized target, abandoned local).
+- Next: rebuild the reproduction as a native unittest (generic receiver, `Core.String` or a copy
+  of its lifecycle), then compare the micro code of `#nodrop #move staged` with and without the
+  loop to find the read of the poisoned target or the lost elision decision.
+- Complete when: the reproduction passes in JIT and native under lifecycle safety.
+
 ### compiler.core.053 — CodeView type records repeat every structure a module reaches
 
 - Recorded: 2026-09-17 08:42

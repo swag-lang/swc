@@ -106,6 +106,14 @@ namespace
         if (isUnobservedFloatClear(storage, operands, inst, useDef, instRef, floatDefs))
             return false;
 
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (inst.op == MicroInstrOpcode::Label ||
+            info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+            info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+            info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            info.flags.has(MicroInstrFlagsE::WritesMemory))
+            return true;
+
         // Most floating operations share generic opcodes that advertise an
         // EFLAGS definition, although their x64 encodings preserve EFLAGS.
         // Keep a float clear conservative unless the guard above proved it
@@ -137,14 +145,6 @@ namespace
             if (!def.isVirtualInt())
                 return true;
         }
-
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        if (inst.op == MicroInstrOpcode::Label ||
-            info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-            info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
-            info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-            info.flags.has(MicroInstrFlagsE::WritesMemory))
-            return true;
 
         SWC_ASSERT(info.flags.has(MicroInstrFlagsE::DefinesCpuFlags));
         return !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef);

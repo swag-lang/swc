@@ -41,6 +41,27 @@ SWC_TEST_BEGIN(DeadCodeElimination_RemovesEntireDeadChain)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DeadCodeElimination_PreservesFlaglessMemoryWriter)
+{
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+    builder.emitLoadRegImm(value, ApInt(17, 32), MicroOpBits::B32);
+    builder.emitOpBinaryMemReg(base, 0, value, MicroOp::Exchange, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runDeadCodeEliminationPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 1)
+    {
+        return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DeadCodeElimination_JoinTracksSurvivingConsumers)
 {
     for (const bool live : {false, true})

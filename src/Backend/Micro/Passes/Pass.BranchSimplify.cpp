@@ -1299,10 +1299,23 @@ namespace
             {
                 std::copy_n(elseOps, elseInst->numOperands, hoisted);
             }
+            // Above the compare when it does not read D: the zero can then
+            // be the shorter xor, as clang's `xor eax, eax ; cmp ; jae`.
+            MicroInstrRef     insertRef = layout.order[ordinal];
+            const MicroInstr* compare   = ordinal ? storage.ptr(layout.order[ordinal - 1]) : nullptr;
+            if (compare && (compare->op == MicroInstrOpcode::CmpRegImm || compare->op == MicroInstrOpcode::CmpRegReg ||
+                            compare->op == MicroInstrOpcode::TestRegReg || compare->op == MicroInstrOpcode::TestRegImm))
+            {
+                const MicroInstrUseDef compareUseDef = compare->collectUseDef(operands, nullptr);
+                if (!microRegSpanContains(compareUseDef.uses, result) && !microRegSpanContains(compareUseDef.defs, result) &&
+                    (elseInst->op != MicroInstrOpcode::LoadRegReg || !microRegSpanContains(compareUseDef.defs, elseOps[1].reg)))
+                    insertRef = layout.order[ordinal - 1];
+            }
+
             // Retarget before inserting: the insertion may grow the operand
             // storage and leave branchOps dangling.
             branchOps[2].valueU64 = joinLabel;
-            storage.insertDerivedBefore(operands, layout.order[ordinal], hoistedOp, std::span{hoisted, hoistedNum});
+            storage.insertDerivedBefore(operands, insertRef, hoistedOp, std::span{hoisted, hoistedNum});
             storage.erase(layout.order[ordinal + 2]);
             storage.erase(layout.order[ordinal + 3]);
             storage.erase(layout.order[ordinal + 4]);

@@ -165,6 +165,15 @@ func threeLanes(values: *[8] u32)
     Swag.assert(values[4] == 15 and values[5] == 25 and values[6] == 35 and values[7] == 45)
 }
 
+#[Swag.Optimize(true)]
+func lanesAddFloatPairs(values: *[12] f32)
+{
+    values[][8]  = values[][0] + values[][4]
+    values[][9]  = values[][1] + values[][5]
+    values[][10] = values[][2] + values[][6]
+    values[][11] = values[][3] + values[][7]
+}
+
 #test
 {
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -178,6 +187,13 @@ func threeLanes(values: *[8] u32)
     var values: [8] u32 = [0, 1, 0xFF00FF, 0xFFFF_FFFF, 0, 0, 0, 0]
     lanesXorMask(&values)
     Swag.assert(values[4] == 0xFF00FF and values[5] == 0xFF00FE and values[6] == 0 and values[7] == 0xFF00FF00)
+}
+
+#test
+{
+    var values: [12] f32 = [1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 0, 0, 0, 0]
+    lanesAddFloatPairs(&values)
+    Swag.assert(values[8] == 11.0'f32 and values[9] == 22.0'f32 and values[10] == 33.0'f32 and values[11] == 44.0'f32)
 }
 
 #test

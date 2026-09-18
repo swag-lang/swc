@@ -2203,8 +2203,8 @@ SWC_TEST_END()
 
 namespace
 {
-    // cmp ; jae .E ; D = [base] (or D += [base]) ; jmp .J ; .E: D = 0 ; .J: store D ; ret
-    void emitLoadOrZeroDiamond(MicroBuilder& builder, bool thenReadsResult)
+    // cmp ; jae .E ; D = [base] (or D += [base]) ; jmp .J ; .E: D = 0 (or clear D) ; .J: store D ; ret
+    void emitLoadOrZeroDiamond(MicroBuilder& builder, bool thenReadsResult, bool clearElse = false)
     {
         constexpr MicroReg result = MicroReg::virtualIntReg(1);
         constexpr MicroReg base   = MicroReg::virtualIntReg(2);
@@ -2220,7 +2220,10 @@ namespace
             builder.emitLoadRegMem(result, base, 0, MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
         builder.placeLabel(other);
-        builder.emitLoadRegImm(result, ApInt(0, 64), MicroOpBits::B32);
+        if (clearElse)
+            builder.emitClearReg(result, MicroOpBits::B64);
+        else
+            builder.emitLoadRegImm(result, ApInt(0, 64), MicroOpBits::B32);
         builder.placeLabel(join);
         builder.emitLoadMemReg(MicroReg::intReg(1), 16, result, MicroOpBits::B32);
         builder.emitRet();
@@ -2245,6 +2248,24 @@ SWC_TEST_BEGIN(BranchSimplify_CheapElseArmSpeculated)
     emitLoadOrZeroDiamond(builder, false);
     SWC_RESULT(runLateBranchSimplifyPass(builder));
     return countUnconditionalJumps(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A cleared else arm moves as a zero load: an xor between the compare and its
+// jump would decide the jump.
+SWC_TEST_BEGIN(BranchSimplify_SpeculatedClearKeepsFlags)
+{
+    MicroBuilder builder(ctx);
+    emitLoadOrZeroDiamond(builder, false, true);
+    SWC_RESULT(runLateBranchSimplifyPass(builder));
+    if (countUnconditionalJumps(builder) != 0)
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::ClearReg)
+            return Result::Error;
+    }
+    return Result::Continue;
 }
 SWC_TEST_END()
 

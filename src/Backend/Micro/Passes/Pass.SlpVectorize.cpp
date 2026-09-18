@@ -71,6 +71,8 @@ namespace
         FloatSub,
         FloatMul,
         FloatDiv,
+        FloatMin,
+        FloatMax,
         ShiftLeft,
         ShiftRight,
         RotateLeft,
@@ -523,6 +525,16 @@ namespace
                     return false;
                 outOp = LaneOp::FloatDiv;
                 return true;
+            case MicroOp::FloatMin:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::FloatMin;
+                return true;
+            case MicroOp::FloatMax:
+                if (opBits != MicroOpBits::B32)
+                    return false;
+                outOp = LaneOp::FloatMax;
+                return true;
             default:
                 return false;
         }
@@ -744,6 +756,12 @@ namespace
                             break;
                         case LaneOp::FloatDiv:
                             vecOp = MicroOp::VecDivF32;
+                            break;
+                        case LaneOp::FloatMin:
+                            vecOp = MicroOp::VecMinF32;
+                            break;
+                        case LaneOp::FloatMax:
+                            vecOp = MicroOp::VecMaxF32;
                             break;
                         default:
                             return K_INVALID_ID;
@@ -1252,6 +1270,23 @@ namespace
                 return;
             }
 
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+            {
+                LaneOp laneOp{};
+                if (laneOpForBinaryRegReg(ops[4].microOp, ops[3].opBits, laneOp))
+                {
+                    SlpValue v;
+                    v.kind = SlpValueKind::BinaryRegReg;
+                    v.op   = laneOp;
+                    v.lhs  = currentValue(scan, ops[1].reg);
+                    v.rhs  = currentValue(scan, ops[2].reg);
+                    setValue(scan, ops[0].reg, scan.values.intern(v));
+                    return;
+                }
+                setDefsOpaque(fn, scan, inst);
+                return;
+            }
+
             case MicroInstrOpcode::OpBinaryRegImm:
             {
                 LaneOp   laneOp{};
@@ -1376,37 +1411,6 @@ namespace
         TupleKey tuple;
         uint32_t planReg = K_INVALID_ID;
     };
-
-    // True when no live CPU flags cross the insertion point: scanning forward
-    // from it, a flag definition must come before any flag use or control
-    // transfer.
-    bool flagsDeadAtInsertion(const SlpFunctionContext& fn, MicroInstrRef insertBeforeRef)
-    {
-        for (MicroInstrRef scanRef = insertBeforeRef; scanRef.isValid(); scanRef = fn.storage->findNextInstructionRef(scanRef))
-        {
-            const MicroInstr* inst = fn.storage->ptr(scanRef);
-            if (!inst)
-                return false;
-
-            const MicroInstrOperand* ops = inst->ops(*fn.operands);
-            if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops))
-                return false;
-
-            const MicroInstrDef& info = MicroInstr::info(inst->op);
-            if (inst->op == MicroInstrOpcode::Label ||
-                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
-                info.flags.has(MicroInstrFlagsE::IsCallInstruction))
-            {
-                return false;
-            }
-
-            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
-                return true;
-        }
-
-        return false;
-    }
 
     bool vectorizeBlock(SlpFunctionContext& fn, MicroSsaState& localSsa, std::span<const BlockInstr> blockInstrs)
     {
@@ -1649,9 +1653,6 @@ namespace
                     return false;
             }
         }
-
-        if (!flagsDeadAtInsertion(fn, firstDeletedRef))
-            return false;
 
         // ----- Materialize.
         if (!fn.nextVirtualFloatRegIndex)

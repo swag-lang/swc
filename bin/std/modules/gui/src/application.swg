@@ -401,6 +401,8 @@ private impl Application
     mtd sendMouseWheelEvent(z: s32)
     {
         var targetWnd = .mouseEnterWnd
+        if not targetWnd do
+            targetWnd = .windowAtMouse()
         targetWnd = skipDisabled(targetWnd)
         if not targetWnd do
             return

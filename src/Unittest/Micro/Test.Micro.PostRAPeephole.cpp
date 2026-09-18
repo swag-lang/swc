@@ -2178,6 +2178,26 @@ SWC_TEST_BEGIN(PostRAPeephole_SignedThreeWayKeepsBytes)
 }
 SWC_TEST_END()
 
+// A dword conversion writes the dword register: `mov eax, eax` after it goes.
+SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterDwordConversion_Erased)
+{
+    constexpr MicroReg rax  = MicroReg::intReg(0);
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(xmm0, r8, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegReg(rax, xmm0, MicroOp::ConvertFloatToInt, MicroOpBits::B32);
+    builder.emitLoadRegReg(rax, rax, MicroOpBits::B32);
+    builder.emitLoadMemReg(r8, 8, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

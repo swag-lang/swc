@@ -267,7 +267,7 @@ namespace PostRaPeephole
         const MicroReg index   = indexed ? loadOps[2].reg : MicroReg::invalid();
         const bool     isFloat = loaded.isFloat();
         if ((!isFloat && !loaded.isAnyInt()) || base.isFloat() || !base.isValid() ||
-            (indexed && (!index.isValid() || index.isFloat() || isFloat)))
+            (indexed && (!index.isValid() || index.isFloat())))
             return false;
 
         // A RIP-relative load carries the constant's relocation. The folded

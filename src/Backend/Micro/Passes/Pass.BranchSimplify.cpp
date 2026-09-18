@@ -1179,6 +1179,153 @@ namespace
         return changed;
     }
 
+    // The width an instruction writes its whole destination at, for the
+    // loads, copies and constants that replace it outright; 0 otherwise.
+    uint32_t wholeDefinitionBits(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops)
+            return 0;
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+                return getNumBits(ops[2].opBits);
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                return getNumBits(ops[3].opBits);
+            case MicroInstrOpcode::LoadRegImm:
+                return getNumBits(ops[1].opBits);
+            default:
+                return 0;
+        }
+    }
+
+    // A diamond whose else arm only sets the result from a constant or a
+    // register:
+    //
+    //     jcc .E ; D = <load> ; jmp .J ; .E: D = K ; .J:
+    //   ->
+    //     D = K ; jcc .J ; D = <load> ; .J:
+    //
+    // The then arm replaces D without reading it, so the else arm can run on
+    // both paths: it moves above the branch, as LLVM's SimplifyCFG speculates
+    // a cheap block, and the jump over it goes. A bounds-checked load is
+    // clang's `xor eax, eax ; cmp ; jae ; mov`. It runs on the converged IR,
+    // after the select conversions that take a diamond whole.
+    bool speculateCheapElseArms(MicroStorage& storage, MicroOperandStorage& operands)
+    {
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+        }
+
+        bool changed = false;
+        for (size_t ordinal = 0; ordinal + 5 < layout.order.size(); ++ordinal)
+        {
+            MicroInstr* branch = storage.ptr(layout.order[ordinal]);
+            if (!branch || branch->op != MicroInstrOpcode::JumpCond)
+                continue;
+            MicroInstrOperand* branchOps  = branch->ops(operands);
+            uint32_t           elseLabel  = 0;
+            if (!branchOps || branchOps[0].cpuCond == MicroCond::Unconditional || !tryGetJumpTargetLabelId(elseLabel, *branch, branchOps))
+                continue;
+
+            const MicroInstr* thenInst  = storage.ptr(layout.order[ordinal + 1]);
+            const MicroInstr* skip      = storage.ptr(layout.order[ordinal + 2]);
+            const MicroInstr* elseMark  = storage.ptr(layout.order[ordinal + 3]);
+            const MicroInstr* elseInst  = storage.ptr(layout.order[ordinal + 4]);
+            const MicroInstr* joinMark  = storage.ptr(layout.order[ordinal + 5]);
+            if (!thenInst || !skip || !elseMark || !elseInst || !joinMark)
+                continue;
+            const MicroInstrOperand* skipOps = skip->ops(operands);
+            uint32_t                 joinLabel = 0;
+            uint32_t                 markId    = 0;
+            if (skip->op != MicroInstrOpcode::JumpCond || !skipOps || skipOps[0].cpuCond != MicroCond::Unconditional ||
+                !tryGetJumpTargetLabelId(joinLabel, *skip, skipOps) || !tryGetLabelId(markId, *elseMark, elseMark->ops(operands)) ||
+                markId != elseLabel || labelReferences[elseLabel] != 1 || !tryGetLabelId(markId, *joinMark, joinMark->ops(operands)) ||
+                markId != joinLabel)
+                continue;
+
+            // D = K, D = 0 or D = X in the else arm.
+            const MicroInstrOperand* elseOps = elseInst->ops(operands);
+            if (!elseOps || !elseOps[0].reg.isVirtualInt())
+                continue;
+            const MicroReg result = elseOps[0].reg;
+            if (elseInst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                if (!elseOps[1].reg.isVirtualInt() || elseOps[1].reg == result)
+                    continue;
+            }
+            else if (elseInst->op != MicroInstrOpcode::LoadRegImm && elseInst->op != MicroInstrOpcode::ClearReg)
+                continue;
+
+            // The then arm replaces all of D and reads nothing the else arm
+            // writes.
+            const MicroInstrOperand* thenOps = thenInst->ops(operands);
+            if (!thenOps || thenOps[0].reg != result || wholeDefinitionBits(*thenInst, thenOps) < 32)
+                continue;
+            const MicroInstrUseDef thenUseDef = thenInst->collectUseDef(operands, nullptr);
+            if (microRegSpanContains(thenUseDef.uses, result))
+                continue;
+
+            // Between the compare and its jump the hoisted arm must leave the
+            // flags alone: a clear is an xor, so it moves as a zero load.
+            MicroInstrOperand hoisted[3] = {};
+            MicroInstrOpcode  hoistedOp  = elseInst->op;
+            uint8_t           hoistedNum = elseInst->numOperands;
+            if (elseInst->op == MicroInstrOpcode::ClearReg)
+            {
+                hoistedOp          = MicroInstrOpcode::LoadRegImm;
+                hoistedNum         = 3;
+                hoisted[0].reg     = result;
+                hoisted[1].opBits  = elseOps[1].opBits;
+                hoisted[2].valueU64 = 0;
+            }
+            else
+            {
+                std::copy_n(elseOps, elseInst->numOperands, hoisted);
+            }
+            // Above the compare when it does not read D: the zero can then
+            // be the shorter xor, as clang's `xor eax, eax ; cmp ; jae`.
+            MicroInstrRef     insertRef = layout.order[ordinal];
+            const MicroInstr* compare   = ordinal ? storage.ptr(layout.order[ordinal - 1]) : nullptr;
+            if (compare && (compare->op == MicroInstrOpcode::CmpRegImm || compare->op == MicroInstrOpcode::CmpRegReg ||
+                            compare->op == MicroInstrOpcode::TestRegReg || compare->op == MicroInstrOpcode::TestRegImm))
+            {
+                const MicroInstrUseDef compareUseDef = compare->collectUseDef(operands, nullptr);
+                if (!microRegSpanContains(compareUseDef.uses, result) && !microRegSpanContains(compareUseDef.defs, result) &&
+                    (elseInst->op != MicroInstrOpcode::LoadRegReg || !microRegSpanContains(compareUseDef.defs, elseOps[1].reg)))
+                    insertRef = layout.order[ordinal - 1];
+            }
+
+            // Retarget before inserting: the insertion may grow the operand
+            // storage and leave branchOps dangling.
+            branchOps[2].valueU64 = joinLabel;
+            storage.insertDerivedBefore(operands, insertRef, hoistedOp, std::span{hoisted, hoistedNum});
+            storage.erase(layout.order[ordinal + 2]);
+            storage.erase(layout.order[ordinal + 3]);
+            storage.erase(layout.order[ordinal + 4]);
+            changed = true;
+            ordinal += 5;
+        }
+
+        return changed;
+    }
+
     bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
     {
         constexpr uint32_t K_MAX_CHAIN = 6;
@@ -6316,7 +6463,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     if (late_)
     {
-        if (threadShortCircuitReturnValues(storage, operands, context.builder))
+        bool lateChanged = speculateCheapElseArms(storage, operands);
+        lateChanged |= threadShortCircuitReturnValues(storage, operands, context.builder);
+        if (lateChanged)
         {
             context.passChanged = true;
             context.builder->invalidateControlFlowGraph();

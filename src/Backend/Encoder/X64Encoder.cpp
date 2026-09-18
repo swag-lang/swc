@@ -2250,24 +2250,30 @@ namespace
         }
 
         // Prefixes
-        const bool countMemory = op == MicroOp::PopCount || op == MicroOp::LeadingZeroCount || op == MicroOp::TrailingZeroCount;
+        const bool countMemory     = op == MicroOp::PopCount || op == MicroOp::LeadingZeroCount || op == MicroOp::TrailingZeroCount;
+        const bool floatArithmetic = reg.isFloat() && (op == MicroOp::FloatAdd || op == MicroOp::FloatSubtract || op == MicroOp::FloatMultiply ||
+                                                       op == MicroOp::FloatDivide || op == MicroOp::FloatMin || op == MicroOp::FloatMax);
         if (countMemory)
             store.pushU8(0xF3);
         if (opBitsBaseMul == MicroOpBits::B32)
             store.pushU8(0x67);
         if (reg.isFloat() && opBitsReg == MicroOpBits::B128)
             store.pushU8(0xF3); // movdqu (128-bit) - mandatory prefix, not the 0x66 of movd/movq
+        else if (floatArithmetic)
+            store.pushU8(opBitsReg == MicroOpBits::B64 ? 0xF2 : 0xF3); // scalar sd/ss arithmetic
         else if (opBitsReg == MicroOpBits::B16 || reg.isFloat())
             store.pushU8(0x66);
 
-        // REX prefix
+        // REX prefix. Scalar float arithmetic takes its width from F2/F3,
+        // never from REX.W.
+        const bool wide    = opBitsReg == MicroOpBits::B64 && !floatArithmetic;
         const bool b0      = isExtendedReg(regX64);
         const bool b1      = isExtendedReg(mulX64);
         const bool b2      = !baseIsNoBase && isExtendedReg(baseX64);
-        const bool needRex = opBitsReg == MicroOpBits::B64 || needsRexForByteReg(regX64);
+        const bool needRex = wide || needsRexForByteReg(regX64);
         if (needRex || b0 || b1 || b2)
         {
-            const auto value = getRex(opBitsReg == MicroOpBits::B64, b0, b1, b2);
+            const auto value = getRex(wide, b0, b1, b2);
             store.pushU8(value);
         }
 
@@ -2311,6 +2317,16 @@ namespace
                 break;
             case MicroOp::LoadEffectiveAddress:
                 emitSpecCpuOp(store, MicroOp::LoadEffectiveAddress, opBitsReg);
+                break;
+            case MicroOp::FloatAdd:
+            case MicroOp::FloatSubtract:
+            case MicroOp::FloatMultiply:
+            case MicroOp::FloatDivide:
+            case MicroOp::FloatMin:
+            case MicroOp::FloatMax:
+                SWC_ASSERT(!mr && floatArithmetic);
+                emitCpuOp(store, 0x0F);
+                emitCpuOp(store, op);
                 break;
             case MicroOp::MoveSignExtend:
                 if (extendSrcBits == MicroOpBits::B8 || extendSrcBits == MicroOpBits::B16)
@@ -3234,7 +3250,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
 
 void X64Encoder::encodeOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits)
 {
-    SWC_ASSERT(regDst.isInt() && regBase.isInt() && regMul.isInt());
+    SWC_ASSERT((regDst.isInt() || regDst.isFloat()) && regBase.isInt() && regMul.isInt());
     encodeAmcReg(store_, regDst, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, op, false);
 }
 

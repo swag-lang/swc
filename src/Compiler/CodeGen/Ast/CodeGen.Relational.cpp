@@ -134,7 +134,13 @@ namespace
             // (which the previous 32 -> 64 widening emitted on every compare).
             // Two f32 values compare with comiss: widening both to f64 first
             // is exact and changes no answer, NaN included, so it only cost two
-            // clears and two conversions per comparison.
+            // clears and two conversions per comparison. An integer compared
+            // with an f32 still meets it at f64, where every int32 and uint32
+            // converts exactly.
+            const TypeInfo& promotedType = codeGen.typeMgr().get(promotedTypeRef);
+            if (promotedType.isFloat() && promotedType.payloadFloatBitsOr(64) == 32 && (!leftType.isFloat() || !rightType.isFloat()))
+                return codeGen.typeMgr().typeF64();
+
             return promotedTypeRef;
         }
 

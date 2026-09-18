@@ -3,7 +3,8 @@
 // Two f32 values compare as f32. Every relational operator, the three-way
 // compare, selects and branches on NaNs, signed zeros, infinities, subnormals
 // and the extremes must answer as the same comparison done on the values
-// widened to f64.
+// widened to f64. An integer compared with an f32 still meets it at f64,
+// where every 32-bit integer converts exactly.
 
 #[Swag.Optimize(true), Swag.NoInline]
 func less(a, b: f32)->bool => a < b
@@ -34,6 +35,13 @@ func countBelow(p: const [*] f32, n: u64, limit: f32)->u32
     }
     return count
 }
+
+#[Swag.Optimize(true), Swag.NoInline]
+func unsignedGreater(u: u32, f: f32)->bool => u > f
+#[Swag.Optimize(true), Swag.NoInline]
+func signedGreater(i: s32, f: f32)->bool => i > f
+#[Swag.Optimize(true), Swag.NoInline]
+func signedEqual(i: s32, f: f32)->bool => i == f
 
 #[Swag.Optimize(false), Swag.NoInline]
 func wideLess(a, b: f32)->bool => cast(f64) a < cast(f64) b
@@ -74,4 +82,10 @@ func wideOrder(a, b: f32)->s32 => cast(f64) a <=> cast(f64) b
     }
 
     Swag.assert(countBelow(&values[0], 12, 0.5) == 7)
+
+    Swag.assert(unsignedGreater(3_000_000_000, 1.0))
+    Swag.assert(not unsignedGreater(1, 3_000_000_000.0))
+    Swag.assert(signedGreater(16_777_217, 16_777_216.0))
+    Swag.assert(not signedEqual(16_777_217, 16_777_216.0))
+    Swag.assert(signedGreater(-1, -2.0))
 }

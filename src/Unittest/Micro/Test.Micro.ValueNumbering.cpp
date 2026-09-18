@@ -317,6 +317,77 @@ SWC_TEST_BEGIN(ValueNumbering_DedupLoadAcrossFallthroughBranch)
 }
 SWC_TEST_END()
 
+// The arm a conditional jump skips to has that jump as its only way in, so it
+// sees memory as the jump left it: its load repeats the one the test read.
+SWC_TEST_BEGIN(ValueNumbering_DedupLoadInSinglePredecessorArm)
+{
+    const MicroReg vBase = MicroReg::virtualIntReg(10);
+    const MicroReg vIdx  = MicroReg::virtualIntReg(11);
+    const MicroReg v1    = MicroReg::virtualIntReg(12);
+    const MicroReg v2    = MicroReg::virtualIntReg(13);
+    MicroBuilder   builder(ctx);
+
+    builder.emitLoadRegImm(vBase, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(vIdx, ApInt(3, 64), MicroOpBits::B64);
+    const MicroLabelRef arm  = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitLoadAmcRegMem(v1, MicroOpBits::B32, vBase, vIdx, 4, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(v1, ApInt(0, 32), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, arm);
+    builder.emitOpUnaryReg(v1, MicroOp::Negate, MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+    builder.placeLabel(arm);
+    builder.emitLoadAmcRegMem(v2, MicroOpBits::B32, vBase, vIdx, 4, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(v1, v2, MicroOp::Add, MicroOpBits::B32);
+    builder.placeLabel(done);
+    builder.emitRet();
+
+    SWC_RESULT(runValueNumberingPass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Two jumps reach the arm, and the second follows a store: the arm's load
+// stays.
+SWC_TEST_BEGIN(ValueNumbering_KeepsLoadInArmReachedTwice)
+{
+    const MicroReg vBase  = MicroReg::virtualIntReg(10);
+    const MicroReg vIdx   = MicroReg::virtualIntReg(11);
+    const MicroReg v1     = MicroReg::virtualIntReg(12);
+    const MicroReg v2     = MicroReg::virtualIntReg(13);
+    const MicroReg vOther = MicroReg::virtualIntReg(14);
+    MicroBuilder   builder(ctx);
+
+    builder.emitLoadRegImm(vBase, ApInt(0x1000, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(vIdx, ApInt(3, 64), MicroOpBits::B64);
+    const MicroLabelRef arm  = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitLoadAmcRegMem(v1, MicroOpBits::B32, vBase, vIdx, 4, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(v1, ApInt(0, 32), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, arm);
+    builder.emitLoadMemReg(vOther, 0, v1, MicroOpBits::B32);
+    builder.emitCmpRegImm(v1, ApInt(1, 32), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, arm);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+    builder.placeLabel(arm);
+    builder.emitLoadAmcRegMem(v2, MicroOpBits::B32, vBase, vIdx, 4, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(v1, v2, MicroOp::Add, MicroOpBits::B32);
+    builder.placeLabel(done);
+    builder.emitRet();
+
+    SWC_RESULT(runValueNumberingPass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 2)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The byte a scanner compares is the byte it consumes: a zero-extending load
 // and a plain byte load of the same cell share one read, and the plain one
 // becomes a byte copy of the extended register.

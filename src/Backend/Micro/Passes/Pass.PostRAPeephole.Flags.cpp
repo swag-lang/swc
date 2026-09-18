@@ -1634,6 +1634,75 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A small product immediately added to another value is shorter when the
+    // product is formed in the final destination by scaled addressing:
+    //
+    //     imul T, T, 5             lea R, [T + 4*T]
+    //     lea  R, [A + T]   ->     add R, A
+    //
+    // ADD changes flags while the original final LEA preserves the multiply
+    // flags, so the rewrite is valid only when no later instruction reads them.
+    bool tryFoldScaledAdd(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.encoder || inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+            return false;
+        const auto* address = inst.ops(*ctx.operands);
+        if (!address || !address[0].reg.isInt() || !address[1].reg.isInt() || !address[2].reg.isInt() ||
+            (address[3].opBits != MicroOpBits::B32 && address[3].opBits != MicroOpBits::B64) ||
+            address[4].opBits != MicroOpBits::B64 || address[5].valueU64 != 1 || address[6].valueU64 != 0)
+            return false;
+
+        const MicroInstrRef multiplyRef = ctx.previousRef(ref);
+        const MicroInstr*   multiply    = ctx.instruction(multiplyRef);
+        const auto*         product     = multiply ? multiply->ops(*ctx.operands) : nullptr;
+        if (!multiply || multiply->op != MicroInstrOpcode::OpBinaryRegImm || !product ||
+            (product[0].reg != address[1].reg && product[0].reg != address[2].reg) ||
+            product[1].opBits != address[3].opBits || product[2].microOp != MicroOp::MultiplySigned ||
+            product[3].hasWideImmediateValue())
+            return false;
+        const uint64_t factor = product[3].valueU64;
+        if (factor != 3 && factor != 5 && factor != 9)
+            return false;
+
+        const MicroReg result = address[0].reg;
+        const MicroReg scaled = product[0].reg;
+        const MicroReg other  = address[1].reg == scaled ? address[2].reg : address[1].reg;
+        if (result == scaled || result == other || other == scaled ||
+            ctx.isPrivateFrameBase(result) || ctx.isPrivateFrameBase(scaled) || ctx.isPrivateFrameBase(other) ||
+            !ctx.isRegDeadAfterCurrent(scaled) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            return false;
+
+        MicroInstrOperand scaledAddress[8] = {};
+        scaledAddress[0].reg               = result;
+        scaledAddress[1].reg               = scaled;
+        scaledAddress[2].reg               = scaled;
+        scaledAddress[3].opBits            = address[3].opBits;
+        scaledAddress[4].opBits            = MicroOpBits::B64;
+        scaledAddress[5].valueU64          = factor - 1;
+        MicroInstr scaledProbe;
+        scaledProbe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
+        scaledProbe.numOperands = 8;
+
+        MicroInstrOperand add[4] = {};
+        add[0].reg               = result;
+        add[1].reg               = other;
+        add[2].opBits            = address[3].opBits;
+        add[3].microOp           = MicroOp::Add;
+        MicroInstr addProbe;
+        addProbe.op          = MicroInstrOpcode::OpBinaryRegReg;
+        addProbe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, scaledProbe, scaledAddress) ||
+            ctx.encoder->queryConformanceIssue(issue, addProbe, add) ||
+            !ctx.claimAll({multiplyRef, ref}))
+            return false;
+
+        ctx.emitRewrite(multiplyRef, scaledProbe.op, scaledAddress, true);
+        ctx.emitRewrite(ref, addProbe.op, add, true);
+        return true;
+    }
+
     // An OR of two materialized comparison results, used only to select the
     // same value, is two conditional moves driven directly by the comparisons:
     //

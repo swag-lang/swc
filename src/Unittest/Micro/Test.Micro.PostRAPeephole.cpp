@@ -107,6 +107,34 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ScaledAddUsesAddressThenAdd)
+{
+    constexpr MicroReg result = MicroReg::intReg(0);
+    constexpr MicroReg other  = MicroReg::intReg(1);
+    constexpr MicroReg scaled = MicroReg::intReg(3);
+
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryRegImm(scaled, ApInt(5, 64), MicroOp::MultiplySigned, MicroOpBits::B32);
+    builder.emitLoadAddressAmcRegMem(result, MicroOpBits::B32, other, scaled, 1, 0, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0 ||
+        !hasBinaryRegRegDst(builder, result, MicroOp::Add, MicroOpBits::B32))
+        return Result::Error;
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadAddrAmcRegMem && ops &&
+            ops[0].reg == result && ops[1].reg == scaled && ops[2].reg == scaled && ops[5].valueU64 == 4)
+            return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_MultiplyShiftResultUsesCopyDestination)
 {
     constexpr MicroReg rax = MicroReg::intReg(0);

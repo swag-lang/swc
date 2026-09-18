@@ -130,7 +130,9 @@ counterpart is 19/19. The only function one byte above LLVM is the signed
 in-range selection, whose `movsxd` preserves Swag's signed-return ABI contract.
 The following arithmetic sample retargets a magic multiply and logical shift
 onto the return register: unsigned division by three falls from 18 to 16 bytes,
-matching LLVM. Its 18 functions total 194 bytes against LLVM's 195.
+matching LLVM. Replacing `imul b,5; lea result,[a+b]` with a scaled address and
+an add reduces the remaining `a + b*5` example from 7 to 6 bytes, also matching
+LLVM. The 18 functions total 193 bytes against LLVM's 195.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -198,6 +200,9 @@ of materializing two booleans, OR-ing them, and comparing the result.
 Another post-allocation rule commutes an adjacent multiply into the result
 register and retargets its logical shift, removing the final narrow copy when
 the shift proves the upper dword is already zero.
+Small products by 3, 5 or 9 followed immediately by an independent add can be
+formed as a scaled address in the final destination; a two-byte ADD completes
+the sum when its newly written flags are dead.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -264,6 +269,10 @@ Build 974 passed the 989 C++ tests plus focused Release executions for 32-bit
 constant division and combined quotient/remainder arithmetic. The unit coverage
 also retains the final 32-bit copy when a 31-bit shift cannot prove the upper
 half clear.
+
+Build 975 passed the 989 C++ tests and focused Release executions covering
+scaled copies with a surviving source and conditional arithmetic inside a
+loop. The arithmetic sample has no function larger than LLVM after this batch.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

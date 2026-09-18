@@ -96,14 +96,25 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
         return;
     }
 
-    const long double v = apIntToLongDouble(mantissa);
+    // Scaling the mantissa by a power of ten in floating point rounds twice, and misses the nearest
+    // double by an ulp or two for literals as plain as 1.005. The decimal text is converted instead,
+    // which rounds once, to the nearest double.
+    const std::string digits = mantissa.toString().c_str();
+    const std::string text   = std::format("{}e{}", digits, exponent10);
+    double            parsed = 0;
+    const auto [ptr, error]  = std::from_chars(text.data(), text.data() + text.size(), parsed);
+    if (error == std::errc::result_out_of_range)
+    {
+        // Past the largest double the value is infinite; below the smallest subnormal it is zero.
+        const int64_t magnitude = static_cast<int64_t>(digits.size()) + exponent10;
+        parsed                  = magnitude > 0 ? std::numeric_limits<double>::infinity() : 0.0;
+    }
+    else
+    {
+        SWC_ASSERT(error == std::errc{} && ptr == text.data() + text.size());
+    }
 
-    // Apply decimal exponent: mantissa * 10^exponent10
-    const long double scale = std::pow(10.0L, static_cast<long double>(exponent10));
-    const long double res   = v * scale;
-
-    // Store as double
-    value_.f64 = static_cast<double>(res);
+    value_.f64 = parsed;
 }
 
 void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& overflow)

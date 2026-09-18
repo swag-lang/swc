@@ -140,3 +140,12 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     Swag.assert(StrConv.toDisplaySize(1023) == "1023 bytes")
     Swag.assert(StrConv.toDisplaySize(1536) == "1 KB")
 }
+
+// A character literal formats as the character, and a decimal literal as the double nearest to it.
+#test
+{
+    Swag.assert(Format.toString("%", 'A') == "A")
+    Swag.assert(Format.toString("% %", 'é', '😀') == "é 😀")
+    Swag.assert(Format.toString("%{f2}", 1.005) == "1.00")
+    Swag.assert(Format.toString("%", 0.00012) == "0.00012")
+}

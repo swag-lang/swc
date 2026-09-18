@@ -669,6 +669,15 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         return true;
     }
 
+    // An untyped character literal is a rune once it needs a type of its own, as the cast to 'any'
+    // already decides: an untyped variadic argument would otherwise carry the compile-time
+    // 'character' type to run time, which no reflection code expects.
+    if (ty.isChar())
+    {
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeRune(ctx, srcCst.getChar()));
+        return true;
+    }
+
     if (ty.isFloatUnsized())
     {
         const ApFloat& srcF     = srcCst.getFloat();

@@ -30,7 +30,7 @@
 #assert(#stringof(65535'u16, 0) == "655350")
 
 #assert(#stringof(1.5645789'f32, 0) == "1.56457890")
-#assert(#stringof(1.5645789'f64, 0) == "1.56457889999999990")
+#assert(#stringof(1.5645789'f64, 0) == "1.56457890")
 #assert(#stringof(0.0'f32, 0) == "00")
 #assert(#stringof(0.0'f64, 0) == "00")
 #assert(#stringof(-1.0'f32, 0) == "-10")

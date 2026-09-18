@@ -89,9 +89,11 @@
 #assert(5.0'f64 - 5.0'f64 == 0.0'f64)
 #assert(10.0'f64 / 2.0'f64 == 5.0'f64)
 
-#assert(0.1 + 0.2 == 0.3)
+// Folding follows binary64 and binary32 exactly, as the same sums do at run time: in binary64,
+// 0.1 + 0.2 is 0.30000000000000004, one ulp above the double nearest to 0.3.
+#assert(0.1 + 0.2 != 0.3)
 #assert(0.1'f32 + 0.2'f32 == 0.3'f32)
-#assert(0.1'f64 + 0.2'f64 == 0.3'f64)
+#assert(0.1'f64 + 0.2'f64 != 0.3'f64)
 
 #assert(1.0 * 1.000000000 == 1.0)
 #assert(1.0'f32 * 1.000000000'f32 == 1.0'f32)

@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
@@ -57,9 +58,19 @@ namespace InstructionCombine
         MicroReg stackPointer = MicroReg::invalid();
 
         // The next free virtual register of each file, for rules that build
-        // new values; initialized only when a vector construction needs them.
+        // new values; initialized once per run, when a rule first needs one.
         uint32_t nextVirtualFloatRegIndex = 0;
         uint32_t nextVirtualIntRegIndex   = 0;
+        bool     virtualIndicesReady      = false;
+
+        void ensureVirtualIndices()
+        {
+            if (virtualIndicesReady)
+                return;
+            SWC_ASSERT(passContext != nullptr);
+            MicroPassHelpers::computeNextVirtualRegIndices(*passContext, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
+            virtualIndicesReady = true;
+        }
 
         enum class FloatReadFit : uint8_t
         {
@@ -171,6 +182,7 @@ namespace InstructionCombine
     bool tryFoldPureResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryBypassShiftCountMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryBypassShiftCountExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldIndexedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowCompareOfZeroExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryThreeOperandShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLeaConstIntoMemBase(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

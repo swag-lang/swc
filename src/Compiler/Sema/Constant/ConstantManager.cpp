@@ -777,6 +777,17 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, Dat
     return view;
 }
 
+std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef, uint32_t align)
+{
+    const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    Shard&     shard       = shards_[shardIndex];
+    const auto [span, ref] = shard.dataSegment.addSpan(std::span{reinterpret_cast<const std::byte*>(payload.data()), payload.size()}, align);
+    if (outRef)
+        *outRef = DataSegmentRef{.shardIndex = shardIndex, .offset = ref};
+    return {reinterpret_cast<const char*>(span.data()), span.size()};
+}
+
 // Returns the 16-byte aligned mask whose first f32 or f64 lane holds only the sign bit.
 const std::byte* ConstantManager::floatSignMask(const bool is64, DataSegmentRef& outRef) const
 {

@@ -200,6 +200,130 @@ namespace InstructionCombine
         return false;
     }
 
+    // An access whose address is a single-use indexed `lea` reads through
+    // that address directly: `add T, [lea]` becomes `add T, [B + I*S + d]`,
+    // `mov T, [lea]` an indexed load. A memory operand scales by 1, 2, 4 or
+    // 8 only, so the index of a wider element - a 16-byte struct in an
+    // array - is shifted first, as LLVM's x86 lowering scales it:
+    //
+    //     lea A, [B + I*16 + 8] ; add T, [A]    ->    X = I << 4 ; add T, [B + X + 8]
+    //
+    // Left to the legalizer, that address cost a multiply and two adds.
+    bool tryFoldIndexedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+        const bool               isLoad = inst.op == MicroInstrOpcode::LoadRegMem;
+        const MicroInstrOperand* ops    = inst.ops(*ctx.operands);
+        if (!ops || (!isLoad && inst.op != MicroInstrOpcode::OpBinaryRegMem))
+            return false;
+
+        const MicroReg    dst      = ops[0].reg;
+        const MicroReg    address  = ops[1].reg;
+        const MicroOpBits bits     = ops[2].opBits;
+        const uint64_t    accessAt = isLoad ? ops[3].valueU64 : ops[4].valueU64;
+        if (!address.isVirtualInt() || dst == address || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+            return false;
+        if (!isLoad)
+        {
+            switch (ops[3].microOp)
+            {
+                case MicroOp::Add:
+                case MicroOp::Subtract:
+                case MicroOp::And:
+                case MicroOp::Or:
+                case MicroOp::Xor:
+                    if (!dst.isVirtualInt())
+                        return false;
+                    break;
+                case MicroOp::FloatAdd:
+                case MicroOp::FloatSubtract:
+                case MicroOp::FloatMultiply:
+                case MicroOp::FloatDivide:
+                    if (!dst.isVirtualFloat())
+                        return false;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        else if (!dst.isVirtual())
+            return false;
+
+        const auto lea = ctx.ssa->reachingDef(address, ref);
+        if (!lea.valid() || lea.isPhi || !lea.inst || lea.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem || ctx.isClaimed(lea.instRef) ||
+            !valueHasSingleUse(*ctx.ssa, address, lea.instRef))
+            return false;
+        const MicroInstrOperand* leaOps = lea.inst->ops(*ctx.operands);
+        if (!leaOps || leaOps[0].reg != address || leaOps[3].opBits != MicroOpBits::B64 || leaOps[4].opBits != MicroOpBits::B64 ||
+            !leaOps[1].reg.isVirtualInt() || !leaOps[2].reg.isVirtualInt())
+            return false;
+
+        const MicroReg base  = leaOps[1].reg;
+        const MicroReg index = leaOps[2].reg;
+        const uint64_t scale = leaOps[5].valueU64;
+        const bool     fits  = scale == 1 || scale == 2 || scale == 4 || scale == 8;
+        if (!fits && (scale < 16 || scale > (uint64_t{1} << 30) || !std::has_single_bit(scale)))
+            return false;
+
+        const auto baseAtAddress  = ctx.ssa->reachingDef(base, lea.instRef);
+        const auto baseAtAccess   = ctx.ssa->reachingDef(base, ref);
+        const auto indexAtAddress = ctx.ssa->reachingDef(index, lea.instRef);
+        const auto indexAtAccess  = ctx.ssa->reachingDef(index, ref);
+        if (!baseAtAddress.valid() || !baseAtAccess.valid() || baseAtAddress.valueId != baseAtAccess.valueId || !indexAtAddress.valid() ||
+            !indexAtAccess.valid() || indexAtAddress.valueId != indexAtAccess.valueId)
+            return false;
+        if (keepAccessScalar(ctx, ref, base))
+            return false;
+
+        const int64_t offset = static_cast<int64_t>(leaOps[6].valueU64 + accessAt);
+        if (offset != static_cast<int64_t>(static_cast<int32_t>(offset)))
+            return false;
+        if (!ctx.claimAll({ref, lea.instRef}))
+            return false;
+
+        MicroReg scaledIndex = index;
+        if (!fits)
+        {
+            ctx.ensureVirtualIndices();
+            if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+                return false;
+            scaledIndex = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+
+            MicroInstrOperand copy[3] = {};
+            copy[0].reg               = scaledIndex;
+            copy[1].reg               = index;
+            copy[2].opBits            = MicroOpBits::B64;
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copy);
+            MicroInstrOperand shift[4] = {};
+            shift[0].reg               = scaledIndex;
+            shift[1].opBits            = MicroOpBits::B64;
+            shift[2].microOp           = MicroOp::ShiftLeft;
+            shift[3].valueU64          = static_cast<uint64_t>(std::countr_zero(scale));
+            ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, shift);
+        }
+
+        MicroInstrOperand access[8] = {};
+        access[0].reg               = dst;
+        access[1].reg               = base;
+        access[2].reg               = scaledIndex;
+        access[3].opBits            = bits;
+        access[4].opBits            = MicroOpBits::B64;
+        access[5].valueU64          = fits ? scale : 1;
+        access[6].valueU64          = static_cast<uint64_t>(offset);
+        if (isLoad)
+        {
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAmcRegMem, std::span{access, 7}, true);
+        }
+        else
+        {
+            access[7].microOp = ops[3].microOp;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpBinaryRegAmcMem, std::span{access, 8}, true);
+        }
+        ctx.emitErase(lea.instRef);
+        return true;
+    }
+
     // Fold a load through its indexed address directly into an integer ALU
     // consumer. Keeping this atomic avoids changing standalone indexed loads.
     bool tryFoldAmcAddressedLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)

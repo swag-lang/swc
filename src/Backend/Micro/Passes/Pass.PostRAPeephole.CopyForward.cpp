@@ -3458,6 +3458,10 @@ namespace PostRaPeephole
                     if (isPartialWidth(ops[2].opBits))
                         return kept;
                     return ops[2].opBits == MicroOpBits::B32;
+                case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                    if (isPartialWidth(ops[3].opBits))
+                        return kept;
+                    return ops[3].opBits == MicroOpBits::B32;
                 case MicroInstrOpcode::SetCondReg:
                     return kept;
                 case MicroInstrOpcode::OpBinaryRegReg:

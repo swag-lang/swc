@@ -1,6 +1,7 @@
 #global private
 
-// Switches that only pick a constant read a table packed into a register.
+// Switches that only pick a constant read a table, in constant memory unless
+// every entry is a single bit.
 // Every key around the cases, holes and far values included, must still give
 // the case's value or the default, signed values keeping their sign.
 

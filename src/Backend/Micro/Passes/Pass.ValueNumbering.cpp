@@ -25,7 +25,10 @@
 // reads, and that is decided by a memory epoch rather than by dominance — the
 // counter advances at every label, store, push/pop and call, so two loads
 // share a value only when they sit in the same straight line with no write of
-// any kind in between. Two loads match on the bytes they read, whatever each
+// any kind in between. A label only one jump reaches is no join: it resumes
+// the epoch of that jump, as LLVM's GVN finds a load's non-local dependency
+// in the single predecessor, so the arm of `a[i] < 0 ? -a[i] : a[i]` that
+// the branch skips to reads the element its test already loaded. Two loads match on the bytes they read, whatever each
 // one does with them: the byte a text scanner compares and then consumes,
 // `text[p] != ','` followed by `text[p] - 48`, is read once through a
 // zero-extending load and once as a plain byte, and the second becomes a copy
@@ -508,6 +511,12 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     std::vector<PlannedRewrite>                                  rewrites;
     ValueAliases                                                 valueAliases;
     uint32_t                                                     memoryEpoch = 0;
+    uint32_t                                                     lastEpoch   = 0;
+
+    // The epoch in force at each instruction. Epochs are never reused: a label
+    // that resumes its single predecessor's epoch shares it only with the
+    // straight lines that predecessor itself is reached through.
+    std::vector<uint32_t> epochAt(n, 0);
 
     for (uint32_t i = 0; i < n; ++i)
     {
@@ -516,8 +525,11 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (!inst)
             continue;
 
-        if (advancesMemoryEpoch(*inst))
-            ++memoryEpoch;
+        if (inst->op == MicroInstrOpcode::Label && cfg.predecessors(i).size() == 1 && cfg.predecessors(i)[0] < i)
+            memoryEpoch = epochAt[cfg.predecessors(i)[0]];
+        else if (advancesMemoryEpoch(*inst))
+            memoryEpoch = ++lastEpoch;
+        epochAt[i] = memoryEpoch;
 
         NumberingShape shape;
         if (!numberingShapeFor(inst->op, shape))

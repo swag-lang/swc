@@ -676,7 +676,7 @@ SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
     static constexpr uint32_t              input    = 0x3F800000u;
 
     DataSegmentRef maskRef;
-    const std::string_view maskStorage = ctx.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef);
+    const std::string_view maskStorage = ctx.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef, 16);
 
     MicroBuilder builder(ctx);
     const CallConv& callConv = CallConv::swag();

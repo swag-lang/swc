@@ -7,6 +7,8 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Main/TaskContext.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Report/Assert.h"
 
@@ -1176,6 +1178,137 @@ namespace
             builder->emitLoadRegImm(block.reg, ApInt(block.value ? 1 : 0, 64), MicroOpBits::B32);
             builder->emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, MicroLabelRef{block.joinLabelId});
         }
+        return changed;
+    }
+
+    // `d < c and d > -c` on floats is `|d| < c`, as LLVM's instcombine folds
+    // the two ordered compares into one of the absolute value:
+    //
+    //     cmp C, D ; seta T ; R = T ; jbe .J        A = D ; A &= |mask|
+    //     cmp D, -C ; seta T' ; R = T'        ->    cmp C, A ; seta T ; R = T
+    //   .J:                                       .J:
+    //
+    // A NaN fails both tests and the absolute one alike, and -0.0 passes all
+    // three. The mask is 16 bytes, aligned: andps reads a whole m128.
+    bool foldAbsoluteRangeTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        if (!context.builder || !context.taskContext || !context.taskContext->hasCompiler())
+            return false;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+        }
+
+        const auto at = [&](size_t ordinal, MicroInstrOpcode op) -> const MicroInstrOperand* {
+            const MicroInstr* inst = ordinal < layout.order.size() ? storage.ptr(layout.order[ordinal]) : nullptr;
+            return inst && inst->op == op ? inst->ops(operands) : nullptr;
+        };
+
+        uint32_t nextInt   = 0;
+        uint32_t nextFloat = 0;
+        bool     changed   = false;
+        for (size_t ordinal = 0; ordinal + 9 < layout.order.size(); ++ordinal)
+        {
+            const MicroInstrOperand* limit      = at(ordinal, MicroInstrOpcode::LoadRegImm);
+            const MicroInstrOperand* upper      = at(ordinal + 1, MicroInstrOpcode::CmpRegReg);
+            const MicroInstrOperand* upperSet   = at(ordinal + 2, MicroInstrOpcode::SetCondReg);
+            const MicroInstrOperand* upperCopy  = at(ordinal + 3, MicroInstrOpcode::LoadRegReg);
+            const MicroInstrOperand* exit       = at(ordinal + 4, MicroInstrOpcode::JumpCond);
+            const MicroInstrOperand* negLimit   = at(ordinal + 5, MicroInstrOpcode::LoadRegImm);
+            const MicroInstrOperand* lower      = at(ordinal + 6, MicroInstrOpcode::CmpRegReg);
+            const MicroInstrOperand* lowerSet   = at(ordinal + 7, MicroInstrOpcode::SetCondReg);
+            const MicroInstrOperand* lowerCopy  = at(ordinal + 8, MicroInstrOpcode::LoadRegReg);
+            const MicroInstrOperand* joinMark   = at(ordinal + 9, MicroInstrOpcode::Label);
+            if (!limit || !upper || !upperSet || !upperCopy || !exit || !negLimit || !lower || !lowerSet || !lowerCopy || !joinMark)
+                continue;
+
+            const MicroOpBits bits = upper[2].opBits;
+            if ((bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || limit[1].opBits != bits || negLimit[1].opBits != bits ||
+                lower[2].opBits != bits || limit[2].hasWideImmediateValue() || negLimit[2].hasWideImmediateValue())
+                continue;
+            const uint64_t signBit = bits == MicroOpBits::B64 ? uint64_t{1} << 63 : uint64_t{1} << 31;
+            const uint64_t mask    = bits == MicroOpBits::B64 ? ~uint64_t{0} : 0xFFFFFFFFull;
+            const uint64_t c       = limit[2].valueU64 & mask;
+            if ((c & signBit) || (negLimit[2].valueU64 & mask) != (c | signBit))
+                continue;
+
+            // cmp C, D then cmp D, -C, both strict or both not.
+            const MicroReg limitReg = limit[0].reg;
+            const MicroReg value    = upper[1].reg;
+            const MicroCond cond    = upperSet[1].cpuCond;
+            if (!limitReg.isVirtualFloat() || !value.isVirtualFloat() || upper[0].reg != limitReg || lower[0].reg != value ||
+                lower[1].reg != negLimit[0].reg || value == limitReg || (cond != MicroCond::Above && cond != MicroCond::AboveOrEqual) ||
+                lowerSet[1].cpuCond != cond)
+                continue;
+            MicroCond inverted = MicroCond::Unconditional;
+            if (!MicroPassHelpers::invertCondition(inverted, cond) || exit[0].cpuCond != inverted)
+                continue;
+            if (upperCopy[1].reg != upperSet[0].reg || lowerCopy[1].reg != lowerSet[0].reg || upperCopy[0].reg != lowerCopy[0].reg ||
+                upperCopy[2].opBits != MicroOpBits::B8 || lowerCopy[2].opBits != MicroOpBits::B8)
+                continue;
+            uint32_t joinLabel = 0;
+            uint32_t markLabel = 0;
+            if (!tryGetJumpTargetLabelId(joinLabel, *storage.ptr(layout.order[ordinal + 4]), exit) ||
+                !tryGetLabelId(markLabel, *storage.ptr(layout.order[ordinal + 9]), joinMark) || joinLabel != markLabel ||
+                labelReferences[joinLabel] != 1)
+                continue;
+
+            if (!nextFloat)
+                MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
+            const MicroReg absolute = MicroReg::virtualFloatReg(nextFloat++);
+
+            std::array<char, 16> absMask = {};
+            for (size_t lane = 0; lane < 16; lane += bits == MicroOpBits::B64 ? 8 : 4)
+            {
+                const uint64_t laneBits = bits == MicroOpBits::B64 ? ~signBit : 0x7FFFFFFFull;
+                std::memcpy(absMask.data() + lane, &laneBits, bits == MicroOpBits::B64 ? 8 : 4);
+            }
+            DataSegmentRef         maskRef;
+            const std::string_view maskStorage = context.taskContext->cstMgr().addPayloadBuffer(std::string_view{absMask.data(), absMask.size()}, &maskRef, 16);
+
+            const MicroInstrRef anchor  = layout.order[ordinal];
+            MicroInstrOperand   copy[3] = {};
+            copy[0].reg                 = absolute;
+            copy[1].reg                 = value;
+            copy[2].opBits              = bits;
+            storage.insertDerivedBefore(operands, anchor, MicroInstrOpcode::LoadRegReg, copy);
+            MicroInstrOperand andOps[5] = {};
+            andOps[0].reg               = absolute;
+            andOps[1].reg               = MicroReg::instructionPointer();
+            andOps[2].opBits            = bits;
+            andOps[3].microOp           = MicroOp::FloatAnd;
+            andOps[4].valueU64          = 0;
+            const MicroInstrRef andRef  = storage.insertDerivedBefore(operands, anchor, MicroInstrOpcode::OpBinaryRegMem, andOps);
+
+            MicroRelocation relocation;
+            relocation.kind           = MicroRelocation::Kind::ConstantAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = andRef;
+            relocation.targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data());
+            relocation.constantShard  = maskRef.shardIndex;
+            relocation.constantOffset = maskRef.offset;
+            relocation.constantCopySize = static_cast<uint32_t>(absMask.size());
+            context.builder->addRelocation(relocation);
+
+            storage.ptr(layout.order[ordinal + 1])->ops(operands)[1].reg = absolute;
+            for (size_t index = 4; index <= 9; ++index)
+                storage.erase(layout.order[ordinal + index]);
+            changed = true;
+            ordinal += 9;
+        }
+
         return changed;
     }
 
@@ -2494,12 +2627,23 @@ namespace
             }
             const bool     isSigned = signedWidth < unsignedWidth;
             const uint32_t width    = isSigned ? signedWidth : unsignedWidth;
-            if (width >= resultWidth || static_cast<uint64_t>(width) * table.size() > 64)
+
+            // Wider than a flag, the entries go to a constant table read at the
+            // index, as LLVM's SwitchToLookupTable does once they do not fit a
+            // register: an address and one load, against a scaled shift, a
+            // 64-bit immediate and an extraction for the packed form.
+            const uint32_t entryBytes  = width <= 8 ? 1 : width <= 16 ? 2 : width <= 32 ? 4 : 8;
+            const bool     memoryTable = width > 1 && entryBytes * 8 <= resultWidth && table.size() <= 256 && context.taskContext &&
+                                     context.taskContext->hasCompiler();
+            if (!memoryTable && (width >= resultWidth || static_cast<uint64_t>(width) * table.size() > 64))
                 continue;
 
             uint64_t packed = 0;
-            for (size_t index = 0; index < table.size(); ++index)
-                packed |= (table[index] & ((1ULL << width) - 1)) << (index * width);
+            if (!memoryTable)
+            {
+                for (size_t index = 0; index < table.size(); ++index)
+                    packed |= (table[index] & ((1ULL << width) - 1)) << (index * width);
+            }
 
             // Emit before the chain, then drop the chain and its arms.
             const MicroInstrRef anchor    = layout.order[start];
@@ -2555,7 +2699,55 @@ namespace
                 moveOps[3].opBits  = indexBits;
                 insert(MicroInstrOpcode::LoadCondRegReg, moveOps);
             }
-            if (width > 1)
+            if (memoryTable)
+            {
+                // Eight-byte slots: the JIT copies whole slots into its
+                // constant island.
+                std::string payload((table.size() * entryBytes + 7) & ~size_t{7}, '\0');
+                for (size_t entry = 0; entry < table.size(); ++entry)
+                    std::memcpy(payload.data() + entry * entryBytes, &table[entry], entryBytes);
+                DataSegmentRef         segmentRef;
+                const std::string_view stored = context.taskContext->cstMgr().addPayloadBuffer(payload, &segmentRef);
+
+                const MicroReg    tableReg = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                MicroInstrOperand addressOps[3];
+                addressOps[0].reg              = tableReg;
+                addressOps[1].opBits           = MicroOpBits::B64;
+                addressOps[2].valueU64         = reinterpret_cast<uint64_t>(stored.data());
+                const MicroInstrRef addressRef = storage.insertDerivedBefore(operands, anchor, MicroInstrOpcode::LoadRegPtrReloc, addressOps);
+
+                MicroRelocation relocation;
+                relocation.kind           = MicroRelocation::Kind::ConstantAddress;
+                relocation.instructionRef = addressRef;
+                relocation.targetAddress  = reinterpret_cast<uint64_t>(stored.data());
+                relocation.constantShard  = segmentRef.shardIndex;
+                relocation.constantOffset = segmentRef.offset;
+                context.builder->addRelocation(relocation);
+
+                const MicroOpBits entryBits = entryBytes == 1 ? MicroOpBits::B8 : entryBytes == 2 ? MicroOpBits::B16 : entryBytes == 4 ? MicroOpBits::B32 : MicroOpBits::B64;
+                MicroInstrOperand loadOps[7];
+                loadOps[0].reg      = bits;
+                loadOps[1].reg      = tableReg;
+                loadOps[2].reg      = index;
+                loadOps[5].valueU64 = entryBytes;
+                loadOps[6].valueU64 = 0;
+                // Loaded at the result's width, at least a dword: a narrower
+                // entry extends into it, and a dword write clears the rest.
+                const MicroOpBits loadBits = resultWidth >= 32 ? resultBits : MicroOpBits::B32;
+                if (entryBits == loadBits || (!isSigned && entryBits == MicroOpBits::B32))
+                {
+                    loadOps[3].opBits = entryBits;
+                    loadOps[4].opBits = MicroOpBits::B64;
+                    insert(MicroInstrOpcode::LoadAmcRegMem, loadOps);
+                }
+                else
+                {
+                    loadOps[3].opBits = isSigned ? loadBits : MicroOpBits::B32;
+                    loadOps[4].opBits = entryBits;
+                    insert(isSigned ? MicroInstrOpcode::LoadSignedExtAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem, loadOps);
+                }
+            }
+            if (!memoryTable && width > 1)
             {
                 MicroInstrOperand ops[4];
                 ops[0].reg = index;
@@ -2572,6 +2764,7 @@ namespace
                 }
                 insert(MicroInstrOpcode::OpBinaryRegImm, ops);
             }
+            if (!memoryTable)
             {
                 MicroInstrOperand loadOps[3];
                 loadOps[0].reg    = bits;
@@ -2585,7 +2778,10 @@ namespace
                 shiftOps[3].microOp = MicroOp::ShiftRight;
                 insert(MicroInstrOpcode::OpBinaryRegReg, shiftOps);
             }
-            if (isSigned && (width == 8 || width == 16 || width == 32))
+            if (memoryTable)
+            {
+            }
+            else if (isSigned && (width == 8 || width == 16 || width == 32))
             {
                 MicroInstrOperand ops[4];
                 ops[0].reg    = bits;
@@ -6465,6 +6661,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         bool lateChanged = speculateCheapElseArms(storage, operands);
         lateChanged |= threadShortCircuitReturnValues(storage, operands, context.builder);
+        lateChanged |= foldAbsoluteRangeTests(storage, operands, context);
         if (lateChanged)
         {
             context.passChanged = true;

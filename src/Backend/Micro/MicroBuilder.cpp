@@ -822,6 +822,15 @@ void MicroBuilder::emitOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
     ops[2].microOp          = op;
 }
 
+void MicroBuilder::emitConvertIntToFloat(MicroReg regDst, MicroReg regSrc, MicroOpBits dstBits, MicroOpBits srcBits)
+{
+    SWC_ASSERT(regDst.isAnyFloat() && regSrc.isAnyInt());
+    SWC_ASSERT(dstBits == MicroOpBits::B32 || dstBits == MicroOpBits::B64);
+    SWC_ASSERT(srcBits == MicroOpBits::B32 || srcBits == MicroOpBits::B64);
+    const MicroOp op = dstBits == MicroOpBits::B32 && srcBits == MicroOpBits::B64 ? MicroOp::ConvertInt64ToFloat32 : MicroOp::ConvertIntToFloat;
+    emitOpBinaryRegReg(regDst, regSrc, op, dstBits);
+}
+
 void MicroBuilder::emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegReg, 4);

@@ -858,6 +858,7 @@ namespace
             case MicroOp::Subtract:
                 return 0x29;
             case MicroOp::ConvertIntToFloat:
+            case MicroOp::ConvertInt64ToFloat32:
                 return 0x2A;
             case MicroOp::ConvertUIntToFloat64:
                 return 0x2B;
@@ -3269,8 +3270,17 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     ///////////////////////////////////////////
     if (regDst.isFloat() && regSrc.isInt())
     {
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, opBits, regDst, regSrc);
+        if (op == MicroOp::ConvertInt64ToFloat32)
+        {
+            SWC_ASSERT(opBits == MicroOpBits::B32);
+            emitCpuOp(store_, 0xF3);
+            emitRex(store_, MicroOpBits::B64, regDst, regSrc);
+        }
+        else
+        {
+            emitSpecF64(store_, 0xF3, opBits);
+            emitRex(store_, opBits, regDst, regSrc);
+        }
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, op);
         emitModRm(store_, regDst, regSrc);

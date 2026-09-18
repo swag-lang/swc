@@ -27,6 +27,7 @@ namespace
     {
         PatternRegistry r;
         r.add(MicroInstrOpcode::Nop, tryEraseTrivial);
+        r.add(MicroInstrOpcode::ClearReg, tryEraseScalarReturnConversionClear);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseZeroExtendedSelfCopy);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
@@ -180,6 +181,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     ctx.stackPointer     = conv.stackPointer;
     ctx.framePointer     = conv.framePointer;
     ctx.localStackBase   = context.debugStackBasePhysReg;
+    ctx.floatReturn      = conv.floatReturn;
     ctx.allowForwarding  = context.isFirstOptimizationSweep;
 
     eraseRedundantUpperHalfClears(ctx);

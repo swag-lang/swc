@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Fold the copy that legacy SSE forces in front of every float binary operation
@@ -207,6 +208,38 @@ namespace PostRaPeephole
         if (shiftRef.isValid())
             ctx.emitErase(shiftRef);
         ctx.emitErase(extRef);
+        return true;
+    }
+
+    // A scalar integer conversion only defines the low f32/f64 lane. The IR
+    // therefore models it as reading the destination and normally clears that
+    // register first. At an immediate scalar ABI return the upper lanes are
+    // unobservable, so the clear is pure encoding overhead.
+    bool tryEraseScalarReturnConversionClear(Context& ctx, const MicroInstrRef clearRef, const MicroInstr& clearInst)
+    {
+        if (ctx.isClaimed(clearRef) || clearInst.op != MicroInstrOpcode::ClearReg ||
+            !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
+            return false;
+        const auto* clear = clearInst.ops(*ctx.operands);
+        if (!clear || clear[0].reg != ctx.floatReturn ||
+            (clear[1].opBits != MicroOpBits::B32 && clear[1].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef convertRef = ctx.nextRef(clearRef);
+        const MicroInstr*   convert    = ctx.instruction(convertRef);
+        const auto*         convertOps = convert ? convert->ops(*ctx.operands) : nullptr;
+        if (!convert || convert->op != MicroInstrOpcode::OpBinaryRegReg || !convertOps ||
+            convertOps[0].reg != clear[0].reg || !convertOps[1].reg.isInt() ||
+            convertOps[2].opBits != clear[1].opBits ||
+            (convertOps[3].microOp != MicroOp::ConvertIntToFloat && convertOps[3].microOp != MicroOp::ConvertInt64ToFloat32))
+            return false;
+
+        const MicroInstrRef retRef = ctx.nextRef(convertRef);
+        const MicroInstr*   ret    = ctx.instruction(retRef);
+        if (!ret || ret->op != MicroInstrOpcode::Ret || !ctx.claimAll({clearRef, convertRef}))
+            return false;
+
+        ctx.emitErase(clearRef);
         return true;
     }
 

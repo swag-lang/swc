@@ -33,6 +33,7 @@ namespace PostRaPeephole
         MicroReg       stackPointer   = MicroReg::invalid();
         MicroReg       framePointer   = MicroReg::invalid();
         MicroReg       localStackBase = MicroReg::invalid();
+        MicroReg       floatReturn    = MicroReg::invalid();
 
         // Copy/const forwarding is only run while this is set (the first
         // post-RA sweep). See MicroPassContext::isFirstOptimizationSweep.
@@ -161,6 +162,7 @@ namespace PostRaPeephole
     bool tryFoldLoadIntoTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLoadIntoNarrowExtract(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLoadIntoBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryEraseScalarReturnConversionClear(Context& ctx, MicroInstrRef clearRef, const MicroInstr& clearInst);
     bool tryUseSelfOperandForFloatBinary(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
     bool tryEraseOverwrittenStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryEraseRedundantStoreReload(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);

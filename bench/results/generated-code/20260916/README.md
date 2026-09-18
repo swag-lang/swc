@@ -170,6 +170,9 @@ CSV/JSON counts, and compiler/artifact hashes in `identity.json`.
 | 32-bit product from bit 7 | 12 | 8 | 9 |
 | `f32` multiply by `0.5` | 16 | 9 | 9 |
 | `f64` multiply by `0.5` | 17 | 9 | 9 |
+| Return `s32` converted to `f32` | 8 | 5 | 5 |
+| Return `s64` converted to `f64` | 10 | 6 | 6 |
+| Return `s64` converted to `f32` | 8 | 6 | 6 |
 
 ## Changes
 
@@ -209,6 +212,10 @@ Scalar float arithmetic can now consume a RIP-relative constant directly. The
 post-allocation fold transfers the constant relocation to the memory operation,
 removes an overwritten zero initialization, and also removes an allocator copy
 when deleting the load restores the operation's original destination value.
+Scalar integer-to-float conversions returned immediately in the ABI float
+register no longer clear the unobservable upper lanes first. The micro operation
+now also distinguishes an `s64` source converted to `f32`, so x64 emits the
+required REX.W form instead of truncating the input to 32 bits.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -295,6 +302,11 @@ operations now retain their scalar load. A focused reproducer combining literal
 multiplication, degree conversion and `Swag.abs` passes in both JIT and native
 execution. The final build passed all 995 C++ tests, all 3,433 native tests and
 the three expected native recovery probes.
+
+Build 978 passed all 996 C++ tests, a focused Release conversion corpus and all
+nine native floating-cast tests. A value of 5,000,000,000 protects the `s64` to
+`f32` source width. The resulting `cvtsi2ss xmm0, rcx; ret` is 6 bytes, matching
+LLVM; `s32` to `f32` and `s64` to `f64` returns also match LLVM at 5 and 6 bytes.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

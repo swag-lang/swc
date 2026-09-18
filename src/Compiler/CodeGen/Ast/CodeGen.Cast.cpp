@@ -501,7 +501,7 @@ namespace
 
             dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
-            builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
+            builder.emitConvertIntToFloat(dstPayload.reg, srcReg, dstOpBits, srcOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstOpBits);
             return Result::Continue;
         }
 
@@ -603,13 +603,13 @@ namespace
             builder.emitOpBinaryRegReg(shiftedReg, lsbReg, MicroOp::Or, MicroOpBits::B64);
 
             builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
-            builder.emitOpBinaryRegReg(dstF64Reg, shiftedReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
+            builder.emitConvertIntToFloat(dstF64Reg, shiftedReg, MicroOpBits::B64, MicroOpBits::B64);
             builder.emitOpBinaryRegReg(dstF64Reg, dstF64Reg, MicroOp::FloatAdd, MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
             builder.placeLabel(directLabel);
             builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
-            builder.emitOpBinaryRegReg(dstF64Reg, srcReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
+            builder.emitConvertIntToFloat(dstF64Reg, srcReg, MicroOpBits::B64, MicroOpBits::B64);
             builder.placeLabel(doneLabel);
             return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
         }
@@ -629,13 +629,13 @@ namespace
         {
             const MicroReg dstF64Reg = codeGen.nextVirtualFloatRegister();
             builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
-            builder.emitOpBinaryRegReg(dstF64Reg, convertReg, MicroOp::ConvertIntToFloat, MicroOpBits::B64);
+            builder.emitConvertIntToFloat(dstF64Reg, convertReg, MicroOpBits::B64, MicroOpBits::B64);
             return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
         }
 
         const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
         builder.emitClearReg(dstReg, dstBits);
-        builder.emitOpBinaryRegReg(dstReg, convertReg, MicroOp::ConvertIntToFloat, dstBits);
+        builder.emitConvertIntToFloat(dstReg, convertReg, dstBits, convertBits);
         return dstReg;
     }
 
@@ -2026,7 +2026,7 @@ namespace
 
             dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
-            builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
+            builder.emitConvertIntToFloat(dstPayload.reg, srcReg, dstOpBits, srcOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstOpBits);
             return Result::Continue;
         }
 

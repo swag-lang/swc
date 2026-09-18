@@ -1538,6 +1538,36 @@ SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ScalarReturnConversionDropsUpperLaneClear)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg rcx  = MicroReg::intReg(2);
+
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitClearReg(xmm0, bits);
+        builder.emitConvertIntToFloat(xmm0, rcx, bits, MicroOpBits::B64);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != 0)
+            return Result::Error;
+
+        MicroBuilder nonReturn(ctx);
+        nonReturn.emitClearReg(xmm1, bits);
+        nonReturn.emitConvertIntToFloat(xmm1, rcx, bits, MicroOpBits::B64);
+        nonReturn.emitRet();
+        X64Encoder nonReturnEncoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(nonReturn, &nonReturnEncoder));
+        if (Backend::Unittest::countOpcode(nonReturn, MicroInstrOpcode::ClearReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_RipFloatLoadFoldsIntoThreeOperandOp)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

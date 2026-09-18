@@ -115,6 +115,18 @@ namespace
             if (!instruction)
                 return true;
 
+            // Back around a loop at the instruction being rewritten: the
+            // rewrite loads the fixed register right before it, so a read the
+            // encoder adds implicitly - the rax a `mul` takes - sees that load,
+            // not the value this probe asks about. Saving the register around
+            // a loop's multiply or divide otherwise kept a dead value cycling.
+            if (instructionRefs[index] == instRef)
+            {
+                const MicroInstrUseDef explicitUseDef = instruction->collectUseDef(*context.operands, nullptr);
+                if (!microRegSpanContains(explicitUseDef.uses, reg))
+                    continue;
+            }
+
             const MicroInstrUseDef useDef = instruction->collectUseDef(*context.operands, context.encoder);
             if (microRegSpanContains(useDef.uses, reg))
                 return true;

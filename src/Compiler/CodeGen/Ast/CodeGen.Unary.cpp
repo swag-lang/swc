@@ -98,6 +98,7 @@ namespace
                 .targetAddress  = reinterpret_cast<uint64_t>(maskStorage),
                 .constantShard  = maskRef.shardIndex,
                 .constantOffset = maskRef.offset,
+                .constantCopySize = 16,
             });
             return Result::Continue;
         }

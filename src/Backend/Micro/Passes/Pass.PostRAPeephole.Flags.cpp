@@ -763,10 +763,29 @@ namespace PostRaPeephole
                 case MicroCond::Zero:
                 case MicroCond::NotZero:
                 case MicroCond::Sign:
+                case MicroCond::NotSign:
                 case MicroCond::Parity:
                 case MicroCond::NotParity:
                 case MicroCond::EvenParity:
                 case MicroCond::NotEvenParity:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // After `cmp r, 0` the overflow flag is clear, so a signed order
+        // against zero reads the sign flag alone - which the instruction that
+        // produced `r` sets from its result too.
+        bool signConditionAgainstZero(MicroCond cond, MicroCond& out)
+        {
+            switch (cond)
+            {
+                case MicroCond::Less:
+                    out = MicroCond::Sign;
+                    return true;
+                case MicroCond::GreaterOrEqual:
+                    out = MicroCond::NotSign;
                     return true;
                 default:
                     return false;
@@ -821,6 +840,15 @@ namespace PostRaPeephole
                     outBits = ops[2].opBits;
                     return true;
 
+                case MicroInstrOpcode::OpUnaryReg:
+                    // [dst, opBits, microOp]: inc, dec and neg set ZF/SF/PF
+                    // from their result; not and bswap leave the flags alone.
+                    if (ops[2].microOp != MicroOp::Add && ops[2].microOp != MicroOp::Subtract && ops[2].microOp != MicroOp::Negate)
+                        return false;
+                    outReg  = ops[0].reg;
+                    outBits = ops[1].opBits;
+                    return true;
+
                 default:
                     return false;
             }
@@ -854,7 +882,10 @@ namespace PostRaPeephole
     //     cmp  reg, 0    ->     (erased)
     //     je   .L              je   .L      ; tests ZF set by sub
     //
-    // Only fires when every flag consumer uses a ZF/SF/PF-only condition.
+    // Only fires when every flag consumer uses a ZF/SF/PF-only condition, or
+    // a signed order against zero, which reads the sign flag once the
+    // compare's clear overflow flag is gone, as LLVM's optimizeCompareInstr
+    // turns `dec ; cmp 0 ; jge` into `dec ; jns`.
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
     {
         if (cmpInst.op != MicroInstrOpcode::CmpRegImm || ctx.isClaimed(cmpRef))
@@ -886,6 +917,7 @@ namespace PostRaPeephole
         // Validate every consumer that observes our flags before they are
         // overwritten. Anything that uses an unsafe condition, or any flags
         // user we don't recognize, aborts the rewrite.
+        SmallVector<MicroInstrRef, 4> signReaders;
         for (MicroInstrRef scanRef = ctx.nextRef(cmpRef); scanRef.isValid(); scanRef = ctx.nextRef(scanRef))
         {
             const MicroInstr* scanInst = ctx.instruction(scanRef);
@@ -899,9 +931,12 @@ namespace PostRaPeephole
             if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
             {
                 MicroCond cond;
+                MicroCond signCond;
                 if (!flagConsumerCond(*scanInst, scanOps, cond))
                     return false;
-                if (!isFlagReuseSafeCond(cond))
+                if (signConditionAgainstZero(cond, signCond))
+                    signReaders.push_back(scanRef);
+                else if (!isFlagReuseSafeCond(cond))
                     return false;
             }
 
@@ -924,7 +959,23 @@ namespace PostRaPeephole
         // leave the consumers reading nothing.
         if (!ctx.claimAll({cmpRef, prevRef}))
             return false;
+        for (const MicroInstrRef readerRef : signReaders)
+        {
+            if (!ctx.claimAll({readerRef}))
+                return false;
+        }
 
+        for (const MicroInstrRef readerRef : signReaders)
+        {
+            const MicroInstr*        reader    = ctx.instruction(readerRef);
+            const MicroInstrOperand* readerOps = reader->ops(*ctx.operands);
+            uint8_t                  condIndex = 0;
+            MicroInstrOperand        rewritten[Action::K_MAX_OPS];
+            MicroPassHelpers::conditionOperandIndex(reader->op, condIndex);
+            std::ranges::copy(std::span{readerOps, reader->numOperands}, rewritten);
+            signConditionAgainstZero(readerOps[condIndex].cpuCond, rewritten[condIndex].cpuCond);
+            ctx.emitRewrite(readerRef, reader->op, std::span{rewritten, reader->numOperands});
+        }
         ctx.emitErase(cmpRef);
         return true;
     }

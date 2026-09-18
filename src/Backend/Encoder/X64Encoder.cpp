@@ -2741,6 +2741,12 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
         case MicroCond::NotParity:
             emitCpuOp(store_, 0x9B);
             break;
+        case MicroCond::Sign:
+            emitCpuOp(store_, 0x98);
+            break;
+        case MicroCond::NotSign:
+            emitCpuOp(store_, 0x99);
+            break;
         default:
             SWC_UNREACHABLE();
     }
@@ -2785,6 +2791,9 @@ void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCon
             break;
         case MicroCond::Sign:
             emitCpuOp(store_, 0x48);
+            break;
+        case MicroCond::NotSign:
+            emitCpuOp(store_, 0x49);
             break;
         case MicroCond::Parity:
         case MicroCond::EvenParity:
@@ -4459,6 +4468,9 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
             case MicroCond::Sign:
                 emitCpuOp(store_, 0x78);
                 break;
+            case MicroCond::NotSign:
+                emitCpuOp(store_, 0x79);
+                break;
             case MicroCond::Parity:
                 emitCpuOp(store_, 0x7A);
                 break;
@@ -4537,6 +4549,10 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
         case MicroCond::Sign:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x88);
+            break;
+        case MicroCond::NotSign:
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0x89);
             break;
         case MicroCond::NotParity:
             emitCpuOp(store_, 0x0F);

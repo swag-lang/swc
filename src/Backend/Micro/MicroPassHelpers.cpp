@@ -13,9 +13,8 @@ SWC_BEGIN_NAMESPACE();
 
 // Logical complement of a branch condition at the CPU-flag level. The pairs
 // are exact complements over (CF, ZF, SF, OF, PF), so flipping is valid for
-// both integer and floating-point (unordered) comparisons. `Sign` has no
-// representable complement in the enum, so it (and anything unexpected)
-// reports failure and blocks the rewrite.
+// both integer and floating-point (unordered) comparisons. Anything
+// unexpected reports failure and blocks the rewrite.
 bool MicroPassHelpers::invertCondition(MicroCond& outInverted, MicroCond cond)
 {
     switch (cond)
@@ -39,6 +38,8 @@ bool MicroPassHelpers::invertCondition(MicroCond& outInverted, MicroCond cond)
         case MicroCond::NotParity: outInverted = MicroCond::Parity; return true;
         case MicroCond::EvenParity: outInverted = MicroCond::NotEvenParity; return true;
         case MicroCond::NotEvenParity: outInverted = MicroCond::EvenParity; return true;
+        case MicroCond::Sign: outInverted = MicroCond::NotSign; return true;
+        case MicroCond::NotSign: outInverted = MicroCond::Sign; return true;
         default: return false;
     }
 }

@@ -2333,6 +2333,35 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterDwordConversion_Erased)
 }
 SWC_TEST_END()
 
+// `dec ; cmp 0 ; setge` reads the sign `dec` left: `dec ; setns`.
+SWC_TEST_BEGIN(PostRAPeephole_SignedOrderAgainstZeroReadsSign)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(rax, r8, 0, MicroOpBits::B64);
+    builder.emitOpUnaryReg(rax, MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCmpRegImm(rax, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitSetCondReg(rcx, MicroCond::GreaterOrEqual);
+    builder.emitLoadMemReg(r8, 8, rcx, MicroOpBits::B8);
+    builder.emitLoadMemReg(r8, 16, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 0)
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::SetCondReg && inst.ops(builder.operands())[1].cpuCond != MicroCond::NotSign)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

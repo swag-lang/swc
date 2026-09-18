@@ -175,6 +175,36 @@ SWC_TEST_BEGIN(SlpVectorize_PacksFloatMinMemoryArithmetic)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_PacksFloatSqrt)
+{
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
+    MicroSsaState  ssa;
+    const MicroReg sp = encoder.stackPointerReg();
+    for (uint32_t lane = 0; lane < 4; ++lane)
+    {
+        const MicroReg value = MicroReg::virtualFloatReg(lane + 1);
+        builder.emitLoadRegMem(value, sp, 0x40 + lane * 4, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(value, value, MicroOp::FloatSqrt, MicroOpBits::B32);
+        builder.emitLoadMemReg(sp, 0x80 + lane * 4, value, MicroOpBits::B32);
+    }
+    builder.emitRet();
+
+    SWC_RESULT(runSlpPass(builder, ssa, encoder));
+    uint32_t sqrts = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const auto* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::VecUnaryRegReg && ops[3].microOp == MicroOp::VecSqrtF32)
+            ++sqrts;
+    }
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1 || sqrts != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_SplatsSharedArithmeticImmediate)
 {
     MicroBuilder   builder(ctx);

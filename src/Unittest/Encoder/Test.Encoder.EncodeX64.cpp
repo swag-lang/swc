@@ -239,6 +239,7 @@ namespace
     Result buildCmpAndCond(const RunCaseFn& runCase)
     {
         ENCODE_CASE("cmp_reg_reg_r8_r9_b64", "4D 39 C8", b.emitCmpRegReg(R8, R9, MicroOpBits::B64););
+        ENCODE_CASE("cmp_reg_reg_xmm0_xmm1_b32", "0F 2F C1", b.emitCmpRegReg(XMM0, XMM1, MicroOpBits::B32););
         ENCODE_CASE("cmp_reg_reg_xmm0_xmm1_b64", "66 0F 2F C1", b.emitCmpRegReg(XMM0, XMM1, MicroOpBits::B64););
         ENCODE_CASE("cmp_reg_imm_r8_7f_b64", "49 83 F8 7F", b.emitCmpRegImm(R8, ApInt(0x7F, 64), MicroOpBits::B64););
         ENCODE_CASE("cmp_reg_imm_r8_80_b64", "49 81 F8 80 00 00 00", b.emitCmpRegImm(R8, ApInt(0x80, 64), MicroOpBits::B64););

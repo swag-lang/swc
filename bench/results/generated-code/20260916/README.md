@@ -220,6 +220,9 @@ A scalar floating selection returned immediately now keeps the true arm in the
 ABI return register and branches around one direct copy of the false arm. This
 removes the three temporary copies and the unconditional branch from the
 post-allocation diamond.
+Scalar `f32` relations now use the native single-precision comparison instead
+of converting both operands to `f64`. Sema has already promoted mixed operands
+to one common type, so the conversion did not change the comparison result.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -316,6 +319,12 @@ Build 979 passed all 997 C++ tests and the focused floating-copy Release test,
 which executes both arms for `f32` and `f64`. Both selections shrink from 24 to
 9 bytes (`test; jne; movss/movsd; ret`), matching LLVM. Unit coverage keeps the
 diamond unchanged when RET does not consume the ABI floating return register.
+
+Build 980 passed all 997 C++ tests and four focused Release tests covering all
+six `f32` relations, the three results of `<=>`, and unordered NaN behavior.
+The encoder test fixes the direct `comiss` byte sequence. In the scalar corpus,
+each `f32` min/max ternary shrinks from 41 to 24 bytes before its selection
+diamond is optimized; the corresponding `f64` functions remain unchanged.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

@@ -2201,6 +2201,63 @@ SWC_TEST_BEGIN(BranchSimplify_SingleShortCircuitExitKept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp ; jae .E ; D = [base] (or D += [base]) ; jmp .J ; .E: D = 0 ; .J: store D ; ret
+    void emitLoadOrZeroDiamond(MicroBuilder& builder, bool thenReadsResult)
+    {
+        constexpr MicroReg result = MicroReg::virtualIntReg(1);
+        constexpr MicroReg base   = MicroReg::virtualIntReg(2);
+        const MicroLabelRef other = builder.createLabel();
+        const MicroLabelRef join  = builder.createLabel();
+        builder.emitLoadRegMem(base, MicroReg::intReg(1), 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(result, MicroReg::intReg(1), 8, MicroOpBits::B64);
+        builder.emitCmpRegReg(MicroReg::intReg(2), MicroReg::intReg(8), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, other);
+        if (thenReadsResult)
+            builder.emitOpBinaryRegMem(result, base, 0, MicroOp::Add, MicroOpBits::B32);
+        else
+            builder.emitLoadRegMem(result, base, 0, MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(other);
+        builder.emitLoadRegImm(result, ApInt(0, 64), MicroOpBits::B32);
+        builder.placeLabel(join);
+        builder.emitLoadMemReg(MicroReg::intReg(1), 16, result, MicroOpBits::B32);
+        builder.emitRet();
+    }
+
+    uint32_t countUnconditionalJumps(const MicroBuilder& builder)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::JumpCond && inst.ops(builder.operands())[0].cpuCond == MicroCond::Unconditional)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// The zero arm runs before the branch, and the jump over it goes.
+SWC_TEST_BEGIN(BranchSimplify_CheapElseArmSpeculated)
+{
+    MicroBuilder builder(ctx);
+    emitLoadOrZeroDiamond(builder, false);
+    SWC_RESULT(runLateBranchSimplifyPass(builder));
+    return countUnconditionalJumps(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A then arm that reads the result needs it untouched: the diamond stays.
+SWC_TEST_BEGIN(BranchSimplify_ElseArmKeptWhenThenReadsResult)
+{
+    MicroBuilder builder(ctx);
+    emitLoadOrZeroDiamond(builder, true);
+    SWC_RESULT(runLateBranchSimplifyPass(builder));
+    return countUnconditionalJumps(builder) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

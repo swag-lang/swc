@@ -2028,6 +2028,73 @@ SWC_TEST_BEGIN(BranchSimplify_MirroredSignDiamondWithLessKept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // comiss x, y ; j(cond) .E ; d = p ; jmp .J ; .E: d = q ; .J: ret
+    void emitFloatSelect(MicroBuilder& builder, MicroCond cond, bool fallTakesLeft)
+    {
+        const MicroReg x = MicroReg::virtualFloatReg(10);
+        const MicroReg y = MicroReg::virtualFloatReg(11);
+        const MicroReg d = MicroReg::virtualFloatReg(12);
+
+        const MicroLabelRef elseLabel = builder.createLabel();
+        const MicroLabelRef joinLabel = builder.createLabel();
+        builder.emitCmpRegReg(x, y, MicroOpBits::B32);
+        builder.emitJumpToLabel(cond, MicroOpBits::B32, elseLabel);
+        builder.emitLoadRegReg(d, fallTakesLeft ? x : y, MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, joinLabel);
+        builder.placeLabel(elseLabel);
+        builder.emitLoadRegReg(d, fallTakesLeft ? y : x, MicroOpBits::B32);
+        builder.placeLabel(joinLabel);
+        builder.emitLoadRegReg(CallConv::get(CallConvKind::Swag).floatReturn, d, MicroOpBits::B32);
+        builder.emitRet();
+    }
+
+    MicroOp floatSelectOp(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg && (ops[3].microOp == MicroOp::FloatMax || ops[3].microOp == MicroOp::FloatMin))
+                return ops[3].microOp;
+        }
+        return MicroOp::Move;
+    }
+}
+
+// x > y ? x : y is maxss, x > y ? y : x minss.
+SWC_TEST_BEGIN(BranchSimplify_FloatSelectOfComparedValues_BecomesMinMax)
+{
+    {
+        MicroBuilder builder(ctx);
+        emitFloatSelect(builder, MicroCond::BelowOrEqual, true);
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        if (floatSelectOp(builder) != MicroOp::FloatMax || countConditionalJumps(builder) != 0)
+            return Result::Error;
+    }
+    {
+        MicroBuilder builder(ctx);
+        emitFloatSelect(builder, MicroCond::BelowOrEqual, false);
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        if (floatSelectOp(builder) != MicroOp::FloatMin || countConditionalJumps(builder) != 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// x >= y ? x : y keeps x on equal values, which maxss would not.
+SWC_TEST_BEGIN(BranchSimplify_FloatSelectOnNonStrictTest_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitFloatSelect(builder, MicroCond::Below, true);
+    SWC_RESULT(runBranchSimplifyPass(builder));
+    if (floatSelectOp(builder) != MicroOp::Move)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

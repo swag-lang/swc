@@ -3668,6 +3668,141 @@ namespace
     // load never touches the CPU flags the move consumes. This removes the
     // classic min/max and conditional-constant branches, which are the least
     // predictable ones in the numeric kernels.
+    // A float select between the two values a comparison tested is their
+    // maximum or minimum, as LLVM's x86 lowering picks maxss and minss:
+    //
+    //     comiss x, y ; jbe .E ; d = x ; jmp .J ; .E: d = y ; .J:
+    //   ->
+    //     d = x ; maxss d, y
+    //
+    // maxss keeps its first operand when it is greater and takes the second
+    // otherwise, equal values and NaN included, which is exactly what the
+    // ordered `x > y` test selects; minss is the mirror. Only the strict test
+    // matches: `x >= y ? x : y` keeps x on equal values, where maxss would
+    // hand back y, and 0.0 and -0.0 compare equal.
+    bool convertFloatSelectsToMinMax(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        constexpr uint32_t K_MAX_FLAG_WINDOW = 4;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+        }
+
+        const auto floatCopy = [&](const MicroInstr* inst, MicroOpBits bits, MicroReg& outDst, MicroReg& outSrc) {
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
+                return false;
+            const MicroInstrOperand* ops = inst->ops(operands);
+            if (!ops || !ops[0].reg.isVirtualFloat() || !ops[1].reg.isVirtualFloat() || ops[2].opBits != bits)
+                return false;
+            outDst = ops[0].reg;
+            outSrc = ops[1].reg;
+            return true;
+        };
+        const auto labelIdAt = [&](size_t ordinal, uint32_t& outId) {
+            const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
+            return inst && tryGetLabelId(outId, *inst, inst->ops(operands));
+        };
+
+        bool changed = false;
+        for (size_t ordinal = 0; ordinal + 5 < layout.order.size(); ++ordinal)
+        {
+            const MicroInstrRef jumpRef = layout.order[ordinal];
+            const MicroInstr*   jump    = storage.ptr(jumpRef);
+            if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jumpOps = jump->ops(operands);
+            const MicroCond          cond    = jumpOps ? jumpOps[0].cpuCond : MicroCond::Unconditional;
+            if (cond != MicroCond::Above && cond != MicroCond::BelowOrEqual)
+                continue;
+            uint32_t elseLabelId = 0;
+            if (!tryGetJumpTargetLabelId(elseLabelId, *jump, jumpOps))
+                continue;
+
+            // The float comparison that set the flags, with only flag- and
+            // operand-preserving instructions before the jump.
+            MicroInstrRef     cmpRef = MicroInstrRef::invalid();
+            const MicroInstr* cmp    = nullptr;
+            for (size_t back = 1; back <= K_MAX_FLAG_WINDOW && back <= ordinal; ++back)
+            {
+                const MicroInstr* candidate = storage.ptr(layout.order[ordinal - back]);
+                if (!candidate)
+                    break;
+                if (candidate->op == MicroInstrOpcode::CmpRegReg)
+                {
+                    cmpRef = layout.order[ordinal - back];
+                    cmp    = candidate;
+                    break;
+                }
+                if (candidate->op != MicroInstrOpcode::SetCondReg)
+                    break;
+            }
+            if (!cmp)
+                continue;
+            const MicroInstrOperand* cmpOps = cmp->ops(operands);
+            const MicroOpBits        bits   = cmpOps[2].opBits;
+            const MicroReg           left   = cmpOps[0].reg;
+            const MicroReg           right  = cmpOps[1].reg;
+            if (!left.isVirtualFloat() || !right.isVirtualFloat() || left == right || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64))
+                continue;
+
+            // d = p ; jmp .J ; .E: d = q ; .J:
+            MicroReg fallDst, fallSrc, jumpDst, jumpSrc;
+            if (!floatCopy(storage.ptr(layout.order[ordinal + 1]), bits, fallDst, fallSrc))
+                continue;
+            const MicroInstr* skip = storage.ptr(layout.order[ordinal + 2]);
+            if (!skip || skip->op != MicroInstrOpcode::JumpCond || skip->ops(operands)[0].cpuCond != MicroCond::Unconditional)
+                continue;
+            uint32_t joinLabelId = 0;
+            uint32_t armLabelId  = 0;
+            uint32_t endLabelId  = 0;
+            if (!tryGetJumpTargetLabelId(joinLabelId, *skip, skip->ops(operands)) || !labelIdAt(ordinal + 3, armLabelId) ||
+                armLabelId != elseLabelId || !floatCopy(storage.ptr(layout.order[ordinal + 4]), bits, jumpDst, jumpSrc) ||
+                !labelIdAt(ordinal + 5, endLabelId) || endLabelId != joinLabelId)
+                continue;
+            if (fallDst != jumpDst || labelReferences[elseLabelId] != 1 || labelReferences[joinLabelId] != 1)
+                continue;
+            if (!((fallSrc == left && jumpSrc == right) || (fallSrc == right && jumpSrc == left)))
+                continue;
+
+            // d = (x > y) ? taken : other.
+            const MicroReg takenOnAbove = cond == MicroCond::Above ? jumpSrc : fallSrc;
+            const MicroReg otherwise    = cond == MicroCond::Above ? fallSrc : jumpSrc;
+            const MicroOp  op           = takenOnAbove == left ? MicroOp::FloatMax : MicroOp::FloatMin;
+
+            MicroInstrOperand copyOps[3] = {};
+            copyOps[0].reg               = fallDst;
+            copyOps[1].reg               = takenOnAbove;
+            copyOps[2].opBits            = bits;
+            MicroInstrOperand minMax[4]  = {};
+            minMax[0].reg                = fallDst;
+            minMax[1].reg                = otherwise;
+            minMax[2].opBits             = bits;
+            minMax[3].microOp            = op;
+            storage.insertDerivedBefore(operands, jumpRef, MicroInstrOpcode::LoadRegReg, copyOps);
+            storage.insertDerivedBefore(operands, jumpRef, MicroInstrOpcode::OpBinaryRegReg, minMax);
+            for (size_t index = 0; index <= 4; ++index)
+                storage.erase(layout.order[ordinal + index]);
+            changed = true;
+            ordinal += 5;
+        }
+
+        if (changed && context.builder)
+            context.builder->invalidateControlFlowGraph();
+        return changed;
+    }
+
     bool convertBranchesToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
     {
         struct Conversion
@@ -5953,6 +6088,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
 
+    changed |= convertFloatSelectsToMinMax(storage, operands, context);
     if (convertBranchesToConditionalMoves(storage, operands, context))
     {
         changed = true;

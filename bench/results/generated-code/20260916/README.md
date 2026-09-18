@@ -122,6 +122,13 @@ bytes (LLVM 19) and absolute difference from 46 to 19 (LLVM 22). Future work
 there should target repeated memory-expression reuse and branch formation,
 rather than the final post-allocation sequences.
 
+An eight-function range-selection follow-up fell from 278 bytes at build 959
+to 150 at build 973, equal to LLVM's total. Inclusive, half-open, reversed,
+signed and 64-bit in-range selections use two conditional moves. Out-of-range
+`u32` selection is 18 bytes against LLVM's branch-containing 19; its signed
+counterpart is 19/19. The only function one byte above LLVM is the signed
+in-range selection, whose `movsxd` preserves Swag's signed-return ABI contract.
+
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
 IDIV sequence, for example, need not execute faster than a longer multiplication
@@ -181,6 +188,10 @@ legalizer moves an address away from the required `CL` register. Indexed
 multiplication reuses a dead multiplier as the `imul reg,mem` destination.
 The final integrated legalizer copies the indexed instruction operands before
 inserting those moves, since insertion can grow and relocate operand storage.
+Range-guarded value diamonds now become a pair of conditional moves, leaf
+functions address incoming stack arguments from the unchanged entry stack
+pointer, and a post-allocation rule consumes comparison flags directly instead
+of materializing two booleans, OR-ing them, and comparing the result.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -236,6 +247,12 @@ validation varied between branch diamonds, short-circuit booleans, count
 boundaries, narrow return copies, implicit multiplication, carry handling,
 indexed averages, calls and stack-frame addresses; the final repository
 integrity check also passed.
+
+Build 973 passed the 989 C++ tests and focused Release executions for guarded
+range selections and independent short-circuit booleans. The guarded test now
+executes signed and unsigned out-of-range selections at both inclusive
+boundaries and immediately outside them. Its eight-function assembly corpus is
+150 bytes in both Swag and LLVM.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

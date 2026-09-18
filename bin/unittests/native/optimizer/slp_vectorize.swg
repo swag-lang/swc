@@ -228,6 +228,15 @@ func lanesAbsFloat(values: *[8] f32)
     values[][7] = Swag.abs(values[][3])
 }
 
+#[Swag.Optimize(true)]
+func lanesAddFloatConstant(values: *[8] f32)
+{
+    values[][4] = values[][0] + 1.5'f32
+    values[][5] = values[][1] + 1.5'f32
+    values[][6] = values[][2] + 1.5'f32
+    values[][7] = values[][3] + 1.5'f32
+}
+
 #test
 {
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -290,6 +299,13 @@ func lanesAbsFloat(values: *[8] f32)
     var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
     lanesAbsFloat(&values)
     Swag.assert(values[4] == 1.5'f32 and values[5] == 0.0'f32 and values[6] == 2.25'f32 and values[7] == 4.0'f32)
+}
+
+#test
+{
+    var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
+    lanesAddFloatConstant(&values)
+    Swag.assert(values[4] == 0.0'f32 and values[5] == 1.5'f32 and values[6] == 3.75'f32 and values[7] == -2.5'f32)
 }
 
 #test

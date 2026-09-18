@@ -128,6 +128,9 @@ signed and 64-bit in-range selections use two conditional moves. Out-of-range
 `u32` selection is 18 bytes against LLVM's branch-containing 19; its signed
 counterpart is 19/19. The only function one byte above LLVM is the signed
 in-range selection, whose `movsxd` preserves Swag's signed-return ABI contract.
+The following arithmetic sample retargets a magic multiply and logical shift
+onto the return register: unsigned division by three falls from 18 to 16 bytes,
+matching LLVM. Its 18 functions total 194 bytes against LLVM's 195.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -192,6 +195,9 @@ Range-guarded value diamonds now become a pair of conditional moves, leaf
 functions address incoming stack arguments from the unchanged entry stack
 pointer, and a post-allocation rule consumes comparison flags directly instead
 of materializing two booleans, OR-ing them, and comparing the result.
+Another post-allocation rule commutes an adjacent multiply into the result
+register and retargets its logical shift, removing the final narrow copy when
+the shift proves the upper dword is already zero.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -253,6 +259,11 @@ range selections and independent short-circuit booleans. The guarded test now
 executes signed and unsigned out-of-range selections at both inclusive
 boundaries and immediately outside them. Its eight-function assembly corpus is
 150 bytes in both Swag and LLVM.
+
+Build 974 passed the 989 C++ tests plus focused Release executions for 32-bit
+constant division and combined quotient/remainder arithmetic. The unit coverage
+also retains the final 32-bit copy when a 31-bit shift cannot prove the upper
+half clear.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

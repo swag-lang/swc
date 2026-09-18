@@ -589,6 +589,9 @@ namespace
         std::unordered_map<TupleKey, uint32_t, TupleKeyHash> tupleRegs;
         // Equal sorted IDs make every permutation reusable from the first tuple.
         std::unordered_map<TupleKey, TupleKey, TupleKeyHash> firstTupleBySortedKey;
+        // A scalar immediate has the same four-lane representation in every
+        // group, so one materialized splat feeds all of its vector uses.
+        std::unordered_map<uint32_t, uint32_t> splatRegs;
 
         size_t totalInstrs() const { return loads.size() + ops.size() + stores.size(); }
     };
@@ -756,8 +759,19 @@ namespace
                                 default: return K_INVALID_ID;
                             }
 
-                            const uint32_t splatReg = allocReg();
-                            plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat32, .dst = splatReg, .imm = n0.imm});
+                            const uint32_t splatValue = static_cast<uint32_t>(n0.imm);
+                            const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                            uint32_t       splatReg   = K_INVALID_ID;
+                            if (splatIt != plan_->splatRegs.end())
+                            {
+                                splatReg = splatIt->second;
+                            }
+                            else
+                            {
+                                splatReg = allocReg();
+                                plan_->splatRegs.emplace(splatValue, splatReg);
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat32, .dst = splatReg, .imm = splatValue});
+                            }
 
                             const uint32_t dstReg = allocReg();
                             if (nonDestructive_)

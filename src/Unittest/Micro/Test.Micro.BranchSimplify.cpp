@@ -2290,6 +2290,64 @@ SWC_TEST_BEGIN(BranchSimplify_ElseArmKeptWhenThenReadsResult)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp C, D ; seta ; R = T ; jbe .J ; cmp D, N ; seta ; R = T' ; .J: rax = R ; ret
+    void emitFloatRangeAnd(MicroBuilder& builder, uint64_t negatedBits)
+    {
+        constexpr MicroReg value    = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg limit    = MicroReg::virtualFloatReg(2);
+        constexpr MicroReg negLimit = MicroReg::virtualFloatReg(3);
+        constexpr MicroReg result   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg first    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg second   = MicroReg::virtualIntReg(3);
+        const MicroLabelRef join    = builder.createLabel();
+        builder.emitLoadRegMem(value, MicroReg::intReg(1), 0, MicroOpBits::B32);
+        builder.emitLoadRegImm(limit, ApInt(0x3A83126F, 64), MicroOpBits::B32);
+        builder.emitCmpRegReg(limit, value, MicroOpBits::B32);
+        builder.emitSetCondReg(first, MicroCond::Above);
+        builder.emitLoadRegReg(result, first, MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, join);
+        builder.emitLoadRegImm(negLimit, ApInt(negatedBits, 64), MicroOpBits::B32);
+        builder.emitCmpRegReg(value, negLimit, MicroOpBits::B32);
+        builder.emitSetCondReg(second, MicroCond::Above);
+        builder.emitLoadRegReg(result, second, MicroOpBits::B8);
+        builder.placeLabel(join);
+        builder.emitLoadRegReg(MicroReg::intReg(0), result, MicroOpBits::B8);
+        builder.emitRet();
+    }
+
+    bool hasFloatAnd(const MicroBuilder& builder)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::OpBinaryRegMem && inst.ops(builder.operands())[3].microOp == MicroOp::FloatAnd)
+                return true;
+        }
+        return false;
+    }
+}
+
+// `d < c and d > -c` tests |d| once.
+SWC_TEST_BEGIN(BranchSimplify_FloatRangeBecomesAbsoluteTest)
+{
+    MicroBuilder builder(ctx);
+    emitFloatRangeAnd(builder, 0xBA83126F);
+    SWC_RESULT(runLateBranchSimplifyPass(builder));
+    return hasFloatAnd(builder) && countConditionalJumps(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// Bounds that are not each other's negation keep both tests.
+SWC_TEST_BEGIN(BranchSimplify_UnbalancedFloatRangeKept)
+{
+    MicroBuilder builder(ctx);
+    emitFloatRangeAnd(builder, 0xBA000000);
+    SWC_RESULT(runLateBranchSimplifyPass(builder));
+    return !hasFloatAnd(builder) && countConditionalJumps(builder) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

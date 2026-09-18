@@ -1181,6 +1181,136 @@ namespace
         return changed;
     }
 
+    // `d < c and d > -c` on floats is `|d| < c`, as LLVM's instcombine folds
+    // the two ordered compares into one of the absolute value:
+    //
+    //     cmp C, D ; seta T ; R = T ; jbe .J        A = D ; A &= |mask|
+    //     cmp D, -C ; seta T' ; R = T'        ->    cmp C, A ; seta T ; R = T
+    //   .J:                                       .J:
+    //
+    // A NaN fails both tests and the absolute one alike, and -0.0 passes all
+    // three. The mask is 16 bytes, aligned: andps reads a whole m128.
+    bool foldAbsoluteRangeTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        if (!context.builder || !context.taskContext || !context.taskContext->hasCompiler())
+            return false;
+
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        for (const MicroInstrRef ref : layout.order)
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                continue;
+            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                return false;
+            uint32_t labelId = 0;
+            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                ++labelReferences[labelId];
+        }
+
+        const auto at = [&](size_t ordinal, MicroInstrOpcode op) -> const MicroInstrOperand* {
+            const MicroInstr* inst = ordinal < layout.order.size() ? storage.ptr(layout.order[ordinal]) : nullptr;
+            return inst && inst->op == op ? inst->ops(operands) : nullptr;
+        };
+
+        uint32_t nextInt   = 0;
+        uint32_t nextFloat = 0;
+        bool     changed   = false;
+        for (size_t ordinal = 0; ordinal + 9 < layout.order.size(); ++ordinal)
+        {
+            const MicroInstrOperand* limit      = at(ordinal, MicroInstrOpcode::LoadRegImm);
+            const MicroInstrOperand* upper      = at(ordinal + 1, MicroInstrOpcode::CmpRegReg);
+            const MicroInstrOperand* upperSet   = at(ordinal + 2, MicroInstrOpcode::SetCondReg);
+            const MicroInstrOperand* upperCopy  = at(ordinal + 3, MicroInstrOpcode::LoadRegReg);
+            const MicroInstrOperand* exit       = at(ordinal + 4, MicroInstrOpcode::JumpCond);
+            const MicroInstrOperand* negLimit   = at(ordinal + 5, MicroInstrOpcode::LoadRegImm);
+            const MicroInstrOperand* lower      = at(ordinal + 6, MicroInstrOpcode::CmpRegReg);
+            const MicroInstrOperand* lowerSet   = at(ordinal + 7, MicroInstrOpcode::SetCondReg);
+            const MicroInstrOperand* lowerCopy  = at(ordinal + 8, MicroInstrOpcode::LoadRegReg);
+            const MicroInstrOperand* joinMark   = at(ordinal + 9, MicroInstrOpcode::Label);
+            if (!limit || !upper || !upperSet || !upperCopy || !exit || !negLimit || !lower || !lowerSet || !lowerCopy || !joinMark)
+                continue;
+
+            const MicroOpBits bits = upper[2].opBits;
+            if ((bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || limit[1].opBits != bits || negLimit[1].opBits != bits ||
+                lower[2].opBits != bits || limit[2].hasWideImmediateValue() || negLimit[2].hasWideImmediateValue())
+                continue;
+            const uint64_t signBit = bits == MicroOpBits::B64 ? uint64_t{1} << 63 : uint64_t{1} << 31;
+            const uint64_t mask    = bits == MicroOpBits::B64 ? ~uint64_t{0} : 0xFFFFFFFFull;
+            const uint64_t c       = limit[2].valueU64 & mask;
+            if ((c & signBit) || (negLimit[2].valueU64 & mask) != (c | signBit))
+                continue;
+
+            // cmp C, D then cmp D, -C, both strict or both not.
+            const MicroReg limitReg = limit[0].reg;
+            const MicroReg value    = upper[1].reg;
+            const MicroCond cond    = upperSet[1].cpuCond;
+            if (!limitReg.isVirtualFloat() || !value.isVirtualFloat() || upper[0].reg != limitReg || lower[0].reg != value ||
+                lower[1].reg != negLimit[0].reg || value == limitReg || (cond != MicroCond::Above && cond != MicroCond::AboveOrEqual) ||
+                lowerSet[1].cpuCond != cond)
+                continue;
+            MicroCond inverted = MicroCond::Unconditional;
+            if (!MicroPassHelpers::invertCondition(inverted, cond) || exit[0].cpuCond != inverted)
+                continue;
+            if (upperCopy[1].reg != upperSet[0].reg || lowerCopy[1].reg != lowerSet[0].reg || upperCopy[0].reg != lowerCopy[0].reg ||
+                upperCopy[2].opBits != MicroOpBits::B8 || lowerCopy[2].opBits != MicroOpBits::B8)
+                continue;
+            uint32_t joinLabel = 0;
+            uint32_t markLabel = 0;
+            if (!tryGetJumpTargetLabelId(joinLabel, *storage.ptr(layout.order[ordinal + 4]), exit) ||
+                !tryGetLabelId(markLabel, *storage.ptr(layout.order[ordinal + 9]), joinMark) || joinLabel != markLabel ||
+                labelReferences[joinLabel] != 1)
+                continue;
+
+            if (!nextFloat)
+                MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
+            const MicroReg absolute = MicroReg::virtualFloatReg(nextFloat++);
+
+            std::array<char, 16> absMask = {};
+            for (size_t lane = 0; lane < 16; lane += bits == MicroOpBits::B64 ? 8 : 4)
+            {
+                const uint64_t laneBits = bits == MicroOpBits::B64 ? ~signBit : 0x7FFFFFFFull;
+                std::memcpy(absMask.data() + lane, &laneBits, bits == MicroOpBits::B64 ? 8 : 4);
+            }
+            DataSegmentRef         maskRef;
+            const std::string_view maskStorage = context.taskContext->cstMgr().addPayloadBuffer(std::string_view{absMask.data(), absMask.size()}, &maskRef, 16);
+
+            const MicroInstrRef anchor  = layout.order[ordinal];
+            MicroInstrOperand   copy[3] = {};
+            copy[0].reg                 = absolute;
+            copy[1].reg                 = value;
+            copy[2].opBits              = bits;
+            storage.insertDerivedBefore(operands, anchor, MicroInstrOpcode::LoadRegReg, copy);
+            MicroInstrOperand andOps[5] = {};
+            andOps[0].reg               = absolute;
+            andOps[1].reg               = MicroReg::instructionPointer();
+            andOps[2].opBits            = bits;
+            andOps[3].microOp           = MicroOp::FloatAnd;
+            andOps[4].valueU64          = 0;
+            const MicroInstrRef andRef  = storage.insertDerivedBefore(operands, anchor, MicroInstrOpcode::OpBinaryRegMem, andOps);
+
+            MicroRelocation relocation;
+            relocation.kind           = MicroRelocation::Kind::ConstantAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = andRef;
+            relocation.targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data());
+            relocation.constantShard  = maskRef.shardIndex;
+            relocation.constantOffset = maskRef.offset;
+            context.builder->addRelocation(relocation);
+
+            storage.ptr(layout.order[ordinal + 1])->ops(operands)[1].reg = absolute;
+            for (size_t index = 4; index <= 9; ++index)
+                storage.erase(layout.order[ordinal + index]);
+            changed = true;
+            ordinal += 9;
+        }
+
+        return changed;
+    }
+
     // The width an instruction writes its whole destination at, for the
     // loads, copies and constants that replace it outright; 0 otherwise.
     uint32_t wholeDefinitionBits(const MicroInstr& inst, const MicroInstrOperand* ops)
@@ -6530,6 +6660,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         bool lateChanged = speculateCheapElseArms(storage, operands);
         lateChanged |= threadShortCircuitReturnValues(storage, operands, context.builder);
+        lateChanged |= foldAbsoluteRangeTests(storage, operands, context);
         if (lateChanged)
         {
             context.passChanged = true;

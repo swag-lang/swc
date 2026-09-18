@@ -320,7 +320,7 @@ LLVM; `s32` to `f32` and `s64` to `f64` returns also match LLVM at 5 and 6 bytes
 
 Build 979 passed all 997 C++ tests and the focused floating-copy Release test,
 which executes both arms for `f32` and `f64`. Both selections shrink from 24 to
-9 bytes (`test; jne; movss/movsd; ret`), matching LLVM. Unit coverage keeps the
+10 bytes (`test; jne; movss/movsd; ret`). Unit coverage keeps the
 diamond unchanged when RET does not consume the ABI floating return register.
 
 Build 980 passed all 997 C++ tests and four focused Release tests covering all
@@ -340,6 +340,12 @@ all 23 native intrinsic-fold tests, including runtime `f64` rounding. Scalar
 SSE register operations and rounding no longer request REX.W; extended XMM
 registers retain their required REX.R/B bits. The `f64` min/max functions are
 now 5 bytes and match LLVM.
+
+Build 983 passed all 998 C++ tests and the focused floating-copy Release test.
+The false arm of an immediately returned scalar selection now uses a full XMM
+register copy, whose upper lanes are unobservable at RET. Both `f32` and `f64`
+selections shrink from 10 to 9 bytes and match LLVM; an exact encoder case
+protects the three-byte register copy.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

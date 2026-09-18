@@ -150,6 +150,7 @@ namespace
         ENCODE_CASE("load_reg_reg_rsp_rbp_b32", "89 EC", b.emitLoadRegReg(RSP, RBP, MicroOpBits::B32););
         ENCODE_CASE("load_reg_reg_rsi_rdi_b16", "66 89 FE", b.emitLoadRegReg(RSI, RDI, MicroOpBits::B16););
         ENCODE_CASE("load_reg_reg_xmm0_xmm1_b32", "F3 0F 10 C1", b.emitLoadRegReg(XMM0, XMM1, MicroOpBits::B32););
+        ENCODE_CASE("load_reg_reg_xmm0_xmm1_b128", "0F 10 C1", b.emitLoadRegReg(XMM0, XMM1, MicroOpBits::B128););
         ENCODE_CASE("load_reg_reg_xmm2_r9_b32", "66 41 0F 6E D1", b.emitLoadRegReg(XMM2, R9, MicroOpBits::B32););
         ENCODE_CASE("load_reg_reg_r10_xmm3_b32", "66 41 0F 7E DA", b.emitLoadRegReg(R10, XMM3, MicroOpBits::B32););
         // Float-immediate lowering: stage the constant in a GP scratch (R11),

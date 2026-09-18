@@ -1578,6 +1578,12 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatReturnSelectUsesAbiRegisterDirectly)
             return Result::Error;
         for (const MicroInstr& candidate : builder.instructions().view())
         {
+            if (candidate.op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* copy = candidate.ops(builder.operands());
+                if (!copy || copy[2].opBits != MicroOpBits::B128)
+                    return Result::Error;
+            }
             if (candidate.op != MicroInstrOpcode::JumpCond)
                 continue;
             const MicroInstrOperand* jump = candidate.ops(builder.operands());

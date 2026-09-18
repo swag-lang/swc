@@ -44,14 +44,21 @@ struct MicroRelocation
     ConstantRef   constantRef       = ConstantRef::invalid();
     uint32_t      constantShard     = K_INVALID_SOURCE;
     uint32_t      constantOffset    = K_INVALID_SOURCE;
+    // A RIP-relative memory consumer may request a private JIT-side copy when
+    // it reads a fixed payload rather than materializing its address. This is
+    // needed when the shared proximity arena is exhausted and the canonical
+    // constant no longer fits a rel32 displacement from JIT code.
+    uint32_t      constantCopySize  = 0;
 
     bool hasSameTarget(const MicroRelocation& other) const noexcept
     {
         return kind == other.kind && targetAddress == other.targetAddress && targetSymbol == other.targetSymbol &&
-               constantRef == other.constantRef && constantShard == other.constantShard && constantOffset == other.constantOffset;
+               constantRef == other.constantRef && constantShard == other.constantShard && constantOffset == other.constantOffset &&
+               constantCopySize == other.constantCopySize;
     }
 
     bool hasConstantSource() const noexcept { return constantShard != K_INVALID_SOURCE && constantOffset != K_INVALID_SOURCE; }
+    bool requiresConstantCopy() const noexcept { return constantCopySize != 0; }
 };
 
 SWC_END_NAMESPACE();

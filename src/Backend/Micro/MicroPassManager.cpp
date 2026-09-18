@@ -495,6 +495,7 @@ MicroPassManager::MicroPassManager()
     sinkToUsePass_           = std::make_unique<MicroSinkToUsePass>();
     deadCodeEliminationPass_ = std::make_unique<MicroDeadCodeEliminationPass>();
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
+    lateBranchSimplifyPass_  = std::make_unique<MicroBranchSimplifyPass>(true);
     loopUnrollPass_          = std::make_unique<MicroLoopUnrollPass>();
     slpVectorizePass_        = std::make_unique<MicroSlpVectorizePass>();
     vecLoopPromotePass_      = std::make_unique<MicroVecLoopPromotePass>();
@@ -592,6 +593,10 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         // policy; when it rewrites something, the pre-RA loop runs again to
         // clean up the dead scalar chains.
         addVectorizePass(*slpVectorizePass_);
+        // Also once on the converged IR: a short-circuit exit takes the
+        // constant its branch pins only when no fold of the loop wants the
+        // chain any more. The cleanup loop then drops the dead setcc.
+        addVectorizePass(*lateBranchSimplifyPass_);
     }
 
     // Static null-dereference sanity analysis (read-only). Runs once, before the

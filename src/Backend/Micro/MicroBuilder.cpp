@@ -96,6 +96,12 @@ void MicroBuilder::setCurrentDebugNoStep(const bool value)
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
     SWC_ASSERT((relocation.constantShard == INVALID_REF) == (relocation.constantOffset == INVALID_REF));
+    if (relocation.requiresConstantCopy())
+    {
+        SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
+        SWC_ASSERT(relocation.form == MicroRelocation::Form::Relative32);
+        SWC_ASSERT(relocation.hasConstantSource());
+    }
 
     if (relocation.constantRef.isValid())
     {

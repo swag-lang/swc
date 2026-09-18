@@ -425,6 +425,12 @@ namespace
             return reportError(context, phase, std::format("relocation #{} has incomplete constant source metadata", relocationIndex));
         }
 
+        if (relocation.requiresConstantCopy() &&
+            (relocation.kind != MicroRelocation::Kind::ConstantAddress || relocation.form != MicroRelocation::Form::Relative32 || !relocation.hasConstantSource()))
+        {
+            return reportError(context, phase, std::format("relocation #{} has an invalid JIT constant-copy request", relocationIndex));
+        }
+
         if (relocation.constantRef.isValid())
         {
             if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
@@ -659,6 +665,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
             mixHash(hash, relocation.constantRef.isValid() ? relocation.constantRef.get() : K_HASH_INVALID);
             mixHash(hash, relocation.constantShard);
             mixHash(hash, relocation.constantOffset);
+            mixHash(hash, relocation.constantCopySize);
             mixHash(hash, relocation.targetSymbol ? reinterpret_cast<uintptr_t>(relocation.targetSymbol) : 0);
 
             if (relocation.instructionRef.isInvalid())
@@ -853,6 +860,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
                 mixHash(*outStructuralHash, relocation.constantRef.isValid() ? relocation.constantRef.get() : K_HASH_INVALID);
                 mixHash(*outStructuralHash, relocation.constantShard);
                 mixHash(*outStructuralHash, relocation.constantOffset);
+                mixHash(*outStructuralHash, relocation.constantCopySize);
                 mixHash(*outStructuralHash, relocation.targetSymbol ? reinterpret_cast<uintptr_t>(relocation.targetSymbol) : 0);
 
                 const uint32_t refValue = relocation.instructionRef.get();

@@ -281,7 +281,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_MOUSEWHEEL:
             let z = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA
-            surface.app.sendMouseWheelEvent(z)
+            surface.app.sendMouseWheelEvent(surface, {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}, z)
             return 0
 
         case WM_SETCURSOR:

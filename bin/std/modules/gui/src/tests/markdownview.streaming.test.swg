@@ -106,13 +106,9 @@ using Swag, Core
     for 1_024 where view.isLoading() do
         host.fireTimers()
     Swag.assert(host.app.mouseEnterWnd == null)
-    host.app.mouse.setPositions({360, 240}, {360, 240})
     let end = view.scroll.scrollPosition().y
-    let wheelTarget = host.app.windowAtMouse()
     Swag.assert(end > 0)
-    Swag.assert(wheelTarget != null)
-    Swag.assert(wheelTarget == view or view.isAncestorOf(wheelTarget))
-    host.app.sendMouseWheelEvent(1)
+    host.app.sendMouseWheelEvent(&host.surface, {360, 240}, 1)
 
     Swag.assert(view.scroll.scrollPosition().y < end)
 }

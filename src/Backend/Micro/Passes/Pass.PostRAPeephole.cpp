@@ -66,6 +66,8 @@ namespace
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryShortenAddressUnitOffset);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledAdd);
+        r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanOrSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowZeroExtendedShift);
@@ -96,6 +98,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerMultiply);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldMultiplyShiftResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldMultiplyIntoResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertZeroSelect);

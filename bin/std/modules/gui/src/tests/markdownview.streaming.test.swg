@@ -92,7 +92,8 @@ using Swag, Core
     host.setup(720, 480)
     defer host.shutdown()
     host.setReducedMotion(true)
-    let view = Markdown.View.createFile(&host.root, fileName)
+    let view = Markdown.View.createFile(cast(*Wnd) &host.surfaceWnd, fileName)
+    defer view.destroy()
     view.resize(720, 480)
     view.applyLayout()
     for 64 where view.isLoading() do
@@ -104,8 +105,10 @@ using Swag, Core
     discard host.render(view)
     for 1_024 where view.isLoading() do
         host.fireTimers()
+    Swag.assert(host.app.mouseEnterWnd == null)
     let end = view.scroll.scrollPosition().y
-    host.app.sendMouseWheelEvent(1)
+    Swag.assert(end > 0)
+    host.app.sendMouseWheelEvent(&host.surface, {360, 240}, 1)
 
     Swag.assert(view.scroll.scrollPosition().y < end)
 }

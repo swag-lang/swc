@@ -83,7 +83,9 @@ namespace PostRaPeephole
     bool tryNarrowShiftedBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryShortenAddressUnitOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldScaledAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseNegationForSignSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldBooleanOrSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowZeroExtendedShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldZeroExtendedBooleanCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseBooleanRecanonicalization(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -150,6 +152,7 @@ namespace PostRaPeephole
     bool tryFoldCopyIntoFloatBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldCopyIntoIntegerMultiply(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldMultiplyIntoResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldMultiplyShiftResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryEraseCompareAfterBranch(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCopyIntoVecShiftImm(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldLoadIntoTest(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

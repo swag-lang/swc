@@ -636,6 +636,65 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Constant unsigned division can leave its magic multiply and logical
+    // shift in a temporary immediately copied to the return register:
+    //
+    //     imul T, R        imul R, T
+    //     shr  T, K   ->   shr  R, K
+    //     mov  R, T
+    //
+    // The multiply is commutative, so the register holding the magic constant
+    // can become the product and final result. A narrowing copy may disappear
+    // only when the logical shift itself proves the upper dword is zero.
+    bool tryFoldMultiplyShiftResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
+            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+        const MicroReg dst = copy[0].reg;
+        const MicroReg src = copy[1].reg;
+
+        const MicroInstrRef shiftRef = ctx.previousRef(copyRef);
+        const MicroInstr*   shift    = ctx.instruction(shiftRef);
+        const auto*         shiftOps = shift ? shift->ops(*ctx.operands) : nullptr;
+        if (!shift || shift->op != MicroInstrOpcode::OpBinaryRegImm || !shiftOps ||
+            shiftOps[0].reg != src || shiftOps[2].microOp != MicroOp::ShiftRight || shiftOps[3].hasWideImmediateValue() ||
+            (shiftOps[1].opBits != MicroOpBits::B32 && shiftOps[1].opBits != MicroOpBits::B64))
+            return false;
+        if (copy[2].opBits != shiftOps[1].opBits &&
+            !(copy[2].opBits == MicroOpBits::B32 && shiftOps[1].opBits == MicroOpBits::B64 && shiftOps[3].valueU64 >= 32))
+            return false;
+
+        const MicroInstrRef multiplyRef = ctx.previousRef(shiftRef);
+        const MicroInstr*   multiply    = ctx.instruction(multiplyRef);
+        const auto*         multiplyOps = multiply ? multiply->ops(*ctx.operands) : nullptr;
+        if (!multiply || multiply->op != MicroInstrOpcode::OpBinaryRegReg || !multiplyOps ||
+            multiplyOps[0].reg != src || multiplyOps[1].reg != dst ||
+            multiplyOps[2].opBits != shiftOps[1].opBits || multiplyOps[3].microOp != MicroOp::MultiplySigned)
+            return false;
+
+        MicroInstrOperand rewrittenMultiply[4] = {multiplyOps[0], multiplyOps[1], multiplyOps[2], multiplyOps[3]};
+        rewrittenMultiply[0].reg               = dst;
+        rewrittenMultiply[1].reg               = src;
+        MicroInstrOperand rewrittenShift[4]    = {shiftOps[0], shiftOps[1], shiftOps[2], shiftOps[3]};
+        rewrittenShift[0].reg                  = dst;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *multiply, rewrittenMultiply) ||
+            ctx.encoder->queryConformanceIssue(issue, *shift, rewrittenShift) ||
+            !ctx.claimAll({multiplyRef, shiftRef, copyRef}))
+            return false;
+
+        ctx.emitRewrite(multiplyRef, multiply->op, rewrittenMultiply);
+        ctx.emitRewrite(shiftRef, shift->op, rewrittenShift);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // The same fold for a packed shift by an immediate. A rotate needs its
     // source twice - once shifted left, once right - so the vectorizer copies
     // it before each destructive shift, and the register allocator was giving

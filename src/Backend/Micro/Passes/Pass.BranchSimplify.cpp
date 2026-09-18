@@ -4095,7 +4095,7 @@ namespace
     // The two arms and the three control instructions, by position alone. The
     // SSA-backed checks come after, once a function is known to hold a diamond
     // at all, so the analysis is not rebuilt for the many that hold none.
-    bool tryMatchDiamondShape(Diamond& out, const DiamondScan& scan, MicroInstrRef jumpRef, const MicroInstr& jumpInst, const MicroInstrOperand* jumpOps)
+    bool tryMatchDiamondShape(Diamond& out, const DiamondScan& scan, MicroInstrRef jumpRef, const MicroInstr& jumpInst, const MicroInstrOperand* jumpOps, const uint32_t expectedArmReferences = 1)
     {
         uint32_t armLabelId = 0;
         if (!tryGetJumpTargetLabelId(armLabelId, jumpInst, jumpOps))
@@ -4124,7 +4124,7 @@ namespace
         if (!tryGetLabelId(labelId, *armLabelInst, armLabelInst->ops(*scan.operands)) || labelId != armLabelId)
             return false;
         const auto referenceIt = scan.labelReferences.find(armLabelId);
-        if (referenceIt == scan.labelReferences.end() || referenceIt->second != 1)
+        if (referenceIt == scan.labelReferences.end() || referenceIt->second != expectedArmReferences)
             return false;
 
         // The jump arm, ended by the join label.
@@ -5359,6 +5359,150 @@ namespace
         return false;
     }
 
+    // Two adjacent comparison guards that reject to the same arm form a
+    // select whose inner diamond deliberately has a shared label:
+    //
+    //     cmp1 X, Y                         A... (defines D)
+    //     jcc1 .B                           B'... (defines T)
+    //     cmp2 X, Z                   ->    cmp2 X, Z
+    //     jcc2 .B                           cmov(cc2) D, T
+    //     A... (defines D)                  cmp1 X, Y
+    //     jmp .JOIN                         cmov(cc1) D, T
+    //   .B:
+    //     B... (defines D)
+    //   .JOIN:
+    //
+    // The second comparison may execute when the first guard would have
+    // skipped it, but compares cannot fault and the final move ignores its
+    // result on that path. Both arms use the generic diamond safety checks;
+    // additionally neither may observe entry flags or overwrite an operand of
+    // either comparison, since both comparisons move below the arms.
+    bool convertGuardedSelectDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    {
+        DiamondScan scan;
+        if (!prepareDiamondScan(scan, storage, operands, context))
+            return false;
+
+        scan.ssa = MicroSsaState::ensureFor(context, localSsaState);
+        if (!scan.ssa || !scan.ssa->isValid())
+            return false;
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& secondJumpInst = *it;
+            if (secondJumpInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* secondJumpOps = secondJumpInst.ops(operands);
+            if (!secondJumpOps || secondJumpOps[0].cpuCond == MicroCond::Unconditional ||
+                !conditionSupportsConditionalMove(secondJumpOps[0].cpuCond))
+                continue;
+
+            Diamond diamond;
+            if (!tryMatchDiamondShape(diamond, scan, it.current, secondJumpInst, secondJumpOps, 2))
+                continue;
+
+            const MicroInstrRef secondCompareRef = storage.findPreviousInstructionRef(diamond.jumpRef);
+            const MicroInstrRef firstJumpRef      = storage.findPreviousInstructionRef(secondCompareRef);
+            const MicroInstrRef firstCompareRef   = storage.findPreviousInstructionRef(firstJumpRef);
+            if (!secondCompareRef.isValid() || !firstJumpRef.isValid() || !firstCompareRef.isValid() ||
+                scan.relocated.contains(secondCompareRef.get()) || scan.relocated.contains(firstJumpRef.get()) ||
+                scan.relocated.contains(firstCompareRef.get()))
+                continue;
+
+            const MicroInstr*        secondCompareInst = storage.ptr(secondCompareRef);
+            const MicroInstr*        firstJumpInst      = storage.ptr(firstJumpRef);
+            const MicroInstr*        firstCompareInst   = storage.ptr(firstCompareRef);
+            const MicroInstrOperand* firstJumpOps       = firstJumpInst ? firstJumpInst->ops(operands) : nullptr;
+            if (!secondCompareInst || !firstJumpInst || !firstCompareInst || !firstJumpOps ||
+                firstJumpInst->op != MicroInstrOpcode::JumpCond || firstJumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+            if ((secondCompareInst->op != MicroInstrOpcode::CmpRegReg && secondCompareInst->op != MicroInstrOpcode::CmpRegImm) ||
+                (firstCompareInst->op != MicroInstrOpcode::CmpRegReg && firstCompareInst->op != MicroInstrOpcode::CmpRegImm))
+                continue;
+
+            uint32_t firstTarget  = 0;
+            uint32_t secondTarget = 0;
+            if (!tryGetJumpTargetLabelId(firstTarget, *firstJumpInst, firstJumpOps) ||
+                !tryGetJumpTargetLabelId(secondTarget, secondJumpInst, secondJumpOps) || firstTarget != secondTarget ||
+                !conditionSupportsConditionalMove(firstJumpOps[0].cpuCond))
+                continue;
+
+            if (!qualifyDiamond(diamond, scan) || diamond.fallthroughArm.readsEntryFlags || diamond.jumpArm.readsEntryFlags)
+                continue;
+
+            const auto compareInputsSurvive = [&diamond, &scan](const MicroInstrRef compareRef) {
+                const MicroInstrUseDef* useDef = scan.ssa->instrUseDef(compareRef);
+                if (!useDef)
+                    return false;
+                for (const MicroReg use : useDef->uses)
+                {
+                    if (std::ranges::find(diamond.fallthroughArm.defs, use) != diamond.fallthroughArm.defs.end() ||
+                        std::ranges::find(diamond.jumpArm.defs, use) != diamond.jumpArm.defs.end())
+                        return false;
+                }
+                return true;
+            };
+            if (!compareInputsSurvive(firstCompareRef) || !compareInputsSurvive(secondCompareRef) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, diamond.joinLabelRef, scan.builder))
+                continue;
+
+            MicroInstrOperand firstCompareOps[3];
+            MicroInstrOperand secondCompareOps[3];
+            SWC_ASSERT(firstCompareInst->numOperands <= 3 && secondCompareInst->numOperands <= 3);
+            const uint8_t firstCompareNumOperands  = firstCompareInst->numOperands;
+            const uint8_t secondCompareNumOperands = secondCompareInst->numOperands;
+            const MicroInstrOpcode firstCompareOp  = firstCompareInst->op;
+            const MicroInstrOpcode secondCompareOp = secondCompareInst->op;
+            const MicroCond        firstCond       = firstJumpOps[0].cpuCond;
+            const MicroCond        secondCond      = secondJumpOps[0].cpuCond;
+            for (uint32_t i = 0; i < firstCompareNumOperands; ++i)
+                firstCompareOps[i] = firstCompareInst->ops(operands)[i];
+            for (uint32_t i = 0; i < secondCompareNumOperands; ++i)
+                secondCompareOps[i] = secondCompareInst->ops(operands)[i];
+
+            const MicroReg rejected = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
+            SmallVector<MicroInstrRegOperandRef> regOperands;
+            for (const MicroInstrRef ref : diamond.jumpArm.refs)
+            {
+                regOperands.clear();
+                storage.ptr(ref)->collectRegOperands(operands, regOperands, context.encoder);
+                for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                {
+                    if (*regOperand.reg == diamond.result)
+                        *regOperand.reg = rejected;
+                }
+            }
+
+            storage.insertDerivedBefore(operands, diamond.joinLabelRef, secondCompareOp,
+                                        std::span<const MicroInstrOperand>(secondCompareOps, secondCompareNumOperands));
+            MicroInstrOperand secondMoveOps[4];
+            secondMoveOps[0].reg     = diamond.result;
+            secondMoveOps[1].reg     = rejected;
+            secondMoveOps[2].cpuCond = secondCond;
+            secondMoveOps[3].opBits  = diamond.moveBits;
+            storage.insertDerivedBefore(operands, diamond.joinLabelRef, MicroInstrOpcode::LoadCondRegReg, secondMoveOps);
+
+            storage.insertDerivedBefore(operands, diamond.joinLabelRef, firstCompareOp,
+                                        std::span<const MicroInstrOperand>(firstCompareOps, firstCompareNumOperands));
+            MicroInstrOperand firstMoveOps[4];
+            firstMoveOps[0].reg     = diamond.result;
+            firstMoveOps[1].reg     = rejected;
+            firstMoveOps[2].cpuCond = firstCond;
+            firstMoveOps[3].opBits  = diamond.moveBits;
+            storage.insertDerivedBefore(operands, diamond.joinLabelRef, MicroInstrOpcode::LoadCondRegReg, firstMoveOps);
+
+            storage.erase(firstCompareRef);
+            storage.erase(firstJumpRef);
+            storage.erase(secondCompareRef);
+            storage.erase(diamond.jumpRef);
+            storage.erase(diamond.joinJumpRef);
+            storage.erase(diamond.armLabelRef);
+            return true;
+        }
+
+        return false;
+    }
+
     bool convertDiamondsToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
     {
         DiamondScan scan;
@@ -6209,7 +6353,16 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState))
+    if (convertGuardedSelectDiamonds(storage, operands, context, localSsaState))
+    {
+        changed = true;
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        localSsaState.invalidate();
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
+    else if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState))
     {
         changed = true;
         if (context.builder)

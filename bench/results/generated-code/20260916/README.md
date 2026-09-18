@@ -4,7 +4,7 @@ This session uses the separate `swc-micro-release` worktree and Release
 `swc.exe`, with `-bc release` and six workers. Each validated optimization batch
 was merged into local master. The persisted corpus checkpoint records measured
 builds 829 (376fe9e1c) and 830 (e6e9d1623), identified separately for each
-corpus. Focused continuation measurements through build 959 (9981c20ae) are
+corpus. Focused continuation measurements through build 970 are
 recorded below.
 
 ## Machine-code measurements
@@ -80,13 +80,12 @@ remaining gaps for later work.
 
 Five continuation rounds then concentrated on conditional code, narrow values
 and indexed byte arithmetic. The table uses the last measured build for each
-round. Round 26's sole larger function is the still branch-heavy
-`choose_between_u32`; every function in rounds 27--29 matches or beats LLVM.
+round. Every function in rounds 26--29 now matches or beats LLVM.
 
 | Round | Measured build | Functions | Swag bytes | LLVM bytes | Larger / equal / smaller |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 25 | 959 | 8 | 244 | 191 | 6 / 0 / 2 |
-| 26 | 959 | 16 | 203 | 201 | 1 / 10 / 5 |
+| 26 | 970 | 16 | 187 | 201 | 0 / 11 / 5 |
 | 27 | 959 | 18 | 229 | 233 | 0 / 15 / 3 |
 | 28 | 959 | 14 | 180 | 192 | 0 / 11 / 3 |
 | 29 | 959 | 16 | 220 | 235 | 0 / 11 / 5 |
@@ -95,6 +94,12 @@ Notable measured results include paired range guards at 17 bytes (equal to
 LLVM), conditional signed 64-bit shifts at 13 bytes (LLVM 16), conditional
 `u8` multiplication at 17 bytes (equal), conditional `u8` left shift at 15
 bytes (LLVM 20), and all four common `u16` arithmetic forms equal to LLVM.
+The range-guarded `u32` value select falls from 34 to 18 bytes and matches LLVM:
+its two-compare, two-`cmov` body is now branchless, and the leaf function reads
+its fifth argument directly from the entry stack pointer without an empty frame.
+Across six signed, unsigned, 32-bit, 64-bit, half-open and reversed-order range
+selects, Swag falls from 209 bytes at build 959 to 113 at build 970; LLVM totals
+112, with only its one-byte-shorter signed `s32` return remaining different.
 The late indexed-byte follow-up reduces floor average from 22 to 14 bytes
 (LLVM 16), ceiling average from 22 to 17 (LLVM 16), and saturating add from 24
 to 19 (LLVM 20).
@@ -116,6 +121,18 @@ the loaded operands once as locals reduces saturating subtract from 32 to 18
 bytes (LLVM 19) and absolute difference from 46 to 19 (LLVM 22). Future work
 there should target repeated memory-expression reuse and branch formation,
 rather than the final post-allocation sequences.
+
+An eight-function range-selection follow-up fell from 278 bytes at build 959
+to 150 at build 973, equal to LLVM's total. Inclusive, half-open, reversed,
+signed and 64-bit in-range selections use two conditional moves. Out-of-range
+`u32` selection is 18 bytes against LLVM's branch-containing 19; its signed
+counterpart is 19/19. The only function one byte above LLVM is the signed
+in-range selection, whose `movsxd` preserves Swag's signed-return ABI contract.
+The following arithmetic sample retargets a magic multiply and logical shift
+onto the return register: unsigned division by three falls from 18 to 16 bytes,
+matching LLVM. Replacing `imul b,5; lea result,[a+b]` with a scaled address and
+an add reduces the remaining `a + b*5` example from 7 to 6 bytes, also matching
+LLVM. The 18 functions total 193 bytes against LLVM's 195.
 
 These are static measurements of examples selected during optimization, not a
 representative workload average or a runtime speed claim. A smaller hardware
@@ -176,6 +193,16 @@ legalizer moves an address away from the required `CL` register. Indexed
 multiplication reuses a dead multiplier as the `imul reg,mem` destination.
 The final integrated legalizer copies the indexed instruction operands before
 inserting those moves, since insertion can grow and relocate operand storage.
+Range-guarded value diamonds now become a pair of conditional moves, leaf
+functions address incoming stack arguments from the unchanged entry stack
+pointer, and a post-allocation rule consumes comparison flags directly instead
+of materializing two booleans, OR-ing them, and comparing the result.
+Another post-allocation rule commutes an adjacent multiply into the result
+register and retargets its logical shift, removing the final narrow copy when
+the shift proves the upper dword is already zero.
+Small products by 3, 5 or 9 followed immediately by an independent add can be
+formed as a scaled address in the final destination; a two-byte ADD completes
+the sum when its newly written flags are dead.
 
 Rewrites retain width, flags, SSA value identity, physical liveness, ABI and
 encoding constraints. In particular, RET alone does not prove a physical value
@@ -224,9 +251,28 @@ exposed the attempted regression.
 Build 945 passed all 3,423 native tests plus the three expected recovery
 failures. After the guard, conditional-operation, shift, multiplication,
 indexed-average and saturating-add batches, build 959 passed all 3,432 native
-tests plus the same three expected recovery failures. Focused validation varied
-between branch diamonds, short-circuit booleans, count boundaries, narrow return copies,
-implicit multiplication, carry handling and indexed averages.
+tests plus the same three expected recovery failures. After guarded-select
+if-conversion and direct leaf stack-argument addressing, build 970 passed 989
+C++ tests, all 3,433 native tests and the same recovery probes. Focused
+validation varied between branch diamonds, short-circuit booleans, count
+boundaries, narrow return copies, implicit multiplication, carry handling,
+indexed averages, calls and stack-frame addresses; the final repository
+integrity check also passed.
+
+Build 973 passed the 989 C++ tests and focused Release executions for guarded
+range selections and independent short-circuit booleans. The guarded test now
+executes signed and unsigned out-of-range selections at both inclusive
+boundaries and immediately outside them. Its eight-function assembly corpus is
+150 bytes in both Swag and LLVM.
+
+Build 974 passed the 989 C++ tests plus focused Release executions for 32-bit
+constant division and combined quotient/remainder arithmetic. The unit coverage
+also retains the final 32-bit copy when a 31-bit shift cannot prove the upper
+half clear.
+
+Build 975 passed the 989 C++ tests and focused Release executions covering
+scaled copies with a surviving source and conditional arithmetic inside a
+loop. The arithmetic sample has no function larger than LLVM after this batch.
 
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under

@@ -798,6 +798,47 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsDiamondSelectToCmov)
 }
 SWC_TEST_END()
 
+// Two adjacent comparison guards reject to the same select arm. The shared
+// arm is intentional here: both guards become conditional moves and no branch
+// or arm label remains.
+SWC_TEST_BEGIN(BranchSimplify_ConvertsGuardedSelectToCmovChain)
+{
+    const MicroReg vX       = MicroReg::virtualIntReg(8);
+    const MicroReg vLow     = MicroReg::virtualIntReg(9);
+    const MicroReg vHigh    = MicroReg::virtualIntReg(10);
+    const MicroReg vInside  = MicroReg::virtualIntReg(11);
+    const MicroReg vOutside = MicroReg::virtualIntReg(12);
+    const MicroReg vResult  = MicroReg::virtualIntReg(13);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef outsideLabel = builder.createLabel();
+    const MicroLabelRef joinLabel    = builder.createLabel();
+    builder.emitCmpRegReg(vX, vLow, MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, outsideLabel);
+    builder.emitCmpRegReg(vX, vHigh, MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Above, MicroOpBits::B32, outsideLabel);
+    builder.emitLoadRegReg(vResult, vInside, MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, joinLabel);
+    builder.placeLabel(outsideLabel);
+    builder.emitLoadRegReg(vResult, vOutside, MicroOpBits::B32);
+    builder.placeLabel(joinLabel);
+    builder.emitLoadRegReg(MicroReg::virtualIntReg(14), vResult, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 0)
+        return Result::Error;
+    if (countConditionalMoves(builder, MicroCond::Above) != 1 ||
+        countConditionalMoves(builder, MicroCond::Below) != 1)
+        return Result::Error;
+    if (anyJumpTargetsLabel(builder, outsideLabel))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // `c ? 7 : 9`: both arms load an immediate, both loads stay and feed the move.
 SWC_TEST_BEGIN(BranchSimplify_ConvertsDiamondConstantsToCmov)
 {

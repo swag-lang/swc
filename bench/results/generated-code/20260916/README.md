@@ -288,6 +288,14 @@ An initial contextual JIT run exposed an ordinary-base ModRM encoding for the
 new RIP-relative form; the final encoder writes the dedicated RIP ModRM and the
 emitter binds its trailing displacement.
 
+The build 977 broad checkpoint caught a distinct packed-float boundary:
+`ANDPS`/`ANDPD` and their XOR forms read 128 bits even when the logical value is
+scalar, while a scalar constant allocation only guarantees 4 or 8 bytes. Those
+operations now retain their scalar load. A focused reproducer combining literal
+multiplication, degree conversion and `Swag.abs` passes in both JIT and native
+execution. The final build passed all 995 C++ tests, all 3,433 native tests and
+the three expected native recovery probes.
+
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under
 heavier concurrent load, at 310.33 and 303.89 MiB. Shared-machine variation is

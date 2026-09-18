@@ -75,6 +75,7 @@ namespace
         FloatMax,
         FloatSqrt,
         FloatTruncToS32,
+        FloatRound,
         ShiftLeft,
         ShiftRight,
         RotateLeft,
@@ -604,6 +605,13 @@ namespace
                 outImm = op == MicroOp::RotateLeft ? imm : 32 - imm;
                 return true;
 
+            case MicroOp::FloatRound:
+                if (opBits != MicroOpBits::B32 || imm > 3)
+                    return false;
+                outOp  = LaneOp::FloatRound;
+                outImm = imm;
+                return true;
+
             default:
                 return false;
         }
@@ -885,6 +893,15 @@ namespace
                                 plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
                                 plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = splatReg, .op = vecOp});
                             }
+                            plan_->arithmeticOps++;
+                            remember(tuple, sorted, dstReg);
+                            return dstReg;
+                        }
+
+                        case LaneOp::FloatRound:
+                        {
+                            const uint32_t dstReg = allocReg();
+                            plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegImm, .dst = dstReg, .src = lhsReg, .op = MicroOp::VecRoundF32, .imm = n0.imm});
                             plan_->arithmeticOps++;
                             remember(tuple, sorted, dstReg);
                             return dstReg;

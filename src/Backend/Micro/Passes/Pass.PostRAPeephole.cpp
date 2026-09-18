@@ -31,6 +31,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseZeroExtendedSelfCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatReturnSelectDiamond);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatReturnXorCopyChain);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
         r.add(MicroInstrOpcode::CmpRegImm, tryFoldConditionalBitwiseNot);
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftNoCopy);

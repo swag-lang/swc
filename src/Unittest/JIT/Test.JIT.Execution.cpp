@@ -8,6 +8,7 @@
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 
@@ -617,6 +618,107 @@ namespace
 SWC_TEST_BEGIN(JIT_Return42)
 {
     SWC_RESULT(runCase(ctx, &buildReturn42, 42));
+}
+SWC_TEST_END()
+
+// A segment-backed relocation must use its stable source location when JIT
+// code is patched. The raw target deliberately names another nearby payload.
+SWC_TEST_BEGIN(JIT_ConstantRelocationResolvesSegmentSource)
+{
+    constexpr uint64_t expectedValue = 0x1122334455667788ull;
+    constexpr uint64_t decoyValue    = 0x8877665544332211ull;
+
+    DataSegmentRef expectedRef;
+    ctx.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&expectedValue), sizeof(expectedValue)}, &expectedRef);
+    const std::string_view decoyStorage = ctx.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&decoyValue), sizeof(decoyValue)});
+
+    MicroBuilder builder(ctx);
+    const CallConv& callConv = CallConv::swag();
+    builder.emitLoadRegMem(callConv.intReturn, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+    const MicroInstrRef loadRef = builder.instructions().lastInstructionRef();
+    builder.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = loadRef,
+        .targetAddress  = reinterpret_cast<uint64_t>(decoyStorage.data()),
+        .constantShard  = expectedRef.shardIndex,
+        .constantOffset = expectedRef.offset,
+    });
+    builder.emitRet();
+
+    MachineCode loweredCode;
+    SWC_RESULT(loweredCode.emit(ctx, builder));
+    if (loweredCode.codeRelocations.size() != 1)
+        return Result::Error;
+
+    auto invalidRelocations = loweredCode.codeRelocations;
+    invalidRelocations.front().constantShard = ConstantManager::SHARD_COUNT;
+    JITMemory invalidMemory;
+    JIT::prepare(ctx, invalidMemory, loweredCode.bytes, loweredCode.unwindInfo, invalidRelocations);
+    if (JIT::patch(ctx, invalidMemory, invalidRelocations) != Result::Error)
+        return Result::Error;
+
+    JITMemory executableMemory;
+    SWC_RESULT(JIT::emit(ctx, executableMemory, loweredCode.bytes, loweredCode.codeRelocations, loweredCode.unwindInfo));
+
+    using TestFn  = uint64_t (*)();
+    const auto fn = reinterpret_cast<TestFn>(executableMemory.entryPoint());
+    if (!fn || fn() != expectedValue)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+// The scalar float bitwise form reads a full XMM operand even for f32. Its
+// RIP-relative constant must therefore be both patched and backed by 16 bytes.
+SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
+{
+    static constexpr std::array<char, 16> signMask = {0, 0, 0, static_cast<char>(0x80)};
+    static constexpr uint32_t              input    = 0x3F800000u;
+
+    DataSegmentRef maskRef;
+    const std::string_view maskStorage = ctx.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef);
+
+    MicroBuilder builder(ctx);
+    const CallConv& callConv = CallConv::swag();
+    constexpr MicroReg inputAddress = MicroReg::intReg(8);
+    constexpr MicroReg value        = MicroReg::floatReg(0);
+    builder.emitLoadRegPtrImm(inputAddress, reinterpret_cast<uint64_t>(&input));
+    builder.emitLoadRegMem(value, inputAddress, 0, MicroOpBits::B32);
+    builder.emitOpBinaryRegMem(value, MicroReg::instructionPointer(), 0, MicroOp::FloatXor, MicroOpBits::B32);
+    const MicroInstrRef xorRef = builder.instructions().lastInstructionRef();
+    builder.addRelocation({
+        .kind           = MicroRelocation::Kind::ConstantAddress,
+        .form           = MicroRelocation::Form::Relative32,
+        .instructionRef = xorRef,
+        .targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data()),
+        .constantShard  = maskRef.shardIndex,
+        .constantOffset = maskRef.offset,
+    });
+    builder.emitLoadRegReg(callConv.intReturn, value, MicroOpBits::B32);
+    builder.emitRet();
+
+    MachineCode loweredCode;
+    SWC_RESULT(loweredCode.emit(ctx, builder));
+    if (loweredCode.codeRelocations.size() != 1)
+        return Result::Error;
+
+    JITMemory executableMemory;
+    JIT::prepare(ctx, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, loweredCode.codeRelocations);
+    SWC_RESULT(JIT::patch(ctx, executableMemory, loweredCode.codeRelocations));
+
+    const MicroRelocation& relocation = loweredCode.codeRelocations.front();
+    int32_t                displacement;
+    std::memcpy(&displacement, static_cast<const std::byte*>(executableMemory.entryPoint()) + relocation.codeOffset, sizeof(displacement));
+    const auto* patchedTarget = static_cast<const std::byte*>(executableMemory.entryPoint()) + relocation.relativeEndOffset + displacement;
+    if (patchedTarget != reinterpret_cast<const std::byte*>(maskStorage.data()))
+        return Result::Error;
+
+    JIT::finalize(executableMemory);
+
+    using TestFn  = uint64_t (*)();
+    const auto fn = reinterpret_cast<TestFn>(executableMemory.entryPoint());
+    if (!fn || fn() != 0xBF800000u)
+        return Result::Error;
 }
 SWC_TEST_END()
 

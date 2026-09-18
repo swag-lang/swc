@@ -49,6 +49,43 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A conditional jump over an unconditional one:
+    //
+    //     jbe .L ; jmp .M ; .L:    ->    ja .M ; .L:
+    //
+    // Branch simplification does it before allocation; copies that vanish
+    // after it can leave the shape behind, as a float clamp's did. Every
+    // condition has an exact complement over the flags, unordered floats
+    // included.
+    bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || inst.op != MicroInstrOpcode::JumpCond || ops[0].cpuCond == MicroCond::Unconditional)
+            return false;
+        MicroCond inverted = MicroCond::Unconditional;
+        if (!MicroPassHelpers::invertCondition(inverted, ops[0].cpuCond))
+            return false;
+
+        const MicroInstrRef      skipRef  = ctx.nextRef(ref);
+        const MicroInstr*        skip     = ctx.instruction(skipRef);
+        const MicroInstrOperand* skipOps  = skip ? skip->ops(*ctx.operands) : nullptr;
+        if (!skipOps || skip->op != MicroInstrOpcode::JumpCond || skipOps[0].cpuCond != MicroCond::Unconditional)
+            return false;
+        const MicroInstrRef      labelRef = ctx.nextRef(skipRef);
+        const MicroInstr*        label    = ctx.instruction(labelRef);
+        const MicroInstrOperand* labelOps = label ? label->ops(*ctx.operands) : nullptr;
+        if (!labelOps || label->op != MicroInstrOpcode::Label || labelOps[0].valueU64 != ops[2].valueU64 || !ctx.claimAll({ref, skipRef}))
+            return false;
+
+        MicroInstrOperand branch[3] = {ops[0], ops[1], ops[2]};
+        branch[0].cpuCond           = inverted;
+        branch[1].opBits            = MicroOpBits::B32;
+        branch[2].valueU64          = skipOps[2].valueU64;
+        ctx.emitRewrite(ref, MicroInstrOpcode::JumpCond, branch);
+        ctx.emitErase(skipRef);
+        return true;
+    }
+
     // `mov eax, eax` clears the upper half of rax, so a dword self-copy is
     // kept as a rule. Where that half is already clear on every path - after
     // any 32-bit write - it changes nothing.

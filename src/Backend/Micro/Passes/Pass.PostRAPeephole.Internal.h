@@ -73,6 +73,7 @@ namespace PostRaPeephole
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseZeroExtendedSelfCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseFloatClearBeforeFullWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldFloatReturnSelectDiamond(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCarryMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

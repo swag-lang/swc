@@ -515,6 +515,42 @@ namespace
         return AstModifierFlagsE::Zero;
     }
 
+    // A '#move' initializer can read through a move reference, such as a '#fwd' parameter in
+    // its move variant. The initializer is then a conversion of the reference into a value, which
+    // is neither an lvalue nor the storage to reset: the pointee belongs to the caller. Returns the
+    // reference expression, or an invalid reference for any other initializer.
+    AstNodeRef varInitMoveReferenceSource(CodeGen& codeGen, AstNodeRef initRef)
+    {
+        AstNodeRef exprRef = initRef;
+        if (exprRef.isValid())
+        {
+            if (const auto* initExpr = codeGen.node(exprRef).safeCast<AstInitializerExpr>())
+                exprRef = initExpr->nodeExprRef;
+        }
+
+        while (exprRef.isValid() && codeGen.node(exprRef).is(AstNodeId::ParenExpr))
+            exprRef = codeGen.node(exprRef).cast<AstParenExpr>().nodeExprRef;
+        if (exprRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const TypeRef typeRef = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type).typeRef();
+        if (typeRef.isInvalid() || !codeGen.typeMgr().get(typeRef).isMoveReference())
+            return AstNodeRef::invalid();
+        return exprRef;
+    }
+
+    // Returns the register holding the address of the object a move reference designates.
+    MicroReg moveReferencePointeeReg(CodeGen& codeGen, AstNodeRef referenceRef)
+    {
+        const CodeGenNodePayload& payload = codeGen.payload(referenceRef);
+        if (!payload.isAddress())
+            return payload.reg;
+
+        const MicroReg pointeeReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(pointeeReg, payload.reg, 0, MicroOpBits::B64);
+        return pointeeReg;
+    }
+
     Result emitVarInitPostCopy(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef, const CodeGenNodePayload& initPayload, const CodeGenNodePayload& symbolPayload)
     {
         if (!symbolPayload.isAddress())
@@ -551,7 +587,20 @@ namespace
         if (isMove && initPayload.isAddress())
         {
             const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
-            const bool       sourceIsLValue  = resolvedInitRef.isValid() && codeGen.sema().isLValue(codeGen.node(resolvedInitRef));
+            const AstNodeRef referenceRef    = varInitMoveReferenceSource(codeGen, initRef);
+            if (referenceRef.isValid())
+            {
+                // The caller's object stays alive after this call, so it is reset whether or not
+                // the reference is used again: its drop must find nothing left to release.
+                const MicroReg pointeeReg = moveReferencePointeeReg(codeGen, referenceRef);
+                if (!isRelocate && codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop))
+                    SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, symVar.typeRef(), pointeeReg));
+                else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
+                    SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, pointeeReg, symVar.typeRef(), referenceRef));
+                return Result::Continue;
+            }
+
+            const bool sourceIsLValue = resolvedInitRef.isValid() && codeGen.sema().isLValue(codeGen.node(resolvedInitRef));
             if (sourceIsLValue)
             {
                 const bool shouldResetSource = !isRelocate && codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop);

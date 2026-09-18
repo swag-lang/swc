@@ -242,6 +242,7 @@ namespace
             Copy,
             BinaryRegReg,
             BinaryRegImm,
+            LoadSplat32,
             // Non-destructive forms: the destination is a register of its own,
             // so the packed value feeding the operation is not overwritten and
             // needs no copy. Emitted instead of the Copy pairs above wherever
@@ -288,6 +289,7 @@ namespace
         const MicroSsaState* ssa = nullptr;
 
         uint32_t nextVirtualFloatRegIndex = 0;
+        uint32_t nextVirtualIntRegIndex   = 0;
         // Position of the function's first call. A register copied out of a
         // physical register before it holds an incoming ABI argument; after
         // it, the same shape is a returned value of unknown provenance.
@@ -587,6 +589,9 @@ namespace
         std::unordered_map<TupleKey, uint32_t, TupleKeyHash> tupleRegs;
         // Equal sorted IDs make every permutation reusable from the first tuple.
         std::unordered_map<TupleKey, TupleKey, TupleKeyHash> firstTupleBySortedKey;
+        // A scalar immediate has the same four-lane representation in every
+        // group, so one materialized splat feeds all of its vector uses.
+        std::unordered_map<uint32_t, uint32_t> splatRegs;
 
         size_t totalInstrs() const { return loads.size() + ops.size() + stores.size(); }
     };
@@ -737,6 +742,52 @@ namespace
 
                     switch (n0.op)
                     {
+                        case LaneOp::Add:
+                        case LaneOp::Sub:
+                        case LaneOp::And:
+                        case LaneOp::Or:
+                        case LaneOp::Xor:
+                        {
+                            MicroOp vecOp = MicroOp::VecXor;
+                            switch (n0.op)
+                            {
+                                case LaneOp::Add: vecOp = MicroOp::VecAdd32; break;
+                                case LaneOp::Sub: vecOp = MicroOp::VecSub32; break;
+                                case LaneOp::And: vecOp = MicroOp::VecAnd; break;
+                                case LaneOp::Or:  vecOp = MicroOp::VecOr; break;
+                                case LaneOp::Xor: vecOp = MicroOp::VecXor; break;
+                                default: return K_INVALID_ID;
+                            }
+
+                            const uint32_t splatValue = static_cast<uint32_t>(n0.imm);
+                            const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                            uint32_t       splatReg   = K_INVALID_ID;
+                            if (splatIt != plan_->splatRegs.end())
+                            {
+                                splatReg = splatIt->second;
+                            }
+                            else
+                            {
+                                splatReg = allocReg();
+                                plan_->splatRegs.emplace(splatValue, splatReg);
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadSplat32, .dst = splatReg, .imm = splatValue});
+                            }
+
+                            const uint32_t dstReg = allocReg();
+                            if (nonDestructive_)
+                            {
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = dstReg, .src = lhsReg, .src2 = splatReg, .op = vecOp});
+                            }
+                            else
+                            {
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = splatReg, .op = vecOp});
+                            }
+                            plan_->arithmeticOps++;
+                            remember(tuple, sorted, dstReg);
+                            return dstReg;
+                        }
+
                         case LaneOp::ShiftLeft:
                         case LaneOp::ShiftRight:
                         {
@@ -774,8 +825,6 @@ namespace
                         }
 
                         default:
-                            // Splat immediates would need a materialized
-                            // vector constant; not supported yet.
                             return K_INVALID_ID;
                     }
                 }
@@ -1571,6 +1620,8 @@ namespace
         // ----- Materialize.
         if (!fn.nextVirtualFloatRegIndex)
             fn.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(*fn.context);
+        if (!fn.nextVirtualIntRegIndex)
+            fn.nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(*fn.context);
         std::vector<MicroReg> planRegs(plan.nextPlanReg);
         for (uint32_t planReg = 0; planReg < plan.nextPlanReg; ++planReg)
         {
@@ -1628,6 +1679,34 @@ namespace
                     ops[2].microOp = planInstr.op;
                     ops[3].setImmediateValue(ApInt(planInstr.imm, 64));
                     fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegImm, ops);
+                    break;
+                }
+                case PlanInstr::Kind::LoadSplat32:
+                {
+                    SWC_ASSERT(fn.nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX);
+                    const MicroReg scalar = MicroReg::virtualIntReg(fn.nextVirtualIntRegIndex++);
+                    {
+                        std::array<MicroInstrOperand, 3> ops;
+                        ops[0].reg    = scalar;
+                        ops[1].opBits = MicroOpBits::B32;
+                        ops[2].setImmediateValue(ApInt(planInstr.imm, 32));
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegImm, ops);
+                    }
+                    {
+                        std::array<MicroInstrOperand, 3> ops;
+                        ops[0].reg    = planRegs[planInstr.dst];
+                        ops[1].reg    = scalar;
+                        ops[2].opBits = MicroOpBits::B32;
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, ops);
+                    }
+                    {
+                        std::array<MicroInstrOperand, 4> ops;
+                        ops[0].reg      = planRegs[planInstr.dst];
+                        ops[1].reg      = planRegs[planInstr.dst];
+                        ops[2].opBits   = MicroOpBits::B128;
+                        ops[3].valueU64 = 0;
+                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecShuffleRegRegImm, ops);
+                    }
                     break;
                 }
                 case PlanInstr::Kind::BinaryRegRegReg:

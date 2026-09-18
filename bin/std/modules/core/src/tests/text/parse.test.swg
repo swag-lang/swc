@@ -47,3 +47,18 @@ using Swag
     Swag.assert(not Unicode.isDigit('²'))
     Swag.assert(Unicode.isNumber('¾'))
 }
+
+// An f32 below the smallest normal value is a subnormal, not an overflow: it reads back exactly.
+#test
+{
+    let subnormal = expect StrConv.parseF32("9.999999350456404e-39")
+    Swag.assert(cast #bit (u32) subnormal.value == 0x6CE3EE and not subnormal.ovf)
+    let smallest = expect StrConv.parseF32("1.401298464324817e-45")
+    Swag.assert(cast #bit (u32) smallest.value == 1 and not smallest.ovf)
+    let negative = expect StrConv.parseF32("-1e-40")
+    Swag.assert(negative.value < 0 and negative.value > -Swag.F32.Min)
+    let zero = expect StrConv.parseF32("1e-50")
+    Swag.assert(zero.value == 0)
+    let huge = expect StrConv.parseF32("1e39")
+    Swag.assert(huge.value == Swag.F32.Max and huge.ovf)
+}

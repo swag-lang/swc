@@ -236,14 +236,16 @@ impl HashSet
     #[Swag.NoDoc]
     mtd grow()
     {
-        // Linear probing degrades sharply past half full: a failed lookup averages
-        // 2.5 probes at a 50% load factor, but 8.5 probes at 75%.
-        if .capacity != 0 and .capacity - (.count + .deleted) > .capacity / 2 do
-            return
-
-        let newCapacity = .capacity * 2
-        .reserve(newCapacity)
+        if .growsOnInsert() do
+            .reserve(.capacity * 2)
     }
+
+    // Returns whether the next insertion grows, and so rehashes, the set.
+    //
+    // Linear probing degrades sharply past half full: a failed lookup averages 2.5 probes at a
+    // 50% load factor, but 8.5 probes at 75%.
+    #[Inline, Swag.NoDoc]
+    mtd const growsOnInsert()->bool => .capacity == 0 or .capacity - (.count + .deleted) <= .capacity / 2
 
     // Grows the set to at least `newCapacity` slots, rehashing every key.
     //
@@ -348,7 +350,20 @@ impl HashSet
     #[Discardable]
     mtd add(key: #fwd K)->*HashSetEntry
     {
-        .grow()
+        // Growing rehashes the set a struct `key` may live in, so take it out first.
+        if .growsOnInsert()
+        {
+            #static if Reflection.isStruct(K)
+            {
+                var staged: K = #fwd key
+                .grow()
+                return .add(#move staged)
+            }
+            else
+            {
+                .grow()
+            }
+        }
 
         let hashVal = hashKey(key)
         var index   = cast(u64) hashVal & (.capacity - 1)
@@ -411,7 +426,20 @@ impl HashSet
     #[Discardable]
     mtd toggle(key: #fwd K)->bool
     {
-        .grow()
+        // Growing rehashes the set a struct `key` may live in, so take it out first.
+        if .growsOnInsert()
+        {
+            #static if Reflection.isStruct(K)
+            {
+                var staged: K = #fwd key
+                .grow()
+                return .toggle(#move staged)
+            }
+            else
+            {
+                .grow()
+            }
+        }
 
         let hashVal      = hashKey(key)
         let mask         = .capacity - 1

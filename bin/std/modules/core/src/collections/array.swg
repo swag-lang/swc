@@ -409,19 +409,26 @@ impl Array
     {
         if .contains(value) do
             return
-        .grow(.count + 1)
-        .initNewSlots(.count, 1)
-        let buffer = .buffer!
-        buffer[.count] = #nodrop #fwd value
-        .count         += 1
+        .add(#fwd value)
     }
 
     // Appends `value` to the end of the array.
     //
-    // The value is copied; pass it with `#move` to move it instead.
+    // The value is copied; pass it with `#move` to move it instead. `value` can be an element of
+    // this array.
     mtd add(value: #fwd T)
     {
-        .grow(.count + 1)
+        // Growing releases the storage `value` may live in, so take it out first.
+        if .count == .capacity
+        {
+            var staged: T = #fwd value
+            .grow(.count + 1)
+            .initNewSlots(.count, 1)
+            .buffer![.count] = #relocate staged
+            .count += 1
+            return
+        }
+
         .initNewSlots(.count, 1)
         let buffer = .buffer!
         buffer[.count] = #nodrop #fwd value
@@ -452,12 +459,16 @@ impl Array
 
     // Inserts `value` at `index`, shifting the following elements to the right.
     //
-    // The value is copied; pass it with `#move` to move it instead.
+    // The value is copied; pass it with `#move` to move it instead. `value` can be an element of
+    // this array.
     mtd insertAt(index: u64, value: #fwd T)
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
         if index == .count do
             return .add(#fwd value)
+
+        // Growing and shifting both rewrite the storage `value` may live in, so take it out first.
+        var staged: T = #fwd value
         .grow(.count + 1)
         .count += 1
         .initNewSlots(.count - 1, 1)
@@ -473,7 +484,7 @@ impl Array
             Memory.copyOverlapping(buffer + index + 1, buffer + index, #sizeof(T) * (.count - 1 - index))
         }
 
-        buffer[index] = #nodrop #fwd value
+        buffer[index] = #relocate staged
     }
 
     // Inserts copies of the elements of `values` at `index`, shifting the following elements to the right.

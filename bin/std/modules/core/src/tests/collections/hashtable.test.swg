@@ -236,3 +236,29 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     Swag.assert(table[42] == 420)
     Swag.assert(table[74] == 740)
 }
+
+// A key or a value read from the table itself can be inserted back: growing rehashes the entries
+// they live in, so they are taken out first.
+#test
+{
+    var h: HashTable'(String, String)
+    discard h.add("seed", "a value long enough to live outside the inline storage")
+    for i in 200
+    {
+        let key = Format.toString("k%", i)
+        discard h.add(key, h.find("seed").value)
+    }
+
+    Swag.assert(h.count == 201)
+    for k, v in h do
+        Swag.assert(v[] == "a value long enough to live outside the inline storage")
+
+    var keys: HashTable'(String, s32)
+    discard keys.add("first key that is long enough to allocate", 1)
+    for i in 100
+    {
+        discard keys.findOrAdd(Format.toString("%", i))
+        discard keys.findOrAdd(keys.find("first key that is long enough to allocate").key)
+    }
+    Swag.assert(keys.count == 101 and keys.getOrDefault("first key that is long enough to allocate", 0) == 1)
+}

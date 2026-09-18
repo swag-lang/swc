@@ -258,12 +258,16 @@ impl StaticArray
     // Inserts `value` at `index`, shifting the following elements to the right.
     //
     // Asserts if the array is full. The value is copied; pass it with `#move` to move it instead.
+    // `value` can be an element of this array.
     mtd insertAt(index: u64, value: #fwd T)
     {
         Swag.assert(index <= .count, "index out of range")
         if index == .count do
             return .add(#fwd value)
         Swag.assert(.count != N, "the array is full")
+
+        // Shifting rewrites the storage `value` may live in, so take it out first.
+        var staged: T = #fwd value
         .count += 1
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
@@ -276,7 +280,7 @@ impl StaticArray
             Memory.copyOverlapping(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
         }
 
-        .buffer[index] = #nodrop #fwd value
+        .buffer[index] = #relocate staged
     }
 
     // Inserts copies of the elements of `values` at `index`, shifting the following elements to the right.

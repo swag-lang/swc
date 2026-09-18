@@ -150,3 +150,17 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 
     Swag.assert(StaticArrayDropCount == 4)
 }
+
+// An element can be inserted back into its own array: the shift would otherwise overwrite it
+// before it is copied.
+#test
+{
+    var s: StaticArray'(String, 8)
+    s.add("one")
+    s.add("two")
+    s.add("three")
+    s.insertAt(0, s[2])
+    Swag.assert(s.count == 4 and s[0] == "three" and s[1] == "one" and s[2] == "two" and s[3] == "three")
+    s.insertAt(1, s[3])
+    Swag.assert(s.count == 5 and s[1] == "three" and s[2] == "one" and s[4] == "three")
+}

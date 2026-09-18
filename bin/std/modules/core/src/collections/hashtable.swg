@@ -270,16 +270,19 @@ impl HashTable
         .count, .capacity, .deleted, .growThreshold = 0
     }
 
+    // Returns whether the next insertion grows, and so rehashes, the table.
+    //
+    // Every insertion path asks, so it is a single compare against a threshold computed once per
+    // resize. An empty table has a zero threshold and always grows.
+    #[Inline, Swag.NoDoc]
+    mtd const growsOnInsert()->bool => .count + .deleted >= .growThreshold
+
     // Doubles the capacity when the used slots, deleted ones included, reach half of it.
     #[Inline, Swag.NoDoc]
     mtd grow()
     {
-        // Every insertion path runs this, so it is a single compare against a threshold
-        // computed once per resize. An empty table has a zero threshold and falls through.
-        if .count + .deleted < .growThreshold do
-            return
-
-        .reserve(.capacity * 2)
+        if .growsOnInsert() do
+            .reserve(.capacity * 2)
     }
 
     // Grows the table to at least `newCapacity` slots, rehashing every entry.
@@ -389,7 +392,30 @@ impl HashTable
     mtd add(key: K, value: #fwd V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
-        .grow()
+        // Growing rehashes the table a struct `key` or `value` may live in, so take them out first.
+        // Any other key or value arrives by value and cannot alias the table.
+        if .growsOnInsert()
+        {
+            #static if Reflection.isStruct(K) or Reflection.isStruct(V)
+            {
+                let stagedKey = key
+                #static if Reflection.isStruct(V)
+                {
+                    var stagedValue: V = #fwd value
+                    .grow()
+                    return .add(stagedKey, #move stagedValue, updateValue)
+                }
+                else
+                {
+                    .grow()
+                    return .add(stagedKey, value, updateValue)
+                }
+            }
+            else
+            {
+                .grow()
+            }
+        }
 
         let hashVal = hashKey(key)
         var index   = cast(u64) hashVal & (.capacity - 1)
@@ -596,7 +622,20 @@ impl HashTable
     mtd findOrAdd(key: K)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
-        .grow()
+        // Growing rehashes the table a struct `key` may live in, so take it out first.
+        if .growsOnInsert()
+        {
+            #static if Reflection.isStruct(K)
+            {
+                let stagedKey = key
+                .grow()
+                return .findOrAdd(stagedKey)
+            }
+            else
+            {
+                .grow()
+            }
+        }
 
         let hashVal = hashKey(key)
         var index   = cast(u64) hashVal & (.capacity - 1)

@@ -94,6 +94,15 @@ public impl NumberFormatInfo
         return result
     }
 
+    // Returns whether `value` rounds to zero at `decimals` fractional digits, and so prints without a sign.
+    internal mtd const roundsToZero(value: f64, decimals: u8)->bool
+    {
+        var scale = 1.0'f64
+        for decimals do
+            scale *= 10
+        return Math.round(Math.abs(value) * scale) == 0
+    }
+
     // Formats a finite decimal value with a fixed number of fractional digits.
     //
     // `decimals` must be at most 18. Values are rounded to the nearest representable
@@ -114,8 +123,9 @@ public impl NumberFormatInfo
         let whole    = decimals ? scaled / scale : scaled
         let fraction = decimals ? scaled % scale : 0
 
+        // A value that rounds to zero prints without a sign: '-0.00' is not a number anyone wrote.
         var result: retval
-        if negative do
+        if negative and scaled != 0 do
             result.append(.negativeSign)
         .appendUnsigned(&result, whole, grouped)
         if decimals

@@ -727,7 +727,8 @@ public impl RichEditCtrl
     // Inserts `txt` at the start of each selected line, as one undoable step.
     mtd insertBegLine(txt: string)
     {
-        var first = true
+        var first       = true
+        let insertedLen = Utf8.countRunes(cast(const [..] u8) txt)
 
         var beg = .selectionStart()
         let end = .selectionEnd()
@@ -754,9 +755,9 @@ public impl RichEditCtrl
             .popUndo()
 
             if beg.lineIndex == savepos0.lineIndex and savepos0.charPosInLine do
-                savepos0.charPosInLine += 1
+                savepos0.charPosInLine += insertedLen
             if beg.lineIndex == savepos1.lineIndex and savepos1.charPosInLine do
-                savepos1.charPosInLine += 1
+                savepos1.charPosInLine += insertedLen
 
             beg.lineIndex += 1
             first         = false
@@ -812,14 +813,14 @@ public impl RichEditCtrl
             {
                 while beg.charPosInLine < line.length() and Unicode.isSpace(line.chars[beg.charPosInLine])
                 {
-                    if Slice.equals(Swag.makeSlice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice()) do
+                    if beg.charPosInLine + lenTxt <= line.length() and Slice.equals(line.chars.toSlice()[beg.charPosInLine until beg.charPosInLine + lenTxt], arrR.toSlice()) do
                         break
                     beg.charPosInLine += 1
                 }
             }
 
             var beg1 = beg
-            if beg.charPosInLine < line.length() and Slice.equals(Swag.makeSlice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice())
+            if beg.charPosInLine + lenTxt <= line.length() and Slice.equals(line.chars.toSlice()[beg.charPosInLine until beg.charPosInLine + lenTxt], arrR.toSlice())
             {
                 beg1.charPosInLine += lenTxt
             }

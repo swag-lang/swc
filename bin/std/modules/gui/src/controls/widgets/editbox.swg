@@ -448,7 +448,6 @@ impl IWnd for EditBox
             else
             {
                 .forceVisibleCaret()
-                .deleteSelectionPrivate()
                 .insertRune(evt.character)
             }
         }
@@ -710,10 +709,23 @@ private impl EditBox
         return res
     }
 
-    // Inserts a single Unicode rune, enforcing maximum length and validation.
+    // Returns the number of runes in the current selection.
+    mtd selectedRuneCount()->s32
+    {
+        let selB = .selectionStartIndex()
+        let selE = .selectionEndIndex()
+        if selB >= selE do
+            return 0
+        return cast(s32) Utf8.countRunes(.textStorage[selB until selE])
+    }
+
+    // Inserts a single Unicode rune in place of the selection, enforcing maximum length and validation.
+    //
+    // A rune the validator rejects silently leaves the text, the selection, and the rune count as
+    // they were.
     mtd insertRune(r: rune)
     {
-        if .maximumLength and .countRunes == .maximumLength do
+        if .maximumLength and .countRunes - .selectedRuneCount() >= .maximumLength do
             return
 
         // Convert rune to UTF-8.
@@ -735,6 +747,7 @@ private impl EditBox
         let saveText   = .textStorage
         let saveSelBeg = .selBeg
         let saveSelEnd = .selEnd
+        let saveCount  = .countRunes
         .insertUtf8(Swag.makeString(&utf8[0], cpt))
 
         let res = .checkContent()
@@ -742,7 +755,7 @@ private impl EditBox
         {
             .textStorage = saveText
             .setSelection(saveSelBeg, saveSelEnd)
-            .countRunes -= 1
+            .countRunes = saveCount
         }
         else do
             .notifyChanged()

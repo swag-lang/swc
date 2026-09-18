@@ -141,8 +141,9 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
 
 // Returns the similarity of two feature sets, from 0 to 1.
 //
-// Each decomposition level contributes the absolute normalized correlation of its
-// coefficients, weighted toward the coarse levels. Both sets must have the same size.
+// The DC term and every detail level contribute the absolute normalized correlation of their
+// coefficients. Level `l` weighs `2^(levels - l)`: the DC term weighs most, then the detail
+// levels from the finest to the coarsest. Both sets must have the same size.
 public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 {
     Swag.assert(haar1.size == haar2.size, "Haar features must have same size")
@@ -151,7 +152,9 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     var totalWeight:     f64 = 0.0
     let size = haar1.size
 
-    for level in haar1.levels
+    // Level 0 is the DC term; levels 1 to 'levels' are the detail bands, the last one being the
+    // three single coefficients next to the DC term.
+    for level in 0 to haar1.levels
     {
         let weight = Math.pow(2.0, cast(f64) (haar1.levels - level))
 

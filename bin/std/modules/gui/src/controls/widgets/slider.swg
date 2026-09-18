@@ -604,7 +604,7 @@ impl Slider
     // `steps` may span the complete range, which creates a two-value control at the bounds. The
     // current values keep their relative positions on the track, so configure the bounds before
     // setting values.
-    func setBounds(me, min, max: f32, steps: f32 = 0)
+    mtd setBounds(min, max: f32, steps: f32 = 0)
     {
         Swag.assert(min < max)
         Swag.assert(steps >= 0 and steps <= (max - min))

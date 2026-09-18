@@ -1726,8 +1726,12 @@ impl ListCtrl
         if .isVirtual do
             return
 
+        // The focus is a position: remember its row and find it again once the rows moved.
+        let focused = .focusIndex < .lines.count ? .lines[.focusIndex] : null
         .sort(column, descending, &.lines)
         .mapIndexes()
+        if focused do
+            .focusIndex = .idxLineToIdxList.tryFind(focused.index)?.value orelse Swag.U32.Max
 
         if .header != null and persistent do
             .header.setSortIndicator(column, descending ? .Descending : .Ascending)
@@ -1758,13 +1762,16 @@ impl ListCtrl
         let res = .idxLineToIdxList.tryFind(line.index)
         if not res do
             return
+        let lineRow = res.value
 
         var toInsert: Array'(*ListLine?)
         .collectVisibleLines(&toInsert, line.lines.toSlice())
         if toInsert.count
         {
-            .lines.insertAt(cast(u64) (res.value + 1), toInsert.toSlice())
+            .lines.insertAt(cast(u64) (lineRow + 1), toInsert.toSlice())
             .mapIndexes()
+            if .focusIndex != Swag.U32.Max and .focusIndex > lineRow do
+                .focusIndex += cast(u32) toInsert.count
         }
 
         .computeLayout()
@@ -1812,6 +1819,10 @@ impl ListCtrl
             .unselectAll()
             .focusIndex = idxInsert
             .selectLine(.focusIndex)
+        }
+        elif .focusIndex != Swag.U32.Max and .focusIndex >= idxInsert + 1 + removeCount
+        {
+            .focusIndex -= removeCount
         }
 
         .computeLayout()

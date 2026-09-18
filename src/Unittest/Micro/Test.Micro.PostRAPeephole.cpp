@@ -2362,6 +2362,38 @@ SWC_TEST_BEGIN(PostRAPeephole_SignedOrderAgainstZeroReadsSign)
 }
 SWC_TEST_END()
 
+// A loop's unsigned high multiply needs rax, which holds nothing live: the
+// legalized multiply loads it without saving it around the loop.
+SWC_TEST_BEGIN(Legalize_LoopMultiplyHighDoesNotSaveDeadRax)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef loop = builder.createLabel();
+    builder.emitLoadRegMem(rcx, r8, 0, MicroOpBits::B64);
+    builder.emitLoadRegImm(r9, ApInt(0xCCCCCCCCCCCCCCCDull, 64), MicroOpBits::B64);
+    builder.placeLabel(loop);
+    builder.emitOpBinaryRegReg(rcx, r9, MicroOp::MultiplyHighUnsigned, MicroOpBits::B64);
+    builder.emitCmpRegImm(rcx, ApInt(10, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, loop);
+    builder.emitLoadMemReg(r8, 0, rcx, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runLegalizePass(builder, encoder));
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == rax && ops[0].reg != rcx)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

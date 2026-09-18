@@ -358,6 +358,14 @@ source instead of executing an unpatched access. The internal JIT tests cover
 that source selection and verify the patched `rel32` target in executable memory
 before executing a scalar float XOR.
 
+Build 995 fixes the JIT-side relocation path for that sign mask when the
+proximity arena cannot keep the payload within `rel32` reach. The JIT now
+copies the fixed 16-byte mask into its adjacent island and patches the memory
+operand to that copy; address-materializing constant relocations still use
+their canonical storage. A failed direct `rel32` patch now returns an error
+instead of leaving a zero displacement. The focused Release corpus executes
+the JIT and generated executable paths successfully.
+
 Builds 864–871 measured between 1.90 and 3.47 seconds and 314.62 to 328.32 MiB
 peak working set. Builds 874 and 875 measured 10.02 and 30.78 seconds under
 heavier concurrent load, at 310.33 and 303.89 MiB. Shared-machine variation is

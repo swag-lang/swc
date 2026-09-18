@@ -101,6 +101,7 @@ namespace
                 .targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data()),
                 .constantShard  = maskRef.shardIndex,
                 .constantOffset = maskRef.offset,
+                .constantCopySize = static_cast<uint32_t>(signMask.size()),
             });
             return Result::Continue;
         }

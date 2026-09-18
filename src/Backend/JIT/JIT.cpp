@@ -766,6 +766,19 @@ namespace
         {
             case MicroRelocation::Kind::ConstantAddress:
             {
+                // A private island copy consumes the payload bytes only. Its
+                // address is never observable, so the producer's stable load
+                // address is sufficient and avoids asking the identity resolver
+                // to recover an allocation that a later payload append moved.
+                if (reloc.requiresConstantCopy())
+                {
+                    if (!reloc.hasConstantSource() || reloc.targetAddress == 0)
+                        return Result::Error;
+
+                    outTargetAddress = reloc.targetAddress;
+                    return Result::Continue;
+                }
+
                 // A segment-backed relocation names its canonical source. Resolve that
                 // source at patch time, matching the native backend instead of relying
                 // on the auxiliary raw target address.
@@ -949,15 +962,19 @@ namespace
         return true;
     }
 
-    void patchRelative32Direct(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
+    uint32_t reserveConstantIsland(uint32_t& islandOffset, const uint32_t size)
     {
-        SWC_FORCE_ASSERT(tryPatchRelative32Direct(writableCode, reloc, targetAddress));
+        constexpr uint32_t ALIGNMENT = 16;
+        islandOffset                 = Math::alignUpU32(islandOffset, ALIGNMENT);
+        const uint32_t result        = islandOffset;
+        islandOffset += Math::alignUpU32(size, ALIGNMENT);
+        return result;
     }
 
-    void patchRelative32Function(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress, uint32_t islandSlotOffset)
+    bool patchRelative32Function(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress, uint32_t islandSlotOffset)
     {
         if (tryPatchRelative32Direct(writableCode, reloc, targetAddress))
-            return;
+            return true;
 
         auto*          basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         const uint64_t slotEnd = static_cast<uint64_t>(islandSlotOffset) + K_FUNCTION_THUNK_SLOT;
@@ -969,7 +986,7 @@ namespace
         std::memcpy(basePtr + islandSlotOffset + JUMP_THUNK.size(), &targetAddress, sizeof(targetAddress));
 
         const uint64_t thunkAddress = reinterpret_cast<uint64_t>(basePtr + islandSlotOffset);
-        SWC_FORCE_ASSERT(tryPatchRelative32Direct(writableCode, reloc, thunkAddress));
+        return tryPatchRelative32Direct(writableCode, reloc, thunkAddress);
     }
 
     bool isOptionalFunctionRelocationReady(const SymbolFunction& targetFunction)
@@ -1120,17 +1137,35 @@ namespace
                     reloc.kind == MicroRelocation::Kind::GlobalZeroAddress ||
                     reloc.kind == MicroRelocation::Kind::GlobalInitAddress)
                 {
+                    if (reloc.requiresConstantCopy())
+                    {
+                        if (reloc.kind != MicroRelocation::Kind::ConstantAddress || !reloc.hasConstantSource())
+                            return Result::Error;
+
+                        const uint32_t copyOffset = reserveConstantIsland(islandOffset, reloc.constantCopySize);
+                        if (static_cast<uint64_t>(copyOffset) + reloc.constantCopySize > writableCode.size_bytes())
+                            return Result::Error;
+
+                        auto* const copy = const_cast<std::byte*>(reinterpret_cast<const std::byte*>(basePtr)) + copyOffset;
+                        std::memcpy(copy, reinterpret_cast<const void*>(targetAddress), reloc.constantCopySize);
+                        if (!tryPatchRelative32Direct(writableCode, reloc, reinterpret_cast<uint64_t>(copy)))
+                            return Result::Error;
+                        continue;
+                    }
+
                     // Segment-backed constants and mutable globals must reach their real
                     // storage, never an island copy: materialized pointers preserve identity,
                     // and constants can contain relocations patched in place. The proximity
                     // arena hosts this code and every such segment payload.
-                    patchRelative32Direct(writableCode, reloc, targetAddress);
+                    if (!tryPatchRelative32Direct(writableCode, reloc, targetAddress))
+                        return Result::Error;
                     continue;
                 }
 
                 if (reloc.kind == MicroRelocation::Kind::LocalFunctionAddress || reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress)
                 {
-                    patchRelative32Function(writableCode, reloc, targetAddress, islandOffset);
+                    if (!patchRelative32Function(writableCode, reloc, targetAddress, islandOffset))
+                        return Result::Error;
                     islandOffset += K_FUNCTION_THUNK_SLOT;
                     continue;
                 }
@@ -1157,14 +1192,24 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteAr
     const bool        registerSehUnwind = !unwindInfo.empty();
 
     // Direct calls reserve a nearby fallback thunk in case their final target lies outside
-    // rel32 reach. Constants and globals need no island slot: their segments share the same
-    // two-gigabyte proximity arena as JIT code.
+    // rel32 reach. A fixed-payload memory relocation can likewise reserve an
+    // adjacent data copy. Address materializations retain the canonical segment
+    // address and therefore do not use this escape hatch.
     uint32_t islandSize = 0;
     for (const MicroRelocation& relocation : relocations)
     {
+        if (relocation.form != MicroRelocation::Form::Relative32)
+            continue;
+
+        if (relocation.requiresConstantCopy())
+        {
+            SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress && relocation.hasConstantSource());
+            reserveConstantIsland(islandSize, relocation.constantCopySize);
+            continue;
+        }
+
         // Arena-resident constants and globals patch straight to their storage.
-        if (relocation.form != MicroRelocation::Form::Relative32 ||
-            relocation.kind == MicroRelocation::Kind::ConstantAddress ||
+        if (relocation.kind == MicroRelocation::Kind::ConstantAddress ||
             relocation.kind == MicroRelocation::Kind::GlobalZeroAddress ||
             relocation.kind == MicroRelocation::Kind::GlobalInitAddress)
             continue;
@@ -1205,7 +1250,11 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
     SWC_ASSERT(!executableMemory.empty());
     // The span has to reach past the code: the constant island lives after it,
     // and size() is only the code.
-    const uint32_t  patchableSize = std::max(executableMemory.size(), executableMemory.constantIslandOffset_ + executableMemory.constantIslandSize_);
+    // The allocator commits full pages. A relocation can reserve a new fixed
+    // payload island after preparation has measured an earlier layout, so make
+    // every committed byte available to the patcher rather than clipping it to
+    // the logical code and island extents.
+    const uint32_t  patchableSize = executableMemory.allocationSize_;
     const std::span writableCode{static_cast<std::byte*>(executableMemory.entryPoint()), patchableSize};
     return patchRelocations(ctx, ownerFunction, writableCode, relocations, executableMemory.constantIslandOffset_);
 }

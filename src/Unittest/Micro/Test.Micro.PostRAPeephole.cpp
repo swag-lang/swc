@@ -1945,6 +1945,48 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterQwordWrite_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // xorps xmm1, xmm1 ; [movss xmm1, [r8] | cvtsi2ss xmm1, eax] ; movss [r8 + 8], xmm1
+    void emitFloatClearBefore(MicroBuilder& builder, bool fullWrite)
+    {
+        constexpr MicroReg rax  = MicroReg::intReg(0);
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+
+        builder.emitLoadRegMem(rax, r8, 16, MicroOpBits::B32);
+        builder.emitClearReg(xmm1, MicroOpBits::B32);
+        if (fullWrite)
+            builder.emitLoadRegMem(xmm1, r8, 0, MicroOpBits::B32);
+        else
+            builder.emitOpBinaryRegReg(xmm1, rax, MicroOp::ConvertIntToFloat, MicroOpBits::B32);
+        builder.emitLoadMemReg(r8, 8, xmm1, MicroOpBits::B32);
+        builder.emitRet();
+    }
+}
+
+// A scalar load replaces the whole register the clear zeroed.
+SWC_TEST_BEGIN(PostRAPeephole_FloatClearBeforeLoad_Erased)
+{
+    MicroBuilder builder(ctx);
+    emitFloatClearBefore(builder, true);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A conversion writes only the low lane: its clear stays.
+SWC_TEST_BEGIN(PostRAPeephole_FloatClearBeforeConversion_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitFloatClearBefore(builder, false);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

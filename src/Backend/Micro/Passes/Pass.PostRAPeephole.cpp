@@ -29,6 +29,7 @@ namespace
         r.add(MicroInstrOpcode::Nop, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseZeroExtendedSelfCopy);
+        r.add(MicroInstrOpcode::ClearReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
         r.add(MicroInstrOpcode::CmpRegImm, tryFoldConditionalBitwiseNot);
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftNoCopy);

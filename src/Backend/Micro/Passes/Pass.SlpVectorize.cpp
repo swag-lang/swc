@@ -74,6 +74,7 @@ namespace
         FloatMin,
         FloatMax,
         FloatSqrt,
+        FloatTruncToS32,
         ShiftLeft,
         ShiftRight,
         RotateLeft,
@@ -734,14 +735,26 @@ namespace
 
                 case SlpValueKind::Unary:
                 {
-                    if (n0.op != LaneOp::FloatSqrt || n1.op != n0.op || n2.op != n0.op || n3.op != n0.op)
+                    if (n0.op != n1.op || n0.op != n2.op || n0.op != n3.op)
                         return K_INVALID_ID;
                     const TupleKey input{{n0.lhs, n1.lhs, n2.lhs, n3.lhs}};
                     const uint32_t inputReg = build(input, depth + 1);
                     if (inputReg == K_INVALID_ID)
                         return K_INVALID_ID;
+
+                    MicroOp vecOp = MicroOp::VecSqrtF32;
+                    switch (n0.op)
+                    {
+                        case LaneOp::FloatSqrt:
+                            break;
+                        case LaneOp::FloatTruncToS32:
+                            vecOp = MicroOp::VecTruncF32ToS32;
+                            break;
+                        default:
+                            return K_INVALID_ID;
+                    }
                     const uint32_t dstReg = allocReg();
-                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::VecUnary, .dst = dstReg, .src = inputReg, .op = MicroOp::VecSqrtF32});
+                    plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::VecUnary, .dst = dstReg, .src = inputReg, .op = vecOp});
                     plan_->arithmeticOps++;
                     remember(tuple, sorted, dstReg);
                     return dstReg;
@@ -1315,6 +1328,16 @@ namespace
                     SlpValue v;
                     v.kind = SlpValueKind::Unary;
                     v.op   = LaneOp::FloatSqrt;
+                    v.lhs  = currentValue(scan, ops[1].reg);
+                    setValue(scan, ops[0].reg, scan.values.intern(v));
+                    return;
+                }
+                if (ops[3].microOp == MicroOp::ConvertFloatToInt && ops[2].opBits == MicroOpBits::B32 &&
+                    ops[0].reg.isVirtualInt() && ops[1].reg.isVirtualFloat())
+                {
+                    SlpValue v;
+                    v.kind = SlpValueKind::Unary;
+                    v.op   = LaneOp::FloatTruncToS32;
                     v.lhs  = currentValue(scan, ops[1].reg);
                     setValue(scan, ops[0].reg, scan.values.intern(v));
                     return;

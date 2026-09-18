@@ -1538,6 +1538,57 @@ SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FloatReturnSelectUsesAbiRegisterDirectly)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+    constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+    constexpr MicroReg r8   = MicroReg::intReg(4);
+
+    for (const bool usesFloatReturn : {true, false})
+    {
+        MicroBuilder builder(ctx);
+        builder.setRetUsesAbiRegs(false, usesFloatReturn);
+        const MicroLabelRef falseLabel = builder.createLabel();
+        const MicroLabelRef doneLabel  = builder.createLabel();
+        builder.emitLoadRegReg(xmm2, xmm1, MicroOpBits::B32);
+        builder.emitLoadRegReg(xmm3, xmm0, MicroOpBits::B32);
+        builder.emitCmpRegImm(r8, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(falseLabel);
+        builder.emitLoadRegReg(xmm3, xmm2, MicroOpBits::B32);
+        builder.placeLabel(doneLabel);
+        builder.emitLoadRegReg(xmm0, xmm3, MicroOpBits::B32);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const uint32_t copyCount = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
+        const uint32_t jumpCount = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond);
+        if (!usesFloatReturn)
+        {
+            if (copyCount != 4 || jumpCount != 2)
+                return Result::Error;
+            continue;
+        }
+
+        if (copyCount != 1 || jumpCount != 1 || !hasLoadRegReg(builder, xmm0, xmm1))
+            return Result::Error;
+        for (const MicroInstr& candidate : builder.instructions().view())
+        {
+            if (candidate.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jump = candidate.ops(builder.operands());
+            if (!jump || jump[0].cpuCond != MicroCond::NotEqual || jump[2].valueU64 != doneLabel.get())
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ScalarReturnConversionDropsUpperLaneClear)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

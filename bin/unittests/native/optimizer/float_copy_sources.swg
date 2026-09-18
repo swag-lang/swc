@@ -23,6 +23,12 @@ func squares(a, b: f64)->f64
     return x * y + b
 }
 
+#[Swag.Optimize(true), Swag.NoInline]
+func select32(a, b: f32, pickA: bool)->f32 => pickA ? a : b
+
+#[Swag.Optimize(true), Swag.NoInline]
+func select64(a, b: f64, pickA: bool)->f64 => pickA ? a : b
+
 #test
 {
     Swag.assert(lerp(1, 3, 0.5) == 2)
@@ -31,4 +37,8 @@ func squares(a, b: f64)->f64
     Swag.assert(reversed(5, 1, 2) == 0)
     Swag.assert(reversed(1, 5, 4) == 5)
     Swag.assert(squares(2, 3) == 27)
+    Swag.assert(select32(1.25, 2.5, true) == 1.25)
+    Swag.assert(select32(1.25, 2.5, false) == 2.5)
+    Swag.assert(select64(-3.5, 7.25, true) == -3.5)
+    Swag.assert(select64(-3.5, 7.25, false) == 7.25)
 }

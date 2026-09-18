@@ -192,6 +192,24 @@ func lanesDivFloatPairs(values: *[12] f32)
     values[][11] = values[][3] / values[][7]
 }
 
+#[Swag.Optimize(true)]
+func lanesMinFloatPairs(values: *[12] f32)
+{
+    values[][8]  = Swag.min(values[][0], values[][4])
+    values[][9]  = Swag.min(values[][1], values[][5])
+    values[][10] = Swag.min(values[][2], values[][6])
+    values[][11] = Swag.min(values[][3], values[][7])
+}
+
+#[Swag.Optimize(true)]
+func lanesMaxFloatPairs(values: *[12] f32)
+{
+    values[][8]  = Swag.max(values[][0], values[][4])
+    values[][9]  = Swag.max(values[][1], values[][5])
+    values[][10] = Swag.max(values[][2], values[][6])
+    values[][11] = Swag.max(values[][3], values[][7])
+}
+
 #test
 {
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -226,6 +244,20 @@ func lanesDivFloatPairs(values: *[12] f32)
     var values: [12] f32 = [10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 2.0'f32, 4.0'f32, 5.0'f32, 8.0'f32, 0, 0, 0, 0]
     lanesDivFloatPairs(&values)
     Swag.assert(values[8] == 5.0'f32 and values[9] == 5.0'f32 and values[10] == 6.0'f32 and values[11] == 5.0'f32)
+}
+
+#test
+{
+    var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
+    lanesMinFloatPairs(&values)
+    Swag.assert(values[8] == 1.0'f32 and values[9] == 2.0'f32 and values[10] == 3.0'f32 and values[11] == 4.0'f32)
+}
+
+#test
+{
+    var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
+    lanesMaxFloatPairs(&values)
+    Swag.assert(values[8] == 10.0'f32 and values[9] == 20.0'f32 and values[10] == 30.0'f32 and values[11] == 40.0'f32)
 }
 
 #test

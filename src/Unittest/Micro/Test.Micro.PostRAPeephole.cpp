@@ -2037,6 +2037,52 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatBinaryResultCopyLiveTemporary_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // cmp rcx, rdx ; set(less) al ; set(greater) cl ; sub cl, al ; movsx eax, cl ; ret
+    void emitThreeWayBytes(MicroBuilder& builder, MicroCond less, MicroCond greater)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg rdx = MicroReg::intReg(2);
+
+        builder.emitCmpRegReg(rcx, rdx, MicroOpBits::B64);
+        builder.emitSetCondReg(rax, less);
+        builder.emitSetCondReg(rcx, greater);
+        builder.emitOpBinaryRegReg(rcx, rax, MicroOp::Subtract, MicroOpBits::B8);
+        builder.emitLoadSignedExtendRegReg(rax, rcx, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+// The unsigned `a < b` byte is the carry: sbb subtracts it from the flags.
+SWC_TEST_BEGIN(PostRAPeephole_UnsignedThreeWayUsesBorrow)
+{
+    MicroBuilder builder(ctx);
+    emitThreeWayBytes(builder, MicroCond::Below, MicroCond::Above);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SubtractBorrowRegImm) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The signed `a < b` byte is not a flag: both bytes stay.
+SWC_TEST_BEGIN(PostRAPeephole_SignedThreeWayKeepsBytes)
+{
+    MicroBuilder builder(ctx);
+    emitThreeWayBytes(builder, MicroCond::Less, MicroCond::Greater);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SubtractBorrowRegImm) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -214,6 +214,68 @@ namespace PostRaPeephole
         }
     }
 
+    // An unsigned three-way compare subtracts the `a < b` byte from the
+    // `a > b` byte. `a < b` is the carry the comparison left, so the
+    // subtraction can read it from the flags, as LLVM lowers `ucmp`:
+    //
+    //     cmp rcx, rdx ; setb al ; seta cl ; sub cl, al    ->    cmp rcx, rdx ; seta cl ; sbb cl, 0
+    //
+    // sbb subtracts the carry exactly as sub subtracts the byte holding it,
+    // flags included, so nothing downstream sees a difference.
+    bool tryFoldBorrowDifference(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        constexpr uint32_t K_MAX_WINDOW = 4;
+
+        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].microOp != MicroOp::Subtract || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isInt() ||
+            !ops[1].reg.isInt() || ops[0].reg == ops[1].reg)
+            return false;
+        const MicroReg minuend = ops[0].reg;
+        const MicroReg carry   = ops[1].reg;
+        if (!ctx.isRegDeadAfterCurrent(carry))
+            return false;
+
+        // The setb that produced the subtracted byte, with no flag write and
+        // no other access to its register in between.
+        MicroInstrRef setRef = MicroInstrRef::invalid();
+        MicroInstrRef cursor = ctx.previousRef(ref);
+        for (uint32_t step = 0; step < K_MAX_WINDOW && cursor.isValid(); ++step)
+        {
+            const MicroInstr* current = ctx.instruction(cursor);
+            if (!current || current->op == MicroInstrOpcode::Label)
+                return false;
+            const MicroInstrOperand* currentOps = current->ops(*ctx.operands);
+            if (current->op == MicroInstrOpcode::SetCondReg && currentOps && currentOps[0].reg == carry)
+            {
+                if (currentOps[1].cpuCond != MicroCond::Below)
+                    return false;
+                setRef = cursor;
+                break;
+            }
+
+            const MicroInstrFlags flags = MicroInstr::info(current->op).flags;
+            if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*current, currentOps))
+                return false;
+            const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
+            if (microRegSpanContains(useDef.uses.span(), carry) || microRegSpanContains(useDef.defs.span(), carry))
+                return false;
+            cursor = ctx.previousRef(cursor);
+        }
+        if (!setRef.isValid() || !ctx.claimAll({setRef, ref}))
+            return false;
+
+        MicroInstrOperand borrow[3] = {};
+        borrow[0].reg               = minuend;
+        borrow[1].opBits            = MicroOpBits::B8;
+        borrow[2].valueU64          = 0;
+        ctx.emitErase(setRef);
+        ctx.emitRewrite(ref, MicroInstrOpcode::SubtractBorrowRegImm, borrow, true);
+        return true;
+    }
+
     // A comparison repeated right after the branch that read it is redundant:
     // a conditional jump leaves the flags it tested untouched, and nothing
     // runs between it and the instruction it falls through to.

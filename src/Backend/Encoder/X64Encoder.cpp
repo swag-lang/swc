@@ -1891,10 +1891,20 @@ void X64Encoder::encodeAddCarryRegImm(MicroReg regDst, uint64_t value, MicroOpBi
 
 void X64Encoder::encodeSubtractBorrowRegImm(MicroReg regDst, uint64_t value, MicroOpBits bits)
 {
-    SWC_ASSERT(regDst.isInt() && (bits == MicroOpBits::B32 || bits == MicroOpBits::B64));
+    SWC_ASSERT(regDst.isInt() && (bits == MicroOpBits::B8 || bits == MicroOpBits::B32 || bits == MicroOpBits::B64));
     SWC_INTERNAL_CHECK(canEncodeOpImmediate(value, bits));
-    const bool small = canEncode8(value, bits);
     emitRex(store_, bits, MicroReg{}, regDst);
+    if (bits == MicroOpBits::B8)
+    {
+        // sbb r/m8, imm8: an unsigned three-way compare subtracts the carry
+        // from its `a > b` byte.
+        emitCpuOp(store_, 0x80);
+        emitModRm(store_, MODRM_REG_3, regDst);
+        emitValue(store_, value, MicroOpBits::B8);
+        return;
+    }
+
+    const bool small = canEncode8(value, bits);
     emitCpuOp(store_, small ? 0x83 : 0x81);
     emitModRm(store_, MODRM_REG_3, regDst);
     emitValue(store_, value, small ? MicroOpBits::B8 : MicroOpBits::B32);

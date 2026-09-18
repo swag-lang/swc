@@ -19,7 +19,9 @@ enum TagBinHeaderFlags: u32
     StreamCompressed = 1     // The whole body is stored as one deflate payload.
 }
 
-// Signatures used to tag different sections and elements in the binary serialization format
+// Marks written before the sections and elements of a TagBin stream.
+//
+// These values are the on-disk format; never renumber them.
 enum TagBinSignature: u32
 {
     Root     = 0xC0DE0000     // Root element of the serialization structure
@@ -31,13 +33,13 @@ enum TagBinSignature: u32
     ShapeDir = 0xC0DE0006     // Shape directory of a version 1 stream
 }
 
-// Shape id of a section whose fields are self-described in the stream rather than
-// referenced from the shape directory. Used for dynamic fields written through
-// 'Serializer.serialize' and for types that drive their own fields with 'ISerialize'.
+// Shape id of a section whose fields are self-described in the stream rather than referenced from the shape directory.
+//
+// Used for dynamic fields written through [[Core.Serialization.Serializer.serialize]] and for
+// types that drive their own fields with [[Core.Serialization.ISerialize]].
 const TagBinAdHocShape = 0xFFFFFFFF'u32
 
-// Additional signature for each value in an ad-hoc section, stored after its key and
-// static type identity.
+// Additional signature for each value in an ad-hoc section, stored after its key and static type identity.
 //
 // These numbers are the on-disk format, so both cases are pinned. Every element ever
 // written carries bit 0, which is why [[Core.Serialization.Write.TagBinValueFlags.None]] is
@@ -60,7 +62,7 @@ enum TagBinShapeFlags: u8
     Compressed = 1     // Every payload of this field is stored as a deflate size pair.
 }
 
-// Internal state for a binary serialization section
+// Tracks the encoding state of one open section.
 struct TagBinSection
 {
     public
@@ -72,11 +74,11 @@ struct TagBinSection
         plan:         const *Plan?                                 // Shaped sections: the plan driving the field order.
         payloadStart: u64                                          // Offset of the first payload byte of the section.
         fieldIndex:   u64                                          // Shaped sections: index of the next field to write.
-        kind:         SectionKind                                  // Type of section (e.g., Raw or Unordered)
+        kind:         SectionKind                                  // How the values of the section are framed.
     }
 }
 
-// Binary writer for serialized data with support for structured and raw output.
+// Writes the TagBin binary format.
 //
 // The writer produces the single version 1 layout described by
 // [[Core.Serialization.Read.TagBin]].
@@ -85,18 +87,19 @@ struct TagBin
 {
     public
     {
-        compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero          // Compression flags associated with this value.
-        compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed     // Compression level associated with this value.
-        compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default       // Compression strategy associated with this value.
+        compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero          // Deflate flags for compressed payloads.
+        compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed     // Deflate level for compressed payloads.
+        compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default       // Deflate strategy for compressed payloads.
 
         // Identifies a document written through the low-level streaming API.
         //
         // `writeAll` uses the root type's [[Core.Serialization.Schema]] instead.
         schema: String
 
-        // When true, the whole stream body is compressed as a single deflate payload at the
-        // end of the write. This replaces the per-field 'Serialization.Compress' attribute
-        // when most of the stream benefits from compression.
+        // Whether the whole stream body is compressed as one deflate payload at the end of the write.
+        //
+        // This replaces the per-field [[Core.Serialization.Compress]] attribute when most of the
+        // stream benefits from compression.
         compressStream: bool
     }
 
@@ -122,10 +125,10 @@ struct TagBin
 
 private impl TagBin
 {
-    // Creates or reuses a new section for writing
+    // Pushes a reset section on the stack, reusing a released one when possible.
     mtd newSection()->*TagBinSection
     {
-        if .freeSections.count
+        if not .freeSections.isEmpty()
         {
             let ptr = .freeSections.popBack()!
             ptr.mapSeek.clear()
@@ -140,7 +143,7 @@ private impl TagBin
         return .sections.addNew()
     }
 
-    // Releases the most recently added section and recycles it
+    // Pops the current section and keeps it for reuse.
     mtd releaseSection()
     {
         let ptr = .sections.popBack()
@@ -157,7 +160,7 @@ private impl TagBin
 
     mtd acquireTmpBuf()->*ConcatBuffer
     {
-        if .freeTmpBuf.count
+        if not .freeTmpBuf.isEmpty()
         {
             let b = .freeTmpBuf.popBack()!
             b.clear()
@@ -231,7 +234,7 @@ impl TagBin
         .rootType = type
     }
 
-    // Tagbin is a binary format.
+    // Returns false, because TagBin is a binary format.
     mtd isTextual()->bool => false
 
     // Returns the wire identity written for a type value.
@@ -240,7 +243,7 @@ impl TagBin
     // their qualified name. A missing type returns zero.
     mtd typeCrcOf(type: typeinfo?)->u32 => wireTypeCrc(type)
 
-    // Writes a varint to an explicit buffer.
+    // Writes `value` as LEB128 to `output`.
     mtd writeVarintTo(output: *ConcatBuffer, value: u64)
     {
         var v = value
@@ -283,7 +286,7 @@ impl TagBin
         .output!.addBytes(key)
     }
 
-    // Begins writing to a specified output buffer
+    // Starts writing a document that [[Core.Serialization.Write.TagBin.endRoot]] appends to `buf`.
     mtd startWrite(buf: *ConcatBuffer)
     {
         .finalOutput = buf
@@ -296,7 +299,7 @@ impl TagBin
         .sections.clear()
     }
 
-    // Begins the root section of the serialization structure
+    // Writes the stream header.
     mtd beginRoot()
     {
         let header = .finalOutput!
@@ -316,8 +319,9 @@ impl TagBin
         header.addNative(0'u64)     // Will store the shape directory offset here
     }
 
-    // Ends the root: writes the shape directory, patches the header, then appends the
-    // body to the caller buffer, compressing it when requested.
+    // Writes the shape directory, patches the header, and appends the body to the caller buffer.
+    //
+    // The body is compressed when `compressStream` is set and compression makes it smaller.
     mtd endRoot()
     {
         Swag.assert(.sections.isEmpty())
@@ -383,13 +387,13 @@ impl TagBin
         .rootType = null
     }
 
-    // Begins a new section of the specified kind
+    // Opens a section of kind `kind`.
     mtd beginSection(kind: SectionKind)
     {
         .beginSectionWithPlan(kind, null)
     }
 
-    // Ends the current section and writes out any required metadata
+    // Closes the current section and writes its index.
     mtd endSection()
     {
         let sec    = .sections.back()!
@@ -438,7 +442,7 @@ impl TagBin
         .releaseSection()
     }
 
-    // Begins a new struct, writing versioning and section metadata
+    // Opens the struct `structType`, writing its version, and returns false so the encoder writes its fields.
     mtd beginStruct(structType: typeinfo?, _structData: const [*] u8?)->bool fail
     {
         let output = .output!
@@ -467,13 +471,15 @@ impl TagBin
         return false
     }
 
-    // Ends the current struct section
+    // Closes the struct that [[Core.Serialization.Write.TagBin.beginStruct]] opened.
     mtd endStruct()
     {
         .endSection()
     }
 
-    // Begins a new element inside the current section and records its metadata
+    // Opens the field `val` in the current section.
+    //
+    // Fails when an ad-hoc section already holds a field with the same key.
     mtd beginElement(val: TypeValue) fail
     {
         Swag.assert(not .sections.isEmpty(), "Missing a previous 'beginSection' call")
@@ -546,7 +552,7 @@ impl TagBin
         }
     }
 
-    // Ends the current element, flushing its compressed payload if any
+    // Closes the current field, compressing its payload when the field asks for it.
     mtd endElement(val: TypeValue)
     {
         // If section is raw, then we just have values without versioning
@@ -592,13 +598,13 @@ impl TagBin
         .releaseTmpBuf(tmpBuf)
     }
 
-    // Begins a value (stubbed out)
+    // Does nothing: TagBin values need no opening mark.
     mtd beginValue() {}
 
-    // Ends a value (stubbed out)
+    // Does nothing: TagBin values need no closing mark.
     mtd endValue() {}
 
-    // Begins a sequence and determines if elements can be written in bulk as raw data
+    // Opens a sequence of `countElem` values and returns whether it wrote them in bulk as raw bytes.
     mtd beginSequence(typeElem: typeinfo?, data: const *void?, countElem: u64)->bool
     {
         let output = .output!
@@ -652,14 +658,14 @@ impl TagBin
         return false
     }
 
-    // Ends a sequence (stubbed out)
+    // Does nothing: a TagBin sequence needs no closing mark.
     mtd endSequence() {}
 
     /////////////////////////////////
     // VALUES
     /////////////////////////////////
 
-    // Writes a native value to the output buffer, with special handling for strings
+    // Writes `value` as the host lays it out, or a string as its byte count followed by its bytes.
     mtd(NT) writeNative(value: NT)
     {
         let output = .output!

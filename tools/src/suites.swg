@@ -386,7 +386,7 @@ private func verifyWorkspaceArtifactLayout(workspace: string, buildCfg: string, 
     let outputSources = try Directory.enumerateFiles(executableDirectory.toString(), ".swgsrc")
     for outputSource in outputSources
     {
-        let name = Path.fileName(outputSource.fullname.toString()) orelse ""
+        let name = Path.fileName(outputSource.fullName.toString()) orelse ""
         if Utf8.contains(name, ".gen.") or Utf8.contains(name, "-generated-source-")
         {
             Console.println("Non-debug workspace executable published generated source in '.output': ", name)
@@ -399,7 +399,7 @@ private func verifyWorkspaceArtifactLayout(workspace: string, buildCfg: string, 
     let generatedSources      = try Directory.enumerateFiles(intermediateDirectory.toString(), ".swgsrc")
     for generatedSource in generatedSources
     {
-        let name = Path.fileName(generatedSource.fullname.toString()) orelse ""
+        let name = Path.fileName(generatedSource.fullName.toString()) orelse ""
         if Utf8.contains(name, ".gen.") do
             foundGeneratedSource = true
         if Utf8.contains(name, "-generated-source-")
@@ -438,26 +438,26 @@ private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: stri
     let outputFiles     = try Directory.enumerateFiles(outputDirectory.toString(), recurse: true)
     for outputFile in outputFiles
     {
-        let name = Path.fileName(outputFile.fullname.toString()) orelse ""
+        let name = Path.fileName(outputFile.fullName.toString()) orelse ""
         if Utf8.contains(name, ".test.dll") or Utf8.contains(name, ".test.lib")
         {
-            Console.println("Workspace test published a library artifact: ", outputFile.fullname.toString())
+            Console.println("Workspace test published a library artifact: ", outputFile.fullName.toString())
             return 1
         }
 
         if name == ".swc-artifacts.test"
         {
-            let fullname = outputFile.fullname.toString()
-            if not Utf8.contains(fullname, "/test/") and not Utf8.contains(fullname, "\\test\\")
+            let fullName = outputFile.fullName.toString()
+            if not Utf8.contains(fullName, "/test/") and not Utf8.contains(fullName, "\\test\\")
             {
-                Console.println("Non-executable workspace test published an artifact manifest: ", outputFile.fullname.toString())
+                Console.println("Non-executable workspace test published an artifact manifest: ", outputFile.fullName.toString())
                 return 1
             }
         }
 
         if focused and Utf8.contains(name, ".focused")
         {
-            Console.println("Focused workspace test published an artifact in '.output': ", outputFile.fullname.toString())
+            Console.println("Focused workspace test published an artifact in '.output': ", outputFile.fullName.toString())
             return 1
         }
     }
@@ -504,7 +504,7 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
         try Directory.create(directory.toString())
 
     let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
-    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
     try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8) "#main\n{\n}\n")
 
     var built = workspaceModuleCommand("build", scratch.toString(), "probe", buildCfg)
@@ -520,7 +520,7 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
         return 1
     }
 
-    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"renamed\"\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"renamed\"\n}\n")
 
     let secondCode = try context.runCompiler(built)
     if secondCode != 0 do
@@ -555,7 +555,7 @@ private func verifyStandaloneModuleSetupCache(context: *Context, options: *Optio
         try Directory.create(directory.toString())
 
     let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
-    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
     try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8) "#main\n{\n}\n")
 
     var built: Arguments
@@ -573,7 +573,7 @@ private func verifyStandaloneModuleSetupCache(context: *Context, options: *Optio
         return 1
     }
 
-    try File.writeAllBytes(moduleFile.toString(), cast(const [..] u8) "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"standalone\"\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"standalone\"\n}\n")
 
     // A module built on its own names its output directory after the command that produced it, so
     // what the build reports is what says the new name reached the setup.
@@ -779,8 +779,8 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     let modulePath = Path.combine(moduleDir.toString(), "module.swg")
     let mainPath   = Path.combine(sourceDir.toString(), "main.swg")
     let valuePath  = Path.combine(sourceDir.toString(), "value.swg")
-    try File.writeAllBytes(valuePath.toString(), cast(const [..] u8) "const BuildValue = 1\n")
-    try File.writeAllBytes(modulePath.toString(), cast(const [..] u8) "#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")
+    try File.writeAllText(valuePath.toString(), "const BuildValue = 1\n")
+    try File.writeAllText(modulePath.toString(), "#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")
 
     var source = workspaceSourceRewrite(valuePath.toString(), "const BuildValue = 2\\n")
     source.append(#raw """
@@ -823,7 +823,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     var setupSource = workspaceSourceRewrite(modulePath.toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.name = \\\"after\\\" }\\n")
     setupSource.append("\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.name = \"before\"; rewriteSource() }\n")
     try File.writeAllBytes(modulePath.toString(), cast(const [..] u8) setupSource.toString())
-    try File.writeAllBytes(mainPath.toString(), cast(const [..] u8) "#main { }\n")
+    try File.writeAllText(mainPath.toString(), "#main { }\n")
     for expected in ["before.exe", "after.exe"]
     {
         let output = try context.captureCompiler(command)
@@ -947,7 +947,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
 
     let providerSource = Path.combine(providerModule.toString(), "src", "value.swg")
     try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n")
-    try File.writeAllBytes(providerSource.toString(), cast(const [..] u8) "public func value()->s32 => 1\n")
+    try File.writeAllText(providerSource.toString(), "public func value()->s32 => 1\n")
     var producer = workspaceModuleCommand("build", providerWorkspace.toString(), "provider", buildCfg)
     options.appendExtra(&producer)
     let providerOutput = try context.captureCompiler(producer)
@@ -983,7 +983,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n")
     let writer     = workspaceNativePublisher(replacementNative.toString(), nativeOutput.toString())
     let writerPath = Path.combine(writerModule.toString(), "src", "main.swg")
-    try File.writeAllBytes(writerPath.toString(), cast(const [..] u8) "public const Marker = 1\n")
+    try File.writeAllText(writerPath.toString(), "public const Marker = 1\n")
     let consumerSetup = Format.toString(#raw """
         #import("writer")
         #import("provider", location: "%", link: "shared-library")
@@ -1115,7 +1115,7 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     }
 
     let stagedArtifact = Path.combine(stagedOutput.toString(), "consumer_exe.exe.123.1.swctmp")
-    try File.writeAllBytes(stagedArtifact.toString(), cast(const [..] u8) "incomplete competing publication")
+    try File.writeAllText(stagedArtifact.toString(), "incomplete competing publication")
     defer discard catch File.delete(stagedArtifact.toString())
 
     let buildOutput = try context.captureCompiler(built)

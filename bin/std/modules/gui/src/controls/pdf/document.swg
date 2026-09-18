@@ -30,11 +30,7 @@ struct Document
 impl Document
 {
     // Creates an empty PDF document.
-    func create()->Document
-    {
-        var result: retval
-        return result
-    }
+    func create()->Document => {}
 
     // Decodes one complete PDF byte buffer.
     //
@@ -43,8 +39,7 @@ impl Document
     // supported; embedded actions are ignored rather than executed.
     func decode(bytes: const [..] u8)->Document fail
     {
-        var result = #move try decodeDocument(bytes)
-        return #move result
+        return try decodeDocument(bytes)
     }
 
     // Loads and decodes every page of a PDF file.
@@ -94,8 +89,7 @@ impl Document
     // by the writer's Windows-1252 encoding with the standard PDF faces.
     mtd const encode()->Array'u8 fail
     {
-        var result = #move try encodeDocument(me)
-        return #move result
+        return try encodeDocument(me)
     }
 
     // Encodes and writes the complete document to `fileName`.

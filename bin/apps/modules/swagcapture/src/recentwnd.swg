@@ -110,6 +110,79 @@ impl RecentView
         if capture do
             .selectLoaded(idx, capture)
     }
+
+    // Paints one capture cell. The recent strip and the library grid share it, so a capture
+    // looks the same in both places.
+    func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
+    {
+        let colors = parent.themeColors()
+
+        painter.setParams(.Antialiased)
+
+        // The corner the theme already gives a raised cell, taken from the tile rather than
+        // named again here, so a thumbnail carries the same corner as the tool button beside it.
+        // A hard right angle on a repeated cell reads as unfinished, and a selection frame drawn
+        // square around a picture reads as a crop mark rather than as a state.
+        let corner = parent.themeRects().btnIcon_RoundSquareBk.radius
+
+        // State is what the cell sits on, not a ring drawn around it: hovering and
+        // selecting raise the fill, and the accent is spent on the frame alone.
+        var cellColor = colors.wnd_Bk
+        if infos.selected do
+            cellColor = colors.btnIcon_PressedBk
+        elif infos.hot do
+            cellColor = colors.btnIcon_HotBk
+        painter.fillRoundRect(rect, corner, corner, cellColor)
+
+        if texture.isValid()
+        {
+            var txtRect = rect
+            txtRect.inflate(-RecentPadding * 0.5)
+
+            let ratio = Math.min(txtRect.width / texture.width, txtRect.height / texture.height)
+
+            txtRect.x      = rect.horzCenter() - (texture.width * 0.5 * ratio)
+            txtRect.y      = rect.vertCenter() - (texture.height * 0.5 * ratio)
+            txtRect.width  = texture.width * ratio
+            txtRect.height = texture.height * ratio
+
+            with painter
+            {
+                .fillRect(txtRect, Argb.LightGray)
+                .fillRect(txtRect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+                .setInterpolationMode(.Linear)
+                .drawTexture(txtRect, texture)
+            }
+        }
+
+        if infos.showLinked and infos.linked != null
+        {
+            let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
+            painter.fillRoundRect({rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
+
+            var icon = parent.theme().icon(.Link)
+            icon.sizeX, icon.sizeY = LinkBadgeGlyph
+            let inset = (LinkBadgeSize - LinkBadgeGlyph) * 0.5
+            icon.paint(painter, rect.x + inset, rect.y + inset, backColor.contrasting())
+        }
+
+        // The selected capture is framed. A corner cut would say the same thing in the mark's
+        // own vocabulary, but it sits exactly where the linked badge sits and eats into it, and a
+        // cut on one corner is easy to miss on a strip of thumbnails: what a reader looks for
+        // here is which picture is being edited, and a frame says that at a glance. Nothing else
+        // in this bar is allowed the accent.
+        if infos.selected
+        {
+            var frame = rect
+            frame.inflate(-SelectedFrameSize * 0.5)
+
+            // The frame is inset by half its own weight, so its centre line runs where the cell's
+            // edge runs — and its corner is the cell's corner stepped in by that same half weight,
+            // which is what keeps the two concentric instead of crossing at four places.
+            let frameCorner = Math.max(corner - SelectedFrameSize * 0.5, 0.0)
+            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.hilight, SelectedFrameSize)
+        }
+    }
 }
 
 impl IWnd for RecentView
@@ -190,77 +263,6 @@ impl IWnd for RecentView
         }
     }
 
-    func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
-    {
-        let colors = parent.themeColors()
-
-        painter.setParams(.Antialiased)
-
-        // The corner the theme already gives a raised cell, taken from the tile rather than
-        // named again here, so a thumbnail carries the same corner as the tool button beside it.
-        // A hard right angle on a repeated cell reads as unfinished, and a selection frame drawn
-        // square around a picture reads as a crop mark rather than as a state.
-        let corner = parent.themeRects().btnIcon_RoundSquareBk.radius
-
-        // State is what the cell sits on, not a ring drawn around it: hovering and
-        // selecting raise the fill, and the accent is spent on the frame alone.
-        var cellColor = colors.wnd_Bk
-        if infos.selected do
-            cellColor = colors.btnIcon_PressedBk
-        elif infos.hot do
-            cellColor = colors.btnIcon_HotBk
-        painter.fillRoundRect(rect, corner, corner, cellColor)
-
-        if texture.isValid()
-        {
-            var txtRect = rect
-            txtRect.inflate(-RecentPadding * 0.5)
-
-            let ratio = Math.min(txtRect.width / texture.width, txtRect.height / texture.height)
-
-            txtRect.x      = rect.horzCenter() - (texture.width * 0.5 * ratio)
-            txtRect.y      = rect.vertCenter() - (texture.height * 0.5 * ratio)
-            txtRect.width  = texture.width * ratio
-            txtRect.height = texture.height * ratio
-
-            with painter
-            {
-                .fillRect(txtRect, Argb.LightGray)
-                .fillRect(txtRect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
-                .setInterpolationMode(.Linear)
-                .drawTexture(txtRect, texture)
-            }
-        }
-
-        if infos.showLinked and infos.linked != null
-        {
-            let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
-            painter.fillRoundRect({rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
-
-            var icon = parent.theme().icon(.Link)
-            icon.sizeX, icon.sizeY = LinkBadgeGlyph
-            let inset = (LinkBadgeSize - LinkBadgeGlyph) * 0.5
-            icon.paint(painter, rect.x + inset, rect.y + inset, backColor.contrasting())
-        }
-
-        // The selected capture is framed. A corner cut said the same thing in the mark's own
-        // vocabulary, but it sat exactly where the linked badge sits and ate into it, and a
-        // cut on one corner is easy to miss on a strip of thumbnails: what a reader looks
-        // for here is which picture is being edited, and a frame says that at a glance.
-        // Nothing else in this bar is allowed the accent.
-        if infos.selected
-        {
-            var frame = rect
-            frame.inflate(-SelectedFrameSize * 0.5)
-
-            // The frame is inset by half its own weight, so its centre line runs where the cell's
-            // edge runs — and its corner is the cell's corner stepped in by that same half weight,
-            // which is what keeps the two concentric instead of crossing at four places.
-            let frameCorner = Math.max(corner - SelectedFrameSize * 0.5, 0.0)
-            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.hilight, SelectedFrameSize)
-        }
-    }
-
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter    = evt.paintContext.painter
@@ -283,7 +285,7 @@ impl IWnd for RecentView
                 .linked         = it.linked
             }
 
-            paintRecent(me, painter, it.preview, rect, infos)
+            RecentView.paintRecent(me, painter, it.preview, rect, infos)
             x = rect.right() + RecentPadding
         }
 
@@ -334,45 +336,41 @@ impl IWnd for RecentWnd
             return
         }
 
-        // The one-second timer drives the deferred save, which now lands in the
-        // background. Keep the timer alive while a save is still writing, then surface
-        // its outcome before scheduling the next one.
+        // The one-second timer drives the deferred save, which lands in the background.
+        // Keep the timer alive while a save is still writing, then surface its outcome
+        // before scheduling the next one.
         if g_CaptureSaves.busy() do
             return
         let failedSave = g_CaptureSaves.collect()
         if not failedSave.isEmpty() do
             MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failedSave))
 
-        let maybeCapture = .main.editWnd.getCapture()
-        if maybeCapture
+        let capture = .main.editWnd.getCapture()
+        if capture and capture.changed
         {
-            let capture = maybeCapture
-            if capture.changed
+            // The one-second arm can predate a drag; rebuilding the preview now
+            // would freeze the gesture mid-move, so just try again on the next tick.
+            if capture.interactiveMove or capture.mouseMode != .None do
+                return
+
+            // The 1s save timer isn't cancelled when the selection is cleared
+            // (e.g. onDeleteFile sets .selected to the Max sentinel), so only save
+            // into a valid recent item to avoid indexing out of range.
+            if .recentView.selected < .recentView.items.count
             {
-                // The one-second arm can predate a drag; rebuilding the preview now
-                // would freeze the gesture mid-move, so just try again on the next tick.
-                if capture.interactiveMove or capture.mouseMode != .None do
-                    return
+                capture.computePreview()
+                let item = .recentView.items[.recentView.selected]!
+                .app().renderer.removeTexture(&item.preview)
+                item.preview = .app().renderer.addImage(capture.preview)
+                .invalidate()
 
-                // The 1s save timer isn't cancelled when the selection is cleared
-                // (e.g. onDeleteFile sets .selected to the Max sentinel), so only save
-                // into a valid recent item to avoid indexing out of range.
-                if .recentView.selected != Swag.U64.Max and .recentView.selected < .recentView.items.count
-                {
-                    capture.computePreview()
-                    let item = .recentView.items[.recentView.selected]!
-                    .app().renderer.removeTexture(&item.preview)
-                    item.preview = .app().renderer.addImage(capture.preview)
-                    .invalidate()
+                .main.libWnd.view.updateRecent(capture)
 
-                    .main.libWnd.view.updateRecent(capture)
-
-                    // The snapshot happens now; a worker produces the file and
-                    // atomically replaces it, and the next tick collects the outcome.
-                    catch capture.scheduleSave() else do
-                        MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
-                    return
-                }
+                // The snapshot happens now; a worker produces the file and
+                // atomically replaces it, and the next tick collects the outcome.
+                catch capture.scheduleSave() else do
+                    MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
+                return
             }
         }
 
@@ -449,17 +447,13 @@ impl RecentWnd
         g_Library.onDeleteFile += func|self = me|(file) { self.onLibraryFileDeleted(file) }
 
         // The recent strip needs only the newest capture names. Validating every SCC in the
-        // library here used to open the complete collection before the first thumbnail could
-        // appear. Keep that index lazy; each recent candidate is validated as it is loaded.
+        // library here would open the complete collection before the first thumbnail could
+        // appear, so that index stays lazy: each recent candidate is validated as it is loaded.
         var res = catch Directory.enumerateFiles(Library.getFolder())
-        res.sort(func(a, b) { return b.lastWriteTime <=> a.lastWriteTime })
+        res.sort(func(a, b) => b.lastWriteTime <=> a.lastWriteTime)
 
-        for r in res
-        {
-            if Path.lowercaseExtension(r.fullname) != CaptureFileExtension do
-                continue
-            .pendingRecentFiles.add(r.fullname)
-        }
+        for r in res where Capture.isFileName(r.fullName) do
+            .pendingRecentFiles.add(r.fullName)
 
         .scheduleLoadNextRecent()
     }
@@ -482,16 +476,15 @@ impl RecentWnd
         let capture: *Capture? = catch Capture.load(file, preview: not initialLoad)
         if capture
         {
-            let loaded = capture
-            .addRecent(loaded.file, loaded.preview, front: false, linkedUpToDate: loaded.linkedUpToDate, linked: loaded.linkedImage)
-            g_Library.addFile(loaded.file)
+            .addRecent(capture.file, capture.preview, front: false, linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage)
+            g_Library.addFile(capture.file)
 
             // The initial document already came through the full-load path above. Hand that
             // same object to the editor instead of reopening and decoding the file a second time.
             if initialLoad do
-                .recentView.selectLoaded(.recentView.items.count - 1, loaded)
+                .recentView.selectLoaded(.recentView.items.count - 1, capture)
             else do
-                Memory.delete(loaded)
+                Memory.delete(capture)
         }
 
         .pendingRecentIndex += 1
@@ -538,10 +531,8 @@ impl RecentWnd
         // The strip shows thumbnails: a preview load reads the SCC header and the
         // preview chunk alone, never the image payloads. The full capture is loaded
         // by RecentView.select only, when an item actually becomes the edited one.
-        let capture = try Capture.load(file, preview: true)
-        let loaded  = capture!
+        let loaded = (try Capture.load(file, preview: true))!
         .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
-
         return loaded
     }
 

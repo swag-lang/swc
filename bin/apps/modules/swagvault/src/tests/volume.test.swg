@@ -3,31 +3,16 @@
 
 using Core
 
-func testPassword()->const [..] u8
-{
-    return Swag.makeSlice(cast(const [*] u8) ("correct horse battery staple").buffer, 28)
-}
+func testPassword()->const [..] u8 => cast(const [..] u8) "correct horse battery staple"
 
-func wrongPassword()->const [..] u8
-{
-    return Swag.makeSlice(cast(const [*] u8) ("wrong password").buffer, 14)
-}
+func wrongPassword()->const [..] u8 => cast(const [..] u8) "wrong password"
 
-func emptyBytes()->const [..] u8
-{
-    return Swag.makeSlice(cast(const [*] u8) ("").buffer, 0)
-}
+func emptyBytes()->const [..] u8 => cast(const [..] u8) ""
 
 func testContainerPath(tag: string)->String
 {
     let temp = Env.getSpecialDirectory(.Temp)
     return Path.combine(temp.toString(), Format.toString("vault_%_%.bin", tag, Guid64.random()))
-}
-
-func sameTestBytes(left, right: const [..] u8)->bool
-{
-    return left.count == right.count and
-           Swag.memcmp(left.buffer, right.buffer, left.count) == 0
 }
 
 func rejectsPassword(path: string, password: const [..] u8)->bool
@@ -96,15 +81,9 @@ func flipHeaderByte(path: string, slot: u64)
     flipByteAt(path, HeaderAreaOffset + slot * HeaderSlotSize + HeaderRecordPrefixSize)
 }
 
-func secondPassword()->const [..] u8
-{
-    return Swag.makeSlice(cast(const [*] u8) ("a second way in entirely").buffer, 24)
-}
+func secondPassword()->const [..] u8 => cast(const [..] u8) "a second way in entirely"
 
-func thirdPassword()->const [..] u8
-{
-    return Swag.makeSlice(cast(const [*] u8) ("yet another passphrase!!").buffer, 24)
-}
+func thirdPassword()->const [..] u8 => cast(const [..] u8) "yet another passphrase!!"
 
 // A container large enough to hold more metadata than one header slot can.
 func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
@@ -146,8 +125,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     Swag.assert(bytesRead == BlockSize)
     let bytesRead2 = expect reopened.readNode(node.id, (DataBlockCount - 1) * BlockSize, last)
     Swag.assert(bytesRead2 == BlockSize)
-    Swag.assert(sameTestBytes(first, source[until BlockSize]))
-    Swag.assert(sameTestBytes(last, source[(DataBlockCount - 1) * BlockSize until DataBlockCount * BlockSize]))
+    Swag.assert(Slice.equals(first, source[until BlockSize]))
+    Swag.assert(Slice.equals(last, source[(DataBlockCount - 1) * BlockSize until DataBlockCount * BlockSize]))
     reopened.close()
 }
 
@@ -192,7 +171,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var readBack: [BlockSize] u8
     let bytesRead = expect recovered.readNode(moved.id, (RunCount - 1) * 2 * BlockSize, readBack)
     Swag.assert(bytesRead == BlockSize)
-    Swag.assert(sameTestBytes(block, readBack))
+    Swag.assert(Slice.equals(block, readBack))
     recovered.close()
 }
 
@@ -238,7 +217,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var readBack: [7000] u8
     let bytesRead = expect volume.readNode(fileId, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(sameTestBytes(source, readBack))
+    Swag.assert(Slice.equals(source, readBack))
     var beyondEnd: [16] u8
     let bytesRead2 = expect volume.readNode(fileId, #sizeof(source), beyondEnd)
     Swag.assert(bytesRead2 == 0)
@@ -258,18 +237,18 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     Swag.assert(rejectsPassword(path, wrongPassword()))
     let afterFirst  = headerDigest(path, 0)
     let afterSecond = headerDigest(path, 1)
-    Swag.assert(sameTestBytes(beforeFirst, afterFirst))
-    Swag.assert(sameTestBytes(beforeSecond, afterSecond))
+    Swag.assert(Slice.equals(beforeFirst, afterFirst))
+    Swag.assert(Slice.equals(beforeSecond, afterSecond))
 
     var reopened = expect Volume.open(path, testPassword())
     let node     = reopened.resolve("\\documents\\renamed.bin")
     Swag.assert(node != null)
     Swag.assert(node.size == #sizeof(source))
-    Swag.assert(sameTestBytes(node.security.toSlice(), security))
+    Swag.assert(Slice.equals(node.security.toSlice(), security))
     var reopenedData: [7000] u8
     let bytesRead3 = expect reopened.readNode(node.id, 0, reopenedData)
     Swag.assert(bytesRead3 == #sizeof(reopenedData))
-    Swag.assert(sameTestBytes(source, reopenedData))
+    Swag.assert(Slice.equals(source, reopenedData))
     expect reopened.deleteNode(node.id)
     expect reopened.deleteNode(directoryId)
     reopened.close()
@@ -334,7 +313,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var persisted: [20] u8
     let bytesRead4 = expect reopened.readNode(reopenedNode.id, 0, persisted)
     Swag.assert(bytesRead4 == #sizeof(persisted))
-    Swag.assert(sameTestBytes(grown, persisted))
+    Swag.assert(Slice.equals(grown, persisted))
     expect reopened.deleteNode(reopenedNode.id)
     Swag.assert(reopened.freeBlockCount() == freeBaseline)
     reopened.close()
@@ -550,7 +529,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var readBack: [40] u8
     let bytesRead = expect recovered.readNode(node.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(sameTestBytes(payload, readBack))
+    Swag.assert(Slice.equals(payload, readBack))
     Swag.assert(recovered.resolve("\\also_here") != null)
     Swag.assert(recovered.journalRecordsRead == recovered.sequence - recovered.checkpointAt + 1)
     recovered.close()
@@ -693,7 +672,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let node      = reopened.resolve("\\secret.bin")!
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(sameTestBytes(payload, readBack))
+    Swag.assert(Slice.equals(payload, readBack))
 
     // A second password opens the same container, and removing one leaves the
     // other working.
@@ -866,7 +845,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let node      = reopened.resolve("\\open.bin")!
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(sameTestBytes(payload, readBack))
+    Swag.assert(Slice.equals(payload, readBack))
 
     // Protecting it afterwards is one key-slot write, and it reads back exactly the same.
     expect reopened.changePassword(emptyBytes(), testPassword())
@@ -935,7 +914,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let node      = reopened.resolve("\\kept.bin")!
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(sameTestBytes(payload, readBack))
+    Swag.assert(Slice.equals(payload, readBack))
 
     let addedId       = expect reopened.createNode("\\added.bin", false, FileAttributeNormal, emptyBytes())
     let bytesWritten2 = expect reopened.writeNode(addedId, 0, payload, false, false)
@@ -1010,7 +989,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var readBack: [2 * BlockSize] u8
     let bytesRead = expect reopened.readNode(reopened.resolve("\\kept.bin")!.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(sameTestBytes(payload, readBack))
+    Swag.assert(Slice.equals(payload, readBack))
     reopened.close()
 
     // This is the recoverable state left by a process that stopped after publishing the smaller
@@ -1083,7 +1062,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var readBack: [BlockSize] u8
     let bytesRead = expect volume.readNode(volume.resolve("\\kept.bin")!.id, 0, readBack)
     Swag.assert(bytesRead == BlockSize)
-    Swag.assert(sameTestBytes(payload, readBack))
+    Swag.assert(Slice.equals(payload, readBack))
     volume.close()
 }
 
@@ -1117,7 +1096,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var readBack: [4] u8
     let bytesRead = expect volume.readNode(nodeId, 0, readBack)
     Swag.assert(bytesRead == 4)
-    Swag.assert(sameTestBytes(readBack, stored))
+    Swag.assert(Slice.equals(readBack, stored))
 
     // Every way in reports the same kind, whether it would have written a byte, a name, or a
     // key slot.

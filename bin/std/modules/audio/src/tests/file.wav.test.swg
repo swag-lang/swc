@@ -35,7 +35,7 @@ using Swag, Core
     Swag.assert(file.availableFields.has(.Duration))
     audioAssertFloat(file.durationSeconds, 2.0 / 44100.0, 0.000001)
     audioAssertFloat(file.durationInSeconds(), 2.0 / 44100.0, 0.000001)
-    Swag.assert(audioAssertBytes(file.data.toSlice(), [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F]))
+    Swag.assert(Slice.equals(file.data.toSlice(), [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F]))
 }
 
 #test
@@ -46,7 +46,7 @@ using Swag, Core
     Swag.assert(file.encoding == .Pcm16)
     Swag.assert(file.dataSize == 8)
     Swag.assert(file.dataOffset == 44)
-    Swag.assert(file.data.count == 0)
+    Swag.assert(file.data.isEmpty())
     Swag.assert(not file.isDataPreloaded())
     Swag.assert((file.preloadedData()).count == 0)
     Swag.assert(file.frameCount == 2)
@@ -61,9 +61,9 @@ using Swag, Core
     Swag.assert(decoded[0] == Swag.S16.Min and decoded[1] == -1 and decoded[2] == 0 and decoded[3] == Swag.S16.Max)
 
     let first = expect file.readPayload(0, 3)
-    Swag.assert(audioAssertBytes(first.toSlice(), [0x00, 0x80, 0xFF]))
+    Swag.assert(Slice.equals(first.toSlice(), [0x00, 0x80, 0xFF]))
     let tail = expect file.readPayload(6, 10)
-    Swag.assert(audioAssertBytes(tail.toSlice(), [0xFF, 0x7F]))
+    Swag.assert(Slice.equals(tail.toSlice(), [0xFF, 0x7F]))
     Swag.assert((expect file.readPayload(8, 1)).isEmpty())
 }
 
@@ -80,7 +80,7 @@ using Swag, Core
     Swag.assert(file.dataSize == 3)
     Swag.assert(file.dataOffset == 44)
     audioAssertFloat(file.durationSeconds, 3.0 / 8000.0, 0.000001)
-    Swag.assert(audioAssertBytes(file.data.toSlice(), [0'u8, 128'u8, 255'u8]))
+    Swag.assert(Slice.equals(file.data.toSlice(), [0'u8, 128'u8, 255'u8]))
 }
 
 #test
@@ -98,7 +98,7 @@ using Swag, Core
     Swag.assert(file.dataSize == 12)
     Swag.assert(file.availableFields.has(.ValidBitsPerSample))
     Swag.assert(file.availableFields.has(.SpeakerMask))
-    Swag.assert(audioAssertBytes(file.data.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
+    Swag.assert(Slice.equals(file.data.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
 }
 
 #test
@@ -130,7 +130,7 @@ using Swag, Core
     Swag.assert(file.frameCount == 2)
     Swag.assert(file.dataSize == 4)
     Swag.assert(file.dataOffset == 56)
-    Swag.assert(audioAssertBytes(file.data.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
+    Swag.assert(Slice.equals(file.data.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
 }
 
 #test

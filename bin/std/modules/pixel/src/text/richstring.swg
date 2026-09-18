@@ -40,7 +40,7 @@ struct RichChunk
 // var label: Pixel.RichString
 // label = "Status: <b><p1>ready</p></b>"
 // label.compute()
-// ```swag
+// ```
 //
 // See [[Pixel.RichString.set]] for the complete marker set.
 struct RichString
@@ -66,12 +66,9 @@ struct RichString
 impl RichString
 {
     // Reports whether the original marked-up text equals `other`.
-    mtd opEquals(other: string)->bool
-    {
-        return .raw == other
-    }
+    mtd opEquals(other: string)->bool => .raw == other
 
-    // We need to recompute chunks, as they contains slices
+    // Invalidates the copied chunks, whose slices still point into the source text.
     mtd opPostCopy()
     {
         .chunks.clear()
@@ -124,30 +121,30 @@ impl RichString
     #[Swag.Inline]
     mtd opSet(str: string) => .set(str)
 
-    // Returns 'true' if the string is empty.
+    // Returns whether the marked-up text is empty.
     #[Swag.Inline]
-    mtd isEmpty() => .raw.length == 0
+    mtd const isEmpty() => .raw.isEmpty()
 
-    // Force the string to be repainted.
+    // Discards the last layout, so the next draw lays the text out again.
     mtd invalidate()
     {
         .layoutRect.clear()
     }
 
-    // Associate a string.
+    // Replaces the marked-up text and invalidates its chunks.
     //
-    // The string can have multiple lines.
-    // Accepted markers are:
-    // - `<u>` => underline
-    // - `<b>` => bold
-    // - `<i>` => italic
-    // - `<p1>` => color palette 1
-    // - `<p2>` => color palette 2
-    // - `<p3>` => color palette 3
-    // - `<url>` => clickable
+    // A `null` text is empty. The text can span several lines and accepts these markers, each
+    // closed by its `</...>` counterpart:
+    //
+    // - `<b>` for bold;
+    // - `<i>` for italic;
+    // - `<u>` for underline;
+    // - `<p1>`, `<p2>`, and `<p3>` for a palette color, closed by `</p>`;
+    // - `<url>` for a clickable link.
+    //
     // ```swag
-    // <b>this is bold</b> but this is normal <i>and this is italic</i>
-    // ```swag
+    // label.set("<b>this is bold</b> but this is normal <i>and this is italic</i>")
+    // ```
     mtd set(text: string?)
     {
         if .chunks.count and .raw == text do
@@ -208,23 +205,17 @@ impl RichString
         return result
     }
 
-    // Get the url chunk at position 'at'.
-    // If an url does not exists, returns 'null'.
+    // Returns the visible URL chunk containing `at`, or `null` when there is none.
+    //
+    // `at` is expressed in the coordinates of the last layout.
     mtd getUrlChunkAt(at: Math.Point)->*RichChunk?
     {
         if not .hasUrl do
             return null
-        for &c in .chunks
+        for &c in .chunks where c.isUrl and c.visible
         {
-            if not c.isUrl do
-                continue
-            if not c.visible do
-                continue
-
             var r = c.boundRect
             r.offset(c.pos)
-            r.scale(1)
-
             if r.contains(at) do
                 return c
         }
@@ -232,10 +223,10 @@ impl RichString
         return null
     }
 
-    // Computes the styled text layout.
+    // Splits the marked-up text into chunks that each carry one style.
     //
-    // The string is split into chunks that each carry one style. Layout is recomputed
-    // only when the text is dirty or when `force` is true.
+    // The chunks are rebuilt only when the text changed or when `force` is true, and the last
+    // layout is discarded with them.
     mtd compute(force = false)
     {
         if not .dirty and not force do

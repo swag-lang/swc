@@ -6,9 +6,9 @@ using Core, Core.Errors, Pixel
 enum MovieSource
 {
     None            // No source is loaded.
-    SpriteSheet     // Frames are cells of an image-list atlas.
+    SpriteSheet     // Frames are cells of an [[Gui.ImageList]] atlas.
     Gif             // Frames are decoded from an animated GIF.
-    ImageSet        // Frames are decoded through Pixel's format-neutral image reader.
+    ImageSet        // Frames are decoded through a [[Pixel.ImageReader]].
 }
 
 // Plays a sprite sheet or an encoded image set as a sequence of frames.
@@ -16,36 +16,36 @@ struct Movie
 {
     public
     {
-        cachesFrames:         bool = true                 // Cache decoded frames up to maxCacheBytes for later playback and seeking.
-        loops:                bool = true                 // Restart at the first frame after the last frame.
-        isPaused:             bool                        // Suspend time-based frame advancement.
-        frameDurationSeconds: f32  = 0.05                 // Duration for sprite sheets or frames with no encoded duration, in seconds.
-        usesFrameDurations         = true                 // Honor encoded frame durations; disable to use frameDurationSeconds for every frame.
-        usesEncodedLoops           = true                 // Honor the encoded play count when loops is enabled.
-        maxCacheBytes:        u64  = 67108864             // Maximum total cached pixel bytes; zero disables frame caching.
-        sigFrameChanged:      SigArray'func||(*Movie)     // Signal emitted after the visible frame changes.
-        sigDecodeFailed:      SigArray'func||(*Movie)     // Emitted when later frame decoding fails; playback pauses and failureReason describes the failure.
+        cachesFrames:         bool = true                 // Whether decoded image-set frames are kept, within `maxCacheBytes`, for later playback and seeking.
+        loops:                bool = true                 // Whether playback restarts at the first frame after the last one.
+        isPaused:             bool                        // Whether time-based frame advancement is suspended.
+        frameDurationSeconds: f32  = 0.05                 // Display duration of a sprite-sheet frame or of a frame with no encoded duration, in seconds; must be positive.
+        usesFrameDurations         = true                 // Whether encoded frame durations are honored; when `false`, every frame lasts `frameDurationSeconds`.
+        usesEncodedLoops           = true                 // Whether a looping animation stops after its encoded play count.
+        maxCacheBytes:        u64  = 67108864             // Budget of cached pixel bytes; zero disables frame caching.
+        sigFrameChanged:      SigArray'func||(*Movie)     // Emitted after the current frame changes, through playback or a seek.
+        sigDecodeFailed:      SigArray'func||(*Movie)     // Emitted when a frame fails to decode after loading; playback pauses and `failureReason` says why.
 
-        // Where the movie is. The playback advances all three; seek with 'setFrameIndex'.
+        // Where the movie is. Playback advances `frameIndex` and `frame`; seek with `setFrameIndex`.
 
         readonly
         {
-            frameCount:    s32        // Number of frames exposed by the source.
-            frameIndex:    s32        // Frame currently decoded.
-            frame:         Image      // Pixels of the current frame.
-            failureReason: String     // Last frame decoding failure, empty after a successful load or seek.
+            frameCount:    s32        // Number of frames in the source.
+            frameIndex:    s32        // Index of the current frame.
+            frame:         Image      // Decoded pixels of the current image-set frame; invalid for a sprite sheet.
+            failureReason: String     // Last frame decoding failure, empty once a frame decodes or a source loads.
         }
     }
 
     // The source the frames come from, and the decoding state that walks it.
     source:              MovieSource = None     // Kind of source the movie plays.
     imgList:             ImageList              // Frames of an image-list source.
-    reader:              ImageReader
+    reader:              ImageReader     // Decoder of an image-set source, open while one is loaded.
     cachedFrames:        Array'Image     // Decoded image-set frames retained when caching is enabled.
     elapsedFrameSeconds: f32             // Time accumulated toward the next frame.
     dirtyFrame:          bool            // Whether a seek changed the current frame.
-    cachedBytes:         u64
-    completedLoops:      u32
+    cachedBytes:         u64             // Pixel bytes held by `cachedFrames`.
+    completedLoops:      u32             // Playback cycles completed since the last load, seek, or resume.
 }
 
 private impl Movie
@@ -117,8 +117,14 @@ private impl Movie
         .sigFrameChanged.call(me)
         return true
     }
+}
 
-    mtd clearContent()
+impl Movie
+{
+    // Unloads the source and its cached frames, and resets the playback position.
+    //
+    // The playback settings, `isPaused` included, keep their values.
+    mtd clear()
     {
         Swag.drop(&.imgList, 1)
         Swag.init(&.imgList, 1)
@@ -137,17 +143,11 @@ private impl Movie
         .completedLoops      = 0
         .failureReason.clear()
     }
-}
 
-impl Movie
-{
-    // Removes all content.
-    mtd clear()
-    {
-        .clearContent()
-    }
-
-    // Uses a borrowed image-list atlas as the frame source.
+    // Plays the frames of the atlas `imageList` describes, from the first one.
+    //
+    // `imageList` must be valid. The movie keeps a copy of the description, but the texture stays
+    // owned by the caller and must outlive the movie. `isPaused` keeps its value.
     mtd setSpriteSheet(imageList: ImageList)
     {
         Swag.assert(imageList.isValid(), "image list is invalid")
@@ -157,10 +157,12 @@ impl Movie
         .frameCount = .imgList.frameCount
     }
 
-    // Loads any registered image format without changing the movie on failure.
+    // Loads the image file `fileName` as the frame source, leaving the movie unchanged on failure.
     //
-    // Animations start playing with their encoded timing. Independent image sets start
-    // paused at their representative image and can be browsed with setFrameIndex.
+    // Any image format registered with Pixel is accepted. An animation starts playing with its
+    // encoded timing. An independent image set starts paused at its representative image and can
+    // be browsed with [[Gui.Movie.setFrameIndex]]. Fails when the file cannot be read or indexed,
+    // or when its representative image cannot be decoded.
     mtd load(fileName: string) fail
     {
         var reader     = try ImageReader.load(fileName)
@@ -177,16 +179,22 @@ impl Movie
     }
 
     // Reports whether the encoded source contains timed animation frames.
+    //
+    // A sprite sheet answers `false`.
     mtd const isAnimated()->bool => .reader.isOpen() and .reader.info.frames[0].kind == .Animation
 
     // Returns the number of complete playback cycles since loading, seeking to another frame, or resuming.
     //
     // A cycle completes after the final frame's display duration, including when playback stops
-    // there. Seeking alone never completes a cycle. Use this with `loops = false` to handle the
-    // end once and decide whether to replay, retain the final frame, or replace the content.
+    // there. Seeking alone never completes a cycle, and a single-frame source never completes one.
+    // Use this with `loops = false` to handle the end once and decide whether to replay, retain
+    // the final frame, or replace the content.
     mtd const completedLoopCount()->u32 => .completedLoops
 
-    // Returns the indexed description of the current encoded frame, or null for a sprite sheet.
+    // Returns the description of the current frame, or `null` when no image set is loaded.
+    //
+    // The description belongs to the movie and stays valid until it loads another source or is
+    // cleared.
     mtd const frameInfo()->const *ImageFrameInfo?
     {
         if not .reader.isOpen() do
@@ -194,7 +202,10 @@ impl Movie
         return &.reader.info.frames[cast(u32) .frameIndex]
     }
 
-    // Returns the current display duration in seconds; zero encoded delays use the configured fallback.
+    // Returns how long the current frame is displayed, in seconds.
+    //
+    // The encoded duration applies when `usesFrameDurations` is set and that duration is positive;
+    // otherwise the frame lasts `frameDurationSeconds`.
     mtd const currentFrameDuration()->f32
     {
         if .usesFrameDurations and .reader.isOpen()
@@ -209,7 +220,9 @@ impl Movie
 
     // Predecodes the leading animation frames that fit the cache budget, preserving the displayed frame.
     //
-    // Call this on a loading worker before publishing a movie to a GUI control.
+    // Call this on a loading worker before publishing a movie to a GUI control. It does nothing
+    // unless the source is an animation and `cachesFrames` is set. Fails when a frame cannot be
+    // decoded; the frames cached before it stay cached.
     mtd prepareCache() fail
     {
         if not .isAnimated() or not .cachesFrames do
@@ -233,11 +246,14 @@ impl Movie
         case .SpriteSheet:    return .imgList.isValid()
         case .Gif, .ImageSet: return .frame.isValid()
         }
-
-        return false
     }
 
-    // Selects a frame, clamping the index to the loaded frame range.
+    // Shows the frame at `index`, clamped to the loaded frame range.
+    //
+    // Does nothing without a valid source or when that frame is already current. A seek restarts
+    // the display time of the frame and the completed cycle count, then emits `sigFrameChanged`.
+    // When the frame fails to decode, the current one stays, playback pauses, and
+    // `sigDecodeFailed` is emitted.
     mtd setFrameIndex(index: s32)
     {
         if not .isValid() do
@@ -268,6 +284,8 @@ impl Movie
     }
 
     // Pauses or resumes time-based playback.
+    //
+    // Resuming resets [[Gui.Movie.completedLoopCount]].
     mtd setPaused(paused: bool)
     {
         .isPaused = paused
@@ -275,7 +293,11 @@ impl Movie
             .completedLoops = 0
     }
 
-    // Advances playback by `deltaSeconds` and reports whether the frame changed.
+    // Advances playback by `deltaSeconds` and reports whether the visible state changed.
+    //
+    // Answers `true` when the frame changed since the previous update, through playback or a seek,
+    // and when playback stopped during this update, at the end of its last cycle or on a decode
+    // failure. `deltaSeconds` must not be negative.
     mtd update(deltaSeconds: f32)->bool
     {
         Swag.assert(deltaSeconds >= 0, "frame delta cannot be negative")

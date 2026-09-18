@@ -43,10 +43,7 @@ const ResidualOrder: [112] u8 = [
 // Scales one coefficient level by its factor, sections 8.5.12.1 and 8.5.13.1: `shift` is 4
 // for a 4x4 block and 6 for an 8x8 one.
 #[Swag.Inline]
-func dequantLevel(level: s32, scale: u32, shift: u32)->s16
-{
-    return cast(s16) clampS32((level * cast(s32) scale + (1's32 << (shift - 1))) >> shift, -32768, 32767)
-}
+func dequantLevel(level: s32, scale: u32, shift: u32)->s16 => cast(s16) clampS32((level * cast(s32) scale + (1's32 << (shift - 1))) >> shift, -32768, 32767)
 
 // Stores the levels of one block, decoded in scan order, at their raster positions, dequantized
 // with one row of the scaling table.

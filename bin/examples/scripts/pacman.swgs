@@ -974,10 +974,7 @@ impl Pacman
      *
      * @return - boolean, true if at center
      */
-    mtd atTileCenter()->bool
-    {
-        return Math.roundS32(.y * 10.0) % 10 == 0 and Math.roundS32(.x * 10.0) % 10 == 0
-    }
+    mtd atTileCenter()->bool => Math.roundS32(.y * 10.0) % 10 == 0 and Math.roundS32(.x * 10.0) % 10 == 0
 
     /**
      * Determines and returns absolute X coordinate of map tile on which Pac-Man resides
@@ -2099,10 +2096,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
  */
 func loadBindTextures()
 {
-    func loadAndBindTexture(name: string)->Texture
-    {
-        return expect theWnd().app().renderer.addImage(Path.combine(g_DataPath, name))
-    }
+    func loadAndBindTexture(name: string)->Texture => expect theWnd().app().renderer.addImage(Path.combine(g_DataPath, name))
 
     // Assets are located in the 'datas/pacman' sub folder
     g_DataPath = Path.directoryName(#curlocation.fileName)
@@ -2197,10 +2191,7 @@ func loadBindTextures()
     g_GScoreTex[3] = loadAndBindTexture("ui/1600.png")
 
     // Sounds
-    func loadSound(name: string, preloadData = true)->Audio.SoundFile
-    {
-        return expect Audio.SoundFile.load(Path.combine(g_DataPath, name), preloadData)
-    }
+    func loadSound(name: string, preloadData = true)->Audio.SoundFile => expect Audio.SoundFile.load(Path.combine(g_DataPath, name), preloadData)
 
     g_SoundReady    = loadSound("audio/pacman_beginning.wav", false)
     g_SoundDeath    = loadSound("audio/pacman_death.wav")

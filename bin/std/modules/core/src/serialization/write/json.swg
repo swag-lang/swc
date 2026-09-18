@@ -35,7 +35,7 @@ struct Json
 
 impl Json
 {
-    // Returns true indicating this writer produces textual output.
+    // Returns true, because JSON is a textual format.
     mtd isTextual()->bool => true
 
     // Returns the identity written for a type value: the canonical runtime crc.
@@ -99,7 +99,7 @@ impl Json
         .output.addNative('"'u8)
     }
 
-    // Initializes the JSON writer with the given output buffer.
+    // Starts writing a document to `buf`.
     mtd startWrite(buf: *ConcatBuffer)
     {
         .output         = buf
@@ -108,10 +108,10 @@ impl Json
         .lastSeekValue  = {}
     }
 
-    // Begins the root element (no-op for JSON).
+    // Does nothing: a JSON document needs no root mark.
     mtd beginRoot() {}
 
-    // Ends the root element (no-op for JSON).
+    // Does nothing: a JSON document needs no root mark.
     mtd endRoot() {}
 
     // Begins a JSON array.
@@ -176,20 +176,20 @@ impl Json
         .lastSeekValue = .output.position()
     }
 
-    // Begins writing a struct (treated as a JSON object).
+    // Opens a struct as a JSON object and returns false, so the encoder writes its fields.
     mtd beginStruct(_structType: typeinfo?, _structData: const *u8?)->bool
     {
         .beginSection(.Ordered)
         return false
     }
 
-    // Ends writing a struct.
+    // Closes the JSON object of the current struct.
     mtd endStruct()
     {
         .endSection()
     }
 
-    // Begins a named JSON element (a key-value pair).
+    // Writes the key of the property `val`.
     mtd beginElement(val: TypeValue)
     {
         .writeString(wireFieldKey(val))
@@ -198,13 +198,13 @@ impl Json
             .output.addBytes(" ")
     }
 
-    // Ends a named JSON element (no-op).
+    // Does nothing: a property ends with its value.
     mtd endElement(val: TypeValue) {}
 
-    // Begins a JSON value (no-op).
+    // Does nothing: a JSON value needs no opening mark.
     mtd beginValue() {}
 
-    // Ends a JSON value and appends a comma and optional newline.
+    // Appends the separator that follows a value inside an array or an object.
     mtd endValue()
     {
         if .containerDepth == 0 do
@@ -221,7 +221,7 @@ impl Json
     // VALUES
     /////////////////////////////////
 
-    // Writes a native value (bool, float, int, string) as a JSON value.
+    // Writes a Boolean, a number, or a string as a JSON value.
     mtd(NT) writeNative(value: NT)
     {
         #static if NT == bool

@@ -784,49 +784,56 @@ impl Image
 
 public impl Image
 {
-    // Smart crop search parameters
+    // Tunes the saliency search of [[Pixel.Image.smartCrop]] and [[Pixel.Image.evaluateCropScore]].
     struct SmartCropSearchOpts
     {
         // Minimum fraction of the original image area the crop must keep.
+        //
         // Range: 0.0–1.0. Lower allows tighter crops; higher preserves more context.
         // Special: >= 0.95 triggers fast single-scale mode (no multi-scale search).
         public minCoverage: f32 = 0.4
 
-        // Blur radius (in pixels) applied to the saliency map for smoothing.
+        // Blur radius, in pixels, applied to the saliency map for smoothing.
+        //
         // Range: 0–5 (typical 2–4). Higher = smoother gradients, less fine detail.
         public blurRadius: s32 = 3
 
-        // Search stride as a fraction of the crop size (per axis).
+        // Search stride as a fraction of the crop size, per axis.
+        //
         // Range: 0.01–0.20 (typical 0.06–0.12). Lower = slower, higher quality.
         public strideFrac: f32 = 0.10
 
-        // Weight for the rule-of-thirds compositional bonus.
+        // Weight of the rule-of-thirds compositional bonus.
+        //
         // Range: 0.0–0.5 (typical 0.15–0.25). 0.0 disables thirds influence.
         public thirdsWeight: f32 = 0.22
 
-        // Weight for proximity to the image center (center bias).
+        // Weight of the proximity to the image center.
+        //
         // Range: 0.0–0.3 (typical 0.05–0.15). 0.0 removes center preference.
         public centerWeight: f32 = 0.06
 
-        // Prior favoring larger crops (adds an area-proportional bonus).
+        // Prior favoring larger crops with an area-proportional bonus.
+        //
         // Range: 0.0–0.3 (typical 0.05–0.15). 0.0 means no size preference.
         public shrinkPrior: f32 = 0.08
 
-        // Penalty for crops that cut through strong edges (uses edge-distance map).
+        // Penalty for crops that cut through strong edges.
+        //
         // Range: 0.0–0.5 (typical 0.10–0.25). 0.0 disables the edge term.
         public edgePenalty: f32 = 0.15
 
-        // Reserved for future face detection bonus when faces are inside the crop.
-        // Range: 0.0–1.0 (currently unused).
+        // Reserved for a face-detection bonus; currently unused.
         public faceWeight: f32 = 0.0
 
-        // Number of scale steps in multi-scale search.
+        // Number of scale steps of the multi-scale search.
+        //
         // Range: 5–20 (typical 8–12). More = more thorough but slower.
         public maxSearchSteps: s32 = 10
 
-        // Maximum working image size (pixels) for the longest side when
-        // computing crops/scores. 0 (or <=0) disables downscaling.
-        // The original image is always used for the final crop.
+        // Maximum longest side, in pixels, of the working copy used to search and score.
+        //
+        // Zero or less disables downscaling. The final crop always uses the original image.
         public maxSize: s32 = 0
     }
 
@@ -865,7 +872,7 @@ public impl Image
             }
         }
 
-        // Original (no-downscale) path remains unchanged
+        // Without penalty terms, the cheaper scorer suffices.
         if opts.edgePenalty <= 0.01 and opts.shrinkPrior <= 0.01 and opts.centerWeight <= 0.01 do
             return .evaluateCropScoreFast(rect, opts)
         return .evaluateCropScoreFull(rect, opts)
@@ -912,7 +919,6 @@ public impl Image
             }
         }
 
-        // No downscaling needed — use the existing path
         .crop(.calculateReframeRect(rect.width, rect.height, opts))
     }
 }

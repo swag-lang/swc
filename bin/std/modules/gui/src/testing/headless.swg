@@ -8,8 +8,8 @@ struct AutoEdit
 {
     public
     {
-        label: String     // Label associated with this value.
-        text:  String     // Text associated with this value.
+        label: String     // Label of the edit box to fill.
+        text:  String     // Text typed into it.
     }
 }
 
@@ -21,17 +21,17 @@ enum AutoStageKind
     PopupItem        // Activates a popup item by identifier.
 }
 
-// One step of the auto UI driver (see clickModalButtonWhenShown and friends).
+// One step of the auto UI driver armed by [[Gui.Testing.HeadlessHost.clickModalButtonWhenShown]] and its siblings.
 struct AutoStage
 {
     public
     {
-        kind:   AutoStageKind = ModalButton     // Kind associated with this value.
-        folder: String                          // Folder associated with this value.
-        file:   String                          // File associated with this value.
-        label:  String                          // Label associated with this value.
-        edits:  Array'AutoEdit                  // Edits associated with this value.
-        button: WndId         = ""              // Button associated with this value.
+        kind:   AutoStageKind = ModalButton     // Action the stage performs.
+        folder: String                          // Folder a file-dialog stage browses to first; empty keeps the current one.
+        file:   String                          // File name a file-dialog stage types; empty for any other modal.
+        label:  String                          // Label of the submenu a `PopupSubMenu` stage opens.
+        edits:  Array'AutoEdit                  // Edit boxes a `ModalButton` stage fills before its click.
+        button: WndId         = ""              // Modal button a `ModalButton` stage clicks, or item a `PopupItem` stage activates.
     }
 }
 
@@ -40,26 +40,25 @@ struct HeadlessHost
 {
     public
     {
-        app:          Application     // App associated with this value.
+        app:          Application     // Application driven by the host.
         renderer:     RenderCpu       // Deterministic backend borrowed by `app.renderer`.
-        surface:      Surface         // Surface associated with this value.
-        surfaceWnd:   SurfaceWnd      // Surface wnd associated with this value.
-        root:         Wnd             // Root associated with this value.
-        late theme:   *Theme          // Theme associated with this value.
-        mousePos:     Math.Point      // Mouse pos associated with this value.
-        closed:       bool            // Closed associated with this value.
-        commandCount: u32             // Number of command entries.
-        lastCommand:  WndId?          // Last command associated with this value.
+        surface:      Surface         // Software surface the host renders through.
+        surfaceWnd:   SurfaceWnd      // Root window of that surface.
+        root:         Wnd             // Root view a test builds its tree under.
+        late theme:   *Theme          // Theme created by `setup` and shared with the application.
+        mousePos:     Math.Point      // Last simulated pointer position, in physical screen pixels.
+        closed:       bool            // Whether `close` ran, directly or through `closeOnCommand`.
+        commandCount: u32             // Commands that reached the root since `recordCommands` or `closeOnCommand`.
+        lastCommand:  WndId?          // Identifier of the last command that reached the root.
 
-        // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
-        // is true once every armed stage has completed.
-        autoHandled:          bool                // Auto handled associated with this value.
-        autoArmed:            bool                // Auto armed associated with this value.
-        autoHookInstalled:    bool                // Auto hook installed associated with this value.
-        autoFrames:           u32                 // Auto frames associated with this value.
-        autoMaxFrames:        u32                 // Auto max frames associated with this value.
-        autoStages:           Array'AutoStage     // Auto stages associated with this value.
-        autoStage:            u32                 // Auto stage associated with this value.
+        // Auto UI driver state, armed by `clickModalButtonWhenShown` and its siblings.
+        autoHandled:          bool                // Whether every armed stage has completed.
+        autoArmed:            bool                // Whether stages are still waiting to run.
+        autoHookInstalled:    bool                // Whether the driver runs on every application frame.
+        autoFrames:           u32                 // Frames the current stage has waited so far.
+        autoMaxFrames:        u32                 // Frames a stage may wait before the driver gives up.
+        autoStages:           Array'AutoStage     // Armed stages, in the order they run.
+        autoStage:            u32                 // Index of the stage the driver runs next.
         readonly autoFailure: String              // Timeout explanation, empty until an armed stage fails.
 
         // Payload the simulated drag helpers hand to the routing, reused across one gesture the
@@ -136,7 +135,7 @@ impl HeadlessHost
         root.sendCreateEvent()
         root.sendResizeEvent()
 
-        // Wire the surface root window so getTopView()/getTopWnd() resolve to the
+        // Wire the surface root window so `topView()` and `topWindow()` resolve to the
         // root view. This enables popup-based widgets (combobox, menus, tabs)
         // which anchor their popups to the top view.
         .surfaceWnd.itf     = &.surfaceWnd
@@ -194,7 +193,7 @@ impl HeadlessHost
             send(&.root, kind)
     }
 
-    // Number of surfaces open besides the host's own.
+    // Returns the number of surfaces open besides the host's own.
     //
     // This is what a test means when it checks that a dialog closed. The host's surface is on the
     // application's list from `setup` to `shutdown`, exactly like a real one, so the raw count
@@ -207,7 +206,7 @@ impl HeadlessHost
         return result
     }
 
-    // Destroys the hosted window tree, drains queued work, and restores the system clipboard backend.
+    // Destroys the hosted window tree, drains queued work, and releases the rendering context.
     mtd shutdown()
     {
         // A tip hangs off the surface window rather than the root view, so destroying the tree
@@ -222,10 +221,11 @@ impl HeadlessHost
         .surface.destroyRendering()
     }
 
-    // Binds another Application instance to this host: the code under test may read
-    // its own module-global Application (theme, renderer, options) while events flow
-    // through the host. Both applications borrow the host's CPU backend, theme, and
-    // style instead of rebuilding resources.
+    // Makes `app` borrow the renderer, theme, and style of this host.
+    //
+    // The code under test may read its own module-global Application (theme, renderer,
+    // options) while events flow through the host; both applications then share the host's
+    // CPU backend, theme, and style instead of rebuilding resources.
     mtd bindApplication(app: *Application)
     {
         app.setRenderer(.app.renderer)
@@ -380,20 +380,22 @@ impl HeadlessHost
         return stage
     }
 
-    // Arms the auto UI driver to click 'button' in the topmost modal surface as soon
-    // as it exists. Modal loops pump sigFrame every frame, so this drives dialogs
-    // opened by the code under test without any test-side closure. If the expected
-    // UI never shows up within 'maxFrames' frames, the pending loop is cancelled and
-    // 'autoHandled' stays false.
+    // Arms the auto UI driver to click `button` in a modal surface as soon as it exists.
+    //
+    // Modal loops emit [[Gui.Application.sigFrame]] every frame, so this drives dialogs opened
+    // by the code under test without any test-side closure. If the expected UI never shows up
+    // within `maxFrames` frames, the pending loop is cancelled, `autoHandled` stays false, and
+    // `autoFailure` says what was missing.
     mtd clickModalButtonWhenShown(button: WndId, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.ModalButton, button)
     }
 
-    // Same auto-driver as clickModalButtonWhenShown for a file dialog: fills the
-    // modal file browser with 'fileName' (folder + name), then accepts it with
-    // 'button'. The folder part must exist.
+    // Arms the auto UI driver to fill a modal file browser with `fileName`, then click `button`.
+    //
+    // The folder part of `fileName` is browsed to first and must exist; the name part is typed
+    // into the name editor.
     mtd acceptModalFileDialog(fileName: string, button: WndId = Dialog.BtnOk, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
@@ -402,52 +404,51 @@ impl HeadlessHost
         stage.file   = Path.fileName(fileName) orelse fileName
     }
 
-    // Arms the auto UI driver to click item 'id' of the captured popup menu as soon
-    // as the popup exists (e.g. after a right-click opening a context menu).
+    // Arms the auto UI driver to click item `id` of the captured popup menu as soon as it exists.
+    //
+    // This is how a test answers a context menu opened by a right-click.
     mtd clickPopupMenuItemWhenShown(id: WndId, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.PopupItem, id)
     }
 
-    // Arms the auto UI driver to open the submenu labelled 'label' of the captured
-    // popup menu as soon as the popup exists.
+    // Arms the auto UI driver to open the submenu labelled `label` of the captured popup menu as soon as it exists.
     mtd openPopupSubMenuWhenShown(label: string, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.PopupSubMenu, label: label)
     }
 
-    // Appends one more step to the armed sequence: once the previous step succeeded,
-    // click 'button' in the next modal that shows up (e.g. a nested overwrite
-    // confirmation after accepting a file dialog).
+    // Appends a step that clicks `button` in the next modal once the previous step succeeded.
+    //
+    // A nested overwrite confirmation after accepting a file dialog is the typical case.
     mtd thenClickModalButton(button: WndId)
     {
         Swag.assert(.autoArmed)
         discard .addAutoStage(.ModalButton, button)
     }
 
-    // Appends one more step to the armed sequence: click item 'id' of the captured
-    // popup menu (e.g. inside a submenu opened by the previous step).
+    // Appends a step that clicks item `id` of the captured popup menu, such as an item of the submenu the previous step opened.
     mtd thenClickPopupMenuItem(id: WndId)
     {
         Swag.assert(.autoArmed)
         discard .addAutoStage(.PopupItem, id)
     }
 
-    // Appends one more step to the armed sequence: open the submenu labelled 'label'
-    // of the captured popup menu.
+    // Appends a step that opens the submenu labelled `label` of the captured popup menu.
     mtd thenOpenPopupSubMenu(label: string)
     {
         Swag.assert(.autoArmed)
         discard .addAutoStage(.PopupSubMenu, label: label)
     }
 
-    // Fills the labelled edit box of the modal with 'text' before the last armed
-    // stage's button is clicked. May be called several times for several edits.
+    // Fills the edit box labelled `label` with `text` before the last armed stage clicks its button.
+    //
+    // Call it once per edit box to fill.
     mtd withModalEdit(label, text: string)
     {
-        Swag.assert(.autoArmed and .autoStages.count > 0)
+        Swag.assert(.autoArmed and not .autoStages.isEmpty())
         let stage = .autoStages.storage() + .autoStages.count - 1
         let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
@@ -629,13 +630,13 @@ impl HeadlessHost
             .fireTimer(timer)
     }
 
-    // Sets key state.
+    // Sets whether `key` reads as pressed in the simulated keyboard state.
     mtd setKeyState(key: Input.Key, pressed: bool)
     {
         .app.keyboard.setCurrentKeyState(key, pressed)
     }
 
-    // Sets modifier keys.
+    // Presses or releases the keys behind `modifiers` in the simulated keyboard state.
     mtd setModifierKeys(modifiers: Input.KeyModifiers, pressed: bool)
     {
         if modifiers & .Shift
@@ -737,12 +738,12 @@ impl HeadlessHost
         return .app.endModal
     }
 
-    // Finds edit ctrl by label.
+    // Returns the first [[Gui.EditCtrl]] under `wnd` whose label reads `label`, or `null`.
     mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->*EditCtrl?
     {
         if wnd is EditCtrl as ctrl
         {
-            if (ctrl.label != null) and ctrl.label.name.raw == label do
+            if ctrl.label != null and ctrl.label.name.raw == label do
                 return ctrl
         }
 
@@ -756,7 +757,7 @@ impl HeadlessHost
         return null
     }
 
-    // Sets modal edit text.
+    // Types `text` into the edit box labelled `label` of the topmost modal, and reports whether it was found.
     mtd setModalEditText(label: string, text: string)->bool
     {
         if .app.modalSurfaces.isEmpty() do
@@ -771,7 +772,7 @@ impl HeadlessHost
         return true
     }
 
-    // Finds file browser ctrl.
+    // Returns the first [[Gui.FileBrowserCtrl]] under `wnd`, or `null`.
     mtd findFileBrowserCtrl(wnd: *Wnd)->*FileBrowserCtrl?
     {
         if wnd is FileBrowserCtrl as ctrl do
@@ -787,7 +788,9 @@ impl HeadlessHost
         return null
     }
 
-    // Sets modal file selection.
+    // Browses the file browser of a modal to `folder` and types `fileName`, and reports whether it could.
+    //
+    // An empty `folder` keeps the folder the browser shows; a folder that does not exist fails.
     mtd setModalFileSelection(folder: string, fileName: string)->bool
     {
         if .app.modalSurfaces.isEmpty() do
@@ -802,7 +805,7 @@ impl HeadlessHost
                 break
         }
 
-        if not browser or not (browser.editFile != null) do
+        if not browser or browser.editFile == null do
             return false
         if folder.count
         {
@@ -816,7 +819,7 @@ impl HeadlessHost
         return true
     }
 
-    // Returns captured popup menu.
+    // Returns the popup menu holding the pointer capture, or `null` when none does.
     mtd capturedPopupMenu()->*MenuCtrl?
     {
         let menu = cast #try (*MenuCtrl) .app.mouseCaptureWnd
@@ -932,8 +935,7 @@ impl HeadlessHost
         .mouseUp(toPt, button, modifiers)
     }
 
-    // Moves a simulated drag carrying `files` over a screen position and returns the effect
-    // the window under it commits to.
+    // Moves a simulated drag carrying `files` over a screen position and returns the effect the window under it commits to.
     //
     // The gesture goes through the same routing a native drag does, so entering and leaving are
     // derived here too: calling this twice over two windows tells the first it was left.
@@ -945,8 +947,7 @@ impl HeadlessHost
         return .app.dragUpdateTo(.mouseTargetAt(pt), pt, &.dragData, allowed, modifiers)
     }
 
-    // Releases a simulated drag carrying `files` on a screen position and returns the effect
-    // the window under it performed.
+    // Releases a simulated drag carrying `files` on a screen position and returns the effect the window under it performed.
     mtd dropFiles(pt: Math.Point, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
     {
         .dragData.clear()
@@ -1016,7 +1017,7 @@ impl HeadlessHost
         .pump()
     }
 
-    // Gives keyboard focus to a window and drains resulting events.
+    // Places the keyboard focus on `wnd` directly, without the focus events and checks of [[Gui.Wnd.setFocus]].
     mtd focus(wnd: *Wnd)
     {
         .app.keyboardFocusWnd = wnd
@@ -1060,7 +1061,7 @@ impl HeadlessHost
         .keyPress(key, modifiers)
     }
 
-    // Sends rune.
+    // Sends one simulated character to the focused window.
     mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = None)
     {
         let target = .app.keyboardFocusWnd!
@@ -1093,7 +1094,7 @@ impl HeadlessHost
         return Application.skipDisabled(.wndAt(pt))
     }
 
-    // Sends mouse event.
+    // Sends one simulated mouse event of `kind` to `target`, at a physical screen position.
     mtd sendMouseEvent(target: *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
     {
         .setModifierKeys(modifiers, true)

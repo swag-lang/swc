@@ -2,7 +2,10 @@ using Core
 
 impl Image
 {
-    // Kernel format is : kernelSize, kernelNormalizeValue, kernelValues...
+    // Predefined convolution kernels for [[Pixel.Image.applyKernel]].
+    //
+    // Each value lists the kernel size, the normalization divisor (zero for none), then the
+    // weights row by row.
     #[Swag.Incomplete]
     public enum Kernel: const [..] s32
     {
@@ -151,7 +154,7 @@ impl Image
         }
     }
 
-    // Apply a kernel to the image
+    // Convolves the image with a predefined kernel, in place.
     public mtd applyKernel(kernel: Kernel)
     {
         Swag.assert(.pixels.buffer != null)
@@ -160,7 +163,7 @@ impl Image
         .applyWorkingBuffer()
     }
 
-    // Apply a kernel to the image
+    // Returns a copy of the image convolved with a predefined kernel.
     public mtd withKernelApplied(kernel: Kernel)->Image
     {
         Swag.assert(.pixels.buffer != null)

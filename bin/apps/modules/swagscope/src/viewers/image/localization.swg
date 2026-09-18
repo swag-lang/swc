@@ -10,10 +10,7 @@ struct ImageStrings
 {
     ui_TipPrevious:            string = "Previous image"               // Tooltip of the previous-file button.
     ui_TipNext:                string = "Next image"                   // Tooltip of the next-file button.
-    ui_TipZoomOut:             string = "Zoom out"                     // Tooltip of the zoom-out button.
-    ui_TipZoomIn:              string = "Zoom in"                      // Tooltip of the zoom-in button.
-    ui_TipFit:                 string = "Fit image"                    // Tooltip of the fit-to-window button.
-    ui_TipActual:              string = "Actual size"                  // Tooltip of the actual-size button.
+    ui_TipFit:                 string = "Fit image"                    // Zoom-menu entry fitting the picture to the window.
     ui_ZoomMenu:               string = "Zoom options"                 // Tooltip of the zoom value menu.
     ui_TipTransform:           string = "Image orientation"            // Tooltip of the orientation menu button.
     ui_TipPlay:                string = "Play or pause"                // Tooltip of the animation transport button.
@@ -43,10 +40,7 @@ private var g_ImageStrings: ImageStrings
 func imageStrings()->const *ImageStrings => &g_ImageStrings
 
 // Returns `count` followed by the noun in the form that count calls for.
-func frameCountText(count: s32)->String
-{
-    return Format.toString("% %", count, count == 1 ? imageStrings().word_Frame : imageStrings().word_Frames)
-}
+func frameCountText(count: s32)->String => Format.toString("% %", count, count == 1 ? imageStrings().word_Frame : imageStrings().word_Frames)
 
 // Registers this viewer's string table with the application.
 //

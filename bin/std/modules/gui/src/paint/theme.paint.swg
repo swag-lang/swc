@@ -71,12 +71,10 @@ impl Theme
         if not subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
 
-        var k = srcScale
-        if k <= 0 do
-            k = 1
+        let k = srcScale > 0 ? srcScale : 1
 
         // The atlas is rasterized at a whole scale at least as dense as any surface
-        // (see [[Theme.ensureAtlasScale]]), so a fractional content scale samples it
+        // (see [[Gui.Theme.ensureAtlasScale]]), so a fractional content scale samples it
         // at or below 1:1: plain bilinear then behaves as supersampled downscaling
         // and keeps borders even. Only when the mapping still magnifies — an atlas
         // coarser than the surface — does pixel sampling, sharpened by the renderers
@@ -231,7 +229,7 @@ impl Theme
         }
     }
 
-    // Sets text colors.
+    // Fills the palette of `fmt`: `mainColor` for plain text, then the three rich-text colors of the theme.
     mtd setTextColors(fmt: *RichStringFormat, mainColor: Color)
     {
         fmt.palette[0] = mainColor

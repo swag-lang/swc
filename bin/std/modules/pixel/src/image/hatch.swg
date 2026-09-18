@@ -1,4 +1,4 @@
-// Repeating monochrome pattern used by [[Pixel.Brush.createHatch]].
+// Selects the repeating monochrome pattern of a hatch brush, see [[Pixel.Brush.createHatch]].
 //
 // Patterns are defined on an 8×8 tile and alternate the brush foreground and
 // background colors.

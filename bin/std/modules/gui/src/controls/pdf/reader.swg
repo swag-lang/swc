@@ -77,7 +77,7 @@ impl Reader
     // Returns owned bookmarks and their local destinations without decoding page content.
     //
     // Direct destinations, named destinations, and local GoTo actions are resolved. Entries
-    // without a usable local destination retain their hierarchy and have pageIndex set to Max.
+    // without a usable local destination retain their hierarchy and have `pageIndex` set to `Swag.U64.Max`.
     // An absent outline returns an empty array; cycles in damaged outline and name trees are ignored.
     mtd loadOutline()->Array'OutlineEntry
     {

@@ -106,3 +106,24 @@ const EmbeddedOther = [111'u8, 107]
     expect Directory.delete(root, recurse: true)
     Swag.assert(not Directory.exists(root))
 }
+
+// A folder registered with a trailing separator lists the same names as one without.
+#test
+{
+    let root = CoreTests.makeFilesystemTestPath("core_bundle_trailing")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+
+    let sub = Path.combine(root.toString(), "lang")
+    expect Directory.create(sub)
+    discard expect File.writeAllBytes(Path.combine(sub.toString(), "fr.tweak"), [102'u8])
+
+    var folder = String.from(root.toString())
+    folder += '/'
+    var bundle: Resources.Bundle
+    bundle.addFolder(folder.toString())
+
+    let names = bundle.list("")
+    Swag.assert(names.count == 1)
+    Swag.assert(names[0] == "lang/fr.tweak")
+}

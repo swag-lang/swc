@@ -4,15 +4,22 @@ using Core, Gui
 // when creating. Their builders remain callable by the application's layout tests.
 struct HiddenFields
 {
-    late password:    *PasswordEdit
-    late keyFiles:    *KeyFileField
-    late confirm:     *PasswordEdit
-    late capacity:    *EditBox
-    late unit:        *ComboBox
-    late reserve:     *EditBox
-    late reserveUnit: *ComboBox
+    late
+    {
+        password:    *PasswordEdit
+        keyFiles:    *KeyFileField
+        confirm:     *PasswordEdit
+        capacity:    *EditBox
+        unit:        *ComboBox
+        reserve:     *EditBox
+        reserveUnit: *ComboBox
+    }
 }
 
+// Fills `dialog` with what creating a hidden volume asks for, and returns its fields.
+//
+// The capacity comes first, then the room the outer volume keeps, then the hidden access. The
+// units are listed in the order `parseCapacity` reads them.
 func buildHiddenCreateForm(dialog: *FormDlg)->HiddenFields
 {
     var result: retval
@@ -39,6 +46,8 @@ func buildHiddenCreateForm(dialog: *FormDlg)->HiddenFields
     return result
 }
 
+// Fills `dialog` with the hidden access that protects a hidden volume during an outer mount, and
+// returns its fields. Only `password` and `keyFiles` are set.
 func buildHiddenProtectionForm(dialog: *FormDlg)->HiddenFields
 {
     var result: retval

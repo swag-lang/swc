@@ -4,13 +4,9 @@
 using Win32
 
 // Returns the operating-system identifier of the running process.
-internal func currentProcessId()->u32
-{
-    return GetCurrentProcessId()
-}
+internal func currentProcessId()->u32 => GetCurrentProcessId()
 
-// Returns whether the process command line carries the run argument `name`, along with the
-// value that follows an '=' when there is one.
+// Returns whether the process command line carries the run argument `name`, with the value after its '=' when there is one.
 //
 // Read straight from the operating system rather than through 'Swag.args()'. The sandbox is armed
 // from a module init hook so it precedes every '#init', '#premain' and '#main' in the program,
@@ -26,7 +22,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
     {
         if arg.count < name.count do
             continue
-        if arg[0 until name.count] != name do
+        if arg[until name.count] != name do
             continue
         if arg.count == name.count
         {
@@ -37,7 +33,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
         if arg[name.count] == '='
         {
             result.found = true
-            result.value = String.from(arg[name.count + 1 until arg.count])
+            result.value = String.from(arg[name.count + 1 to])
             return result
         }
     }
@@ -72,7 +68,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
 
         if token.count < name.count do
             continue
-        if token[0 until name.count] != name do
+        if token[until name.count] != name do
             continue
 
         // An exact match, or the name followed by '=' and its value. A longer token that
@@ -86,7 +82,7 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
         if token[name.count] == '='
         {
             result.found = true
-            result.value = String.from(token[name.count + 1 until token.count])
+            result.value = String.from(token[name.count + 1 to])
             return result
         }
     }

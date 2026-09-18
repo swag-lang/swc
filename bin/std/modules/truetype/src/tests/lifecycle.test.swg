@@ -8,7 +8,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     scope.init(fileName)
     let face = scope.face!
 
-    Swag.assert(scope.bytes.count > 0)
+    Swag.assert(not scope.bytes.isEmpty())
     Swag.assert(face.glyphCount > 0)
     Swag.assert(not face.familyName.isEmpty())
     Swag.assert(not face.styleName.isEmpty())
@@ -40,7 +40,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     scope.init()
     let face = scope.face!
 
-    Swag.assert(scope.bytes.count > 0)
+    Swag.assert(not scope.bytes.isEmpty())
     Swag.assert(face.glyphCount > 0)
     Swag.assert(not face.familyName.isEmpty())
     Swag.assert(not face.styleName.isEmpty())

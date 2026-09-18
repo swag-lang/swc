@@ -92,11 +92,11 @@ impl TypeFace
     }
 
     // Creates or reuses a cached typeface from a borrowed Windows font handle.
-    public func createFromHfont(fullname: string, hfont: HFONT)->*TypeFace fail
+    public func createFromHfont(fullName: string, hfont: HFONT)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
-        let str  = String.from(fullname)
+        let str  = String.from(fullName)
         let here = g_HashTypeFace.tryFind(str)
         if here do
             return here.value
@@ -113,7 +113,7 @@ impl TypeFace
 
         let tf = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
-        tf.fullname   = fullname
+        tf.fullName   = fullName
         tf.face       = face
         tf.faceLoaded = true
 

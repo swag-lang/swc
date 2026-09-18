@@ -27,7 +27,7 @@ struct ColorPickerCtrl
 {
     public
     {
-        using frameWnd: FrameWnd     // Embedded frame wnd state.
+        using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
         sigColorChanged: SigArray'func||(*ColorPickerCtrl)     // Emitted once after the selected color changes.
 
@@ -302,7 +302,7 @@ impl ColorPickerCtrl
             .editR.setMaximumLength(3)
             .editR.sigCommitted += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.r = cast() Math.clamp(res.value, 0, 255)
                 v.updateAll()
                 v.sigColorChanged.call(v)
@@ -312,7 +312,7 @@ impl ColorPickerCtrl
             .editG.setMaximumLength(3)
             .editG.sigCommitted += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.g = cast() Math.clamp(res.value, 0, 255)
                 v.updateAll()
                 v.sigColorChanged.call(v)
@@ -322,7 +322,7 @@ impl ColorPickerCtrl
             .editB.setMaximumLength(3)
             .editB.sigCommitted += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.b = cast() Math.clamp(res.value, 0, 255)
                 v.updateAll()
                 v.sigColorChanged.call(v)
@@ -332,7 +332,7 @@ impl ColorPickerCtrl
             .editA.setMaximumLength(3)
             .editA.sigCommitted += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text())
                 v.selectedColor.a = cast() Math.clamp(res.value, 0, 255)
                 v.pickAlpha.setColor(v.selectedColor, false)
                 v.updateEdits(true)
@@ -350,12 +350,12 @@ impl ColorPickerCtrl
                 v.sigColorChanged.call(v)
             }
 
-            .radioH.sigChanged += func|v|(bt) { v.setMode(.SaturationLightness); }
-            .radioS.sigChanged += func|v|(bt) { v.setMode(.HueLightness); }
-            .radioL.sigChanged += func|v|(bt) { v.setMode(.HueSaturation); }
-            .radioR.sigChanged += func|v|(bt) { v.setMode(.GreenBlue); }
-            .radioG.sigChanged += func|v|(bt) { v.setMode(.RedBlue); }
-            .radioB.sigChanged += func|v|(bt) { v.setMode(.RedGreen); }
+            .radioH.sigChanged += func|v|(bt) { v.setMode(.SaturationLightness) }
+            .radioS.sigChanged += func|v|(bt) { v.setMode(.HueLightness) }
+            .radioL.sigChanged += func|v|(bt) { v.setMode(.HueSaturation) }
+            .radioR.sigChanged += func|v|(bt) { v.setMode(.GreenBlue) }
+            .radioG.sigChanged += func|v|(bt) { v.setMode(.RedBlue) }
+            .radioB.sigChanged += func|v|(bt) { v.setMode(.RedGreen) }
 
             if not .flags.has(.AllowAlpha)
             {
@@ -372,7 +372,10 @@ impl ColorPickerCtrl
     }
 
     // Creates a color picker with a nine-item palette above it.
-    // Missing entries are completed with the built-in default colors.
+    //
+    // The palette shows the first nine colors of `pal`; missing entries are completed with the
+    // built-in default colors. Picking a palette color keeps the current alpha unless one of the
+    // two colors is fully transparent.
     #[Swag.Discardable]
     func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: WndId? = null)->*ColorPickerCtrl
     {
@@ -383,44 +386,27 @@ impl ColorPickerCtrl
         {
             for i in 9
             {
-                if i >= pal.count
+                if i < pal.count
                 {
-                    switch i
-                    {
-                    case 0:
-                        .addColor(Argb.White)
-
-                    case 1:
-                        .addColor(Argb.Gray)
-
-                    case 2:
-                        .addColor(Argb.Black)
-
-                    case 3:
-                        .addColor(Argb.Red)
-
-                    case 4:
-                        .addColor(Argb.Green)
-
-                    case 5:
-                        .addColor(Argb.Blue)
-
-                    case 6:
-                        .addColor(Argb.Yellow)
-
-                    case 7:
-                        .addColor(Argb.Purple)
-
-                    case 8:
-                        if flags.has(.AllowAlpha) do
-                            .addColor(Color.fromArgb(0))
-                        else do
-                            .addColor(Argb.Gold)
-                    }
+                    .addColor(pal[i])
+                    continue
                 }
-                else
+
+                switch i
                 {
-                    palette.addColor(pal[i])
+                case 0: .addColor(Argb.White)
+                case 1: .addColor(Argb.Gray)
+                case 2: .addColor(Argb.Black)
+                case 3: .addColor(Argb.Red)
+                case 4: .addColor(Argb.Green)
+                case 5: .addColor(Argb.Blue)
+                case 6: .addColor(Argb.Yellow)
+                case 7: .addColor(Argb.Purple)
+                case 8:
+                    if flags.has(.AllowAlpha) do
+                        .addColor(Color.fromArgb(0))
+                    else do
+                        .addColor(Argb.Gold)
                 }
             }
 
@@ -497,8 +483,9 @@ impl ColorPickerCtrl
         .setColor(col, notify)
     }
 
-    // Changes the selected color and optionally emits `sigColorChanged` once.
-    // The first assigned color is also captured in `originalColor` for the preview.
+    // Changes the selected color and, when `notify` is true, emits [[Gui.ColorPickerCtrl.sigColorChanged]] once.
+    //
+    // The first assigned color is also captured in [[Gui.ColorPickerCtrl.originalColor]] for the preview.
     mtd setColor(color: Color, notify = true)
     {
         var col = color

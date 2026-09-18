@@ -63,15 +63,9 @@ struct AnimationChannel
 impl AnimationChannel
 {
     // Creates a stable channel from an application-defined name.
-    func from(name: string)->AnimationChannel
-    {
-        return {Hash.Crc64.compute(name) & 0x7FFF_FFFF_FFFF_FFFF}
-    }
+    func from(name: string)->AnimationChannel => {Hash.Crc64.compute(name) & 0x7FFF_FFFF_FFFF_FFFF}
 
-    internal func fromPointer(value: *void)->AnimationChannel
-    {
-        return {cast(u64) value | 0x8000_0000_0000_0000}
-    }
+    internal func fromPointer(value: *void)->AnimationChannel => {cast(u64) value | 0x8000_0000_0000_0000}
 }
 
 // Configures one finite animation track.
@@ -81,7 +75,7 @@ struct AnimationOptions
     {
         delay:            Time.Duration                        // Non-negative time kept at the start value before progress begins.
         duration:         Time.Duration      = 150'ms          // Non-negative time of one play, between the start and end values.
-        easing:           AnimationEasing    = .EaseInOut      // Named curve applied to normalized progress; ignored once 'curve' is set.
+        easing:           AnimationEasing    = .EaseInOut      // Named curve applied to normalized progress; ignored once `curve` is set.
         direction:        AnimationDirection = .Forward        // Endpoint from which the track starts.
         repeatCount:      u32 = 1                              // Number of successive plays; zero repeats until the track is cancelled.
         autoReverse:      bool                                 // Whether every second play runs back toward the value it started from.
@@ -93,7 +87,7 @@ struct AnimationOptions
         //
         // The scheduler borrows it rather than copying it, so it has to outlive every track it was
         // given to — a curve owned by the animated window, by its theme, or by the application all
-        // qualify, and a temporary declared next to the call does not. Leave it null to use `easing`.
+        // qualify, and a temporary declared next to the call does not. Leave it `null` to use `easing`.
         curve: const *Math.Curve?
     }
 }
@@ -166,12 +160,9 @@ private struct AnimationTrack
 #[Swag.Opaque, Swag.NoCopy]
 struct AnimationGroup
 {
-    internal
-    {
-        kind:       AnimationGroupKind
-        tracks:     ArrayPtr'AnimationTrack
-        completion: AnimationCompletion?
-    }
+    kind:       AnimationGroupKind
+    tracks:     ArrayPtr'AnimationTrack
+    completion: AnimationCompletion?
 }
 
 private impl AnimationGroup
@@ -284,13 +275,10 @@ private struct AnimationRun
 #[Swag.Opaque, Swag.NoCopy]
 struct Animator
 {
-    internal
-    {
-        app:           *Application?
-        animations:    ArrayPtr'AnimationRun
-        nextId:        u64 = 1
-        duringAdvance: bool
-    }
+    app:           *Application?
+    animations:    ArrayPtr'AnimationRun
+    nextId:        u64 = 1
+    duringAdvance: bool
 }
 
 private impl Animator
@@ -326,10 +314,7 @@ private impl Animator
         return track.options.delay.seconds + track.options.duration.seconds * cast(f64) track.options.repeatCount
     }
 
-    func isElapsed(track: *AnimationTrack)->bool
-    {
-        return track.options.repeatCount != 0 and track.elapsedSeconds >= totalSeconds(track)
-    }
+    func isElapsed(track: *AnimationTrack)->bool => track.options.repeatCount != 0 and track.elapsedSeconds >= totalSeconds(track)
 
     func progress(track: *AnimationTrack)->f32
     {
@@ -352,10 +337,7 @@ private impl Animator
         return local
     }
 
-    func lerpPoint(source, destination: Math.Point, factor: f32)->Math.Point
-    {
-        return {Math.lerp(source.x, destination.x, factor), Math.lerp(source.y, destination.y, factor)}
-    }
+    func lerpPoint(source, destination: Math.Point, factor: f32)->Math.Point => {Math.lerp(source.x, destination.x, factor), Math.lerp(source.y, destination.y, factor)}
 
     func lerpRectangle(source, destination: Math.Rectangle, factor: f32)->Math.Rectangle
     {
@@ -473,10 +455,8 @@ private impl Animator
 
     mtd requestCancellation(target: *Wnd)
     {
-        var index = .animations.count
-        while index
+        for index in reversed(.animations.count)
         {
-            index -= 1
             let run     = .animations[index]!
             var matches = false
             for track in run.tracks
@@ -499,10 +479,8 @@ private impl Animator
 
     mtd requestCancellation(target: *Wnd, channel: AnimationChannel)
     {
-        var index = .animations.count
-        while index
+        for index in reversed(.animations.count)
         {
-            index -= 1
             let run     = .animations[index]!
             var matches = false
             for track in run.tracks
@@ -525,49 +503,54 @@ private impl Animator
         }
     }
 
+    // Starts `track` from the value `previous` shows on screen, keeping the endpoint it runs to.
+    func restartFromCurrent(track, previous: *AnimationTrack)
+    {
+        switch #complete track.kind
+        {
+        case .F32:
+            track.currentF32 = previous.currentF32
+            if track.options.direction == .Forward do
+                track.fromF32 = track.currentF32
+            else do
+                track.toF32 = track.currentF32
+
+        case .Color:
+            track.currentColor = previous.currentColor
+            if track.options.direction == .Forward do
+                track.fromColor = track.currentColor
+            else do
+                track.toColor = track.currentColor
+
+        case .Point:
+            track.currentPoint = previous.currentPoint
+            if track.options.direction == .Forward do
+                track.fromPoint = track.currentPoint
+            else do
+                track.toPoint = track.currentPoint
+
+        case .Vector4:
+            track.currentVector4 = previous.currentVector4
+            if track.options.direction == .Forward do
+                track.fromVector4 = track.currentVector4
+            else do
+                track.toVector4 = track.currentVector4
+
+        case .Rectangle:
+            track.currentRectangle = previous.currentRectangle
+            if track.options.direction == .Forward do
+                track.fromRectangle = track.currentRectangle
+            else do
+                track.toRectangle = track.currentRectangle
+        }
+    }
+
     mtd preserveCurrent(track, previous: *AnimationTrack)
     {
         let raw = progress(previous)
         if not track.options.preserveProgress or raw <= 0
         {
-            switch #complete track.kind
-            {
-            case .F32:
-                track.currentF32 = previous.currentF32
-                if track.options.direction == .Forward do
-                    track.fromF32 = track.currentF32
-                else do
-                    track.toF32 = track.currentF32
-
-            case .Color:
-                track.currentColor = previous.currentColor
-                if track.options.direction == .Forward do
-                    track.fromColor = track.currentColor
-                else do
-                    track.toColor = track.currentColor
-
-            case .Point:
-                track.currentPoint = previous.currentPoint
-                if track.options.direction == .Forward do
-                    track.fromPoint = track.currentPoint
-                else do
-                    track.toPoint = track.currentPoint
-
-            case .Vector4:
-                track.currentVector4 = previous.currentVector4
-                if track.options.direction == .Forward do
-                    track.fromVector4 = track.currentVector4
-                else do
-                    track.toVector4 = track.currentVector4
-
-            case .Rectangle:
-                track.currentRectangle = previous.currentRectangle
-                if track.options.direction == .Forward do
-                    track.fromRectangle = track.currentRectangle
-                else do
-                    track.toRectangle = track.currentRectangle
-            }
-
+            restartFromCurrent(track, previous)
             return
         }
 
@@ -577,44 +560,7 @@ private impl Animator
            (track.options.direction == .Reverse and factor <= 0)
         {
             track.elapsedSeconds = 0
-            switch #complete track.kind
-            {
-            case .F32:
-                track.currentF32 = previous.currentF32
-                if track.options.direction == .Forward do
-                    track.fromF32 = track.currentF32
-                else do
-                    track.toF32 = track.currentF32
-
-            case .Color:
-                track.currentColor = previous.currentColor
-                if track.options.direction == .Forward do
-                    track.fromColor = track.currentColor
-                else do
-                    track.toColor = track.currentColor
-
-            case .Point:
-                track.currentPoint = previous.currentPoint
-                if track.options.direction == .Forward do
-                    track.fromPoint = track.currentPoint
-                else do
-                    track.toPoint = track.currentPoint
-
-            case .Vector4:
-                track.currentVector4 = previous.currentVector4
-                if track.options.direction == .Forward do
-                    track.fromVector4 = track.currentVector4
-                else do
-                    track.toVector4 = track.currentVector4
-
-            case .Rectangle:
-                track.currentRectangle = previous.currentRectangle
-                if track.options.direction == .Forward do
-                    track.fromRectangle = track.currentRectangle
-                else do
-                    track.toRectangle = track.currentRectangle
-            }
-
+            restartFromCurrent(track, previous)
             return
         }
 
@@ -900,7 +846,7 @@ impl Animator
     // Completes every active animation at its requested endpoint.
     mtd finishAll()
     {
-        while .animations.count
+        while not .animations.isEmpty()
         {
             let run = .animations[0]!
 
@@ -965,10 +911,8 @@ impl Animator
 
     internal mtd finishDecorative()
     {
-        var index = .animations.count
-        while index
+        for index in reversed(.animations.count)
         {
-            index -= 1
             let run = .animations[index]!
             for track in run.tracks
             {
@@ -986,7 +930,7 @@ impl Animator
 
     internal mtd cancelAll()
     {
-        while .animations.count do
+        while not .animations.isEmpty() do
             .finishAt(.animations.count - 1, .Cancelled)
     }
 
@@ -1006,7 +950,7 @@ impl Animator
             return {}
         }
 
-        if outgoing and outgoing != incoming
+        if outgoing
         {
             outgoing.hide()
             outgoing.setPaintWhenHidden(true)
@@ -1026,9 +970,9 @@ impl Animator
 
         var group = AnimationGroup.concurrent()
         if outgoing do
-            group.addF32(outgoing, AnimationChannel.from("Gui.Page.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
-        group.addF32(incoming, AnimationChannel.from("Gui.Page.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
-        group.addPoint(incoming, AnimationChannel.from("Gui.Page.Offset"), offset, {}, func(wnd, value) { wnd.setPresentationOffset(value); }, options)
+            group.addF32(outgoing, AnimationChannel.from("Gui.Page.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
+        group.addF32(incoming, AnimationChannel.from("Gui.Page.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
+        group.addPoint(incoming, AnimationChannel.from("Gui.Page.Offset"), offset, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
         group.setCompletion(func|outgoing, incoming|(result)
         {
             discard result
@@ -1049,6 +993,10 @@ impl Animator
     }
 
     // Animates one layout-managed window to a new preferred height.
+    //
+    // The parent lays the window out again on every frame of the track. When the track ends, the
+    // reached height becomes the [[Gui.Wnd.preferredSize]] height of the window, so a cancelled
+    // track keeps the height it had reached.
     mtd animateLayoutHeight(target: *Wnd, height: f32)->AnimationHandle
     {
         Swag.assert(target != null)

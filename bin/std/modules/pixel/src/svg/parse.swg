@@ -29,7 +29,7 @@ struct ParseOptions
     }
 }
 
-// One filled and/or stroked shape of a parsed [[Svg.Drawing]].
+// Describes one filled or stroked shape of a parsed [[Pixel.Svg.Drawing]].
 //
 // The contours are stored in the drawing's user units, already transformed by the
 // group transforms they were parsed under.
@@ -67,7 +67,7 @@ struct Shape
     }
 }
 
-// A parsed vector document, ready to paint at any scale.
+// Holds a parsed vector document, ready to paint at any scale.
 //
 // [[Pixel.Svg.Drawing.parse]] reads the SVG subset used by standalone artwork and the
 // standard themes: basic shapes and paths, groups, definitions, uses, symbols and their
@@ -379,10 +379,7 @@ private struct Gradient
 
 // Numeric scanning /////////////////////////////////////////////////////////////
 
-private func isNumberStart(c: u8)->bool
-{
-    return (c >= '0' and c <= '9') or c == '-' or c == '+' or c == '.'
-}
+private func isNumberStart(c: u8)->bool => (c >= '0' and c <= '9') or c == '-' or c == '+' or c == '.'
 
 // Scans one floating-point number of a path or attribute value.
 private func scanNumber(s: string, pos: *u64)->f32
@@ -422,7 +419,7 @@ private func scanNumber(s: string, pos: *u64)->f32
     pos[] = i
     if i == start do
         return 0
-    return catch StrConv.toF32(cast(string) Swag.makeSlice(s.buffer + start, i - start))
+    return catch StrConv.toF32(s[start until i])
 }
 
 private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
@@ -473,14 +470,14 @@ private func parsePaintId(value: string)->String
 {
     var result: retval
     let trimmed = Latin1.trim(value)
-    if trimmed.count < 7 or Latin1.compare(cast(string) Swag.makeSlice(trimmed.buffer, 5), "url(#", ignoreCase: true) do
+    if trimmed.count < 7 or Latin1.compare(trimmed[until 5], "url(#", ignoreCase: true) do
         return result
 
     var end = 5'u64
     while end < trimmed.count and trimmed[end] != ')' do
         end += 1
     if end > 5 do
-        result = cast(string) Swag.makeSlice(trimmed.buffer + 5, end - 5)
+        result = trimmed[5 until end]
     return result
 }
 
@@ -501,9 +498,9 @@ private func parseFontFamily(value: string)->{ kind: FontFamilyKind, matched: bo
         while stop < scan.count and scan[stop] != ',' do
             stop += 1
 
-        var name = Latin1.trim(cast(string) Swag.makeSlice(scan.buffer, stop))
+        var name = Latin1.trim(scan[until stop])
         if name.count >= 2 and (name[0] == '"' or name[0] == '\'') do
-            name = Latin1.trim(cast(string) Swag.makeSlice(name.buffer + 1, name.count - 2))
+            name = Latin1.trim(name[1 until name.count - 1])
 
         var lowered = String.from(name)
         lowered = lowered.toLower()
@@ -529,7 +526,7 @@ private func parseFontFamily(value: string)->{ kind: FontFamilyKind, matched: bo
 
         if stop == scan.count do
             break
-        scan = cast(string) Swag.makeSlice(scan.buffer + stop + 1, scan.count - stop - 1)
+        scan = scan[stop + 1 until scan.count]
     }
 
     return result
@@ -556,7 +553,7 @@ private func spacingLength(value: string, fontSize: f32)->f32
     if pos >= text.count do
         return amount
 
-    let unit = cast(string) Swag.makeSlice(text.buffer + pos, text.count - pos)
+    let unit = text[pos until text.count]
     if unit[0] == '%' do
         return amount * 0.01 * fontSize
     if not Latin1.compare(unit, "em", ignoreCase: true) or not Latin1.compare(unit, "rem", ignoreCase: true) do
@@ -655,8 +652,8 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         }
     }
 
-    let isRgb  = len > 4 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "rgb(", ignoreCase: true)
-    let isRgba = len > 5 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "rgba(", ignoreCase: true)
+    let isRgb  = len > 4 and not Latin1.compare(text[until 4], "rgb(", ignoreCase: true)
+    let isRgba = len > 5 and not Latin1.compare(text[until 5], "rgba(", ignoreCase: true)
     if isRgb or isRgba
     {
         var pos = isRgba ? 5'u64 : 4'u64
@@ -668,8 +665,8 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         return result
     }
 
-    let isHsl  = len > 4 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "hsl(", ignoreCase: true)
-    let isHsla = len > 5 and not Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "hsla(", ignoreCase: true)
+    let isHsl  = len > 4 and not Latin1.compare(text[until 4], "hsl(", ignoreCase: true)
+    let isHsla = len > 5 and not Latin1.compare(text[until 5], "hsla(", ignoreCase: true)
     if isHsl or isHsla
     {
         var pos = isHsla ? 5'u64 : 4'u64
@@ -928,7 +925,7 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
         let nameStart = pos
         while pos < len and ((value[pos] >= 'a' and value[pos] <= 'z') or (value[pos] >= 'A' and value[pos] <= 'Z')) do
             pos += 1
-        let name = cast(string) Swag.makeSlice(value.buffer + nameStart, pos - nameStart)
+        let name = value[nameStart until pos]
         if name.count == 0 do
             break
 
@@ -1004,23 +1001,17 @@ private func applyAttribute(state: *GroupState, name, value: string)
             var stop = 0'u64
             while stop < scan.count and scan[stop] != ';' do
                 stop += 1
-            let decl = Swag.makeSlice(scan.buffer, stop)
+            let decl = scan[until stop]
 
             var sep = 0'u64
             while sep < decl.count and decl[sep] != ':' do
                 sep += 1
-            if sep < decl.count
-            {
-                var n = cast(string) Swag.makeSlice(decl.buffer, sep)
-                var v = cast(string) Swag.makeSlice(decl.buffer + sep + 1, decl.count - sep - 1)
-                n = Latin1.trim(n)
-                v = Latin1.trim(v)
-                applyStyleProperty(state, n, v)
-            }
+            if sep < decl.count do
+                applyStyleProperty(state, Latin1.trim(decl[until sep]), Latin1.trim(decl[sep + 1 until decl.count]))
 
             if stop == scan.count do
                 break
-            scan = cast(string) Swag.makeSlice(scan.buffer + stop + 1, scan.count - stop - 1)
+            scan = scan[stop + 1 until scan.count]
         }
 
         return
@@ -1038,24 +1029,24 @@ private func styleValue(style, property: string)->String
         var stop = 0'u64
         while stop < scan.count and scan[stop] != ';' do
             stop += 1
-        let declaration = Swag.makeSlice(scan.buffer, stop)
+        let declaration = scan[until stop]
 
         var sep = 0'u64
         while sep < declaration.count and declaration[sep] != ':' do
             sep += 1
         if sep < declaration.count
         {
-            let name = Latin1.trim(cast(string) Swag.makeSlice(declaration.buffer, sep))
+            let name = Latin1.trim(declaration[until sep])
             if not Latin1.compare(name, property, ignoreCase: true)
             {
-                result = Latin1.trim(cast(string) Swag.makeSlice(declaration.buffer + sep + 1, declaration.count - sep - 1))
+                result = Latin1.trim(declaration[sep + 1 until declaration.count])
                 return result
             }
         }
 
         if stop == scan.count do
             break
-        scan = cast(string) Swag.makeSlice(scan.buffer + stop + 1, scan.count - stop - 1)
+        scan = scan[stop + 1 until scan.count]
     }
 
     return result
@@ -1076,18 +1067,6 @@ private func prependTranslation(transform: Math.Transform2, x, y: f32)->Math.Tra
 #[Swag.Inline]
 private func mapPoint(state: *GroupState, x, y: f32)->Vector2 => state.transform.transformPoint({x, y})
 
-// Maps one user-space direction into drawing space, without the translation.
-#[Swag.Inline]
-private func mapVector(transform: Math.Transform2, x, y: f32)->Vector2
-    =>
-{x * transform.m11 + y * transform.m21, x * transform.m12 + y * transform.m22}
-
-// Length of the transformed unit vector of each axis.
-#[Swag.Inline]
-private func transformScaleX(transform: Math.Transform2)->f32 => Math.sqrt(transform.m11 * transform.m11 + transform.m12 * transform.m12)
-
-#[Swag.Inline]
-private func transformScaleY(transform: Math.Transform2)->f32 => Math.sqrt(transform.m21 * transform.m21 + transform.m22 * transform.m22)
 
 // The single length scale a transform applies, as the square root of the area it multiplies.
 //
@@ -1169,7 +1148,8 @@ private func appendArcElement(path: *LinePath, state: *GroupState, center, angle
     if isAxisAligned(state.transform)
     {
         let mapped = mapPoint(state, cx, cy)
-        path.arcTo(mapped.x, mapped.y, radii.x * transformScaleX(state.transform), radii.y * transformScaleY(state.transform), Math.Angle.fromRadians(angles.x), Math.Angle.fromRadians(angles.y))
+        let scale  = state.transform.axisScale()
+        path.arcTo(mapped.x, mapped.y, radii.x * scale.x, radii.y * scale.y, Math.Angle.fromRadians(angles.x), Math.Angle.fromRadians(angles.y))
         return
     }
 
@@ -1209,7 +1189,8 @@ private func appendEllipse(path: *LinePath, state: *GroupState, cx, cy, rx, ry: 
     if isAxisAligned(state.transform)
     {
         let center = mapPoint(state, cx, cy)
-        path.setEllipseRaw(center.x, center.y, rx * transformScaleX(state.transform), ry * transformScaleY(state.transform))
+        let scale  = state.transform.axisScale()
+        path.setEllipseRaw(center.x, center.y, rx * scale.x, ry * scale.y)
         return
     }
 
@@ -1687,7 +1668,7 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
         for i in n
         {
             let pi = work.paths[i]
-            if pi.polygon.points.count == 0 do
+            if pi.polygon.points.isEmpty() do
                 continue
             let probe = pi.polygon.points[0]
             for j in n where j != i
@@ -1800,8 +1781,9 @@ private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx, ry:
     elif isAxisAligned(state.transform)
     {
         let origin = mapPoint(state, x, y)
-        let sx     = transformScaleX(state.transform)
-        let sy     = transformScaleY(state.transform)
+        let scale  = state.transform.axisScale()
+        let sx     = scale.x
+        let sy     = scale.y
         if crx > 0 and cry > 0 do
             path.setRoundRectRaw(origin.x, origin.y, w * sx, h * sy, crx * sx, cry * sy)
         else do
@@ -1870,12 +1852,12 @@ private impl Parser
         var contentEnd   = .pos
         while contentEnd + 7 < (.text).count
         {
-            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and not Latin1.compare(cast(string) Swag.makeSlice((.text).buffer + contentEnd + 2, 5), "style", ignoreCase: true) do
+            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and not Latin1.compare(.text[contentEnd + 2 until contentEnd + 7], "style", ignoreCase: true) do
                 break
             contentEnd += 1
         }
 
-        let content = cast(string) Swag.makeSlice((.text).buffer + contentStart, contentEnd - contentStart)
+        let content = .text[contentStart until contentEnd]
         var pos     = 0'u64
         while pos < content.count
         {
@@ -1887,7 +1869,7 @@ private impl Parser
             var selectorStart = pos
             while selectorStart and content[selectorStart - 1] != '}' do
                 selectorStart -= 1
-            let selector = Latin1.trim(cast(string) Swag.makeSlice(content.buffer + selectorStart, pos - selectorStart))
+            let selector = Latin1.trim(content[selectorStart until pos])
             pos += 1
             let declarationsStart = pos
             while pos < content.count and content[pos] != '}' do
@@ -1896,7 +1878,7 @@ private impl Parser
                 break
 
             if selector.count and selector[0] != '@' do
-                .styles.add({String.from(selector), String.from(Latin1.trim(cast(string) Swag.makeSlice(content.buffer + declarationsStart, pos - declarationsStart)))})
+                .styles.add({String.from(selector), String.from(Latin1.trim(content[declarationsStart until pos]))})
             pos += 1
         }
 
@@ -1928,24 +1910,24 @@ private impl Parser
                 case 1:
                     if selector.count > 1 and selector[0] == '.' and classAttr
                     {
-                        let wanted  = cast(string) Swag.makeSlice(selector.buffer + 1, selector.count - 1)
+                        let wanted  = selector[1 until selector.count]
                         var classes = classAttr.value.toString()
                         while classes.count
                         {
                             var end = 0'u64
                             while end < classes.count and classes[end] != ' ' and classes[end] != '\t' and classes[end] != '\n' and classes[end] != '\r' do
                                 end += 1
-                            if not Latin1.compare(cast(string) Swag.makeSlice(classes.buffer, end), wanted) do
+                            if not Latin1.compare(classes[until end], wanted) do
                                 matches = true
                             if matches or end == classes.count do
                                 break
-                            classes = Latin1.trim(cast(string) Swag.makeSlice(classes.buffer + end, classes.count - end))
+                            classes = Latin1.trim(classes[end until classes.count])
                         }
                     }
 
                 case 2:
                     if selector.count > 1 and selector[0] == '#' and idAttr do
-                        matches = not Latin1.compare(cast(string) Swag.makeSlice(selector.buffer + 1, selector.count - 1), idAttr.value.toString())
+                        matches = not Latin1.compare(selector[1 until selector.count], idAttr.value.toString())
                 }
 
                 if matches do
@@ -1988,7 +1970,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != '=' and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' do
                 .pos += 1
-            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
+            let name = .text[nameStart until .pos]
 
             while .pos < len and .text[.pos] != '=' and .text[.pos] != '>' and .text[.pos] != '/' do
                 .pos += 1
@@ -2005,7 +1987,7 @@ private impl Parser
             let valueStart = .pos
             while .pos < len and .text[.pos] != quote do
                 .pos += 1
-            let value = cast(string) Swag.makeSlice((.text).buffer + valueStart, .pos - valueStart)
+            let value = .text[valueStart until .pos]
             .pos += 1
 
             switch name
@@ -2103,7 +2085,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                 .pos += 1
-            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
+            let name = .text[nameStart until .pos]
 
             var state: GroupState
             var geo:   HashTable'(String, String)
@@ -2151,7 +2133,7 @@ private impl Parser
 
                 color.a = cast(u8) Math.round(cast(f32) color.a * opacity)
                 var normalizedOffset = Math.saturate(offset.value)
-                if gradient.stops.count do
+                if not gradient.stops.isEmpty() do
                     normalizedOffset = Math.max(normalizedOffset, gradient.stops.back().offset)
                 gradient.stops.add({normalizedOffset, color})
             }
@@ -2174,7 +2156,7 @@ private impl Parser
         {
             var baseId = href.value.toString()
             if baseId.count and baseId[0] == '#' do
-                baseId = cast(string) Swag.makeSlice(baseId.buffer + 1, baseId.count - 1)
+                baseId = baseId[1 until baseId.count]
             gradient.href = String.from(baseId)
         }
 
@@ -2239,7 +2221,7 @@ private impl Parser
         {
             gradient.stops.clear()
             try .parseGradientStops(&gradient)
-            gradient.specified.stops = gradient.stops.count != 0
+            gradient.specified.stops = not gradient.stops.isEmpty()
         }
 
         let id = geo.tryFind("id")
@@ -2296,7 +2278,8 @@ private impl Parser
         // A raster rectangle has no rotated form here: the origin is transformed and the extents
         // take the axis scales, which is exact for every transform that keeps the axes.
         let origin = mapPoint(state, .geoNumber(geo, "x"), .geoNumber(geo, "y"))
-        item.rect    = {origin.x, origin.y, width * transformScaleX(state.transform), height * transformScaleY(state.transform)}
+        let scale    = state.transform.axisScale()
+        item.rect    = {origin.x, origin.y, width * scale.x, height * scale.y}
         item.opacity = state.opacity
         if not state.inDefs do
             .drawing.items.add(DrawingItem{.Image, index})
@@ -2348,14 +2331,15 @@ private impl Parser
         run.hasX     = first or x != null
         run.hasY     = first or y != null
         let anchor = mapPoint(state, x ? .geoNumber(geo, "x") : 0, y ? .geoNumber(geo, "y") : 0)
-        let offset = mapVector(state.transform, dx, dy)
+        let offset = state.transform.transformVector({dx, dy})
         run.x             = anchor.x
         run.y             = anchor.y
         run.dx            = offset.x
         run.dy            = offset.y
-        run.fontSize      = state.fontSize * transformScaleY(state.transform)
-        run.letterSpacing = state.letterSpacing * transformScaleX(state.transform)
-        run.wordSpacing   = state.wordSpacing * transformScaleX(state.transform)
+        let scale         = state.transform.axisScale()
+        run.fontSize      = state.fontSize * scale.y
+        run.letterSpacing = state.letterSpacing * scale.x
+        run.wordSpacing   = state.wordSpacing * scale.x
         run.rotation      = transformRotation(state.transform)
         run.color         = state.fillColor
         run.opacity       = state.fillOpacity * state.opacity
@@ -2379,7 +2363,7 @@ private impl Parser
             .skipUntil('<')
             if .pos > textStart
             {
-                let content = cast(string) Swag.makeSlice((.text).buffer + textStart, .pos - textStart)
+                let content = .text[textStart until .pos]
                 try .addTextRun(content, &state, geo, block, first)
                 first = false
             }
@@ -2397,7 +2381,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                 .pos += 1
-            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
+            let name = .text[nameStart until .pos]
 
             var childState = state
             var childGeo: HashTable'(String, String)
@@ -2412,7 +2396,7 @@ private impl Parser
 
             let childStart = .pos
             .skipUntil('<')
-            let childText = cast(string) Swag.makeSlice((.text).buffer + childStart, .pos - childStart)
+            let childText = .text[childStart until .pos]
             try .addTextRun(childText, &childState, &childGeo, block, first)
             first = false
             if not childClosed
@@ -2472,7 +2456,7 @@ private impl Parser
                 let nameStart = .pos
                 while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                     .pos += 1
-                let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
+                let name = .text[nameStart until .pos]
                 var state: GroupState
                 var attrs: HashTable'(String, String)
                 let {selfClosed: childClosed} = .scanAttributes(&state, &attrs)
@@ -2550,7 +2534,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                 .pos += 1
-            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
+            let name = .text[nameStart until .pos]
 
             var state = parent
 
@@ -2775,7 +2759,7 @@ private impl Parser
                 {
                     var target = href.value.toString()
                     if target.count and target[0] == '#' do
-                        target = cast(string) Swag.makeSlice(target.buffer + 1, target.count - 1)
+                        target = target[1 until target.count]
                     let here = .defs.tryFind(target)
                     if here
                     {
@@ -3582,11 +3566,10 @@ impl Drawing
         return result
     }
 
-    // Paints the drawing with its origin at `(x, y)` of the current path space,
-    // its content multiplied by `scale`.
+    // Paints the drawing with its origin at `(x, y)` of the current path space, scaled by `scale`.
     //
-    // Fills honor the winding of their contours (a counter-clockwise contour is a
-    // hole), strokes honor width, caps, and joins scaled by `scale`.
+    // Fills follow the fill rule of each shape, normalized when the document is parsed, and
+    // strokes honor width, caps, and joins scaled by `scale`.
     mtd const paint(painter: *Painter, x, y: f32, scale = 1.0'f32)
     {
         // Contours are flattened in drawing units, so a magnified drawing needs the scale to
@@ -3628,7 +3611,7 @@ impl Drawing
             pen.joinStyle      = shape.joinStyle
             pen.joinMiterLimit = shape.strokeMiter
             pen.dashOffset     = shape.strokeOffset
-            if shape.strokePattern.count
+            if not shape.strokePattern.isEmpty()
             {
                 pen.pattern = shape.strokePattern
                 if Math.abs(shape.strokeWidth) > 0.000001
@@ -3992,8 +3975,7 @@ impl Drawing
         return result
     }
 
-    // Rasterizes the drawing through `renderer` into an owned image of exactly
-    // `width` by `height` pixels.
+    // Rasterizes the drawing through `renderer` into an owned image of exactly `width` by `height` pixels.
     //
     // The result is identical whichever backend produces it, up to the raster-edge
     // tolerance the two backends already carry elsewhere. Supersampled work is split

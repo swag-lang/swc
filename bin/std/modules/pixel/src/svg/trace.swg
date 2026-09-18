@@ -3,7 +3,7 @@
 
 using Core, Core.Math
 
-// Configures [[Svg.trace]].
+// Configures [[Pixel.Svg.trace]].
 struct TraceOptions
 {
     public

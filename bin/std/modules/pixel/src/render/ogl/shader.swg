@@ -45,13 +45,13 @@ struct ShaderBase
     clipMaskSize:           ShaderParamHandle = InvalidShaderParamHandle
 }
 
-// Uses the standard shader without antialiasing coverage.
+// Describes the standard program without antialiasing coverage.
 struct ShaderSimple
 {
     public using base: ShaderBase     // Shared program and uniform handles.
 }
 
-// Uses the standard shader with per-vertex antialiasing coverage.
+// Describes the standard program with per-vertex antialiasing coverage.
 struct ShaderAA
 {
     public using base: ShaderBase     // Shared program and uniform handles.
@@ -78,7 +78,7 @@ struct ShaderFont
     }
 }
 
-// Uses the standard shader over the three planes of a picture stored in planar 4:2:0.
+// Describes the standard program sampling the three planes of a planar 4:2:0 picture.
 struct ShaderYuv
 {
     public using base: ShaderBase     // Shared program and uniform handles.

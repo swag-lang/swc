@@ -231,8 +231,7 @@ private func renderParityScene(renderer: IRenderer)->Image
     painter.end()
     renderer.draw(&painter)
 
-    let result = renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
-    return result
+    return renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
 }
 
 private func makeRenderParityFont(renderer: IRenderer, size: u32, mode: FontRenderMode)->*Font
@@ -285,8 +284,7 @@ private func renderTextParityScene(renderer: IRenderer)->Image
     painter.end()
     renderer.draw(&painter)
 
-    let result = renderer.readRenderTarget(&target, 0, 0, RenderTextWidth, RenderTextHeight)
-    return result
+    return renderer.readRenderTarget(&target, 0, 0, RenderTextWidth, RenderTextHeight)
 }
 
 // Runs nested targets, paint-alpha replay, supersampling resolve and both blur axes.
@@ -315,8 +313,7 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
     painter.end()
     renderer.draw(&painter)
 
-    let result = renderer.readRenderTarget(&target, 0, 0, RenderLayerWidth, RenderLayerHeight)
-    return result
+    return renderer.readRenderTarget(&target, 0, 0, RenderLayerWidth, RenderLayerHeight)
 }
 
 // Rasterizing a vector document is a complete renderer round trip: an alpha-preserving

@@ -1,74 +1,74 @@
 #global public
 #global namespace Errors
 
-// Represents invalid format error.
+// Reports input that does not follow the expected format.
 struct InvalidFormatError
 {
     public using base: Swag.BaseError     // Embedded base state.
 }
 
-// Represents unsupported format error.
+// Reports input that uses a format or a feature this implementation does not support.
 struct UnsupportedFormatError
 {
     public using base: Swag.BaseError     // Embedded base state.
 }
 
-// Represents bad parameter error.
+// Reports an argument outside what an operation accepts.
 struct BadParameterError
 {
     public using base: Swag.BaseError     // Embedded base state.
 }
 
-// Represents syntax error.
+// Reports malformed text, with the position where parsing stopped when it is known.
 struct SyntaxError
 {
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        line, col:  u64                // Line associated with this value.
-        seek:       u64                // Seek associated with this value.
+        line, col:  u64                // One-based line and column, or zero when unknown.
+        seek:       u64                // Byte offset in the parsed text, when known.
     }
 }
 
-// Represents overflow error.
+// Reports a value or a size beyond what can be represented or what a limit allows.
 struct OverflowError
 {
     public using base: Swag.BaseError     // Embedded base state.
 }
 
-// Represents parse incomplete error.
+// Reports text that ends before a complete value could be parsed.
 struct ParseIncompleteError
 {
     public using base: Swag.BaseError     // Embedded base state.
 }
 
-// Represents serialization error.
+// Reports a value that cannot be serialized or deserialized.
 struct SerializationError
 {
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        field:      TypeValue          // Can contain the bad field
+        field:      TypeValue          // Field being processed, when the error concerns one.
     }
 }
 
-// Represents file not found error.
+// Reports a file or directory that does not exist.
 struct FileNotFoundError
 {
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        fileName:   string?            // File name associated with this value.
+        fileName:   string?            // Path that was not found, when known.
     }
 }
 
-// Represents invalid file name error.
+// Reports a path that the operating system rejects as a file name.
 struct InvalidFileNameError
 {
     public
     {
         using base: Swag.BaseError     // Embedded base state.
-        fileName:   string?            // File name associated with this value.
+        fileName:   string?            // Rejected path, when known.
     }
 }
 
@@ -82,13 +82,13 @@ struct SandboxError
     }
 }
 
-// Represents invalid version.
+// Reports stored data whose version the reader does not support.
 struct InvalidVersion
 {
     public
     {
-        wantedVersion: u32     // Wanted version associated with this value.
-        foundVersion:  u32     // Found version associated with this value.
+        wantedVersion: u32     // Version the reader supports.
+        foundVersion:  u32     // Version found in the data.
     }
 }
 
@@ -132,8 +132,10 @@ func message(err: any?)->string
     return name
 }
 
-// Make a string persistent for errors.
-// That kind of string can be stored in an error struct.
+// Returns a copy of `str` that an error value can keep after the current scope ends.
+//
+// The copy lives in the context's error allocator, which is where a `fail` stores its error.
+// A null `str` returns null.
 func mkString(str: string?)->string?
 {
     if str == null do
@@ -150,10 +152,9 @@ func mkString(str: string?)->string?
     }
 
     let count = str.count
-    let ptr   = context.errorAllocator.alloc(count)
-    Swag.memcpy(ptr, str.buffer, count)
-    let safePtr = cast([*] u8?) ptr
-    if not safePtr do
+    let ptr   = cast([*] u8?) context.errorAllocator.alloc(count)
+    if not ptr do
         return null
-    return Swag.makeString(safePtr, count)
+    Swag.memcpy(ptr, str.buffer, count)
+    return Swag.makeString(ptr, count)
 }

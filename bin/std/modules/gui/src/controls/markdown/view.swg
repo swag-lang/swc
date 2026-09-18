@@ -88,6 +88,17 @@ struct VisualBlock
     sourceOffset: u64
 }
 
+internal impl VisualBlock
+{
+    // Removes the search mark from the text view the block holds, whichever kind it is.
+    mtd clearSearchHighlight()
+    {
+        .inline?.clearSearchHighlight()
+        .table?.clearSearchHighlight()
+        .html?.clearSearchHighlight()
+    }
+}
+
 // One end of a document selection: a rendered text view, and a byte offset into its text.
 //
 // The pair is a document position rather than a laid-out one, so it survives a relayout, a theme
@@ -762,13 +773,8 @@ private impl View
                 break
         }
 
-        if .sourceDone and .sourceCarry.isEmpty() and .pendingIndex >= .pendingBlocks.count and .blocks.isEmpty()
-        {
-            var empty: Block
-            empty.kind = .Paragraph
-            empty.text = strings().markdown_EmptyDocument
-            .appendBlock(#move empty)
-        }
+        if .sourceDone and .sourceCarry.isEmpty() and .pendingIndex >= .pendingBlocks.count and .blocks.isEmpty() do
+            .appendBlock(Block{.Paragraph, strings().markdown_EmptyDocument})
 
         // Publish one complete batch. Updating the scroll extent for every block repeats resize
         // notifications and exposes intermediate height estimates to an active wheel glide.
@@ -1073,7 +1079,7 @@ internal impl View
         {
             if let face = .documentStyle.codeTypeFaces[slot] do
                 return .theme().fonts.createFont(face, size)
-            return .theme().createDefaultFontFS(size, style)
+            return .theme().createDefaultFontFs(size, style)
         }
 
         if kind >= .Heading1 and kind <= .Heading6
@@ -1236,13 +1242,8 @@ impl View
         for &block in parsed do
             result.appendBlock(#move block[])
 
-        if result.blocks.isEmpty()
-        {
-            var empty: Block
-            empty.kind = .Paragraph
-            empty.text = strings().markdown_EmptyDocument
-            result.appendBlock(#move empty)
-        }
+        if result.blocks.isEmpty() do
+            result.appendBlock(Block{.Paragraph, strings().markdown_EmptyDocument})
 
         result.updateDocumentSize()
         return result
@@ -1281,8 +1282,10 @@ impl View
         .applyDocumentStyle()
     }
 
-    // Applies document-local theme colors to the complete view, including blocks created later
-    // while a file is streaming. Pass an empty sheet to resume the application theme.
+    // Applies document-local theme colors to the complete view, including blocks created later.
+    //
+    // Blocks a streaming file creates afterwards receive the same colors. Pass an empty sheet to
+    // resume the application theme.
     mtd setDocumentThemeColors(styleSheetColors: string)
     {
         .documentThemeColors = styleSheetColors
@@ -1293,10 +1296,7 @@ impl View
     mtd const isLoading()->bool => .loadTimer != null
 
     // Reports whether file source remains to be read, parsed, or displayed.
-    mtd const hasUnloadedSource()->bool
-    {
-        return not .sourceDone or not .sourceCarry.isEmpty() or .pendingIndex < .pendingBlocks.count
-    }
+    mtd const hasUnloadedSource()->bool => not .sourceDone or not .sourceCarry.isEmpty() or .pendingIndex < .pendingBlocks.count
 
     // Reports the laid-out height of the source rendered so far.
     mtd const loadedDocumentHeight()->f32 => .contentHeight + .documentStyle.bottomInset
@@ -1411,8 +1411,7 @@ impl View
     const CtxCopy      = "Markdown.CtxCopy"          // Command the context menu's copy entry posts.
     const CtxSelectAll = "Markdown.CtxSelectAll"     // Command the context menu's select-all entry posts.
 
-    // Offers the reading vocabulary at `surfacePos`: what a read-only document can give the
-    // clipboard, with the same shortcuts the keyboard already binds.
+    // Shows the reading context menu at `surfacePos`: copy and select all, with their keyboard shortcuts.
     mtd showContextMenu(surfacePos: Math.Point)
     {
         .setFocus()
@@ -1435,12 +1434,8 @@ impl View
         if not text.count or .blocks.isEmpty() do
             return false
 
-        for &block in .blocks
-        {
-            block.inline?.clearSearchHighlight()
-            block.table?.clearSearchHighlight()
-            block.html?.clearSearchHighlight()
-        }
+        for &block in .blocks do
+            block.clearSearchHighlight()
 
         let first = .searchBlockIndex == Swag.U64.Max ? 0 : (.searchBlockIndex + 1) % .blocks.count
         for offset in .blocks.count
@@ -1476,12 +1471,8 @@ impl View
         if not text.count or .blocks.isEmpty() do
             return false
 
-        for &block in .blocks
-        {
-            block.inline?.clearSearchHighlight()
-            block.table?.clearSearchHighlight()
-            block.html?.clearSearchHighlight()
-        }
+        for &block in .blocks do
+            block.clearSearchHighlight()
 
         var remaining = occurrence
         for index in .blocks.count
@@ -1515,8 +1506,9 @@ impl View
         return false
     }
 
-    // Repositions the streamed document at a byte offset and reveals `text` as soon as its block
-    // is materialized, without parsing the preceding bytes.
+    // Repositions the streamed document at the byte `offset` and reveals `text` once its block is materialized.
+    //
+    // The preceding bytes are not parsed. Returns whether the reveal was queued.
     mtd revealFileOffset(offset: u64, text: string)->bool => .beginReveal(offset, text)
 
     // Brings the heading at a source byte offset to the top reading inset without a search mark.
@@ -1728,12 +1720,8 @@ impl View
         .pendingSeek             = false
         .pendingSeekOffset       = 0
         .searchBlockIndex        = Swag.U64.Max
-        for &block in .blocks
-        {
-            block.inline?.clearSearchHighlight()
-            block.table?.clearSearchHighlight()
-            block.html?.clearSearchHighlight()
-        }
+        for &block in .blocks do
+            block.clearSearchHighlight()
     }
 
     // Reports the current search highlight in surface coordinates.
@@ -1816,7 +1804,7 @@ internal impl View
         view.invalidate()
     }
 
-    // Returns the selection normalized to reading order, or `has == false` when it is empty.
+    // Returns the selection normalized to reading order, with `has` false when it is empty.
     mtd const selectionRange()->{ startView: u64, startOffset: u64, endView: u64, endOffset: u64, has: bool }
     {
         var result: retval

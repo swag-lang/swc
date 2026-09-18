@@ -371,7 +371,7 @@ impl HtmlStyleResolver
             }
         }
 
-        .entries.sort(func||(a, b) { return a.key <=> b.key })
+        .entries.sort(func||(a, b) => a.key <=> b.key)
     }
 
     // Packs one declaration's cascade weight, most significant criterion first.

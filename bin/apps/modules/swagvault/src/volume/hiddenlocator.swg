@@ -1,6 +1,6 @@
 using Core
 
-// Each version-1 key slot has 132 unused trailing bytes. Reserve its last 128 bytes for
+// Each version-1 key slot has 132 unused trailing bytes. Its last 128 bytes are reserved for
 // an independently authenticated hidden-volume locator. Ordinary password rotation preserves
 // this padding even when no hidden volume exists; no outer flag advertises its presence.
 const HiddenLocatorSize    = 128'u64
@@ -13,12 +13,16 @@ const HiddenPayloadEnd     = HiddenTagOffset + Crypto.TagSize
 #assert(HiddenPayloadEnd <= HiddenLocatorSize)
 #assert(KeySlotPrefixSize + KeySlotPlainSize <= KeySlotSize - HiddenLocatorSize)
 
+// The sealed record, hidden in the tail of a key slot, that tells a hidden-volume password where
+// its volume lives inside the outer container.
 struct HiddenLocator {}
 
 impl HiddenLocator
 {
+    // Returns the offset of the locator in the key slot at `index`.
     func offset(index: u64)->u64 => (index + 1) * KeySlotSize - HiddenLocatorSize
 
+    // Returns whether `password` unwraps one of the outer container's key slots.
     func opensOuter(stream: *File.FileStream, password: const [..] u8)->bool fail
     {
         var area: [KeySlotAreaSize] u8
@@ -39,7 +43,10 @@ impl HiddenLocator
         return false
     }
 
-    // A locator authenticates the complete hidden view before any offset is followed.
+    // Returns the hidden region `password` opens.
+    //
+    // A locator authenticates the complete hidden view before any offset is followed. Fails with
+    // [[ErrorKind.PasswordOrDamaged]] when no locator opens under `password`.
     func find(stream: *File.FileStream, password: const [..] u8)->FreeExtent fail
     {
         let hostSize = try stream.size()
@@ -70,7 +77,9 @@ impl HiddenLocator
         unreachable
     }
 
-    // Publish only after the hidden key slot and checkpoint are durable.
+    // Seals `region` into the locator of the key slot at `index`, under a key `password` derives.
+    //
+    // Call it only once the hidden key slot and checkpoint are durable.
     func write(stream: *File.FileStream, index: u64, password: const [..] u8, region: FreeExtent) fail
     {
         var record: [HiddenLocatorSize] u8
@@ -87,6 +96,7 @@ impl HiddenLocator
         try stream.flush()
     }
 
+    // Overwrites the locator of the key slot at `index` with random bytes.
     func erase(stream: *File.FileStream, index: u64) fail
     {
         var record: [HiddenLocatorSize] u8

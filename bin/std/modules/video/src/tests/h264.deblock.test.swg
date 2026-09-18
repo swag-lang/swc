@@ -45,14 +45,14 @@ func assertDeblockHorizontalCase(seed: u64, indexA: s32, strengths: const *H264.
         H264.filterLumaStrongHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
     else do
         H264.filterLumaWeakHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.assert(Slice.equals(expected, actual))
 
     referenceFilterChromaHorizontal(expected.buffer + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
     if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4 do
         H264.filterChromaStrongHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
     else do
         H264.filterChromaWeakHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.assert(Slice.equals(expected, actual))
 }
 
 #test
@@ -114,7 +114,7 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
     }
 
     H264.filterLumaVertical(actual.buffer + 8, Stride, strengths, indexA, alpha, beta)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.assert(Slice.equals(expected, actual))
 
     // Chroma: four strengths, two lines each, on the same samples.
     reference = expected.buffer + 8
@@ -132,7 +132,7 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
     if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
     {
         H264.filterChromaWeakVertical(actual.buffer + 8, Stride, strengths, indexA, alpha, beta)
-        Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+        Swag.assert(Slice.equals(expected, actual))
     }
 }
 

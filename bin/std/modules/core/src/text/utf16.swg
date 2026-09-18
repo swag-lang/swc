@@ -1,23 +1,25 @@
 #global public
 #global namespace Utf16
 
-// Defines rune error.
-const RuneError = 0xFFFD'rune
+// The replacement character U+FFFD, which decoding returns for an invalid sequence.
+const RuneError = Utf8.RuneError
 
-// Defines surr1.
+// The first code point of the high-surrogate range, U+D800.
 const Surr1 = 0xD800
 
-// Defines surr2.
+// The first code point of the low-surrogate range, U+DC00.
 const Surr2 = 0xDC00
 
-// Defines surr3.
+// The first code point after the surrogate ranges, U+E000.
 const Surr3 = 0xE000
 
-// Defines surr self.
+// The first code point that needs a surrogate pair, U+10000.
 const SurrSelf = 0x10000
 
-// Get the unicode character pointed by 'buffer', and the number of u16 to encode it
-// Will return 'RuneError' for an invalid utf16 sequence
+// Decodes the first rune of `buffer` and returns it with the number of units it occupies.
+//
+// An unpaired surrogate returns `RuneError` with `eat` 1, and an empty `buffer` returns
+// `RuneError` with `eat` 0.
 func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 {
     var result: retval
@@ -48,9 +50,10 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
     }
 }
 
-// Convert unicode character 'src' to an utf16 sequence, and returns
-// the number of u16 that were needed to make the conversion.
-// 'dest' must be at least 2 u16 long
+// Encodes `src` as UTF-16 into `dest` and returns the number of units written.
+//
+// `dest` must hold at least 2 units. A rune UTF-16 cannot encode, a surrogate or a value above
+// [[Core.Utf8.MaxRune]], is written as `RuneError`.
 func encodeRune(dest: [..] u16, src: rune)->u32
 {
     Swag.assert(dest.count >= 2, "destination buffer is too small")
@@ -72,8 +75,10 @@ func encodeRune(dest: [..] u16, src: rune)->u32
     }
 }
 
-// Convert an utf8 buffer to a utf16 buffer, and returns the
-// number of valid elements in the destination buffer
+// Converts the UTF-8 bytes of `src` to UTF-16 in `dest` and returns the number of units written.
+//
+// Size `dest` for the worst case of 2 units per byte. Each byte of an invalid sequence is
+// written as `RuneError`.
 func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
     var count      = 0'u64
@@ -112,7 +117,7 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
     return count
 }
 
-// Convert an utf8 buffer to an utf16 sequence
+// Returns the UTF-16 conversion of the UTF-8 bytes of `src`.
 func fromUtf8(src: const [..] u8)->Array'u16
 {
     var result: retval
@@ -121,9 +126,9 @@ func fromUtf8(src: const [..] u8)->Array'u16
     return result
 }
 
-// Convert a character array (32 bits unicode) to an utf16 buffer
-// Returns the number of bytes written in the destination buffer
-// 'dest' must be at least 2 bytes long
+// Encodes the runes of `src` as UTF-16 into `dest` and returns the number of units written.
+//
+// Size `dest` for the worst case of 2 units per rune.
 func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
 {
     var dataof = dest.buffer
@@ -140,7 +145,7 @@ func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
     return cast(u64) (dataof - dest.buffer)
 }
 
-// Convert a character array (32 bits unicode) to an utf16 sequence
+// Returns the UTF-16 encoding of the runes of `src`.
 func fromUnicode(src: const [..] rune)->Array'u16
 {
     var result: retval
@@ -149,13 +154,12 @@ func fromUnicode(src: const [..] rune)->Array'u16
     return result
 }
 
-// Convert string to an utf16 array, zero terminated
+// Returns the UTF-16 conversion of `src` followed by a zero unit, which `count` includes.
 func toZeroTerminated(src: string)->Array'u16
 {
     var result: retval
     result.reserve(2 * src.count + 1)
-    let buffer = result.storage()
-    result.count = Utf16.fromUtf8(Swag.makeSlice(buffer, result.capacity), src) + 1
+    result.count = fromUtf8(Swag.makeSlice(result.storage(), result.capacity), src) + 1
     result[result.count - 1] = 0
     return result
 }

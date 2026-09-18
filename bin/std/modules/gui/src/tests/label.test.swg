@@ -33,7 +33,7 @@ using Swag, Core
     label.setTextPadding({4, 3, 4, 3})
     label.setIconPadding({2, 1, 2, 1})
 
-    Swag.assert(label.flags.has(.WordWrap | .AutoHeight | .SecondaryText))
+    Swag.assert(label.flags.has(.WordWrap) and label.flags.has(.AutoHeight) and label.flags.has(.SecondaryText))
     Swag.assert(label.textHorizontalAlignment == .Left and label.textVerticalAlignment == .Top)
     Swag.assert(label.iconHorizontalAlignment == .Right and label.iconVerticalAlignment == .Bottom)
     Swag.assert(label.textPadding == Math.Vector4{4, 3, 4, 3})

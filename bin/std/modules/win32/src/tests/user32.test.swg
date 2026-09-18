@@ -3,10 +3,7 @@
 
 using Swag
 
-func makeWheelWParam(delta: u32)->u64
-{
-    return cast(u64) delta << 16
-}
+func makeWheelWParam(delta: u32)->u64 => cast(u64) delta << 16
 
 #test
 {

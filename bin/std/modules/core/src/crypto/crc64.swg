@@ -27,10 +27,7 @@ public impl Crc64
     mtd reset(kind = Crc64Kind.Ecma182)
     {
         Swag.init(me, 1)
-        switch #complete .kind
-        {
-        case .Ecma182, .Iso, .IsoXz: .kind = kind
-        }
+        .kind = kind
     }
 
     // Includes `data` in the running checksum.
@@ -44,7 +41,7 @@ public impl Crc64
         let bytes = cast(const [*] u8) data.buffer!
         var cur   = .currentValue
         var i     = 0'u64
-        switch #complete kind
+        switch #complete .kind
         {
         case .Ecma182:
             const POLY: u64 = 0x42F0_E1EB_A9EA_3693
@@ -107,7 +104,7 @@ public impl Crc64
     // Returns the checksum accumulated since construction or the latest [[reset]].
     mtd value() => .currentValue
 
-    // Computes a CRC-64 checksum in one operation.
+    // Computes the CRC-64 checksum of `buffer` with the `kind` algorithm in one operation.
     #[Swag.ConstExpr]
     func compute(buffer: const [..] u8, kind = Crc64Kind.Ecma182)->u64
     {

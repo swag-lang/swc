@@ -14,7 +14,7 @@ impl Image
         }
     }
 
-    // Flip image vertically
+    // Flips the image upside down, in place.
     public mtd flip()
     {
         Swag.assert(.pixels.buffer != null)
@@ -23,7 +23,7 @@ impl Image
         .applyWorkingBuffer()
     }
 
-    // Flip image vertically
+    // Returns an upside-down copy of the image.
     public mtd const flipped()->Image
     {
         Swag.assert(.pixels.buffer != null)

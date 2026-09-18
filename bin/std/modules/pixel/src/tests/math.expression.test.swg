@@ -126,7 +126,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     Swag.assert(fraction.root.children[0].rules.count == 1)
     Swag.assert(binomialMetrics.height() > simpleMetrics.height())
     Swag.assert(binomial.root.children[0].kind == .Delimited)
-    Swag.assert(binomial.root.children[0].children[0].rules.count == 0)
+    Swag.assert(binomial.root.children[0].children[0].rules.isEmpty())
 }
 
 #test
@@ -139,7 +139,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let squareMetrics  = square.measure(font)
     let indexedMetrics = indexed.measure(font)
     Swag.assert(square.root.children[0].kind == .Radical)
-    Swag.assert(square.root.children[0].rules.count == 0)
+    Swag.assert(square.root.children[0].rules.isEmpty())
     Swag.assert(square.root.children[0].paths.count == 1)
     Swag.assert(square.root.children[0].paths[0].kind == .Radical)
     Swag.assert(indexed.root.children[0].children.count == 2)
@@ -157,7 +157,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let stretchyMetrics = stretchy.measure(font)
     let delimiters      = stretchy.root.children[0]
     Swag.assert(delimiters.kind == .Delimited)
-    Swag.assert(delimiters.draws.count == 0)
+    Swag.assert(delimiters.draws.isEmpty())
     Swag.assert(delimiters.paths.count == 2)
     Swag.assert(delimiters.paths[0].kind == .LeftParenthesis)
     Swag.assert(delimiters.paths[1].kind == .RightParenthesis)
@@ -346,8 +346,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     painter.end()
 
     Swag.assert(metrics.width > 0 and metrics.height() > 0)
-    Swag.assert(painter.vertexBuffer.count > 0)
-    Swag.assert(painter.commandBuffer.count > 0)
+    Swag.assert(not painter.vertexBuffer.isEmpty())
+    Swag.assert(not painter.commandBuffer.isEmpty())
 }
 
 #test

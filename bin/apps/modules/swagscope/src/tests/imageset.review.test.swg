@@ -30,7 +30,7 @@ using Core, Pixel, Gui
     for 32 do
         discard host.render(&host.root)
     Swag.assert(movie.frameIndex == 32 and movie.failureReason.isEmpty())
-    Swag.assert(Memory.compare(first.pixels.buffer, movie.frame.pixels.buffer, first.byteCount) != 0)
+    Swag.assert(not Slice.equals(first.pixels.toSlice(), movie.frame.pixels.toSlice()))
     discard host.render(&host.root)
     Swag.assert(movie.frameIndex == 0 and not movie.isPaused)
     view.imageView.setPaused(true)

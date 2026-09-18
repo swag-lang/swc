@@ -1,7 +1,7 @@
 #global public
 #global namespace File
 
-// Opaque handle to a file, used internally by FileStream
+// Opaque platform handle of an open file, owned by a [[Core.File.FileStream]].
 alias FileHandle = const *void?
 
 // Exposes byte-oriented reading, writing, and seeking over a file.
@@ -16,10 +16,10 @@ struct FileStream
 
     public readonly
     {
-        name:     String     // File name associated with the stream
-        canRead:  bool       // True if the stream supports reading
-        canSeek:  bool       // True if the stream supports seeking
-        canWrite: bool       // True if the stream supports writing
+        name:     String     // Path the stream was opened with
+        canRead:  bool       // Whether the stream supports reading
+        canSeek:  bool       // Whether the stream supports seeking
+        canWrite: bool       // Whether the stream supports writing
     }
 
     // Platform handle of the open file, owned by the stream and closed with it.
@@ -52,7 +52,9 @@ impl FileStream
     // Returns whether the stream is open; a live stream's path is checked by its next operation.
     func isOpen(const me)->bool => .handle != null or .liveRead
 
-    // Reads at most `length` bytes, completing host-sized chunks until the stream ends.
+    // Reads at most `length` bytes into `buffer` and returns the number of bytes read.
+    //
+    // The read is split into host-sized chunks and stops early only at the end of the file.
     mtd read(buffer: *void?, length: u64)->u64 fail
     {
         Swag.assert(.isOpen())
@@ -83,7 +85,10 @@ impl FileStream
         return total
     }
 
-    // Writes at most `length` bytes, completing host-sized chunks while progress is made.
+    // Writes at most `length` bytes from `buffer` and returns the number of bytes written.
+    //
+    // The write is split into host-sized chunks and stops early only when the host accepts no
+    // more bytes.
     mtd write(buffer: const *void?, length: u64)->u64 fail
     {
         Swag.assert(.isOpen())
@@ -105,7 +110,7 @@ impl FileStream
         return total
     }
 
-    // Closes the stream. Repeated calls do nothing.
+    // Closes the stream; repeated calls do nothing.
     mtd close()
     {
         .liveRead     = false
@@ -185,10 +190,7 @@ impl FileStream
     }
 
     // Reads one native value and returns whether all of its bytes were available.
-    mtd(T) readValue(buffer: *T)->bool fail
-    {
-        return try .read(buffer, #sizeof(T)) == #sizeof(T)
-    }
+    mtd(T) readValue(buffer: *T)->bool fail => try .read(buffer, #sizeof(T)) == #sizeof(T)
 
     // Reads at most the size of `buffer` and returns the number of bytes read.
     mtd read(buffer: [..] u8)->u64 fail => try .read(buffer.buffer, buffer.count)
@@ -221,10 +223,10 @@ impl FileStream
 
         var accepted = Math.min(target, count)
         let shortest = accepted > 3 ? accepted - 3 : 0
-        while accepted > shortest and not Utf8.isValid(bytes.toSlice()[0 until accepted]) do
+        while accepted > shortest and not Utf8.isValid(bytes.toSlice()[until accepted]) do
             accepted -= 1
 
-        if not accepted or not Utf8.isValid(bytes.toSlice()[0 until accepted])
+        if not accepted or not Utf8.isValid(bytes.toSlice()[until accepted])
         {
             try .seek(.Begin, start)
             fail Errors.InvalidFormatError{"file content is not valid UTF-8"}
@@ -235,8 +237,7 @@ impl FileStream
         return String.from(Swag.makeString(bytes.storage(), accepted))
     }
 
-    // Reads the next bounded segment of text and returns it as UTF-8, whatever `encoding` the file
-    // spells its characters in.
+    // Reads the next bounded segment of text in `encoding` and returns it as UTF-8.
     //
     // The stream position advances by the bytes consumed, which is what the caller counts in: a
     // segment of UTF-16 returns roughly half as many UTF-8 bytes as it consumed, so the returned
@@ -246,7 +247,7 @@ impl FileStream
     // No character is ever split across two calls: a UTF-8 sequence, a surrogate pair, or a wide
     // unit cut by `maxBytes` is left for the next one. A malformed sequence is decoded to the
     // replacement character rather than reported, except under [[Core.Text.Encoding.Utf8]] where
-    // [[Core.FileStream.readUtf8Chunk]] answers and keeps its stricter contract.
+    // [[Core.File.FileStream.readUtf8Chunk]] answers and keeps its stricter contract.
     mtd readTextChunk(maxBytes: u64, encoding: Text.Encoding)->String fail
     {
         if encoding == .Utf8 do
@@ -296,6 +297,7 @@ impl FileStream
     mtd readExact(buffer: [..] u8)->bool fail => try .read(buffer) == buffer.count
 
     // Moves to `offset`, reads the complete `buffer`, and returns false only when the stream ends first.
+    //
     // The resulting stream position follows the bytes read.
     mtd readExactAt(offset: u64, buffer: [..] u8)->bool fail
     {
@@ -311,6 +313,7 @@ impl FileStream
     }
 
     // Moves to `offset` and writes the complete `buffer`.
+    //
     // The resulting stream position follows the bytes written.
     mtd writeAllAt(offset: u64, buffer: const [..] u8) fail
     {

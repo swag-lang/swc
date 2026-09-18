@@ -132,15 +132,10 @@ using Core, Pdf
     let encoded  = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.bin"))
     let expected = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.samples.bin"))
 
-    var params: CcittParameters
-    params.k       = -1
-    params.columns = 64
-    params.rows    = 48
+    var params = CcittParameters{k: -1, columns: 64, rows: 48}
 
     let decoded = expect decodeCcittFax(encoded.toSlice(), params)
-    Swag.assert(decoded.count == expected.count)
-    for value, index in decoded do
-        Swag.assert(value == expected[index])
+    Swag.assert(Slice.equals(decoded.toSlice(), expected.toSlice()))
 
     // `BlackIs1` names the sample value black takes, so the same stream decodes to the complement.
     params.blackIs1 = true
@@ -156,10 +151,7 @@ using Core, Pdf
 {
     let encoded = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.bin"))
 
-    var params: CcittParameters
-    params.k       = -1
-    params.columns = 64
-    params.rows    = 60
+    var params = CcittParameters{k: -1, columns: 64, rows: 60}
 
     let decoded = expect decodeCcittFax(encoded.toSlice(), params)
     Swag.assert(decoded.count == 60 * 8)

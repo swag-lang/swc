@@ -4,11 +4,14 @@
 
 using Win32
 
-// Represents event.
+// Owns an operating-system event that threads signal and wait on.
+//
+// An auto-reset event releases one waiter per signal and returns to the unsignaled state; a
+// manual-reset event stays signaled, releasing every waiter, until [[Core.Sync.Event.reset]].
 #[Swag.NoCopy]
 struct Event
 {
-    public handle: HANDLE?     // Handle associated with this value.
+    public handle: HANDLE?     // Native event handle, or null when the event is not initialized.
 }
 
 impl Event
@@ -19,13 +22,10 @@ impl Event
         .release()
     }
 
-    // Returns true if the event is valid
-    mtd isValid()->bool
-    {
-        return .handle != null
-    }
+    // Returns whether the event owns a native handle.
+    mtd isValid()->bool => .handle != null
 
-    // Creates a new event
+    // Creates an unnamed auto-reset event that starts unsignaled.
     func create()->Event
     {
         var result: retval
@@ -33,7 +33,10 @@ impl Event
         return result
     }
 
-    // Initialize event
+    // Creates an unnamed event in this value, which must not own one yet.
+    //
+    // `manual` selects a manual-reset event, and `initState` starts it signaled. A failure of
+    // the operating system panics.
     mtd init(manual, initState = false)
     {
         Swag.assert(.handle == null)
@@ -54,7 +57,7 @@ impl Event
         Swag.assert(.handle == null)
         if name.count == 0 do
             fail Errors.BadParameterError{"an event name cannot be empty"}
-        for byte in cast(const [..] u8) name
+        for byte in name
         {
             if byte == 0 or byte == '\\' do
                 fail Errors.BadParameterError{"an event name cannot contain zero bytes or backslashes"}
@@ -64,7 +67,7 @@ impl Event
         .handle = try CreateEventW(null, manual ? TRUE : FALSE, initState ? TRUE : FALSE, nativeName.storage())
     }
 
-    // Destroy an existing event
+    // Closes the native event handle; repeated calls do nothing.
     mtd release()
     {
         if not .handle do
@@ -73,21 +76,21 @@ impl Event
         .handle = null
     }
 
-    // Signal the event
+    // Sets the event to the signaled state.
     mtd signal()
     {
         Swag.assert(.isValid())
         expect SetEvent(.handle)
     }
 
-    // Reset the event state
+    // Returns the event to the unsignaled state.
     mtd reset()
     {
         Swag.assert(.isValid())
         expect ResetEvent(.handle)
     }
 
-    // Wait for the event to be signaled
+    // Blocks the calling thread until the event is signaled.
     mtd wait()
     {
         Swag.assert(.isValid())

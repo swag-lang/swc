@@ -2,7 +2,10 @@ using Core
 
 public impl Image
 {
-    // Colorize the image by setting the hue and saturation.
+    // Tints the image with a hue and saturation while keeping each pixel's lightness.
+    //
+    // `hue`, `saturation`, and `strength` are clamped to [0, 1]. `strength` blends from the
+    // original pixel at zero to the fully colorized one at one. Alpha is unchanged.
     #[Swag.Safety(.All, false)]
     mtd colorize(hue, saturation: f32, strength = 1.0)
     {

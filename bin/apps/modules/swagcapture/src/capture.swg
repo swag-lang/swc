@@ -174,7 +174,7 @@ struct Capture
     favorite:          bool
     rating:            u8
 
-    // Dyn
+    // Editing state, rebuilt at run time rather than stored with the capture.
     #[NoSerialize]
     {
         // Anomalies the tolerant load had to swallow: reset fields, unknown types,
@@ -186,7 +186,7 @@ struct Capture
         previewBytes: Array'u8
 
         changed:   bool
-        mouseMode: MouseMode = None
+        mouseMode: MouseMode = .None
         editView:  *EditView?
         gizmo:     GizmoRect
         undoMgr:   UndoManager
@@ -249,7 +249,7 @@ var g_CaptureSaves: CaptureSaveQueue
 
 impl CaptureSaveQueue
 {
-    // True while a scheduled save is still producing its file.
+    // Returns whether a scheduled save is still producing its file.
     mtd busy()->bool
     {
         if not .pending do
@@ -299,7 +299,7 @@ impl CaptureSaveQueue
     }
 }
 
-// Visit the forms listed in 'selection' (an array of slots in capture.forms) that
+// Visits the forms listed in 'selection' (an array of slots in capture.forms) that
 // match T; 'BaseForm' matches every form. The injected block sees the typed form as
 // 'form', its interface as 'itf', and a visit counter as 'idx'. 'continue' skips a
 // form without advancing 'idx' — the exact contract needed to pair 'idx' with arrays
@@ -511,11 +511,8 @@ impl Capture
 
     func freeForms(forms: Array'IForm)
     {
-        for it in forms
-        {
-            let type = Swag.kindOf(it)
-            Memory.delete(it.buffer, type)
-        }
+        for it in forms do
+            Memory.delete(it.buffer, Swag.kindOf(it))
     }
 
     mtd opDrop()
@@ -678,20 +675,17 @@ impl Capture
     private func backgroundRole()->Guid128 => sccId("648e64f2-ca4b-43ef-8076-6e0dd0523ec5")
     private func originalRole()->Guid128   => sccId("7206ea20-cd74-4832-afa9-0ce33c7699cd")
 
-    // Reports whether a path is a capture rather than another document using the SCC extension.
-    // Whether `file` is named like a capture.
+    // Returns whether `file` is named like a capture.
     //
     // A folder listing asks this once per row, and looking inside a file to answer it costs one
     // open per row: invisible on a warm local disk, and eighteen seconds over a library of seven
     // hundred captures a virus scanner reads through first. A row takes its answer from the name,
     // which is what names are for; the file itself is looked at when one is opened, moved or
     // deleted.
-    func isFileName(file: string)->bool
-    {
-        return Path.lowercaseExtension(file) == CaptureFileExtension
-    }
+    func isFileName(file: string)->bool => Path.lowercaseExtension(file) == CaptureFileExtension
 
-    // Whether `file` is named like a capture and holds one.
+    // Returns whether `file` is named like a capture and holds one, rather than another
+    // document using the SCC extension.
     func isFile(file: string)->bool
     {
         if not isFileName(file) do
@@ -957,8 +951,8 @@ impl Capture
                 var imageBytes = try reader.readChunk(background.id)
                 var imageDecoder: Decoder'Read.TagBin
                 let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())!
+                defer Memory.delete(image)
                 capture.backImg = #move image[]
-                Memory.delete(image)
                 let imageDiag = imageDecoder.serializer.diag
                 capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
             }
@@ -969,8 +963,8 @@ impl Capture
                 var imageBytes = try reader.readChunk(original.id)
                 var imageDecoder: Decoder'Read.TagBin
                 let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())!
+                defer Memory.delete(image)
                 capture.backImgOriginal = #move image[]
-                Memory.delete(image)
                 let imageDiag = imageDecoder.serializer.diag
                 capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
             }
@@ -993,10 +987,7 @@ impl Capture
         return capture
     }
 
-    func load(file: String, preview = false, deferPreviewDecode = false)->*Capture? fail
-    {
-        return try loadScc(file, preview, deferPreviewDecode)
-    }
+    func load(file: String, preview = false, deferPreviewDecode = false)->*Capture? fail => try loadScc(file, preview, deferPreviewDecode)
 
     //////////////////////////////
     // CLIPBOARD
@@ -1017,7 +1008,8 @@ impl Capture
         {
             let itf = .forms[s]
 
-            // Add real image
+            // The first plain picture also travels as a bitmap, for the applications that
+            // cannot read forms.
             if not imgDone and Swag.kindOf(itf) == FormImage
             {
                 let fimg = cast #assume (*FormImage) itf
@@ -1054,8 +1046,7 @@ impl Capture
 
     mtd clearImageInside()
     {
-        let undo = .newUndo(.SetImageInside)
-        .pushUndo(undo)
+        .pushUndo(.newUndo(.SetImageInside))
         .selectionHasChanged()
     }
 
@@ -1108,7 +1099,7 @@ impl Capture
 
         undo.oldForms = res
 
-        // Move around mouse
+        // Center the pasted forms on the mouse.
         let editView = .editView!
         var pt       = editView.app().mouse.position()
         pt   = editView.screenToSurface(pt)
@@ -1267,11 +1258,11 @@ impl Capture
             return false
 
         // The retained rendering is the whole point of this. A form whose supersampled extent
-        // passes the layer limit used to leave the cache entirely and re-render — supersampling,
-        // shadow blur and all — on every frame, which is exactly a text form on a large capture
-        // at a readable zoom. Lower the sampling until the layer fits instead, and give the form
-        // up only when one sample per pixel still does not: a slightly softer glyph is a better
-        // answer than repainting the whole form for every mouse move.
+        // passes the layer limit would otherwise leave the cache entirely and re-render —
+        // supersampling, shadow blur and all — on every frame, which is exactly a text form on a
+        // large capture at a readable zoom. Lower the sampling until the layer fits instead, and
+        // give the form up only when one sample per pixel still does not: a slightly softer glyph
+        // is a better answer than repainting the whole form for every mouse move.
         let scale = painter.contentScale()
         var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
         while textSuperSample > 1 and (wt2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample)) or ht2 > cast(s32) (MaxFormCacheDim / (scale * textSuperSample))) do
@@ -1439,9 +1430,7 @@ impl Capture
         layer.end()
 
         var colForm: Color
-        if quickMode and base.subKind == .Highlight do
-            colForm = Argb.White
-        elif quickMode and base.subKind == .PixSel do
+        if quickMode and (base.subKind == .Highlight or base.subKind == .PixSel) do
             colForm = Argb.White
         else do
             colForm = Color.fromArgb(cast(u8) Math.map(cast(f32) base.alpha, 0, 100, 0, 255), Argb.White)
@@ -1535,7 +1524,7 @@ impl Capture
         }
     }
 
-    // Invalidate only the region a just-moved/resized form occupied before ('oldRect',
+    // Invalidates only the region a just-moved/resized form occupied before ('oldRect',
     // in capture coordinates) and now occupies, so a single-form drag re-renders just
     // that form rather than every form.
     mtd invalidateAfterMove(iform: IForm, oldRect: Math.Rectangle)
@@ -1658,7 +1647,7 @@ impl Capture
 
         // Group outline: a dashed, embossed box around each selected group communicates
         // that its forms move as one unit (the individual member gizmos still show).
-        if .selection.count
+        if not .selection.isEmpty()
         {
             var ids: Array'u64
             for s in .selection
@@ -1792,7 +1781,7 @@ impl Capture
 
         let editView    = .editView!
         let keyboard    = &editView.app().keyboard
-        let ctrlPressed = keyboard.isKeyPressed(.Control) or keyboard.isKeyPressed(.RControl) or keyboard.isKeyPressed(.LControl)
+        let ctrlPressed = keyboard.isKeyPressed(.Control)
         if not editView.main.snap and not ctrlPressed do
             return
 
@@ -2057,8 +2046,8 @@ impl Capture
         if .hotForm != Swag.U64.Max do
             app.setFrameCursor(Cursor.from(.Move))
 
-        let shiftPressed = cast(bool) (evt.modifiers & .Shift)
-        let ctrlPressed  = cast(bool) (evt.modifiers & .Control)
+        let shiftPressed = evt.modifiers.has(.Shift)
+        let ctrlPressed  = evt.modifiers.has(.Control)
 
         // Start of mode
         ///////////////////////
@@ -2099,7 +2088,7 @@ impl Capture
                     // Swap between objects at the same position if no mouse move
                     if .lastSelectPos.isEqualEpsilon(evt.surfacePos)
                     {
-                        if not evt.modifiers.has(.Control) and .selection.count
+                        if not evt.modifiers.has(.Control) and not .selection.isEmpty()
                         {
                             .selection.clear()
                             .selectionHasChanged()
@@ -2112,7 +2101,7 @@ impl Capture
                         .hotForm = res[.lastSelectHit]
                         here     = .selection.contains(.hotForm)
                     }
-                    elif not evt.modifiers.has(.Control) and not here and .selection.count
+                    elif not evt.modifiers.has(.Control) and not here and not .selection.isEmpty()
                     {
                         .updateModelValuesFromSelection()
                         .selection.clear()
@@ -2205,18 +2194,7 @@ impl Capture
             // Touching any group member with the lasso selects the whole group.
             .expandGroups(&newSel)
 
-            var selChanged = newSel.count != .selection.count
-            if not selChanged
-            {
-                for i in newSel.count
-                {
-                    if newSel[i] != .selection[i]
-                    {
-                        selChanged = true
-                        break
-                    }
-                }
-            }
+            let selChanged = not Slice.equals(newSel.toSlice(), .selection.toSlice())
 
             .firstMouseMove = false
             view.invalidate()
@@ -2362,10 +2340,10 @@ impl Capture
     mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64
     {
         var result: retval
-        if not .forms.count do
+        if .forms.isEmpty() do
             return result
         let editView = .editView!
-        for i in (.forms).count.reversed()
+        for i in reversed(.forms.count)
         {
             let f = .forms[i]
             if not f.hitTest(localPos, editView.zoom) do
@@ -2393,13 +2371,12 @@ impl Capture
     {
         if .selection.isEmpty() do
             return null
-        let i = .forms[.selection.back()]
-        return Swag.kindOf(i)
+        return Swag.kindOf(.forms[.selection.back()])
     }
 
     mtd updateEditModeFromSelection()
     {
-        if not .selection.count do
+        if .selection.isEmpty() do
             return
 
         let main = .editView!.main
@@ -2412,7 +2389,7 @@ impl Capture
 
     mtd updateModelValuesFromSelection()
     {
-        if not .selection.count do
+        if .selection.isEmpty() do
             return
         let f = .forms[.selection.back()]
         .editView!.main.updateModelValues(f)
@@ -2420,7 +2397,7 @@ impl Capture
 
     mtd updateModelFromSelection()
     {
-        if not .selection.count do
+        if .selection.isEmpty() do
             return
         let f = .forms[.selection.back()]
         .editView!.main.updateModel(f)
@@ -2449,13 +2426,6 @@ impl Capture
         return b.groups[0]
     }
 
-    func groupIndexOf(arr: Array'u64, v: u64)->s64
-    {
-        for x, i in arr where x == v do
-            return i
-        return -1
-    }
-
     mtd newGroupId()->u64
     {
         let id = .nextGroupId
@@ -2463,7 +2433,7 @@ impl Capture
         return id
     }
 
-    // Grow a selection so that whenever one member of a group is selected, the entire
+    // Grows a selection so that whenever one member of a group is selected, the entire
     // outermost group is too. Called after a click/lasso builds a raw set.
     mtd expandGroups(sel: *Array'u64)
     {
@@ -2495,10 +2465,7 @@ impl Capture
 
     // Grouping wraps two or more selected items into one new group; a single item has
     // nothing to combine with.
-    mtd canGroup()->bool
-    {
-        return .selection.count >= 2
-    }
+    mtd canGroup()->bool => .selection.count >= 2
 
     // Ungrouping applies as soon as any selected item is part of a group.
     mtd canUngroup()->bool
@@ -2512,7 +2479,7 @@ impl Capture
         return false
     }
 
-    // True when the selection contains at least one pixel-selection form
+    // Returns whether the selection contains at least one pixel-selection form.
     mtd hasSelectedPixSel()->bool
     {
         foreachSelected'BaseForm(me, .selection)
@@ -2524,7 +2491,7 @@ impl Capture
         return false
     }
 
-    // Give every distinct group id in 'forms' a fresh id, keeping the relative nesting
+    // Gives every distinct group id in 'forms' a fresh id, keeping the relative nesting
     // structure. Used when pasting so copies form their own groups instead of silently
     // re-joining the originals (or colliding across capture files).
     mtd remapGroups(forms: Array'IForm)
@@ -2537,7 +2504,7 @@ impl Capture
             let b = cast #assume (*BaseForm) f
             for gid in b.groups
             {
-                if gid == 0 or groupIndexOf(oldIds, gid) >= 0 do
+                if gid == 0 or oldIds.contains(gid) do
                     continue
                 oldIds.add(gid)
                 newIds.add(.newGroupId())
@@ -2549,8 +2516,8 @@ impl Capture
             let b = cast #assume (*BaseForm) f
             for i in b.groups.count
             {
-                let idx = groupIndexOf(oldIds, b.groups[i])
-                if idx >= 0 do
+                let idx = Slice.findLinear(oldIds.toSlice(), b.groups[i])
+                if idx != Swag.U64.Max do
                     b.groups[i] = newIds[idx]
             }
         }
@@ -2560,7 +2527,7 @@ impl Capture
     // UNDO
     //////////////////////////////
 
-    // Allocate a new (not yet pushed) Undo command. To group several commands into one
+    // Allocates a new (not yet pushed) Undo command. To group several commands into one
     // undo/redo step, mint a shared id with .undoMgr.newSerial() and pass it to pushUndo.
     mtd newUndo(kind: UndoKind)->*Undo
     {
@@ -2591,7 +2558,7 @@ impl Capture
             .editView?.invalidate()
     }
 
-    // Push a command onto the undo timeline. A non-zero 'serial' groups this command with the
+    // Pushes a command onto the undo timeline. A non-zero 'serial' groups this command with the
     // others sharing that value into one undo/redo step (0 = its own fresh group); get a shared
     // id from .undoMgr.newSerial().
     mtd pushUndo(u: *Undo, serial: u64 = 0)

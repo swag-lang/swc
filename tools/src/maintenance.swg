@@ -142,7 +142,7 @@ private func goldenModules(context: *Context, workspace: string)->Array'String f
 private func directoryHasGoldens(root: string)->bool fail
 {
     let directories = try Directory.enumerateDirectories(root, recurse: true)
-    for directory in directories where Path.fileName(directory.fullname.toString()) == "goldens" do
+    for directory in directories where Path.fileName(directory.fullName.toString()) == "goldens" do
         return true
 
     return false
@@ -185,9 +185,9 @@ private func actualSnapshots(context: *Context)->Array'String
 
         for entry in entries
         {
-            let full = entry.fullname.toString()
+            let full = entry.fullName.toString()
             if Utf8.endsWith(cast(const [..] u8) full, suffix) do
-                result.add(entry.fullname)
+                result.add(entry.fullName)
         }
     }
 
@@ -201,17 +201,17 @@ private func goldenSnapshots(context: *Context)->Array'String fail
     let directories = try Directory.enumerateDirectories(context.binDir.toString(), recurse: true)
     for directory in directories
     {
-        if Path.fileName(directory.fullname.toString()) != "goldens" do
+        if Path.fileName(directory.fullName.toString()) != "goldens" do
             continue
 
         for extension in [".txt", ".png"]
         {
-            let entries = try Directory.enumerateFiles(directory.fullname.toString(), extension, recurse: true)
+            let entries = try Directory.enumerateFiles(directory.fullName.toString(), extension, recurse: true)
             for entry in entries
             {
-                let full = entry.fullname.toString()
+                let full = entry.fullName.toString()
                 if not Utf8.endsWith(cast(const [..] u8) full, ".actual.txt") and not Utf8.endsWith(cast(const [..] u8) full, ".actual.png") do
-                    result.add(entry.fullname)
+                    result.add(entry.fullName)
             }
         }
     }
@@ -246,7 +246,7 @@ public func runHelp(context: *Context, options: *Options)->s32 fail
     // documentation outputs; assets and source tools live in their own directories.
     let oldPages = try Directory.enumerateFiles(helpDir.toString(), ".html")
     for page in oldPages do
-        try File.delete(page.fullname.toString())
+        try File.delete(page.fullName.toString())
 
     for workspace in ["std", "reference"]
     {

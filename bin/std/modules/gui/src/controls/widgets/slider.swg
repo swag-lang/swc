@@ -19,7 +19,7 @@ struct Slider
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
         flags = SliderFlags.HilightBar               // Active behavior and presentation flags.
         sigStartChange: SigArray'func||(*Slider)     // Emitted when a user-style change transaction starts.
@@ -369,7 +369,7 @@ private impl Slider
         return 0.05
     }
 
-    // Adjust the active value by a normalized delta. For a range slider the right
+    // Adjusts the active value by a normalized delta. For a range slider the right
     // mark is moved, mirroring the convention that the rightmost mark is the one a
     // user most often tweaks; otherwise the single value is moved.
     mtd stepActiveValue(delta: f32)
@@ -541,8 +541,10 @@ private impl Slider
 
 impl Slider
 {
-    // Move the active value by one keyboard step (dir = +1/-1). Public so a host
-    // (e.g. the property grid) can drive the slider from its own key handling.
+    // Moves the active value by one keyboard step, up when `dir` is positive and down otherwise.
+    //
+    // A range slider moves its upper value. The move is one start/change/end transaction, so a
+    // host such as the property grid can drive the slider from its own key handling.
     mtd stepBy(dir: s32)
     {
         let s = .keyStep()
@@ -575,7 +577,7 @@ impl Slider
 
     // Sets the single value without emitting start/end transaction signals.
     //
-    // [sigChanged] is still emitted when the effective value changes.
+    // [[Gui.Slider.sigChanged]] is still emitted when the effective value changes.
     mtd setValueWithoutGesture(f: f32)
     {
         .setLowerRatio((f - .min) / (.max - .min))
@@ -599,7 +601,9 @@ impl Slider
 
     // Configures inclusive bounds and an optional value-space step.
     //
-    // `steps` may span the complete range, which creates a two-value control at the bounds.
+    // `steps` may span the complete range, which creates a two-value control at the bounds. The
+    // current values keep their relative positions on the track, so configure the bounds before
+    // setting values.
     func setBounds(me, min, max: f32, steps: f32 = 0)
     {
         Swag.assert(min < max)

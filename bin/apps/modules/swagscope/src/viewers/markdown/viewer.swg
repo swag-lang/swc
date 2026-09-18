@@ -2,14 +2,15 @@
 
 using Core, Gui
 
-internal struct MarkdownViewerSettings
+// Reading preferences of the Markdown viewer, kept across files and persisted by the window.
+struct MarkdownViewerSettings
 {
-    themeIndex:  u32
-    widthIndex:  u32 = 1
-    zoomPercent: u32 = 100
+    themeIndex:  u32           // Document appearance, in the order of the appearance selector.
+    widthIndex:  u32 = 1       // Reading measure, in the order of the width selector.
+    zoomPercent: u32 = 100     // Document zoom.
 }
 
-internal var g_MarkdownViewerSettings: MarkdownViewerSettings
+var g_MarkdownViewerSettings: MarkdownViewerSettings
 
 // Describes the Markdown viewer to the host.
 func markdownViewerPlugin()->Viewer.Plugin
@@ -30,7 +31,8 @@ func markdownViewerPlugin()->Viewer.Plugin
     return result
 }
 
-internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
+// Returns the document style of one appearance at one reading measure.
+func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
 {
     var result = Markdown.Style.theme()
     if themeIndex do
@@ -129,7 +131,8 @@ internal func markdownViewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     return result
 }
 
-internal func markdownViewerColors(themeIndex: u32)->string
+// Returns the theme-sheet colors of one appearance, or nothing for the application's own.
+func markdownViewerColors(themeIndex: u32)->string
 {
     switch themeIndex
     {
@@ -142,7 +145,10 @@ internal func markdownViewerColors(themeIndex: u32)->string
     }
 }
 
-internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100'u32, applyColors = true)
+// Styles `view` with one appearance and reading measure, scaled by `zoomPercent`.
+//
+// `applyColors` is false when only the measure or the zoom changed, so the colors already applied stay.
+func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100'u32, applyColors = true)
 {
     var style = markdownViewerStyle(themeIndex, widthIndex)
     let scale = cast(f32) zoomPercent / 100
@@ -160,7 +166,9 @@ internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIn
     view.setDocumentStyle(style)
 }
 
-internal struct MarkdownZoomButton
+// The zoom menu of the Markdown viewer, which also owns the viewer's background statistics and
+// outline, since the document view itself is a standard [[Gui.Markdown.View]].
+struct MarkdownZoomButton
 {
     using button: IconButton
 
@@ -256,28 +264,51 @@ impl MarkdownZoomButton
         }
     }
 
+    // Creates the zoom menu of `view` at the persisted zoom; both selectors restyle the same view.
     func create(parent: *Wnd, view: *Markdown.View, themeCombo, widthCombo: *ComboBox)->*MarkdownZoomButton
     {
-        let result = Wnd.create'MarkdownZoomButton(parent, null, {0, 0, ViewerZoomButtonWidth, 32}, "scope.markdown.zoom")
-        result.view       = view
-        result.themeCombo = themeCombo
-        result.widthCombo = widthCombo
-        result.dockStyle  = .Center
-        result.margin     = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
-        result.updateFlags(.CenterContent)
-        result.zoomPercent = Math.clamp(g_MarkdownViewerSettings.zoomPercent, 50'u32, 300'u32)
-        result.setText(Format.toString("% %", result.zoomPercent, "%"))
-        result.setArrowPosition(.RightDownward)
-        result.setForm(.Rectangle)
-        result.style.setFont(result.theme().createDefaultFontFS(11), .Regular)
-        result.toolTip    = markdownStrings().ui_ZoomMenu
-        result.sigPressed += func(button)
+        with let result = Wnd.create'MarkdownZoomButton(parent, null, {0, 0, ViewerZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
-            (cast #assume (*MarkdownZoomButton) button).showZoomMenu()
+            .view        = view
+            .themeCombo  = themeCombo
+            .widthCombo  = widthCombo
+            .dockStyle   = .Center
+            .margin      = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
+            .zoomPercent = Math.clamp(g_MarkdownViewerSettings.zoomPercent, 50'u32, 300'u32)
+            .updateFlags(.CenterContent)
+            .setText(Format.toString("% %", .zoomPercent, "%"))
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
+            .toolTip    = markdownStrings().ui_ZoomMenu
+            .sigPressed += func(button) { (cast #assume (*MarkdownZoomButton) button).showZoomMenu() }
         }
 
         return result
     }
+}
+
+// Adds the reading measures to `combo`, in the order of [[MarkdownViewerSettings.widthIndex]].
+private func addMarkdownWidths(combo: *ComboBox)
+{
+    combo.addItem(markdownStrings().ui_Narrow)
+    combo.addItem(markdownStrings().ui_Medium)
+    combo.addItem(markdownStrings().ui_Wide)
+    combo.addItem(markdownStrings().ui_Fluid)
+}
+
+// Adds the appearances to `combo`, in the order of [[MarkdownViewerSettings.themeIndex]].
+//
+// Only the application's own appearance is translated: the others are the names their styles are
+// known by.
+private func addMarkdownThemes(combo: *ComboBox)
+{
+    combo.addItem(markdownStrings().ui_ThemeApp)
+    combo.addItem("GitHub")
+    combo.addItem("Newsprint")
+    combo.addItem("Night")
+    combo.addItem("Pixyll")
+    combo.addItem("Whitey")
 }
 
 // Creates the integrated Markdown view.
@@ -292,26 +323,22 @@ func createMarkdownViewer(host: Viewer.Host)
     }
 
     let commandGroup = host.createCommandGroup(264)
-    let widthCombo   = ComboBox.create(commandGroup, {0, 0, 104, 36})
-    widthCombo.dockStyle = .Right
-    widthCombo.toolTip   = markdownStrings().ui_TipWidth
-    widthCombo.addItem(markdownStrings().ui_Narrow)
-    widthCombo.addItem(markdownStrings().ui_Medium)
-    widthCombo.addItem(markdownStrings().ui_Wide)
-    widthCombo.addItem(markdownStrings().ui_Fluid)
-    widthCombo.setSelectedIndex(g_MarkdownViewerSettings.widthIndex, notify: false)
+    with let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
+    {
+        .dockStyle = .Right
+        .toolTip   = markdownStrings().ui_TipWidth
+        addMarkdownWidths(widthCombo)
+        .setSelectedIndex(g_MarkdownViewerSettings.widthIndex, notify: false)
+    }
 
-    let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
-    themeCombo.dockStyle = .Right
-    themeCombo.margin.z  = 8
-    themeCombo.toolTip   = markdownStrings().ui_TipTheme
-    themeCombo.addItem(markdownStrings().ui_ThemeApp)
-    themeCombo.addItem("GitHub")
-    themeCombo.addItem("Newsprint")
-    themeCombo.addItem("Night")
-    themeCombo.addItem("Pixyll")
-    themeCombo.addItem("Whitey")
-    themeCombo.setSelectedIndex(g_MarkdownViewerSettings.themeIndex, notify: false)
+    with let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
+    {
+        .dockStyle = .Right
+        .margin.z  = 8
+        .toolTip   = markdownStrings().ui_TipTheme
+        addMarkdownThemes(themeCombo)
+        .setSelectedIndex(g_MarkdownViewerSettings.themeIndex, notify: false)
+    }
 
     let zoomButton = MarkdownZoomButton.create(host.createInfoGroup(ViewerZoomSlotWidth), view, themeCombo, widthCombo)
     zoomButton.outline = DocumentOutline.create(host)
@@ -344,19 +371,11 @@ func createMarkdownViewer(host: Viewer.Host)
             let widthIndex = widthCombo.selectedIndex
             let themeIndex = themeCombo.selectedIndex
             widthCombo.clear()
-            widthCombo.addItem(markdownStrings().ui_Narrow)
-            widthCombo.addItem(markdownStrings().ui_Medium)
-            widthCombo.addItem(markdownStrings().ui_Wide)
-            widthCombo.addItem(markdownStrings().ui_Fluid)
+            addMarkdownWidths(widthCombo)
             widthCombo.setSelectedIndex(widthIndex, notify: false)
             widthCombo.toolTip = markdownStrings().ui_TipWidth
             themeCombo.clear()
-            themeCombo.addItem(markdownStrings().ui_ThemeApp)
-            themeCombo.addItem("GitHub")
-            themeCombo.addItem("Newsprint")
-            themeCombo.addItem("Night")
-            themeCombo.addItem("Pixyll")
-            themeCombo.addItem("Whitey")
+            addMarkdownThemes(themeCombo)
             themeCombo.setSelectedIndex(themeIndex, notify: false)
             themeCombo.toolTip = markdownStrings().ui_TipTheme
             zoomButton.toolTip = markdownStrings().ui_ZoomMenu
@@ -377,7 +396,7 @@ func createMarkdownViewer(host: Viewer.Host)
     host.attachView(view)
     host.setDetails(markdownStrings().ui_Details)
     host.setSearch({
-        revealMatch: func(wnd, match, text)->bool { return (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text) },
+        revealMatch: func(wnd, match, text)->bool => (cast #assume(*Markdown.View) wnd).revealFileOffset(match.offset, text),
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
@@ -388,7 +407,7 @@ func createMarkdownViewer(host: Viewer.Host)
     zoomButton.reportDetails = services.reportDetails
     zoomButton.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8)
     zoomButton.statisticsTimer = zoomButton.addTimer(Viewer.BackgroundPollInterval)
-    host.setLifecycle({isLoading: func(wnd)->bool { return (cast #assume (*Markdown.View) wnd).isLoading() }, retire: func(wnd)->bool { return (cast(*MarkdownZoomButton) wnd.userData!).retire() }})
+    host.setLifecycle({isLoading: func(wnd)->bool => (cast #assume (*Markdown.View) wnd).isLoading(), retire: func(wnd)->bool => (cast(*MarkdownZoomButton) wnd.userData!).retire()})
     themeCombo.sigChanged += func|view, widthCombo, zoomButton|(combo, index)
     {
         discard combo

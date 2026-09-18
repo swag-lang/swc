@@ -1,15 +1,16 @@
 namespace Swag
 {
+    // Declarations an attribute can be applied to, as given to [[AttrUsage]].
     enum AttributeUsage: u32
     {
         Enum              = 0x00000001     // Attribute can be used on an enum
         EnumValue         = 0x00000002     // Attribute can be used on an enum value
-        StructVariable    = 0x00000004     // Attribute can be used on an struct member
+        StructVariable    = 0x00000004     // Attribute can be used on a struct field
         GlobalVariable    = 0x00000008     // Attribute can be used on a global variable
         Variable          = 0x00000010     // Attribute can be used on any variable
         Struct            = 0x00000020     // Attribute can be used on a struct
         Function          = 0x00000040     // Attribute can be used on a function
-        FunctionParameter = 0x00000080     // Attribute can be used on a struct parameter
+        FunctionParameter = 0x00000080     // Attribute can be used on a function parameter
         File              = 0x00000100     // Attribute can be used with '#global'
         Constant          = 0x00000200     // Attribute can be used on a constant
         Alias             = 0x00000400     // Attribute can be used on an alias
@@ -19,6 +20,7 @@ namespace Swag
         All               = 0x04000000
     }
 
+    // Calling convention of a function, as given to [[Foreign]].
     enum CallConv: u8
     {
         C              // Target C ABI for the selected platform
@@ -30,54 +32,58 @@ namespace Swag
     // Attributes
     // #########################################################
 
-    // Hardcoded usage
+    // Declares which declarations the attribute that carries it can be applied to.
     attr AttrUsage(usage: AttributeUsage)
+
+    // Allows the attribute that carries it to appear more than once on one declaration.
     attr AttrMulti()
 
     // Assigns one category to a '#test' function for selection with '--test-tag'.
     #[AttrUsage(AttributeUsage.Function)]
     attr TestTag(name: string)
 
-    // Can be executed at compile time
+    // Allows the function, or the struct, to be evaluated at compile time.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct)]
     attr ConstExpr()
 
-    // On a function or a struct, this prints generated micro instructions.
-    // If no parameter is provided, this prints right before the emit pass.
-    // Otherwise, parameters are strings of the form before-passname / after-passname.
+    // Prints the micro instructions generated for a function, a struct, or a file.
+    //
+    // Without a parameter, the instructions are printed right before the emit pass. Otherwise
+    // each parameter names a stage, spelled `before-<pass>` or `after-<pass>`.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
     attr PrintMicro(stages: string...)
 
-    // On a function or a struct, this prints the associated AST shape.
+    // Prints the AST of a function, a struct, or a file, at the stages named as for [[PrintMicro]].
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
     attr PrintAst(stages: string...)
 
-    // The following function or variable is only defined at compile time
+    // Restricts a function, global variable, or constant to compile time: it is never emitted in generated code.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.GlobalVariable | AttributeUsage.Constant)]
     attr Compiler()
 
-    // Force a function to be inlined
+    // Inlines the function at every call site.
     #[AttrUsage(AttributeUsage.Function)]
     attr Inline()
 
-    // Never inline the following function.
-    // This is a hint for the backend.
+    // Asks the backend never to inline the function.
     #[AttrUsage(AttributeUsage.Function)]
     attr NoInline()
 
-    // An empty function will be generated
+    // Declares a body-less function that is generated empty and left out of the module API.
+    //
+    // A generator reads such placeholders at compile time and supplies the real implementations.
     #[AttrUsage(AttributeUsage.Function)]
     attr PlaceHolder()
 
-    // The following function is a 'macro'
+    // Makes the function a macro: its body is expanded at each call site, in a scope of its own.
     #[AttrUsage(AttributeUsage.Function)]
     attr Macro()
 
-    // The following function is a 'mixin'
+    // Makes the function a mixin: its body is expanded at each call site, in the caller's scope.
     #[AttrUsage(AttributeUsage.Function)]
     attr Mixin()
 
-    // Can force an 'opCast' operator overload to work as implicit
+    // Lets an 'opCast' overload apply as an implicit conversion.
     #[AttrUsage(AttributeUsage.Function)]
     attr Implicit()
 
@@ -89,6 +95,7 @@ namespace Swag
     attr FullInit()
 
     // The operator an overload hook is being asked to implement.
+    //
     // The compiler passes it as the generic value argument of 'opBinary', 'opBinaryRight',
     // 'opUnary', 'opAssign' and 'opIndexAssign'. Each spelling has its own member, so a hook
     // never has to guess: 'Sub' and 'Neg' are distinct even though both are written '-'.
@@ -128,8 +135,9 @@ namespace Swag
 
     impl Operator
     {
-        // The source spelling of the operator, for generated code and for diagnostics
-        // that need to name the operator an overload was asked to implement.
+        // Returns the source spelling of the operator.
+        //
+        // Generated code and diagnostics use it to name the operator an overload implements.
         #[ConstExpr]
         mtd symbol()->string
         {
@@ -165,43 +173,45 @@ namespace Swag
         }
     }
 
-    // An opBinary operator overload can also be used when its receiver is the right operand.
-    // Optional parameters restrict the operators for generic opBinary implementations.
+    // Lets an 'opBinary' overload also apply when its receiver is the right operand.
+    //
+    // For a generic 'opBinary', the optional parameters restrict this to the listed operators.
     #[AttrUsage(AttributeUsage.Function)]
     attr Commutative(operators: Operator...)
 
-    // Generate operator overloads for a struct.
+    // Generates operator overloads for the struct.
     #[AttrUsage(AttributeUsage.Struct)]
     attr Operators(operators: string...)
 
-    // Exclude a struct field from generated operator overloads.
+    // Excludes a struct field from generated operator overloads.
     #[AttrUsage(AttributeUsage.StructVariable)]
     attr OperatorIgnore()
 
-    // A 'return' in the following macro/mixin function must be done in the callee context
+    // Makes a 'return' in the macro or mixin leave the macro itself rather than its caller.
     #[AttrUsage(AttributeUsage.Function)]
     attr CalleeReturn()
 
-    // The following function is foreign (imported).
+    // Declares a function implemented outside the current module.
+    //
     // 'module' defaults to the module the declaring file belongs to, which only a generated
     // module API leaves out. 'function' defaults to the flattened public API name there, and
     // to the declaration name for a function of a native library.
     #[AttrUsage(AttributeUsage.Function)]
     attr Foreign(module: string = "", function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.Swag)
 
-    // The following function accepts that the called does not use its return value
+    // Lets a caller ignore the function's result without writing 'discard'.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]
     attr Discardable()
 
-    // The following definition is deprecated and should not be used
+    // Marks a declaration as deprecated: each use is reported, with 'msg' when one is given.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]
     attr Deprecated(msg: string? = null)
 
-    // 'struct' packing information
+    // Sets the packing of the struct: the largest alignment given to its fields, in bytes.
     #[AttrUsage(AttributeUsage.Struct)]
     attr Pack(value: u8)
 
-    // The following struct should never be copied
+    // Forbids copying the struct.
     #[AttrUsage(AttributeUsage.Struct)]
     attr NoCopy()
 
@@ -214,28 +224,29 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Struct)]
     attr DynCast()
 
-    // When exporting the following struct,: not export its content
+    // Exports the struct without its fields: users see its name and methods only.
     #[AttrUsage(AttributeUsage.Struct)]
     attr Opaque()
 
-    // Struct field member relocation.
-    // The field offset in the struct should be the same as the variable 'name'
+    // Places the struct field at the offset of the field 'name', so both share storage.
     #[AttrUsage(AttributeUsage.StructVariable)]
     attr Offset(name: string)
 
-    // The following enum is a set of flags
+    // Makes the enum a set of flags, combined with bitwise operators.
     #[AttrUsage(AttributeUsage.Enum)]
     attr EnumFlags()
 
-    // The following enum can't have duplicated values
+    // Forbids two values of the enum from being equal.
     #[AttrUsage(AttributeUsage.Enum)]
     attr NoDuplicate()
 
-    // The declared values of the following enum are not the full set: a value outside them
-    // is expected at runtime, so a switch on it is not meant to be exhaustive.
+    // Declares that the values of the enum are not the full set.
+    //
+    // A value outside them is expected at runtime, so a switch on it is not meant to be exhaustive.
     #[AttrUsage(AttributeUsage.Enum)]
     attr Incomplete()
 
+    // Runtime reflection data that [[ExportType]] adds to the type information of a struct.
     #[Swag.EnumFlags]
     enum ExportWhat: u32
     {
@@ -245,17 +256,21 @@ namespace Swag
         All     = 0xFFFFFFFF
     }
 
+    // Adds runtime reflection data to the type information of the struct.
+    //
+    // With `.Methods`, the type information lists the methods of the struct's 'impl' blocks.
     #[AttrUsage(AttributeUsage.Struct)]
     attr ExportType(what: ExportWhat)
 
-    // Do not generate documentation.
+    // Leaves the declaration, or the whole file, out of the generated documentation.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
     attr NoDoc()
 
-    // Enable/Disable one or more STATIC (compile-time) sanity checks: the borrow
-    // analysis, and the proven-fault sanitizer (use-after-move, stack escapes, proven
-    // null dereferences, ...). Reuses the [[SafetyWhat]] flags. Unlike [[Safety]], these
-    // checks add no runtime cost and are enabled by default in every build configuration.
+    // Enables or disables static sanity checks in a declaration, a block, or a file.
+    //
+    // The static checks are the borrow analysis and the proven-fault sanitizer (use after move,
+    // stack escapes, proven null dereferences, ...), selected with the [[SafetyWhat]] flags.
+    // Unlike [[Safety]], they add no runtime cost and are enabled in every build configuration.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Sanity(what: SafetyWhat, value: bool)
 
@@ -280,32 +295,32 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF)
 
-    // All safety checks
+    // Safety checks, selected by [[Safety]] at runtime and by [[Sanity]] at compile time.
     #[Swag.EnumFlags]
     enum SafetyWhat: u16
     {
-        BoundCheck  = 0x0001     // Check out of bound access
-        Overflow    = 0x0002     // Check type conversion lost of bits or precision
-        Math        = 0x0004     // Check various math operations (like a negative 'Swag.sqrt')
-        DynCast     = 0x0008     // Check the type invariant asserted by 'cast #assume'
-        Switch      = 0x0010     // Check if an unexpected case value is encountered
-        Bool        = 0x0020     // Check if a 'bool' does not have a valid value ('true' or 'false')
-        NaN         = 0x0040     // Check if a 'NaN' is used in a float arithmetic operation
-        Unreachable = 0x0080     // Check if unreachable is... reached
-        Null        = 0x0100     // Check on dereferencing some null pointers
-        Memory      = 0x0200     // Check some memory things (mostly in sanity pass)
-        Expect      = 0x0400     // Check if 'expect' must panic on an unexpected runtime error
-        Lifecycle   = 0x0800     // Check use of moved-from values, and poison abandoned/dropped storage
-        Assert      = 0x1000     // Emit assertions; enabled by default in devmode and by the test command, including release.
-        None        = 0x0000
-        All         = 0xFFFF
+        BoundCheck  = 0x0001     // Out-of-bounds index or slice
+        Overflow    = 0x0002     // Arithmetic overflow, and conversions that lose bits or precision
+        Math        = 0x0004     // Math functions called outside their domain, such as a negative 'Swag.sqrt'
+        DynCast     = 0x0008     // Type invariant asserted by 'cast #assume'
+        Switch      = 0x0010     // Unexpected value reaching a switch
+        Bool        = 0x0020     // 'bool' holding neither 'true' nor 'false'
+        NaN         = 0x0040     // 'NaN' used in float arithmetic
+        Unreachable = 0x0080     // 'unreachable' being reached
+        Null        = 0x0100     // Dereference of a null pointer
+        Memory      = 0x0200     // Memory misuse, mostly found by the sanity pass
+        Expect      = 0x0400     // Panic when an 'expect' meets an error
+        Lifecycle   = 0x0800     // Use of moved-from values, and poisoning of abandoned or dropped storage
+        Assert      = 0x1000     // Assertions; enabled by default in devmode and by the test command, including release
+        None        = 0x0000     // No check
+        All         = 0xFFFF     // Every check
     }
 
-    // Enable/Disable one or more safety checks.
+    // Enables or disables runtime safety checks in a declaration, a block, or a file.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Safety(what: SafetyWhat, value: bool)
 
-    // Set optimized code generation on/off.
+    // Enables or disables optimized code generation in a function, a block, or a file.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Optimize(level: bool)
 
@@ -317,9 +332,10 @@ namespace Swag
         Error       // Report the warning as an error
     }
 
-    // Decide how one warning, a list of warnings, or every warning is reported inside the
-    // annotated declaration, block, or file. A warning is named by its diagnostic identifier,
-    // the string `--diagnostic-id` prints; `"all"` names every warning at once.
+    // Sets how one warning, a list of warnings, or every warning is reported in a declaration, a block, or a file.
+    //
+    // A warning is named by its diagnostic identifier, the string `--diagnostic-id` prints;
+    // `"all"` names every warning at once.
     // ```swag
     // #[Swag.Warning("sema_warn_unreachable_code", .Disable)]
     // #[Swag.Warning("sema_warn_unreachable_code|sema_warn_compiler_warning", .Error)]
@@ -330,11 +346,11 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Warning(what: string, level: WarningLevel)
 
-    // Keep the following alias distinct from its target for implicit conversions
+    // Keeps the alias distinct from its target: no implicit conversion goes between them.
     #[AttrUsage(AttributeUsage.Alias)]
     attr Strict()
 
-    // Alignment of the following struct or struct field
+    // Sets the alignment of a struct or a struct field, in bytes.
     #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
     attr Align(value: u8)
 
@@ -418,7 +434,7 @@ namespace Swag
     // Process Infos
     // #########################################################
 
-    // Defined some information about a loaded module
+    // Describes a loaded module.
     struct Module
     {
         public
@@ -428,17 +444,17 @@ namespace Swag
         }
     }
 
-    // Defined some information about the current process
+    // Describes the current process, as returned by [[Swag.processInfos]].
     struct ProcessInfos
     {
         public
         {
-            modules: const [..] Module?     // The list of all modules
+            modules: const [..] Module?     // Every loaded module
             args:    string?                // The application arguments, as returned by [[Swag.args]].
         }
     }
 
-    // Defined a global variable that needs to be dropped when exiting
+    // Describes a global variable that the runtime drops when the process exits.
     struct Gvtd
     {
         public
@@ -454,8 +470,9 @@ namespace Swag
     // Allocators
     // #########################################################
 
-    // Represents the request for a given allocator. The operation itself is carried
-    // by the [[IAllocator]] method being called; the request only transports its
+    // Carries the operands of one [[IAllocator]] operation.
+    //
+    // The operation itself is the method being called; the request only transports its
     // operands and the tracking metadata.
     //
     // For [[IAllocator.alloc]]:
@@ -477,36 +494,39 @@ namespace Swag
     {
         public
         {
-            callerLoc: SourceCodeLocation     // The caller code, to help tracking leaks. Optional.
-            hint:      string?                // A hint message, to help tracking leaks. Optional.
-            address:   *void?                 // The returned address or the address to deal with.
-            size:      u64                    // The requested size or the size to deal with.
-            oldSize:   u64                    // When reallocating.
-            alignment: u32                    // Alignment constraint.
+            callerLoc: SourceCodeLocation     // Location of the caller, to help track leaks; optional
+            hint:      string?                // Message to help track leaks; optional
+            address:   *void?                 // Address to operate on, or the address returned
+            size:      u64                    // Size requested or operated on, in bytes
+            oldSize:   u64                    // Previous size of a reallocated block, in bytes
+            alignment: u32                    // Alignment constraint in bytes, or 0
         }
     }
 
-    // Every operation is a distinct method so the semantics are structural: the
-    // compiler (static lifetime analysis) and the reader both know what a call does
-    // without inspecting the request.
+    // Allocates, reallocates, and frees memory.
+    //
+    // Every operation is a distinct method so the semantics are structural: the compiler's
+    // static lifetime analysis and the reader both know what a call does without inspecting
+    // the request.
     interface IAllocator
     {
-        // Allocate a block of memory.
+        // Allocates a block of memory and stores its address in 'request.address'.
         mtd alloc(request: *AllocatorRequest)
 
-        // Reallocate a previously allocated block.
+        // Resizes a block allocated by this allocator, possibly moving it.
         mtd realloc(request: *AllocatorRequest)
 
-        // Free a previously allocated block.
+        // Frees a block allocated by this allocator.
         mtd free(request: *AllocatorRequest)
 
-        // Free all memory allocated with this allocator, if supported.
+        // Frees every block allocated with this allocator, when the allocator supports it.
         mtd freeAll(request: *AllocatorRequest)
 
-        // Assert that 'request.address' is currently allocated, if supported.
+        // Asserts that 'request.address' is currently allocated, when the allocator supports it.
         mtd assertAllocated(request: *AllocatorRequest)
     }
 
+    // A linear allocator that serves blocks from one buffer and releases them all at once.
     struct ScratchAllocator
     {
         public
@@ -526,6 +546,7 @@ namespace Swag
     // Context
     // #########################################################
 
+    // What raised an exception.
     enum ExceptionKind
     {
         Panic
@@ -538,13 +559,13 @@ namespace Swag
     const MaxErrors = 32     // Maximum nested errors
     const MaxTraces = 32     // Maximum error traces
 
-    // This is the base of all errors
+    // The base of every error raised with 'fail'.
     struct BaseError
     {
         public message: string?
     }
 
-    // An error raised by the system
+    // An error reported by the operating system, with its native error code.
     struct SystemError
     {
         public
@@ -554,7 +575,7 @@ namespace Swag
         }
     }
 
-    // Store a 'fail' error information
+    // One raised error on the error stack of a [[Context]].
     struct ErrorValue
     {
         public value: any?     // Error value (or null)
@@ -568,7 +589,7 @@ namespace Swag
         pushCurError:   any?     // Current handled error at the push.
     }
 
-    // Thread context as returned by [Swag.getContext].
+    // Per-thread state, as returned by [[Swag.getContext]].
     struct Context
     {
         public
@@ -590,12 +611,12 @@ namespace Swag
             traces:           [MaxTraces] SourceCodeLocation           // Stack trace, in case of errors
             errors:           [MaxErrors] ErrorValue                   // All errors
             exceptionLoc:     SourceCodeLocation                       // When an exception is raised, this is the code location
-            exceptionParams:  [4] (const *void?)                       // When an exception is raised, this are the parameters
+            exceptionParams:  [4] (const *void?)                       // When an exception is raised, these are its parameters
             panic:            (func(string?, SourceCodeLocation))?     // A function to call if there's a panic
             curError:         any?                                     // The current raised error
             errorIndex:       u32                                      // Number of errors in the array
             traceIndex:       u32                                      // Number of traces in the array
-            hasError:         u32                                      // <> 0 if an error is raised
+            hasError:         u32                                      // Nonzero while an error is raised
             #[Swag.NoDoc]
             runtimeTlsIdPlusOne: u64     // Process TLS slot shared by dynamically loaded Swag modules.
             #[Swag.NoDoc]
@@ -609,6 +630,7 @@ namespace Swag
     // Type reflection
     // #########################################################
 
+    // How two types are compared.
     #[EnumFlags]
     enum TypeCmpFlags
     {
@@ -643,8 +665,7 @@ namespace Swag
         Simd              // The typeinfo is a [[TypeInfoSimd]]
     }
 
-    // The native type if the type is... native.
-    // If the 'kind' of the type is 'TypeInfoKind.Native', then this is the real native type.
+    // The native type described by a [[TypeInfoNative]], whose 'kind' is 'TypeInfoKind.Native'.
     enum TypeInfoNativeKind: u8
     {
         Void
@@ -665,7 +686,7 @@ namespace Swag
         CString
     }
 
-    // Flags in each [[TypeInfo]]
+    // Properties of a type, stored in each [[TypeInfo]].
     #[Swag.EnumFlags]
     enum TypeInfoFlags: u32
     {
@@ -677,7 +698,7 @@ namespace Swag
         HasPostCopy          = 0x00000010     // This is a struct with a 'opPostCopy'
         HasPostMove          = 0x00000020     // This is a struct with a 'opPostMove'
         HasDrop              = 0x00000040     // This is a struct with a 'opDrop'
-        Strict               = 0x00000080     // This is a alias with the Swag.Strict attribute
+        Strict               = 0x00000080     // This is an alias with the Swag.Strict attribute
         CanCopy              = 0x00000100     // This is a struct that can be copied
         Tuple                = 0x00000200     // This is a tuple
         CString              = 0x00000400     // This is a 'cstring'
@@ -705,8 +726,9 @@ namespace Swag
         }
     }
 
-    const ClosureCaptureBufferSize = 64
+    const ClosureCaptureBufferSize = 64     // Bytes a closure can capture inline
 
+    // Runtime representation of a closure: its entry point and its captured values.
     struct ClosureValue
     {
         public
@@ -716,6 +738,7 @@ namespace Swag
         }
     }
 
+    // One parameter of an attribute instance, as reflected at runtime.
     struct AttributeParam
     {
         public
@@ -725,6 +748,7 @@ namespace Swag
         }
     }
 
+    // One attribute instance attached to a declaration, as reflected at runtime.
     struct Attribute
     {
         public
@@ -734,6 +758,7 @@ namespace Swag
         }
     }
 
+    // Properties of a [[TypeValue]].
     #[EnumFlags]
     enum TypeValueFlags
     {
@@ -746,7 +771,7 @@ namespace Swag
         Private      // 'private' field: reached only by the declaring type
     }
 
-    // Represents a value, like a function parameter or an enum value
+    // Describes a named value of a type: a struct field, a function parameter, or an enum value.
     struct TypeValue
     {
         public
@@ -762,9 +787,10 @@ namespace Swag
         }
     }
 
-    // Common descriptor for runtime type information. The concrete descriptor can be
-    // borrowed with 'cast #try', or extracted with 'cast #assume' when its type is known.
-    // Changing 'kind' does not change the concrete descriptor's dynamic identity.
+    // Describes a type at runtime; the base of every concrete type descriptor.
+    //
+    // The concrete descriptor can be borrowed with 'cast #try', or extracted with 'cast #assume'
+    // when its type is known. Changing 'kind' does not change its dynamic identity.
     #[Swag.DynCast]
     struct TypeInfo
     {
@@ -1226,43 +1252,43 @@ namespace Swag
 // callers remain responsible for the invariant. Use '#assert' for unconditional compile-time checks.
 func assert(value: bool, message: string? = null, loc = #callerlocation)
 
-// Stop a bytecode execution, and launch the bytecode debugger.
+// Stops execution in the attached debugger, as a breakpoint instruction.
 func breakpoint()
 
-// Get the current thread context.
+// Returns the context of the current thread.
 func getContext()->*Swag.Context
 
-// Replace the current thread context.
+// Makes `context` the context of the current thread.
 func setContext(context: const *Swag.Context)
 
-// Get information about the current process.
+// Returns the description of the current process.
 func processInfos()->*Swag.ProcessInfos
 
-// Returns the list of all loaded modules.
+// Returns every loaded module.
 func modules()->const [..] Swag.Module?
 
-// Returns the list of all global variables.
+// Returns the global variables the runtime drops when the process exits.
 func gvtd()->const [..] Swag.Gvtd?
 
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func compiler()->Swag.ICompiler
 
-// Set all bytes of a given memory block to 'value'
+// Sets the `size` bytes at `dst` to `value`.
 func memset(dst: [*] void?, value: u8, size: u64)
 
-// Copy one memory block to another address.
+// Copies `size` bytes from `src` to `dst`; the two blocks must not overlap.
 func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
 
-// Move one memory block to another address.
+// Copies `size` bytes from `src` to `dst`, which may overlap.
 func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 
-// Compare two memory blocks, and returns -1, 0 if equal, or 1.
+// Compares `size` bytes and returns -1, 0 when they are equal, or 1.
 func memcmp(dst, src: const [*] void?, size: u64)->s32
 
-// Atomic operations
+// Atomic read-modify-write operations. Each one returns the value `addr` held before it.
 #[Swag.Discardable]
 {
-    // Atomic 'add'
+    // Adds `value` to the integer at `addr`, atomically.
     func atomadd(addr: *s8, value: s8)->s8
     func atomadd(addr: *s16, value: s16)->s16
     func atomadd(addr: *s32, value: s32)->s32
@@ -1272,7 +1298,7 @@ func memcmp(dst, src: const [*] void?, size: u64)->s32
     func atomadd(addr: *u32, value: u32)->u32
     func atomadd(addr: *u64, value: u64)->u64
 
-    // Atomic 'and'
+    // Combines `value` into the integer at `addr` with a bitwise and, atomically.
     func atomand(addr: *s8, value: s8)->s8
     func atomand(addr: *s16, value: s16)->s16
     func atomand(addr: *s32, value: s32)->s32
@@ -1282,7 +1308,7 @@ func memcmp(dst, src: const [*] void?, size: u64)->s32
     func atomand(addr: *u32, value: u32)->u32
     func atomand(addr: *u64, value: u64)->u64
 
-    // Atomic 'or'
+    // Combines `value` into the integer at `addr` with a bitwise or, atomically.
     func atomor(addr: *s8, value: s8)->s8
     func atomor(addr: *s16, value: s16)->s16
     func atomor(addr: *s32, value: s32)->s32
@@ -1292,7 +1318,7 @@ func memcmp(dst, src: const [*] void?, size: u64)->s32
     func atomor(addr: *u32, value: u32)->u32
     func atomor(addr: *u64, value: u64)->u64
 
-    // Atomic 'xor'
+    // Combines `value` into the integer at `addr` with a bitwise xor, atomically.
     func atomxor(addr: *s8, value: s8)->s8
     func atomxor(addr: *s16, value: s16)->s16
     func atomxor(addr: *s32, value: s32)->s32
@@ -1302,7 +1328,7 @@ func memcmp(dst, src: const [*] void?, size: u64)->s32
     func atomxor(addr: *u32, value: u32)->u32
     func atomxor(addr: *u64, value: u64)->u64
 
-    // Atomic 'exchange'
+    // Stores `exchangeWith` at `addr`, atomically.
     func atomxchg(addr: *s8, exchangeWith: s8)->s8
     func atomxchg(addr: *s16, exchangeWith: s16)->s16
     func atomxchg(addr: *s32, exchangeWith: s32)->s32
@@ -1312,7 +1338,7 @@ func memcmp(dst, src: const [*] void?, size: u64)->s32
     func atomxchg(addr: *u32, exchangeWith: u32)->u32
     func atomxchg(addr: *u64, exchangeWith: u64)->u64
 
-    // Atomic 'compare and exchange'
+    // Stores `exchangeWith` at `addr` when it holds `compareTo`, atomically.
     func atomcmpxchg(addr: *s8, compareTo, exchangeWith: s8)->s8
     func atomcmpxchg(addr: *s16, compareTo, exchangeWith: s16)->s16
     func atomcmpxchg(addr: *s32, compareTo, exchangeWith: s32)->s32
@@ -1337,14 +1363,14 @@ func atomget(addr: *u16)->u16
 func atomget(addr: *u32)->u32
 func atomget(addr: *u64)->u64
 
-// Constant intrinsics
+// Intrinsics also evaluated at compile time.
 #[Swag.ConstExpr]
 {
-    // Square root.
+    // Returns the square root of `value`.
     func sqrt(value: f32)->f32
     func sqrt(value: f64)->f64
 
-    // Minimum of two values.
+    // Returns the smaller of two values.
     func min(value1, value2: s8)->s8
     func min(value1, value2: s16)->s16
     func min(value1, value2: s32)->s32
@@ -1356,7 +1382,7 @@ func atomget(addr: *u64)->u64
     func min(value1, value2: f32)->f32
     func min(value1, value2: f64)->f64
 
-    // Maximum of two values.
+    // Returns the larger of two values.
     func max(value1, value2: s8)->s8
     func max(value1, value2: s16)->s16
     func max(value1, value2: s32)->s32
@@ -1368,7 +1394,7 @@ func atomget(addr: *u64)->u64
     func max(value1, value2: f32)->f32
     func max(value1, value2: f64)->f64
 
-    // Absolute value.
+    // Returns the absolute value of `value`.
     func abs(value: s8)->s8
     func abs(value: s16)->s16
     func abs(value: s32)->s32
@@ -1376,13 +1402,13 @@ func atomget(addr: *u64)->u64
     func abs(value: f32)->f32
     func abs(value: f64)->f64
 
-    // Rotate bits left
+    // Rotates the bits of `value` left by `num` positions.
     func rol(value: u8, num: u8)->u8
     func rol(value: u16, num: u8)->u16
     func rol(value: u32, num: u8)->u32
     func rol(value: u64, num: u8)->u64
 
-    // Rotate bits right
+    // Rotates the bits of `value` right by `num` positions.
     func ror(value: u8, num: u8)->u8
     func ror(value: u16, num: u8)->u16
     func ror(value: u32, num: u8)->u32
@@ -1393,41 +1419,41 @@ func atomget(addr: *u64)->u64
     func byteSwap(value: u32)->u32
     func byteSwap(value: u64)->u64
 
-    // Count the number of bits set to 1
+    // Returns the number of bits set to 1.
     func bitCountNz(value: u8)->u8
     func bitCountNz(value: u16)->u16
     func bitCountNz(value: u32)->u32
     func bitCountNz(value: u64)->u64
 
-    // Number of zero bits below the lowest set bit. The operand width if all zero.
+    // Returns the number of zero bits below the lowest set bit, or the operand width when `value` is zero.
     func bitCountTz(value: u8)->u8
     func bitCountTz(value: u16)->u16
     func bitCountTz(value: u32)->u32
     func bitCountTz(value: u64)->u64
 
-    // Number of zero bits above the highest set bit. The operand width if all zero.
+    // Returns the number of zero bits above the highest set bit, or the operand width when `value` is zero.
     func bitCountLz(value: u8)->u8
     func bitCountLz(value: u16)->u16
     func bitCountLz(value: u32)->u32
     func bitCountLz(value: u64)->u64
 
-    // Returns '(val1 * val2) + val3'
+    // Returns '(val1 * val2) + val3'.
     func muladd(val1, val2, val3: f32)->f32
     func muladd(val1, val2, val3: f64)->f64
 
-    // Round toward minus infinity.
+    // Rounds toward minus infinity.
     func floor(value: f32)->f32
     func floor(value: f64)->f64
 
-    // Round toward plus infinity.
+    // Rounds toward plus infinity.
     func ceil(value: f32)->f32
     func ceil(value: f64)->f64
 
-    // Round toward zero.
+    // Rounds toward zero.
     func trunc(value: f32)->f32
     func trunc(value: f64)->f64
 
-    // Round to nearest, away from zero at .5.
+    // Rounds to the nearest integer, halfway cases away from zero.
     func round(value: f32)->f32
     func round(value: f64)->f64
 }

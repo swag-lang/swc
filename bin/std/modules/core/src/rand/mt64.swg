@@ -13,21 +13,27 @@ const MATRIX_A = 0xB5026F5AA96619E9'u64
 const UM       = 0xFFFFFFFF80000000'u64
 const LM       = 0x7FFFFFFF'u64
 
-// MT19937-64 Mersenne Twister generator.
+private const DefaultSeed = 5489'u64               // Seed of the reference implementation when none is given
+private const Unseeded    = StateSize + 1'u64     // Index of a generator that was never seeded
+
+// The MT19937-64 Mersenne Twister generator.
+//
+// A generator that was never seeded seeds itself with 5489 on its first draw, like the reference
+// implementation. Seed it with [[Core.Random.MersenneTwister64.seedU64]] for another sequence, or
+// use it through [[Core.Random.Generator]], which seeds itself from the clock.
 #[Swag.Opaque]
 public struct MersenneTwister64
 {
     internal
     {
         state: [StateSize] u64
-        index: u64
+        index: u64 = Unseeded
     }
 }
 
 public impl MersenneTwister64
 {
-    // Performs the seed u64 operation.
-    // Performs the next u64 operation.
+    // Seeds the generator with a 64-bit value.
     #[Swag.Safety(.Overflow, false)]
     mtd seedU64(seed: u64)
     {
@@ -40,7 +46,7 @@ public impl MersenneTwister64
         }
     }
 
-    // Performs the next u64 operation.
+    // Seeds the generator with a key made of several 64-bit values.
     #[Swag.Safety(.Overflow, false)]
     mtd seedU64(seed: const [..] u64)
     {
@@ -83,10 +89,13 @@ public impl MersenneTwister64
         .state[0] = 1'u64 << 63
     }
 
-    #[Swag.Safety(.Overflow, false)]
     // Returns the next pseudorandom 64-bit value.
+    #[Swag.Safety(.Overflow, false)]
     mtd nextU64()->u64
     {
+        if .index == Unseeded do
+            .seedU64(DefaultSeed)
+
         if .index >= StateSize
         {
             let stateMid = .state[MID]

@@ -93,7 +93,7 @@ impl SheetView
     // Whether `name` survives the filter, which matches anywhere in the name and ignores case.
     mtd const keeps(name: string)->bool
     {
-        if .filter.length == 0 do
+        if .filter.isEmpty() do
             return true
         return String.toLower(name).contains(.filter.toString())
     }
@@ -215,7 +215,7 @@ impl SheetView
     private mtd ensureFonts()
     {
         .fontName = app.theme.createDefaultFont(13)
-        .fontMono = app.theme.createDefaultFontFS(13)
+        .fontMono = app.theme.createDefaultFontFs(13)
         .fontHead = app.theme.createDefaultFont(15, .Bold)
     }
 

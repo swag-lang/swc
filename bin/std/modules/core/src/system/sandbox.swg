@@ -8,7 +8,7 @@ Process-wide isolation from real machine state.
 
 A test or a smoke run must not be able to reach the files, the settings or the desktop of
 the person running it. The sandbox is what makes that structural rather than a matter of
-each test remembering to redirect: once it is armed, [[Env.getSpecialDirectory]] answers
+each test remembering to redirect: once it is armed, [[Core.Env.getSpecialDirectory]] answers
 inside the sandbox, every write outside it fails, and the system mutations an application
 performs on startup are refused.
 
@@ -16,7 +16,7 @@ It is armed by the runtime from the process command line before any `#init`, `#p
 `#main` code runs, so an application needs no knowledge of it.
 
 A run may also be granted a *corpus*: one directory outside the root that stays writable, for a
-test whose reference data lives with its source. See [[Env.grantCorpus]].
+test whose reference data lives with its source. See [[Core.Env.grantCorpus]].
 
 > ATTENTION:
 > A refused operation fails; it is never a silent no-op. Isolation that quietly does nothing
@@ -48,10 +48,10 @@ private const MaxDefaultRootNames = 4'u32
 
 // Builds a private sandbox root for this process under the real temporary directory.
 //
-// The starting point is read from the machine rather than through [[Env.getSpecialDirectory]],
+// The starting point is read from the machine rather than through [[Core.Env.getSpecialDirectory]],
 // which answers inside the sandbox once one is armed. A process that also executes code at
 // compile time runs this hook more than once, and a root computed through the redirection would
-// nest a second one under the first, which [[Env.enterSandbox]] rejects as a change of root.
+// nest a second one under the first, which [[Core.Env.enterSandbox]] rejects as a change of root.
 // Reading the real directory makes the answer the same on every pass, which is what turns a
 // repeated arming into the no-op it is meant to be.
 //
@@ -61,17 +61,8 @@ private const MaxDefaultRootNames = 4'u32
 // the arming hook adopts when the leftover under the plain name refuses to clear.
 internal func defaultSandboxRoot(ordinal: u32 = 0)->String
 {
-    var result = Path.combine(realSpecialDirectory(.Temp).toString(), "swag-sandbox")
-    var name   = String.from("run-")
-    name += Format.toString("%", currentProcessId())
-    if ordinal != 0
-    {
-        name += "-"
-        name += Format.toString("%", ordinal)
-    }
-
-    result = Path.combine(result.toString(), name.toString())
-    return result
+    let name = ordinal != 0 ? Format.toString("run-%-%", currentProcessId(), ordinal) : Format.toString("run-%", currentProcessId())
+    return Path.combine(realSpecialDirectory(.Temp).toString(), "swag-sandbox", name.toString())
 }
 
 // Removes what a dead run left at `root`, so the run adopting that name starts on an empty one.
@@ -337,7 +328,7 @@ func isInsideDirectory(root: string, path: string)->bool
 
     if f.count < r.count do
         return false
-    if f[0 until r.count] != r do
+    if f[until r.count] != r do
         return false
 
     // A prefix match is not containment: 'C:/tmp/sandboxed' starts with 'C:/tmp/sandbox'.
@@ -346,7 +337,7 @@ func isInsideDirectory(root: string, path: string)->bool
     return Path.isDirectorySeparator(f[r.count])
 }
 
-// Reports whether `path` is inside the sandbox. Answers true when nothing is armed.
+// Reports whether `path` is inside the sandbox, which is always true when no sandbox is armed.
 func isInsideSandbox(path: string)->bool
 {
     if not g_Sandboxed do
@@ -354,7 +345,7 @@ func isInsideSandbox(path: string)->bool
     return isInsideDirectory(g_SandboxRoot.toString(), path)
 }
 
-// Reports whether `path` is inside the granted corpus. Answers false when there is none.
+// Reports whether `path` is inside the granted corpus, which is always false when none was granted.
 func isInsideCorpus(path: string)->bool => isInsideDirectory(g_CorpusRoot.toString(), path)
 
 // Returns the sandbox stand-in for a well-known system directory, creating it on demand.

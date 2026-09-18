@@ -1,12 +1,12 @@
 using Core, Pixel, Gui
 
-const ViewerDropHighlightInset = 16.0
-const ViewerDropHighlightWash  = 0.12'f32
+const ViewerDropHighlightInset = 16.0         // Distance between the highlighted target and the document edge.
+const ViewerDropHighlightWash  = 0.12'f32     // Share of the highlight color's alpha that washes the target.
 
 // Highlights the document while a desktop file can be dropped on Swag Scope.
 //
 // This is only a gesture affordance. It accepts no pointer input and disappears before the normal
-// file-opening path starts, so the viewer receives a drop exactly as it did before the highlight.
+// file-opening path starts, so the viewer receives a drop exactly as it would without it.
 struct ViewerDropHighlight
 {
     using wnd: Wnd
@@ -56,8 +56,11 @@ impl ViewerDropHighlight
         return result
     }
 
-    // Keeps the empty-state invitation readable by relying on its existing title. A document
-    // already on screen has no such invitation, so the overlay supplies its own short prompt.
+    // Shows the drop target over the whole document, with its own prompt when `showPrompt` is set.
+    //
+    // The empty state already carries an invitation, so the overlay adds none there and keeps it
+    // readable. A document already on screen has no such invitation, so the overlay supplies its
+    // own short prompt.
     mtd showTarget(showPrompt: bool)
     {
         .prompt.show(showPrompt)

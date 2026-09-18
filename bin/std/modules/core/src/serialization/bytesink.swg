@@ -168,16 +168,16 @@ impl ByteSink
         try .stream.seek(.Begin, .written)
     }
 
-    // Hands every buffered byte to the file. A memory sink has nothing to flush.
+    // Hands every buffered byte to the file; a memory sink has nothing to flush.
     mtd flush() fail
     {
         if not .pendingCount do
             return
-        try .stream.writeAll(.pending.toSlice()[0 until .pendingCount])
+        try .stream.writeAll(.pending.toSlice()[until .pendingCount])
         .pendingCount = 0
     }
 
-    // Flushes the stream and releases the file. Repeated calls do nothing.
+    // Flushes the stream and releases the file; repeated calls do nothing.
     //
     // This is the operation whose failure decides whether the stream is complete, so an
     // encoder calls it explicitly rather than leaving it to destruction: a sink that leaves

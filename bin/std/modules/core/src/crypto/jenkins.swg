@@ -7,8 +7,10 @@
 
 using Swag
 
-// Performs the jenkins operation.
-// Performs the jenkins operation.
+// Returns a well-distributed hash of the integer `h`.
+//
+// The mix is cheap and spreads every input bit over the whole result, which suits hash-table
+// keys that are already integers.
 #[Safety(.All, false)]
 public func jenkins(h: u64)->u64
 {
@@ -18,6 +20,7 @@ public func jenkins(h: u64)->u64
     return key
 }
 
+// Returns a well-distributed hash of the 32-bit integer `h`, using Robert Jenkins' mix.
 #[Safety(.All, false)]
 public func jenkins(h: u32)->u32
 {

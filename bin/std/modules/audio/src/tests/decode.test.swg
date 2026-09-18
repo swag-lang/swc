@@ -20,7 +20,7 @@ func audioPcmPacketSound()->SoundFile fail
     Swag.assert(file.isPacketStream() and file.packetCount() == 2 and not file.isDataPreloaded())
 
     let payload = expect file.readPayload(0, 8)
-    Swag.assert(audioAssertBytes(payload.toSlice(), [0x00'u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
+    Swag.assert(Slice.equals(payload.toSlice(), [0x00'u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
 
     var voice: Voice
     voice.file = &file
@@ -96,12 +96,12 @@ func audioPcmPacketSound()->SoundFile fail
     var buffer: [4] u8
     let size0 = expect voice.decodeData(&buffer[0], buffer.count)
     Swag.assert(size0 == 4)
-    Swag.assert(audioAssertBytes(buffer, [0x00, 0x80, 0xFF, 0xFF]))
+    Swag.assert(Slice.equals(buffer, [0x00, 0x80, 0xFF, 0xFF]))
     Swag.assert(voice.streamCurSeek == 4)
 
     let size1 = expect voice.decodeData(&buffer[0], buffer.count)
     Swag.assert(size1 == 4)
-    Swag.assert(audioAssertBytes(buffer, [0x00, 0x00, 0xFF, 0x7F]))
+    Swag.assert(Slice.equals(buffer, [0x00, 0x00, 0xFF, 0x7F]))
     Swag.assert(voice.streamCurSeek == 8)
 
     let size2 = expect voice.decodeData(&buffer[0], buffer.count)

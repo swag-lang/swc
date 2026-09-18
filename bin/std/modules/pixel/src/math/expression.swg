@@ -16,7 +16,9 @@ enum MathStyle
     ScriptScript     // Nested subscript or superscript style.
 }
 
-// Result of mathematical layout. The baseline is `ascent` pixels below the top.
+// Reports the extent of a laid-out mathematical expression.
+//
+// The baseline is `ascent` pixels below the top.
 struct MathMetrics
 {
     public
@@ -235,10 +237,7 @@ private func mathOwnedSlice(source: string, start, end: u64)->String
     return result
 }
 
-private func mathIsAsciiLetter(c: u8)->bool
-{
-    return c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z'
-}
+private func mathIsAsciiLetter(c: u8)->bool => c >= 'a' and c <= 'z' or c >= 'A' and c <= 'Z'
 
 internal func mathStyleScale(style: MathStyle, options: MathLayoutOptions)->f32
 {
@@ -291,10 +290,7 @@ private func mathIsAsciiVariable(text: string)->bool
     return mathIsAsciiLetter(text.buffer[0])
 }
 
-private func mathSymbol(text: string, atomClass = MathAtomClass.Ord, large = false, limitsMode = MathLimitsMode.Automatic)->MathSymbolSpec
-{
-    return {text: text, atomClass: atomClass, found: true, largeOperator: large, limitsMode: limitsMode}
-}
+private func mathSymbol(text: string, atomClass = MathAtomClass.Ord, large = false, limitsMode = MathLimitsMode.Automatic)->MathSymbolSpec => {text: text, atomClass: atomClass, found: true, largeOperator: large, limitsMode: limitsMode}
 
 // Common LaTeX math commands. Unicode is the interchange layer between the
 // parser and Pixel's font renderer, so a font can provide its best matching glyph.
@@ -1248,7 +1244,10 @@ impl MathExpression
         .root = .nodes[rootId]!
     }
 
-    // Parse a reusable TeX-like mathematical expression.
+    // Parses a reusable TeX-like mathematical expression.
+    //
+    // Malformed or unsupported input is reported through `fail`, with the byte offset where
+    // parsing stopped.
     func parse(source: string)->MathExpression fail
     {
         var result: retval
@@ -1265,9 +1264,9 @@ impl MathExpression
         return result
     }
 
-    // Original TeX-like source.
+    // Returns the original TeX-like source.
     mtd const sourceText()->string => .source.toString()
 
-    // Number of parsed nodes, useful for diagnostics and cache accounting.
+    // Returns the number of parsed nodes, for diagnostics and cache accounting.
     mtd const nodeCount()->u64 => .nodes.count
 }

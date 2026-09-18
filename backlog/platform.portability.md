@@ -21,7 +21,7 @@ enough to justify one coordinated campaign:
 
 | Area | Platform files | Lines |
 | --- | ---: | ---: |
-| `bin/runtime/os_windows.swg` | 1 | 426 |
+| `bin/runtime/os.win32.swg` | 1 | 426 |
 | `std/core` (`.win32.swg` and `.xinput.swg`) | 29 | 3,050 |
 | `std/gui` (`.win32.swg`, excluding tests) | 5 | 2,967 |
 | `std/pixel` (`.win32.swg`, excluding OpenGL and tests) | 3 | 399 |
@@ -258,7 +258,7 @@ entry point are gone. Only the Windows leaf supplies the current hooks.
 - Recorded: 2026-08-09 11:30
 - Updated: 2026-09-10 20:20 — Account for existing thread, synchronization, page, and debug host hooks.
 
-`bin/runtime/os_windows.swg` already provides named `__hostTls*`, thread-storage,
+`bin/runtime/os.win32.swg` already provides named `__hostTls*`, thread-storage,
 `__hostThread*`, lock/condition, page-allocation, and image/debug-section hooks. The remaining
 boundary is not a missing host API from scratch: the leaf still combines those mechanisms with
 command-line conversion, test exception recovery, and debug-section decoding policy.

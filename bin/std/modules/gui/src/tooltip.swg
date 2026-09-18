@@ -24,13 +24,10 @@ public struct State
 {
     public sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when the reader activates a link inside the visible tip.
 
-    internal
-    {
-        pending:       *Request?      // Request still counting down.
-        current:       *FrameWnd?     // Tip on screen.
-        currentOwner:  *Wnd?          // Window the visible tip annotates.
-        pointerInside: bool           // Whether the pointer is over the visible tip.
-    }
+    pending:       *Request?      // Request still counting down.
+    current:       *FrameWnd?     // Tip on screen.
+    currentOwner:  *Wnd?          // Window the visible tip annotates.
+    pointerInside: bool           // Whether the pointer is over the visible tip.
 }
 
 impl State
@@ -85,7 +82,7 @@ impl State
             .hide()
     }
 
-    // Whether `wnd` is the visible tip or part of it.
+    // Reports whether `wnd` is the visible tip or part of it.
     public mtd contains(wnd: *Wnd?)->bool
     {
         let current = .current
@@ -94,11 +91,11 @@ impl State
         return current == wnd or current.isAncestorOf(wnd)
     }
 
-    // Whether the visible tip carries a link, and so has something to be reached for.
+    // Reports whether the visible tip carries a link, and so has something to be reached for.
     private mtd isInteractive()->bool
     {
         let current = .current
-        if not current or not (current.view != null) do
+        if not current or current.view == null do
             return false
         let label = cast #assume (*Label) current.view
         return label.name.hasUrl

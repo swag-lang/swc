@@ -6,7 +6,7 @@ using Win32
 #[Swag.Opaque, Swag.NoDoc]
 public struct NativeCursor
 {
-    public cursor: HCURSOR     // Cursor associated with this value.
+    public cursor: HCURSOR     // Shared system cursor handle, never destroyed through the descriptor.
 }
 
 impl NativeCursor
@@ -34,10 +34,7 @@ impl NativeCursor
 public impl Cursor
 {
     // Returns the shared native cursor for a standard cursor shape.
-    func from(shape: CursorShape)->Cursor
-    {
-        return NativeCursor.defaultCursors[shape]
-    }
+    func from(shape: CursorShape)->Cursor => NativeCursor.defaultCursors[shape]
 
     // Restores an invalid cursor descriptor without destroying the shared system cursor.
     mtd clear()

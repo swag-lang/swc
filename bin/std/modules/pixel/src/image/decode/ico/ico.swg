@@ -61,10 +61,7 @@ func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 }
 
 // Width/height of 0 in a directory entry means 256
-func dimFromByte(value: u8)->s32
-{
-    return value == 0 ? 256 : cast(s32) value
-}
+func dimFromByte(value: u8)->s32 => value == 0 ? 256 : cast(s32) value
 
 func isPngSignature(p: const [*] u8, size: u64)->bool
 {
@@ -73,10 +70,7 @@ func isPngSignature(p: const [*] u8, size: u64)->bool
     return p[0] == 0x89 and p[1] == 0x50 and p[2] == 0x4E and p[3] == 0x47 and p[4] == 0x0D and p[5] == 0x0A and p[6] == 0x1A and p[7] == 0x0A
 }
 
-func rowStride32(widthBits: u64)->u64
-{
-    return ((widthBits + 31) / 32) * 4
-}
+func rowStride32(widthBits: u64)->u64 => ((widthBits + 31) / 32) * 4
 
 func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
 {
@@ -94,10 +88,7 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
     }
 }
 
-func maskBit(andRow: const [*] u8, x: s32)->u32
-{
-    return cast(u32) ((andRow[x / 8] >> cast(u32) (7 - (x & 7))) & 1)
-}
+func maskBit(andRow: const [*] u8, x: s32)->u32 => cast(u32) ((andRow[x / 8] >> cast(u32) (7 - (x & 7))) & 1)
 
 // Decode the embedded BITMAPINFOHEADER icon image into a BGRA8 result.
 func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail

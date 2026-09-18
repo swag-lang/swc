@@ -3,10 +3,7 @@
 
 using Swag, Core
 
-func serializationFixturePath(name: string)->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
-}
+func serializationFixturePath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
 
 // This checked-in SCC is the on-disk contract. Unlike a save/load round trip produced by one
 // compiler invocation, it fails when a rename or serialization change alters a published id.

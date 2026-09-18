@@ -247,10 +247,7 @@ private func parseEac3Frame(reader: *BitReader, bsi: const *Eac3Bsi)->Eac3Frame 
     return result
 }
 
-private func isDefaultEac3CouplingJoin(absoluteSubband: u32)->bool
-{
-    return absoluteSubband == 8 or absoluteSubband == 10 or absoluteSubband == 11 or absoluteSubband == 13 or absoluteSubband >= 14
-}
+private func isDefaultEac3CouplingJoin(absoluteSubband: u32)->bool => absoluteSubband == 8 or absoluteSubband == 10 or absoluteSubband == 11 or absoluteSubband == 13 or absoluteSubband >= 14
 
 private impl Eac3Codec
 {

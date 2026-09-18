@@ -6,7 +6,7 @@ using Core, Gui
 //
 // The line is named rather than written, so a language switch can say the same thing again without
 // the window having kept a copy of the sentence.
-internal enum StatusMessage
+enum StatusMessage
 {
     Ready            // Nothing has been compiled yet.
     Working          // The compiler is running.
@@ -76,15 +76,21 @@ impl MicrocodeViewer
 {
     func create(parent: *ViewerPanel, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel)->*MicrocodeViewer
     {
-        let result = Wnd.create'MicrocodeViewer(parent, "prism.microcode")
-        result.backgroundStyle      = .Transparent
-        result.panel                = parent
-        result.cache                = parent.cache
-        result.sourceEditor         = sourceEditor
-        result.level                = level
-        result.stageCombo           = ComboBox.create(result, {0, 0, 0, 36}, "prism.stage")
-        result.stageCombo.dockStyle = .Top
-        result.stageCombo.margin    = {0, 0, 0, 8}
+        with let result = Wnd.create'MicrocodeViewer(parent, "prism.microcode")
+        {
+            .backgroundStyle = .Transparent
+            .panel           = parent
+            .cache           = parent.cache
+            .sourceEditor    = sourceEditor
+            .level           = level
+        }
+
+        with result.stageCombo = ComboBox.create(result, {0, 0, 0, 36}, "prism.stage")
+        {
+            .dockStyle = .Top
+            .margin    = {0, 0, 0, 8}
+        }
+
         result.fillStages()
         result.stageCombo.sigChanged += func|viewer = result|(combo, index)
         {
@@ -93,17 +99,26 @@ impl MicrocodeViewer
             viewer.optionsChanged()
         }
 
-        let footer = Wnd.create'Wnd(result, {0, 0, 0, 28})
-        footer.dockStyle        = .Bottom
-        footer.backgroundStyle  = .Transparent
-        footer.padding          = {0, 4, 0, 0}
-        result.status           = Label.create(footer, "", {}, null, .SecondaryText)
-        result.status.dockStyle = .Center
-        result.status.setTextAlignment(.Left, .Center)
-        result.output = RichEditCtrl.create(result)
-        result.output.dockStyle = .Center
-        result.output.setFlags(.ReadOnly)
-        result.output.setLexer(&result.outputText)
+        with let footer = Wnd.create'Wnd(result, {0, 0, 0, 28})
+        {
+            .dockStyle       = .Bottom
+            .backgroundStyle = .Transparent
+            .padding         = {0, 4, 0, 0}
+        }
+
+        with result.status = Label.create(footer, "", {}, null, .SecondaryText)
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+        }
+
+        with result.output = RichEditCtrl.create(result)
+        {
+            .dockStyle = .Center
+            .setFlags(.ReadOnly)
+            .setLexer(&result.outputText)
+        }
+
         result.retranslate()
         result.applyLayout()
         return result
@@ -118,22 +133,20 @@ impl MicrocodeViewer
     // Fills the stage list in the active language, keeping the stage that was selected.
     mtd fillStages()
     {
-        let selected = .stageCombo.items.count ? .stageCombo.selectedIndex : Pipeline.DefaultStage
+        let selected = .stageCombo.items.isEmpty() ? Pipeline.DefaultStage : .stageCombo.selectedIndex
 
         .stageCombo.clear()
         let labels = Pipeline.stageLabels()
-        for i in labels.count do
-            .stageCombo.addItem(labels[i])
+        for label in labels do
+            .stageCombo.addItem(label)
         .stageCombo.setSelectedIndex(selected, notify: false)
     }
 
-    // Asks for the snippet to be compiled at the selected stage.
+    // Asks for `request` to be compiled.
     //
     // One compilation is in flight at a time. Asking again while one runs marks the request rather
     // than starting a second compiler, and the marked request runs as soon as the first ends — so
     // holding a key on the stage list costs one more compilation, not one per step.
-    mtd compileSource(source: string) { .compileRequest(.panel.request(source)) }
-
     mtd compileRequest(request: Pipeline.BuildRequest)
     {
         .pendingRequest = request
@@ -162,9 +175,7 @@ impl MicrocodeViewer
         // Options remain editable while this viewer compiles; another request replaces its pending input.
         .setStatus(.Working)
         .job.timer = .app().addTimer(20'ms, me)
-
-        let window = me
-        .job.task.submit(func|window|() { window.runCompile() })
+        .job.task.submit(func|viewer = me|() { viewer.runCompile() })
     }
 
     // Runs on the job's thread. Nothing here may reach the window tree or anything it draws from.

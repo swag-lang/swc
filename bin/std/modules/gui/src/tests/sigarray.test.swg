@@ -40,6 +40,7 @@ func sigArrayTestAppendA(value: *s32)
     SigArrayTestTrace += "A"
 }
 
+// A signal calls every registered callback, and disabling nests: each `disable` needs its own `enable`.
 #test
 {
     var signal: SigArray'func||(*s32)
@@ -75,6 +76,7 @@ func sigArrayTestAppendA(value: *s32)
     Swag.assert(not signal.isDisabled())
 }
 
+// A callback with several parameters receives every argument.
 #test
 {
     var signal: SigArray'func||(*s32, s32)
@@ -91,6 +93,7 @@ func sigArrayTestAppendA(value: *s32)
     Swag.assert(SigArrayTestTotal == 33)
 }
 
+// Callbacks run in registration order, each one seeing what the previous one wrote.
 #test
 {
     var signal: SigArray'func||(*s32)

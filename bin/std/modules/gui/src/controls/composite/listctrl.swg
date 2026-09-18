@@ -49,7 +49,7 @@ struct ListItem
 {
     public
     {
-        using item: Item                         // Embedded item state.
+        using item: Item                         // Embedded label, icon, identifier, and user data.
         sortKey:    String                       // Optional key used instead of the displayed label when sorting.
         colorBk:    Color                        // Cell background override, or transparent for the list color.
         colorFg:    Color                        // Cell foreground override, or transparent for the list color.
@@ -89,7 +89,7 @@ struct ListCtrl
 {
     public
     {
-        using frameWnd: FrameWnd     // Embedded frame wnd state.
+        using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
         readonly
         {
@@ -133,12 +133,12 @@ struct ListCtrl
     public readonly
     {
         // Where the keyboard and the mouse currently are in the list. The list moves them as it
-        // handles events; move the focus with 'setFocusIndex'.
+        // handles events; move the focus with [[Gui.ListCtrl.setFocusedIndex]].
         focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
         hotIndex   = Swag.U32.Max     // Row under the mouse.
 
         // Where a drop hovering the list would land. The list never sets these itself: a window
-        // showing a drag decides what it accepts, and says so with 'setDropMark'.
+        // showing a drag decides what it accepts, and says so with [[Gui.ListCtrl.setDropMark]].
         dropMarkIndex = Swag.U32.Max          // Row the mark is drawn against.
         dropMark      = ListDropMark.None     // What the mark says about that row.
     }
@@ -149,8 +149,8 @@ struct ListView
 {
     public
     {
-        using wnd: Wnd           // Embedded wnd state.
-        late list: *ListCtrl     // List associated with this value.
+        using wnd: Wnd           // Embedded window behavior and presentation.
+        late list: *ListCtrl     // List control whose rows this view paints.
     }
 
     // Set when a press was consumed by something else, so the matching release is ignored.
@@ -159,21 +159,18 @@ struct ListView
 
 impl ListLine
 {
-    // Returns whether parent of.
+    // Returns whether this row is an ancestor of `other`.
     mtd isParentOf(other: *ListLine)->bool
     {
         var l = other.parent
         while l and l != me do
             l = l.parent
-        return l ? true : false
+        return l != null
     }
 
-    // Returns whether this value can expand.
+    // Returns whether the row shows an expansion mark: it has child rows or forces the mark.
     #[Swag.Inline]
-    mtd canExpand()->bool
-    {
-        return .forceExpandMark or not .lines.isEmpty()
-    }
+    mtd canExpand()->bool => .forceExpandMark or not .lines.isEmpty()
 
     // Returns the cell assigned to `column`.
     mtd itemAt(column: u32)->*ListItem
@@ -189,9 +186,7 @@ impl ListLine
         unreachable
     }
 
-    // Initialize a given column item
-    // Creates simple.
-    // Creates multi columns.
+    // Sets the label and icon of the cell in `column`, creating the cell when absent, and returns it.
     #[Swag.Discardable]
     mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
     {
@@ -249,14 +244,11 @@ impl IWnd for ListView
         if .list.focusIndex < .list.lines.count do
             focusLine = .list.lines[.list.focusIndex]
 
-        var shift = cast(bool) (evt.modifiers & .Shift)
-        let ctrl  = cast(bool) (evt.modifiers & .Control)
+        var shift = evt.modifiers.has(.Shift)
+        let ctrl  = evt.modifiers.has(.Control)
 
-        if .list.focusIndex == Swag.U32.Max
-        {
-            if evt.key != .Down do
-                return
-        }
+        if .list.focusIndex == Swag.U32.Max and evt.key != .Down do
+            return
 
         var selChanged = false
         var startSelIdx, endSelIdx: u32
@@ -412,8 +404,8 @@ impl IWnd for ListView
 
         let metrics = .themeMetrics()
 
-        let ctrl  = cast(bool) (evt.modifiers & .Control)
-        let shift = cast(bool) (evt.modifiers & .Shift)
+        let ctrl  = evt.modifiers.has(.Control)
+        let shift = evt.modifiers.has(.Shift)
 
         // Right mouse button
         // ============================
@@ -582,7 +574,7 @@ impl IWnd for ListView
         .paintDropMark(evt.paintContext)
     }
 
-    mtd paintRows(bc: PaintContext)
+    private mtd paintRows(bc: PaintContext)
     {
         let painter = bc.painter
         let colors  = .themeColors()
@@ -633,7 +625,7 @@ impl IWnd for ListView
             }
         }
 
-        if (.list.header != null) and .list.listFlags.has(.VerticalLines)
+        if .list.header != null and .list.listFlags.has(.VerticalLines)
         {
             rect = .paddedClientRect()
             for idx in 1 until .list.header.items.count
@@ -694,7 +686,7 @@ private impl ListView
         // A row keeps its content clear of its own leading edge. A list with a header takes that
         // air from the header's own column inset instead; adding it here as well would slide
         // every cell out from under its title.
-        if not (.list.header != null) do
+        if .list.header == null do
             pos.moveLeft(metrics.list_Padding)
 
         if itemIndex == 0
@@ -1151,10 +1143,10 @@ impl ListCtrl
             if not (evt is ResizeEvent) do
                 return false
 
-            var list = cast #assume (*ListCtrl) wnd
-            if not (list.header != null) do
+            let list = cast #assume (*ListCtrl) wnd
+            if list.header == null do
                 return false
-            var header = list.header
+            let header = list.header
             if header.form == .Transparent do
                 return false
             switch list.frameForm
@@ -1227,7 +1219,7 @@ impl ListCtrl
         .sigSelectionChanged.call(me)
     }
 
-    // Reports whether the row at `index` is selected.
+    // Reports whether the row at `idx` is selected.
     mtd const isLineSelected(idx: u32)->bool
     {
         Swag.assert(idx < .lineCount())
@@ -1348,7 +1340,10 @@ impl ListCtrl
             .sigCheckedChanged.call(me)
     }
 
-    // Compute global layout, once all lines have been added
+    // Recomputes the scroll size from the row count, the row height, and the content width.
+    //
+    // Call it once after adding rows with [[Gui.ListCtrl.createLine]]; expanding, collapsing, and
+    // clearing rows call it themselves.
     mtd computeLayout()
     {
         let clientRect = .scrollWnd.paddedClientRect()
@@ -1366,10 +1361,7 @@ impl ListCtrl
     }
 
     // Returns the effective row height for the current font and configuration.
-    mtd lineHeight()->f32
-    {
-        return .fixedLineHeight != 0 ? .fixedLineHeight : Math.max(24.0, .font().regular!.height + 8)
-    }
+    mtd lineHeight()->f32 => .fixedLineHeight != 0 ? .fixedLineHeight : Math.max(24.0, .font().regular!.height + 8)
 
     // Returns where one visible row's cell draws its text, in the coordinates of the list's view.
     //
@@ -1412,7 +1404,7 @@ impl ListCtrl
         return result
     }
 
-    // Returns the visible row at `index`.
+    // Returns the visible row at `idx`.
     mtd const lineAt(idx: u32)->*ListLine?
     {
         Swag.assert(not .isVirtual, "virtual lists do not retain row objects")
@@ -1428,7 +1420,7 @@ impl ListCtrl
         return cast(u32) .lines.count
     }
 
-    // Returns whether this value has visible check boxes.
+    // Returns whether a visible row exposes a check box; a virtual list never does.
     mtd const hasVisibleCheckBoxes()->bool
     {
         if .isVirtual do
@@ -1481,7 +1473,11 @@ impl ListCtrl
     mtd clear()
     {
         .lines.clear()
-        .virtualCount = 0
+        .toFreeLines.clear()
+        .hotIndex      = Swag.U32.Max
+        .dropMarkIndex = Swag.U32.Max
+        .dropMark      = .None
+        .virtualCount  = 0
         .isVirtual    = false
         .idxLineToIdxList.clear()
         .nextLineIndex = 0
@@ -1507,7 +1503,8 @@ impl ListCtrl
     }
 
     // Switches to virtual mode with `count` logical rows.
-    // Assign [[onFillVirtualLine]] before painting a non-empty virtual list.
+    //
+    // Assign [[Gui.ListCtrl.onFillVirtualLine]] before painting a non-empty virtual list.
     mtd setVirtualCount(count: u32)
     {
         .clear()
@@ -1632,8 +1629,9 @@ impl ListCtrl
         return result
     }
 
-    // Returns a selected line
-    // Mostly for singlesel mode
+    // Returns the first selected retained row, or null in virtual mode or without a selection.
+    //
+    // This is the selected row of a single-selection list.
     mtd const selectedLine()->*ListLine?
     {
         if .isVirtual or .selModel.isEmpty() do
@@ -1642,8 +1640,7 @@ impl ListCtrl
         let res   = .idxLineToIdxList.tryFind(range.start)
         if not res do
             return null
-        let idx = res.value
-        return .lines[idx]
+        return .lines[res.value]
     }
 
     private mtd mapIndexes()
@@ -1718,9 +1715,12 @@ impl ListCtrl
         toSort.sort(cb)
     }
 
-    // Sort the list by a given column
-    // If 'persistent' is true, then the sorted column will be displayed in the
-    // header (if it exists)
+    // Sorts the visible rows by the cells of `column`.
+    //
+    // Without [[Gui.ListCtrl.compareLines]], each row keeps its place under its parent and is
+    // ordered among its siblings by sort key, or by label, in natural order; a custom comparison
+    // orders the visible rows directly. When `persistent` is true, the header shows the sort
+    // marker. A virtual list is left unchanged.
     mtd sort(column: u32, descending = false, persistent = false)
     {
         if .isVirtual do
@@ -1729,22 +1729,22 @@ impl ListCtrl
         .sort(column, descending, &.lines)
         .mapIndexes()
 
-        if (.header != null) and persistent do
+        if .header != null and persistent do
             .header.setSortIndicator(column, descending ? .Descending : .Ascending)
 
         .invalidate()
     }
 
-    // Sort list as before
+    // Sorts the rows again by the column and direction the header shows, or by the first column.
     mtd sort()
     {
-        if (.header != null) and .header.sortDirection != .None do
+        if .header != null and .header.sortDirection != .None do
             .sort(.header.sortColumn, .header.sortDirection == .Descending)
         else do
             .sort(0, false)
     }
 
-    // Expand the given line
+    // Expands `line`, showing its child rows, and emits [[Gui.ListCtrl.sigExpanded]].
     mtd expand(line: *ListLine)
     {
         if not line.canExpand() or line.expanded do
@@ -1752,7 +1752,7 @@ impl ListCtrl
         line.expanded = true
         .sigExpanded.call(me, line)
 
-        if (.header != null) and .header.sortDirection != .None do
+        if .header != null and .header.sortDirection != .None do
             .sort(.header.sortColumn, .header.sortDirection == .Descending, &line.lines)
 
         let res = .idxLineToIdxList.tryFind(line.index)
@@ -1770,7 +1770,9 @@ impl ListCtrl
         .computeLayout()
     }
 
-    // Collapse the given line
+    // Collapses `line`, hiding its descendant rows, and emits [[Gui.ListCtrl.sigCollapsed]].
+    //
+    // A keyboard focus inside the hidden rows moves to `line`, which becomes the only selected row.
     mtd collapse(line: *ListLine)
     {
         if not line.canExpand() or not line.expanded do
@@ -1815,7 +1817,7 @@ impl ListCtrl
         .computeLayout()
     }
 
-    // Collapse all lines
+    // Collapses every row of the hierarchy.
     mtd collapseAll()
     {
         func collapseRec(sl: [..] (*ListLine?))
@@ -1828,17 +1830,20 @@ impl ListCtrl
             }
         }
 
-        for l in .lines
+        var index = 0'u64
+        while index < .lines.count
         {
-            if l!.expanded do
-                .collapse(l)
+            let line = .lines[index]!
+            if line.expanded do
+                .collapse(line)
+            index += 1
         }
 
         collapseRec(.lines.toSlice())
         .computeLayout()
     }
 
-    // Collapse the given line
+    // Expands `line` when it is collapsed, and collapses it otherwise.
     mtd toggleExpand(line: *ListLine)
     {
         if line.expanded do

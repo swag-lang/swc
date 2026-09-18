@@ -2,37 +2,61 @@
 
 using Core, Gui
 
-// One source toolbar: labels yield to icons before the example selector loses its space.
+// The source toolbar: compile, format, automatic compilation, and the example selector.
+//
+// As the toolbar narrows, the labels yield to their icons before the example selector loses its
+// space.
 struct SourceActions
 {
     using wnd: Wnd
+
+    late
+    {
+        runButton:    *PushButton
+        formatButton: *PushButton
+        liveEdit:     *CheckButton
+        exampleCombo: *ComboBox
+    }
 }
 
 impl SourceActions
 {
+    // Writes the tooltips and example names in the active language, keeping `selected` chosen.
+    mtd retranslate(selected: ExampleKind)
+    {
+        .exampleCombo.clear()
+        for label in [appStrings().ui_Plasma, appStrings().ui_Julia, appStrings().ui_GuiExample, appStrings().ui_Dot] do
+            .exampleCombo.addItem(label)
+        .exampleCombo.setSelectedIndex(cast(u32) selected, notify: false)
+        .exampleCombo.toolTip = appStrings().ui_Examples
+        .liveEdit.toolTip     = appStrings().ui_LiveEdit
+        .formatButton.toolTip = appStrings().ui_FormatHint
+        .runButton.toolTip    = appStrings().ui_CompileVisibleHint
+        .layoutFields()
+    }
+
+    // Labels the buttons for the width the toolbar has, then places them in one row.
     mtd layoutFields()
     {
-        if .children.count != 4 do
+        // The window lays itself out while its controls are still being created.
+        if .exampleCombo == null do
             return
-        let compile   = cast #assume(*PushButton) .children[0]
-        let format    = cast #assume(*PushButton) .children[1]
-        let automatic = cast #assume(*CheckButton) .children[2]
-        let examples  = .children[3]
-        let rect      = .paddedClientRect()
-        compile.setText(rect.width >= 440 ? appStrings().ui_CompileVisible : "")
-        format.setText(rect.width >= 560 ? appStrings().ui_Format : "")
-        automatic.setText(rect.width >= 440 ? appStrings().ui_AutoCompile : "")
-        let compileWidth = Math.max(36.0, compile.IWnd.measureContent({}).x)
-        let formatWidth  = Math.max(36.0, format.IWnd.measureContent({}).x)
-        let autoWidth    = Math.max(36.0, automatic.IWnd.measureContent({}).x)
-        var x            = rect.x
-        compile.arrange({x, rect.y, compileWidth, 36})
-        x += compileWidth + 8
-        format.arrange({x, rect.y, formatWidth, 36})
+
+        let rect = .paddedClientRect()
+        .runButton.setText(rect.width >= 440 ? appStrings().ui_CompileVisible : "")
+        .formatButton.setText(rect.width >= 560 ? appStrings().ui_Format : "")
+        .liveEdit.setText(rect.width >= 440 ? appStrings().ui_AutoCompile : "")
+        let runWidth    = Math.max(36.0, .runButton.IWnd.measureContent({}).x)
+        let formatWidth = Math.max(36.0, .formatButton.IWnd.measureContent({}).x)
+        let autoWidth   = Math.max(36.0, .liveEdit.IWnd.measureContent({}).x)
+        var x           = rect.x
+        .runButton.arrange({x, rect.y, runWidth, 36})
+        x += runWidth + 8
+        .formatButton.arrange({x, rect.y, formatWidth, 36})
         x += formatWidth + 8
-        automatic.arrange({x, rect.y, autoWidth, 36})
+        .liveEdit.arrange({x, rect.y, autoWidth, 36})
         x += autoWidth + 8
-        examples.arrange({x, rect.y, Math.max(0.0, rect.right() - x), 36})
+        .exampleCombo.arrange({x, rect.y, Math.max(0.0, rect.right() - x), 36})
     }
 }
 

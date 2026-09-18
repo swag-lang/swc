@@ -50,13 +50,14 @@ impl Mouse
         .currentState.setPressMetadata(button, currentTimeMs, currentPosition)
     }
 
-    // Compute the current state of the mouse
+    // Captures a new state, keeping the previous one, and detects double-clicks.
     mtd update()
     {
         .previousState = .currentState
         .currentState.update()
 
-        // Dbl click
+        // A press is a double-click when it follows the previous press of the same button, at
+        // the same position, within 'doubleClickTimeMs'.
         for v in MouseButton
         {
             .doubleClicked[v] = false
@@ -71,7 +72,7 @@ impl Mouse
         }
     }
 
-    // Reset the mouse state to its default value
+    // Resets both states and forgets the detected double-clicks.
     mtd clear()
     {
         .previousState.clear()
@@ -80,16 +81,12 @@ impl Mouse
     }
 
     // Returns whether `button` completed a double-click during the latest update.
-    mtd isButtonDoubleClick(button: MouseButton)->bool
-    {
-        return .doubleClicked[button]
-    }
+    mtd isButtonDoubleClick(button: MouseButton)->bool => .doubleClicked[button]
 
     // Returns whether `button` is currently pressed according to the operating system.
     func isButtonPressed(button: MouseButton)->bool
     {
-        using MouseButton
-        switch button
+        switch #complete button
         {
         case .Left:     return Keyboard.isKeyPressed(Input.Key.LButton)
         case .Middle:   return Keyboard.isKeyPressed(Input.Key.MButton)
@@ -97,33 +94,19 @@ impl Mouse
         case .XButton1: return Keyboard.isKeyPressed(Input.Key.XButton1)
         case .XButton2: return Keyboard.isKeyPressed(Input.Key.XButton2)
         }
-
-        return false
     }
 
-    // Determines whether the specified mouse button is pressed
-    mtd isButtonPressed(button: MouseButton)->bool
-    {
-        return .currentState.pressed[button]
-    }
+    // Returns whether `button` is pressed in the latest state.
+    mtd isButtonPressed(button: MouseButton)->bool => .currentState.pressed[button]
 
-    // Determines whether the specified mouse button has just been pressed
-    mtd isButtonJustPressed(button: MouseButton)->bool
-    {
-        return .currentState.pressed[button] and not .previousState.pressed[button]
-    }
+    // Returns whether `button` became pressed during the latest update.
+    mtd isButtonJustPressed(button: MouseButton)->bool => .currentState.pressed[button] and not .previousState.pressed[button]
 
-    // Determines whether the specified mouse button is released
-    mtd isButtonReleased(button: MouseButton)->bool
-    {
-        return not .currentState.pressed[button]
-    }
+    // Returns whether `button` is released in the latest state.
+    mtd isButtonReleased(button: MouseButton)->bool => not .currentState.pressed[button]
 
-    // Determines whether the specified mouse button has just been released
-    mtd isButtonJustReleased(button: MouseButton)->bool
-    {
-        return not .currentState.pressed[button] and .previousState.pressed[button]
-    }
+    // Returns whether `button` became released during the latest update.
+    mtd isButtonJustReleased(button: MouseButton)->bool => not .currentState.pressed[button] and .previousState.pressed[button]
 
     // Returns the cursor position before the latest update.
     mtd previousPosition()->Point => .previousState.position
@@ -132,8 +115,5 @@ impl Mouse
     mtd position()->Point => .currentState.position
 
     // Returns the cursor movement since the previous update.
-    mtd movement()->Point
-    {
-        return .currentState.position - .previousState.position
-    }
+    mtd movement()->Point => .currentState.position - .previousState.position
 }

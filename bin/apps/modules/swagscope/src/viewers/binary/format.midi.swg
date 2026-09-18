@@ -28,7 +28,7 @@ func reportMidiFile(image: *BinaryImage, report: *BinaryReport)
 {
     image.bigEndian = true
 
-    let s            = binStrings()
+    let s            = binaryStrings()
     let headerLength = cast(u64) image.u32At(4)
     let format       = image.u16At(8)
     let trackCount   = image.u16At(10)
@@ -206,7 +206,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
             if shown
             {
                 let value  = StrConv.toDisplaySize(length.value)
-                let detail = Format.toString(binStrings().midi_At, result.lastTick)
+                let detail = Format.toString(binaryStrings().midi_At, result.lastTick)
                 report.field(scan, next - scan, status == 0xF0 ? "System Exclusive" : "System Exclusive continuation", value.toString(), detail.toString())
             }
 
@@ -225,7 +225,7 @@ private func reportMidiTrack(image: *BinaryImage, report: *BinaryReport, at, end
     {
         report.listCut(Math.min(result.events, BinaryListLimit), result.events)
         if result.complete and not result.ended do
-            report.note(binStrings().midi_NoEnd)
+            report.note(binaryStrings().midi_NoEnd)
     }
 
     return result
@@ -238,15 +238,14 @@ private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, 
     let channel = cast(u64) (status & 0x0F) + 1
     let first   = cast(u64) image.u8At(dataAt)
     let second  = next - dataAt == 2 ? cast(u64) image.u8At(dataAt + 1) : 0
-    let detail  = Format.toString(binStrings().midi_AtChannel, tick, channel)
+    let detail  = Format.toString(binaryStrings().midi_AtChannel, tick, channel)
 
     var value: String
     switch kind
     {
     case 0x8, 0x9, 0xA: value = Format.toString("% · velocity %", first, second)
     case 0xB: value = Format.toString("% = %", first, second)
-    case 0xC: value = Format.toString("%", first)
-    case 0xD: value = Format.toString("%", first)
+    case 0xC, 0xD: value = Format.toString("%", first)
     case 0xE: value = Format.toString("%", first | second << 7)
     }
 
@@ -257,7 +256,7 @@ private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, 
 private func reportMidiMetaEvent(image: *BinaryImage, report: *BinaryReport, track: *MidiTrackResult, at, next: u64, kind: u8, bodyAt, length, tick: u64)
 {
     let label  = midiMetaEventName(kind)
-    let detail = Format.toString(binStrings().midi_At, tick)
+    let detail = Format.toString(binaryStrings().midi_At, tick)
     var value: String
 
     switch kind
@@ -299,16 +298,13 @@ private func reportMidiMetaEvent(image: *BinaryImage, report: *BinaryReport, tra
         {
             let encoded   = cast(s32) image.u8At(bodyAt)
             let signature = midiKeyName(encoded >= 128 ? encoded - 256 : encoded)
-            let mode      = image.u8At(bodyAt + 1) ? binStrings().midi_Minor : binStrings().midi_Major
+            let mode      = image.u8At(bodyAt + 1) ? binaryStrings().midi_Minor : binaryStrings().midi_Major
             value = Format.toString("% %", signature, mode)
         }
 
     default:
-        if length
-        {
-            let size = StrConv.toDisplaySize(length)
-            value = #move size
-        }
+        if length do
+            value = StrConv.toDisplaySize(length)
     }
 
     report.field(at, next - at, label, value.toString(), detail.toString())
@@ -352,11 +348,11 @@ private func midiFormatName(value: u16)->string
 private func midiDivisionText(value: u16)->String
 {
     if not (value & 0x8000) do
-        return Format.toString(binStrings().midi_TicksQuarter, value)
+        return Format.toString(binaryStrings().midi_TicksQuarter, value)
 
     let frames = 256'u64 - cast(u64) (value >> 8)
     let ticks  = cast(u64) (value & 0xFF)
-    return Format.toString(binStrings().midi_Smpte, frames, ticks)
+    return Format.toString(binaryStrings().midi_Smpte, frames, ticks)
 }
 
 private func midiChannelEventName(kind: u8)->string

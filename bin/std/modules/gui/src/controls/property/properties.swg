@@ -15,56 +15,67 @@ using Core, Pixel
 // (PropertiesItem), actionproperties (ActionProperties), propertiesctrl, propertiesview,
 // propertieseditors (IPropertyEditor), validation (PropValidation), + values/.
 
-// To notify a struct about properties changes
+// Lets a displayed structure, or the host of a [[Gui.Properties]] grid, observe and steer its rows.
+//
+// Every method has a default, so an implementation overrides only what it needs. The grid asks
+// the host implementation installed with [[Gui.Properties.setNotify]], then the implementation of
+// every structure along the row's parent chain.
 interface IPropertyNotify
 {
-    // 'item' is null when the change is not tied to a live row anymore: an undo/redo restore
-    // recorded against a previous grid content (the values are already back in the instances).
+    // Reacts to a committed change of `item`.
+    //
+    // `item` is null when the change is no longer tied to a live row: an undo or redo restore
+    // recorded against a previous grid content, whose values are already back in the instances.
     mtd itemHasChanged(list: *Properties, item: *PropertiesItem?) {}
 
-    // Returns whether item visible.
+    // Returns whether `item` is shown; any false answer hides it.
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool => true
 
-    // Returns whether item enabled.
+    // Returns whether `item` accepts input; any false answer grays the whole row.
     mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool => true
 
-    // Return false to hide one value of an enum field (a value that makes no sense for the
-    // host, e.g. a 'None' entry): the combo omits it, an enum-flags block skips its row.
-    // Like isItemVisible, checked on the host notify and along the item's parent chain, but
-    // when the row is BUILT: rebuild the grid content to re-evaluate it.
+    // Returns whether `enumValue` is offered for the enum field of `item`.
+    //
+    // Answer false to hide a value that makes no sense for the host, such as a `None` entry: the
+    // combo box omits it, and an enum-flags block skips its row. The answer is read when the row
+    // is built, so rebuild the grid content to evaluate it again.
     mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool => true
 
-    // Return true to make 'item' read-only at runtime: shown but not editable, and "Paste" is
-    // disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor.
-    // The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.
+    // Returns whether `item` is read-only at runtime: shown but not editable, and closed to paste.
+    //
+    // Unlike [[Gui.IPropertyNotify.isItemEnabled]], which grays the whole row, this only locks the
+    // editor. The static equivalent is the `Properties.ReadOnly` attribute.
     mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool => false
 
-    // Called when the user right-clicks a row: add custom menu items (each with a unique
-    // command id) before the built-in ones (Copy/Paste/...). Use a separator to set them apart.
+    // Adds custom entries to the context menu of `item`, before the built-in ones.
+    //
+    // Give each entry a unique command identifier, and add a separator to set them apart.
     mtd fillPopupMenu(list: *Properties, item: *PropertiesItem, menu: *MenuCtrl) {}
 
-    // Called with the command id chosen in the popup menu when it is not one of the built-in
-    // actions. Return true once handled. This is how custom fillPopupMenu items are executed.
+    // Runs a context-menu command that is not a built-in one, and returns whether it was handled.
+    //
+    // This is how the entries added by [[Gui.IPropertyNotify.fillPopupMenu]] are executed.
     mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool => false
 
-    // Return a validation state + message for 'item'. Called on build and after every
-    // change; the row shows an accent bar + badge in the state color and the message as a
-    // tooltip. The most severe result along the item's parent chain wins.
-    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult
-    {
-        return {}
-    }
+    // Returns the validation state and message of `item`.
+    //
+    // It is called when the row is built and after every change. The row shows an accent bar and
+    // a badge in the state color, with the message as a tooltip. The most severe result along the
+    // parent chain wins.
+    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult => {}
 
-    // Customize the "is this field still at its default value?" test, used to decide whether the
-    // row shows the revert marker. Return .Auto (the default) to let the grid compare the current
-    // value against the value the field is initialized to in the struct declaration; return
-    // .AtDefault / .Modified to force the answer when the test is more involved than a plain
-    // comparison. The first non-Auto result along the item's parent chain wins.
+    // Returns whether `item` still holds its default value, which decides whether its row shows the revert marker.
+    //
+    // Answer `.Auto` to let the grid compare the value with the one the structure declaration
+    // initializes the field to, or `.AtDefault` and `.Modified` to force the answer when the test
+    // is more involved than a plain comparison. The first answer other than `.Auto` along the
+    // parent chain wins.
     mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState => .Auto
 
-    // Reset 'item' to its default value yourself; return true once handled. Return false (the
-    // default) to let the grid restore the value declared in the struct. Called by the "Reset to
-    // default" action and the revert marker. Checked along the item's parent chain.
+    // Resets `item` to its default value, and returns whether it did.
+    //
+    // Answer false to let the grid restore the value declared in the structure. The reset action
+    // and the revert marker call it along the parent chain.
     mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool => false
 }
 
@@ -88,7 +99,7 @@ struct Properties
 {
     public
     {
-        using frameWnd: FrameWnd     // Embedded frame wnd state.
+        using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
         // Construction options are read-only to callers. Use the setters below when a value has to
         // change so cached layout state remains synchronized.
@@ -239,7 +250,7 @@ impl IWnd for Properties
         for itIt in .items
         {
             let it = itIt!
-            if (it.validationLabel != null) and it.validation != .None do
+            if it.validationLabel != null and it.validation != .None do
                 .applyValidationVisual(it)
             if it.flags.has(.Note) do
                 .applyNoteVisual(it)
@@ -278,10 +289,7 @@ impl IWnd for Properties
 // value editors can call them, but they are not part of the public API.
 internal impl Properties
 {
-    mtd hasActiveFilter()->bool
-    {
-        return .modifiedOnly or not .stringFilter.isEmpty()
-    }
+    mtd hasActiveFilter()->bool => .modifiedOnly or not .stringFilter.isEmpty()
 
     mtd itemState(item: *PropertiesItem)->{ visible, enable: bool }
     {
@@ -363,7 +371,7 @@ internal impl Properties
 
 impl Properties
 {
-    // Creates a new Properties instance
+    // Creates an empty property grid with the `kind` presentation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: WndId? = null)->*Properties
     {
@@ -396,8 +404,8 @@ impl Properties
                 const FontSectionSize  = 24'u32
                 const FontCategorySize = 18'u32
                 .fontName             = theme.res.fontDefault
-                .fontSection          = theme.createDefaultFontfamily(FontSectionSize)
-                .fontCategory         = theme.createDefaultFontfamily(FontCategorySize)
+                .fontSection          = theme.createDefaultFontFamily(FontSectionSize)
+                .fontCategory         = theme.createDefaultFontFamily(FontCategorySize)
                 .fontSection.regular  = .fontSection.bold
                 .fontCategory.regular = .fontCategory.bold
                 .fontName.regular     = .fontName.bold
@@ -433,7 +441,7 @@ impl Properties
                 .gridLineMargin = 8
             }
 
-            .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }
+            .hookOnChildEvent = func(wnd, evt) => onHookChildEvent(wnd, evt)
 
             // Built-in context-menu commands (Copy/Paste/array ops) go through the shared gui
             // action system instead of a hardcoded id switch. See actionproperties.swg.
@@ -443,9 +451,10 @@ impl Properties
         return ed
     }
 
-    // Set the host-level notify interface, consulted for every row in addition to the
-    // per-struct implementations. Lets a host that does not own the displayed structs plug
-    // dynamic visibility/enabling, read-only state and change reactions.
+    // Installs the host notify interface, consulted for every row before the per-structure ones.
+    //
+    // It lets a host that does not own the displayed structures plug in dynamic visibility and
+    // enabling, read-only state, and change reactions. Null removes it.
     mtd setNotify(itf: IPropertyNotify?)
     {
         .hostNtfy = itf
@@ -462,6 +471,7 @@ impl Properties
     }
 
     // Controls whether reflected `using` fields are appended after the struct's own fields.
+    //
     // The option applies to structures added after this call.
     mtd setUsingFieldsLast(enabled: bool)
     {
@@ -478,10 +488,12 @@ impl Properties
         .invalidate()
     }
 
-    // Drop every displayed struct and row, keeping the widget alive so a new content can be
-    // bound with addStruct/addStructMulti (an editor panel re-targeting the current selection).
-    // The undo history recorded so far survives on an external manager (its commands are
-    // detached from the rows); the internal one is cleared with the content it refers to.
+    // Removes every displayed structure and row, keeping the widget alive for new content.
+    //
+    // Bind the new content with [[Gui.Properties.addStruct]] or [[Gui.Properties.addStructMulti]],
+    // as an editor panel does when it follows the current selection. The undo history recorded so
+    // far survives on an external manager, detached from the rows; the internal one is cleared
+    // with the content it refers to.
     mtd clear()
     {
         if not .externUndoMgr do
@@ -494,10 +506,8 @@ impl Properties
 
         .freeDefaultRoots()
 
-        for it in .items
-        {
+        for it in .items do
             it!.line.destroyNow()
-        }
 
         .items.clear()
         .sections.clear()
@@ -506,7 +516,9 @@ impl Properties
         .updateStates()
     }
 
-    // Add a new struct to display.
+    // Appends a row for each field of the structure `val` holds, under an optional `section` heading.
+    //
+    // The grid edits the structure in place, so it must outlive the rows.
     mtd addStruct(val: any, section: string? = null)
     {
         let typeof = Swag.kindOf(val)
@@ -517,12 +529,13 @@ impl Properties
         .addStructMulti(typeof, bases.toSlice(), section)
     }
 
-    // Add several instances of the SAME struct type for multi-selection editing.
-    // 'bases' holds the base address of each instance to edit together (>= 1). Editing
-    // a field writes it into every instance; a field whose value differs across the
-    // instances is shown as "mixed". With a single base this behaves like addStruct.
-    // With 'onlyNamed', only the fields carrying an explicit Properties.Name attribute get a
-    // row: the grid becomes opt-in, for structs whose fields are mostly internal state.
+    // Appends rows that edit several instances of the structure type `typeof` together.
+    //
+    // `bases` holds the base address of each instance, at least one. Editing a field writes it
+    // into every instance, and a field whose value differs across the instances is shown as
+    // mixed. With a single base this behaves like [[Gui.Properties.addStruct]]. With `onlyNamed`,
+    // only the fields carrying an explicit `Properties.Name` attribute get a row, which suits a
+    // structure whose fields are mostly internal state.
     mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string? = null, onlyNamed = false)
     {
         Swag.assert(typeof.kind == .Struct)
@@ -607,16 +620,17 @@ impl Properties
         }
     }
 
-    // Refresh all displayed values.
+    // Reloads every editor from the data it is bound to.
     mtd refresh()
     {
         for it in .items do
             .refreshItem(it!)
     }
 
-    // Commits a value written by an editor, including propagation, undo, refresh, validation,
-    // layout and notifications. Custom IPropertyEditor implementations call this once per
-    // logical edit after updating the bound data.
+    // Commits a value an editor wrote, with propagation, undo, refresh, validation, layout, and notifications.
+    //
+    // Custom [[Gui.IPropertyEditor]] implementations call it once per logical edit, after updating
+    // the bound data.
     mtd commitItemChange(item: *PropertiesItem)
     {
         // Multi-selection: the editor wrote the new value into instance 0; mirror it into
@@ -675,7 +689,7 @@ impl Properties
             .updateStates()
     }
 
-    // Show hidden content depending on the input 'filter'.
+    // Shows only the rows whose text contains `filter`, ignoring Latin-1 case; an empty filter shows every row.
     mtd setFilter(filter: string)
     {
         if .stringFilter == filter do
@@ -684,9 +698,10 @@ impl Properties
         .updateStates()
     }
 
-    // Restricts the view to fields that differ from their declared defaults. Text filtering and
-    // the modified-only filter compose, and matching descendants remain visible through collapsed
-    // categories while either filter is active.
+    // Restricts the view to fields that differ from their declared defaults.
+    //
+    // Text filtering and the modified-only filter compose, and matching descendants remain
+    // visible through collapsed categories while either filter is active.
     mtd setModifiedOnly(enabled: bool)
     {
         if .modifiedOnly == enabled do
@@ -722,6 +737,7 @@ impl Properties
     }
 
     // Expands only the branches containing fields that differ from their declared defaults.
+    //
     // Other visible branches are collapsed; the current text and modified-only filters remain
     // unchanged.
     mtd expandModified()
@@ -746,17 +762,17 @@ impl Properties
         .updateStates()
     }
 
-    // Only display a given section.
-    // If 'sectionIndex' is too big, all sections will be displayed.
+    // Shows only the section at `sectionIndex`; an index past the last section shows every section.
     mtd setCurrentSection(sectionIndex: u32)
     {
         .currentSectionIndex = sectionIndex
         .updateStates()
     }
 
-    // Returns true if the given item is read-only: a static string, a field tagged with the
-    // ReadOnly attribute, or made read-only at runtime by a notify interface along the parent
-    // chain. Read-only items are shown but cannot be edited or pasted into.
+    // Returns whether `item` is read-only: shown, but closed to editing and paste.
+    //
+    // A static string, a field tagged with the `ReadOnly` attribute, and a row a notify interface
+    // along the parent chain declares read-only are all read-only.
     mtd isItemReadOnly(item: *PropertiesItem)->bool
     {
         if not item.type do
@@ -795,7 +811,7 @@ impl Properties
         var scan = cast(*PropertiesItem?) item
         while scan
         {
-            if (scan.line != null) and scan.line.isDisabled() do
+            if scan.line != null and scan.line.isDisabled() do
                 return false
             scan = scan.parent
         }
@@ -839,18 +855,18 @@ impl Properties
 
         for c in item.line.children
         {
-            if (item.label != null) and c == item.label do
+            if item.label != null and c == item.label do
                 continue
-            if (item.labelDesc != null) and c == item.labelDesc do
+            if item.labelDesc != null and c == item.labelDesc do
                 continue
-            if (item.validationLabel != null) and c == item.validationLabel do
+            if item.validationLabel != null and c == item.validationLabel do
                 continue
-            if (item.editBox != null) and c == cast(*Wnd?) item.editBox do
+            if item.editBox != null and c == cast(*Wnd?) item.editBox do
                 continue
 
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
-            if (item.revertButton != null) and c == cast(*Wnd?) item.revertButton do
+            if item.revertButton != null and c == cast(*Wnd?) item.revertButton do
                 continue
             c.enable(not readOnly)
         }

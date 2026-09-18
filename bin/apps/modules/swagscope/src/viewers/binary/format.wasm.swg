@@ -35,7 +35,7 @@ func wasmSectionName(value: u8)->string
 // Returns what one import or export names.
 func wasmKindName(value: u8)->string
 {
-    let s = binStrings()
+    let s = binaryStrings()
     switch value
     {
     case 0: return s.wasm_Function
@@ -56,7 +56,7 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
 {
     image.bigEndian = false
 
-    let s       = binStrings()
+    let s       = binaryStrings()
     let version = image.u32At(4)
 
     report.beginGroup(s.wasm_Module, WasmMagic[1 until 4], "", offset: 0, length: 8, open: true)
@@ -119,7 +119,7 @@ func reportWasmModule(image: *BinaryImage, report: *BinaryReport)
 
 private func reportWasmImports(image: *BinaryImage, report: *BinaryReport, at: u64)->u64
 {
-    let s      = binStrings()
+    let s      = binaryStrings()
     let header = wasmLeb(image, at)
     if not header.valid do
         return 0
@@ -150,7 +150,7 @@ private func reportWasmImports(image: *BinaryImage, report: *BinaryReport, at: u
 
 private func reportWasmExports(image: *BinaryImage, report: *BinaryReport, at: u64)->u64
 {
-    let s      = binStrings()
+    let s      = binaryStrings()
     let header = wasmLeb(image, at)
     if not header.valid do
         return 0

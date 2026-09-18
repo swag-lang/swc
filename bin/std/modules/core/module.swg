@@ -31,12 +31,12 @@ operation that can reallocate that source.
 ```swag
 using Core
 
-let password = Swag.makeSlice(cast(const [*] u8) ("password").buffer, 8)
-let salt     = Swag.makeSlice(cast(const [*] u8) ("application salt").buffer, 16)
+let password = cast(const [..] u8) "password"
+let salt     = cast(const [..] u8) "application salt"
 var key: [32] u8
+defer Crypto.secureClear(key)
 
 try Crypto.pbkdf2HmacSha256(password, salt, 200_000, key)
-defer Crypto.secureClear(key)
 ```
 
 Cryptographic randomness and guaranteed clearing use the target operating

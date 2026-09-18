@@ -3,7 +3,7 @@
 
 using Core.Errors
 
-// Origin from which to calculate seek offset in a file stream
+// Origin of a seek offset in a file stream.
 enum SeekOrigin
 {
     Begin       // Seek from the beginning of the file
@@ -11,8 +11,8 @@ enum SeekOrigin
     End         // Seek from the end of the file
 }
 
+// Access requested when opening a file.
 #[Swag.EnumFlags]
-// File access permissions
 enum FileAccess
 {
     Read                         // Read access
@@ -20,10 +20,10 @@ enum FileAccess
     ReadWrite = Read | Write     // Read and write access
 }
 
-// File creation and opening behaviors
+// What opening a file does when the file exists or is missing.
 enum FileMode
 {
-    Append           // Opens the file if it exists and moves the seek to the end, or creates a new file
+    Append           // Opens the file if it exists and moves the position to its end, or creates a new file
     Create           // Creates a new file, overwriting if it already exists
     CreateNew        // Creates a new file, fails if the file already exists
     Open             // Opens an existing file
@@ -31,13 +31,13 @@ enum FileMode
     Truncate         // Opens an existing file and truncates its content to zero length
 }
 
+// Access other handles keep to a file while it is open.
 #[Swag.EnumFlags]
-// File sharing options
 enum FileShare
 {
     Zero = 0                     // No sharing
     Delete                       // Allows the file to be deleted by others
-    Inheritable                  // File handle is inheritable
+    Inheritable                  // Child processes inherit the handle
     Read                         // Allows shared read access
     Write                        // Allows shared write access
     ReadWrite = Read | Write     // Allows shared read and write access
@@ -58,7 +58,7 @@ func move(newName, oldName: string) fail
     try moveNative(newName, oldName)
 }
 
-// Updates a file's write time after enforcing the process sandbox.
+// Sets the last write time of `fullName` to now, after enforcing the process sandbox.
 func touch(fullName: string) fail
 {
     try Env.guardWrite(fullName)
@@ -102,109 +102,113 @@ func openReadLive(fullName: string)->FileStream fail
 // Creates or replaces a file for exclusive writing.
 func openWrite(fullName: string)->FileStream fail => try open(fullName, .Create, .Write, .Zero)
 
-// Reads the entire content of a file into a UTF-8 string
-func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = false)->String fail
+// Reads a whole UTF-8 file and returns its text.
+//
+// A leading byte-order mark is skipped. When `normalizeEol` is true, every line ends with a
+// single `\n`, including the last one.
+func readAllText(fullName: string, normalizeEol = false)->String fail
 {
-    var textReader: TextReader
-    try textReader.open(fullname, encoding)
-
-    // Normalized end of lines.
-    if normalizeEol
-    {
-        var result: retval
-        var res:    String
-        while try textReader.readLine(&res)
-        {
-            result += res
-            result += '\n'u8
-        }
-
-        return result
-    }
-
-    return try textReader.readToEnd()
-}
-
-// Reads all lines from a file into an array of strings
-func readAllLines(fullname: string, encoding = TextEncoding.Utf8)->Array'String fail
-{
-    var textReader: TextReader
-    try textReader.open(fullname, encoding)
+    var reader: TextReader
+    try reader.open(fullName)
+    if not normalizeEol do
+        return try reader.readToEnd()
 
     var result: retval
-    var res:    String
-    while try textReader.readLine(&res) do
-        result.add(#move res)
+    var line:   String
+    while try reader.readLine(&line)
+    {
+        result += line
+        result += '\n'u8
+    }
+
     return result
 }
 
-// Executes user code for each line read from a file
-// Block parameter: 'line' is the address of the current line buffer.
+// Reads a whole UTF-8 file and returns its lines, without their end-of-line characters.
+func readAllLines(fullName: string)->Array'String fail
+{
+    var reader: TextReader
+    try reader.open(fullName)
+
+    var result: retval
+    var line:   String
+    while try reader.readLine(&line) do
+        result.add(#move line)
+    return result
+}
+
+// Runs `stmt` for each line of a UTF-8 file, read one at a time.
+//
+// The block receives `line`, the address of a buffer reused from one line to the next: copy the
+// text to keep it beyond the iteration.
 #[Swag.Macro]
-func readEachLines(fullname: string, encoding = TextEncoding.Utf8, stmt: #code(var line: *String)) fail
+func readEachLine(fullName: string, stmt: #code(var line: *String)) fail
 {
-    var textReader: TextReader
-    textReader.open(fullname, encoding)
+    var reader: TextReader
+    try reader.open(fullName)
 
-    var res: String
-    while textReader.readLine(&res)
-    {
-        #inject(stmt, line = &res)
-    }
+    var buffer: String
+    while try reader.readLine(&buffer) do
+        #inject(stmt, line = &buffer)
 }
 
-// Reads the entire content of a file into an array of bytes
-func readAllBytes(fullname: string)->Array'u8 fail
+// Reads a whole file and returns its bytes.
+func readAllBytes(fullName: string)->Array'u8 fail
 {
-    var stream = try openRead(fullname)
+    var stream = try openRead(fullName)
 
     var result: retval
-    let len = try stream.size()
-    result.reserve(len)
-    result.count = try stream.read(result.buffer, len)
+    let length = try stream.size()
+    result.reserve(length)
+    result.count = try stream.read(result.buffer, length)
     return result
 }
 
-// Writes the content of a byte slice to a file
+// Creates or replaces a file with `buffer` and returns the number of bytes written.
 #[Swag.Discardable]
-func writeAllBytes(fullname: string, buffer: const [..] u8)->u64 fail
+func writeAllBytes(fullName: string, buffer: const [..] u8)->u64 fail
 {
-    var stream = try openWrite(fullname)
-    return try stream.write(buffer.buffer, buffer.count)
+    var stream = try openWrite(fullName)
+    return try stream.write(buffer)
 }
 
-// Writes the content of a ConcatBuffer to a file
+// Creates or replaces a file with every chunk of `buffer`, in order, and returns the number of bytes written.
 #[Swag.Discardable]
-func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 fail
+func writeAllBytes(fullName: string, buffer: ConcatBuffer)->u64 fail
 {
-    var stream = try openWrite(fullname)
+    var stream = try openWrite(fullName)
 
     var total = 0'u64
-    for p in buffer do
-        total += try stream.write(p.data, p.count)
-
+    for chunk in buffer do
+        total += try stream.write(chunk.data, chunk.count)
     return total
 }
 
-// Writes an array of strings to a file, one string per line
+// Creates or replaces a file with the UTF-8 bytes of `text` and returns the number of bytes written.
 #[Swag.Discardable]
-func writeAllLines(fullname: string, lines: Array'(string))->u64 fail
+func writeAllText(fullName: string, text: string)->u64 fail => try writeAllBytes(fullName, cast(const [..] u8) text)
+
+// Creates or replaces a file with `lines`, each followed by `\n`, and returns the number of bytes written.
+#[Swag.Discardable]
+func writeAllLines(fullName: string, lines: Array'(string))->u64 fail
 {
-    var stream = try openWrite(fullname)
+    var stream = try openWrite(fullName)
 
     var total = 0'u64
-    for v in lines
+    for line in lines
     {
-        total += try stream.write(v.buffer, v.count)
-        total += try stream.write(("\n").buffer, 1)
+        total += try stream.write(cast(const [..] u8) line)
+        total += try stream.write(cast(const [..] u8) "\n")
     }
 
     return total
 }
 
-// Creates a duplicate of an existing file
+// Copies the file `oldName` to `newName`, replacing the destination when it exists.
+//
+// The whole content is held in memory during the copy.
 func duplicate(newName, oldName: string) fail
 {
-    var res = try readAllBytes(oldName)
-    try writeAllBytes(newName, res.toSlice())
+    let content = try readAllBytes(oldName)
+    try writeAllBytes(newName, content.toSlice())
 }

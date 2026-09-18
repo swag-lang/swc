@@ -17,13 +17,13 @@ struct PropertiesCtrl
 {
     public
     {
-        using frameWnd: FrameWnd     // Embedded frame wnd state.
+        using frameWnd: FrameWnd     // Embedded frame behavior and presentation.
 
         readonly
         {
-            late splitter:   *SplitterCtrl     // Splitter associated with this value.
-            late list:       *ListCtrl         // List associated with this value.
-            late tab:        *Tab              // Tab associated with this value.
+            late splitter:   *SplitterCtrl     // Splitter holding the section list and the grid.
+            late list:       *ListCtrl         // Section list; its pane is hidden without [[Gui.PropertiesCtrlFlags.SectionNavigation]].
+            late tab:        *Tab              // Section tabs, when [[Gui.PropertiesCtrlFlags.SectionTabs]] is set.
             late search:     *EditBox          // Search field, when [[Gui.PropertiesCtrlFlags.SearchBar]] is set.
             late viewButton: *IconButton       // View-options button beside [[Gui.PropertiesCtrl.search]].
             late properties: *Properties       // Property editor owned by this control.
@@ -82,7 +82,7 @@ impl PropertiesCtrl
                 .dockStyle  = .Right
                 .margin.x   = 8
                 .toolTip    = strings().prop_ViewOptions
-                .sigPressed += func|ed|(btn) { discard btn; ed.openViewMenu(); }
+                .sigPressed += func|ed|(btn) { discard btn; ed.openViewMenu() }
             }
 
             with ed.search = EditBox.create(bar, "")
@@ -90,7 +90,7 @@ impl PropertiesCtrl
                 .dockStyle = .Center
                 .setIcon(ed.theme().icon(ThemeIcons.Search, 18))
                 .setPlaceholder(strings().prop_Search)
-                .sigTextChanged += func|ed|(fil) { ed.properties.setFilter(fil.text()); }
+                .sigTextChanged += func|ed|(fil) { ed.properties.setFilter(fil.text()) }
                 .updateFlags(.ClearButton)
             }
         }
@@ -103,7 +103,7 @@ impl PropertiesCtrl
                 .margin.w  = 12
                 .dockStyle = .Top
                 .setForm(.PushButton)
-                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32) cast(u64) tab.selectedItem()!.userData0); }
+                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32) cast(u64) tab.selectedItem()!.userData0) }
             }
         }
 
@@ -134,7 +134,7 @@ impl PropertiesCtrl
                 naked = Properties.resolveText(item.typeValue.name orelse "")
 
             // In the filter bar
-            if (.tab != null) and it.lvl == 0
+            if .tab != null and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
                 tabItem.userData0 = cast(*void?) idx
@@ -196,8 +196,7 @@ impl PropertiesCtrl
         .fillSections()
     }
 
-    // Give the keyboard focus to the property grid (navigation mode), so the whole
-    // control can be driven by keyboard.
+    // Gives the keyboard focus to the property grid in navigation mode, so the whole control is driven by keyboard.
     mtd focusProperties()
     {
         .properties.focusNavigation()

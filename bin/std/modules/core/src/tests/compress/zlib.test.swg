@@ -12,20 +12,6 @@ func fillCompressPattern(buffer: [..] u8)
     }
 }
 
-func assertBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
-{
-    if actual.count != expected.count do
-        return false
-
-    for index in actual.count
-    {
-        if actual[index] != expected[index] do
-            return false
-    }
-
-    return true
-}
-
 func assertZLibRoundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var zlib: Compress.ZLib
@@ -36,7 +22,7 @@ func assertZLibRoundTrip(input: const [..] u8, level: Compress.Deflate.Compressi
 
     var reader: Compress.ZLib
     let decoded = expect reader.decompress(compressed.toSlice(), input.count)
-    Swag.assert(assertBytesEqual(decoded.toSlice(), input))
+    Swag.assert(Slice.equals(decoded.toSlice(), input))
 }
 
 func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, strategy: Compress.Deflate.CompressionStrategy)
@@ -46,12 +32,12 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 
     var compressed: Array'u8
     expect deflater.compress(&compressed, input)
-    Swag.assert(compressed.count != 0)
+    Swag.assert(not compressed.isEmpty())
 
     var inflater: Compress.Inflate
     var decoded:  Array'u8
     expect inflater.decompress(&decoded, compressed.toSlice())
-    Swag.assert(assertBytesEqual(decoded.toSlice(), input))
+    Swag.assert(Slice.equals(decoded.toSlice(), input))
 }
 
 #test
@@ -84,19 +70,19 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     let tooSmall: [5] u8 = [0x78, 0x9C, 0, 0, 0]
     var reader:   Compress.ZLib
     let tooSmallResult   = catch reader.decompress(tooSmall) as errA
-    Swag.assert(tooSmallResult.count == 0)
+    Swag.assert(tooSmallResult.isEmpty())
     Swag.assert((errA is Errors.InvalidFormatError))
 
     let badMethod:       [6] u8 = [0x79, 0x9C, 0, 0, 0, 0]
     var badMethodReader: Compress.ZLib
     let badMethodResult         = catch badMethodReader.decompress(badMethod) as errB
-    Swag.assert(badMethodResult.count == 0)
+    Swag.assert(badMethodResult.isEmpty())
     Swag.assert((errB is Errors.InvalidFormatError))
 
     let dictionary:       [6] u8 = [0x78, 0x20, 0, 0, 0, 0]
     var dictionaryReader: Compress.ZLib
     let dictionaryResult         = catch dictionaryReader.decompress(dictionary) as errC
-    Swag.assert(dictionaryResult.count == 0)
+    Swag.assert(dictionaryResult.isEmpty())
     Swag.assert((errC is Errors.UnsupportedFormatError))
 }
 
@@ -113,6 +99,6 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 
     var reader: Compress.ZLib
     let decoded = catch reader.decompress(compressed.toSlice()) as err6
-    Swag.assert(decoded.count == 0)
+    Swag.assert(decoded.isEmpty())
     Swag.assert((err6 is Errors.InvalidFormatError))
 }

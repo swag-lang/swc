@@ -12,10 +12,10 @@ enum AppearanceTheme
 
 // Hosts the standard theme, language, and application-information menu in a title bar.
 //
-// An empty [[language]] follows the user account. A non-empty value is a tag registered through
+// An empty [[Gui.AppearanceButton.language]] follows the user account. A non-empty value is a tag registered through
 // [[Gui.registerLanguage]]. The control applies both choices before emitting their signals, so an
 // application only has to persist them and refresh state derived from the palette. The About item
-// is present when [[sigAboutRequested]] has a callback.
+// is present when [[Gui.AppearanceButton.sigAboutRequested]] has a callback.
 struct AppearanceButton
 {
     public
@@ -58,8 +58,9 @@ impl IWnd for AppearanceButton
 
 impl AppearanceButton
 {
-    // Creates the standard application appearance action immediately before the native caption
-    // buttons. Register every supported language before calling this function.
+    // Creates the standard appearance button in the caption bar of `surface`, before its native caption buttons.
+    //
+    // Register every supported language before calling this function.
     #[Swag.Discardable]
     func create(surface: *Surface, id: WndId? = null)->*AppearanceButton
     {
@@ -80,7 +81,7 @@ impl AppearanceButton
         return result
     }
 
-    // Applies `theme` and optionally reports a user-visible choice.
+    // Applies `theme` to the application and, when `notify` is true, emits [[Gui.AppearanceButton.sigThemeChanged]].
     mtd setAppearanceTheme(theme: AppearanceTheme, notify = false)
     {
         .appearanceTheme = theme
@@ -96,8 +97,10 @@ impl AppearanceButton
             .sigThemeChanged.call(me)
     }
 
-    // Applies a registered language tag, or follows the system when `tag` is empty, and optionally
-    // reports a user-visible choice. The stored choice changes only after resources were applied.
+    // Applies the registered language `tag`, or the system language when `tag` is empty.
+    //
+    // When `notify` is true, emits [[Gui.AppearanceButton.sigLanguageChanged]]. The stored choice
+    // changes only after the resources were applied, so a failure leaves it unchanged.
     mtd setAppearanceLanguage(tag: string, notify = false) fail
     {
         let resolved = tag.count ? tag : systemLanguage()

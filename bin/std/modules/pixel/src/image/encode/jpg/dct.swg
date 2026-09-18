@@ -15,10 +15,7 @@ impl Encoder
 
     // The fixed-point dot product one component of the format is defined as.
     #[Swag.Inline]
-    func componentOf(red, green, blue: Math.Simd.S32x4, coeffRed, coeffGreen, coeffBlue: s32)->Math.Simd.S32x4
-    {
-        return (Math.Simd.splat(coeffRed) * red + Math.Simd.splat(coeffGreen) * green + Math.Simd.splat(coeffBlue) * blue) >> 16
-    }
+    func componentOf(red, green, blue: Math.Simd.S32x4, coeffRed, coeffGreen, coeffBlue: s32)->Math.Simd.S32x4 => (Math.Simd.splat(coeffRed) * red + Math.Simd.splat(coeffGreen) * green + Math.Simd.splat(coeffBlue) * blue) >> 16
 
     // Reads the eight-by-eight block at the given position as the three components of the format.
     //

@@ -52,7 +52,7 @@ var g_StdOutputCurAttr:  u16
     catch FreeConsole()
 }
 
-// Set the console foreground color
+// Sets the foreground color of later console output.
 public func setTextColor(color: Color)
 {
     let attributes = g_ColorToWin[color]
@@ -61,7 +61,7 @@ public func setTextColor(color: Color)
     catch SetConsoleTextAttribute(g_StdOutputHandle, g_StdOutputCurAttr)
 }
 
-// Set the console background color
+// Sets the background color of later console output.
 public func setBackColor(color: Color)
 {
     let attributes = cast(u16) (g_ColorToWin[color] << 4)
@@ -70,7 +70,7 @@ public func setBackColor(color: Color)
     catch SetConsoleTextAttribute(g_StdOutputHandle, g_StdOutputCurAttr)
 }
 
-// Restore the console colors to their default values
+// Restores the console colors the process started with.
 public func resetColor()
 {
     catch SetConsoleTextAttribute(g_StdOutputHandle, g_StdOutputInitAttr)
@@ -82,7 +82,7 @@ internal func writeNative(message: string)
     catch WriteFile(g_StdOutputHandle, message.buffer, length, null, null)
 }
 
-// Wait for using input, and returns the corresponding string
+// Waits for the user to enter a line on standard input and returns it, line ending included.
 public func prompt()->String
 {
     const BufSize = 1024'u32
@@ -96,7 +96,7 @@ public func prompt()->String
     {
         if not ReadFile(h, &buffer[0], BufSize, &dwRead, null) do
             break
-        result.append(Swag.makeString(&buffer[0], dwRead))
+        result.append(cast(string) buffer[until dwRead])
         if dwRead < BufSize do
             break
         if buffer[BufSize - 1] == '\n' do

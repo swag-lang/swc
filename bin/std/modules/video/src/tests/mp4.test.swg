@@ -25,16 +25,10 @@ func mp4FindTag(bytes: const [..] u8, tag: string)->u64
 }
 
 // Returns a big-endian 32-bit value from an independently inspected container.
-func mp4ReadU32(bytes: const [..] u8, offset: u64)->u32
-{
-    return (cast(u32) bytes[offset] << 24) | (cast(u32) bytes[offset + 1] << 16) | (cast(u32) bytes[offset + 2] << 8) | cast(u32) bytes[offset + 3]
-}
+func mp4ReadU32(bytes: const [..] u8, offset: u64)->u32 => (cast(u32) bytes[offset] << 24) | (cast(u32) bytes[offset + 1] << 16) | (cast(u32) bytes[offset + 2] << 8) | cast(u32) bytes[offset + 3]
 
 // Returns a big-endian 64-bit value from an independently inspected container.
-func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64
-{
-    return (cast(u64) mp4ReadU32(bytes, offset) << 32) | cast(u64) mp4ReadU32(bytes, offset + 4)
-}
+func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64) mp4ReadU32(bytes, offset) << 32) | cast(u64) mp4ReadU32(bytes, offset + 4)
 
 // FFmpeg puts the movie before its media payload, uses one chunk for ten samples, and identifies
 // Motion JPEG through the generic `mp4v` entry with JPEG object type `0x6c`. It therefore exercises

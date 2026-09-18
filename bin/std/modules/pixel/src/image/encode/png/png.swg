@@ -124,7 +124,7 @@ private
 
 // Encodes PNG images with configurable filtering, compression, and interlacing.
 //
-// The encoder is opaque; use [[Png.EncodeOptions]] to configure output.
+// The encoder is opaque; use [[Pixel.Png.EncodeOptions]] to configure output.
 #[Swag.Opaque]
 internal struct Encoder
 {

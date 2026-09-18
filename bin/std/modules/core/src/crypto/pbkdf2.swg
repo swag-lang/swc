@@ -10,9 +10,10 @@ private func accumulateDigest(result, current: [*] u8)
     Math.Simd.store(result + VectorSize, Math.Simd.load(result + VectorSize) ^ Math.Simd.load(current + VectorSize))
 }
 
-// Derives `destination` with PBKDF2-HMAC-SHA-256.
+// Derives a key from `password` and `salt` with PBKDF2-HMAC-SHA-256 and fills `destination` with it.
 //
-// `iterations` needs at least one iteration. An empty destination succeeds without writing.
+// `iterations` must be at least 1; zero fails with [[Core.Errors.BadParameterError]]. An empty
+// `destination` succeeds without writing. Intermediate digests are cleared before returning.
 func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
     if not iterations do
@@ -42,9 +43,8 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
 
         var current = HmacSha256.compute(password, input.toSlice())
         var result  = current
-        for iteration in 1 until iterations
+        for iterations - 1
         {
-            discard iteration
             current = HmacSha256.compute(password, current)
             accumulateDigest(result.buffer, current.buffer)
         }

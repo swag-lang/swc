@@ -3,7 +3,7 @@
 
 using Swag
 
-// Returns true if this is a struct of the given 'name'.
+// Returns whether `type` is a struct whose name is `name`.
 #[ConstExpr]
 func isNamedStruct(type: typeinfo?, name: string?)->bool
 {
@@ -14,8 +14,7 @@ func isNamedStruct(type: typeinfo?, name: string?)->bool
     return typeStruct.structName == name
 }
 
-// Get information about a specific method in a given struct.
-// Returns null if the method does not exist
+// Returns the reflected method `name` of a struct type, or null when it does not exist.
 #[ConstExpr]
 func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
 {
@@ -28,8 +27,7 @@ func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
     return null
 }
 
-// Get information about a specific field in a given struct
-// Returns null if the field does not exist
+// Returns the reflected field `name` of a struct type, or null when it does not exist.
 #[ConstExpr]
 func findField(type: typeinfo?, name: string?)->const *TypeValue?
 {
@@ -42,17 +40,16 @@ func findField(type: typeinfo?, name: string?)->const *TypeValue?
     return null
 }
 
-// CRC of a struct field's name, read straight from the reflected TypeValue (the value the
-// compiler exported in TypeValue.crc). Use it to switch on item.typeValue.crc without
-// recomputing the hash. Returns 0 if the field does not exist.
+// Returns the CRC of the field `name` of a struct type, or 0 when the field does not exist.
+//
+// The value is the `crc` the compiler exported in the field's [[Swag.TypeValue]], so a caller
+// can switch on `item.typeValue.crc` without recomputing the hash.
 #[ConstExpr]
-func fieldCrc(type: typeinfo, name: string)->u32
-{
-    let f = findField(type, name)
-    return f ? f.crc : 0
-}
+func fieldCrc(type: typeinfo, name: string)->u32 => findField(type, name)?.crc orelse 0
 
-// Get a field value with a given runtime type.
+// Copies the value of `field` from the struct at `source` into `destination`.
+//
+// The copy follows [[Core.Reflection.assign]]. Nothing happens when a pointer or the field type is null.
 #[ConstExpr]
 func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void?)
 {
@@ -65,7 +62,9 @@ func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void
     Reflection.assign(destination, cast([*] u8) source + field.offset, fieldType)
 }
 
-// Assigns a value to a reflected field while preserving its lifecycle semantics.
+// Copies the value at `source` into `field` of the struct at `destination`.
+//
+// The copy follows [[Core.Reflection.assign]]. Nothing happens when a pointer or the field type is null.
 #[ConstExpr]
 func writeFieldValue(destination: *void?, field: const *TypeValue?, source: const *void?)
 {
@@ -78,33 +77,32 @@ func writeFieldValue(destination: *void?, field: const *TypeValue?, source: cons
     Reflection.assign(cast([*] u8) destination + field.offset, source, fieldType)
 }
 
-// Helper function to know if a struct has a special method
+// Returns whether a struct type has the method `name`.
 #[ConstExpr]
 func hasMethod(type: typeinfo?, name: string?)->bool => findMethod(type, name) != null
 
-// Returns true if values of that type can use the default '<=>' comparison.
+// Returns whether values of `type` can use the default `<=>` comparison.
 #[ConstExpr]
 func canCompare(type: typeinfo?)->bool
 {
     if not type do
         return false
 
-    let nnType = type
-    switch nnType.kind
+    switch type.kind
     {
     case .Alias:
-        let typeAlias = cast #assume(const *TypeInfoAlias) nnType
+        let typeAlias = cast #assume(const *TypeInfoAlias) type
         return canCompare(typeAlias.rawType)
 
     case .Enum:
-        let typeEnum = cast #assume(const *TypeInfoEnum) nnType
+        let typeEnum = cast #assume(const *TypeInfoEnum) type
         return canCompare(typeEnum.rawType)
 
     case .Pointer:
         return true
 
     case .Native:
-        let typeNative = cast #assume(const *TypeInfoNative) nnType
+        let typeNative = cast #assume(const *TypeInfoNative) type
         switch typeNative.nativeKind
         {
         case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String: return true
@@ -121,24 +119,27 @@ func canCompare(type: typeinfo?)->bool
 
 #[ConstExpr, Inline]
 {
-    // Returns whether this value has drop.
+    // Returns whether values of `type` must be dropped.
     func hasDrop(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDrop) ? true : false
 
-    // Returns whether this value has post move.
+    // Returns whether values of `type` need a post-move hook after their bytes are relocated.
     func hasPostMove(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
 
-    // Returns whether this value has post copy.
+    // Returns whether values of `type` need a post-copy hook after their bytes are copied.
     func hasPostCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
 
-    // Returns whether values contain identity slots managed by [[Swag.DynCast]], including
-    // embedded fields and array elements. Initialize new storage and use typed assignments
-    // when copying a view of such a value into a new complete object.
+    // Returns whether values of `type` contain identity slots managed by [[Swag.DynCast]], in embedded fields and array elements included.
+    //
+    // Initialize new storage and use typed assignments when copying a view of such a value into a
+    // new complete object.
     func hasDynamicStorage(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.HasDynamicStorage) ? true : false
 
-    // Returns whether this value can copy.
+    // Returns whether values of `type` can be copied.
     func canCopy(type: typeinfo?)->bool => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
 
-    // Returns whether pod.
+    // Returns whether values of `type` are plain data that can be copied and relocated as raw bytes.
+    //
+    // A plain-data type has no drop, post-move, or post-copy hook and no dynamic identity storage.
     func isPod(type: typeinfo?)->bool
     {
         if not type do
@@ -147,7 +148,7 @@ func canCompare(type: typeinfo?)->bool
     }
 }
 
-// Returns true if the interface 'itf' is implemented in the given structure type.
+// Returns whether a struct type implements the interface `itf`.
 #[ConstExpr]
 func hasInterface(type: typeinfo?, itf: typeinfo)->bool
 {

@@ -201,10 +201,7 @@ func testDeleteForm(itf: IForm)
     Memory.delete(itf.buffer, Swag.kindOf(itf))
 }
 
-func testTempCapturePath()->String
-{
-    return Gui.Testing.tempFilePath("capture-", CaptureFileExtension)
-}
+func testTempCapturePath()->String => Gui.Testing.tempFilePath("capture-", CaptureFileExtension)
 
 func testPrimeGizmo(form: IForm, z: f32 = 1)
 {
@@ -290,15 +287,12 @@ func testRegisterLocalEditorShortcuts(main: *MainWnd)
     testRegisterHeadlessCommands(main)
 }
 
-func testDate(day: u16)->Time.DateTime
-{
-    return {year: 2026, month: 1, day: day}
-}
+func testDate(day: u16)->Time.DateTime => {year: 2026, month: 1, day: day}
 
 func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, linked: string = "", linkedUpToDate = true, title: string = "")->*LibraryItem
 {
     let it = view.allItems.addNew()
-    it.fi.fullname      = name
+    it.fi.fullName      = name
     it.fi.size          = size
     it.fi.lastWriteTime = testDate(day)
     it.visible          = true

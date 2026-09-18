@@ -128,7 +128,7 @@ using Core, Pixel
     host.notify(.ThemeChanged)
     let fileName = Testing.tempFilePath("markdown-themed-html-", ".md")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, cast(const [..] u8) "<div>Readable HTML</div>")
+    discard expect File.writeAllText(fileName, "<div>Readable HTML</div>")
     let view = Markdown.View.createFile(&host.root, fileName)
     view.setDocumentThemeColors("view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333")
     for 64 where view.isLoading() do

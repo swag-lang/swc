@@ -74,8 +74,6 @@ impl PixelFormat
         case .RGBAF32:         return true
         case .Yuv420, .Yuv444: return false
         }
-
-        return false
     }
 
     // Returns the number of bits one pixel occupies on average.
@@ -108,8 +106,6 @@ impl PixelFormat
         case .Yuv420:       return 12
         case .Yuv444:       return 24
         }
-
-        return 0
     }
 
     // Returns the number of stored color channels.
@@ -138,8 +134,6 @@ impl PixelFormat
         case .RGBAF32:         return 4
         case .Yuv420, .Yuv444: return 3
         }
-
-        return 0
     }
 
     // Returns the bit depth of each channel.
@@ -168,8 +162,6 @@ impl PixelFormat
         case .RGBAF32:         return 32
         case .Yuv420, .Yuv444: return 8
         }
-
-        return 0
     }
 
     // Reports whether the format stores an alpha channel.
@@ -198,16 +190,11 @@ impl PixelFormat
         case .RGBAF32:         return true
         case .Yuv420, .Yuv444: return false
         }
-
-        return false
     }
 
     // Reports whether channels use an IEEE floating-point representation.
     #[ConstExpr]
-    func isFloat(me)->bool
-    {
-        return me == .GrayF16 or me == .GrayAlphaF16 or me == .GrayF32 or me == .GrayAlphaF32 or me == .RGBF16 or me == .RGBAF16 or me == .RGBF32 or me == .RGBAF32
-    }
+    func isFloat(me)->bool => me == .GrayF16 or me == .GrayAlphaF16 or me == .GrayF32 or me == .GrayAlphaF32 or me == .RGBF16 or me == .RGBAF16 or me == .RGBF32 or me == .RGBAF32
 
     // Reports whether channels use one unsigned normalized integer representation.
     #[ConstExpr]

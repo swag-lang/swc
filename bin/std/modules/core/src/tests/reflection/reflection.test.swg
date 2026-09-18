@@ -21,10 +21,7 @@ struct ReflectionProbe
 
 impl ReflectionProbe
 {
-    mtd ping()->s32
-    {
-        return .x + 1
-    }
+    mtd ping()->s32 => .x + 1
 
     #[Macro]
     mtd visitMacro(stmt: #code)
@@ -344,4 +341,25 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.assert(funcInfo.attributes![0].type == FuncMeta)
     Swag.assert(cast #assume (string?) Reflection.attributeValue(funcType, FuncMeta, "label") == "repeat")
     Swag.assert(cast #assume (s32) Reflection.attributeValue(funcType, FuncMeta, "arity") == 2)
+}
+
+#[Swag.EnumFlags]
+enum ProbeAccess: u8
+{
+    None      = 0
+    Read      = 1
+    Write     = 2
+    ReadWrite = Read | Write
+    Default   = Read
+}
+
+// A flags value names each case whose bits are all set, once, and zero names the zero case.
+#test
+{
+    var none      = ProbeAccess.None
+    var read      = ProbeAccess.Read
+    var readWrite = ProbeAccess.ReadWrite
+    Swag.assert(Reflection.enumName(ProbeAccess, &none, fullyQualified: false) == "None")
+    Swag.assert(Reflection.enumName(ProbeAccess, &read, fullyQualified: false) == "Read")
+    Swag.assert(Reflection.enumName(ProbeAccess, &readWrite, fullyQualified: false) == "Read | Write")
 }

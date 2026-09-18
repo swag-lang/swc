@@ -16,6 +16,8 @@ const HexDefaultGroupSize = 8'u64
 const HexWheelRows      = 3'u64
 const HexMinBytesPerRow = 8'u64
 const HexMaxBytesPerRow = 64'u64
+
+// Zoom range of the grid font, and the pace of the autoscroll a drag outside the rows keeps up.
 const HexMinFontSize    = 8'u32
 const HexMaxFontSize    = 24'u32
 const HexDragScrollRate: Time.Duration = 50'ms
@@ -36,7 +38,7 @@ enum HexCopyForm
 {
     Bytes     // Hexadecimal byte values separated by spaces.
     Text      // Printable bytes as characters, every other byte as a dot.
-    Dump      // The offset, hexadecimal and text columns as the grid itself shows them.
+    Dump      // Offset, hexadecimal byte, and text columns at the row width the grid shows.
 }
 
 // Selects the scalar each visual byte group represents.
@@ -58,6 +60,7 @@ enum HexGrouping
     Float64        // IEEE 754 64-bit floating-point values.
 }
 
+// Returns the byte width of the scalar `grouping` reads.
 func hexGroupingSize(grouping: HexGrouping)->u64
 {
     switch grouping
@@ -69,19 +72,7 @@ func hexGroupingSize(grouping: HexGrouping)->u64
     }
 }
 
-// Commands shared by the context menu and keyboard.
-struct ActionHex {}
-
-impl ActionHex
-{
-    newCmdId("CopyBytes")
-    newCmdId("CopyText")
-    newCmdId("CopyDump")
-    newCmdId("SelectAll")
-    newCmdId("GoTo")
-}
-
-// Width reserved for one rendered scalar, in fixed-width characters.
+// Returns the width reserved for one rendered scalar, in fixed-width characters.
 func hexGroupingChars(grouping: HexGrouping)->u64
 {
     switch grouping
@@ -142,16 +133,33 @@ func appendHexDigits(buffer: *Array'u8, value: u64, digits: u64)
     }
 }
 
-// Returns whether `value` is a byte the text column can show as itself.
-func isHexPrintable(value: u8)->bool
+// Returns `value` as `digits` uppercase hexadecimal characters.
+func formatHexDigits(value: u64, digits: u64)->String
 {
-    return value >= 32 and value < 127
+    var bytes: Array'u8
+    appendHexDigits(&bytes, value, digits)
+    return String.from(cast(string) bytes.toSlice())
 }
 
-// Formats `bytes` as the offset, hexadecimal and text columns the grid draws.
+// Returns the value of the hexadecimal digit `value`, or 16 when `value` is not one.
+func hexDigitValue(value: u8)->u8
+{
+    if value >= '0'u8 and value <= '9'u8 do
+        return value - '0'u8
+    if value >= 'a'u8 and value <= 'f'u8 do
+        return value - 'a'u8 + 10
+    if value >= 'A'u8 and value <= 'F'u8 do
+        return value - 'A'u8 + 10
+    return 16
+}
+
+// Returns whether `value` is a byte the text column can show as itself.
+func isHexPrintable(value: u8)->bool => value >= 32 and value < 127
+
+// Formats `bytes` as offset, hexadecimal byte, and text columns, `bytesPerRow` bytes per line.
 //
-// This is what a dump copy produces, so what leaves the viewer through the clipboard is what the
-// reader was looking at, at whatever row width the view is currently using.
+// This is what a dump copy produces: at the row width and group size the view is using, what
+// leaves the viewer through the clipboard is laid out as the reader was looking at it.
 func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offsetDigits: u64, groupSize = HexDefaultGroupSize)->String
 {
     var result: retval
@@ -194,7 +202,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
             line.add(isHexPrintable(value) ? value : '.'u8)
         }
 
-        result += Swag.makeString(line.storage(), line.count)
+        result += cast(string) line.toSlice()
         result += "\n"
         row    += bytesPerRow
     }
@@ -202,8 +210,11 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
     return result
 }
 
-// Reads an absolute, percentage, named, or caret-relative offset, and returns `Swag.U64.Max` when
-// the text names none. Unprefixed numbers remain hexadecimal; `0d` opts into decimal explicitly.
+// Returns the offset `text` names in a `fileSize`-byte file, or `Swag.U64.Max` when it names none.
+//
+// `text` is an absolute offset, a percentage, `caret`, `filesize` (the last byte), or an offset
+// relative to `caret` after `+` or `-`. Unprefixed numbers are hexadecimal; `0d` opts into decimal
+// explicitly. A number past the end names the last byte.
 func parseHexOffset(text: string, caret, fileSize: u64)->u64
 {
     let trimmed = Latin1.trim(text)
@@ -248,27 +259,21 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
     var digits = 0'u64
     while index < end
     {
-        let c      = trimmed[index]
-        var nibble = 16'u8
-        if c >= '0'u8 and c <= '9'u8 do
-            nibble = c - '0'u8
-        elif radix == 16 and c >= 'a'u8 and c <= 'f'u8 do
-            nibble = c - 'a'u8 + 10
-        elif radix == 16 and c >= 'A'u8 and c <= 'F'u8 do
-            nibble = c - 'A'u8 + 10
-        elif c == ' 'u8 or c == '_'u8
+        let c = trimmed[index]
+        if c == ' 'u8 or c == '_'u8
         {
             index += 1
             continue
         }
 
-        if nibble >= radix do
+        let digit = hexDigitValue(c)
+        if digit >= radix do
             return Swag.U64.Max
 
         // A value wider than the address space is a typing accident, not an offset.
-        if value > (Swag.U64.Max - nibble) / radix do
+        if value > (Swag.U64.Max - digit) / radix do
             return Swag.U64.Max
-        value  = value * radix + nibble
+        value  = value * radix + digit
         digits += 1
         index  += 1
     }
@@ -336,7 +341,7 @@ struct HexGridView
     charWidth:      f32
     rowHeight:      f32
     fontSize:       u32
-    sigZoomChanged: SigArray'func||(*HexGridView)
+    sigZoomChanged: SigArray'func||(*HexGridView)     // Emitted after the font size changes.
 
     // Row text is rebuilt in place every frame. Bytes that carry a value and bytes that do not are
     // drawn in two passes over the same columns, so one row costs a handful of draws instead of
@@ -346,7 +351,6 @@ struct HexGridView
     rowHexFaint:   Array'u8
     rowTextStrong: Array'u8
     rowTextFaint:  Array'u8
-    caretText:     Array'u8
     headerText:    Array'u8
 }
 
@@ -421,7 +425,7 @@ impl HexGridView
         if .fontSize == next do
             return
         .fontSize = next
-        .style.setFont(.theme().createDefaultFontFS(next), .Regular)
+        .style.setFont(.theme().createDefaultFontFs(next), .Regular)
         .refreshLayout()
         .sigZoomChanged.call(me)
     }
@@ -451,8 +455,10 @@ impl HexGridView
         return raw
     }
 
-    // Returns the top of `row` in view coordinates, taking the difference in signed arithmetic
-    // because a row above the viewport is a legitimate question with an unsigned answer of 2^64.
+    // Returns the top of `row` in view coordinates.
+    //
+    // The difference is taken in signed arithmetic because a row above the viewport is a
+    // legitimate question, whose unsigned answer would wrap around 2^64.
     mtd rowTop(row: u64)->f32 => .headerHeight() + cast(f32) (cast(s64) row - cast(s64) .topRow) * .rowHeight
 
     mtd selectionStart()->u64 => Math.min(.caret, .anchor)
@@ -463,9 +469,10 @@ impl HexGridView
 
     mtd hasSelection()->bool => .caret != .anchor
 
-    // Reports the printable lane occupied by the current raw-byte match. The grid also marks the
-    // hexadecimal lane for forensic reading; the shared application halo chooses the text lane so
-    // one occurrence still has one unmistakable visual anchor.
+    // Writes the surface bounds of the visible text cells of the current match to `result`, and reports whether any are visible.
+    //
+    // The grid also marks the hexadecimal lane for forensic reading; the shared application halo
+    // uses the text lane so one occurrence still has one unmistakable visual anchor.
     mtd matchBounds(result: *Math.Rectangle)->bool
     {
         if not .matchLength or not .doc.fileSize do
@@ -521,8 +528,7 @@ impl HexGridView
 
     mtd computeMetrics()
     {
-        let family   = .font()
-        let resolved = family.regular
+        let resolved = .font().regular
         if not resolved do
             return
 
@@ -553,33 +559,7 @@ impl HexGridView
             if .autoFitRow do
                 .bytesPerRow = .fitBytesPerRow()
             .topRow = Math.min(.topRow, .maxTopRow())
-
-            .headerText.clear()
-            if .grouping == .Bytes
-            {
-                for column in .bytesPerRow
-                {
-                    appendHexDigits(&.headerText, column, 2)
-                    .headerText.add(' 'u8)
-                    if column % HexDefaultGroupSize == HexDefaultGroupSize - 1 and column != .bytesPerRow - 1 do
-                        .headerText.add(' 'u8)
-                }
-            }
-            else
-            {
-                var column = 0'u64
-                while column < .bytesPerRow
-                {
-                    let start = .headerText.count
-                    .headerText.add('+'u8)
-                    appendHexDigits(&.headerText, column, 2)
-                    while .headerText.count - start < .valueCellChars() do
-                        .headerText.add(' 'u8)
-                    .headerText.add(' 'u8)
-                    column += .valueSize()
-                }
-            }
-
+            .buildHeader()
             .syncScrollBar()
             if .clientRect() == oldClient do
                 break
@@ -591,7 +571,7 @@ impl HexGridView
     // Publishes the row range as a pixel span the scrollbar can drive, and places the thumb.
     mtd syncScrollBar()
     {
-        if not (.scroll != null) do
+        if .scroll == null do
             return
 
         let span   = Math.min(cast(f32) .rowCount() * .rowHeight, HexScrollSpan)
@@ -612,7 +592,7 @@ impl HexGridView
     // them.
     mtd adoptScrollPosition(position: f32)
     {
-        if .syncing or not (.scroll != null) do
+        if .syncing or .scroll == null do
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let maxTop = .maxTopRow()
@@ -736,7 +716,9 @@ impl HexGridView
         return Math.min(row * .bytesPerRow + column, .lastOffset())
     }
 
-    // Reveals `length` bytes at `offset` and keeps them marked once the caret moves on.
+    // Selects and reveals `length` bytes at `offset`, and reports whether `offset` lies inside the file.
+    //
+    // The range stays marked once the caret moves on.
     mtd revealRange(offset, length: u64)->bool
     {
         if offset >= .doc.fileSize do
@@ -766,7 +748,9 @@ impl HexGridView
         .invalidate()
     }
 
-    // Returns the first match whose end reaches `offset`. Search results arrive in file order.
+    // Returns the index of the first search hit whose last byte is at or after `offset`.
+    //
+    // Search results arrive in file order, so the lookup is a binary search.
     mtd firstSearchHitAt(offset: u64)->u64
     {
         if not .searchHits do
@@ -866,8 +850,10 @@ impl HexGridView
         .sigCaretChanged.call(me)
     }
 
-    // Copies the selection, bounded to `HexCopyLimit` so a select-all over a large file stays a
-    // clipboard operation rather than a way to load it.
+    // Copies at most `HexCopyLimit` bytes of the selection to the clipboard, spelled as `form` asks.
+    //
+    // The bound keeps a select-all over a large file a clipboard operation rather than a way to
+    // load it.
     mtd copySelection(form: HexCopyForm)
     {
         if not .doc.fileSize do
@@ -892,14 +878,14 @@ impl HexGridView
                 appendHexDigits(&text, value, 2)
             }
 
-            Clipboard.addString(Swag.makeString(text.storage(), text.count))
+            Clipboard.addString(cast(string) text.toSlice())
 
         case .Text:
             var text: Array'u8
             text.reserve(bytes.count)
             for value in bytes do
                 text.add(isHexPrintable(value) ? value : '.'u8)
-            Clipboard.addString(Swag.makeString(text.storage(), text.count))
+            Clipboard.addString(cast(string) text.toSlice())
         }
     }
 
@@ -910,13 +896,13 @@ impl HexGridView
         if not surface or not .doc.fileSize do
             return
 
-        var current: Array'u8
-        appendHexDigits(&current, .caret, .offsetDigits)
-
-        var options: EditDlgOptions
-        options.title   = hexStrings().ui_GoTo
-        options.message = hexStrings().ui_GoToMessage
-        options.text    = Swag.makeString(current.storage(), current.count)
+        let current = formatHexDigits(.caret, .offsetDigits)
+        with var options: EditDlgOptions
+        {
+            .title   = hexStrings().ui_GoTo
+            .message = hexStrings().ui_GoToMessage
+            .text    = current.toString()
+        }
 
         let dialog = EditDlg.createSingleLine(surface, options)
         if dialog.doModal() != Dialog.BtnOk do
@@ -926,7 +912,9 @@ impl HexGridView
         discard .goToTypedOffset(typed.toString())
     }
 
-    // Moves to the offset `text` names, centered so its neighbourhood is readable.
+    // Moves the caret to the offset `text` names, and reports whether `text` names one.
+    //
+    // The target is centered so its neighbourhood is readable.
     mtd goToTypedOffset(text: string)->bool
     {
         let target = parseHexOffset(text, .caret, .doc.fileSize)
@@ -941,14 +929,47 @@ impl HexGridView
         // A copy of the whole of a large file would be the one operation that materializes it, so
         // it is bounded — and the bound is named on the commands it applies to rather than left to
         // be discovered from a clipboard that came back short.
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(ActionHex.CopyBytes)
-        menu.addItem(ActionHex.CopyText)
-        menu.addItem(ActionHex.CopyDump)
-        menu.addSeparator()
-        menu.addItem(ActionHex.SelectAll)
-        menu.addItem(ActionHex.GoTo)
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem(ActionHex.CopyBytes)
+            .addItem(ActionHex.CopyText)
+            .addItem(ActionHex.CopyDump)
+            .addSeparator()
+            .addItem(ActionHex.SelectAll)
+            .addItem(ActionHex.GoTo)
+        }
+
         discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
+    }
+
+    // Rebuilds the column header for the current grouping and row width.
+    mtd buildHeader()
+    {
+        .headerText.clear()
+        if .grouping == .Bytes
+        {
+            for column in .bytesPerRow
+            {
+                appendHexDigits(&.headerText, column, 2)
+                .headerText.add(' 'u8)
+                if column % HexDefaultGroupSize == HexDefaultGroupSize - 1 and column != .bytesPerRow - 1 do
+                    .headerText.add(' 'u8)
+            }
+        }
+        else
+        {
+            var column = 0'u64
+            while column < .bytesPerRow
+            {
+                let start = .headerText.count
+                .headerText.add('+'u8)
+                appendHexDigits(&.headerText, column, 2)
+                while .headerText.count - start < .valueCellChars() do
+                    .headerText.add(' 'u8)
+                .headerText.add(' 'u8)
+                column += .valueSize()
+            }
+        }
     }
 
     // Rebuilds the five reusable buffers one row is drawn from.
@@ -1031,9 +1052,9 @@ impl HexGridView
 
     mtd drawBuffer(painter: *Painter, buffer: *Array'u8, x, y: f32, font: *Font, color: Color)
     {
-        if not buffer.count do
+        if buffer.isEmpty() do
             return
-        painter.drawString(x, y, Swag.makeString(buffer.storage(), buffer.count), font, color)
+        painter.drawString(x, y, cast(string) buffer.toSlice(), font, color)
     }
 
     // Fills the cells of `[first, last]` in both columns.
@@ -1048,6 +1069,18 @@ impl HexGridView
         let textLeft = originX + .textCellX(firstColumn)
         painter.fillRect(textLeft, y, cast(f32) (lastColumn - firstColumn + 1) * .charWidth, .rowHeight, color)
     }
+}
+
+// Commands shared by the context menu and keyboard.
+struct ActionHex {}
+
+impl ActionHex
+{
+    newCmdId("CopyBytes")
+    newCmdId("CopyText")
+    newCmdId("CopyDump")
+    newCmdId("SelectAll")
+    newCmdId("GoTo")
 }
 
 impl IActionUI for ActionHex
@@ -1290,8 +1323,7 @@ impl IWnd for HexGridView
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter  = evt.paintContext.painter
-        let family   = .font()
-        let resolved = family.regular
+        let resolved = .font().regular
         if not resolved or .rowHeight <= 0 do
             return
 
@@ -1330,8 +1362,7 @@ impl IWnd for HexGridView
         // Column header. It is the only chrome the grid carries, and one rule under it is all it
         // takes to separate it from the rows.
         let headerY = client.y + 4
-        if .headerText.count do
-            painter.drawString(originX + HexViewInset + .gutterWidth(), headerY, Swag.makeString(.headerText.storage(), .headerText.count), font, headerInk)
+        .drawBuffer(painter, &.headerText, originX + HexViewInset + .gutterWidth(), headerY, font, headerInk)
         painter.drawString(originX + .textColumnLeft(), headerY, hexStrings().ui_TextColumn, font, headerInk)
         painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.border, 1)
 
@@ -1377,12 +1408,8 @@ impl IWnd for HexGridView
                 let column      = valueOffset % .bytesPerRow
                 let complete    = valueOffset + .valueSize() <= .doc.fileSize
                 let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatHexScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
-                .caretText.clear()
-                for index in text.count do
-                    .caretText.add(text[index])
-
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32) .valueCellChars() * .charWidth + 2, .rowHeight, caretBk)
-                painter.drawString(originX + .hexCellX(column), y, Swag.makeString(.caretText.storage(), .caretText.count), font, caretInk)
+                painter.drawString(originX + .hexCellX(column), y, text.toString(), font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
             }
         }
@@ -1397,15 +1424,18 @@ impl HexGridView
         let scroll = Wnd.create'ScrollWnd(parent, "", {})
         scroll.dockStyle = .Center
 
-        let result = scroll.createView'HexGridView()
-        result.scroll = scroll
-        result.backgroundStyle = .View
-        result.registerAction'ActionHex()
-        result.focusPolicy = .Tab
-        result.wndFlags    |= WndFlags.NoScroll | WndFlags.NoFocusRing | WndFlags.ClipChildren
-        result.cursor      = Cursor.from(CursorShape.IBeam)
-        result.fontSize    = result.themeMetrics().defaultFixedFontSize
-        result.style.setFont(result.theme().createDefaultFontFS(result.fontSize), .Regular)
+        with let result = scroll.createView'HexGridView()
+        {
+            .scroll          = scroll
+            .backgroundStyle = .View
+            .registerAction'ActionHex()
+            .focusPolicy = .Tab
+            .wndFlags    |= .NoScroll | .NoFocusRing | .ClipChildren
+            .cursor      = Cursor.from(.IBeam)
+            .fontSize    = .themeMetrics().defaultFixedFontSize
+            .style.setFont(.theme().createDefaultFontFs(.fontSize), .Regular)
+        }
+
         scroll.sigScrollPositionChanged += func|view = result|(scrollWnd, oldPosition, newPosition)
         {
             discard scrollWnd
@@ -1413,15 +1443,6 @@ impl HexGridView
             view.adoptScrollPosition(newPosition.y)
         }
 
-        result.refreshLayout()
-        return result
-    }
-
-    // Creates the grid and opens the file it reads through.
-    func create(parent: *Wnd, fileName: string)->*HexGridView
-    {
-        let result = HexGridView.create(parent)
-        discard result.doc.open(fileName)
         result.refreshLayout()
         return result
     }

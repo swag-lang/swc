@@ -50,9 +50,9 @@ func day7B()
     var last:  u8
     for k, v in steps
     {
-        if v.next.length == 0 do
+        if v.next.isEmpty() do
             last = k
-        if v.prev.length == 0 do
+        if v.prev.isEmpty() do
             first.add(k)
     }
 

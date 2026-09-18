@@ -2,8 +2,17 @@
 
 using Core, Pixel, Serialization
 
+// Most images of one container that get a preview.
 private const BinaryPreviewLimit = 8'u64
 
+// One image understood inside a binary container, with the short label shown under it.
+struct BinaryPreview
+{
+    image: Image
+    label: String
+}
+
+// Writes `value` as four little-endian bytes at `offset`.
 private func writePreviewU32(bytes: *Array'u8, offset: u64, value: u32)
 {
     bytes[offset]     = cast(u8) value
@@ -12,6 +21,7 @@ private func writePreviewU32(bytes: *Array'u8, offset: u64, value: u32)
     bytes[offset + 3] = cast(u8) (value >> 24)
 }
 
+// Returns whether the file begins with the directory of a Windows icon or cursor.
 func isIconContainer(image: *BinaryImage)->bool
 {
     if not image.has(0, 6) or image.u16At(0) != 0 or not image.u16At(4) do
@@ -20,7 +30,9 @@ func isIconContainer(image: *BinaryImage)->bool
     return kind == 1 or kind == 2
 }
 
-// Rebuilds each directory entry as a one-image ICO so the existing decoder can expose every size,
+// Adds the directory of an icon or cursor file, and a preview of every image it holds.
+//
+// Each directory entry is rebuilt as a one-image ICO so the existing decoder can expose every size,
 // rather than selecting only the largest image from the original container.
 func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *Array'BinaryPreview)
 {
@@ -74,6 +86,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
     report.endGroup()
 }
 
+// Returns the identifier `text` spells, or the null identifier when it spells none.
 private func previewGuid(text: string)->Guid128
 {
     var result: Guid128
@@ -86,21 +99,26 @@ private func capturePreviewRole()->Guid128    => previewGuid("9b5e375d-e615-4a80
 private func captureBackgroundRole()->Guid128 => previewGuid("648e64f2-ca4b-43ef-8076-6e0dd0523ec5")
 private func captureOriginalRole()->Guid128   => previewGuid("7206ea20-cd74-4832-afa9-0ce33c7699cd")
 
+// Adds the image a TagBin payload serializes as one preview labelled `label`.
 private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Array'BinaryPreview)
 {
     var decoder: Decoder'Read.TagBin
     let image = catch decoder.readAll'Image(bytes) as decodeError
     if decodeError != null or image == null do
         return
+    defer Memory.delete(image)
+
     var preview: BinaryPreview
     preview.image = #move image[]
     preview.label = label
-    Memory.delete(image)
     previews.add(#move preview)
 }
 
-// Swag Capture declares the role of every picture. Reader.readChunk performs the registered deflate
-// step first, so compressed background and original images reach the same decoder as stored ones.
+// Adds a preview of every picture a Swag Capture container holds, up to `BinaryPreviewLimit`.
+//
+// Swag Capture declares the role of every picture. `Scc.Reader.readChunk` performs the registered
+// deflate step first, so compressed background and original images reach the same decoder as stored
+// ones.
 func loadSccImagePreviews(fileName: string, previews: *Array'BinaryPreview)
 {
     var reader: Scc.Reader
@@ -123,7 +141,7 @@ func loadSccImagePreviews(fileName: string, previews: *Array'BinaryPreview)
                 continue
             var preview: BinaryPreview
             preview.image = #move image
-            preview.label = binStrings().ui_Preview
+            preview.label = binaryStrings().ui_Preview
             previews.add(#move preview)
         }
         elif chunk.roleId == captureBackgroundRole() do

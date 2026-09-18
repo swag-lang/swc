@@ -60,10 +60,7 @@ func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64
 
 impl Decoder
 {
-    func read16(src: const [*] u8)->u16
-    {
-        return (cast(u16) src[0] << 8) | src[1]
-    }
+    func read16(src: const [*] u8)->u16 => (cast(u16) src[0] << 8) | src[1]
 
     func reduce16(value: u16)->u8 => cast(u8) ((cast(u32) value + 128) / 257)
 

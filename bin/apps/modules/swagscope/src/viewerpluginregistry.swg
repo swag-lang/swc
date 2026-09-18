@@ -132,10 +132,8 @@ impl ViewerPluginRegistry
     // is worth looking inside.
     mtd const namePlugin(fileName: string, pluginIndex: *u64)->bool
     {
-        var extension = String.from(Path.extension(fileName) orelse "")
-        extension = extension.toLower()
-        var baseName = String.from(Path.fileName(fileName) orelse "")
-        baseName = baseName.toLower()
+        let extension = String.from(Path.extension(fileName) orelse "").toLower()
+        let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
 
         for plugin, index in .plugins where .matches(plugin, baseName.toString(), extension.toString(), wildcard: false)
         {
@@ -162,10 +160,8 @@ impl ViewerPluginRegistry
         var result:  retval
         var matched: Array'bool
         matched.resize(.plugins.count)
-        var extension = String.from(Path.extension(fileName) orelse "")
-        extension = extension.toLower()
-        var baseName = String.from(Path.fileName(fileName) orelse "")
-        baseName = baseName.toLower()
+        let extension = String.from(Path.extension(fileName) orelse "").toLower()
+        let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
 
         let head    = readProbeHead(fileName)
         var content = Viewer.ProbeContent{fileName: fileName, head: head.toSlice(), claimedText: true}
@@ -195,14 +191,10 @@ impl ViewerPluginRegistry
     // when neither has a format-specific viewer.
     mtd const sharesViewer(a, b: string)->bool
     {
-        var extensionA = String.from(Path.extension(a) orelse "")
-        extensionA = extensionA.toLower()
-        var extensionB = String.from(Path.extension(b) orelse "")
-        extensionB = extensionB.toLower()
-        var baseA = String.from(Path.fileName(a) orelse "")
-        baseA = baseA.toLower()
-        var baseB = String.from(Path.fileName(b) orelse "")
-        baseB = baseB.toLower()
+        let extensionA = String.from(Path.extension(a) orelse "").toLower()
+        let extensionB = String.from(Path.extension(b) orelse "").toLower()
+        let baseA      = String.from(Path.fileName(a) orelse "").toLower()
+        let baseB      = String.from(Path.fileName(b) orelse "").toLower()
 
         var anyA, anyB: bool
         for plugin in .plugins where plugin.matchNames
@@ -223,24 +215,10 @@ impl ViewerPluginRegistry
     // Reports whether `fileName` has an explicitly registered extension or exact name.
     mtd const explicitlySupports(fileName: string)->bool
     {
-        var extension = String.from(Path.extension(fileName) orelse "")
-        extension = extension.toLower()
-        var baseName = String.from(Path.fileName(fileName) orelse "")
-        baseName = baseName.toLower()
-        for plugin in .plugins where plugin.matchNames
-        {
-            for supported in plugin.selectors
-            {
-                let selector = supported[].toString()
-                if selector == "*" do
-                    continue
-                if selector[0] == '.' and selector == extension.toString() do
-                    return true
-                if selector[0] != '.' and selector == baseName.toString() do
-                    return true
-            }
-        }
-
+        let extension = String.from(Path.extension(fileName) orelse "").toLower()
+        let baseName  = String.from(Path.fileName(fileName) orelse "").toLower()
+        for plugin in .plugins where plugin.matchNames and .matches(plugin, baseName.toString(), extension.toString(), wildcard: false) do
+            return true
         return false
     }
 }

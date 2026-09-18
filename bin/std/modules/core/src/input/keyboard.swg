@@ -46,13 +46,17 @@ impl Keyboard
         .currentState.setPressed(key, currentPressed)
     }
 
-    // Compute current state of the keyboard (all keys)
+    // Captures a new state, keeping the previous one, and repeats the presses of held keys.
+    //
+    // While `repeatEnabled` is set, a key held for `initialRepeatDelayMs`, then every
+    // `repeatIntervalMs` after that, reports a new press through
+    // [[Core.Input.Keyboard.isKeyJustPressed]].
     mtd update()
     {
         .previousState = .currentState
         .currentState.update()
 
-        // Repetition
+        // A repetition clears the previous state of the key, which reads as a new press.
         let now = Time.monotonicMilliseconds()
         for key in Key
         {
@@ -86,7 +90,7 @@ impl Keyboard
         }
     }
 
-    // Reset the keyboard state
+    // Releases every key in both states and stops every repetition.
     mtd clear()
     {
         .previousState.clear()
@@ -95,45 +99,27 @@ impl Keyboard
         Memory.clear(&.pressedAtMs, #sizeof(.pressedAtMs))
     }
 
-    // Determines whether given key is currently being pressed
-    mtd isKeyPressed(key: Key)->bool
-    {
-        return .currentState.pressed[key]
-    }
+    // Returns whether `key` is pressed in the latest state.
+    mtd isKeyPressed(key: Key)->bool => .currentState.pressed[key]
 
-    // Determines whether given key has just been pressed
-    mtd isKeyJustPressed(key: Key)->bool
-    {
-        return .currentState.pressed[key] and not .previousState.pressed[key]
-    }
+    // Returns whether `key` became pressed, or repeated, during the latest update.
+    mtd isKeyJustPressed(key: Key)->bool => .currentState.pressed[key] and not .previousState.pressed[key]
 
-    // Determines whether given key is currently being released
-    mtd isKeyReleased(key: Key)->bool
-    {
-        return not .currentState.pressed[key]
-    }
+    // Returns whether `key` is released in the latest state.
+    mtd isKeyReleased(key: Key)->bool => not .currentState.pressed[key]
 
-    // Determines whether given key has just been released
-    mtd isKeyJustReleased(key: Key)->bool
-    {
-        return not .currentState.pressed[key] and .previousState.pressed[key]
-    }
+    // Returns whether `key` became released during the latest update.
+    mtd isKeyJustReleased(key: Key)->bool => not .currentState.pressed[key] and .previousState.pressed[key]
 
     // Returns the modifier flags active in the latest state.
     mtd pressedModifiers()->KeyModifiers
     {
-        var modifiers: Input.KeyModifiers = .None
-        if .isKeyPressed(Input.Key.LShift) do
+        var modifiers: KeyModifiers = .None
+        if .isKeyPressed(.LShift) or .isKeyPressed(.RShift) do
             modifiers |= .Shift
-        if .isKeyPressed(Input.Key.RShift) do
-            modifiers |= .Shift
-        if .isKeyPressed(Input.Key.LControl) do
+        if .isKeyPressed(.LControl) or .isKeyPressed(.RControl) do
             modifiers |= .Control
-        if .isKeyPressed(Input.Key.RControl) do
-            modifiers |= .Control
-        if .isKeyPressed(Input.Key.LMenu) do
-            modifiers |= .Alt
-        if .isKeyPressed(Input.Key.RMenu) do
+        if .isKeyPressed(.LMenu) or .isKeyPressed(.RMenu) do
             modifiers |= .Alt
         return modifiers
     }

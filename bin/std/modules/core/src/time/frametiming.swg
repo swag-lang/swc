@@ -22,7 +22,11 @@ struct FrameTiming
 
 impl FrameTiming
 {
-    // Updates the delta time and frame count
+    // Measures the time elapsed since the previous update into `deltaSeconds` and counts the frame.
+    //
+    // The measure is clamped between `minimumDeltaSeconds` and `maximumDeltaSeconds`. The first
+    // update only records the reference tick, so `deltaSeconds` keeps its previous value. A
+    // paused timing ignores updates.
     mtd update()
     {
         let newTick = monotonicTicks()
@@ -47,7 +51,7 @@ impl FrameTiming
         .previousTick = newTick
     }
 
-    // Pauses frame timing and frame count
+    // Pauses the timing, so updates change neither the delta nor the frame count until [[Core.Time.FrameTiming.resume]].
     mtd pause()
     {
         .isPaused = true

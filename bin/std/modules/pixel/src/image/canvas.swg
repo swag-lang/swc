@@ -131,9 +131,10 @@ impl ImageCanvas
     // ## Example
     //
     // ```swag
-    // var photo  = try Image.load("photo.png")
+    // let photo  = try Image.load("photo.png")
     // var canvas = try ImageCanvas.create(photo)
-    // canvas.painter.drawString(&font, 8, 8, "caption", Color.fromRgb(255, 255, 255))
+    // let font   = try canvas.painter.renderer().fontCache().createFont("Inter-Regular.ttf", 18)
+    // canvas.painter.drawString(8, 8, "caption", font, Color.fromRgb(255, 255, 255))
     // var stamped = try canvas.toImage()
     // ```
     func create(image: Image)->ImageCanvas fail

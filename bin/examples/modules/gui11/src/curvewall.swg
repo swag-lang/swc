@@ -76,10 +76,7 @@ impl CurveWall
     }
 
     // Returns the ordinate of `value` inside `plot`.
-    func plotY(plot: Math.Rectangle, value: f32)->f32
-    {
-        return plot.bottom() - (value - PlotLow) / (PlotHigh - PlotLow) * plot.height
-    }
+    func plotY(plot: Math.Rectangle, value: f32)->f32 => plot.bottom() - (value - PlotLow) / (PlotHigh - PlotLow) * plot.height
 
     mtd paintCard(painter: *Painter, card: Math.Rectangle, easing: AnimationEasing)
     {

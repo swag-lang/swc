@@ -48,7 +48,7 @@ struct LayerDrawInfo
 
 // Records painter commands into an off-screen render target and composites the result.
 //
-// A layer owns renderer targets until [[Layer.release]] or a draw configured with
+// A layer owns renderer targets until [[Pixel.Layer.release]] or a draw configured with
 // `releaseAfterDraw`. Calls must follow `begin`, drawing, `end`, then optional
 // `resolve`/`buildShadow`/`draw`.
 struct Layer
@@ -313,8 +313,7 @@ impl Layer
         else do
             .resolve()
 
-        let painter = .painter!
-        with painter
+        with let painter = .painter!
         {
             .pushState()
             .setDefaultShader()
@@ -353,10 +352,7 @@ impl Layer
     // Use it as a destination rectangle. When sampling the layer texture directly,
     // remember its texels are at device resolution: one logical unit covers the
     // painter content scale in texels.
-    mtd sourceRect()->Math.Rectangle
-    {
-        return Math.Rectangle{0, 0, .width, .height}
-    }
+    mtd sourceRect()->Math.Rectangle => Math.Rectangle{0, 0, .width, .height}
 
     // Queues every owned render target for release and resets the layer.
     //

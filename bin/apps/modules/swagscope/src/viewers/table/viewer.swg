@@ -26,19 +26,43 @@ private const TableColumnLimit       = 256'u64
 private const TableColumnMinWidth    = 96.0
 private const TableColumnMaxWidth    = 320.0
 private const TableCellWidth         = 8.0
-internal const TableCellPreviewBytes = 1024'u64
+const TableCellPreviewBytes = 1024'u64     // Most bytes of one cell handed to the list renderer.
 
-internal struct TableRow
+// One record of a table.
+struct TableRow
 {
     cells: Array'String
 }
 
-internal struct TableDocument
+impl TableRow
 {
-    columns:          Array'String
+    // Closes the cell being read: its bytes become the next cell of the row, and `cell` is emptied.
+    mtd finishCell(cell: *Array'u8)
+    {
+        .cells.add(String.from(cast(string) cell.toSlice()))
+        cell.clear()
+    }
+}
+
+// A parsed delimited-text table: the header row, the records below it, and the delimiter that
+// separated them.
+struct TableDocument
+{
+    columns:          Array'String     // Column names, generated for the ones the header leaves empty.
     rows:             Array'TableRow
     delimiter:        u8
-    generatedColumns: Array'u32
+    generatedColumns: Array'u32        // Columns whose name was generated rather than read.
+}
+
+impl TableDocument
+{
+    // Closes the cell and the row being read, and appends the row to the document.
+    mtd finishRow(row: *TableRow, cell: *Array'u8)
+    {
+        row.finishCell(cell)
+        .rows.add(#move row[])
+        row[] = {}
+    }
 }
 
 private func loadTableDocument(fileName: string)->TableDocument fail
@@ -55,7 +79,7 @@ private func loadTableDocument(fileName: string)->TableDocument fail
 // Bounds the text handed to the single-line rich-text renderer. A table keeps the complete cell
 // for search, but shaping a megabyte-long CSV field merely to paint its first few glyphs makes
 // every virtual-row repaint linear in the hidden tail.
-internal func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
+func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
 {
     var result: retval
     result.end = value.count
@@ -74,21 +98,8 @@ internal func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ star
     return result
 }
 
-private func finishTableCell(row: *TableRow, cell: *Array'u8)
-{
-    row.cells.add(String.from(cell.isEmpty() ? "" : Swag.makeString(cell.storage(), cell.count)))
-    cell.clear()
-}
-
-private func finishTableRow(document: *TableDocument, row: *TableRow, cell: *Array'u8)
-{
-    finishTableCell(row, cell)
-    document.rows.add(#move row[])
-    row[] = {}
-}
-
 // Parses RFC-4180 quoting and the line-ending forms commonly found in CSV and TSV files.
-internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fail
+func parseTableDocument(text: string, delimiter: u8)->TableDocument fail
 {
     var result: retval
     result.delimiter = delimiter
@@ -133,7 +144,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
 
         if value == delimiter
         {
-            finishTableCell(&row, &cell)
+            row.finishCell(&cell)
             touched     = true
             closedQuote = false
             at          += 1
@@ -142,7 +153,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
 
         if value == '\r' or value == '\n'
         {
-            finishTableRow(&result, &row, &cell)
+            result.finishRow(&row, &cell)
             touched     = false
             closedQuote = false
             at          += value == '\r' and at + 1 < text.count and text[at + 1] == '\n' ? 2 : 1
@@ -173,7 +184,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
     if quoted do
         fail InvalidFormatError{Errors.mkString(tableStrings().err_UnclosedQuote)}
     if touched or not cell.isEmpty() or not row.cells.isEmpty() do
-        finishTableRow(&result, &row, &cell)
+        result.finishRow(&row, &cell)
     if result.rows.isEmpty() do
         return result
 
@@ -197,6 +208,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
     return result
 }
 
+// Counts `delimiter` outside quotes in the first records of `text`, a sample bounded in bytes and records.
 private func delimiterCount(text: string, delimiter: u8)->u64
 {
     var result: u64
@@ -238,7 +250,7 @@ private func delimiterCount(text: string, delimiter: u8)->u64
 }
 
 // Chooses the strongest delimiter in the first records; a TSV extension remains unambiguous.
-internal func detectTableDelimiter(fileName, text: string)->u8
+func detectTableDelimiter(fileName, text: string)->u8
 {
     let extension = Path.lowercaseExtension(fileName)
     if extension == ".tsv" or extension == ".tab" do
@@ -267,7 +279,7 @@ private func tableCountText(count: u64, one, many: string)->String
     return Format.toString(many, count)
 }
 
-internal struct TableViewer
+struct TableViewer
 {
     using wnd: Wnd
 
@@ -346,7 +358,7 @@ private impl TableViewer
         for column, index in .document.columns
         {
             var longest = column.length
-            for row in .document.rows.toSlice()[0 until Math.min(.document.rows.count, 128)] where index < row.cells.count do
+            for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count do
                 longest = Math.max(longest, row.cells[index].length)
             let width = Math.clamp(cast(f32) longest * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
             let range = tableCellPreviewRange(column.toString())
@@ -428,7 +440,7 @@ private impl TableViewer
         with result.list = ListCtrl.createMultiColumns(result)
         {
             .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFontfamilyFS(result.themeMetrics().defaultFixedFontSize))
+            .style.setFont(result.theme().createDefaultFontFamilyFs(result.themeMetrics().defaultFixedFontSize))
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
@@ -522,9 +534,12 @@ impl TableViewer
     // Hosts a table decoded by another reader without introducing a temporary CSV file.
     func createDocument(parent: *Wnd, document: TableDocument)->*TableViewer
     {
-        let result = TableViewer.createBase(parent)
-        result.document = #move document
-        result.publishDocument()
+        with let result = TableViewer.createBase(parent)
+        {
+            .document = #move document
+            .publishDocument()
+        }
+
         return result
     }
 }
@@ -561,7 +576,7 @@ func createTableViewer(host: Viewer.Host)
     },
         clear: func(wnd) { (cast #assume (*TableViewer) wnd).clearSearch() }})
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast #assume (*TableViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*TableViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*TableViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null,
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*TableViewer) wnd).loadTimer != null,
+        retire: func(wnd)->bool => (cast #assume (*TableViewer) wnd).retire()})
 }

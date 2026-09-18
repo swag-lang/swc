@@ -3,10 +3,7 @@
 using Core, Pixel
 
 // Returns the path of a fixture of this test suite.
-func videoFixturePath(name: string)->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
-}
+func videoFixturePath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
 
 // Returns a unique path in the temporary directory, for a stream a test writes itself.
 //
@@ -17,10 +14,7 @@ func videoTempPath(name, extension: string)->String
     return Path.combine(directory.toString(), Format.toString("video-%-%.%", name, Guid64.random(), extension).toString())
 }
 
-func videoTestImage(width, height: s32, pixels: const [..] u8)->Image
-{
-    return Image.create(width, height, .RGB8, pixels)
-}
+func videoTestImage(width, height: s32, pixels: const [..] u8)->Image => Image.create(width, height, .RGB8, pixels)
 
 // Returns an image whose every channel holds `value`, which encodes to a neutral frame.
 func videoGrayImage(width, height: s32, value: u8)->Image

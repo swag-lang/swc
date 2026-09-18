@@ -10,7 +10,7 @@ using Swag, Core
     host.setup(320, 80)
     defer host.shutdown()
     let header = Header.create(&host.root, {10, 10, 300, 24})
-    Swag.assert(header.items.count == 0)
+    Swag.assert(header.items.isEmpty())
 
     header.addColumn("Name", 120)
     header.addColumn("Size", 80)

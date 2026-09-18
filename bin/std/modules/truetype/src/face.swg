@@ -180,10 +180,7 @@ public impl Face
     // let face  = (try TrueType.Face.load(bytes.toSlice()))!
     // defer face.destroy()
     // ```
-    func load(bytes: const [..] u8, allocator: IAllocator? = null)->*Face? fail
-    {
-        return try Face.loadAt(bytes, 0, allocator)
-    }
+    func load(bytes: const [..] u8, allocator: IAllocator? = null)->*Face? fail => try Face.loadAt(bytes, 0, allocator)
 
     // Loads a rendering-only TrueType subset from an in-memory font program.
     //
@@ -220,10 +217,7 @@ public impl Face
     //     defer face.destroy()
     // }
     // ```
-    func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: IAllocator? = null)->*Face? fail
-    {
-        return try loadFaceBytes(bytes, faceIndex, "", allocator)
-    }
+    func loadAt(bytes: const [..] u8, faceIndex: u32, allocator: IAllocator? = null)->*Face? fail => try loadFaceBytes(bytes, faceIndex, "", allocator)
 
     // Returns how many faces an in-memory font file holds.
     //
@@ -231,10 +225,7 @@ public impl Face
     // file answers one. The bytes are only inspected, so nothing is allocated and
     // no face is loaded. Failure is reported for a container this module cannot
     // read, which is the same diagnostic [[TrueType.Face.load]] would give.
-    func countFaces(bytes: const [..] u8)->u32 fail
-    {
-        return try countFacesIn(bytes)
-    }
+    func countFaces(bytes: const [..] u8)->u32 fail => try countFacesIn(bytes)
 
     // Returns the family name the face at `faceIndex` declares.
     //
@@ -254,10 +245,7 @@ public impl Face
     //         break
     // }
     // ```
-    func familyNameAt(bytes: const [..] u8, faceIndex: u32)->String fail
-    {
-        return try familyNameIn(bytes, faceIndex)
-    }
+    func familyNameAt(bytes: const [..] u8, faceIndex: u32)->String fail => try familyNameIn(bytes, faceIndex)
 
     // Releases this face and every resource borrowed from it.
     //
@@ -278,11 +266,10 @@ public impl Face
 
     // Selects the pixel dimensions used by subsequent glyph loads.
     //
-    // Pass zero for one dimension to copy the other dimension. Both values cannot
-    // be zero. Scaled metrics are exposed through [[TrueType.Face.size]].
+    // Pass zero for one dimension to copy the other dimension. Fails when both are
+    // zero or either exceeds 65535. Scaled metrics are exposed through [[TrueType.Face.size]].
     mtd setPixelSize(pixelWidth, pixelHeight: u32) fail
     {
-        let faceData = try getFaceImpl(me)
         if (not pixelWidth and not pixelHeight) or pixelWidth > Swag.U16.Max or pixelHeight > Swag.U16.Max do
             try fault(0x17)
 
@@ -303,7 +290,7 @@ public impl Face
     mtd const hasKerning()->bool
     {
         let faceData = cast(const *FaceImpl) cast(const *void) me
-        return faceData.gposPairSubtables.count != 0 or faceData.kernPairs.count != 0
+        return not faceData.gposPairSubtables.isEmpty() or not faceData.kernPairs.isEmpty()
     }
 
     // Returns horizontal kerning between two glyph indices.
@@ -326,18 +313,13 @@ public impl Face
             return result
 
         var units = 0's16
-        if faceData.gposPairSubtables.count != 0
+        if not faceData.gposPairSubtables.isEmpty()
         {
             units = lookupGposKerning(faceData, cast(u16) leftGlyph, cast(u16) rightGlyph)
         }
 
-        if not units
-        {
-            let key  = (leftGlyph << 16) | rightGlyph
-            let here = faceData.kernPairs.tryFind(key)
-            if here do
-                units = here.value
-        }
+        if not units do
+            units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
 
         if not units do
             return result
@@ -443,7 +425,7 @@ public impl Face
     mtd loadGlyph(glyphIndex: u32, loadFlags = LoadFlag.Default) fail
     {
         try loadGlyphInternal(me, glyphIndex)
-        if loadFlags & .Render do
+        if loadFlags.has(.Render) do
             try .renderGlyph()
     }
 
@@ -462,10 +444,7 @@ public impl Face
     //
     // The result is stored in [[TrueType.GlyphSlot.bitmap]] and replaces any
     // previous bitmap from this face.
-    mtd renderGlyph() fail
-    {
-        try renderCurrentOutline(&.glyph)
-    }
+    mtd renderGlyph() fail => try renderCurrentOutline(&.glyph)
 
     // Aligns important vertical zones of the current outline to whole pixels.
     //
@@ -510,20 +489,14 @@ public impl Face
     //
     // `spread` is the pixel distance mapped across the field transition and is
     // clamped to 1 through 64. The result uses [[TrueType.PixelMode.Gray]].
-    mtd renderGlyphSdf(spread: u32 = 8) fail
-    {
-        try renderCurrentOutlineSdf(&.glyph, spread)
-    }
+    mtd renderGlyphSdf(spread: u32 = 8) fail => try renderCurrentOutlineSdf(&.glyph, spread)
 
     // Renders the current outline as a multi-channel signed-distance field.
     //
     // `spread` is clamped to 1 through 64. The resulting four-byte pixels store
     // the multi-channel field in RGB and a true signed distance in alpha; the
     // bitmap reports [[TrueType.PixelMode.Rgba]].
-    mtd renderGlyphMsdf(spread: u32 = 8) fail
-    {
-        try renderCurrentOutlineMsdf(&.glyph, spread)
-    }
+    mtd renderGlyphMsdf(spread: u32 = 8) fail => try renderCurrentOutlineMsdf(&.glyph, spread)
 }
 
 // Piecewise-linear vertical remap used by the blue-zone hinter (all values in 26.6,

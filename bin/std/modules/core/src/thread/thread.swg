@@ -1,31 +1,35 @@
 #global public
 #global namespace Threading
 
-// Names the thread handle type.
+// Opaque platform handle of a thread.
 alias ThreadHandle = const *void?
 
-// Selects thread priority.
+// Selects the scheduling priority of a thread.
 enum ThreadPriority
 {
-    Lowest          // Selects lowest.
-    BelowNormal     // Selects below normal.
-    Normal          // Selects normal.
-    AboveNormal     // Selects above normal.
-    Highest         // Selects highest.
+    Lowest          // Two steps below normal
+    BelowNormal     // One step below normal
+    Normal          // Default priority
+    AboveNormal     // One step above normal
+    Highest         // Two steps above normal
 }
 
-// Represents thread.
+// Owns an operating-system thread that runs a lambda with its own copy of the creating thread's context.
+//
+// [[Core.Threading.Thread.init]] creates the thread suspended and [[Core.Threading.Thread.start]]
+// runs it. The value must be waited for, with [[Core.Threading.Thread.wait]] or
+// [[Core.Threading.wait]], before it is dropped, and it must not move while the thread runs.
 #[Swag.NoCopy]
 struct Thread
 {
     public
     {
-        userLambda: (func||(Thread))?     // User lambda associated with this value.
+        userLambda: (func||(Thread))?     // Body the thread runs; it receives this value.
 
-        context:   Swag.Context     // Context associated with this value.
-        userParam: *void?           // User param associated with this value.
+        context:   Swag.Context     // Context the thread runs with, copied from the creating thread.
+        userParam: *void?           // Caller data the body can read back.
 
-        priority   = ThreadPriority.Normal     // Priority associated with this value.
+        priority   = ThreadPriority.Normal     // Current scheduling priority.
         requestEnd = false                     // Cooperative stop flag the thread body polls.
 
         // Identity of the running thread, established when it starts.
@@ -38,20 +42,16 @@ struct Thread
 
 impl Thread
 {
-    // Releases resources owned by this value.
+    // Asserts that the thread was waited for before its owner goes away.
     mtd opDrop()
     {
         Swag.assert(not .isValid(), "thread is not terminated")
     }
 
-    // Returns true if the thread is valid
-    mtd const isValid()->bool
-    {
-        return .handle != null
-    }
+    // Returns whether this value owns a thread, from [[Core.Threading.Thread.init]] until it is waited for.
+    mtd const isValid()->bool => .handle != null
 
-    // Force the thread to safely exist
-    // User code needs to check for 'requestEnd'
+    // Asks the thread to stop by setting `requestEnd`, which its body must poll.
     mtd safeForceEnd()
     {
         .requestEnd = true
@@ -76,16 +76,20 @@ impl Thread
         yieldNative()
     }
 
-    // Creates a suspended thread with a cloned runtime context.
+    // Creates a suspended thread that runs `lambda` with a copy of the calling thread's context.
+    //
+    // `tempAllocSize` sets the capacity of the thread's temporary allocator in bytes; zero
+    // leaves it without capacity. Call [[Core.Threading.Thread.start]] to run the thread.
     mtd init(lambda: func||(Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
         Swag.assert(not .isValid(), "thread already created")
 
         .context = Swag.getContext()[]
+        let inheritedCapacity = .context.tempAllocator.capacity
         Swag.init(&.context.tempAllocator, 1)
         let allocator = .context.allocator!
         if tempAllocSize < 0 do
-            .context.tempAllocator.setCapacity(.context.tempAllocator.capacity, allocator)
+            .context.tempAllocator.setCapacity(inheritedCapacity, allocator)
         elif tempAllocSize != 0 do
             .context.tempAllocator.setCapacity(cast(u64) tempAllocSize, allocator)
         .handle     = try createSuspendedNative(&threadEntry, me, &.id)
@@ -134,11 +138,8 @@ private func threadEntry(param: *void?)->u32
     let thread = cast(*Thread) param!
     Swag.setContext(thread.context)
     let lambda = thread.userLambda
-    if lambda
-    {
-        let safeLambda = lambda orelse func(th: Thread) {}
-        safeLambda(thread[])
-    }
+    if lambda do
+        lambda(thread[])
 
     thread.context.tempAllocator.release()
     Swag.releaseAllocatorThreadCache()
@@ -160,7 +161,7 @@ func wait(threads: *Thread...)
             handles[i] = thread.handle
         }
 
-        waitManyNative(Swag.makeSlice(&handles[0], cast(u64) count))
+        waitManyNative(handles[until count])
         start += count
     }
 

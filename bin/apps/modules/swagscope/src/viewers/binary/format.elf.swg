@@ -181,7 +181,7 @@ func elfDynamicTagName(value: u64)->string
 // needs at run time.
 func reportElfImage(image: *BinaryImage, report: *BinaryReport)
 {
-    let s     = binStrings()
+    let s     = binaryStrings()
     let is64  = image.u8At(4) == 2
     let order = image.u8At(5)
     image.bigEndian = order == 2
@@ -241,7 +241,7 @@ private func reportElfSegments(image: *BinaryImage, report: *BinaryReport, at, e
     if not at or not count do
         return
 
-    let s     = binStrings()
+    let s     = binaryStrings()
     let shown = Math.min(count, BinaryListLimit)
     let total = countText(count, s.word_Entry, s.word_Entries)
 
@@ -331,7 +331,7 @@ private func readElfSections(image: *BinaryImage, at, entrySize, count, stringIn
 
 private func reportElfSections(image: *BinaryImage, report: *BinaryReport, sections: const [..] ElfSection, at, entrySize: u64, is64: bool)
 {
-    let s = binStrings()
+    let s = binaryStrings()
     if not at
     {
         report.note(s.elf_NoSections)
@@ -383,7 +383,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
         return
 
     // The strings a dynamic entry names live in the section it links to, which is `.dynstr`.
-    let s         = binStrings()
+    let s         = binaryStrings()
     let wide      = is64 ? 8'u64 : 4
     let at        = dynamic.offset
     var stringsAt = 0'u64
@@ -439,7 +439,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
 // Adds the two notes worth naming: the interpreter a program is started by, and the build identity.
 private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections: const [..] ElfSection)
 {
-    let s = binStrings()
+    let s = binaryStrings()
     for section in sections
     {
         if section.name == ".interp"
@@ -468,6 +468,6 @@ private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections
 
         if text.isEmpty() do
             continue
-        report.field(payloadAt, payloadSize, s.shr_BuildId, Swag.makeString(text.storage(), text.count))
+        report.field(payloadAt, payloadSize, s.shr_BuildId, cast(string) text.toSlice())
     }
 }

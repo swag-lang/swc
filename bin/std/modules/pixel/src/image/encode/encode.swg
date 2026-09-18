@@ -75,13 +75,16 @@ public impl Image
         return result
     }
 
-    // Returns 'true' if the given filename has a corresponding encoder
+    // Returns whether a registered encoder claims the extension of `fileName`.
     func canSave(fileName: string)->bool => getEncoder(fileName) != null
 
     // Encodes the image to an owned segmented memory buffer.
     //
-    // `fileName` selects the encoder by extension; no file is opened.
-    // Fails if the image is invalid or no encoder accepts the extension.
+    // `fileName` selects the encoder by extension; no file is opened. `options` is `null` for
+    // the encoder defaults, or the encoder's own options value, such as
+    // [[Pixel.Png.EncodeOptions]]. A premultiplied image is converted to straight alpha first.
+    // Fails if the image is invalid, no encoder accepts the extension, or the encoder rejects
+    // the image.
     mtd const encode(fileName: string, options: any? = null)->ConcatBuffer fail
     {
         if not .pixels.buffer do
@@ -129,6 +132,9 @@ public impl Image
     }
 
     // Encodes the image and writes it to `fileName`.
+    //
+    // The extension of `fileName` selects the encoder, and `options` is interpreted as by
+    // [[Pixel.Image.encode]]. Encoding and file errors are reported through `fail`.
     mtd const save(fileName: string, options: any? = null) fail
     {
         var result = try .encode(fileName, options)

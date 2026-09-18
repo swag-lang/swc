@@ -12,17 +12,16 @@ struct VaultCredential
 
 impl VaultCredential
 {
+    // Wipes the key material and empties the credential.
     mtd clear()
     {
         Core.Crypto.secureClear(.bytes.toSlice())
         .bytes.clear()
     }
 
-    mtd opDrop()
-    {
-        .clear()
-    }
+    mtd opDrop() { .clear() }
 
+    // Returns a view of the key material, valid until the credential is cleared or dropped.
     mtd const toSlice()->const [..] u8 => .bytes.toSlice()
 }
 
@@ -37,6 +36,7 @@ struct VaultAccess
     keyFiles: Array'String
 }
 
+// Feeds `value` to the digest as eight little-endian bytes.
 private func updateAccessWord(hash: *Core.Hash.Blake2b, value: u64)
 {
     var bytes: [8] u8
@@ -62,6 +62,7 @@ impl VaultAccess
             .keyFiles.add(String.from(path.toString()))
     }
 
+    // Wipes the password bytes and forgets the key-file paths.
     mtd clear()
     {
         Core.Crypto.secureClear(.password.toSlice())
@@ -69,19 +70,17 @@ impl VaultAccess
         .keyFiles.clear()
     }
 
-    mtd opDrop()
-    {
-        .clear()
-    }
+    mtd opDrop() { .clear() }
 
+    // Returns whether this access needs anything at all: a password, a key file, or both.
     mtd const isProtected()->bool => not .password.isEmpty() or not .keyFiles.isEmpty()
 
-    // Produces the byte string the existing key-slot format consumes.
+    // Produces the byte string the key-slot format consumes.
     //
-    // Without key files, the password bytes are used directly. With key files, a
-    // domain-separated streaming digest binds the
-    // password, the ordered file count, every file length, and every byte. Paths stay out of the
-    // digest, so moving an unchanged key file does not change what opens the vault.
+    // Without key files, the password bytes are used directly. With key files, a domain-separated
+    // streaming digest binds the password, the ordered file count, every file length, and every
+    // byte. Paths stay out of the digest, so moving an unchanged key file does not change what
+    // opens the vault. Fails when a key file cannot be read in full.
     mtd const derive()->VaultCredential fail
     {
         var result: retval

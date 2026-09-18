@@ -11,6 +11,12 @@ public enum DateOrder
 }
 
 // Provides culture-specific names and patterns for dates and times.
+//
+// A pattern spells `dddd` for the day name, `MMMM` for the month name, `yyyy` for the year,
+// `MM` and `M` for the month, `dd` and `d` for the day, `HH` and `H` for the 24-hour clock,
+// `h` for the 12-hour clock, `mm` for the minutes, `ss` for the seconds, and `tt` for the AM or
+// PM designator. `/` and `:` stand for `dateSeparator` and `timeSeparator`, and every other
+// character is copied as is.
 public struct DateTimeFormatInfo
 {
     public
@@ -46,7 +52,7 @@ public impl DateTimeFormatInfo
     {
         if index + token.count > pattern.count do
             return false
-        return Utf8.compare(Swag.makeSlice(pattern.buffer + index, token.count), Swag.makeSlice(token.buffer, token.count), .Latin1) == 0
+        return Utf8.compare(cast(const [..] u8) pattern[index until index + token.count], cast(const [..] u8) token, .Latin1) == 0
     }
 
     internal mtd const formatPattern(value: Time.DateTime, pattern: string)->String
@@ -142,20 +148,18 @@ public impl DateTimeFormatInfo
         return result
     }
 
-    // Formats a date using [[shortDatePattern]] or [[longDatePattern]].
+    // Formats the date of `value` with `longDatePattern` when `long` is set, `shortDatePattern` otherwise.
     mtd const formatDate(value: Time.DateTime, long = false)->String
     {
         Swag.assert(value.isValid(), "cannot format an invalid date")
-        let pattern = long ? .longDatePattern : .shortDatePattern
-        return .formatPattern(value, pattern)
+        return .formatPattern(value, long ? .longDatePattern : .shortDatePattern)
     }
 
-    // Formats a clock value using [[shortTimePattern]] or [[longTimePattern]].
+    // Formats the time of `value` with `longTimePattern` when `withSeconds` is set, `shortTimePattern` otherwise.
     mtd const formatTime(value: Time.DateTime, withSeconds = true)->String
     {
         Swag.assert(value.isValid(), "cannot format an invalid time")
-        let pattern = withSeconds ? .longTimePattern : .shortTimePattern
-        return .formatPattern(value, pattern)
+        return .formatPattern(value, withSeconds ? .longTimePattern : .shortTimePattern)
     }
 
     // Formats a date and time separated by one space.

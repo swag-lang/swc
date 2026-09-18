@@ -4,57 +4,54 @@
 
 using Win32
 
-// Represents rw lock.
+// Lets many threads read shared data at once while one thread at a time writes it.
+//
+// The lock is not reentrant, in either mode. [[Core.Sync.scopedLock]] and
+// [[Core.Sync.sharedLock]] pair each acquisition with its release.
 struct RWLock
 {
-    public v: SRWLOCK = SRWLOCK_INIT     // V associated with this value.
+    public v: SRWLOCK = SRWLOCK_INIT     // Native lock state, managed by the methods.
 }
 
 impl RWLock
 {
-    // Acquires the lock.
+    // Acquires the lock exclusively, like [[Core.Sync.RWLock.lockExclusive]].
     mtd lock()
     {
         .lockExclusive()
     }
 
-    // Releases the lock.
+    // Releases an exclusive hold, like [[Core.Sync.RWLock.unlockExclusive]].
     mtd unlock()
     {
         .unlockExclusive()
     }
 
-    // Try to lock the mutex, and return 'true' if it's the case
-    mtd tryLockExclusive()->bool
-    {
-        return TryAcquireSRWLockExclusive(&.v) ? true : false
-    }
+    // Acquires the lock exclusively when it is free and returns whether it did, without waiting.
+    mtd tryLockExclusive()->bool => TryAcquireSRWLockExclusive(&.v) ? true : false
 
-    // Lock mutex
+    // Acquires the lock exclusively, waiting until no other thread holds it.
     mtd lockExclusive()
     {
         AcquireSRWLockExclusive(&.v)
     }
 
-    // Unlock mutex
+    // Releases the exclusive hold of the calling thread.
     mtd unlockExclusive()
     {
         ReleaseSRWLockExclusive(&.v)
     }
 
-    // Try to lock the mutex, and return 'true' if it's the case
-    mtd tryLockShared()->bool
-    {
-        return TryAcquireSRWLockShared(&.v) ? true : false
-    }
+    // Acquires the lock for shared access when no writer holds it and returns whether it did, without waiting.
+    mtd tryLockShared()->bool => TryAcquireSRWLockShared(&.v) ? true : false
 
-    // Lock mutex
+    // Acquires the lock for shared access, waiting while a writer holds it.
     mtd lockShared()
     {
         AcquireSRWLockShared(&.v)
     }
 
-    // Unlock mutex
+    // Releases a shared hold of the calling thread.
     mtd unlockShared()
     {
         ReleaseSRWLockShared(&.v)

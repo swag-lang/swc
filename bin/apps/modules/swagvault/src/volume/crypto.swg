@@ -29,6 +29,7 @@ namespace Crypto
 
     impl Keys
     {
+        // Wipes both keys.
         mtd clear()
         {
             Core.Crypto.secureClear(.record)

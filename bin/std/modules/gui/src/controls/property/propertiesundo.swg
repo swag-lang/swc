@@ -14,9 +14,10 @@ using Core, Pixel
 // Only rows the grid can byte-copy safely are recorded (POD values and dynamic String, i.e.
 // the same set as canHaveDefault). Structural array edits (add/remove/move) are not covered.
 
-// A captured copy of one field's value across every edited instance. Strings are copied by
-// content (they own a heap buffer); every other supported type is copied as raw bytes.
-// The per-instance addresses are captured too, so a value can be restored without the row
+// A captured copy of one field's value across every edited instance.
+//
+// Strings are copied by content, since they own a heap buffer; every other supported type is
+// copied as raw bytes. The per-instance addresses are captured too, so a value can be restored without the row
 // it was recorded against: undo commands stay valid across a grid rebuild (clear +
 // addStruct), as long as the edited instances themselves are still alive.
 #[Swag.NoDoc]
@@ -24,13 +25,13 @@ struct PropFieldValue
 {
     public
     {
-        valid:    bool             // Valid associated with this value.
-        isString: bool             // Whether this value is string.
-        n:        u64              // number of instances captured
-        sz:       u64              // per-instance byte size (raw-bytes case only)
-        addrs:    Array'(*u8?)     // field address in each captured instance
-        bytes:    Array'u8         // n * sz contiguous raw bytes (raw-bytes case)
-        strings:  Array'String     // n strings (String case)
+        valid:    bool             // Whether a value was captured.
+        isString: bool             // Whether the value is a String copied by content.
+        n:        u64              // Number of captured instances.
+        sz:       u64              // Per-instance byte size, for raw bytes only.
+        addrs:    Array'(*u8?)     // Field address in each captured instance.
+        bytes:    Array'u8         // `n * sz` contiguous raw bytes, for raw bytes only.
+        strings:  Array'String     // `n` strings, for a String only.
     }
 }
 
@@ -148,19 +149,19 @@ internal impl PropFieldValue
     }
 }
 
-// One undoable property edit: restore the old/new value at the instance addresses it was
-// captured on. The command does not reference the row it came from: 'generation' records
-// the grid content it was built against, so a command replayed after a rebuild silently
+// One undoable property edit, restoring the old or the new value at the instance addresses it was captured on.
+//
+// The command does not reference the row it came from: `generation` records the grid content it was built against, so a command replayed after a rebuild silently
 // skips the row refresh (the values still land at the right addresses).
 #[Swag.NoDoc]
 struct PropUndoCommand
 {
     public
     {
-        late prop:  *Properties        // Prop associated with this value.
-        generation: u64                // Generation associated with this value.
-        oldVal:     PropFieldValue     // Old val associated with this value.
-        newVal:     PropFieldValue     // New val associated with this value.
+        late prop:  *Properties        // Grid the edit was made in.
+        generation: u64                // Grid content the command was recorded against.
+        oldVal:     PropFieldValue     // Value before the edit.
+        newVal:     PropFieldValue     // Value after the edit.
     }
 }
 
@@ -284,19 +285,19 @@ internal impl Properties
 // Public undo/redo entry points for hosts (menus, toolbars, shortcuts).
 impl Properties
 {
-    // Record the grid's undo commands into an external UndoManager instead of the grid's own
-    // one, so property edits and the host's other commands share a single undo timeline. The
-    // grid must stay alive as long as the external manager holds commands recorded by it.
-    // Pass null to go back to the internal manager.
+    // Records the grid's undo commands into `mgr` instead of the grid's own manager, or into its own again when `mgr` is null.
+    //
+    // Property edits and the host's other commands then share a single undo timeline. The grid
+    // must stay alive as long as the external manager holds commands recorded by it.
     mtd setExternalUndoMgr(mgr: *UndoManager?)
     {
         .externUndoMgr = mgr
     }
 
-    // Returns whether this value can undo.
+    // Returns whether an edit can be undone on the active undo timeline.
     mtd canUndo()->bool => .activeUndoMgr().canUndo()
 
-    // Returns whether this value can redo.
+    // Returns whether an undone edit can be redone on the active undo timeline.
     mtd canRedo()->bool => .activeUndoMgr().canRedo()
 
     // Reverts the latest recorded property edit when possible.
@@ -311,7 +312,9 @@ impl Properties
         .activeUndoMgr().redo()
     }
 
-    // Drop the whole undo history (e.g. after loading a fresh object into the grid).
+    // Drops the whole undo history, for example after loading a fresh object into the grid.
+    //
+    // Every row captures its current value again, so the next edit is diffed against it.
     mtd clearUndo()
     {
         .activeUndoMgr().clear()
@@ -322,7 +325,7 @@ impl Properties
         }
     }
 
-    // Turn recording on/off (e.g. to batch programmatic changes without polluting the history).
+    // Turns undo recording on or off, for example to batch programmatic changes without polluting the history.
     mtd setUndoEnabled(on: bool)
     {
         .undoEnabled = on
@@ -331,10 +334,5 @@ impl Properties
 
 internal impl Properties
 {
-    mtd activeUndoMgr()->*UndoManager
-    {
-        if .externUndoMgr do
-            return .externUndoMgr
-        return &.undoMgr
-    }
+    mtd activeUndoMgr()->*UndoManager => .externUndoMgr orelse &.undoMgr
 }

@@ -120,51 +120,52 @@ internal
 
     struct SymFreq
     {
-        key:      u16     // Key associated with this value.
-        symIndex: u16     // Index of sym.
+        key:      u16     // Symbol frequency while sorting, then tree links and code lengths while building the code.
+        symIndex: u16     // Symbol this entry describes.
     }
 
     struct Compressor
     {
-        compressFlags:    u32                                     // Compress flags associated with this value.
-        maxProbes:        [2] u32                                 // Max probes associated with this value.
-        greedyParsing:    bool                                    // Greedy parsing associated with this value.
-        lookaheadPos:     u32                                     // Lookahead pos associated with this value.
-        lookaheadSize:    u32                                     // Lookahead size associated with this value.
-        dictSize:         u32                                     // Dict size associated with this value.
-        lzCodeBufAddr:    [*] u8?                                 // Lz code buf addr associated with this value.
-        lzFlags:          *u8?                                    // Lz flags associated with this value.
-        outputBufAddr:    [*] u8?                                 // Output buf addr associated with this value.
-        outputBufEndAddr: [*] u8?                                 // Output buf end addr associated with this value.
-        numFlagsLeft:     u32                                     // Num flags left associated with this value.
-        totalLzBytes:     u32                                     // Total lz bytes associated with this value.
-        lzCodeBufDictPos: u32                                     // Lz code buf dict pos associated with this value.
-        bitsIn:           u32                                     // Bits in associated with this value.
-        bitBuffer:        u32                                     // Bit buffer associated with this value.
-        savedMatchDist:   u32                                     // Saved match dist associated with this value.
-        savedMatchLen:    u32                                     // Saved match len associated with this value.
-        savedLit:         u32                                     // Saved lit associated with this value.
-        outputFlushOfs:   u32                                     // Output flush ofs associated with this value.
-        blockIndex:       u32                                     // Index of block.
-        inBuf:            const [*] u8?                           // In buf associated with this value.
-        inSrc:            const [*] u8?                           // In src associated with this value.
-        srcBufLeft:       u64                                     // Src buf left associated with this value.
-        outBufOfs:        u64                                     // Out buf ofs associated with this value.
-        dict:             [LzDictSize + MaxMatchLen - 1] u8       // Dict associated with this value.
-        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16     // Number of huff entries.
-        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16     // Huff codes associated with this value.
-        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8      // Huff code sizes associated with this value.
-        lzCodeBuf:        [LzCodeBufSize] u8                      // Lz code buf associated with this value.
-        next:             [LzDictSize] u16                        // Next associated with this value.
-        hash:             [LzHashSize] u16                        // Whether this value has h.
+        compressFlags:    u32                                     // Probe count in the low 12 bits, plus the parsing and block flags.
+        maxProbes:        [2] u32                                 // Hash-chain probes per search, before and after a 32-byte match is found.
+        greedyParsing:    bool                                    // Whether a match is taken at once instead of lazily checking the next position.
+        lookaheadPos:     u32                                     // Dictionary position of the first byte not yet coded.
+        lookaheadSize:    u32                                     // Number of buffered bytes not yet coded.
+        dictSize:         u32                                     // Number of already coded bytes a match can reach back into.
+        lzCodeBufAddr:    [*] u8?                                 // Next free byte of 'lzCodeBuf'.
+        lzFlags:          *u8?                                    // Flag byte of the current group of eight records, one bit per match.
+        outputBufAddr:    [*] u8?                                 // Next output byte of the block being coded.
+        outputBufEndAddr: [*] u8?                                 // Limit past which a block no longer fits the output buffer.
+        numFlagsLeft:     u32                                     // Records left before 'lzFlags' is full.
+        totalLzBytes:     u32                                     // Input bytes covered by the pending records.
+        lzCodeBufDictPos: u32                                     // Dictionary position of the first byte covered by the pending records.
+        bitsIn:           u32                                     // Number of valid bits in 'bitBuffer'.
+        bitBuffer:        u32                                     // Output bits not yet written as a whole byte.
+        savedMatchDist:   u32                                     // Distance of the match deferred by lazy parsing.
+        savedMatchLen:    u32                                     // Length of the match deferred by lazy parsing, or zero.
+        savedLit:         u32                                     // Literal to emit if the deferred match loses to the next one.
+        inSrc:            const [*] u8?                           // Next source byte to load into the dictionary.
+        srcBufLeft:       u64                                     // Number of source bytes not yet loaded.
+        outBufOfs:        u64                                     // Offset in 'result' where the next block is written.
+        dict:             [LzDictSize + MaxMatchLen - 1] u8       // Sliding window; its last 'MaxMatchLen - 1' bytes mirror its first ones.
+        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16     // Symbol frequencies of the literal/length, distance, and code-length tables.
+        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16     // Huffman code of each symbol, bit-reversed for output.
+        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8      // Huffman code length of each symbol.
+        lzCodeBuf:        [LzCodeBufSize] u8                      // Pending literal and match records of the current block.
+        next:             [LzDictSize] u16                        // Previous position with the same four-byte hash, per dictionary position.
+        hash:             [LzHashSize] u16                        // Most recent position of each four-byte hash.
         hash3:            [LzHashSize] u16                        // Most recent position of each three-byte sequence.
         prev3:            [LzDictSize] u16                        // Position that held a three-byte sequence before this one.
-        outputBuf:        [OutBufSize] u8                         // Output buf associated with this value.
-        result:           *Array'u8?                              // Result associated with this value.
+        outputBuf:        [OutBufSize] u8                         // Staging buffer used when 'result' lacks room for a whole block.
+        result:           *Array'u8?                              // Destination of the compressed stream.
     }
 }
 
-// Main structure representing a Deflate compression context
+// Compresses data into the raw Deflate format (RFC 1951).
+//
+// Call [[Core.Compress.Deflate.init]] before each [[Core.Compress.Deflate.compress]]; the
+// compressor state is allocated once and reused by later calls. Use [[Core.Compress.ZLib]]
+// for a zlib stream, which wraps Deflate data with a header and a checksum.
 #[Swag.Opaque]
 public struct Deflate
 {
@@ -185,8 +186,7 @@ impl Deflate
 {
     func createCompFlagsFromZipParams(level: CompressionLevel, strategy: CompressionStrategy)->u32
     {
-        var compFlags = 0'u32
-        compFlags = NumProbes[Math.min(10'u32, cast(u32) level)]
+        var compFlags = NumProbes[Math.min(10'u32, cast(u32) level)]
         if cast(u32) level <= 3 do
             compFlags |= GreedyParsing
 
@@ -385,7 +385,6 @@ impl Deflate
         matchLenAddr[]  = MinMatchLen
     }
 
-    //#[Swag.Macro]
     mtd putBits(b, l: u32)
     {
         let d    = .state!
@@ -921,8 +920,6 @@ impl Deflate
         d.outputBufAddr    = outputBufStart
         d.outputBufEndAddr = d.outputBufAddr + OutBufSize - 16
 
-        d.outputFlushOfs = 0
-
         let numFlagsLeft = cast(u8) d.numFlagsLeft
         let lzFlags      = d.lzFlags!
         lzFlags[]       = cast(u8) (lzFlags[] >> numFlagsLeft)
@@ -949,7 +946,7 @@ impl Deflate
                 .putBits(0, 8 - d.bitsIn)
             }
 
-            for var i = 2; i != 0; i -= 1
+            for 2
             {
                 .putBits(d.totalLzBytes & 0xFFFF, 16)
                 d.totalLzBytes ^= 0xFFFF
@@ -979,7 +976,6 @@ impl Deflate
         d.numFlagsLeft     = 8
         d.lzCodeBufDictPos += d.totalLzBytes
         d.totalLzBytes     = 0
-        d.blockIndex       += 1
 
         let n = cast(u64) (d.outputBufAddr - outputBufStart)
         if n != 0
@@ -1173,44 +1169,49 @@ impl Deflate
 
 public impl Deflate
 {
-    // Flags controlling compression behavior
+    // Selects optional work done by [[Core.Compress.Deflate.compress]].
     #[Swag.EnumFlags]
     enum CompressionFlags
     {
-        Zero = 0                     // No compression flags
-        ComputeAdler32               // Compute Adler-32 checksum after compression
-        Default = ComputeAdler32     // Default flag: computes Adler-32
+        Zero = 0                     // No optional work
+        ComputeAdler32               // Computes the Adler-32 checksum of the source, which a zlib trailer needs
+        Default = ComputeAdler32     // Computes the Adler-32 checksum
     }
 
-    // Compression level to use (mapped to number of probes and strategies)
+    // Selects the compression effort, which sets how many match candidates are searched.
+    //
+    // Any value from 0 to 10 is accepted; levels up to 3 take each match at once instead of
+    // lazily checking the next position.
     #[Swag.Incomplete]
     enum CompressionLevel: u32
     {
-        NoCompression   = 0      // Disables compression (raw storage)
-        BestSpeed       = 1      // Fastest compression, less effective
-        Default         = 6      // Balanced default compression
-        BestCompression = 9      // High compression ratio, slower
-        UberCompression = 10     // Maximum compression effort
+        NoCompression   = 0      // Stores the data in raw blocks
+        BestSpeed       = 1      // Fastest compression, lowest ratio
+        Default         = 6      // Balance between speed and ratio
+        BestCompression = 9      // High ratio, slower
+        UberCompression = 10     // Maximum search effort
     }
 
-    // Strategy for compression to influence algorithm behavior
+    // Selects how matches are searched and how blocks are coded.
     enum CompressionStrategy
     {
-        Default         // Default compression strategy
-        Filtered        // Filter out potentially poor matches
-        HuffmanOnly     // Use only Huffman coding, no match search
-        Rle             // Run-length encoding
-        Fixed           // Use fixed Huffman codes
+        Default         // Searches matches and picks the best block coding
+        Filtered        // Ignores matches of five bytes or less, which suits filtered image data
+        HuffmanOnly     // Codes literals only, without any match search
+        Rle             // Matches only runs of the previous byte
+        Fixed           // Codes every block with the static Huffman codes
     }
 
-    // Releases resources owned by this value.
+    // Releases the compressor state.
     mtd opDrop()
     {
         Memory.delete(.state)
     }
 
-    // Initialize the compressor
-    // Can be called multiple times
+    // Prepares the compressor for `level` and `strategy`.
+    //
+    // The first call allocates the compressor state; later calls reset it for a new stream.
+    // `flags` selects optional work, such as the checksum a zlib trailer needs.
     mtd init(level = CompressionLevel.Default, strategy = CompressionStrategy.Default, flags = CompressionFlags.Default)
     {
         if not .state do
@@ -1221,21 +1222,19 @@ public impl Deflate
         .initFlags = flags
     }
 
-    // Compress the source buffer
+    // Compresses `src` and appends one complete Deflate stream to `result`.
+    //
+    // [[Core.Compress.Deflate.init]] must be called before each call. Fails with
+    // [[Core.Errors.UnsupportedFormatError]] when `src` holds more than `Swag.U32.Max` bytes.
     mtd compress(result: *Array'u8, src: const [..] u8) fail
     {
-        if src.count > Swag.U32.Max
-        {
-            var err: UnsupportedFormatError
-            err.message = "source buffer too big"
-            fail err
-        }
+        if src.count > Swag.U32.Max do
+            fail UnsupportedFormatError{"source buffer too big"}
 
         Swag.assert(.state != null, "'init' not called")
 
         let d = .state
         d.result     = result
-        d.inBuf      = src.buffer
         d.inSrc      = src.buffer
         d.srcBufLeft = src.count
         d.outBufOfs  = result.count

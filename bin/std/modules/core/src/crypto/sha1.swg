@@ -27,8 +27,7 @@ impl Sha1
         func f4(x, y, z: u32)   => (x ^ y ^ z)
     }
 
-    // Process a single 512-bit block of data.
-    // Performs the main SHA-1 compression function on the provided 'buf'.
+    // Runs the SHA-1 compression function on the 512-bit block at `buf`.
     mtd transform(buf: const [*] u8)
     {
         var w: [80] u32
@@ -101,6 +100,7 @@ public impl Sha1
     alias Digest = [5] u32
 
     // Finalizes the current sequence and returns its 160-bit digest.
+    //
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
@@ -155,11 +155,6 @@ public impl Sha1
     mtd reset()
     {
         Swag.init(me, 1)
-        .state[0] = 0x67452301
-        .state[1] = 0xEFCDAB89
-        .state[2] = 0x98BADCFE
-        .state[3] = 0x10325476
-        .state[4] = 0xC3D2E1F0
     }
 
     // Includes `buffer` in the running digest.

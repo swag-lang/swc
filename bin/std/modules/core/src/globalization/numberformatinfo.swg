@@ -12,7 +12,7 @@ public struct NumberFormatInfo
         decimalSeparator: u8     = '.'        // Separator between the integer and fractional parts.
         groupSeparator:   rune   = ','        // Unicode separator between groups in the integer part.
         groupSizes:       [2] u8 = [3, 0]     // Group widths from right to left; the last non-zero width repeats.
-        groupSizeCount:   u8     = 1          // Number of entries from [[groupSizes]] that participate in grouping.
+        groupSizeCount:   u8     = 1          // Number of entries of `groupSizes` that participate in grouping.
     }
 }
 

@@ -60,7 +60,8 @@ private func authenticate(key, nonce, associatedData, ciphertext: const [..] u8)
 // between the two plaintexts and lets an observer forge tags for that key.
 //
 // This is a single pass over the data in each direction, unlike encrypting and
-// then authenticating with separate primitives.
+// then authenticating with separate primitives. Fails with
+// [[Core.Errors.BadParameterError]] when a buffer has the wrong size.
 //
 // ```swag
 // var nonce: [Crypto.ChaCha20Poly1305NonceSize] u8
@@ -88,10 +89,12 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
 
 // Verifies and decrypts `ciphertext` with ChaCha20-Poly1305, RFC 8439.
 //
-// Reports whether the tag was valid. `plaintext` is only written when it was, so
+// Returns whether the tag was valid. `plaintext` is only written when it was, so
 // a caller never observes unauthenticated bytes. A false result means the key,
 // the nonce, the associated data, the ciphertext, or the tag does not match what
-// was sealed; it does not say which.
+// was sealed; it does not say which. A wrong tag size or a `plaintext` of another
+// length than `ciphertext` also returns false. Fails with
+// [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes or `nonce` 12.
 public func chacha20Poly1305Open(key, nonce, ciphertext, tag, associatedData: const [..] u8, plaintext: [..] u8)->bool fail
 {
     if tag.count != ChaCha20Poly1305TagSize or ciphertext.count != plaintext.count do

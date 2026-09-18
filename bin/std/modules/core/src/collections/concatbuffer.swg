@@ -1,6 +1,6 @@
 #global export
 
-// Represents a single memory block (a bucket) within a ConcatBuffer.
+// One memory block in the bucket chain of a [[Core.ConcatBuffer]].
 struct ConcatBufferBucket
 {
     public readonly
@@ -13,8 +13,9 @@ struct ConcatBufferBucket
     }
 }
 
-// Represents a position (seek) within a ConcatBuffer.
-// It holds both the bucket and the specific pointer within that bucket.
+// A cursor position in a [[Core.ConcatBuffer]], made of a bucket and an address inside it.
+//
+// A default position designates the beginning of the buffer.
 struct ConcatBufferPosition
 {
     public readonly
@@ -24,10 +25,11 @@ struct ConcatBufferPosition
     }
 }
 
-// Represents a growable buffer that is divided into buckets (chunks of memory).
-// This structure avoids large reallocations and copies when the buffer needs to grow,
-// making it efficient for building data piece by piece.
-// It owns its storage and can be moved with `#move`; implicit copies are rejected.
+// A growable byte buffer stored as a chain of buckets.
+//
+// Growing adds a bucket instead of reallocating and copying the bytes already written, which makes
+// it efficient for building data piece by piece. It owns its storage and can be moved with `#move`;
+// implicit copies are rejected.
 struct ConcatBuffer
 {
     public
@@ -110,9 +112,9 @@ impl ConcatBuffer
             .lastBucket = .firstBucket
     }
 
-    // Provides a way to iterate over each bucket in the buffer.
-    // This is a macro that accepts a code block to execute for each bucket.
-    // Block parameter: 'bucket' is the bucket pointer.
+    // Visits the active buckets from the first to the last, binding `bucket` to each bucket's address.
+    //
+    // Spare buckets retained past the last one by [[clear]] or [[truncate]] are not visited.
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(bucket))
     {
@@ -139,8 +141,7 @@ impl ConcatBuffer
     // Returns the total number of bytes currently stored in the buffer.
     mtd const count()->u64 => .lastBucket ? .lastBucket.countBefore + .lastBucket.count : 0
 
-    // Ensures that there is enough room to store at least 'numBytes' more bytes.
-    // If the current bucket is full, a new one is allocated.
+    // Ensures the last bucket has room for `numBytes` more bytes, reusing a retained bucket or allocating one.
     private mtd grow(numBytes: u64)
     {
         Swag.assert(.isAtEnd)
@@ -198,15 +199,18 @@ impl ConcatBuffer
         .currentSP      = lastBucket.data
     }
 
-    // Associates a specific allocator with the buffer.
-    // This can only be called when the buffer is empty.
+    // Selects the allocator used for the buffer's storage.
+    //
+    // The buffer must not have allocated any bucket yet.
     mtd setAllocator(alloc: Swag.IAllocator)
     {
         Swag.assert(.firstBucket == null, "buffer is not empty")
         .allocator = alloc
     }
 
-    // Sets the minimum size for new buckets allocated by the buffer.
+    // Sets the minimum size, in bytes, of the buckets allocated from now on.
+    //
+    // `size` must be at least 4.
     mtd setBucketSize(size: u64)
     {
         Swag.assert(size >= 4)
@@ -240,8 +244,9 @@ impl ConcatBuffer
         .granularity = granularity
     }
 
-    // Clears the buffer's content without deallocating memory.
-    // This resets the buffer to be empty, allowing its allocated buckets to be reused.
+    // Empties the buffer while keeping its buckets for reuse.
+    //
+    // Every borrowed position and byte pointer is invalidated.
     mtd clear()
     {
         if not .firstBucket do
@@ -254,7 +259,7 @@ impl ConcatBuffer
         .isAtEnd   = true
     }
 
-    // Writes a native value at the cursor, overwriting or extending the buffer as needed.
+    // Writes the bytes of the native value `val` at the cursor, overwriting or extending the buffer as needed.
     mtd(T) addNative(val: T)
     {
         if not .isAtEnd
@@ -263,8 +268,7 @@ impl ConcatBuffer
             let currentSP = .currentSP!
             let data      = curBucket.data!
 
-            // If not enough room in the current bucket, then we
-            // have to split the content with the next bucket
+            // A value that does not fit in the current bucket is split with the next one.
             if #sizeof(T) > curBucket.count or
                currentSP > data + curBucket.count - #sizeof(T)
             {
@@ -288,14 +292,15 @@ impl ConcatBuffer
         }
     }
 
-    // Writes the raw bytes of a struct contiguously at the cursor, like [[addBytes]].
+    // Writes the raw bytes of the struct `val` contiguously at the cursor, like [[addBytes]].
     #[Swag.Inline]
     mtd(T) addStruct(val: T)
     {
         .addBytes(Swag.makeSlice(cast(const [*] u8) &val, #sizeof(T)))
     }
 
-    // Writes bytes at the cursor, overwriting existing bytes and extending the buffer as needed.
+    // Writes `bytes` at the cursor, overwriting existing bytes and extending the buffer as needed.
+    //
     // A contiguous write occupies one bucket; crossing existing buckets merges the buffer and
     // invalidates its borrowed positions and pointers. With `contiguous` false, bytes may span
     // buckets. Input borrowed from this buffer is copied before an overwrite can invalidate it.
@@ -313,10 +318,10 @@ impl ConcatBuffer
             {
                 if bytes.buffer >= bucket.data and bytes.buffer < bucket.data + bucket.count
                 {
-                    var copy: String
+                    var copy: Array'u8
                     copy.allocator = .allocator
-                    copy.append(Swag.makeString(bytes.buffer, num))
-                    .addBytes(cast(const [..] u8) copy.toString(), contiguous)
+                    copy.add(bytes)
+                    .addBytes(copy.toSlice(), contiguous)
                     return
                 }
             }
@@ -493,25 +498,20 @@ impl ConcatBuffer
         }
     }
 
-    // Returns the buffer's content as a slice, but only if the buffer is 'linear'.
+    // Returns the content as a mutable slice when the buffer is linear, or null otherwise.
     //
-    // A buffer is linear if it consists of a single bucket. Returns 'null' when no bucket
-    // has been allocated or when several buckets hold content. The slice borrows the buffer.
-    // See [[makeLinear]].
+    // A buffer is linear when a single bucket holds its content. Returns null when no bucket has
+    // been allocated or when several buckets hold content. The slice borrows the buffer. See
+    // [[makeLinear]].
     mtd toSlice()->[..] u8?
     {
-        if not .firstBucket do
+        if not .firstBucket or .lastBucket != .firstBucket do
             return null
-        if .lastBucket == .firstBucket
-        {
-            let firstBucket = .firstBucket
-            return Swag.makeSlice(firstBucket.data, firstBucket.count)
-        }
-
-        return null
+        let firstBucket = .firstBucket
+        return Swag.makeSlice(firstBucket.data, firstBucket.count)
     }
 
-    // Borrows read-only bytes when the buffer has one active bucket; otherwise returns null.
+    // Returns the content as an immutable slice when the buffer is linear, or null otherwise.
     mtd const toSlice()->const [..] u8?
     {
         if not .firstBucket or .lastBucket != .firstBucket do
@@ -520,7 +520,8 @@ impl ConcatBuffer
         return Swag.makeSlice(cast(const [*] u8?) firstBucket.data, firstBucket.count)
     }
 
-    // Initializes the buffer by taking ownership of an existing slice as its first bucket.
+    // Initializes the buffer by taking ownership of the storage of `data` as its first bucket.
+    //
     // The slice supplies capacity, not content: the buffer starts empty. Its storage must be
     // releasable through the selected allocator, which is captured from the context when unset.
     // The bucket header remains embedded; moving the buffer invalidates positions in that header.
@@ -578,7 +579,7 @@ impl ConcatBuffer
 
     private mtd eatBuffer()->{ data: [*] u8, size: u64, capacity: u64 }
     {
-        // Must be linear ?
+        // Only the storage of a linear buffer can be taken whole.
         Swag.assert(.lastBucket == .firstBucket)
 
         let firstBucket = .firstBucket!
@@ -608,7 +609,7 @@ impl ConcatBuffer
         if .lastBucket != .firstBucket or .firstBucket == &.embeddedFirstBucket do
             return .toString(.allocator)
 
-        // Otherwise we can just eat the buffer
+        // Take the single heap bucket as the string's storage.
         let eat = .eatBuffer()
         with var result: retval
         {
@@ -625,7 +626,8 @@ impl ConcatBuffer
         return result
     }
 
-    // Merges all buckets into a single, contiguous memory block.
+    // Merges all buckets into one contiguous bucket.
+    //
     // Merging invalidates all borrowed buckets, positions, and pointers and moves the cursor
     // to the end. An already linear or unallocated buffer is unchanged.
     mtd makeLinear()

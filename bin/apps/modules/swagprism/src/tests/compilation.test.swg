@@ -48,7 +48,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     {
         var guarded = cache.acquire(request)
         waitBuild(&guarded)
-        Swag.assert(Utf8.indexOf(cast(const [..] u8) guarded.artifact!.result.text.toString(), "safetyPanic") != Swag.U64.Max)
+        Swag.assert(guarded.artifact!.result.text.contains("safetyPanic"))
     }
 
     request.settings.configuration = "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.safetyGuards = .None }"
@@ -56,7 +56,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         var unguarded = cache.acquire(request)
         waitBuild(&unguarded)
         Swag.assert(not unguarded.reused and cache.buildCount == 2)
-        Swag.assert(Utf8.indexOf(cast(const [..] u8) unguarded.artifact!.result.text.toString(), "safetyPanic") == Swag.U64.Max)
+        Swag.assert(not unguarded.artifact!.result.text.contains("safetyPanic"))
     }
 
     request.settings.configuration.append("\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O1 }")
@@ -68,7 +68,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         Swag.assert(not devmode.reused and cache.buildCount == 3)
         var output: CompilerOutput
         output.parse(devmode.artifact!.result.text.toString())
-        Swag.assert(Utf8.indexOf(cast(const [..] u8) output.text.toString(), "  optimize : O1") != Swag.U64.Max)
+        Swag.assert(output.text.contains("  optimize : O1"))
     }
 }
 
@@ -113,7 +113,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         Console.print(preview.probe.diagnostics.toString())
     Swag.assert(not micro.job.running and not micro.job.result.failed and preview.frameCount != 0)
     Swag.assert(micro.job.artifactId == preview.probe.artifactId and window.cache.buildCount == 1)
-    Swag.assert(micro.outputText.colors.count != 0)
+    Swag.assert(not micro.outputText.colors.isEmpty())
     window.shutdown()
 }
 
@@ -174,7 +174,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
-    window.liveEdit.setState(.Unchecked)
+    window.commandBar.liveEdit.setState(.Unchecked)
     let panel = window.panels[0]
     host.click(panel.optionsButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(panel.options.isVisible() and panel.optionsButton.isChecked and not panel.viewer!.window().isVisible())
@@ -204,9 +204,8 @@ func waitBuild(lease: *Pipeline.BuildLease)
     if artifact.result.failed do
         Console.print(artifact.result.text.toString())
     Swag.assert(not artifact.result.failed)
-    for iteration in 3
+    for 3
     {
-        discard iteration
         var library = expect NativeLibrary.load(artifact.binary.toString())
         let symbol  = library.symbol("prism_shade")
         Swag.assert(symbol != null)
@@ -222,20 +221,20 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var request: Pipeline.BuildRequest = {source: String.from("func dot(a, b: f32)->f32 => a * b"), stage: String.from("pre-emit")}
     Swag.assert(request.kind == .Microcode and not request.needsDependency())
-    Swag.assert(not Utf8.contains(request.moduleSource().toString(), "#import"))
+    Swag.assert(not request.moduleSource().contains("#import"))
 
     request.source = String.from("using Core\nfunc value()->f32 => Math.sqrt(2'f32)")
     Swag.assert(request.needsDependency())
-    Swag.assert(Utf8.contains(request.moduleSource().toString(), "#import(\"core\""))
+    Swag.assert(request.moduleSource().contains("#import(\"core\""))
 
     request.kind   = .Render2D
     request.source = String.from("func shade(x, y, time: f32)->u32 => 0")
     Swag.assert(request.needsDependency())
-    Swag.assert(Utf8.contains(request.moduleSource().toString(), "#import(\"pixel\""))
+    Swag.assert(request.moduleSource().contains("#import(\"pixel\""))
 
     request.kind = .Gui
     Swag.assert(request.needsDependency())
-    Swag.assert(Utf8.contains(request.moduleSource().toString(), "#import(\"gui\""))
+    Swag.assert(request.moduleSource().contains("#import(\"gui\""))
 }
 
 // A snippet that reaches into `core` still reaches the compiler with the import the scan asked for.
@@ -248,5 +247,5 @@ func waitBuild(lease: *Pipeline.BuildLease)
 
     var output: CompilerOutput
     output.parse(lease.artifact!.result.text.toString())
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) output.text.toString(), "  stage    : pre-emit") != Swag.U64.Max)
+    Swag.assert(output.text.contains("  stage    : pre-emit"))
 }

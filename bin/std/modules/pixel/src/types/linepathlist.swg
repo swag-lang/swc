@@ -73,10 +73,8 @@ private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
 
     for i in pathList.paths.count
     {
-        var j = i + 1
-        while j < pathList.paths.count
+        for j in i + 1 until pathList.paths.count
         {
-            defer j += 1
             if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon) do
                 return true
         }

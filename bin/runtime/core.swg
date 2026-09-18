@@ -18,10 +18,7 @@ func __concreteAlias(type1: typeinfo)->typeinfo
     return __concreteAlias(typeAlias.rawType)
 }
 
-func __typeCompatible(toType, fromType: typeinfo?)->bool
-{
-    return __runtimeTypeCast(toType, fromType) != null
-}
+func __typeCompatible(toType, fromType: typeinfo?)->bool => __runtimeTypeCast(toType, fromType) != null
 
 func __borrowAnyValue(toType, fromType: typeinfo?, ptr: *void?)->*void?
 {
@@ -38,10 +35,7 @@ struct DynamicViewVisit
 }
 
 #[Swag.Inline]
-func __findDynamicView(toType, fromType: typeinfo, ptr: *void?, view: *Interface?, readOnly: bool)->*void?
-{
-    return __findDynamicViewImpl(toType, fromType, ptr, view, readOnly, null)
-}
+func __findDynamicView(toType, fromType: typeinfo, ptr: *void?, view: *Interface?, readOnly: bool)->*void? => __findDynamicViewImpl(toType, fromType, ptr, view, readOnly, null)
 
 func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Interface?, readOnly: bool, previous: const *DynamicViewVisit?)->*void?
 {
@@ -157,10 +151,7 @@ func __findDynamicOwner(toType, fromType: typeinfo, ptr: *void, sourceType: type
 }
 
 #[Swag.Inline]
-func __dynamicCast(toType, fromType: typeinfo?, ptr: *void?, view: *Interface?, allowNullObject: bool, matchedNull: *bool?)->*void?
-{
-    return __dynamicCastImpl(toType, fromType, ptr, view, allowNullObject, matchedNull, false, false)
-}
+func __dynamicCast(toType, fromType: typeinfo?, ptr: *void?, view: *Interface?, allowNullObject: bool, matchedNull: *bool?)->*void? => __dynamicCastImpl(toType, fromType, ptr, view, allowNullObject, matchedNull, false, false)
 
 func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interface?, allowNullObject: bool, matchedNull: *bool?, borrowValue, readOnly: bool)->*void?
 {

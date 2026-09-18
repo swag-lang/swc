@@ -32,7 +32,7 @@ using Core, Audio
     Matroska.publishFullSound(&index, &tracks, &subtitles)
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 0, 60_000_000_000)
     Swag.assert(Atomic.get(&index.currentSeekSound) == 0)
-    Swag.assert(index.seekSounds.count == 0)
+    Swag.assert(index.seekSounds.isEmpty())
 }
 
 // A foreground seek keeps its bounded window while the full scanner is paused. Completing

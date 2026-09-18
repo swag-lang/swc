@@ -313,10 +313,7 @@ private impl RenderCpu
             Memory.clear(plane + cast(u64) y * cast(u64) width + cast(u64) bounds.minX, runWidth)
     }
 
-    func edge(a, b, p: Vector2)->f32
-    {
-        return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
-    }
+    func edge(a, b, p: Vector2)->f32 => (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
 
     func isTopLeft(a, b: Vector2)->bool
     {
@@ -328,10 +325,7 @@ private impl RenderCpu
     // Preserve the rounded f32 edge value at the classification boundary. Auto-inlining this
     // predicate into the raster loop changes exact-zero decisions in release mode.
     #[Swag.NoInline]
-    func insideEdge(value: f32, topLeft: bool)->bool
-    {
-        return value > 0 or (value == 0 and topLeft)
-    }
+    func insideEdge(value: f32, topLeft: bool)->bool => value > 0 or (value == 0 and topLeft)
 
     // Returns one coverage bit per horizontal pixel while preserving the scalar top-left rule.
     func insideEdges4(edge0, edge1, edge2: Math.Simd.F32x4, edge0TopLeft, edge1TopLeft, edge2TopLeft: bool)->u32
@@ -2517,7 +2511,6 @@ impl RenderCpu
         return .addImageImpl(&image)
     }
 
-    // Copies an image into a renderer-owned CPU texture.
     // Registers a planar picture.
     //
     // This backend has no shaders, so it converts once here rather than once per sample and holds
@@ -2552,6 +2545,7 @@ impl RenderCpu
         view.convertToRgb(&storage.image)
     }
 
+    // Copies an image into a renderer-owned CPU texture.
     internal mtd addImageImpl(image: const *Image)->Texture
     {
         if not image.isValid() do

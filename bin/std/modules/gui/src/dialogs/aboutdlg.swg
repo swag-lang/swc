@@ -11,18 +11,18 @@ public struct AboutDlg
         {
             late
             {
-                late labelIcon:         *Label     // Optional large application icon.
-                late labelMessageTitle: *Label     // Prominent application or product title.
-                late labelMessage:      *Label     // Rich descriptive message.
+                labelIcon:         *Label     // Large application icon, set only when the parameters carry one.
+                labelMessageTitle: *Label     // Prominent application or product title.
+                labelMessage:      *Label     // Rich descriptive message.
             }
         }
     }
 
     late
     {
-        late identityView:   *Wnd                 // Raised product block carrying the mark and heading.
-        late identityAccent: *Separator           // Single Swag accent anchoring that product block.
-        late contentStack:   *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
+        identityView:   *Wnd                 // Raised product block carrying the mark and heading.
+        identityAccent: *Separator           // Single Swag accent anchoring that product block.
+        contentStack:   *StackLayoutCtrl     // The one column identity, provenance and sections stand in.
     }
 
     sectionsScroll: *ScrollWnd?           // Bounded column the added sections stand in.
@@ -108,8 +108,8 @@ public impl AboutDlg
         Swag.assert(from != null)
         Swag.assert(width >= 0 and height >= 0, "dialog dimensions cannot be negative")
         let dlg = Wnd.create'AboutDlg()
-        let w   = width != 0 ? cast(s32) width : 500
-        let h   = height != 0 ? cast(s32) height : 300
+        let w   = width != 0 ? width : 500
+        let h   = height != 0 ? height : 300
         let srf = dlg.createSurface(from, 0, 0, w, h)
         srf.setTitle(params.surfaceTitle)
         srf.center(from)
@@ -236,7 +236,7 @@ public impl AboutDlg
         {
             // The heading is set through the rich-text marker rather than through a face of its
             // own, so it stays the family the theme gives the box and moves with it.
-            var heading = Format.toString("<b>%</b>", title)
+            let heading = Format.toString("<b>%</b>", title)
             let label   = Label.create(stack, heading.toString(), flags: .AutoHeight | .WordWrap)
             label.setTextAlignment(.Left, .Top)
         }

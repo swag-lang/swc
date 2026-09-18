@@ -2,7 +2,7 @@ using Core
 
 public impl Image
 {
-    // Fill image with 'color'
+    // Sets every pixel to `color`.
     mtd fill(color: Color)
     {
         if not .pixelFormat.isPacked() do

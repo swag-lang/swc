@@ -42,9 +42,9 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | Extension | Reads | Writes | Costs |
 | --- | --- | --- | --- |
 | `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Nothing is lost, and nothing is compressed either: one second of 720p costs about forty megabytes. |
-| `.avi` | Motion JPEG, and uncompressed 24- and 32-bit frames | Motion JPEG | Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses. |
+| `.avi` | Motion JPEG, MPEG-4 Part 2, and uncompressed 24- and 32-bit frames; integer PCM audio | Motion JPEG | Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses. |
 | `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
-| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, or Layer III audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. Seek and presentation ordering match the ISO-BMFF path. |
+| `.mkv` | H.264, H.265, or MPEG-4 Part 2 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. Seek and presentation ordering match the ISO-BMFF path. |
 
 YUV4MPEG2 computes an offset from the constant size of a frame, AVI reads one from the index the
 container carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens.
@@ -54,16 +54,17 @@ rather than one frame.
 
 ## Reading sound tracks
 
-File-backed ISO-BMFF and Matroska readers expose playable sound tracks through
+File-backed AVI, ISO-BMFF, and Matroska readers expose playable sound tracks through
 [[Video.Reader.audioTrackCount]] and [[Video.Reader.audioTrack]]. Each [[Audio.SoundFile]] owns a
 compact packet table and reopens the container through its own cursor, so sound and picture stream
 in parallel without sharing a seek position or retaining compressed payloads. Matroska preserves
 every supported track and puts the container's default track at index zero.
 
 Memory-backed readers expose pictures but no sound track because a voice needs an independently
-owned streaming cursor. ISO-BMFF currently exposes AAC-LC mono/stereo tracks. Matroska exposes
-AAC-LC with up to six channels plus AC-3, the supported independent E-AC-3 profile, and DTS Core, preserves
-their speaker order, and subtracts `CodecDelay` priming from playback and seeking. Unsupported
+owned streaming cursor. AVI exposes integer PCM tracks and ISO-BMFF AAC-LC mono/stereo tracks. Matroska exposes
+AAC-LC, AC-3, the supported independent E-AC-3 profile, DTS Core, FLAC, Layer III, Vorbis, and Opus
+tracks within the channel counts their decoders support, preserves their speaker order, and
+subtracts `CodecDelay` priming from playback and seeking. Unsupported
 sound codecs remain unavailable while a supported picture track stays playable.
 
 ## Controlling how a stream is encoded

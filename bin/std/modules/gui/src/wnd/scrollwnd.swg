@@ -17,7 +17,7 @@ public struct ScrollWnd
 {
     public
     {
-        using frameWnd: FrameWnd     // Embedded frame wnd state.
+        using frameWnd: FrameWnd     // Frame hosting the scrolled view.
 
         verticalScrollStep:   f32 = 50     // Vertical distance applied per mouse-wheel notch.
         horizontalScrollStep: f32 = 50     // Horizontal distance applied per shifted wheel notch.
@@ -33,44 +33,44 @@ public struct ScrollWnd
     }
 
     // Scrollbar geometry, hover and drag state, and the color animations that follow them.
-    // The layout pass and the mouse events maintain all of it; scroll with 'setScrollPos'
+    // The layout pass and the mouse events maintain all of it; scroll with `setScrollPos`
     // and connect to the signals to react.
-    oldMouseCapture: *Wnd?     // Old mouse capture associated with this value.
+    oldMouseCapture: *Wnd?     // Window that held the pointer capture before a drag took it.
 
-    scrollRequestPos: Math.Point     // Scroll request pos associated with this value.
+    scrollRequestPos: Math.Point     // Destination of the running glide, or the current position.
     scrollVelocity:   Math.Point     // Logical units per second, retained when a glide is retargeted.
     scrollAnimation:  AnimationHandle
 
-    showBarV:   bool     // Show bar v associated with this value.
-    needV:      bool     // Need v associated with this value.
-    posBoxV:    f32      // Pos box v associated with this value.
-    sizeBoxV:   f32      // Size box v associated with this value.
-    isHotV:     bool     // Whether this value is hot v.
-    isHotBarV:  bool     // Whether this value is hot bar v.
-    isPressedV: bool     // Whether this value is pressed v.
+    showBarV:   bool     // Whether the vertical bar is shown.
+    needV:      bool     // Whether the content overflows vertically, so the bar carries a thumb.
+    posBoxV:    f32      // Top of the vertical thumb, in local units.
+    sizeBoxV:   f32      // Height of the vertical thumb.
+    isHotV:     bool     // Whether the pointer is over the vertical thumb.
+    isHotBarV:  bool     // Whether the pointer is over the vertical track.
+    isPressedV: bool     // Whether the vertical thumb is being dragged.
 
-    showBarH:   bool     // Show bar h associated with this value.
-    needH:      bool     // Need h associated with this value.
-    posBoxH:    f32      // Pos box h associated with this value.
-    sizeBoxH:   f32      // Size box h associated with this value.
-    isHotH:     bool     // Whether this value is hot h.
-    isHotBarH:  bool     // Whether this value is hot bar h.
-    isPressedH: bool     // Whether this value is pressed h.
+    showBarH:   bool     // Whether the horizontal bar is shown.
+    needH:      bool     // Whether the content overflows horizontally, so the bar carries a thumb.
+    posBoxH:    f32      // Left of the horizontal thumb, in local units.
+    sizeBoxH:   f32      // Width of the horizontal thumb.
+    isHotH:     bool     // Whether the pointer is over the horizontal thumb.
+    isHotBarH:  bool     // Whether the pointer is over the horizontal track.
+    isPressedH: bool     // Whether the horizontal thumb is being dragged.
 
-    isMoving:      bool     // Whether this value is moving.
-    isGrabbing:    bool     // Whether this value is grabbing.
-    correcMoving:  f32      // Correc moving associated with this value.
-    offsetClientV: f32      // Offset client v associated with this value.
-    offsetClientH: f32      // Offset client h associated with this value.
-    paddingZ:      f32      // Padding z associated with this value.
-    paddingW:      f32      // Padding w associated with this value.
+    isMoving:      bool     // Whether a thumb is being dragged with the left button.
+    isGrabbing:    bool     // Whether the content is being panned with the middle button.
+    correcMoving:  f32      // Offset of the pointer inside the dragged thumb.
+    offsetClientV: f32      // Travel the vertical thumb loses to its minimum size.
+    offsetClientH: f32      // Travel the horizontal thumb loses to its minimum size.
+    paddingZ:      f32      // Width the vertical bar takes from the view.
+    paddingW:      f32      // Height the horizontal bar takes from the view.
 
-    aniBkBarV: BlendColor     // Ani bk bar v associated with this value.
-    aniBkBarH: BlendColor     // Ani bk bar h associated with this value.
-    aniBoxV:   BlendColor     // Ani box v associated with this value.
-    aniBoxH:   BlendColor     // Ani box h associated with this value.
+    aniBkBarV: BlendColor     // Hover color of the vertical track.
+    aniBkBarH: BlendColor     // Hover color of the horizontal track.
+    aniBoxV:   BlendColor     // Color of the vertical thumb.
+    aniBoxH:   BlendColor     // Color of the horizontal thumb.
 
-    grabbingPos: Math.Point     // Grabbing pos associated with this value.
+    grabbingPos: Math.Point     // Pointer position at the last step of a middle-button pan.
 }
 
 public impl IWnd for ScrollWnd
@@ -78,7 +78,7 @@ public impl IWnd for ScrollWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
-        if not (.view != null) do
+        if .view == null do
             return
         var rect = .paddedClientRect()
         rect.width  -= .paddingZ
@@ -109,7 +109,7 @@ public impl IWnd for ScrollWnd
             {
                 let move   = evt.surfacePos - .grabbingPos
                 let scroll = .scrollRequestPos - move
-                .scrollRequestPos = .scrollPositionPrivate(scroll.x, scroll.y)
+                .scrollRequestPos = .clampedScrollPos(scroll.x, scroll.y)
                 .grabbingPos      = evt.surfacePos
 
                 var options: AnimationOptions
@@ -122,7 +122,7 @@ public impl IWnd for ScrollWnd
                                                      func|scrollWnd=me|(animationWnd, value)
                                                      {
                                                          discard animationWnd
-                                                         discard scrollWnd.setScrollPosPrivate(value.x, value.y)
+                                                         discard scrollWnd.applyScrollPos(value.x, value.y)
                                                      },
                                                      options)
                 break
@@ -475,8 +475,7 @@ public impl ScrollWnd
     // Returns the current viewport origin in content coordinates.
     mtd const scrollPosition()->Math.Point => .view.scrollPos
 
-    // Returns where a running smooth scroll is heading, which is the current position when none
-    // is running.
+    // Returns where a running smooth scroll is heading, which is the current position when none is running.
     mtd const scrollTarget()->Math.Point => .scrollRequestPos
 
     // Glides to `pt` over the surface's panel motion instead of jumping there.
@@ -488,7 +487,7 @@ public impl ScrollWnd
     // next step on top of the one in flight.
     mtd smoothScrollTo(pt: Math.Point)
     {
-        let target   = .scrollPositionPrivate(pt.x, pt.y)
+        let target   = .clampedScrollPos(pt.x, pt.y)
         let origin   = .view.scrollPos
         let distance = target - origin
         let duration = .themeMetrics().motion_PanelSeconds
@@ -525,12 +524,13 @@ public impl ScrollWnd
                                                           let t3    = t2 * progress
                                                           let value = origin + distance * (3 * t2 - 2 * t3) + tangent * (t3 - 2 * t2 + progress)
                                                           scrollWnd.scrollVelocity = (distance * (6 * progress - 6 * t2) + tangent * (3 * t2 - 4 * progress + 1)) / duration
-                                                          discard scrollWnd.setScrollPosPrivate(value.x, value.y)
+                                                          discard scrollWnd.applyScrollPos(value.x, value.y)
                                                       },
                                                       options)
     }
 
-    private mtd scrollPositionPrivate(x, y: f32)->Math.Point
+    // Returns `x`, `y` clamped to the scrollable range and rounded to whole logical units.
+    private mtd clampedScrollPos(x, y: f32)->Math.Point
     {
         var newSP: Math.Point
 
@@ -547,9 +547,10 @@ public impl ScrollWnd
         return newSP
     }
 
-    private mtd setScrollPosPrivate(x, y: f32)->Math.Point
+    // Moves the view to the clamped position without touching a running glide, and returns it.
+    private mtd applyScrollPos(x, y: f32)->Math.Point
     {
-        let newSP = .scrollPositionPrivate(x, y)
+        let newSP = .clampedScrollPos(x, y)
         if newSP == .view.scrollPos do
             return newSP
         let oldPos = .view.scrollPos
@@ -568,9 +569,8 @@ public impl ScrollWnd
     mtd setScrollPos(x, y: f32)
     {
         .app().animator.cancel(me, AnimationChannel.from("Gui.Scroll.Position"))
-        .scrollVelocity = {}
-        let newSP = .setScrollPosPrivate(x, y)
-        .scrollRequestPos = newSP
+        .scrollVelocity   = {}
+        .scrollRequestPos = .applyScrollPos(x, y)
     }
 
     // Sets the non-negative virtual content size and clamps the current position.
@@ -585,8 +585,8 @@ public impl ScrollWnd
 
         // Appending streamed content must not cancel the glide or discard its velocity.
         // Only a size that clips the current position or destination interrupts it.
-        let position = .scrollPositionPrivate(.view.scrollPos.x, .view.scrollPos.y)
-        let target   = .scrollPositionPrivate(.scrollRequestPos.x, .scrollRequestPos.y)
+        let position = .clampedScrollPos(.view.scrollPos.x, .view.scrollPos.y)
+        let target   = .clampedScrollPos(.scrollRequestPos.x, .scrollRequestPos.y)
         if not .app().animator.isActive(.scrollAnimation) or position != .view.scrollPos or target != .scrollRequestPos do
             .setScrollPos(position)
         .sigScrollSizeChanged.call(me, oldScrollSize, .scrollSize)

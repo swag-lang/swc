@@ -6,6 +6,9 @@
 alias TimerHandle = const *void?
 
 // Owns an operating-system timer that invokes a callback on a worker thread.
+//
+// The callback runs with the context of the thread that created the timer. The operating
+// system keeps the address of this value, so it must not move while the timer is armed.
 #[Swag.NoCopy]
 struct Timer
 {
@@ -58,6 +61,9 @@ impl Timer
     }
 
     // Stops the timer and waits for any active callback before returning.
+    //
+    // Calling it from the callback of the same timer never returns, because it waits for that
+    // callback. Repeated calls do nothing.
     mtd release()
     {
         if not .handle do

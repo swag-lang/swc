@@ -37,16 +37,10 @@ impl Decoder
     //
     // A unit that carries coded picture data starts a picture when it says so, and continues the
     // one already open otherwise. `payload` still carries the two-byte unit header.
-    mtd readNalUnit(payload: const [..] u8)->bool fail
-    {
-        return try .readNalUnitMode(payload, false)
-    }
+    mtd readNalUnit(payload: const [..] u8)->bool fail => try .readNalUnitMode(payload, false)
 
     // Reads one unit while leaving a coded picture's entropy data for a frame owner.
-    mtd prepareNalUnit(payload: const [..] u8)->bool fail
-    {
-        return try .readNalUnitMode(payload, true)
-    }
+    mtd prepareNalUnit(payload: const [..] u8)->bool fail => try .readNalUnitMode(payload, true)
 
     private mtd readNalUnitMode(payload: const [..] u8, deferPicture: bool)->bool fail
     {

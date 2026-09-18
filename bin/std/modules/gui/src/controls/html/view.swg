@@ -1046,7 +1046,7 @@ internal impl HtmlView
         .canvas.invalidate()
     }
 
-    // Returns the selection normalized to document order, or `has == false` when it is empty.
+    // Returns the selection normalized to document order, with `has` false when it is empty.
     mtd const selectionRange()->{ startNode: u32, startOffset: u64, endNode: u32, endOffset: u64, has: bool }
     {
         var result: retval

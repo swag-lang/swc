@@ -99,7 +99,4 @@ func pdfPageRectOnScreen(view: *Gui.PdfView, index: u64)->Math.Rectangle
 //
 // Resolving it from the source location keeps a focused run working from every worktree and
 // current directory.
-func corpusPdfPath(name: string)->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
-}
+func corpusPdfPath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())

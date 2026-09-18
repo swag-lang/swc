@@ -25,7 +25,7 @@ private func textPluginProbe(content: Viewer.ProbeContent)->bool
         return false
     if not content.head.count do
         return false
-    return TextView.probeHead(content.head).accepted
+    return TextViewer.probeHead(content.head).accepted
 }
 
 // Describes the text viewer to the host.
@@ -53,14 +53,10 @@ func textViewerPlugin()->Viewer.Plugin
 
 private const TextStreamChunkSize = 16 * 1024'u64
 
-// Keep five complete viewports ready beyond the visible one.
+// Viewport heights of text kept loaded from the top of the visible one: it and five more.
 private const TextStreamLookAhead    = 6.0
 private const TextResidentWindowSize = 256 * 1024'u64
 private const TextRevealContextSize  = 16 * 1024'u64
-
-// Head of the file the encoding is decided from. A few kilobytes name every encoding a text file
-// uses; reading more answers no better and delays the first screen.
-private const TextProbeSize = 4 * 1024'u64
 
 // The encodings offered in the action bar, in the order the selector lists them.
 private const TextEncodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
@@ -78,7 +74,7 @@ struct TextProbe
 }
 
 // Text view available for readable content independently of the format-specific viewers.
-struct TextView
+struct TextViewer
 {
     using wnd: Wnd
 
@@ -126,7 +122,7 @@ struct TextView
 
 private func runTextStatistics(thread: Threading.Thread)
 {
-    let view    = cast(*TextView) thread.userParam!
+    let view    = cast(*TextViewer) thread.userParam!
     let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
 
@@ -162,36 +158,33 @@ private func runTextStatistics(thread: Threading.Thread)
     Atomic.exchange(&view.statisticsState, 1)
 }
 
-func textRevealMatch(wnd: *Wnd, match: Viewer.SearchMatch, text: string)->bool
-{
-    return (cast #assume (*TextView) wnd).revealOffset(match.offset, text)
-}
+func textRevealMatch(wnd: *Wnd, match: Viewer.SearchMatch, text: string)->bool => (cast #assume (*TextViewer) wnd).revealOffset(match.offset, text)
 
 func textSearchBounds(wnd: *Wnd, match: Viewer.SearchMatch, result: *Math.Rectangle)->bool
 {
     discard match
-    let view = cast #assume (*TextView) wnd
-    if view.pendingMatch.length do
+    let view = cast #assume (*TextViewer) wnd
+    if not view.pendingMatch.isEmpty() do
         return false
     return Viewer.richEditMatchBounds(view.editor, result)
 }
 
 func textClearSearch(wnd: *Wnd)
 {
-    let view = cast #assume (*TextView) wnd
+    let view = cast #assume (*TextViewer) wnd
     view.pendingMatch.clear()
     Viewer.clearRichEditMatch(view.editor)
 }
 
-func textIsLoading(wnd: *Wnd)->bool => (cast #assume (*TextView) wnd).loadTimer != null
+func textIsLoading(wnd: *Wnd)->bool => (cast #assume (*TextViewer) wnd).loadTimer != null
 
-impl TextView
+impl TextViewer
 {
     mtd detailsText()->String
     {
         let encoding = .encodingName()
 
-        // Statistics describe the byte interpretation that produced them.  Switching encoding
+        // Statistics describe the byte interpretation that produced them. Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
         // presented as facts about the newly decoded document.
         if Atomic.get(&.statisticsState) != 1 or .statisticsEncoding != .encoding or .statisticsStart != .contentStart do
@@ -265,22 +258,22 @@ impl TextView
     }
 
     // Reads the head of a file once and reports how it spells its characters.
+    //
+    // A file that cannot be read reports the default probe, which accepts nothing.
     func probe(fileName: string)->TextProbe
     {
-        var result: retval
         var stream = catch File.openReadLive(fileName) as openError
         if openError != null do
-            return result
+            return {}
         defer stream.close()
 
         var bytes: Array'u8
-        bytes.resize(TextProbeSize)
+        bytes.resize(Viewer.ProbeHeadSize)
         let count = catch stream.read(bytes.toSlice()) as readError
         if readError != null do
-            return result
+            return {}
         bytes.resize(count)
-        result = probeHead(bytes.toSlice())
-        return result
+        return probeHead(bytes.toSlice())
     }
 
     // Reports how the beginning of a file spells its characters, and whether it is text at all.
@@ -297,17 +290,13 @@ impl TextView
         return result
     }
 
-    // Reports whether the beginning of a file reads as text. The basic renderer is a fallback for
-    // textual content, not an alternate spelling of every binary format.
-    func supports(fileName: string)->bool
-    {
-        return probe(fileName).accepted
-    }
+    // Reports whether the beginning of a file reads as text.
+    //
+    // The basic renderer is a fallback for textual content, not an alternate spelling of every
+    // binary format.
+    func supports(fileName: string)->bool => probe(fileName).accepted
 
-    mtd hasMore()->bool
-    {
-        return not .readFailed and .bytesRead < .fileSize
-    }
+    mtd hasMore()->bool => not .readFailed and .bytesRead < .fileSize
 
     mtd needsMore()->bool
     {
@@ -446,7 +435,7 @@ impl TextView
             .hasText           = .hasText or not .read.text.isEmpty()
             .updateEstimatedHeight()
             .editor.setScrollPosition(oldPosition)
-            if .pendingMatch.length
+            if not .pendingMatch.isEmpty()
             {
                 if .encoding == .Utf8 do
                     Viewer.highlightRichEditMatch(.editor, .read.text.toString(), .pendingSeekOffset - .residentStart, .pendingMatch.length)
@@ -545,7 +534,7 @@ impl TextView
         .zoomPercent = Math.clamp(percent, 50'u32, 300'u32)
         let base = .themeMetrics().defaultFixedFontSize
         let size = cast(u32) Math.max(Math.round(cast(f32) base * cast(f32) .zoomPercent / 100), 1)
-        .editor.style.setFont(.theme().createDefaultFontFS(size), .Regular)
+        .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
         .editor.setFlags(.editor.flags)
         .zoomLabel.setText(Format.toString("% %", .zoomPercent, "%"))
         .updateEstimatedHeight()
@@ -570,7 +559,7 @@ impl TextView
     }
 }
 
-impl IWnd for TextView
+impl IWnd for TextViewer
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
@@ -637,31 +626,82 @@ impl IWnd for TextView
     }
 }
 
-impl TextView
+impl TextViewer
 {
-    func create(host: Viewer.Host)->*TextView
+    // Creates the streamed text view of the host's file, with its commands and zoom control.
+    func create(host: Viewer.Host)->*TextViewer
     {
-        let result = Wnd.create'TextView(host.contentParent(), "scope.text")
-
-        // The document host owns the rounded view ground. Keeping the viewer transparent lets
-        // those antialiased corners remain visible instead of repainting them with a square view.
-        result.backgroundStyle = .Transparent
-        result.fileName        = host.fileName()
-        result.reportDetails   = host.services().reportDetails
+        with let result = Wnd.create'TextViewer(host.contentParent(), "scope.text")
+        {
+            // The document host owns the rounded view ground. Keeping the viewer transparent lets
+            // those antialiased corners remain visible instead of repainting them with a square view.
+            .backgroundStyle = .Transparent
+            .fileName        = host.fileName()
+            .reportDetails   = host.services().reportDetails
+        }
 
         let probed = probe(host.fileName())
         result.encoding     = probed.encoding
         result.contentStart = probed.contentStart
 
-        result.commands = host.createCommandGroup(200)
-        result.info     = host.createInfoGroup(ViewerZoomSlotWidth)
+        result.createCommandBar(host)
+        result.createZoomControl(host)
+        result.createEditor()
+        result.hookEvents()
+        result.startReading()
 
-        with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
+        result.updateWrap()
+        result.setZoom(100)
+        result.applyLayout()
+        result.scheduleMore()
+        result.startStatistics()
+        result.setInitialFocus(result.editor)
+        return result
+    }
+
+    // Decides whether scrolling from `oldPosition` to `newPosition` leaves the resident window,
+    // and asks for the part of the file it reaches when it does.
+    mtd followScroll(oldPosition, newPosition: Math.Point)
+    {
+        if .repositioning do
+            return
+        if .pauseStreaming and newPosition.y < oldPosition.y do
+            .pauseStreaming = false
+        let viewport     = .editor.paddedClientRect()
+        let loadedHeight = .editor.loadedDocumentHeight()
+
+        let residentHeight = loadedHeight > 0 ? loadedHeight : (.fileSize ? .virtualHeight * cast(f32) (.bytesRead - .residentStart) / cast(f32) .fileSize : 0)
+        let residentEnd    = .residentOffsetY + residentHeight
+        let before         = .residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < .residentOffsetY + viewport.height * TextStreamLookAhead
+        let after          = .hasMore() and .bytesRead - .residentStart >= TextResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * TextStreamLookAhead > residentEnd
+        let outside        = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
+        .pendingSeek = .displayedEncoding != .encoding or (.virtualHeight > 0 and (before or after or outside))
+        .pendingMatch.clear()
+        .pendingNavigation = .None
+
+        // Returning to resident text also supersedes an in-flight replacement.
+        if .read.started and (.pendingSeek or .read.replace) do
+            Atomic.exchange(&.read.cancelled, 1)
+        if .pendingSeek
+        {
+            let ratio = Math.clamp(newPosition.y / .virtualHeight, 0, 1)
+            .pendingSeekOffset = cast(u64) (ratio * cast(f32) .fileSize)
+        }
+
+        .scheduleMore()
+    }
+
+    // Creates the wrap toggle and the encoding selector in the viewer's command group.
+    private mtd createCommandBar(host: Viewer.Host)
+    {
+        .commands = host.createCommandGroup(200)
+
+        with .wrapButton = IconButton.create(.commands, .theme().icon(.Wrap, themeActionIconSize(.themeMetrics())), {0, 0, themeActionButtonSize(.themeMetrics()), themeActionButtonSize(.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Left
             .toolTip   = textStrings().ui_WrapOn
             .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|view = result|(button)
+            .sigCheckedChanged += func|view = me|(button)
             {
                 discard button
                 view.toggleWrap()
@@ -670,75 +710,66 @@ impl TextView
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
-        with result.encodingCombo = ComboBox.create(result.commands, {0, 0, 156, 36})
+        with .encodingCombo = ComboBox.create(.commands, {0, 0, 156, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
             .toolTip   = textStrings().ui_Encoding
             for name in TextEncodingNames do
                 .addItem(name)
-            for candidate, index in TextEncodings where candidate == probed.encoding do
+            for candidate, index in TextEncodings where candidate == me.encoding do
                 .setSelectedIndex(cast(u32) index, notify: false)
-            .sigChanged += func|view = result|(combo, index)
+            .sigChanged += func|view = me|(combo, index)
             {
                 discard combo
                 view.applyEncoding(TextEncodings[index])
             }
         }
+    }
 
-        with result.zoomLabel = IconButton.create(result.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.text.zoom", .CenterContent)
+    // Creates the zoom menu button in the viewer's information group.
+    private mtd createZoomControl(host: Viewer.Host)
+    {
+        .info = host.createInfoGroup(ViewerZoomSlotWidth)
+
+        with .zoomLabel = IconButton.create(.info, {}, {0, 0, ViewerZoomButtonWidth, 32}, "scope.text.zoom", .CenterContent)
         {
             .dockStyle = .Center
             .margin    = {ViewerInfoControlInset, 0, ViewerInfoControlInset, 0}
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = textStrings().ui_ZoomMenu
-            .sigPressed += func|view = result|(button)
+            .sigPressed += func|view = me|(button)
             {
                 discard button
                 view.showZoomMenu()
             }
         }
+    }
 
-        result.editor = RichEditCtrl.create(result)
-        result.editor.dockStyle   = .Center
-        result.editor.marginLeft  = 12
-        result.editor.marginRight = 12
-        result.editor.style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
-        result.editor.sigScrollPositionChanged += func|view = result|(editor, oldPosition, newPosition)
+    // Creates the read-only editor that shows the resident window of the file.
+    private mtd createEditor()
+    {
+        with .editor = RichEditCtrl.create(me)
         {
-            discard editor
-            if view.repositioning do
-                return
-            if view.pauseStreaming and newPosition.y < oldPosition.y do
-                view.pauseStreaming = false
-            let viewport     = view.editor.paddedClientRect()
-            let loadedHeight = view.editor.loadedDocumentHeight()
-
-            let residentHeight = loadedHeight > 0 ? loadedHeight : (view.fileSize ? view.virtualHeight * cast(f32) (view.bytesRead - view.residentStart) / cast(f32) view.fileSize : 0)
-            let residentEnd    = view.residentOffsetY + residentHeight
-            let before         = view.residentStart > 0 and newPosition.y < oldPosition.y and newPosition.y < view.residentOffsetY + viewport.height * TextStreamLookAhead
-            let after          = view.hasMore() and view.bytesRead - view.residentStart >= TextResidentWindowSize and newPosition.y > oldPosition.y and newPosition.y + viewport.height * TextStreamLookAhead > residentEnd
-            let outside        = newPosition.y < view.residentOffsetY or newPosition.y + viewport.height > residentEnd
-            view.pendingSeek = view.displayedEncoding != view.encoding or (view.virtualHeight > 0 and (before or after or outside))
-            view.pendingMatch.clear()
-            view.pendingNavigation = .None
-
-            // Returning to resident text also supersedes an in-flight replacement.
-            if view.read.started and (view.pendingSeek or view.read.replace) do
-                Atomic.exchange(&view.read.cancelled, 1)
-            if view.pendingSeek
+            .dockStyle   = .Center
+            .marginLeft  = 12
+            .marginRight = 12
+            .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
+            .sigScrollPositionChanged += func|view = me|(editor, oldPosition, newPosition)
             {
-                let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
-                view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
+                discard editor
+                view.followScroll(oldPosition, newPosition)
             }
-
-            view.scheduleMore()
         }
+    }
 
-        result.hookOnChildEvent = func|view = result|(wnd, evt)
+    // Routes the keys the text view answers for, and keeps painting and resizing from reloading text.
+    private mtd hookEvents()
+    {
+        .hookOnChildEvent = func|view = me|(wnd, evt)
         {
             discard wnd
             switch evt
@@ -791,7 +822,7 @@ impl TextView
             }
         }
 
-        result.hookOnEvent = func|view = result|(wnd, evt)
+        .hookOnEvent = func|view = me|(wnd, evt)
         {
             discard wnd
             if evt is ResizeEvent
@@ -802,44 +833,42 @@ impl TextView
 
             return false
         }
+    }
 
-        var stream = catch File.openReadLive(host.fileName()) as openError
+    // Measures the file and starts reading its first chunk, or shows why it cannot be read.
+    private mtd startReading()
+    {
+        var stream = catch File.openReadLive(.fileName.toString()) as openError
         defer stream.close()
-        if openError != null do
-            result.showReadError()
-        else
+        if openError != null
         {
-            let size = catch stream.size() as sizeError
-            if sizeError != null do
-                result.showReadError()
-            else
-            {
-                result.fileSize = size
-                if size
-                {
-                    // A byte-order mark is part of the file and not part of the text, so reading
-                    // starts past it and every offset the view reports stays a file offset.
-                    result.bytesRead     = result.contentStart
-                    result.residentStart = result.contentStart
-                    result.loadNextChunk()
-                }
-            }
+            .showReadError()
+            return
         }
 
-        result.updateWrap()
-        result.setZoom(100)
-        result.applyLayout()
-        result.scheduleMore()
-        result.startStatistics()
-        result.setInitialFocus(result.editor)
-        return result
+        let size = catch stream.size() as sizeError
+        if sizeError != null
+        {
+            .showReadError()
+            return
+        }
+
+        .fileSize = size
+        if not size do
+            return
+
+        // A byte-order mark is part of the file and not part of the text, so reading starts past
+        // it and every offset the view reports stays a file offset.
+        .bytesRead     = .contentStart
+        .residentStart = .contentStart
+        .loadNextChunk()
     }
 }
 
 // Creates the streamed plain-text view.
 func createTextViewer(host: Viewer.Host)
 {
-    let view = TextView.create(host)
+    let view = TextViewer.create(host)
     host.attachView(view)
     host.setDetails(view.detailsText().toString())
     host.setSearch({
@@ -848,5 +877,5 @@ func createTextViewer(host: Viewer.Host)
         clear: &textClearSearch})
     host.setLifecycle({
         isLoading: &textIsLoading,
-        retire: func(wnd)->bool { return (cast #assume (*TextView) wnd).retire() }})
+        retire: func(wnd)->bool => (cast #assume (*TextViewer) wnd).retire()})
 }

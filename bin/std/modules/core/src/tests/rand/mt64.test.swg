@@ -7,13 +7,12 @@ using Swag
 {
     Swag.assert(Random.StateSize == 312)
 
-    var rng: Random.MersenneTwister64
-    Swag.assert(rng.index == 0)
-    Swag.assert(rng.state[0] == 0)
-
-    Swag.assert(rng.nextU64() == 0)
-    Swag.assert(rng.nextU64() == 0)
-    Swag.assert(rng.nextU64() == 0)
+    // An unseeded generator draws the sequence of the reference default seed.
+    var rng:    Random.MersenneTwister64
+    var seeded: Random.MersenneTwister64
+    seeded.seedU64(5489)
+    for 3 do
+        Swag.assert(rng.nextU64() == seeded.nextU64())
     Swag.assert(rng.index == 3)
 }
 

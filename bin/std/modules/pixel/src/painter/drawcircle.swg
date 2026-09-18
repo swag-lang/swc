@@ -4,7 +4,10 @@ using Core
 
 impl Painter
 {
-    // Draw an arc between two angles
+    // Strokes a circular arc from `startAngle` to `endAngle`.
+    //
+    // Angles run clockwise from the top of the circle, and `endAngle` must be greater than
+    // `startAngle`. The center and radius are snapped to the pixel grid.
     mtd drawArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle, color: Color, penSize: f32 = 1)
     {
         if radius == 0 or .isInvisible(color) do
@@ -24,11 +27,12 @@ impl Painter
             return
         if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
+        Swag.assert(endAngle.radians > startAngle.radians)
         .sharedLinePath.setArc(centerX, centerY, radius, startAngle, endAngle)
         .drawPath(&.sharedLinePath, pen)
     }
 
-    // Draw an empty circle
+    // Strokes the outline of a circle.
     mtd drawCircle(centerX, centerY: f32, radius: f32, color: Color, penSize: f32 = 1)
     {
         if radius == 0 or .isInvisible(color) do
@@ -43,7 +47,9 @@ impl Painter
         .drawEllipse(centerX, centerY, radius, radius, pen)
     }
 
-    // Draw a solid circle
+    // Fills a circle.
+    //
+    // The center is snapped to whole pixels and the radius to half pixels.
     mtd fillCircle(centerX, centerY: f32, radius: f32, brush: Brush)
     {
         if radius == 0 or .isInvisible(brush) do
@@ -62,7 +68,9 @@ impl Painter
         .fillPath(&.sharedLinePath, brush)
     }
 
-    // Draw an empty ellipse
+    // Strokes the outline of an axis-aligned ellipse.
+    //
+    // With [[Pixel.BorderPos.Inside]], the stroke stays inside the radii.
     mtd drawEllipse(centerX, centerY: f32, radiusX, radiusY: f32, color: Color, penSize: f32 = 1)
     {
         if radiusX == 0 or radiusY == 0 or .isInvisible(color) or penSize == 0 do
@@ -104,7 +112,7 @@ impl Painter
         .drawEllipse(rect.horzCenter(), rect.vertCenter(), rect.width * 0.5, rect.height * 0.5, pen)
     }
 
-    // Draw a solid ellipse
+    // Fills an axis-aligned ellipse.
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, brush: Brush)
     {
         if radiusX == 0 or radiusY == 0 or .isInvisible(brush) do

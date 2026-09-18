@@ -27,15 +27,16 @@ private const DefaultFontFsBoldItalic = #include(DefaultFontFsBoldItalicName)
 private const DefaultFontFsItalic     = #include(DefaultFontFsItalicName)
 private const DefaultIcons            = #include(DefaultIconsName)
 
-// Parsed theme art. The embedded sources are shared by every default Theme instance; a theme
-// with resource overrides owns a separate cache. Parsing the embedded sources is
-// pure CPU work whose result never changes, so it is done once per process (same policy as
-// the TypeFace/Font caches). Every piece of theme art is a vector document, and rasterizing one
-// depends on the requested size and scale alone, so the results are cached beside the drawings:
-// widget atlases here by scale, icon sheets inside the [[Gui.IconAtlas]] by cell size. A process
-// that builds many themes — a test executable creates one per headless host — then pays for the
-// rasterization of each sheet once rather than once per theme.
-// Dependency-visible backing type required by the concrete Theme layout.
+// Parsed theme art and its cached rasterizations, the backing type of a [[Gui.Theme]].
+//
+// The embedded sources are shared by every default Theme instance; a theme with resource
+// overrides owns a separate cache. Parsing the embedded sources is pure CPU work whose result
+// never changes, so it is done once per process (same policy as the TypeFace/Font caches). Every
+// piece of theme art is a vector document, and rasterizing one depends on the requested size and
+// scale alone, so the results are cached beside the drawings: widget atlases here by scale, icon
+// sheets inside the [[Gui.IconAtlas]] by cell size. A process that builds many themes — a test
+// executable creates one per headless host — then pays for the rasterization of each sheet once
+// rather than once per theme.
 #[Swag.Opaque, Swag.NoDoc]
 struct ThemeImages
 {
@@ -67,10 +68,7 @@ private var g_DefaultThemeImages: ThemeImages
 
 // Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
 // with a null result instead of a non-defaultable pointer.
-private func defaultTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail
-{
-    return try TypeFace.create(name, bytes)
-}
+private func defaultTypeFace(name: string, bytes: const [..] u8)->*TypeFace? fail => try TypeFace.create(name, bytes)
 
 // Registers the embedded theme art and fonts as the fallback providers of `bundle`.
 //
@@ -182,7 +180,7 @@ private func themeDrawing(resources: const *Resources.Bundle, name: string, embe
     if resources.isOverridden(name)
     {
         let bytes = catch resources.load(name) as loadErr
-        if loadErr == null and bytes.count > 0
+        if loadErr == null and not bytes.isEmpty()
         {
             let drawing = catch Svg.Drawing.parse(Swag.makeString(bytes.storage(), bytes.count)) as parseErr
             if parseErr == null do
@@ -204,25 +202,22 @@ struct ThemeResources
 
         late
         {
-            defaultTypeFaceR:    *TypeFace     // Default type face r associated with this value.
-            defaultTypeFaceB:    *TypeFace     // Default type face b associated with this value.
-            defaultTypeFaceI:    *TypeFace     // Default type face i associated with this value.
-            defaultTypeFaceBI:   *TypeFace     // Default type face bi associated with this value.
-            defaultFsTypeFaceR:  *TypeFace     // Default fs type face r associated with this value.
-            defaultFsTypeFaceB:  *TypeFace     // Default fs type face b associated with this value.
-            defaultFsTypeFaceI:  *TypeFace     // Default fs type face i associated with this value.
-            defaultFsTypeFaceBI: *TypeFace     // Default fs type face bi associated with this value.
+            defaultTypeFaceR:    *TypeFace     // Regular face of the interface font.
+            defaultTypeFaceB:    *TypeFace     // Bold face of the interface font.
+            defaultTypeFaceI:    *TypeFace     // Italic face of the interface font.
+            defaultTypeFaceBI:   *TypeFace     // Bold italic face of the interface font.
+            defaultFsTypeFaceR:  *TypeFace     // Regular face of the fixed-width font.
+            defaultFsTypeFaceB:  *TypeFace     // Bold face of the fixed-width font.
+            defaultFsTypeFaceI:  *TypeFace     // Italic face of the fixed-width font.
+            defaultFsTypeFaceBI: *TypeFace     // Bold italic face of the fixed-width font.
         }
 
-        fontDefault:   FontFamily     // Font default associated with this value.
-        fontDefaultFs: FontFamily     // Font default fs associated with this value.
+        fontDefault:   FontFamily     // Interface font family at the default font size of the metrics.
+        fontDefaultFs: FontFamily     // Fixed-width font family at the default fixed font size of the metrics.
     }
 
-    internal
-    {
-        cjkTypeFace:         *TypeFace?
-        cjkTypeFaceResolved: bool
-    }
+    cjkTypeFace:         *TypeFace?     // System face covering CJK text, or `null` when none was found.
+    cjkTypeFaceResolved: bool           // Whether the system was already searched for that face.
 }
 
 // Groups all render resources, colors, metrics, and atlas rectangles for one GUI theme.
@@ -264,9 +259,11 @@ impl Theme
     //
     // ```
     // /ThemePalette
-    // ground           0xFF161310
-    // text             0xFFEDE4D4
-    // accent           0xFFD79921
+    // ground             0xFF161310
+    // text               0xFFEDE4D4
+    // signature.mark     0xFFD79921
+    // signature.ground   0xFFD79921
+    // signature.onGround 0xFF161310
     // /ThemeColors
     // btnPush_Bk       0xFF202026
     // /ThemeMetrics
@@ -410,7 +407,7 @@ impl Theme
     //
     // The caller passes the density of the surface the theme is about to draw on, because
     // rasterizing the widgets atlas is the single most expensive step of a GUI startup and
-    // [[Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
+    // [[Gui.Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
     // throw that work away on every scaled display. Fonts and vector art resolve through
     // `resources`; an unreadable or malformed disk override falls back to its embedded source.
     private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
@@ -442,7 +439,7 @@ impl Theme
     // The vector theme document is the source of truth; the atlas texture is only its cached
     // rasterization, rebuilt here so themed drawing stays one textured blit at native
     // resolution. The scale is rounded up to a whole number so the nine-slice source cuts of
-    // [[ThemeImageRects]] stay on texel boundaries: on a fractional grid every tile border
+    // [[Gui.ThemeImageRects]] stay on texel boundaries: on a fractional grid every tile border
     // would sample its neighbor. The atlas only sharpens; a request at or below the current
     // scale returns immediately, so a surface moving to a coarser monitor keeps the sharp
     // atlas, which minifies cleanly.
@@ -494,8 +491,8 @@ impl Theme
         }
     }
 
-    // Create a default font family with the given size
-    mtd createDefaultFontfamily(size: u32)->FontFamily
+    // Creates the interface font family at `size`.
+    mtd createDefaultFontFamily(size: u32)->FontFamily
     {
         var result: retval
         result.regular    = .fonts.createFont(.res.defaultTypeFaceR, size)
@@ -505,13 +502,13 @@ impl Theme
         return result
     }
 
-    // Create a fixed-width font family with the given size
+    // Creates the fixed-width font family at `size`.
     //
     // A widget set in the fixed-width face takes the whole family, not its regular face alone:
     // markup that asks for bold or italic otherwise falls back to the proportional face the
     // family still carries, which sets one word of a line in another typeface at another size,
     // and lands it on another optical center than the words beside it.
-    mtd createDefaultFontfamilyFS(size: u32)->FontFamily
+    mtd createDefaultFontFamilyFs(size: u32)->FontFamily
     {
         var result: retval
         result.regular    = .fonts.createFont(.res.defaultFsTypeFaceR, size)
@@ -521,7 +518,7 @@ impl Theme
         return result
     }
 
-    // Create a default font with the given size
+    // Creates the `style` face of the interface font at `size`.
     mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->*Font
     {
         switch #complete style
@@ -535,8 +532,8 @@ impl Theme
         unreachable
     }
 
-    // Create a default font (fixed size) with the given size
-    mtd createDefaultFontFS(size: u32, style = FontFamilyStyle.Regular)->*Font
+    // Creates the `style` face of the fixed-width font at `size`.
+    mtd createDefaultFontFs(size: u32, style = FontFamilyStyle.Regular)->*Font
     {
         switch #complete style
         {

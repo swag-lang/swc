@@ -2,7 +2,7 @@ using Core
 
 public impl Image
 {
-    // Selects the HSL or RGB gradient written by [[Image.fillHsl]].
+    // Selects the HSL or RGB gradient written by [[Pixel.Image.fillHsl]].
     enum FillHslType
     {
         HueVert                 // Hue varies from top to bottom.

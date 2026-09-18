@@ -10,7 +10,7 @@ struct VideoStrings
     ui_TipStop:                string = "Stop"                                         // Tooltip of the stop button.
     ui_TipBackward:            string = "Back 10 seconds (Left)"                       // Tooltip of the backward seek button.
     ui_TipForward:             string = "Forward 10 seconds (Right)"                   // Tooltip of the forward seek button.
-    ui_TipSeek:                string = "Seek"                                         // Tooltip of the time timeline.
+    ui_TipSeek:                string = "Seek"                                         // Tooltip of the playback timeline.
     ui_TipMute:                string = "Mute or unmute (M)"                           // Tooltip of the mute switch.
     ui_TipVolume:              string = "Volume"                                       // Tooltip of the volume slider.
     ui_TipAudio:               string = "Audio track"                                  // Tooltip of the sound-track selector.
@@ -64,18 +64,15 @@ private var g_VideoStrings: VideoStrings
 func videoStrings()->const *VideoStrings => &g_VideoStrings
 
 // Returns `count` followed by the frame noun in the form that count calls for.
-func videoFrameCountText(count: u64)->String
-{
-    return Format.toString("% %", count, count == 1 ? videoStrings().word_Frame : videoStrings().word_Frames)
-}
+func videoFrameCountText(count: u64)->String => Format.toString("% %", count, count == 1 ? videoStrings().word_Frame : videoStrings().word_Frames)
 
 // Formats one sound-track selector entry from the properties its decoder validated.
 func videoAudioTrackText(index: u32, sound: const *Audio.SoundFile)->String
 {
     let strings = videoStrings()
-    var name    = (sound.displayName()).count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
+    let name    = sound.displayName().count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
     var language: String
-    if (sound.language()).count and sound.language() != "und" do
+    if sound.language().count and sound.language() != "und" do
         language = Format.toString(strings.ui_AudioTrackLang, sound.language())
     return Format.toString(strings.ui_AudioTrack, name.toString(), language.toString(), videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
 }
@@ -105,18 +102,15 @@ func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
 }
 
 // Formats the active sound track for the information bar.
-func videoAudioDetailsText(sound: const *Audio.SoundFile)->String
-{
-    return Format.toString(videoStrings().ui_AudioDetails, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
-}
+func videoAudioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(videoStrings().ui_AudioDetails, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
 
 // Formats one embedded or sidecar subtitle-track entry.
 func videoSubtitleTrackText(index: u32, track: const *Video.Subtitle.Track, sidecar: bool)->String
 {
     let strings     = videoStrings()
-    let displayName = videoSubtitleText(track.displayNameData(), track.displayNameLength())
-    let language    = videoSubtitleText(track.languageTagData(), track.languageTagLength())
-    var name        = displayName.count ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
+    let displayName = track.displayName()
+    let language    = track.languageTag()
+    let name        = displayName.count ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
     var languageSuffix: String
     if language.count and language != "und" do
         languageSuffix = Format.toString(strings.ui_SubtitleTrackLang, language)

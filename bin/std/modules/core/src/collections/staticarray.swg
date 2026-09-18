@@ -2,13 +2,15 @@
 
 using Swag
 
-// A stack-allocated array with a fixed capacity known at compile time.
-// It provides a similar interface to the dynamic 'Array' but does not allocate memory on the heap.
+// An array of at most `N` elements stored inline, with a capacity fixed at compile time.
+//
+// It offers the interface of [[Core.Array]] without ever allocating. Adding past the capacity
+// asserts.
 struct(T, N: u64) StaticArray
 {
     public
     {
-        buffer: [N] T     // The fixed-size me.buffer that holds the elements.
+        buffer: [N] T     // The inline storage that holds the elements.
         count:  u64       // The number of valid elements currently in the array.
     }
 }
@@ -17,21 +19,21 @@ impl StaticArray
 {
     // Returns the number of elements in the array.
     #[Inline]
-    mtd opCount()->u64 => .count
+    mtd const opCount()->u64 => .count
 
-    // Returns a raw, constant pointer to the array's buffer.
+    // Returns a constant pointer to the first element.
     #[Inline]
     mtd opData()->const *T => &.buffer[0]
 
-    // Allows the array to be implicitly cast to a mutable slice.
+    // Converts the array to a mutable slice over its elements.
     #[Inline]
     mtd opCast()->[..] T => .toSlice()
 
-    // Allows the array to be implicitly cast to an immutable slice.
+    // Converts the array to an immutable slice over its elements.
     #[Inline]
     mtd const opCast()->const [..] T => .toSlice()
 
-    // Creates a slice from a sub-part of the array.
+    // Returns a mutable slice over the elements from `lower` to `upper`, both included.
     #[Inline]
     mtd opSlice(lower, upper: u64)->[..] T
     {
@@ -41,7 +43,7 @@ impl StaticArray
         return Swag.makeSlice(&.buffer[lower], (upper + 1) - lower)
     }
 
-    // Returns the address of the element at the specified index.
+    // Returns the address of the element at `index`.
     #[Inline]
     mtd const opIndexPtr(index: u64)->const *T
     {
@@ -49,7 +51,7 @@ impl StaticArray
         return &.buffer[index]
     }
 
-    // Returns the mutable address of the element at the specified index.
+    // Returns the mutable address of the element at `index`.
     #[Inline]
     mtd opIndexPtr(index: u64)->*T
     {
@@ -57,7 +59,7 @@ impl StaticArray
         return &.buffer[index]
     }
 
-    // Assigns a new value to the element at the specified index.
+    // Assigns a copy of `value` to the element at `index`.
     #[Inline]
     mtd opIndexSet(index: u64, value: T)
         where Reflection.canCopy(T)
@@ -66,7 +68,7 @@ impl StaticArray
         .buffer[index] = value
     }
 
-    // Handles compound assignment operators (e.g., `+=`, `-=`) for elements.
+    // Applies a compound assignment such as `+=` or `-=` to the element at `index`.
     #[Inline]
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: T)
     {
@@ -74,8 +76,9 @@ impl StaticArray
         #ast("buffer[index] ", op.symbol(), " value")
     }
 
-    // Replaces the content of the array with elements copied from a slice.
-    // Asserts if the slice is larger than the array's capacity.
+    // Replaces the content of the array with copies of the elements of `arr`.
+    //
+    // `arr` can borrow from this array. Asserts if it holds more than `N` elements.
     mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
@@ -112,17 +115,17 @@ impl StaticArray
         .count += countof
     }
 
-    // Provides a way to iterate over each element in the array.
-    // This is a macro that accepts a code block to execute for each element.
-    // Visiting by pointer is supported.
-    // Block parameters: 'item' is the element (or a pointer to it), 'index' its ordinal.
+    // Visits every element in order, binding `item` to the element and `index` to its position.
+    //
+    // Visiting by address binds `item` to a mutable pointer. Otherwise a struct element is bound
+    // through a constant pointer and any other element by value.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         if not .count do
             return
 
-        // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
+        // The cursor advances at the top of the loop, so a 'continue' in the visited code cannot skip it.
         var scan = cast([*] T) &.buffer[0] - 1
 
         for visitIdx in .count
@@ -147,27 +150,30 @@ impl StaticArray
     // Returns a zero-allocation view over adjacent elements.
     mtd const pairs()->Pairs'T => pairsView(.toSlice())
 
-    // Drops all elements in the array, setting its me.count to 0.
-    // This is equivalent to 'clear' for this type.
+    // Drops every element and leaves the array empty.
+    //
+    // The storage is inline, so this is the same as [[clear]].
     mtd free()
     {
         .clear()
     }
 
-    // Returns 'true' if the array contains no elements.
+    // Returns whether the array contains no elements.
     #[Inline]
     mtd const isEmpty() => .count == 0
 
-    // Returns a mutable slice containing all valid elements of the array.
+    // Returns a mutable slice over the elements.
     #[Inline]
     mtd toSlice()->[..] T => Swag.makeSlice(&.buffer[0], .count)
 
-    // Returns an immutable slice containing all valid elements of the array.
+    // Returns an immutable slice over the elements.
     #[Inline]
     mtd const toSlice()->const [..] T => Swag.makeSlice(&.buffer[0], .count)
 
-    // Changes the number of elements in the array to 'newCount'.
-    // Asserts if 'newCount' exceeds the static capacity.
+    // Sets the number of elements to `newCount`.
+    //
+    // New elements are default-initialized, and elements past `newCount` are dropped. Asserts if
+    // `newCount` exceeds `N`.
     mtd resize(newCount: u64)
     {
         if newCount == .count do
@@ -189,8 +195,7 @@ impl StaticArray
         }
     }
 
-    // Removes all elements from the array, setting its me.count to 0.
-    // This calls the destructor for each element if one exists.
+    // Drops every element and leaves the array empty.
     mtd clear()
     {
         let oldCount = .count
@@ -205,9 +210,9 @@ impl StaticArray
         .count = 0
     }
 
-    // Adds an element to the end of the array, but only if it's not already present.
-    // Asserts if the array is full.
-    // The value is copied; pass it with '#move' to move it instead.
+    // Appends `value` unless the array already contains an equal element.
+    //
+    // Asserts if the array is full. The value is copied; pass it with `#move` to move it instead.
     mtd addOnce(value: #fwd T)
     {
         if .contains(value) do
@@ -217,8 +222,9 @@ impl StaticArray
         .count += 1
     }
 
-    // Adds an element to the end of the array.
-    // Asserts if the array is full. The value is copied; pass it with '#move' to move it instead.
+    // Appends `value` to the end of the array.
+    //
+    // Asserts if the array is full. The value is copied; pass it with `#move` to move it instead.
     mtd add(value: #fwd T)
     {
         Swag.assert(.count != N, "the array is full")
@@ -226,8 +232,10 @@ impl StaticArray
         .count += 1
     }
 
-    // Makes room for 'num' elements at the end of the array and returns a pointer to the new space.
-    // The new memory is not initialized. Asserts if the array does not have enough capacity.
+    // Appends `num` uninitialized elements and returns the address of the first one.
+    //
+    // The caller must initialize every new element before the array reads, copies, or drops it.
+    // Asserts if the array does not have enough capacity.
     mtd emplaceAddress(num: u32 = 1)->[*] T
     {
         Swag.assert(.count + num <= N, "the array is full")
@@ -235,20 +243,21 @@ impl StaticArray
         return cast([*] T) &.buffer[0] + .count - num
     }
 
-    // Makes room for 'num' elements at the end of the array and returns a pointer to the new space.
-    // The new memory is default-initialized. Asserts if the array does not have enough capacity.
+    // Appends `num` default-initialized elements and returns the address of the first one.
+    //
+    // Asserts if the array does not have enough capacity.
     mtd emplaceInitAddress(num: u32 = 1)->[*] T
     {
         Swag.assert(.count + num <= N, "the array is full")
         .count += num
-        var res = cast([*] T) &.buffer[0] + .count - num
+        let res = cast([*] T) &.buffer[0] + .count - num
         Swag.init(res, num)
         return res
     }
 
-    // Inserts a value at a specific index, shifting existing elements to the right.
-    // Asserts if the array is full. Order is preserved.
-    // The value is copied; pass it with '#move' to move it instead.
+    // Inserts `value` at `index`, shifting the following elements to the right.
+    //
+    // Asserts if the array is full. The value is copied; pass it with `#move` to move it instead.
     mtd insertAt(index: u64, value: #fwd T)
     {
         Swag.assert(index <= .count, "index out of range")
@@ -270,8 +279,9 @@ impl StaticArray
         .buffer[index] = #nodrop #fwd value
     }
 
-    // Inserts elements from a slice at a specific index, shifting existing elements to the right.
-    // Asserts if the array does not have enough capacity. Order is preserved.
+    // Inserts copies of the elements of `values` at `index`, shifting the following elements to the right.
+    //
+    // `values` can borrow from this array. Asserts if the array does not have enough capacity.
     mtd insertAt(index: u64, values: const [..] T?)
         where Reflection.canCopy(T)
     {
@@ -288,8 +298,6 @@ impl StaticArray
         }
 
         Swag.assert(index <= .count, "index out of range")
-        if index == .count do
-            return .add(values)
         Swag.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
@@ -312,11 +320,16 @@ impl StaticArray
         else
         {
             Memory.copy(&.buffer[index], values.buffer, #sizeof(T) * sliceCount)
+        // A bitwise move leaves the source holding the same resources: reset it so that its
+        // own drop releases nothing.
+        #static if Reflection.hasDrop(T) do
+            Swag.init(values.buffer, sliceCount)
         }
     }
 
-    // Moves elements from a slice at a specific index, shifting existing elements to the right.
-    // Asserts if the array does not have enough capacity. Order is preserved.
+    // Moves the elements of `values` to `index`, shifting the following elements to the right.
+    //
+    // Asserts if the array does not have enough capacity.
     mtd emplaceAt(index: u64, values: [..] T)
         where Reflection.canCopy(T)
     {
@@ -333,8 +346,6 @@ impl StaticArray
         }
 
         Swag.assert(index <= .count, "index out of range")
-        if index == .count do
-            return .add(values)
         Swag.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
@@ -356,11 +367,16 @@ impl StaticArray
         else
         {
             Memory.copy(&.buffer[index], values.buffer, #sizeof(T) * sliceCount)
+        // A bitwise move leaves the source holding the same resources: reset it so that its
+        // own drop releases nothing.
+        #static if Reflection.hasDrop(T) do
+            Swag.init(values.buffer, sliceCount)
         }
     }
 
-    // Appends all elements from a slice to the end of the array.
-    // Asserts if the array does not have enough capacity.
+    // Appends copies of the elements of `values` to the end of the array.
+    //
+    // `values` can be null or borrow from this array. Asserts if the array does not have enough capacity.
     mtd add(values: const [..] T?)
         where Reflection.canCopy(T)
     {
@@ -396,8 +412,9 @@ impl StaticArray
         }
     }
 
-    // Removes a specified number of elements starting from a given index.
-    // This is an unstable remove; the order of remaining elements is not preserved.
+    // Removes `num` elements starting at `index`, shifting the following elements to the left.
+    //
+    // The order of the remaining elements is preserved.
     mtd remove(index, num: u64)
     {
         if not num do
@@ -432,8 +449,9 @@ impl StaticArray
         }
     }
 
-    // Removes the first occurrence of a given value from the array.
-    // This is an unstable remove; order is not preserved. Does nothing if the value is not found.
+    // Removes the first element equal to `value` by moving the last element into its place.
+    //
+    // The order of the remaining elements is not preserved. Does nothing when `value` is absent.
     mtd(V) remove(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
@@ -442,8 +460,9 @@ impl StaticArray
         .removeAt(idx)
     }
 
-    // Removes the element at a given index by swapping it with the last element.
-    // This is very fast, but the order of elements is not preserved.
+    // Removes the element at `index` by moving the last element into its place.
+    //
+    // This takes constant time, but does not preserve the order of the remaining elements.
     mtd removeAt(index: u64)
     {
         Swag.assert(index < .count, "index out of range")
@@ -465,8 +484,9 @@ impl StaticArray
         }
     }
 
-    // Removes one or more elements at a given index, shifting subsequent elements to the left.
-    // This is slower than 'removeAt', but preserves the order of the remaining elements.
+    // Removes `numValues` elements starting at `index`, shifting the following elements to the left.
+    //
+    // This is slower than [[removeAt]], but preserves the order of the remaining elements.
     mtd removeAtOrdered(index: u64, numValues: u64 = 1)
     {
         if not numValues do
@@ -511,8 +531,9 @@ impl StaticArray
         }
     }
 
-    // Removes the first occurrence of a given value, preserving the order of remaining elements.
-    // Does nothing if the value is not found.
+    // Removes the first element equal to `value`, preserving the order of the remaining elements.
+    //
+    // Does nothing when `value` is absent.
     mtd(V) removeOrdered(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
@@ -521,34 +542,37 @@ impl StaticArray
         .removeAtOrdered(idx)
     }
 
-    // Returns 'true' if the array contains the given value.
-    mtd(V) contains(value: V)->bool
-    {
-        return Slice.findLinear(.toSlice(), value) != Swag.U64.Max
-    }
+    // Returns whether the array contains an element equal to `value`.
+    mtd(V) const contains(value: V)->bool => Slice.findLinear(.toSlice(), value) != Swag.U64.Max
 
-    // Sorts the array in ascending order using the default comparison operator.
+    // Sorts the elements in ascending order.
+    //
+    // The sort is not stable. See [[Core.Slice.sort]].
     mtd sort()
         where Reflection.canCompare(T)
     {
-        Slice.sort(.toSlice(), func(x, y: T)->s32 => x <=> y)
+        Slice.sort(.toSlice())
     }
 
-    // Sorts the array in descending order.
+    // Sorts the elements in descending order.
+    //
+    // The sort is not stable.
     mtd sortReverse()
         where Reflection.canCompare(T)
     {
-        Slice.sort(.toSlice(), func(x, y: T)->s32 => y <=> x)
+        Slice.sort(.toSlice(), descending: true)
     }
 
-    // Sorts the array using a custom comparison function.
-    mtd sort(cb: func||(T, T)->s32)
+    // Sorts the elements in the order defined by `compare`.
+    //
+    // `compare` returns a negative value when its first argument must come first. The sort is not stable.
+    mtd sort(compare: func||(T, T)->s32)
     {
-        Swag.assert(cb != null)
-        Slice.sort(.toSlice(), cb)
+        Slice.sort(.toSlice(), compare)
     }
 
-    // Returns a copy of the first element of the array.
+    // Returns a copy of the first element.
+    //
     // Asserts if the array is empty.
     mtd front()->T
     {
@@ -557,7 +581,8 @@ impl StaticArray
         return result
     }
 
-    // Returns a pointer to the first element of the array.
+    // Returns the address of the first element.
+    //
     // Asserts if the array is empty.
     mtd frontPtr()->*T
     {
@@ -565,7 +590,8 @@ impl StaticArray
         return &.buffer[0]
     }
 
-    // Returns a copy of the last element of the array.
+    // Returns a copy of the last element.
+    //
     // Asserts if the array is empty.
     mtd back()->T
     {
@@ -574,7 +600,8 @@ impl StaticArray
         return result
     }
 
-    // Returns a pointer to the last element of the array.
+    // Returns the address of the last element.
+    //
     // Asserts if the array is empty.
     mtd backPtr()->*T
     {
@@ -582,7 +609,8 @@ impl StaticArray
         return &.buffer[.count - 1]
     }
 
-    // Removes the last element from the array and returns it.
+    // Removes the last element and returns it.
+    //
     // Asserts if the array is empty.
     mtd popBack()->T
     {
@@ -599,7 +627,8 @@ impl StaticArray
         return result
     }
 
-    // Removes the last element from the array.
+    // Drops and removes the last element.
+    //
     // Asserts if the array is empty.
     mtd removeBack()
     {

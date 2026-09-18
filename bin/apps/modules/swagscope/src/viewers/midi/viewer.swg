@@ -3,10 +3,7 @@
 using Core, Pixel, Gui
 
 // Offers the score surface for a Standard MIDI File, whatever it is called.
-private func midiPluginProbe(content: Viewer.ProbeContent)->bool
-{
-    return content.startsWith("MThd")
-}
+private func midiPluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("MThd")
 
 // Describes the MIDI viewer to the host.
 func midiViewerPlugin()->Viewer.Plugin
@@ -29,7 +26,8 @@ func midiViewerPlugin()->Viewer.Plugin
 
 private const MidiCommandWidth = 224.0
 
-internal struct MidiViewer
+// Presents a Standard MIDI File as a piano roll, with a track filter and a zoom menu.
+struct MidiViewer
 {
     using wnd: Wnd
 
@@ -55,7 +53,7 @@ private impl MidiViewer
 {
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Format.toString("% %", cast(u32) Math.round(.roll.zoom * 100), "%"))
+        .zoomLabel.setText(Format.toString("% %%", cast(u32) Math.round(.roll.zoom * 100)))
     }
 
     mtd fillTracks()
@@ -74,12 +72,12 @@ private impl MidiViewer
 
     mtd retranslate()
     {
-        if not .loadTimer do
-            .fillTracks()
         .trackCombo.toolTip = midiStrings().ui_AllTracks
         .zoomLabel.toolTip  = midiStrings().ui_ZoomMenu
-        if not .loadTimer do
-            .roll.invalidate()
+        if .isLoading() do
+            return
+        .fillTracks()
+        .roll.invalidate()
     }
 
     mtd publishDocument(document: *MidiDocument)
@@ -93,11 +91,17 @@ private impl MidiViewer
 
         .fillTracks()
         .trackCombo.setSelectedIndex(0, notify: false)
-        .details = Format.toString(midiStrings().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
         .applyLayout()
         .roll.refreshLayout()
         .refreshZoom()
         .setInitialFocus(.roll)
+        .refreshDetails()
+    }
+
+    // Rebuilds the host summary in the active language and reports it.
+    mtd refreshDetails()
+    {
+        .details = Format.toString(midiStrings().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
         if .reportDetails do
             .reportDetails(me, .details.toString())
     }
@@ -121,6 +125,10 @@ private impl MidiViewer
         }
     }
 
+    // Reports whether the document is still being read in the background.
+    mtd isLoading()->bool => .loadTimer != null
+
+    // Requests teardown, and reports whether deferred GUI destruction may release this view.
     mtd retire()->bool
     {
         if not .load.retire() do
@@ -173,19 +181,24 @@ private impl IWnd for MidiViewer
     }
 }
 
-internal impl MidiViewer
+impl MidiViewer
 {
-    func create(contentParent, commands, info: *Wnd, fileName: string, reportFailure: Viewer.ReportFailure?, reportDetails: Viewer.ReportDetails?, reportLoadingChanged: Viewer.ReportLoadingChanged?)->*MidiViewer
+    func create(host: Viewer.Host)->*MidiViewer
     {
-        let result = Wnd.create'MidiViewer(contentParent, "scope.midi")
-        result.backgroundStyle      = .View
-        result.reportFailure        = reportFailure
-        result.reportDetails        = reportDetails
-        result.reportLoadingChanged = reportLoadingChanged
+        let services = host.services()
+        let commands = host.createCommandGroup(MidiCommandWidth)
+        let info     = host.createInfoGroup(ViewerZoomSlotWidth)
+        with let result = Wnd.create'MidiViewer(host.contentParent(), "scope.midi")
+        {
+            .backgroundStyle      = .View
+            .reportFailure        = services.reportFailure
+            .reportDetails        = services.reportDetails
+            .reportLoadingChanged = services.reportLoadingChanged
+            .commands             = commands
+            .info                 = info
+        }
 
-        result.commands = commands
-        result.info     = info
-        with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
+        with result.trackCombo = ComboBox.create(result.commands, {0, 0, MidiCommandWidth, 36})
         {
             .dockStyle  = .Left
             .toolTip    = midiStrings().ui_AllTracks
@@ -203,7 +216,7 @@ internal impl MidiViewer
             .setText("100%")
             .setArrowPosition(.RightDownward)
             .setForm(.Rectangle)
-            .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
+            .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
             .toolTip    = midiStrings().ui_ZoomMenu
             .sigPressed += func|view = result|(button)
             {
@@ -213,19 +226,18 @@ internal impl MidiViewer
         }
 
         result.applyLayout()
-        result.load.start(fileName, &loadMidiDocument)
+        result.load.start(host.fileName(), &loadMidiDocument)
         result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
 
+// Creates the integrated MIDI score view and connects it to the host.
 func createMidiViewer(host: Viewer.Host)
 {
-    let services = host.services()
-    let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.createInfoGroup(ViewerZoomSlotWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
-    host.attachView(view)
+    host.attachView(MidiViewer.create(host))
     host.setLifecycle({
-        isLoading: func(wnd)->bool { return (cast #assume (*MidiViewer) wnd).loadTimer != null },
-        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*MidiViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*MidiViewer) wnd).retire() }})
+        isLoading: func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading(),
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*MidiViewer) wnd).isLoading(),
+        retire: func(wnd)->bool => (cast #assume (*MidiViewer) wnd).retire()})
 }

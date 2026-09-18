@@ -101,9 +101,9 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 
     var familyName = try decodeBestName(nameTable, NAME_ID_FAMILY)
     var styleName  = try decodeBestName(nameTable, NAME_ID_STYLE)
-    if familyName.length == 0 do
+    if familyName.isEmpty() do
         familyName = String.from(fallbackFamilyName.count ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
-    if styleName.length == 0 do
+    if styleName.isEmpty() do
         styleName = defaultStyle
     faceData.face.setNames(familyName, styleName)
 }
@@ -395,7 +395,7 @@ func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
     // The guard above raises, but "fault" is an ordinary fallible call: nothing marks it as
     // never returning, so the proof has to be stated here.
     let familyName = try decodeBestName(nameTable!, NAME_ID_FAMILY)
-    if familyName.length == 0 do
+    if familyName.isEmpty() do
         return DEFAULT_FAMILY_NAME
     return familyName
 }

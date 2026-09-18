@@ -10,7 +10,7 @@ public struct TypeFace
 {
     internal
     {
-        fullname:     String                     // Cache key or source filename, owned so a dynamic key cannot dangle.
+        fullName:     String                     // Cache key or source filename, owned so a dynamic key cannot dangle.
         late allocationAllocator: IAllocator     // Allocator that owns this cached value.
         late face:    *Face                      // Owned TrueType face and its copied font bytes.
         faceLoaded:   bool                       // Whether `face` can be destroyed during cleanup.
@@ -72,95 +72,97 @@ public impl TypeFace
             .face.destroy()
     }
 
-    // Returns true if the typeface is bold
+    // Reports whether the font declares a bold style.
     mtd const isBold()->bool => .face.isBold()
 
-    // Returns true if the typeface is italic
+    // Reports whether the font declares an italic style.
     mtd const isItalic()->bool => .face.isItalic()
 
     // Returns the family name stored in the font.
     mtd const familyName()->string => .face.familyName
 
-    // Gets or creates a typeface from an in-memory TrueType program.
+    // Returns the shared typeface for an in-memory TrueType program, parsing it on first use.
     //
-    // `fullname` is both the cache identity and the fallback family name for a rendering-only
+    // The bytes are copied. `fullName` is both the cache identity and the fallback family name for a rendering-only
     // subset that legally omits standalone font metadata such as `name` and `post`.
-    func create(fullname: string, bytes: const [..] u8)->*TypeFace fail
+    func create(fullName: string, bytes: const [..] u8)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
-        let here = g_HashTypeFace.tryFind(fullname)
-        if here do
+        if let here = g_HashTypeFace.tryFind(fullName) do
             return here.value
 
         let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
         let tf        = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
-        tf.fullname = fullname
+        tf.fullName = fullName
 
-        let face = try Face.loadSubset(bytes, fullname, allocator)
+        let face = try Face.loadSubset(bytes, fullName, allocator)
         tf.face       = face!
         tf.faceLoaded = true
 
-        g_HashTypeFace.add(fullname, tf)
+        g_HashTypeFace.add(fullName, tf)
         return tf
     }
 
-    // Reports whether [[Pixel.TypeFace.load]] has a font to load for `fullname`.
+    // Reports whether [[Pixel.TypeFace.load]] has a font to load for `fullName`.
     //
     // A caller choosing among several families needs a miss to be an answer rather than a
     // failure: a machine that does not carry the requested face still has to draw its text,
     // and asking here is how it moves on to the next candidate. The lookup follows the same
     // order `load` does, so an answer of `true` is one `load` honors.
-    func exists(fullname: string)->bool
+    func exists(fullName: string)->bool
     {
         {
             Sync.scopedLock(&lock)
-            if g_HashTypeFace.tryFind(fullname) do
+            if g_HashTypeFace.tryFind(fullName) do
                 return true
         }
 
-        if File.exists(fullname) do
+        if File.exists(fullName) do
             return true
-        return File.exists(Path.combine(Env.realSpecialDirectory(.Font), fullname))
+        return File.exists(Path.combine(Env.realSpecialDirectory(.Font), fullName))
     }
 
-    // Get or load a new typeface
-    func load(fullname: string)->*TypeFace fail
+    // Returns the shared typeface for a font file, loading it on first use.
+    //
+    // `fullName` is a file path; when no such file exists, it is looked up in the system font
+    // directory. The typeface is cached process-wide under `fullName`; never delete it. File and
+    // parsing errors are reported through `fail`.
+    func load(fullName: string)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
-        let here = g_HashTypeFace.tryFind(fullname)
-        if here do
+        if let here = g_HashTypeFace.tryFind(fullName) do
             return here.value
 
         let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
         let tf        = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
-        tf.fullname = fullname
+        tf.fullName = fullName
 
         // If file does not exist, try the system folder.
         //
         // The installed fonts belong to the machine, not to the program, so this looks past
         // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
         var buffer: Array'u8
-        if not File.exists(fullname)
+        if not File.exists(fullName)
         {
-            let p = Path.combine(Env.realSpecialDirectory(.Font), fullname)
+            let p = Path.combine(Env.realSpecialDirectory(.Font), fullName)
             buffer = try File.readAllBytes(p)
         }
         else
         {
-            buffer = try File.readAllBytes(fullname)
+            buffer = try File.readAllBytes(fullName)
         }
 
         let face = try Face.load(buffer.toSlice(), allocator)
         tf.face       = face!
         tf.faceLoaded = true
 
-        g_HashTypeFace.add(fullname, tf)
+        g_HashTypeFace.add(fullName, tf)
         return tf
     }
 
@@ -186,13 +188,14 @@ public impl TypeFace
         return cast(s32) Math.round(MaxPx * t * 64.0)
     }
 
-    // Render one glyph (crisp bitmap path): stem darkening + vertical grid-fitting.
-    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap fail
-    {
-        return try .renderGlyphByIndex(.face.glyphIndex(c), size, forceBold, forceItalic)
-    }
+    // Rasterizes one rune as a grayscale bitmap at `size` pixels.
+    //
+    // Small sizes are slightly emboldened to offset antialiasing thinning, and outlines are
+    // grid-fitted vertically. The bitmap belongs to the typeface and is overwritten by the next
+    // rasterization.
+    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap fail => try .renderGlyphByIndex(.face.glyphIndex(c), size, forceBold, forceItalic)
 
-    // Render one glyph by glyph index (crisp bitmap path): stem darkening + vertical grid-fitting.
+    // Rasterizes one glyph index as a grayscale bitmap at `size` pixels, like [[Pixel.TypeFace.renderGlyph]].
     mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
         try .face.setPixelSize(0, size)
@@ -204,13 +207,13 @@ public impl TypeFace
         return &.face.glyph.bitmap
     }
 
-    // Render one glyph as a multi-channel signed distance field
-    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail
-    {
-        return try .renderGlyphMsdfByIndex(.face.glyphIndex(c), size, spread, forceBold, forceItalic)
-    }
+    // Renders one rune as a multi-channel signed distance field at `size` pixels.
+    //
+    // `spread` is the distance range in pixels. The bitmap belongs to the typeface and is
+    // overwritten by the next rasterization.
+    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail => try .renderGlyphMsdfByIndex(.face.glyphIndex(c), size, spread, forceBold, forceItalic)
 
-    // Render one glyph by glyph index as a multi-channel signed distance field
+    // Renders one glyph index as a multi-channel signed distance field, like [[Pixel.TypeFace.renderGlyphMsdf]].
     mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
         try .face.setPixelSize(0, size)
@@ -221,6 +224,9 @@ public impl TypeFace
     }
 
     // Builds the outline and advance of one rune at the requested size.
+    //
+    // Coordinates are in pixels with the baseline at zero and `y` growing downward. `embolden`
+    // widens the outline and the advance by that many pixels.
     mtd buildRuneOutline(c: rune, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
     {
         var result: retval
@@ -233,17 +239,17 @@ public impl TypeFace
         let commands = .face.glyph.outline.decompose()
         addOutlineToPathList(&result.outline, commands.toSlice())
 
-        if prevIdx != result.outline.paths.count
-        {
-            for i in prevIdx until result.outline.paths.count do
-                result.outline.paths[i].assumeClosed()
-        }
+        for i in prevIdx until result.outline.paths.count do
+            result.outline.paths[i].assumeClosed()
 
         result.advance = embolden + (.face.glyph.advance.x / 64.0)
         return result
     }
 
     // Builds the outlines of a UTF-8 string at the requested size.
+    //
+    // Runes are laid out on one baseline by their advances, without kerning. The contours of each
+    // rune form one group, so path-list boolean operations keep the glyphs apart.
     mtd buildStringOutline(text: string, size: u32, embolden: u32 = 0)->LinePathList fail
     {
         var result: retval

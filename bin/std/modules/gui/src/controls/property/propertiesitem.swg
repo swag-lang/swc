@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Selects the standard labels created by [Properties.addItem].
+// Selects the standard labels created by [[Gui.Properties.addItem]].
 #[Swag.EnumFlags]
 enum PropertiesAddItemFlags
 {
@@ -11,7 +11,7 @@ enum PropertiesAddItemFlags
     Description     // Creates the description label when reflection metadata supplies one.
 }
 
-// Controls the presentation and interaction of a [PropertiesItem].
+// Controls the presentation and interaction of a [[Gui.PropertiesItem]].
 #[Swag.EnumFlags]
 enum PropertiesItemFlags
 {
@@ -29,10 +29,11 @@ enum PropertiesItemFlags
     Note       // Marks an informational note row.
 }
 
-// One row of the property grid: its window, the bound field (typeinfo + address, plus one
-// address per instance for multi-selection), the editor sub-widgets, validation state and the
-// tree bookkeeping. Rows are created by Properties.addItem (properties.build.swg) and stored flat
-// in Properties.items, with the hierarchy tracked through the `parent` pointer.
+// Stores one row of a [[Gui.Properties]] grid: its window, its bound field, its editors, and its validation state.
+//
+// The bound field is a type and an address, plus one address per instance for multi-selection.
+// Rows are created by [[Gui.Properties.addItem]] and stored flat in [[Gui.Properties.items]], with
+// the hierarchy tracked through the `parent` pointer.
 struct PropertiesItem
 {
     filter: String
@@ -79,8 +80,8 @@ struct PropertiesItem
         typeValue: Swag.TypeValue          // Reflection metadata of the bound field.
         parent:    *PropertiesItem?        // Parent row, or null for a root.
         flags:     PropertiesItemFlags     // Presentation and interaction flags.
-        userData0: *void?                  // User data0 associated with this value.
-        userData1: *void?                  // User data1 associated with this value.
+        userData0: *void?                  // First application-defined pointer payload.
+        userData1: *void?                  // Second application-defined pointer payload.
 
         late label:     *Label     // Primary row label.
         description:    String     // Displayed field description.
@@ -99,14 +100,14 @@ struct PropertiesItem
     {
         late
         {
-            editBox:   *EditBox         // Edit box associated with this value.
-            checkBox:  *CheckButton     // Check box associated with this value.
-            comboBox:  *ComboBox        // Combo box associated with this value.
-            sliderBox: *SliderCtrl      // Slider box associated with this value.
+            editBox:   *EditBox         // Text editor of the row, when its field uses one.
+            checkBox:  *CheckButton     // Check box of the row, when its field uses one.
+            comboBox:  *ComboBox        // Combo box of the row, when its field uses one.
+            sliderBox: *SliderCtrl      // Slider of the row, when its field uses one.
         }
 
-        sigResize:  SigArray'func||(*PropertiesItem)     // Signal emitted when resize.
-        sigRefresh: SigArray'func||(*PropertiesItem)     // Signal emitted when refresh.
+        sigResize:  SigArray'func||(*PropertiesItem)     // Emitted after the view resized the row.
+        sigRefresh: SigArray'func||(*PropertiesItem)     // Emitted when the grid reloads the row; an editor pushes the value back into its widgets.
     }
 
     ntfyItf: IPropertyNotify?

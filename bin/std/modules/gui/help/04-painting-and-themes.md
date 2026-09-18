@@ -40,7 +40,7 @@ and tools specific to the current content; each role remains distinct in every s
 
 ```swag
 var palette = Gui.ThemeColors.swagDarkPalette()
-palette.signature = Gui.ThemeTone.from(0xFF00A0FF, 0xFF000000)
+palette.signature = Gui.ThemeTone.from(Pixel.Color.fromArgb(0xFF00A0FF), Pixel.Argb.Black)
 app.theme.setPalette(palette)
 app.notifyThemeChanged()
 ```
@@ -53,9 +53,9 @@ Read theme data through the current window so custom controls respect local styl
 overrides:
 
 ```swag
-let colors  = wnd.getThemeColors()
-let metrics = wnd.getThemeMetrics()
-let font    = wnd.getFont()
+let colors  = wnd.themeColors()
+let metrics = wnd.themeMetrics()
+let font    = wnd.font()
 ```
 
 Paint only inside the invalidated region when possible. Call
@@ -75,6 +75,7 @@ surface paint pipeline through Pixel's software renderer and returns owned pixel
 {
     var host: Testing.HeadlessHost
     host.setup(160, 80)
+    defer host.shutdown()
     discard PushButton.create(&host.root, "Continue", {20, 20, 120, 32})
 
     let image = host.render()

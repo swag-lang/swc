@@ -31,7 +31,8 @@ public func createNoSoundEngine() fail => try createEngine(.NoSound)
 
 // Destroys the process-wide audio engine and its backend resources.
 //
-// All voices and buses must have finished or been destroyed before this call.
+// Voices and buses still alive are stopped and released first, so every pointer to them is
+// invalid afterward. Calling this without an engine does nothing.
 public func destroyEngine()
 {
     if not g_Driver.isCreated do
@@ -42,12 +43,13 @@ public func destroyEngine()
 // Returns whether the process-wide audio engine is currently available.
 public func isEngineCreated()->bool => g_Driver.isCreated
 
-// Returns the resolved backend of the current engine, or `Default` before creation.
+// Returns the resolved backend of the current engine, or [[Audio.DriverKind.Default]] when no engine exists.
 public func activeDriverKind()->DriverKind => g_Driver.kind
 
 // Sets the mastering output gain.
 //
-// `volume` is a linear gain and is clamped to the range `0` through `1`.
+// `volume` is a linear gain and is clamped to the range `0` through `1`. Fails with
+// [[Core.Errors.BadParameterError]] when no engine exists.
 public func setOutputVolume(volume: f32) fail
 {
     if not g_Driver.isCreated do
@@ -64,13 +66,7 @@ public func outputVolume()->f32 fail
 }
 
 // Sets the mastering output gain in decibels.
-public func setOutputVolumeDb(decibels: f32) fail
-{
-    try setOutputVolume(decibelsToLinearGain(decibels))
-}
+public func setOutputVolumeDb(decibels: f32) fail => try setOutputVolume(decibelsToLinearGain(decibels))
 
 // Returns the mastering output gain in decibels.
-public func outputVolumeDb()->f32 fail
-{
-    return linearGainToDecibels(try outputVolume())
-}
+public func outputVolumeDb()->f32 fail => linearGainToDecibels(try outputVolume())

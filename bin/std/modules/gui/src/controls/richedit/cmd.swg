@@ -5,7 +5,7 @@ using Core
 // Identifies an editor action that can be bound to a keyboard shortcut.
 enum RichEditCommand
 {
-    None                // No option is selected.
+    None                // Runs no command.
     CursorLeft          // Moves the caret one rune left.
     CursorRight         // Moves the caret one rune right.
     CursorUp            // Moves the caret one display line up.
@@ -18,22 +18,15 @@ enum RichEditCommand
     CursorWordRight     // Moves the caret to the next word boundary.
     CursorPageUp        // Moves the caret one viewport page up.
     CursorPageDown      // Moves the caret one viewport page down.
-
-    // CMD_CURSOR_MATCH_PAIR
     ScrollLineUp       // Scrolls the viewport one display line up.
     ScrollLineDown     // Scrolls the viewport one display line down.
     DeleteLeft         // Deletes the selection or the rune before the caret.
     DeleteRight        // Deletes the selection or the rune after the caret.
     DeleteLine         // Deletes the logical line containing the caret.
-
-    // CMD_EDIT_DELETE_LINE
     EditTabulation         // Indents the selection or inserts a tabulation.
     EditBackTabulation     // Removes one indentation level from selected lines.
     DeleteWordLeft         // Deletes through the previous word boundary.
     DeleteWordRight        // Deletes through the next word boundary.
-
-    // CMD_EDIT_DELETE_LINE_LEFT
-    // CMD_EDIT_DELETE_LINE_RIGHT
     ToggleOverwrite     // Toggles insert and overwrite modes.
     ClipboardCopy       // Copies the selection to the clipboard.
     ClipboardPaste      // Inserts compatible clipboard text.
@@ -77,7 +70,7 @@ impl RichEditCtrl
         .mapping.add(m)
     }
 
-    // Returns the command bound to a shortcut, or [RichEditCommand.None] when unbound.
+    // Returns the command bound to a shortcut, or [[Gui.RichEditCommand.None]] when unbound.
     mtd commandForShortcut(key: Input.Key, modifiers: Input.KeyModifiers)->RichEditCommand
     {
         for &p in .mapping
@@ -141,7 +134,7 @@ impl RichEditCtrl
         .addMapping(.Z, .Control, .Undo)
     }
 
-    // Execute a command
+    // Runs `cmd` on the editor.
     mtd executeCommand(cmd: RichEditCommand)
     {
         switch cmd
@@ -387,10 +380,10 @@ impl RichEditCtrl
     internal const CtxPaste     = "RichEdit.CtxPaste"
     internal const CtxSelectAll = "RichEdit.CtxSelectAll"
 
-    // Offers the clipboard vocabulary at `surfacePos`, honoring the read-only state.
+    // Shows the clipboard context menu at `surfacePos`; a read-only editor offers copy and select all only.
     //
     // The labels come from the module's string table, so the menu follows a language switch,
-    // and every entry routes through [[executeCommand]], which keeps the menu and the shortcut
+    // and every entry routes through [[Gui.RichEditCtrl.executeCommand]], which keeps the menu and the shortcut
     // table two spellings of the same operations.
     mtd showContextMenu(surfacePos: Math.Point)
     {

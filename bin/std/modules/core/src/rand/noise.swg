@@ -62,21 +62,11 @@ const PrimeX = 501125321
 const PrimeY = 1136930381
 const PrimeZ = 1720413743
 
-// Hashing function for 2D coordinates.
-func hash(seed: s32, xPrimed, yPrimed: s32)->s32
-{
-    var hash = seed ^ xPrimed ^ yPrimed
-    hash *= 0x27D4EB2D
-    return hash
-}
+// Hashes premultiplied 2D lattice coordinates.
+func hash(seed: s32, xPrimed, yPrimed: s32)->s32 => (seed ^ xPrimed ^ yPrimed) * 0x27D4EB2D
 
-// Hashing function for 3D coordinates.
-func hash(seed: s32, xPrimed, yPrimed, zPrimed: s32)->s32
-{
-    var hash = seed ^ xPrimed ^ yPrimed ^ zPrimed
-    hash *= 0x27D4EB2D
-    return hash
-}
+// Hashes premultiplied 3D lattice coordinates.
+func hash(seed: s32, xPrimed, yPrimed, zPrimed: s32)->s32 => (seed ^ xPrimed ^ yPrimed ^ zPrimed) * 0x27D4EB2D
 
 // Gradient dot product for 2D Perlin noise.
 func gradCoord(seed: s32, xPrimed, yPrimed: s32, xd, yd: f32)->f32
@@ -123,8 +113,7 @@ func valCoord(seed: s32, xPrimed, yPrimed, zPrimed: s32)->f32
     return hash * (1 / 2147483648.0)
 }
 
-// Perlin noise in 2D.
-// Result range is [-1, 1]
+// Returns 2D Perlin noise at (`x`, `y`) for `seed`, in the range -1 to 1.
 public func perlin(x, y: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
@@ -149,8 +138,7 @@ public func perlin(x, y: f32, seed: s32 = 1337)->f32
     return Math.clamp(Math.lerp(xf0, xf1, ys) * 1.4247691104677813, -1.0, 1.0)
 }
 
-// Perlin noise in 3D.
-// Result range is [-1, 1]
+// Returns 3D Perlin noise at (`x`, `y`, `z`) for `seed`, in the range -1 to 1.
 public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
@@ -186,9 +174,7 @@ public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
     return Math.clamp(Math.lerp(yf0, yf1, zs) * 0.964921414852142333984375, -1.0, 1.0)
 }
 
-// Value noise in 2D.
-// Result range is [-1, 1]
-// Value noise in two dimensions. The result is in the range -1 through 1.
+// Returns 2D value noise at (`x`, `y`) for `seed`, in the range -1 to 1.
 public func value(x, y: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
@@ -208,9 +194,7 @@ public func value(x, y: f32, seed: s32 = 1337)->f32
     return Math.clamp(Math.lerp(xf0, xf1, ys), -1.0, 1.0)
 }
 
-// Value noise in 3D.
-// Result range is [-1, 1]
-// Value noise in three dimensions. The result is in the range -1 through 1.
+// Returns 3D value noise at (`x`, `y`, `z`) for `seed`, in the range -1 to 1.
 public func value(x, y, z: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)

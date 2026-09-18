@@ -3,23 +3,23 @@
 
 using Time
 
-// Represents metadata and properties of a file or directory
+// Describes the metadata of a file or directory.
 struct FileInfo
 {
     public
     {
-        fullname:       String               // Full path of the file or directory
-        attributes = FileAttributes.None     // Attributes describing the file (e.g., read-only, hidden)
-        creationTime:   DateTime             // Time the file or directory was created
-        lastAccessTime: DateTime             // Time the file or directory was last accessed
-        lastWriteTime:  DateTime             // Time the file or directory was last modified
-        size:           u64                  // Size of the file in bytes (0 for directories)
+        fullName:       String               // Full path of the file or directory
+        attributes = FileAttributes.None     // Characteristics such as read-only or hidden
+        creationTime:   DateTime             // Creation time, in UTC
+        lastAccessTime: DateTime             // Last access time, in UTC
+        lastWriteTime:  DateTime             // Last modification time, in UTC
+        size:           u64                  // Size of the file in bytes, zero for a directory
     }
 }
 
 impl FileInfo
 {
-    // Returns true if the file info represents a directory
+    // Returns whether the entry is a directory.
     #[Swag.Inline]
-    mtd const isDirectory() => .attributes.has(.Directory)
+    mtd const isDirectory()->bool => .attributes.has(.Directory)
 }

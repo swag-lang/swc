@@ -129,7 +129,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     Swag.assert(combo.items.count == 2)
 
     combo.clear()
-    Swag.assert(combo.items.count == 0)
+    Swag.assert(combo.items.isEmpty())
     Swag.assert(combo.selectedIndex == Swag.U32.Max)
     Swag.assert(combo.selectedItem() == null)
 }

@@ -32,7 +32,7 @@ private const FontFirstCharacter    = 0x20'u32
 private const FontCharacterLimit    = 0x110000'u32
 
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
-internal func fontCharacterPage(face: *Face, start: u32, pageSize = FontCharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}
+func fontCharacterPage(face: *Face, start: u32, pageSize = FontCharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}
 {
     var result: retval
     var code = Math.max(start, FontFirstCharacter)
@@ -64,7 +64,7 @@ internal func fontCharacterPage(face: *Face, start: u32, pageSize = FontCharacte
 // The texts are built when the page loads rather than when a cell is painted: the map repaints on
 // every scroll notch, and formatting a page of code points again per frame would make scrolling
 // allocate.
-internal struct FontDocumentCell
+struct FontDocumentCell
 {
     character: rune
     glyph:     String
@@ -76,7 +76,7 @@ internal struct FontDocumentCell
 // The page is measured rather than assembled from fixed offsets. A specimen line is as tall as the
 // face makes it at that size, so the character map below can only be placed once the lines above
 // have been measured; a constant would work for one face and let a tall one overlap.
-internal struct FontDocumentLayout
+struct FontDocumentLayout
 {
     nameTop:    f32                       // Top of the family name.
     metricsTop: f32                       // Top of the style, glyph count and units-per-em line.
@@ -92,7 +92,7 @@ internal struct FontDocumentLayout
 }
 
 // Scrollable specimen and Unicode character map drawn with the inspected face.
-internal struct FontDocumentView
+struct FontDocumentView
 {
     using wnd: Wnd
 
@@ -154,7 +154,7 @@ private impl FontDocumentView
         let colors = .themeColors()
         painter.drawString(FontContentInset, .layout.mapTop, fontStrings().ui_CharacterMap, .fontLabel, colors.label_TextFaint)
 
-        if not .cells.count
+        if .cells.isEmpty()
         {
             painter.drawString(FontContentInset, .layout.gridTop, fontStrings().ui_NoCharacters, .fontCode, colors.label_TextLight)
             return
@@ -195,7 +195,7 @@ private impl FontDocumentView
     }
 }
 
-internal impl IWnd for FontDocumentView
+impl IWnd for FontDocumentView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
@@ -210,7 +210,7 @@ internal impl IWnd for FontDocumentView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if not (.scroll != null) do
+        if .scroll == null do
             return
         .refreshLayout()
     }
@@ -226,7 +226,7 @@ internal impl IWnd for FontDocumentView
         // Both captions and every code label are set in the theme's own faces, so a theme change
         // replaces them and moves every band measured under them.
         .fontLabel = .theme().createDefaultFont(FontCaptionSize, .Bold)
-        .fontCode  = .theme().createDefaultFontFS(FontCodeSize)
+        .fontCode  = .theme().createDefaultFontFs(FontCodeSize)
         .refreshLayout()
     }
 
@@ -269,13 +269,17 @@ internal impl IWnd for FontDocumentView
     }
 }
 
-internal impl FontDocumentView
+impl FontDocumentView
 {
+    // Creates the scrollable specimen of `face` under `parent`, taking ownership of `face` and of
+    // the bytes it was loaded from; `sampleEdit` supplies the specimen text.
     func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: Array'u8, sampleEdit: *EditBox)->*FontDocumentView
     {
-        let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
-        scroll.dockStyle = .Center
-        scroll.updateFlags(.CompactBars | .TransparentBars | .DisableHorizontal)
+        with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
+        {
+            .dockStyle = .Center
+            .updateFlags(.CompactBars | .TransparentBars | .DisableHorizontal)
+        }
 
         with let result = scroll.createView'FontDocumentView()
         {
@@ -293,7 +297,7 @@ internal impl FontDocumentView
         result.fontName  = cache.createFont(typeFace, FontNameSize)
         result.fontGlyph = cache.createFont(typeFace, FontGlyphSize)
         result.fontLabel = result.theme().createDefaultFont(FontCaptionSize, .Bold)
-        result.fontCode  = result.theme().createDefaultFontFS(FontCodeSize)
+        result.fontCode  = result.theme().createDefaultFontFs(FontCodeSize)
 
         result.loadPage(FontFirstCharacter)
         return result
@@ -350,7 +354,7 @@ internal impl FontDocumentView
     mtd loadPage(start: u32)
     {
         let page = fontCharacterPage(.face!, start)
-        .pageStart = page.characters.count ? cast(u32) page.characters[0] : start
+        .pageStart = not page.characters.isEmpty() ? cast(u32) page.characters[0] : start
         .pageEnd   = page.end
         .hasNext   = page.hasNext
 
@@ -379,7 +383,7 @@ internal impl FontDocumentView
 
     mtd previousPage()
     {
-        if not .history.count do
+        if .history.isEmpty() do
             return
         .loadPage(.history.popBack())
         .revealCharacterMap()

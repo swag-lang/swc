@@ -249,7 +249,7 @@ impl IAllocator for LibraryRejectAllocator
     {
         for it, i in libWnd.view.items
         {
-            if it.fi.fullname == file
+            if it.fi.fullName == file
             {
                 libWnd.view.selModel.unselect(cast() i)
                 libWnd.view.items.removeAtOrdered(i)
@@ -329,11 +329,11 @@ impl IAllocator for LibraryRejectAllocator
 
     lib.setSearch("REPORT")
     Swag.assert(view.items.count == 1)
-    Swag.assert(view.items[0].fi.fullname == "beta.scc")
+    Swag.assert(view.items[0].fi.fullName == "beta.scc")
 
     lib.setSearch("gamma")
     Swag.assert(view.items.count == 1)
-    Swag.assert(view.items[0].fi.fullname == "gamma.scc")
+    Swag.assert(view.items[0].fi.fullName == "gamma.scc")
 
     lib.setSearch("nomatch")
     Swag.assert(view.items.count == 0)
@@ -365,15 +365,15 @@ impl IAllocator for LibraryRejectAllocator
     g_Library.files.clear()
 
     var fi: File.FileInfo
-    fi.fullname = "libfill_a.scc"
+    fi.fullName = "libfill_a.scc"
     fi.lastWriteTime.year  = 2024
     fi.lastWriteTime.month = 5
     fi.lastWriteTime.day   = 11
     g_Library.files.add(fi)
-    fi.fullname = "libfill_b.scc"
+    fi.fullName = "libfill_b.scc"
     fi.lastWriteTime.day = 10
     g_Library.files.add(fi)
-    fi.fullname = "libfill_c.scc"
+    fi.fullName = "libfill_c.scc"
     fi.lastWriteTime.year  = 2023
     fi.lastWriteTime.month = 1
     fi.lastWriteTime.day   = 2
@@ -430,7 +430,7 @@ impl IAllocator for LibraryRejectAllocator
     imported.height = 300
 
     let image = view.allItems.addNew()
-    image.fi.fullname = "wallpaper.png"
+    image.fi.fullName = "wallpaper.png"
     image.kind        = .Image
     image.loaded      = true
     image.width       = 2560
@@ -515,7 +515,7 @@ impl IAllocator for LibraryRejectAllocator
     expect source.save(path)
 
     let item = view.allItems.addNew()
-    item.fi.fullname = path
+    item.fi.fullName = path
     item.kind        = .Image
     view.items.add(item)
     view.loadOne(item)

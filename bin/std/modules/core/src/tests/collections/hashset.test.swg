@@ -39,7 +39,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var values: HashSet's32
-    Swag.assert(values.count == 0)
+    Swag.assert(values.isEmpty())
     Swag.assert(not values.contains(1))
 
     values.add(1)
@@ -83,7 +83,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.assert(values.count == 3)
 
     values.clear()
-    Swag.assert(values.count == 0)
+    Swag.assert(values.isEmpty())
     Swag.assert(not values.contains(1))
     Swag.assert(not values.contains(2))
     Swag.assert(not values.contains(3))
@@ -163,10 +163,10 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
     Swag.assert(not values.toggle(10))
     Swag.assert(not values.contains(10))
-    Swag.assert(values.count == 0)
+    Swag.assert(values.isEmpty())
 
     values.add(42)
     Swag.assert(not values.toggle(42))
     Swag.assert(not values.contains(42))
-    Swag.assert(values.count == 0)
+    Swag.assert(values.isEmpty())
 }

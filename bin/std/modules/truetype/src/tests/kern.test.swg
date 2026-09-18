@@ -40,7 +40,7 @@ using Swag, Core
     let faceData = getFaceData(face)
 
     Swag.assert(face.hasKerning())
-    Swag.assert(faceData.gposPairSubtables.count > 0)
+    Swag.assert(not faceData.gposPairSubtables.isEmpty())
 
     let glyphA = face.glyphIndex('A')
     let glyphV = face.glyphIndex('V')
@@ -85,8 +85,8 @@ using Swag, Core
     let face     = scope.face!
     let faceData = getFaceData(face)
 
-    Swag.assert(faceData.gposPairSubtables.count > 0)
-    Swag.assert(faceData.kernPairs.count > 0)
+    Swag.assert(not faceData.gposPairSubtables.isEmpty())
+    Swag.assert(not faceData.kernPairs.isEmpty())
 
     discard expect face.setPixelSize(0, 100)
 

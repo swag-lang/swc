@@ -2,10 +2,10 @@
 
 // Stable, non-null identifier used by windows, commands, and modal results.
 //
-// Use `? WndId` when absence is meaningful.
+// Use `WndId?` when absence is meaningful.
 alias WndId = string
 
-// Declares a command identifier whose value is qualified by the current scope name.
+// Declares a constant named `val` whose value is `val` qualified by the current scope name.
 #[Swag.Mixin]
 func newCmdId(val: string)
 {

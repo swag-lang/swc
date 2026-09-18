@@ -42,6 +42,6 @@ impl FrameRate
         return cast(f64) .numeratorValue / cast(f64) .denominatorValue
     }
 
-    // Reports whether both parts are positive.
+    // Returns whether both parts are positive.
     mtd const isValid()->bool => .numeratorValue != 0 and .denominatorValue != 0
 }

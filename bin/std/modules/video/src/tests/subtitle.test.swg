@@ -2,10 +2,7 @@
 
 using Core, Video
 
-private func subtitleFixturePath()->String
-{
-    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/subtitle-sample.srt")
-}
+private func subtitleFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/subtitle-sample.srt")
 
 // SubRip keeps explicit lines, strips presentation markup, and represents overlapping cues.
 #test

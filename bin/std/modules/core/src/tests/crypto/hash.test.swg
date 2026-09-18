@@ -11,10 +11,7 @@ namespace HashTestTypes
 
     impl Hash.IHash32 for OnlyHash32
     {
-        mtd const impl compute()->u32
-        {
-            return 0x1234_5678'u32 + .value
-        }
+        mtd const impl compute()->u32 => 0x1234_5678'u32 + .value
     }
 
     struct OnlyHash64
@@ -24,10 +21,7 @@ namespace HashTestTypes
 
     impl Hash.IHash64 for OnlyHash64
     {
-        mtd const impl compute()->u64
-        {
-            return 0x0123_4567_89AB_CDEF'u64 + .value
-        }
+        mtd const impl compute()->u64 => 0x0123_4567_89AB_CDEF'u64 + .value
     }
 
     struct BothHash
@@ -37,18 +31,12 @@ namespace HashTestTypes
 
     impl Hash.IHash32 for BothHash
     {
-        mtd const impl compute()->u32
-        {
-            return 0x0BAD_F00D'u32 + .value
-        }
+        mtd const impl compute()->u32 => 0x0BAD_F00D'u32 + .value
     }
 
     impl Hash.IHash64 for BothHash
     {
-        mtd const impl compute()->u64
-        {
-            return 0x0123_4567_DEAD_BEEF'u64 + .value
-        }
+        mtd const impl compute()->u64 => 0x0123_4567_DEAD_BEEF'u64 + .value
     }
 }
 
@@ -116,7 +104,7 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     for slot in Lengths.count
     {
         let length = Lengths[slot]
-        let view   = Swag.makeSlice(&source[0], length)
+        let view   = source[until length]
         let hashed = Hash.hashBytes32(view)
 
         // Same bytes, same hash
@@ -127,13 +115,13 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
         var padded: [80] u8
         Memory.set(&padded[0], 0xAA'u8, 80)
         Memory.copy(&padded[0], &source[0], length)
-        Swag.assert(Hash.hashBytes32(Swag.makeSlice(&padded[0], length)) == hashed)
+        Swag.assert(Hash.hashBytes32(padded[until length]) == hashed)
 
         // Flipping the last byte has to change the hash
         if length
         {
             padded[length - 1] ^= 0xFF
-            Swag.assert(Hash.hashBytes32(Swag.makeSlice(&padded[0], length)) != hashed)
+            Swag.assert(Hash.hashBytes32(padded[until length]) != hashed)
         }
 
         seen[slot] = hashed

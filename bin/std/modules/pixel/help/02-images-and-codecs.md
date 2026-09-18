@@ -49,7 +49,7 @@ for index in reader.info.frames.count
 | ICO/CUR | Every PNG or supported DIB entry; the largest entry is the representative |
 | DDS/KTX2 | Mip levels, array layers, cube faces, and volume slices in supported pixel/block formats |
 | OpenEXR | Scanline parts with supported RGB(A)/Y half/float channels and compression |
-| PSD | The composite followed by nonempty raster layers; layer effects and mask rendering are not applied |
+| PSD | The composite followed by nonempty raster layers; layer effects and masks are not rendered |
 | Other registered codecs | One representative image, without an additional interface requirement |
 
 Animation reads return complete canvases in `RGBA8`, or `RGBA16` for 16-bit PNG.
@@ -105,13 +105,13 @@ write straight-alpha file samples.
 |---|---|
 | `width`, `height` | Image extent in pixels |
 | `rowStride` | Byte stride of one tightly packed row |
-| `pixels` | Owned row-major bytes |
+| `pixels` | Owned bytes, bottom row first |
 | `pixelFormat` | Encoding of each pixel |
 | `alphaMode` | Straight or premultiplied alpha association |
 | `metadata` | Codec metadata preserved when supported |
 
 > WARNING: Low-level access through `pixels` must honor `pixelFormat`,
-> `bytesPerPixel`, and `rowStride`.
+> `bytesPerPixel`, `rowStride`, and the bottom-up row order.
 > Prefer the typed image operations unless direct byte access is required.
 
 ## Codec precision
@@ -123,9 +123,9 @@ BC1 through BC5 block-compressed textures. Other general-purpose codecs convert 
 the nearest supported 8-bit RGB/RGBA representation.
 
 The PSD decoder imports the flattened composite from PSD version 1 RGB or grayscale files with
-8- or 16-bit raw or PackBits channel data. An optional alpha channel is retained. Layers, masks,
-CMYK/Lab color modes, effects, and PSB files are rejected instead of being silently flattened or
-misinterpreted.
+8- or 16-bit raw or PackBits channel data, and [[Pixel.ImageReader]] also indexes their raster
+layers. An optional alpha channel is retained. PSB files and indexed, CMYK, or Lab color modes
+are rejected instead of being misinterpreted; layer effects and masks are not rendered.
 
 ## Encoding options
 
@@ -133,3 +133,7 @@ Pass the encoder-specific options value as the second argument of
 [[Pixel.Image.save]]. A null option value selects the encoder defaults. Decode
 limits and requested output behavior belong in [[Pixel.DecodeOptions]] when loading
 untrusted or unusually large files.
+
+```swag
+try image.save("photo.jpg", Jpg.EncodeOptions{quality: 80})
+```

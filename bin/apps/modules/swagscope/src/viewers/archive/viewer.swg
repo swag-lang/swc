@@ -4,8 +4,9 @@ using Core, Gui
 
 private const ArchiveTreeWidth = 380.0
 
-// Keeps directory rows before file rows at every level, while preserving natural name ordering
-// within each kind. Directory rows carry no entry payload, including empty explicit directories.
+// Orders archive tree rows with directories before files at every level, then by natural name.
+//
+// Directory rows carry no entry payload, including empty explicit directories.
 func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
 {
     if not a or not b do
@@ -27,7 +28,7 @@ func compareArchiveTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s
     return result
 }
 
-// Offers the entry tree for a ZIP container, whatever the format built on it is called.
+// Reports whether the content is a ZIP container, whatever the format built on it is called.
 //
 // An archive opens either on the header of its first entry or, when it holds nothing at all, on
 // its end record.
@@ -38,22 +39,27 @@ private func archivePluginProbe(content: Viewer.ProbeContent)->bool
     return (content.head[2] == 3 and content.head[3] == 4) or (content.head[2] == 5 and content.head[3] == 6)
 }
 
+// Describes the ZIP archive viewer to the host.
 func archiveViewerPlugin()->Viewer.Plugin
 {
-    var result: retval
-    result.key          = "archive"
-    result.staticName   = "Archive"
-    result.resolveName  = func()->string { return archiveStrings().ui_Name }
-    result.attach       = &registerArchiveStrings
-    result.iconAtlas    = viewerIcons()
-    result.iconIndex    = cast(s32) ViewerIcons.Archive
-    result.create       = &createArchiveViewer
-    result.probe        = &archivePluginProbe
-    result.smokeFixture = "viewer.archive.zip"
-    result.addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
+    with var result: retval
+    {
+        .key          = "archive"
+        .staticName   = "Archive"
+        .resolveName  = func()->string => archiveStrings().ui_Name
+        .attach       = &registerArchiveStrings
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32) ViewerIcons.Archive
+        .create       = &createArchiveViewer
+        .probe        = &archivePluginProbe
+        .smokeFixture = "viewer.archive.zip"
+        .addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
+    }
+
     return result
 }
 
+// Extracts one archive entry to a disposable preview file away from the GUI thread.
 struct ZipEntryExtract
 {
     using operation: Viewer.BackgroundOperation
@@ -74,11 +80,11 @@ impl ZipEntryExtract
         .error           = null
         .started         = true
 
-        let load = me
-        .task.submit(func|load|()
+        let operation = me
+        .task.submit(func|operation|()
         {
-            catch extractZipEntry(load.archiveFileName.toString(), &load.entry, load.destination.toString()) as extractError
-            load.error = extractError
+            catch extractZipEntry(operation.archiveFileName.toString(), &operation.entry, operation.destination.toString()) as extractError
+            operation.error = extractError
         })
     }
 
@@ -107,6 +113,9 @@ impl ZipEntryExtract
     }
 }
 
+// Shows the entries of a ZIP archive as a folder tree beside a preview of the selected file.
+//
+// The preview opens the extracted entry through the ordinary viewer registry.
 struct ArchiveViewer
 {
     using wnd: Wnd
@@ -135,7 +144,6 @@ struct ArchiveViewer
     reportDetails:        Viewer.ReportDetails?
     reportLoadingChanged: Viewer.ReportLoadingChanged?
     failureReason:        String
-    retiring:             bool
 }
 
 private impl IWnd for ArchiveViewer
@@ -279,6 +287,13 @@ private impl ArchiveViewer
         return cast(u64) line.userData0 - 1
     }
 
+    mtd previewSelectedEntry()
+    {
+        let index = .selectedEntryIndex()
+        if index != Swag.U64.Max do
+            .requestPreview(index)
+    }
+
     mtd requestPreview(index: u64)
     {
         if index >= .archive.entries.count or .archive.entries[index].isDirectory do
@@ -388,22 +403,21 @@ private impl ArchiveViewer
         for folder in chain.reversed() do
             .list.expand(folder)
 
-        for index in .list.lineCount()
+        for index in .list.lineCount() where .list.lineAt(index) == line
         {
-            let visible = .list.lineAt(cast(u32) index)
-            if visible != line do
-                continue
             .list.unselectAll()
-            .list.selectLine(cast(u32) index)
-            .list.setFocusedIndex(cast(u32) index)
+            .list.selectLine(index)
+            .list.setFocusedIndex(index)
             return true
         }
 
         return false
     }
 
-    // The mark belongs to the name the row shows. A query matches an entry's whole path, and
-    // what the reader can see of that path is the name in the tree.
+    // Reports the bounds of the focused match, marked on the entry name its row shows.
+    //
+    // A query matches an entry's whole path, and what the reader can see of that path is the
+    // name in the tree.
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
         if .list.focusIndex >= .list.lineCount() do
@@ -443,7 +457,6 @@ private impl ArchiveViewer
 
     mtd retire()->bool
     {
-        .retiring = true
         if not .load.retire() or not .extract.retire() or not .embedded.retire() do
             return false
         if .loadTimer
@@ -476,68 +489,8 @@ private impl ArchiveViewer
 
         result.splitter = SplitterCtrl.create(result)
         result.splitter.dockStyle = .Center
-
-        with result.treePane = Wnd.create'Wnd(result.splitter)
-        {
-            .backgroundStyle = .Panel
-            .padding         = {8, 8, 8, 8}
-        }
-
-        with result.list = ListCtrl.createMultiColumns(result.treePane)
-        {
-            .dockStyle    = .Center
-            .compareLines = &compareArchiveTreeLines
-            .setSelectionMode(.Single)
-            .setIconSize(themeRowIconSize(result.themeMetrics()))
-            .updateFlags(.HotTrack | .Ellipsis)
-            .scrollWnd.updateFlags(.DisableHorizontal)
-            .header.form = .Transparent
-            .addColumn(archiveStrings().ui_ColName, 170)
-            .addColumn(archiveStrings().ui_ColSize, 60)
-            .sigSelectionChanged += func|viewer = result|(list)
-            {
-                discard list
-                let index = viewer.selectedEntryIndex()
-                if index != Swag.U64.Max do
-                    viewer.requestPreview(index)
-            }
-
-            .sigLeftDoubleClicked += func|viewer = result|(list, point)
-            {
-                discard list
-                discard point
-                let index = viewer.selectedEntryIndex()
-                if index != Swag.U64.Max do
-                    viewer.requestPreview(index)
-            }
-
-            .sigKeyPressed += func|viewer = result|(list, event)
-            {
-                discard list
-                if event.key == .Enter and event.modifiers == .None
-                {
-                    let index = viewer.selectedEntryIndex()
-                    if index != Swag.U64.Max do
-                        viewer.requestPreview(index)
-                    event.accepted = true
-                }
-            }
-        }
-
-        with result.previewPane = Wnd.create'Wnd(result.splitter)
-        {
-            .backgroundStyle = .View
-        }
-
-        result.embedded = host.createEmbedded(result.previewPane)
-        with result.previewStatus = Label.create(result.previewPane, archiveStrings().ui_Select, {}, null, .WordWrap)
-        {
-            .dockStyle       = .Center
-            .wndFlags        |= .TopMost
-            .backgroundStyle = .View
-            .padding         = {48, 48, 48, 48}
-            .setTextAlignment(.Center, .Center)
-        }
+        result.createEntryTree()
+        result.createPreviewPane(host)
 
         with let treeItem = result.splitter.addPane(result.treePane, ArchiveTreeWidth)
         {
@@ -553,8 +506,73 @@ private impl ArchiveViewer
         result.applyLayout()
         return result
     }
+
+    // Creates the entry tree, which previews the file a reader selects, double-clicks, or confirms with Enter.
+    mtd createEntryTree()
+    {
+        with .treePane = Wnd.create'Wnd(me.splitter)
+        {
+            .backgroundStyle = .Panel
+            .padding         = {8, 8, 8, 8}
+        }
+
+        with .list = ListCtrl.createMultiColumns(me.treePane)
+        {
+            .dockStyle    = .Center
+            .compareLines = &compareArchiveTreeLines
+            .setSelectionMode(.Single)
+            .setIconSize(themeRowIconSize(me.themeMetrics()))
+            .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.updateFlags(.DisableHorizontal)
+            .header.form = .Transparent
+            .addColumn(archiveStrings().ui_ColName, 170)
+            .addColumn(archiveStrings().ui_ColSize, 60)
+            .sigSelectionChanged += func|viewer = me|(list)
+            {
+                discard list
+                viewer.previewSelectedEntry()
+            }
+
+            .sigLeftDoubleClicked += func|viewer = me|(list, point)
+            {
+                discard list
+                discard point
+                viewer.previewSelectedEntry()
+            }
+
+            .sigKeyPressed += func|viewer = me|(list, event)
+            {
+                discard list
+                if event.key == .Enter and event.modifiers == .None
+                {
+                    viewer.previewSelectedEntry()
+                    event.accepted = true
+                }
+            }
+        }
+    }
+
+    // Creates the preview pane, which hosts the embedded viewer under a status label.
+    mtd createPreviewPane(host: Viewer.Host)
+    {
+        with .previewPane = Wnd.create'Wnd(me.splitter)
+        {
+            .backgroundStyle = .View
+        }
+
+        .embedded = host.createEmbedded(.previewPane)
+        with .previewStatus = Label.create(me.previewPane, archiveStrings().ui_Select, {}, null, .WordWrap)
+        {
+            .dockStyle       = .Center
+            .wndFlags        |= .TopMost
+            .backgroundStyle = .View
+            .padding         = {48, 48, 48, 48}
+            .setTextAlignment(.Center, .Center)
+        }
+    }
 }
 
+// Creates the integrated archive viewer and connects its search and lifecycle to the host.
 func createArchiveViewer(host: Viewer.Host)
 {
     let view = ArchiveViewer.create(host)
@@ -584,6 +602,6 @@ func createArchiveViewer(host: Viewer.Host)
         let viewer = cast #assume (*ArchiveViewer) wnd
         return viewer.loadTimer != null or viewer.extract.started or viewer.embedded.isLoading()
     },
-        needsLoadingOverlay: func(wnd)->bool { return (cast #assume (*ArchiveViewer) wnd).loadTimer != null },
-        retire: func(wnd)->bool { return (cast #assume (*ArchiveViewer) wnd).retire() }})
+        needsLoadingOverlay: func(wnd)->bool => (cast #assume (*ArchiveViewer) wnd).loadTimer != null,
+        retire: func(wnd)->bool => (cast #assume (*ArchiveViewer) wnd).retire()})
 }

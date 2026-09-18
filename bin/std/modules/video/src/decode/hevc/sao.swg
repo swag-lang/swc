@@ -17,10 +17,7 @@ private func signOf(value: s32)->s32 => value > 0 ? 1 : (value < 0 ? -1 : 0)
 // A comparison answers with a lane of ones, which is minus one read as a number, so the two
 // comparisons carry the whole answer and the subtraction the clause writes never runs.
 #[Swag.Inline]
-private func signOfDifference(centre, other: Simd.S16x8)->Simd.S16x8
-{
-    return cast #bit(Simd.S16x8) (other > centre) - cast #bit(Simd.S16x8) (centre > other)
-}
+private func signOfDifference(centre, other: Simd.S16x8)->Simd.S16x8 => cast #bit(Simd.S16x8) (other > centre) - cast #bit(Simd.S16x8) (centre > other)
 
 // Table 8-13: the two neighbours each edge offset class compares a sample against.
 const SaoEdgeHPos: [4, 2] s8 = [[-1, 1], [0, 0], [-1, 1], [1, -1]]

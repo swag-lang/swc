@@ -20,7 +20,7 @@ enum GridTrackKind
     Fraction     // Receives a weighted fraction of remaining space.
 }
 
-// Defines one row or column of a [[GridLayoutCtrl]].
+// Defines one row or column of a [[Gui.GridLayoutCtrl]].
 struct GridTrack
 {
     public
@@ -37,7 +37,7 @@ struct GridLayoutCtrl
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
         flags = GridLayoutFlags.None     // Active grid sizing options.
         numColumns:        s32           // Number of columns.
@@ -90,10 +90,7 @@ private impl GridLayoutCtrl
             .rowTracks.resize(rows)
     }
 
-    mtd trackMax(track: GridTrack)->f32
-    {
-        return track.maximum > 0 ? track.maximum : Swag.F32.Max
-    }
+    mtd trackMax(track: GridTrack)->f32 => track.maximum > 0 ? track.maximum : Swag.F32.Max
 
     mtd computeTrackSize(track: GridTrack, content: f32)->f32
     {
@@ -317,7 +314,7 @@ impl GridLayoutCtrl
     // Recomputes track sizes and arranges every assigned child.
     mtd computeLayout()
     {
-        if not .children.count do
+        if .children.isEmpty() do
             return
         .ensureStorage()
 
@@ -383,7 +380,10 @@ impl GridLayoutCtrl
         .setRowTrack(row, GridTrackKind.Fixed, size)
     }
 
-    // Configures one column track.
+    // Configures the sizing policy of `column`.
+    //
+    // `value` is the size in logical pixels for [[Gui.GridTrackKind.Fixed]] and the weight for
+    // [[Gui.GridTrackKind.Fraction]]. A `maximum` of zero leaves the track unbounded.
     mtd setColumnTrack(column: s32, kind: GridTrackKind, value: f32 = 1, minimum: f32 = 0, maximum: f32 = 0)
     {
         .ensureStorage()
@@ -392,7 +392,7 @@ impl GridLayoutCtrl
         .columnTracks[column] = {kind: kind, value: value, minimum: minimum, maximum: maximum}
     }
 
-    // Configures one row track.
+    // Configures the sizing policy of `row`, with the same parameters as [[Gui.GridLayoutCtrl.setColumnTrack]].
     mtd setRowTrack(row: s32, kind: GridTrackKind, value: f32 = 1, minimum: f32 = 0, maximum: f32 = 0)
     {
         .ensureStorage()

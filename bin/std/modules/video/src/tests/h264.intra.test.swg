@@ -513,7 +513,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                     initializeIntraBuffers(expected.buffer, actual.buffer)
                     referenceIntra4x4(mode, expected.buffer + 33, hasLeft, hasTop, hasTopRight)
                     H264.intraPredict4x4(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop, true, hasTopRight)
-                    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+                    Swag.assert(Slice.equals(expected, actual))
                 }
             }
         }
@@ -528,7 +528,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                 initializeIntraBuffers(expected.buffer, actual.buffer)
                 referenceIntra16x16(mode, expected.buffer + 33, hasLeft, hasTop)
                 H264.intraPredict16x16(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop)
-                Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+                Swag.assert(Slice.equals(expected, actual))
             }
         }
     }
@@ -543,7 +543,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                 initializeIntraBuffers(expected.buffer, actual.buffer)
                 referenceIntraChroma(mode, expected.buffer + 33, hasLeft, hasTop)
                 H264.intraPredictChroma(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop)
-                Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+                Swag.assert(Slice.equals(expected, actual))
             }
         }
     }
@@ -561,7 +561,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                         initializeIntraBuffers(expected.buffer, actual.buffer)
                         referenceIntra8x8(mode, expected.buffer + 33, hasLeft, hasTop, hasTopLeft, hasTopRight)
                         H264.intraPredict8x8(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop, hasTopLeft, hasTopRight)
-                        Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+                        Swag.assert(Slice.equals(expected, actual))
                     }
                 }
             }

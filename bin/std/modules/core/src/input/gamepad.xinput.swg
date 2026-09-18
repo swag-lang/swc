@@ -5,14 +5,17 @@ using XInput, Win32
 
 public impl Gamepad
 {
-    // Returns true if the corresponding 'padIndex' is connected
+    // Returns whether a gamepad is connected at `padIndex`.
     func isConnected(padIndex: u32)->bool
     {
         var state: XINPUT_STATE
         return XInputGetState(padIndex, &state) == ERROR_SUCCESS
     }
 
-    // Set the left and right vibration of the given 'padIndex'
+    // Sets the speeds of the left and right vibration motors of the gamepad at `padIndex`.
+    //
+    // Speeds range from 0 to 1 and are clamped to that range. Fails when no gamepad is
+    // connected at `padIndex`.
     func setVibration(padIndex: u32, left, right: f32) fail
     {
         var vibration: XINPUT_VIBRATION

@@ -56,6 +56,20 @@ impl ViewerSession
         .retire = null
         return true
     }
+
+    // Destroys every window the host created for this session, the document view last.
+    //
+    // The fields still name the destroyed windows afterwards; a caller that keeps the session
+    // resets it before using it again.
+    mtd destroyWindows()
+    {
+        .actions?.destroy()
+        .info?.destroy()
+        .commands?.destroy()
+        .sidePanelButton?.destroy()
+        .sidePanelHost?.destroy()
+        .view?.destroy()
+    }
 }
 
 // Implements the plugin API for one Swag Scope viewer instance.
@@ -140,8 +154,7 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl createEmbedded(parent: *Wnd)->Viewer.Embedded
     {
         Swag.assert(.window != null, "embedded viewers need an application window")
-        let embedded = EmbeddedViewer.create(parent, .window)
-        return embedded
+        return EmbeddedViewer.create(parent, .window)
     }
 
     mtd impl createActionGroup(width: f32)->*Wnd
@@ -223,11 +236,7 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl reject(reason: string)
     {
         Swag.assert(.session.view == null)
-        .session.actions?.destroy()
-        .session.info?.destroy()
-        .session.commands?.destroy()
-        .session.sidePanelButton?.destroy()
-        .session.sidePanelHost?.destroy()
+        .session.destroyWindows()
         .session.actions         = null
         .session.info            = null
         .session.commands        = null

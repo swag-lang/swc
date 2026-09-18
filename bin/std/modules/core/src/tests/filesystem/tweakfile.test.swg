@@ -46,7 +46,25 @@ struct TweakBeta
 
     discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as err2
     Swag.assert(err2 != null)
-    Swag.assert((err2 is Errors.SyntaxError))
+    Swag.assert(err2 is Errors.SyntaxError)
+}
+
+// A reference cycle that does not pass through the first reference is reported too.
+#test
+{
+    struct TweakLoop
+    {
+        first:  s32
+        second: s32
+        third:  s32
+    }
+
+    var loop:  TweakLoop
+    var tweak: File.TweakFile
+    tweak.registerFolder'TweakLoop(&loop)
+
+    discard catch tweak.parse("/TweakLoop\nfirst $second\nsecond $third\nthird $second\n") as err
+    Swag.assert(err is Errors.SyntaxError)
 }
 
 namespace TweakDeep

@@ -5,29 +5,28 @@ using Core, Serialization
 // Callback invoked with the application that is processing a frame.
 alias FrameCallback = func||(*Application)
 
-// The two colors every Swag product mark is cut from, one glyph over one ground.
+// Ground color of the Swag product mark: the ink tile its glyph is cut from.
 //
-// A drawn caption keys the ground out with them, so it needs no second copy of the icon, and it
-// compares the glyph against its own band to decide whether keying it out is legible at all.
-// They are the identity colors and nothing else: a mark that drifts from them stops being one.
+// A drawn caption keys this ground out of the application icon, so it needs no second copy of
+// the icon, and it compares the glyph against its own band to decide whether keying it out is
+// legible at all. The two mark colors are the identity colors and nothing else: a mark that
+// drifts from them stops being one.
 const MarkInk = Ink
 
-// Secondary brand color used for the energized edge of the Swag mark.
+// Glyph color of the Swag product mark, drawn over [[Gui.MarkInk]].
 const MarkVoltage = Voltage
 
-// How much contrast the glyph of a mark owes a caption band before the band is allowed to show
-// it without its tile. Three is where a shape stops being separated from what it is drawn over.
+// Contrast ratio the glyph of a mark owes a caption band before the band may show it without its tile.
+//
+// Three is where a shape stops being separated from what it is drawn over.
 const MarkGlyphContrast = 3.0'f32
 
-// Whether a band of `ground` can show a product mark with its tile keyed out.
+// Returns whether a band of `ground` can show a product mark with its tile keyed out.
 //
 // It is the one question that decides which cut of the mark a caption draws, so it is named
 // rather than written inside the paint: a dark band shows the glyph alone, and a light band
 // keeps the tile, because Voltage on paper is a mark nobody sees.
-func markReadsOn(ground: Pixel.Color)->bool
-{
-    return MarkVoltage.contrastRatio(ground) >= MarkGlyphContrast
-}
+func markReadsOn(ground: Pixel.Color)->bool => MarkVoltage.contrastRatio(ground) >= MarkGlyphContrast
 
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
@@ -35,7 +34,7 @@ struct Application
     public
     {
         using native: ApplicationNative                 // Platform-specific application state.
-        sigFrame:     SigArray'func||(*Application)     // Emitted after each processed frame.
+        sigFrame:     SigArray'FrameCallback            // Emitted after each processed frame.
 
         options: ApplicationOptions     // Diagnostics and development options.
         appIcon: Pixel.Image            // Icon used for native windows created by the application.
@@ -50,10 +49,11 @@ struct Application
 
     public
     {
-        // Named resources of the application: theme art, fonts, theme sheets, and language
-        // files. The embedded content of every loaded module registers itself as the
-        // fallback, so a bare application needs no configuration; add a disk folder before
-        // creating the first surface to let files override any of those names.
+        // Named resources of the application: theme art, fonts, theme sheets, and language files.
+        //
+        // The embedded content of every loaded module registers itself as the fallback, so a
+        // bare application needs no configuration; add a disk folder before creating the first
+        // surface to let files override any of those names.
         resources: Resources.Bundle
 
         readonly
@@ -73,14 +73,16 @@ struct Application
         mouse:       Input.Mouse        // Mouse state for the current and previous frames.
         mainSurface: *Surface?          // First surface, whose destruction requests application shutdown.
 
-        // The surface list is maintained by the application: create and destroy surfaces through
-        // its own API so the modal stack and the render loop stay consistent.
+        // Surfaces of the application, in creation order.
+        //
+        // The list is maintained by the application: create and destroy surfaces through its own
+        // API so the modal stack and the render loop stay consistent.
         readonly surfaces: Array'(*Surface)
+
+        animator: Animator     // Shared finite-animation scheduler.
 
         // Frame and input bookkeeping. Reading it tells what the application is doing this frame;
         // writing it from outside would desynchronize the loop from the window tree.
-        animator: Animator     // Shared finite-animation scheduler.
-
         readonly
         {
             timing:           Time.FrameTiming               // Timing of the frame being run.
@@ -102,11 +104,13 @@ struct Application
 
     public
     {
+        // The application's tool tip, and the signal its links report through.
+        //
         // The tool tip belongs here for the same reason the focus and the drag do: it is one
         // pointer's state over one window tree. Held per process instead, two applications in a
         // process share one tip, and a test that leaves one open hands it to the next test — which
         // then destroys a window whose surface has already gone.
-        toolTip: ToolTip.State     // The application's tool tip, and the signal its links report through.
+        toolTip: ToolTip.State
 
         // Whether the keyboard focus must be shown.
         //
@@ -141,14 +145,16 @@ struct Application
 
     public
     {
-        // Stops the run loop after this many frames, or never when zero. A test or a scripted
-        // run sets it to bound the loop without a user closing the window.
+        // Number of frames after which the run loop stops, or zero for no limit.
+        //
+        // A test or a scripted run sets it to bound the loop without a user closing the window;
+        // [[Gui.Application.run]] takes the smoke-run budget of the process when it is zero.
         maxRunFrame: u32
     }
 
     frameTrace: FrameTrace     // Per-frame cost recorder, armed from the command line.
 
-    statePath: String                // File used by [[saveState]] and [[loadState]].
+    statePath: String                // File used by [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
     hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
 
     public
@@ -178,7 +184,7 @@ private impl Application
         evt.target.processEvent(&evt)
     }
 
-    // Send and process an event
+    // Sends an event through the global hooks, its target, then the owners of the target until one accepts it.
     mtd sendEventPrivate(evt: IEvent, stopAt: *Wnd?)
     {
         // Global hook events
@@ -299,7 +305,7 @@ private impl Application
                 evt.target     = targetWnd
                 .sendEventPrivate(&evt, .mouseEnterWnd)
 
-                if targetWnd.toolTip.length do
+                if not targetWnd.toolTip.isEmpty() do
                     .toolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)
             }
 
@@ -388,7 +394,7 @@ private impl Application
     internal mtd seedKeyboardFocus()
     {
         var surface = .mainSurface
-        if .modalSurfaces.count do
+        if not .modalSurfaces.isEmpty() do
             surface = .modalSurfaces.back()
         if not surface do
             return
@@ -482,7 +488,8 @@ private impl Application
 
     mtd sendPostedEvents()
     {
-        // Need to make a copy, in case the posted event triggers a modal for
+        // Dispatch a snapshot: a posted event can open a modal loop, which drains the queue again,
+        // and the lock must not be held while handlers run.
         .mutexPostedEvents.lock()
         let copy = .postedEvents
         .postedEvents.clear()
@@ -520,22 +527,22 @@ private impl Application
         .postDestroy.clear()
     }
 
-    // Update UI state of all surfaces
+    // Updates the command state of every surface.
     mtd updateCommandState()
     {
         for s in .surfaces do
             s.wnd.updateCommandState()
     }
 
-    // Remove and destroy the given surface
-    // To cleanly close a surface, you should call surface.destroy()
+    // Unregisters and releases `surface`. Callers close a surface with `Surface.destroy`, which
+    // reaches this through the destroy event of its root window.
     mtd destroySurface(surface: *Surface)
     {
         .unregisterSurface(surface)
         if surface == .mainSurface do
             .postQuitEvent()
 
-        if .modalSurfaces.count and surface == .modalSurfaces.back() do
+        if not .modalSurfaces.isEmpty() and surface == .modalSurfaces.back() do
             .endModal = true
 
         surface.destroyNative()
@@ -562,10 +569,8 @@ private impl Application
         .hookOnEvent.remove(wnd)
 
         // A global shortcut must never retain a target after its window is destroyed.
-        var hotKeyIndex = .hotKeys.count
-        while hotKeyIndex
+        for hotKeyIndex in reversed(.hotKeys.count)
         {
-            hotKeyIndex -= 1
             let shortcut = .hotKeys[hotKeyIndex]
             if shortcut.target == wnd
             {
@@ -677,7 +682,7 @@ private impl Application
     //
     // This is what a modal loop belonging to someone else calls to keep the application drawing:
     // the desktop's own drag loop is the case that exists, and it runs for as long as the gesture
-    // does. Nothing else of [[runFrame]] is safe from inside such a loop, since the owner is
+    // does. Nothing else of [[Gui.Application.runFrame]] is safe from inside such a loop, since the owner is
     // already dispatching input and a window destroyed there would be the ground the loop stands
     // on.
     internal mtd paintSurfaces()
@@ -736,17 +741,18 @@ private impl Application
         }
     }
 
-    // Runs a nested event loop for `surface` and returns the identifier passed to [[exitModal]].
+    // Runs a nested event loop for `surface` and returns the identifier passed to [[Gui.Application.exitModal]].
     //
     // Other enabled surfaces are disabled for the duration of the loop and restored to their
-    // previous state afterwards. The modal surface is destroyed when the loop ends.
+    // previous state afterwards. The modal surface is destroyed when the loop ends. `cb` runs
+    // after every frame of the loop, and the result is empty when the loop ends without an
+    // identifier, for example on application shutdown.
     //
     // `restoreTo` is the surface the keyboard belongs to once the box is gone — the one that
     // raised it. It is asked for its own focus rather than being handed a position captured here,
     // because a box that opens ready for the keyboard has already moved it onto itself by the
-    // time this runs: what was read here was a rank inside the box, applied to the ring of the
-    // form underneath it. See `Surface.focusWnd`.
-    public mtd doModalLoop(surface: *Surface?, cb: (func||(*Application))? = null, restoreTo: *Surface? = null)->WndId
+    // time this runs.
+    public mtd doModalLoop(surface: *Surface?, cb: FrameCallback? = null, restoreTo: *Surface? = null)->WndId
     {
         .endModal     = false
         .endModalExit = null
@@ -765,9 +771,8 @@ private impl Application
 
         if surface
         {
-            let modalSurface = surface
-            modalSurface.enable()
-            .modalSurfaces.add(modalSurface)
+            surface.enable()
+            .modalSurfaces.add(surface)
         }
 
         while not .mustQuit and not .endModal
@@ -783,10 +788,8 @@ private impl Application
         // A surface disabled on the way in can be destroyed while the loop runs: it has left
         // `surfaces`, but this list still holds the raw pointer, and enabling or focusing it
         // would touch freed windows. Keep only the survivors.
-        var index = disabledSurfaces.count
-        while index
+        for index in reversed(disabledSurfaces.count)
         {
-            index -= 1
             if not .surfaces.contains(disabledSurfaces[index]) do
                 disabledSurfaces.removeAtOrdered(index)
         }
@@ -806,11 +809,11 @@ private impl Application
         // the surface that raised it. The last surface re-enabled is only a last resort: it is the
         // end of the application's list, which is not necessarily where the reader was.
         var restoreSurface: *Surface?
-        if .modalSurfaces.count do
+        if not .modalSurfaces.isEmpty() do
             restoreSurface = .modalSurfaces.back()
         elif restoreTo and restoreTo != surface do
             restoreSurface = restoreTo
-        elif disabledSurfaces.count do
+        elif not disabledSurfaces.isEmpty() do
             restoreSurface = disabledSurfaces.back()
 
         if mustRestore and restoreSurface do
@@ -857,7 +860,7 @@ internal impl Application
         {
             if surface.isHidden do
                 continue
-            if .modalSurfaces.count and surface != .modalSurfaces.back() do
+            if not .modalSurfaces.isEmpty() and surface != .modalSurfaces.back() do
                 continue
             if surface.position.contains(Math.Point{x, y}) do
                 return surface
@@ -983,8 +986,11 @@ impl Application
 
     // Creates a main surface and runs its application until shutdown.
     //
-    // A smoke run stops on its own after the frame budget its launcher set, so an example
-    // written with this needs nothing special to be exercised by the test suite.
+    // Clearing `borders` or `canSize` removes the themed border or the resizing from the standard
+    // window, `hook` intercepts the events of the surface view, and `init` runs once the surface
+    // exists, before it is shown. A smoke run stops on its own after the frame budget its
+    // launcher set, so an example written with this needs nothing special to be exercised by the
+    // test suite; `testFrames` is ignored.
     func runSurface(x, y, width, height: s32, title: string? = null, view: *Wnd? = null, borders = true, canSize = true, hook: HookEvent? = null, init: (func(*Application))? = null, testFrames: u32 = 50)
     {
         var app: Application
@@ -1005,10 +1011,16 @@ impl Application
 
     // Creates an initially hidden top-level surface.
     //
-    // The first surface initializes the shared renderer and theme and becomes [[mainSurface]].
-    // `width` and `height` are logical units: on a scaled display the native window is
-    // created proportionally larger, in physical pixels. `x` and `y` are physical
-    // desktop pixels.
+    // The first surface initializes the shared renderer and theme and becomes
+    // [[Gui.Application.mainSurface]]. `width` and `height` are logical units: on a scaled
+    // display the native window is created proportionally larger, in physical pixels. `x` and
+    // `y` are physical desktop pixels.
+    //
+    // `view` becomes the root view of the surface, or a plain [[Gui.Wnd]] is created when it is
+    // `null`; `hook` intercepts the events of that view. `surfaceId` names the native window, so
+    // another process can reach it through [[Gui.Surface.sendCustomMessage]]. Fails when the
+    // native window or its rendering context cannot be created. The result is never `null` on
+    // success; it is nullable only so the failure path has a default value.
     mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: *Wnd? = null, hook: HookEvent? = null, surfaceId: string? = null)->*Surface? fail
     {
         let surface = Memory.new'Surface()
@@ -1027,9 +1039,9 @@ impl Application
         if not .mainSurface
         {
             .refreshSystemMotionPreference()
-            if not (.renderer != null) do
+            if .renderer == null do
                 .setRenderer(&.rendererOgl)
-            if not (.theme != null) do
+            if .theme == null do
                 .theme = Memory.new'Theme()
             .style.set(.theme)
             registerDefaultThemeResources(&.resources)
@@ -1078,7 +1090,7 @@ impl Application
         return surface
     }
 
-    // Selects the file used to persist surface placement with [[saveState]] and [[loadState]].
+    // Selects the file used to persist surface placement with [[Gui.Application.saveState]] and [[Gui.Application.loadState]].
     mtd setStatePath(path: string)
     {
         .statePath = path
@@ -1095,8 +1107,7 @@ impl Application
         .appIconLoaded = false
     }
 
-    // Returns the application mark at `size` logical pixels, cut to sit on `ground`, or an
-    // invalid icon when the application declares none.
+    // Returns the application mark at `size` logical pixels, cut to sit on `ground`, or an invalid icon when the application declares none.
     //
     // The mark ships flattened — one glyph over one ink tile — because that is what a taskbar,
     // a file list and an installer need. A drawn caption has a ground of its own, so on a dark
@@ -1143,17 +1154,14 @@ impl Application
 
     // Applies the theme sheet resource `themes/<name>.tweak` and refreshes every surface.
     //
-    // The sheet is resolved through [[resources]], so it can come from a disk folder or
-    // from embedded bytes. Values not named by the sheet keep the current theme, which
-    // makes a sheet a delta over whatever palette is already applied.
+    // The sheet is resolved through [[Gui.Application.resources]], so it can come from a disk
+    // folder or from embedded bytes. Values not named by the sheet keep the current theme, which
+    // makes a sheet a delta over whatever palette is already applied. Call it once the first
+    // surface exists; it fails when the resource is missing or the sheet is malformed.
     mtd loadTheme(name: string) fail
     {
-        Swag.assert((.theme != null), "the theme exists once the first surface is created")
-
-        var resName: String = "themes/"
-        resName += name
-        resName += ".tweak"
-        try .theme.loadSheet(&.resources, resName.toString())
+        Swag.assert(.theme != null, "the theme exists once the first surface is created")
+        try .theme.loadSheet(&.resources, Format.toString("themes/%.tweak", name).toString())
         .notifyThemeChanged()
     }
 
@@ -1355,8 +1363,8 @@ impl Application
         .mouseCaptureWnd = wnd
     }
 
-    // Destroy a window
-    // To cleanly close a window, you should call wnd.destroy()
+    // Sends the destroy event to `wnd`, unregisters it, and queues its storage for release.
+    // Callers close a window with `Wnd.destroy`, which defers this to the end of the frame.
     internal mtd destroyWnd(wnd: *Wnd)
     {
         var evt = DestroyEvent{}
@@ -1414,7 +1422,8 @@ impl Application
         return scan
     }
 
-    // Set activated state
+    // Records whether the application owns the active native window, keeps its modal surfaces
+    // in front, and repaints every surface.
     internal mtd setActivated(activated: bool)
     {
         if .isActivated == activated do
@@ -1441,6 +1450,9 @@ impl Application
     }
 
     // Queues an event from any thread for delivery during the next frame.
+    //
+    // Allocate the event with [[Gui.Event.create]]: the queue owns it and releases it after
+    // dispatch.
     mtd postEvent(event: IEvent)
     {
         Sync.scopedLock(&.mutexPostedEvents)
@@ -1453,7 +1465,10 @@ impl Application
         .sendEventPrivate(event, null)
     }
 
-    // Creates a repeating timer that sends [[TimerEvent]] values to `target`.
+    // Creates a repeating timer that sends [[Gui.TimerEvent]] values to `target`.
+    //
+    // `time` is the period and must be positive. The application owns the timer: release it
+    // with [[Gui.Application.removeTimer]], or let the destruction of `target` retire it.
     mtd addTimer(time: Time.Duration, target: *Wnd)->*Timer
     {
         let timer = Memory.new'Timer()
@@ -1467,7 +1482,7 @@ impl Application
         return timer
     }
 
-    // Removes and destroys a timer created by `addTimer`.
+    // Removes and destroys a timer created by [[Gui.Application.addTimer]].
     //
     // Scheduling a target window for destruction retires its timers, so a window that still names
     // one from its own cleanup lands here on a timer this application no longer owns. The registry
@@ -1511,18 +1526,17 @@ impl Application
     // next frame — a rebuild asked for from inside a change notification, where rebuilding on the
     // spot would destroy the control that is reporting.
     //
-    // Registration was `internal` and had no caller, so `sendFrameEvents` walked an empty array
-    // for the whole run and every deferral written against it silently never happened.
-    //
-    // Register once and unregister before the window goes; `Application.destroyWnd` also
-    // drops a destroyed window from the list, so a normal teardown needs nothing.
+    // Register a window once. Destroying it drops it from the list, so a normal teardown needs
+    // no [[Gui.Application.unregisterFrameEvent]].
     mtd registerFrameEvent(target: *Wnd)
     {
         Swag.assert(not .frameEvents.contains(target))
         .frameEvents.add(target)
     }
 
-    // Stops sending `target` the per-frame event. Sending it one it no longer wants is harmless.
+    // Stops sending the per-frame event to `target`.
+    //
+    // Unregistering a window that is not registered does nothing.
     mtd unregisterFrameEvent(target: *Wnd)
     {
         .frameEvents.remove(target)
@@ -1546,6 +1560,9 @@ impl Application
     }
 
     // Processes frames until a quit event is received and returns its exit code.
+    //
+    // A nonzero [[Gui.Application.maxRunFrame]] also ends the loop after that many frames, with
+    // exit code zero.
     #[Swag.Discardable]
     mtd run()->s32
     {
@@ -1583,7 +1600,7 @@ impl Application
     // Returns the native shell icon for a directory.
     mtd directoryIcon(name: string, small = true)->Icon => .fileOrDirectoryIcon(name, true, small)
 
-    // Enables or disables all shortcuts registered with [[registerHotKey]].
+    // Enables or disables all shortcuts registered with [[Gui.Application.registerHotKey]].
     mtd setGlobalHotKeysEnabled(enabled = true)
     {
         if .hotKeysDisabled == not enabled do

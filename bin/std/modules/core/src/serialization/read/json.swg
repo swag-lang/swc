@@ -293,10 +293,7 @@ public impl Json
         .containerDepth += 1
     }
 
-    internal mtd propertyMatches(val: TypeValue)->bool
-    {
-        return .propName == wireFieldKey(val)
-    }
+    internal mtd propertyMatches(val: TypeValue)->bool => .propName == wireFieldKey(val)
 
     // Starts reading a borrowed JSON buffer.
     mtd startRead(input: const [..] u8) fail

@@ -9,32 +9,25 @@ const ProductName   = "Swag Scope"
 const ApplicationId = "swagscope"
 const SurfaceId     = "swag.scope"
 
+// Returns the first command-line argument that names an existing file, or an empty string.
 func viewerStartupFile(arguments: const [..] string)->String
 {
     if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 until arguments.count]
-    {
-        if Path.isValidPathName(argument) and File.exists(argument) do
-            return String.from(argument)
-    }
-
+    for argument in arguments[1 to] where Path.isValidPathName(argument) and File.exists(argument) do
+        return String.from(argument)
     return {}
 }
 
+// Returns the fixture directory named by the smoke-review argument, or an empty string.
 func viewerSmokeDirectory(arguments: const [..] string)->String
 {
     if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 until arguments.count]
-    {
-        if not Utf8.startsWith(cast(const [..] u8) argument, ViewerSmokeArgument) do
-            continue
-        return String.from(argument[ViewerSmokeArgument.count until argument.count])
-    }
-
+    for argument in arguments[1 to] where Utf8.startsWith(cast(const [..] u8) argument, ViewerSmokeArgument) do
+        return String.from(argument[ViewerSmokeArgument.count to])
     return {}
 }
 
@@ -74,10 +67,8 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     let stateFolder = Path.combine(stateRoot, "scope")
     if not Directory.exists(stateFolder) do
         discard catch Directory.create(stateFolder)
-    if Directory.exists(stateFolder)
-    {
+    if Directory.exists(stateFolder) do
         g_App.setStatePath(Path.combine(stateFolder, "settings.scc"))
-    }
 
     let surface = (try g_App.createSurface(80, 50, ViewerMinWidth, 680, SurfaceFlags.StandardWindow, surfaceId: SurfaceId))!
     g_App.theme.setSwagDark()

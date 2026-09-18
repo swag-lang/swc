@@ -2,6 +2,7 @@
 
 using Core
 
+// The starter snippets, in the order of the example selector.
 enum ExampleKind
 {
     Plasma
@@ -10,6 +11,7 @@ enum ExampleKind
     Dot
 }
 
+// Returns the source text of an example.
 func exampleSource(kind: ExampleKind)->string
 {
     switch #complete kind
@@ -21,6 +23,7 @@ func exampleSource(kind: ExampleKind)->string
     }
 }
 
+// Returns the viewer the first panel switches to when an example opens.
 func exampleViewer(kind: ExampleKind)->ViewerKind
 {
     switch #complete kind

@@ -113,7 +113,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     forced.compute()
     forced.chunks.clear()
     forced.compute(true)
-    Swag.assert(forced.chunks.count != 0)
+    Swag.assert(not forced.chunks.isEmpty())
     Swag.assert(forced.chunks[0].fontStyle == .Bold)
 
     var lineBreaks: RichString = "A\r\nB\rC\nD"

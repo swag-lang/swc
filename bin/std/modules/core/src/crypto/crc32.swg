@@ -596,8 +596,9 @@ private
 
 public impl Crc32
 {
-    // Initialize the hashing sequence
     // Resets the checksum to `seed`.
+    //
+    // `seed` is 0 to start a new sequence, or a previous checksum to continue it.
     mtd reset(seed: u32 = 0)
     {
         .currentValue = seed
@@ -630,11 +631,11 @@ public impl Crc32
         const bytesAtOnce = 16 * unroll
         while length >= bytesAtOnce
         {
-            for unrolling in unroll
+            for unroll
             {
                 #static if BIG_ENDIAN
                 {
-                    let one   = current[0] ^ Swap(cur)
+                    let one   = current[0] ^ Swag.byteSwap(cur)
                     let two   = current[1]
                     let three = current[2]
                     let four  = current[3]

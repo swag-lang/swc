@@ -3,10 +3,12 @@
 
 using Swag, Core
 
-// A trivial command that adds/subtracts a delta from a shared counter, to exercise the
-// generic UndoManager independently of any widget.
+// Counter every `IncCommand` of these tests moves.
 var g_undoCounter: s32
 
+// A trivial command that adds `delta` to a shared counter on redo and subtracts it on undo.
+//
+// It exercises the generic `UndoManager` independently of any widget.
 struct IncCommand
 {
     delta: s32
@@ -25,8 +27,8 @@ impl IUndoCommand for IncCommand
     }
 }
 
-// push() applies on push; undo/redo walk the timeline; canUndo/canRedo track the edges; a
-// push after undo discards (and frees) the redo tail.
+// Pushing applies a command, undo and redo walk the timeline, `canUndo` and `canRedo` track its
+// edges, and a push after an undo discards and frees the redo tail.
 #test
 {
     var mgr: UndoManager
@@ -51,7 +53,7 @@ impl IUndoCommand for IncCommand
     Swag.assert(g_undoCounter == 10 and mgr.count() == 1 and not mgr.canRedo())
 }
 
-// Commands sharing a serial are undone/redone together as one step.
+// Commands sharing a serial are undone and redone together, as one step.
 #test
 {
     var mgr: UndoManager
@@ -72,7 +74,7 @@ impl IUndoCommand for IncCommand
     Swag.assert(g_undoCounter == 3 and not mgr.canRedo())
 }
 
-// clear() drops the whole history.
+// `clear` drops the whole history.
 #test
 {
     var mgr: UndoManager

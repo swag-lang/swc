@@ -22,7 +22,7 @@ struct StackLayoutCtrl
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
         mode:         StackLayoutMode = Top     // Direction and distribution policy.
         spacing:      f32 = 5                   // Gap between adjacent children.
@@ -107,85 +107,37 @@ private impl StackLayoutCtrl
         return false
     }
 
-    mtd isReverse()->bool
-    {
-        return .mode == .Bottom or .mode == .Right
-    }
+    mtd isReverse()->bool => .mode == .Bottom or .mode == .Right
 
-    mtd isCenteringMain()->bool
-    {
-        return .mode == .HorizontalCenter or .mode == .Center or .mode == .VerticalCenter
-    }
+    mtd isCenteringMain()->bool => .mode == .HorizontalCenter or .mode == .Center or .mode == .VerticalCenter
 
-    mtd isEndingMain()->bool
-    {
-        return .mode == .HorizontalEnd
-    }
+    mtd isEndingMain()->bool => .mode == .HorizontalEnd
 
-    mtd isFitMain()->bool
-    {
-        return .mode == .HorizontalFit or .mode == .VerticalFit
-    }
+    mtd isFitMain()->bool => .mode == .HorizontalFit or .mode == .VerticalFit
 
-    mtd mainFromPoint(pt: Math.Point)->f32
-    {
-        return .isHorizontal() ? pt.x : pt.y
-    }
+    mtd mainFromPoint(pt: Math.Point)->f32 => .isHorizontal() ? pt.x : pt.y
 
-    mtd crossFromPoint(pt: Math.Point)->f32
-    {
-        return .isHorizontal() ? pt.y : pt.x
-    }
+    mtd crossFromPoint(pt: Math.Point)->f32 => .isHorizontal() ? pt.y : pt.x
 
-    mtd mainFromRect(rect: Math.Rectangle)->f32
-    {
-        return .isHorizontal() ? rect.width : rect.height
-    }
+    mtd mainFromRect(rect: Math.Rectangle)->f32 => .isHorizontal() ? rect.width : rect.height
 
-    mtd crossFromRect(rect: Math.Rectangle)->f32
-    {
-        return .isHorizontal() ? rect.height : rect.width
-    }
+    mtd crossFromRect(rect: Math.Rectangle)->f32 => .isHorizontal() ? rect.height : rect.width
 
-    mtd mainMargin(margin: Math.Vector4)->f32
-    {
-        return .isHorizontal() ? margin.x + margin.z : margin.y + margin.w
-    }
+    mtd mainMargin(margin: Math.Vector4)->f32 => .isHorizontal() ? margin.x + margin.z : margin.y + margin.w
 
-    mtd crossMargin(margin: Math.Vector4)->f32
-    {
-        return .isHorizontal() ? margin.y + margin.w : margin.x + margin.z
-    }
+    mtd crossMargin(margin: Math.Vector4)->f32 => .isHorizontal() ? margin.y + margin.w : margin.x + margin.z
 
-    mtd startMargin(margin: Math.Vector4)->f32
-    {
-        return .isHorizontal() ? margin.x : margin.y
-    }
+    mtd startMargin(margin: Math.Vector4)->f32 => .isHorizontal() ? margin.x : margin.y
 
-    mtd endMargin(margin: Math.Vector4)->f32
-    {
-        return .isHorizontal() ? margin.z : margin.w
-    }
+    mtd endMargin(margin: Math.Vector4)->f32 => .isHorizontal() ? margin.z : margin.w
 
-    mtd crossStartMargin(margin: Math.Vector4)->f32
-    {
-        return .isHorizontal() ? margin.y : margin.x
-    }
+    mtd crossStartMargin(margin: Math.Vector4)->f32 => .isHorizontal() ? margin.y : margin.x
 
-    mtd crossEndMargin(margin: Math.Vector4)->f32
-    {
-        return .isHorizontal() ? margin.w : margin.z
-    }
+    mtd crossEndMargin(margin: Math.Vector4)->f32 => .isHorizontal() ? margin.w : margin.z
 
-    mtd mainPolicy(wnd: *Wnd)->SizePolicy
-    {
-        return .isHorizontal() ? wnd.layoutSpec.policyX : wnd.layoutSpec.policyY
-    }
+    mtd mainPolicy(wnd: *Wnd)->SizePolicy => .isHorizontal() ? wnd.layoutSpec.policyX : wnd.layoutSpec.policyY
 
-    mtd crossPolicy(wnd: *Wnd)->SizePolicy
-    {
-        return .isHorizontal() ? wnd.layoutSpec.policyY : wnd.layoutSpec.policyX
-    }
+    mtd crossPolicy(wnd: *Wnd)->SizePolicy => .isHorizontal() ? wnd.layoutSpec.policyY : wnd.layoutSpec.policyX
 
     mtd mainWeight(wnd: *Wnd)->f32 => Math.max(.isHorizontal() ? wnd.layoutSpec.weightX : wnd.layoutSpec.weightY, 0)
 

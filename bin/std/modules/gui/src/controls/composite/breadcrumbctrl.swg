@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Describes one level in a [[BreadcrumbCtrl]].
+// Describes one level in a [[Gui.BreadcrumbCtrl]].
 struct BreadcrumbItem
 {
     public
@@ -23,7 +23,7 @@ struct BreadcrumbCtrl
 {
     public
     {
-        using wnd: Wnd     // Embedded wnd state.
+        using wnd: Wnd     // Embedded window behavior and presentation.
 
         iconSize: f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
 
@@ -77,12 +77,15 @@ impl BreadcrumbCtrl
     mtd addItem(name: string, icon: Icon = {}, userData: u64 = 0, hasArrow = true, tag: string? = null)->u64
     {
         let index = .items.count
-        var it: BreadcrumbItem
-        it.name     = name
-        it.icon     = icon
-        it.userData = userData
-        it.tag      = tag
-        it.hasArrow = hasArrow
+        with var it: BreadcrumbItem
+        {
+            .name     = name
+            .icon     = icon
+            .userData = userData
+            .tag      = tag
+            .hasArrow = hasArrow
+        }
+
         .items.add(#move it)
         .invalidate()
         return index
@@ -128,10 +131,8 @@ impl BreadcrumbCtrl
         let client = .clientRect()
 
         var x = client.x
-        for i in .items.count
+        for &it in .items
         {
-            let it = &.items[i]
-
             var w = .padX
             if it.icon.isValid() do
                 w += (.iconSize != 0 ? .iconSize : it.icon.sizeX) + .iconGap
@@ -153,8 +154,10 @@ impl BreadcrumbCtrl
         }
     }
 
-    // Open the drop-down for the level at 'index', letting the app fill it, and report the
-    // chosen entry (if any) through sigMenuSelected.
+    // Opens the child menu of the level at `index` and reports the command chosen in it.
+    //
+    // [[Gui.BreadcrumbCtrl.sigFillMenu]] fills the menu first; an empty menu is not shown. A chosen
+    // command is emitted through [[Gui.BreadcrumbCtrl.sigMenuSelected]].
     mtd openMenu(index: u64)
     {
         if index >= .items.count do
@@ -199,9 +202,8 @@ impl IWnd for BreadcrumbCtrl
 
         var nh      = Swag.U64.Max
         var nhArrow = false
-        for i in .items.count
+        for it, i in .items
         {
-            let it = &.items[i]
             if it.hasArrow and it.arrowRect.contains(pos)
             {
                 nh      = i
@@ -264,9 +266,8 @@ impl IWnd for BreadcrumbCtrl
 
         painter.setParams(.Antialiased)
 
-        for i in .items.count
+        for it, i in .items
         {
-            let it      = &.items[i]
             let hotBody = i == .hotItem and not .hotArrow
             let hotArr  = i == .hotItem and .hotArrow
 

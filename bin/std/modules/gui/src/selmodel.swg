@@ -15,7 +15,7 @@ struct SelRange
 // Maintains a set of selected indices as sorted, disjoint ranges.
 struct SelModel
 {
-    internal rangesStorage: Array'SelRange
+    rangesStorage: Array'SelRange     // Selected ranges, sorted and disjoint.
 }
 
 impl SelModel
@@ -166,12 +166,14 @@ impl SelModel
         }
     }
 
+    // Visits every selected index in ascending order.
+    //
     // Block parameters: `item` is the selected index and `index` its selection ordinal.
     #[Swag.Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
         // The ordinal runs across every range, and moves before the body so that a
-        // 'continue' in it cannot skip the step.
+        // `continue` in it cannot skip the step.
         var ordinal = 0'u64
 
         #scope(Up)

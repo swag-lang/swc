@@ -175,9 +175,9 @@ public impl ImageReader
     // Reports whether encoded input is open.
     mtd const isOpen()->bool => .decoder != null
 
-    // Opens an owned copy of encoded bytes; unsupported or malformed input reports `fail`.
+    // Indexes an owned copy of encoded bytes, selecting the decoder by the extension of `fileName`.
     //
-    // Still-only registered decoders automatically appear as a one-image set. Limits
+    // Unsupported or malformed input reports `fail`. Still-only registered decoders automatically appear as a one-image set. Limits
     // apply before frame decoding. The first frame represents animated containers;
     // icon containers retain their largest-entry representative selection.
     func decode(fileName: string, bytes: const [..] u8, options: DecodeOptions = {})->ImageReader fail
@@ -204,7 +204,7 @@ public impl ImageReader
             result.info.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
 
-        if not result.info.frames.count or result.info.representativeIndex >= result.info.frames.count do
+        if result.info.frames.isEmpty() or result.info.representativeIndex >= result.info.frames.count do
             fail InvalidFormatError{"image container has no representative image"}
         try options.checkFrameCount(result.info.frames.count)
         for frame in result.info.frames

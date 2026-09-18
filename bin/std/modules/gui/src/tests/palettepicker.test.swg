@@ -19,7 +19,7 @@ func palettePickerHeadlessChanged(picker: *PalettePicker)
     host.setup(240, 120)
     defer host.shutdown()
     let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})
-    Swag.assert(picker.colors.count == 0)
+    Swag.assert(picker.colors.isEmpty())
     Swag.assert(picker.selectedIndex == Swag.S32.Max)
 
     picker.addColor(Argb.Red)

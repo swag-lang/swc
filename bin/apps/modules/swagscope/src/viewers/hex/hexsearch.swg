@@ -46,7 +46,7 @@ impl HexSearchPattern
     // Appends every occurrence, including overlaps, inside one streamed source window.
     mtd collectMatches(source: string, baseOffset: u64, result: *Array'Viewer.SearchMatch)
     {
-        if not .values.count or source.count < .values.count do
+        if .values.isEmpty() or source.count < .values.count do
             return
 
         let last = source.count - .values.count
@@ -64,23 +64,12 @@ struct HexSearchParse
     error:   HexSearchError
 }
 
-private func hexSearchNibble(value: u8)->u8
-{
-    if value >= '0'u8 and value <= '9'u8 do
-        return value - '0'u8
-    if value >= 'a'u8 and value <= 'f'u8 do
-        return value - 'a'u8 + 10
-    if value >= 'A'u8 and value <= 'F'u8 do
-        return value - 'A'u8 + 10
-    return 16
-}
-
 private func appendHexSearchByte(pattern: *HexSearchPattern, high, low: u8)
 {
     let highWildcard = high == '?'u8
     let lowWildcard  = low == '?'u8
-    let highValue    = highWildcard ? 0'u8 : hexSearchNibble(high)
-    let lowValue     = lowWildcard ? 0'u8 : hexSearchNibble(low)
+    let highValue    = highWildcard ? 0'u8 : hexDigitValue(high)
+    let lowValue     = lowWildcard ? 0'u8 : hexDigitValue(low)
     pattern.values.add((highValue << 4) | lowValue)
     pattern.masks.add((highWildcard ? 0'u8 : 0xF0'u8) | (lowWildcard ? 0'u8 : 0x0F'u8))
 }
@@ -106,7 +95,7 @@ private func parseHexBytePattern(source: string)->HexSearchParse
             continue
         }
 
-        if value != '?'u8 and hexSearchNibble(value) == 16
+        if value != '?'u8 and hexDigitValue(value) == 16
         {
             result.state = .Invalid
             result.error = .Pattern
@@ -238,11 +227,11 @@ private func parseHexValuePattern(source: string, grouping: HexGrouping, bigEndi
     return result
 }
 
-// Parses the three hexadecimal-viewer search forms:
+// Parses `query` in one of the three search forms of the hexadecimal viewer.
 //
 // - `4D 5A ?? ?0` or `hex: 4D 5A` for byte and nibble patterns;
 // - `text: MZ` or `"MZ"` for exact UTF-8 bytes;
-// - `value: 42` for the active scalar representation and byte order.
+// - `value: 42` for a scalar spelled as `grouping` reads it, in the byte order `bigEndian` selects.
 func parseHexSearch(query: string, grouping: HexGrouping, bigEndian: bool)->HexSearchParse
 {
     let trimmed = Latin1.trim(query)

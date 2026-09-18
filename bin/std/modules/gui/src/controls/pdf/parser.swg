@@ -559,7 +559,7 @@ impl PdfParser
             next = section.prev
         }
 
-        return .xref.count != 0
+        return not .xref.isEmpty()
     }
 
     // Returns the offset the last `startxref` of the file names.

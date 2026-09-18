@@ -42,17 +42,11 @@ struct(T) IterationRange
 
 // Returns a zero-allocation half-open interval `[lower, upper)`.
 #[Swag.Inline]
-func(T) range(lower, upper: T)->IterationRange'T
-{
-    return {lower: lower, upper: upper}
-}
+func(T) range(lower, upper: T)->IterationRange'T => {lower: lower, upper: upper}
 
 // Returns a zero-allocation closed interval `[lower, upper]`.
 #[Swag.Inline]
-func(T) rangeTo(lower, upper: T)->IterationRange'T
-{
-    return {lower: lower, upper: upper, inclusive: true}
-}
+func(T) rangeTo(lower, upper: T)->IterationRange'T => {lower: lower, upper: upper, inclusive: true}
 
 #[Swag.Opaque]
 struct(T) ReversedRange

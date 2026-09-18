@@ -56,7 +56,7 @@ func statusForError(kind: ErrorKind)->s32
     let path = Path.combine(temp.toString(), Format.toString("vault_callbacks_%.bin", Guid64.random()))
     defer discard catch File.delete(path)
 
-    let password = Swag.makeSlice(cast(const [*] u8) ("callback password").buffer, 17)
+    let password = cast(const [..] u8) "callback password"
     var volume   = expect Volume.create(path, password, MinimumSize)
     let context  = cast(*void) &volume
 

@@ -42,7 +42,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 
     // The row ends on the inset the body keeps, so the last action and whatever the box holds
     // read on one right edge instead of on two that nearly agree.
-    let last = dlg.buttons[dlg.buttons.count - 1]
+    let last = dlg.buttons.back()
     Swag.assert(Math.abs(bar.position.width - last.position.right() - metrics.dialog_Padding) < 0.5)
 
     // One dominant action, so the bar says what Enter decides.
@@ -78,18 +78,14 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     message.adaptSizeToMessage()
     assertDialogCharter(&message.dialog, host.theme.metrics.dialog_Padding)
 
-    var editOptions: EditDlgOptions
-    editOptions.title   = "Rename"
-    editOptions.message = "Enter the new name."
-    let editOne = EditDlg.createSingleLine(&host.surface, editOptions)
+    let editOptions = EditDlgOptions{title: "Rename", message: "Enter the new name."}
+    let editOne     = EditDlg.createSingleLine(&host.surface, editOptions)
     assertDialogCharter(&editOne.dialog, host.theme.metrics.dialog_Padding)
 
     let editMany = EditDlg.createMultiLine(&host.surface, editOptions)
     assertDialogCharter(&editMany.dialog, host.theme.metrics.dialog_Padding)
 
-    var formOptions: FormDlgOptions
-    formOptions.title = "Profile"
-    let form = FormDlg.create(&host.surface, formOptions)
+    let form = FormDlg.create(&host.surface, {title: "Profile"})
     discard form.form.addTextField("NAME", "Ada")
     form.form.computeLayout()
     assertDialogCharter(&form.dialog, host.theme.metrics.dialog_Padding)
@@ -104,9 +100,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 
     // The file browser carries its own grounds and its own edges, so the box keeps no inset
     // around it and the browser's bands are what reach the frame.
-    var fileOptions: FileDlgOptions
-    fileOptions.mode = .SelectFile
-    let file = FileDlg.create(&host.surface, fileOptions)
+    let file = FileDlg.create(&host.surface, {mode: .SelectFile})
     assertDialogCharter(&file.dialog, 0)
 
     message.surface!.destroy()
@@ -129,11 +123,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     host.setup(900, 620)
     defer host.shutdown()
 
-    var opt: FileDlgOptions
-    opt.mode = .SelectFile
-    opt.showLocationsPane = false
-
-    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 860, 580})
+    let fb = FileBrowserCtrl.create(&host.root, {mode: .SelectFile, showLocationsPane: false}, {0, 0, 860, 580})
     fb.applyLayout()
 
     let list = fb.listCtrl

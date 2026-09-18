@@ -288,3 +288,16 @@ using Swag, Core
     discard host.render(ed)
     Swag.assert(ed.lines.count == 1 and ed.text() == text)
 }
+
+// A document with no line answers the origin for any point instead of reading a missing line.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 220)
+    defer host.shutdown()
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
+    ed.clear()
+    let cursor = ed.cursorAt({20, 20})
+    Swag.assert(cursor.lineIndex == 0 and cursor.charPosInLine == 0)
+}

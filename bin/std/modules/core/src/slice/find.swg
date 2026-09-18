@@ -56,9 +56,10 @@ private func verifyByteCandidates(values, subslice: const [*] u8, subCount, base
     return Swag.U64.Max
 }
 
-// Find 'value' in a slice by performing a binary search.
-// The slice must be sorted in ascending order
-// Returns Swag.U64.Max if not found.
+// Returns the index of an element equal to `value` in a slice sorted in ascending order.
+//
+// The search is binary, so it takes logarithmic time. When several elements equal `value`, the
+// index of any one of them is returned. Returns `Swag.U64.Max` when `value` is absent.
 func(T, V) findSorted(values: const [..] T?, value: V)->u64
 {
     var lower = 0'u64
@@ -83,9 +84,10 @@ func(T, V) findSorted(values: const [..] T?, value: V)->u64
     return Swag.U64.Max
 }
 
-// Find 'value' in a slice by performing a linear search.
-// O^n, but slice does not have to be sorted.
-// Returns Swag.U64.Max if not found.
+// Returns the index of the first element equal to `value`.
+//
+// The search is linear, so the slice does not have to be sorted. Returns `Swag.U64.Max` when
+// `value` is absent.
 func findLinear(values: const [..] u8?, value: u8)->u64
 {
     let count = values.count
@@ -101,7 +103,9 @@ func(T, V) findLinear(values: const [..] T?, value: V)->u64
     return Swag.U64.Max
 }
 
-// Returns the first index of `subslice`, or `Swag.U64.Max` when it is absent.
+// Returns the index where `subslice` first occurs in `values`, or `Swag.U64.Max` when it is absent.
+//
+// An empty `subslice` occurs at index 0.
 func findSubslice(values, subslice: const [..] u8)->u64
 {
     let valueCount = values.count
@@ -152,39 +156,20 @@ func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
     if subslice.count > values.count do
         return Swag.U64.Max
 
-    for it0 in 0 to values.count - subslice.count
-    {
-        var ok = true
-        for item, it1 in subslice
-        {
-            if values[it0 + it1] != item
-            {
-                ok = false
-                break
-            }
-        }
-
-        if ok do
-            return it0
-    }
-
+    for start in 0 to values.count - subslice.count where equals(values[start until start + subslice.count], subslice) do
+        return start
     return Swag.U64.Max
 }
 
-// Returns true if the given slice contains the 'value'.
-// The slice must be sorted in ascending order
+// Returns whether a slice sorted in ascending order contains `value`.
+//
+// The search is binary, so it takes logarithmic time.
 #[Swag.ConstExpr]
-func(T, V) containsSorted(values: const [..] T?, value: V)->bool
-{
-    return findSorted(values, value) != Swag.U64.Max
-}
+func(T, V) containsSorted(values: const [..] T?, value: V)->bool => findSorted(values, value) != Swag.U64.Max
 
-// Returns true if the given slice contains the 'value'
+// Returns whether the slice contains `value`.
 #[Swag.ConstExpr]
-func contains(values: const [..] u8?, value: u8)->bool
-{
-    return findLinear(values, value) != Swag.U64.Max
-}
+func contains(values: const [..] u8?, value: u8)->bool => findLinear(values, value) != Swag.U64.Max
 
 #[Swag.ConstExpr]
 func(T, V) contains(values: const [..] T?, value: V)->bool
@@ -194,7 +179,7 @@ func(T, V) contains(values: const [..] T?, value: V)->bool
     return false
 }
 
-// Returns true if two slices are equal
+// Returns whether two slices have the same length and equal elements.
 #[Swag.ConstExpr]
 func equals(dst, src: const [..] u8?)->bool
 {

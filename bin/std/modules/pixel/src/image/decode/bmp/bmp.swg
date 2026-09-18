@@ -86,10 +86,7 @@ func checkBuffer(ptr, last: const [*] u8, size: u64) fail
         fail InvalidFormatError{"invalid source buffer"}
 }
 
-func rowStride(width: s32, bitCount: u16)->u64
-{
-    return ((cast(u64) width * cast(u64) bitCount + 31) / 32) * 4
-}
+func rowStride(width: s32, bitCount: u16)->u64 => ((cast(u64) width * cast(u64) bitCount + 31) / 32) * 4
 
 func defaultPaletteCount(bitCount: u16)->u32
 {

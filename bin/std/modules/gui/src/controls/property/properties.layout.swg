@@ -10,21 +10,16 @@ internal impl Properties
     // The window into which a row's trailing action widgets are placed. Grid docks them on the row
     // cell; list places them on the name label in local content coordinates. Null for rows with no
     // label in list mode.
-    mtd rowActionArea(item: *PropertiesItem)->*Wnd?
-    {
-        return .isGridLike() ? item.line : cast(*Wnd?) item.label
-    }
+    mtd rowActionArea(item: *PropertiesItem)->*Wnd? => .isGridLike() ? item.line : cast(*Wnd?) item.label
 }
 
 impl Properties
 {
-    // True for the grid-family modes (Grid and Condensed). They share the same
-    // column-based layout, expand/collapse behavior and column separator; only
-    // their metrics (row height, margins, control size) differ.
-    mtd isGridLike()->bool
-    {
-        return .kind == .Grid or .kind == .Condensed
-    }
+    // Returns whether the presentation belongs to the grid family, `Grid` or `Condensed`.
+    //
+    // Both share the column-based layout, the expand and collapse behavior, and the column
+    // separator; only their metrics differ.
+    mtd isGridLike()->bool => .kind == .Grid or .kind == .Condensed
 
     // In condensed mode the value editors fill the whole value cell (both axes),
     // staying flat and edge-to-edge instead of floating as a smaller bordered box.
@@ -47,7 +42,7 @@ impl Properties
         ed.setAllPaddings(Math.Vector4{8, 0, 8, 0})
     }
 
-    // Sets the requested label-column width in grid layouts.
+    // Sets the requested label-column width in grid layouts; other presentations ignore it.
     mtd setNameColumnWidth(width: s32)
     {
         if not .isGridLike() do
@@ -106,14 +101,11 @@ internal impl Properties
     // Right edge (in row-content coordinates) of the revert/action column: anchored to
     // the value column (editorWidth), not to the full row width, so the arrows stay
     // lined up with the editors whatever the control width.
-    mtd listActionRight()->f32
-    {
-        return .listContentWidthFromUseful(cast(f32) .editorWidth) - PropRevertGap
-    }
+    mtd listActionRight()->f32 => .listContentWidthFromUseful(cast(f32) .editorWidth) - PropRevertGap
 
     mtd positionListActionButton(item: *PropertiesItem, btn: *IconButton?)
     {
-        if .isGridLike() or not btn or not (item.label != null) do
+        if .isGridLike() or not btn or item.label == null do
             return
 
         btn.position.x = Math.round(.listActionRight() - btn.position.width)
@@ -145,10 +137,7 @@ internal impl Properties
     // tint. Headers (section/category) span the full width and are never indented. Depth 0 is a
     // top-level field (level 1); every nested struct/array level adds one gridIndentSize step.
     // Data-column depth of a row: 0 for a top-level field (level 1), +1 per nested struct/array.
-    mtd itemDepth(item: *PropertiesItem)->u32
-    {
-        return item.level > 0 ? item.level - 1 : 0'u32
-    }
+    mtd itemDepth(item: *PropertiesItem)->u32 => item.level > 0 ? item.level - 1 : 0'u32
 
     mtd itemIndent(item: *PropertiesItem)->f32
     {
@@ -166,10 +155,7 @@ internal impl Properties
     // Does the given data-column depth show any disclosure triangle? An ancestor depth always does
     // (a parent has children), so in practice only the deepest, all-leaf levels come back false.
     // Recomputed by computeLevelMarks on every structural change.
-    mtd levelReservesMark(depth: u32)->bool
-    {
-        return depth < .gridLevelHasMark.count ? .gridLevelHasMark[depth] : false
-    }
+    mtd levelReservesMark(depth: u32)->bool => depth < .gridLevelHasMark.count ? .gridLevelHasMark[depth] : false
 
     // Width of the disclosure-triangle slot in front of a data row's label. Full leftMargin when
     // the row's depth has any expandable item (so leaf rows stay aligned with their expandable
@@ -204,7 +190,7 @@ internal impl Properties
 
     mtd syncColumnLabel(item: *PropertiesItem)
     {
-        if not (item.label != null) do
+        if item.label == null do
             return
 
         // Note rows own their layout (a full-width info bar with custom paddings), so leave them be.
@@ -234,8 +220,5 @@ internal impl Properties
             .syncColumnLabel(item!)
     }
 
-    mtd columnPosition()->f32
-    {
-        return .gridColumnSize + .gridMarginColumn * 0.5
-    }
+    mtd columnPosition()->f32 => .gridColumnSize + .gridMarginColumn * 0.5
 }

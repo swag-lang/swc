@@ -3,7 +3,9 @@
 
 using Swag
 
-// Check if this is a valid 'fmt/values' pair, coherent with 'format' specification
+// Raises a compiler error when `fmt` does not have exactly one placeholder per value.
+//
+// `fct` names the formatting function in the message, which points at `values`.
 func checkFormat(fct: string, fmt: string, values: ...)
 {
     let cptPercent = countPercent(fmt)
@@ -14,8 +16,9 @@ func checkFormat(fct: string, fmt: string, values: ...)
     }
 }
 
-// Count the number of valid '%' placeholders in the string format.
-// Note that '%%' will not be counted, as this represents the '%' character
+// Returns the number of '%' placeholders in `fmt`.
+//
+// '%%' is an escaped '%' and does not count.
 #[ConstExpr]
 func countPercent(fmt: string)->u32
 {
@@ -34,8 +37,9 @@ func countPercent(fmt: string)->u32
     return cptPercent
 }
 
-// Replaces `dest` with formatted text, reusing its capacity when sufficient.
-// Formatting completes before the destination changes, so `fmt` and values may borrow it.
+// Replaces `dest` with `fmt` formatted with `values`, reusing its capacity when sufficient.
+//
+// Formatting completes before the destination changes, so `fmt` and `values` may borrow it.
 // The destination keeps its allocator and contains a null-terminated string, including when empty.
 func replaceString(dest: *String, fmt: string, values: ...)
 {
@@ -50,8 +54,9 @@ func replaceString(dest: *String, fmt: string, values: ...)
     dest.storage()[dest.length] = 0
 }
 
-// Format a string and returns the result as a String.
-// Use '%' as a place holder for a value.
+// Returns a new [[Core.String]] holding `fmt` with each '%' placeholder replaced by the next value.
+//
+// Each '%' stands for the next value of `values`, and '%%' writes a single '%'.
 // ```swag
 // let x = Format.toString("my life is %", myLife)
 // ```
@@ -65,18 +70,16 @@ func replaceString(dest: *String, fmt: string, values: ...)
 // ```swag
 // let x = Format.toString("%{#1} before %{#0:X}", 255, "written")
 // ```
-// - See [[ConvertFormatInt.setFormat]] for some valid format options
-// - See [[ConvertFormatFloat.setFormat]] for some valid format options
+// - See [[Core.StrConv.ConvertFormatInt.setFormat]] for the integer format options.
+// - See [[Core.StrConv.ConvertFormatFloat.setFormat]] for the floating-point format options.
 func toString(fmt: string, values: ...)->String
 {
     var buf: ConcatBuffer
-
     append(&buf, fmt, values)
-
     return buf.toString()
 }
 
-// Format a string and put the result in a ConcatBuffer.
+// Appends `fmt` formatted with `values` to `buf`, following the rules of [[Core.Format.toString]].
 func append(buf: *ConcatBuffer, fmt: string, values: ...)
 {
     let ptr = fmt.buffer
@@ -93,13 +96,14 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
     {
         if ptr[nextIdx] == '%'u8
         {
-            // Add remaining text, and starts again after the mark
-            buf.addBytes(cast(const [..] u8) Swag.makeSlice(ptr + idx, cast(u64) (nextIdx - idx)))
+            // Add the text before the mark, and start again after it.
+            buf.addBytes(fmt[idx until nextIdx])
             idx     = nextIdx + 1
             nextIdx = idx
 
-            // Deal with the parameter. %% is for one % only
-            if ptr[nextIdx] == '%'u8
+            // Deal with the parameter. %% is for one % only. The format is a view with no
+            // guaranteed terminator: every read past a mark checks the end first.
+            if nextIdx < cpt and ptr[nextIdx] == '%'u8
             {
                 buf.addNative('%'u8)
                 nextIdx += 1
@@ -109,18 +113,18 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
             // Optional string format, like '%{whatever}'
             var strFormat: const [..] u8?
-            if ptr[nextIdx] == '{'u8
+            if nextIdx < cpt and ptr[nextIdx] == '{'u8
             {
                 nextIdx += 1
                 let ptrFormat   = ptr + nextIdx
                 var countFormat = 0'u32
-                while ptr[nextIdx] and ptr[nextIdx] != '}'u8
+                while nextIdx < cpt and ptr[nextIdx] != '}'u8
                 {
                     countFormat += 1
                     nextIdx     += 1
                 }
 
-                if ptr[nextIdx] do
+                if nextIdx < cpt do
                     nextIdx += 1
                 idx       = nextIdx
                 strFormat = Swag.makeSlice(ptrFormat, cast(u64) countFormat)
@@ -155,14 +159,14 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
         }
     }
 
-    // Add remaining text
+    // Add the remaining text.
     if idx < nextIdx do
-        buf.addBytes(cast(const [..] u8) Swag.makeSlice(ptr + idx, cast(u64) nextIdx - idx))
+        buf.addBytes(fmt[idx until nextIdx])
 }
 
-// String interpolation.
-// Format is `{<value to interpolate>:format}`
-// A mixin: the interpolated expressions are caller-side names, so the generated
+// Appends `exp` to `buf`, with each `{expr}` or `{expr:format}` replaced by the value of `expr`.
+//
+// This is a mixin: the interpolated expressions are caller-side names, so the generated
 // code must resolve in the caller scope; the internal locals use "#uniq?".
 #[Mixin]
 func toInterp(buf: *ConcatBuffer, exp: string)
@@ -218,7 +222,7 @@ func toInterp(buf: *ConcatBuffer, exp: string)
     }
 }
 
-// String interpolation.
+// Returns a new [[Core.String]] holding `exp` interpolated like the overload that appends to a [[Core.ConcatBuffer]].
 #[Mixin]
 func toInterp(exp: string)->String
 {

@@ -134,10 +134,7 @@ func referencePreset(preset: Math.CurvePreset, p: f32)->f32
 
 // Every preset but the spring is piecewise polynomial of degree three or less, so the key form
 // reproduces it exactly; the spring is sampled and only has to stay under a thousandth.
-func presetTolerance(preset: Math.CurvePreset)->f32
-{
-    return preset == .EaseOutElastic ? 0.001'f32 : 0.0001'f32
-}
+func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic ? 0.001'f32 : 0.0001'f32
 
 // Each preset draws the shape it is named for, all the way along.
 #test

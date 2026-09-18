@@ -2,12 +2,13 @@
 
 using Swag, Core, Pixel
 
+// Style-sheet overrides accumulate one line at a time, and every change marks the style dirty.
 #test
 {
     var style: ThemeStyle
     Swag.assert(not style.dirty)
-    Swag.assert(style.styleSheetColors.length == 0)
-    Swag.assert(style.styleSheetMetrics.length == 0)
+    Swag.assert(style.styleSheetColors.isEmpty())
+    Swag.assert(style.styleSheetMetrics.isEmpty())
 
     style.setStyleSheetColors("btn_Text $white")
     Swag.assert(style.dirty)
@@ -17,7 +18,7 @@ using Swag, Core, Pixel
     Swag.assert(style.styleSheetColors == "btn_Text $white\nbtn_Bk $black")
 
     style.clearStyleSheetColors()
-    Swag.assert(style.styleSheetColors.length == 0)
+    Swag.assert(style.styleSheetColors.isEmpty())
     Swag.assert(style.dirty)
 
     style.dirty = false
@@ -29,6 +30,7 @@ using Swag, Core, Pixel
     Swag.assert(style.styleSheetMetrics == "button_Height 24\nbutton_Margin 2")
 }
 
+// Unset font slots fall back to an assigned face, and clearing the fonts empties every slot.
 #test
 {
     var regular: Font

@@ -39,26 +39,39 @@ attr NoSerialize()
 #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
 attr Compress()
 
-// Defines the operations supported by i serialize.
+// Lets a struct take over part or all of its own serialization.
+//
+// A struct that implements it is asked first: returning false from a method hands the work
+// back to the reflected field-by-field path.
 interface ISerialize
 {
-    // Performs the read operation.
+    // Reads the whole value from `decoder` and returns true, or returns false to have the decoder read it field by field.
     mtd read(decoder: IDecoder)->bool fail
 
-    // Performs the write operation.
+    // Writes the whole value to `encoder` and returns true, or returns false to have the encoder write it field by field.
     mtd write(encoder: IEncoder)->bool fail
 
-    // Reads element.
+    // Reads the field `type` into `data` and returns true, or returns false to have the decoder read it.
     mtd readElement(type: TypeValue, data: *void?, decoder: IDecoder)->bool fail
 
-    // Writes element.
+    // Writes the field `type` from `data` and returns true, or returns false to have the encoder write it.
     mtd writeElement(type: TypeValue, data: const *void?, encoder: IEncoder)->bool fail
 
-    // Posts read.
+    // Runs after the decoder has read every field of the value at `data`, so derived state can be rebuilt.
     mtd postRead(data: *void?, decoder: IDecoder) fail
 }
 
-// Represents serializer.
+// Drives a read or a write through one code path, so a single function can both save and load a value.
+//
+// ```swag
+// func serializeSettings(serializer: *Serialization.Serializer, settings: *Settings) fail
+// {
+//     try serializer.beginSection()
+//     try serializer.serialize("width", &settings.width)
+//     try serializer.serialize("height", &settings.height)
+//     try serializer.endSection()
+// }
+// ```
 struct Serializer
 {
     // Which direction the serializer runs in. Established by 'startWrite' or 'startRead'.
@@ -76,15 +89,15 @@ struct Serializer
 
 impl Serializer
 {
-    // Returns whether writing.
+    // Returns whether the serializer writes.
     #[Swag.Inline]
-    mtd isWriting() => .isWrite
+    mtd isWriting()->bool => .isWrite
 
-    // Returns whether reading.
+    // Returns whether the serializer reads.
     #[Swag.Inline]
-    mtd isReading() => not .isWrite
+    mtd isReading()->bool => not .isWrite
 
-    // Start encoding
+    // Starts writing to `output` through `encoder`.
     mtd startWrite(encoder: IEncoder, output: *ConcatBuffer) fail
     {
         .encode  = encoder
@@ -92,7 +105,7 @@ impl Serializer
         try .encode.start(output)
     }
 
-    // Start decoding
+    // Starts reading the borrowed `input` through `decoder`.
     mtd startRead(decoder: IDecoder, input: const [..] u8) fail
     {
         .decode  = decoder
@@ -100,52 +113,37 @@ impl Serializer
         try .decode.start(input)
     }
 
-    // End encoding/decoding
+    // Finishes the write or the read.
     mtd end() fail
     {
-        if .isWrite
-        {
-            let encode = .encode!
-            try encode.end()
-        }
-        else
-        {
-            let decode = .decode!
-            try decode.end()
-        }
+        if .isWrite do
+            try .encode!.end()
+        else do
+            try .decode!.end()
     }
 
-    // Start a new section
+    // Opens a section of kind `kind`.
     mtd beginSection(kind = SectionKind.Unordered) fail
     {
-        if .isWrite
-        {
-            let encode = .encode!
-            try encode.beginSection(kind)
-        }
-        else
-        {
-            let decode = .decode!
-            try decode.beginSection(kind)
-        }
+        if .isWrite do
+            try .encode!.beginSection(kind)
+        else do
+            try .decode!.beginSection(kind)
     }
 
-    // End the previous section
+    // Closes the current section.
     mtd endSection() fail
     {
-        if .isWrite
-        {
-            let encode = .encode!
-            try encode.endSection()
-        }
-        else
-        {
-            let decode = .decode!
-            try decode.endSection()
-        }
+        if .isWrite do
+            try .encode!.endSection()
+        else do
+            try .decode!.endSection()
     }
 
-    // Serialize one value
+    // Writes `res` as the field `name`, or reads that field into `res`.
+    //
+    // `crc` identifies the field on the wire. When reading, a field the input does not contain
+    // leaves `res` unchanged.
     #[Swag.Optimize(false)]
     mtd(MT) serialize(name: string, crc: u32, res: *MT) fail
     {
@@ -201,7 +199,7 @@ impl Serializer
         }
     }
 
-    // Serialize one value
+    // Serializes `res` as the field `name`, identified by the CRC-32 of `name`.
     #[Swag.Mixin]
     mtd(MT) serialize(name: string, res: *MT) fail
     {

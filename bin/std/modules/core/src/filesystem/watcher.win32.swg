@@ -49,9 +49,9 @@ private func appendChange(changes: *Array'Change, kind: ChangeKind, root, relati
     changes.add(#move change)
 }
 
-impl Watcher
+internal impl Watcher
 {
-    internal mtd openNative() fail
+    mtd openNative() fail
     {
         let raw   = Memory.alloc(#sizeof(WatcherNative))
         let state = cast(*WatcherNative) raw
@@ -78,7 +78,7 @@ impl Watcher
         .native = state
     }
 
-    internal mtd closeNative()
+    mtd closeNative()
     {
         if not .native do
             return
@@ -100,7 +100,7 @@ impl Watcher
         .native = null
     }
 
-    internal mtd cancelNative()
+    mtd cancelNative()
     {
         let state = watcherNative(.native)
         if state.cancelled.exchange(1) do
@@ -141,7 +141,7 @@ impl Watcher
             var name     = Utf8.fromUtf16(Swag.makeSlice(nameData, cast(u64) info.FileNameLength / #sizeof(u16)))
             let relative = name.toString()
 
-            if info.Action != FILE_ACTION_RENAMED_NEW_NAME and info.Action != FILE_ACTION_RENAMED_OLD_NAME and state.pendingRename.length
+            if info.Action != FILE_ACTION_RENAMED_NEW_NAME and info.Action != FILE_ACTION_RENAMED_OLD_NAME and not state.pendingRename.isEmpty()
             {
                 appendChange(&result.changes, .Removed, .root.toString(), state.pendingRename.toString())
                 state.pendingRename.clear()
@@ -159,12 +159,12 @@ impl Watcher
                 appendChange(&result.changes, .Modified, .root.toString(), relative)
 
             case FILE_ACTION_RENAMED_OLD_NAME:
-                if state.pendingRename.length do
+                if not state.pendingRename.isEmpty() do
                     appendChange(&result.changes, .Removed, .root.toString(), state.pendingRename.toString())
                 state.pendingRename = #move name
 
             case FILE_ACTION_RENAMED_NEW_NAME:
-                if state.pendingRename.length
+                if not state.pendingRename.isEmpty()
                 {
                     let oldPath = Path.combine(.root.toString(), state.pendingRename.toString())
                     appendChange(&result.changes, .Renamed, .root.toString(), relative, oldPath.toString())
@@ -189,7 +189,7 @@ impl Watcher
         return result
     }
 
-    internal mtd nextNative(waitMilliseconds: u32)->WatchBatch fail
+    mtd nextNative(waitMilliseconds: u32)->WatchBatch fail
     {
         let state = watcherNative(.native)
         if state.cancelled.load()

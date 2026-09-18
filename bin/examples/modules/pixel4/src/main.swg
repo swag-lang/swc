@@ -148,10 +148,7 @@ func nextPage()
     g_Page = (g_Page + 1) % MaxPages
 }
 
-func isAnchorCap(cap: LineCapStyle)->bool
-{
-    return cap == .ArrowAnchor or cap == .ArrowAnchor2 or cap == .SquareAnchor or cap == .RoundAnchor
-}
+func isAnchorCap(cap: LineCapStyle)->bool => cap == .ArrowAnchor or cap == .ArrowAnchor2 or cap == .SquareAnchor or cap == .RoundAnchor
 
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {

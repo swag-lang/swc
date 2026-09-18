@@ -217,7 +217,7 @@ using Swag, Core
     var libraryView: LibraryView
     var libraryItem: LibraryItem
     libraryItem.kind        = .Capture
-    libraryItem.fi.fullname = path
+    libraryItem.fi.fullName = path
     libraryView.loadOne(&libraryItem)
     Swag.assert(libraryItem.loaded)
     Swag.assert(libraryItem.capture != null)

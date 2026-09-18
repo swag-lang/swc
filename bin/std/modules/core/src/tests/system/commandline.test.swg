@@ -61,20 +61,6 @@ func parseAdvancedFailed(args: const [..] string)->bool
     return err2 != null
 }
 
-func assertIntValues(values: Array's32, expected: const [..] s32)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
-
 func assertStringValues(values: Array'String, expected: const [..] string)->bool
 {
     if values.count != expected.count do
@@ -165,7 +151,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 {
     var options: NumericOptions
     let result = expect CommandLine.parse(&options, ["-enabled", "false"])
-    Swag.assert(options.enabled == false)
+    Swag.assert(not options.enabled)
     Swag.assert(result.isSet.enabled)
     Swag.assert(not result.isSet.threshold)
 }
@@ -191,7 +177,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 {
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-values:-1", "2", "3"])
-    Swag.assert(assertIntValues(options.values, [-1, 2, 3]))
+    Swag.assert(Slice.equals(options.values.toSlice(), [-1, 2, 3]))
     Swag.assert(not result.isSet.labels)
     Swag.assert(result.isSet.values)
 }

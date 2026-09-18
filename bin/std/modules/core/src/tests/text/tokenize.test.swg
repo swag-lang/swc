@@ -3,19 +3,7 @@
 
 using Swag
 
-func assertStringArray(values: Array'(string), expected: const [..] string)->bool
-{
-    if values.count != expected.count do
-        return false
-
-    for i in values.count
-    {
-        if values[i] != expected[i] do
-            return false
-    }
-
-    return true
-}
+func assertStringArray(values: Array'(string), expected: const [..] string)->bool => Slice.equals(values.toSlice(), expected)
 
 #test
 {

@@ -67,10 +67,7 @@ public impl Bus
     // Sets the bus gain in decibels.
     //
     // `batchId` is forwarded to backends that support deferred operation sets.
-    mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail
-    {
-        try .setVolume(decibelsToLinearGain(decibels), batchId)
-    }
+    mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail => try .setVolume(decibelsToLinearGain(decibels), batchId)
 
     // Returns the current bus gain in decibels.
     mtd volumeDb()->f32 fail => linearGainToDecibels(try .volume())

@@ -2,10 +2,9 @@
 Audio streams decoded sound through a process-wide audio engine. It loads PCM, floating-point, and
 ADPCM `.wav`, `.flac`, `.mp3`, `.aac`, `.ac3`, `.eac3`, `.dts`, `.ogg`, and `.opus` files directly, and
 container readers can expose indexed AAC-LC, AC-3, E-AC-3, DTS Core, FLAC, Layer III, Vorbis, and
-Opus access units or scattered PCM chunks
-without copying their media payload. A compressed file is indexed, never loaded: opening one walks
-its frame headers and the audio stays on disk. The compressed decoders are
-implemented in Swag and add no platform codec dependency.
+Opus access units or scattered PCM chunks without copying their media payload. A compressed file is
+indexed, never loaded: opening one walks its frame headers and the audio stays on disk. The
+compressed decoders are implemented in Swag and add no platform codec dependency.
 
 DTS-HD access units play through their backward-compatible Core prefix. The decoder does not
 reconstruct the lossless extension substream.

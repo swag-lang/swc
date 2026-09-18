@@ -41,7 +41,7 @@ using Swag
     Swag.assert(Slice.findSubslice(values, [6, 7]) == 5)
     Swag.assert(Slice.findSubslice(values, [7, 8]) == Swag.U64.Max)
     Swag.assert(Slice.findSubslice(values, values) == 0)
-    Swag.assert(Slice.findSubslice(values, Swag.makeSlice(values.buffer, 0)) == 0)
+    Swag.assert(Slice.findSubslice(values, values[until 0]) == 0)
 }
 
 #test

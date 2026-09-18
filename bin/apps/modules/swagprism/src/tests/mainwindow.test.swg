@@ -7,8 +7,8 @@ func testSetupInspectionWindow(host: *Testing.HeadlessHost, width = cast(f32) Ma
 {
     let window = testSetupMainWindow(host, width, height)
     window.selectedExample = .Dot
-    window.exampleCombo.setSelectedIndex(cast(u32) ExampleKind.Dot, notify: false)
-    window.liveEdit.setState(.Unchecked)
+    window.commandBar.exampleCombo.setSelectedIndex(cast(u32) ExampleKind.Dot, notify: false)
+    window.commandBar.liveEdit.setState(.Unchecked)
     window.editor.setText(exampleSource(.Dot))
     window.panels[0].selectViewer(.Microcode)
     return window
@@ -23,7 +23,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast #assum
     let window = testSetupInspectionWindow(&host)
     defer host.shutdown()
     Swag.assert(window.commandBar.parent == window.sourcePanel)
-    Swag.assert(window.runButton.icon.isValid())
+    Swag.assert(window.commandBar.runButton.icon.isValid())
     Swag.assert(window.layoutButton.parent == window.panels[0].header)
     Swag.assert(not window.comparisonEnabled)
     Swag.assert(window.viewerSplit.isPaneVisible(0) and not window.viewerSplit.isPaneVisible(1))
@@ -50,9 +50,9 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast #assum
     defer host.shutdown()
 
     let text = window.editor.text()
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) text.toString(), "\n{\n    var total = 0'f32\n    for i in a.count do\n        total += a[i] * b[i]\n    return total\n}") != Swag.U64.Max)
+    Swag.assert(text.contains("\n{\n    var total = 0'f32\n    for i in a.count do\n        total += a[i] * b[i]\n    return total\n}"))
     let inspected = Pipeline.inspectedSource(text.toString(), "pre-emit")
-    Swag.assert(Utf8.indexOf(cast(const [..] u8) inspected.toString(), "#[Swag.PrintMicro") != Swag.U64.Max)
+    Swag.assert(inspected.contains("#[Swag.PrintMicro"))
 }
 
 // An option change submits only that viewer and queues its next request independently.
@@ -131,11 +131,11 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => cast #assum
     {
         Swag.assert(not viewer.job.running and viewer.job.timer == null)
         Swag.assert(not viewer.job.stopped and not viewer.job.result.failed)
-        Swag.assert(not viewer.outputIsHint and viewer.outputText.colors.count != 0)
+        Swag.assert(not viewer.outputIsHint and not viewer.outputText.colors.isEmpty())
         let plain    = viewer.output.text()
         let expected = Format.toString("  optimize : O%", cast(u8) viewer.job.request.settings.optimization)
-        Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), expected.toString()) != Swag.U64.Max)
-        Swag.assert(Utf8.indexOf(cast(const [..] u8) plain.toString(), "\x1B") == Swag.U64.Max)
+        Swag.assert(plain.contains(expected.toString()))
+        Swag.assert(not plain.contains("\x1B"))
     }
 
     Swag.assert(window.status.name == appStrings().ui_Ready)

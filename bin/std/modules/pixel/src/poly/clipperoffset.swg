@@ -137,7 +137,7 @@ impl Offset
             clpr.addPath(&outer, PolyType.Subject)
             clpr.reverseOutput = reverseNeg
             clpr.execute(ClipType.Union, solution, PolyFillType.Negative, PolyFillType.Negative)
-            if solution.count > 0 do
+            if not solution.isEmpty() do
                 solution.removeAt(0)
         }
     }
@@ -167,10 +167,7 @@ impl Offset
     // Determine the orientation of a polygon based on its signed area.
     // Returns true for counter-clockwise (positive area), false for clockwise.
     #[Swag.Inline]
-    func orientation(poly: ClipperPath)->bool
-    {
-        return area(poly) >= 0
-    }
+    func orientation(poly: ClipperPath)->bool => area(poly) >= 0
 
     // Ensure all polygons have consistent orientation for proper offsetting.
     // Reverses polygon vertex order if the bottommost polygon has incorrect orientation.

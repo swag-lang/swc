@@ -60,10 +60,7 @@ func peekU32(buffer: const [..] u8, offset: u64)->u32
     return cast(u32) buf[offset] << 24 | cast(u32) buf[offset + 1] << 16 | cast(u32) buf[offset + 2] << 8 | buf[offset + 3]
 }
 
-func peekF2Dot14(buffer: const [..] u8, offset: u64)->f64
-{
-    return peekS16(buffer, offset) / 16384.0
-}
+func peekF2Dot14(buffer: const [..] u8, offset: u64)->f64 => peekS16(buffer, offset) / 16384.0
 
 func readU8(buffer: const [..] u8, offset: u64)->u8 fail
 {
@@ -110,10 +107,7 @@ func readS32(buffer: const [..] u8, offset: u64)->s32 fail
     return cast(s32) (cast(s64) value - 0x1_0000_0000)
 }
 
-func readF2Dot14(buffer: const [..] u8, offset: u64)->f64 fail
-{
-    return try readS16(buffer, offset) / 16384.0
-}
+func readF2Dot14(buffer: const [..] u8, offset: u64)->f64 fail => try readS16(buffer, offset) / 16384.0
 
 func roundDiv(value, divisor: s64)->s32
 {
@@ -124,12 +118,6 @@ func roundDiv(value, divisor: s64)->s32
     return cast(s32) -(((-value) + divisor / 2) / divisor)
 }
 
-func scaleFixed(ppem, unitsPerEm: u32)->s32
-{
-    return roundDiv(cast(s64) ppem * 64 * 65536, unitsPerEm)
-}
+func scaleFixed(ppem, unitsPerEm: u32)->s32 => roundDiv(cast(s64) ppem * 64 * 65536, unitsPerEm)
 
-func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32
-{
-    return roundDiv(cast(s64) value * cast(s64) ppem * 64, unitsPerEm)
-}
+func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 => roundDiv(cast(s64) value * cast(s64) ppem * 64, unitsPerEm)

@@ -225,7 +225,7 @@ private func joinCueLines(result: *String, lines: const [..] string, first, last
     var joined: String
     for index in first until last
     {
-        if joined.length do
+        if not joined.isEmpty() do
             joined.append('\n'rune)
         joined += lines[index]
     }
@@ -375,10 +375,7 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
     }
 }
 
-private func parseLrcTimestamp(text: string)->f64 fail
-{
-    return try parseTimestamp(text)
-}
+private func parseLrcTimestamp(text: string)->f64 fail => try parseTimestamp(text)
 
 private func decodeLyric(track: *Track, source: string) fail
 {
@@ -539,7 +536,7 @@ impl Track
     mtd const languageTagLength()->u64 => .language.length
 
     // Returns the end of the last cue, or zero for an empty track.
-    mtd const durationInSeconds()->f64 => .cues.count ? .cues[.cues.count - 1].endSeconds : 0
+    mtd const durationInSeconds()->f64 => not .cues.isEmpty() ? .cues[.cues.count - 1].endSeconds : 0
 
     private mtd closeLyricCues()
     {
@@ -607,7 +604,7 @@ impl Track
         }
 
         result.sortCues()
-        if not result.cues.count do
+        if result.cues.isEmpty() do
             fail InvalidFormatError{"subtitle document has no timed cues"}
     }
 
@@ -695,7 +692,7 @@ impl Track
         let content = .format == .SubStationAlpha ? commaTail(text, 7) : text
         var clean: String
         stripSubtitleMarkup(&clean, content)
-        if clean.length do
+        if not clean.isEmpty() do
             .addCue(startSeconds, endSeconds, clean.toString())
     }
 
@@ -735,7 +732,7 @@ impl Track
 
             if cue.endSeconds <= seconds do
                 continue
-            if result.length do
+            if not result.isEmpty() do
                 result.append('\n'rune)
             result[]   += .cueContent(index)
             nextChange = Math.min(nextChange, cue.endSeconds)

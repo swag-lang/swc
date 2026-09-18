@@ -14,10 +14,7 @@ public enum PathFillRule
 
 // Identifies one contour point by its exact coordinates. The tessellator copies the points it is
 // given, so the two bit patterns are the same value and not merely a close one.
-private func contourPointKey(point: Vector2)->u64
-{
-    return cast(u64) cast #bit(u32) point.x << 32 | cast(u64) cast #bit(u32) point.y
-}
+private func contourPointKey(point: Vector2)->u64 => cast(u64) cast #bit(u32) point.x << 32 | cast(u64) cast #bit(u32) point.y
 
 // One region a fill triangulates as a unit, as a range of a companion contour array.
 //
@@ -75,10 +72,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'(*LinePath),
 // irrelevant to the region; when that contour runs anticlockwise its directions point inward, and
 // both the solid's inset and the antialiasing band would place the edge a band outside the
 // contour, as hard as the solid.
-private func regionOutward(contours: const [..] *LinePath, ruled: bool)->f32
-{
-    return ruled and contours.count == 1 and not contours[0].polygon.isClockwise ? -1.0'f32 : 1.0'f32
-}
+private func regionOutward(contours: const [..] *LinePath, ruled: bool)->f32 => ruled and contours.count == 1 and not contours[0].polygon.isClockwise ? -1.0'f32 : 1.0'f32
 
 // Records, for every vertex of a freshly tessellated region, the outward direction of the contour
 // point it came from, so the solid can be inset when it is pushed rather than when it is built.
@@ -210,16 +204,23 @@ public impl Painter
         }
     }
 
-    // Fill a list of paths.
+    // Fills a list of contours, reading each contour's winding direction.
+    //
+    // A clockwise contour adds ink and an anticlockwise one cuts a hole. Geometry that states a
+    // fill rule instead, such as PDF or SVG outlines, belongs in the overloads taking a
+    // [[Pixel.PathFillRule]].
     mtd fillPath(pathList: *LinePathList, color: Color)
     {
-        if not pathList.paths.count do
+        if pathList.paths.isEmpty() do
             return
 
         let brush = Brush.createSolid(color)
         .fillPath(pathList, brush)
     }
 
+    // Fills a single contour with a brush.
+    //
+    // A self-intersecting contour is cleaned into simple ones before it is tessellated.
     mtd fillPath(path: *LinePath, brush: Brush)
     {
         path.flatten(.curState.paintQuality, .curFlattenScale)
@@ -301,8 +302,7 @@ public impl Painter
         .fillPath(path, brush)
     }
 
-    // Fill a list of paths.
-    // If the path is clockwise, it will be filled. If the path is anti-clockwise, it will be considered as a hole.
+    // Fills a list of contours with a brush, reading each contour's winding direction.
     mtd fillPath(pathList: *LinePathList, brush: Brush)
     {
         // Flatten all paths
@@ -373,7 +373,9 @@ public impl Painter
         }
     }
 
-    // Fill the polygon with the given color
+    // Fills the region enclosed by one contour, whatever its winding direction.
+    //
+    // A non-convex contour is first cleaned into simple contours, each filled on its own.
     mtd fillPolygon(path: *LinePath, color: Color)
     {
         if .isInvisible(color) do
@@ -383,7 +385,6 @@ public impl Painter
         .fillPolygon(path, brush)
     }
 
-    // Fill the polygon with the given 'brush'
     mtd fillPolygon(path: *LinePath, brush: Brush)
     {
         if .isInvisible(brush) do
@@ -403,7 +404,7 @@ public impl Painter
         }
     }
 
-    // Fill the polygon with the given 'brush'
+    // Fills the closed polygon through `points`; fewer than three points draw nothing.
     mtd fillPolygon(points: [..] Math.Vector2, brush: Brush)
     {
         if points.count < 3 do

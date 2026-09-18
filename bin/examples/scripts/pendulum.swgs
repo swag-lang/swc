@@ -34,10 +34,7 @@ func restartPendulum()
     linePath.clear()
 }
 
-func pendulumStateIsFinite()->bool
-{
-    return Math.isFinite(a1) and Math.isFinite(a2) and Math.isFinite(a1_v) and Math.isFinite(a2_v)
-}
+func pendulumStateIsFinite()->bool => Math.isFinite(a1) and Math.isFinite(a2) and Math.isFinite(a1_v) and Math.isFinite(a2_v)
 
 func stepPendulum(dt: f32)->bool
 {

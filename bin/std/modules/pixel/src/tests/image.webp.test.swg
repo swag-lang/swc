@@ -2,15 +2,9 @@
 
 using Swag, Core
 
-func webpExpectedChannel(value: s32)->u8
-{
-    return cast(u8) Math.clamp(value, 0, 255)
-}
+func webpExpectedChannel(value: s32)->u8 => cast(u8) Math.clamp(value, 0, 255)
 
-func webpMultiplyHigh(value, coefficient: s32)->s32
-{
-    return (value * coefficient) >> 8
-}
+func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 8
 
 func assertWebpPixelFromTop(image: Image, x, y, r, g, b, a: u8)
 {

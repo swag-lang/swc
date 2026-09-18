@@ -48,14 +48,16 @@ using Swag, Core, Pixel
     Clipboard.addTypedValue(&v, s32)
     var got: s32
     Swag.assert(Clipboard.hasTypedValue(s32))
-    Swag.assert(Clipboard.getTypedValue(&got, s32))
+    var found = Clipboard.getTypedValue(&got, s32)
+    Swag.assert(found)
     Swag.assert(got == 42)
     Swag.assert(Clipboard.hasImage())
 
-    // Replacing the payload of an already-present format
+    // Adding a value of a format already present replaces its payload.
     v = 1664
     Clipboard.addTypedValue(&v, s32)
-    Swag.assert(Clipboard.getTypedValue(&got, s32))
+    found = Clipboard.getTypedValue(&got, s32)
+    Swag.assert(found)
     Swag.assert(got == 1664)
 
     Clipboard.clear()

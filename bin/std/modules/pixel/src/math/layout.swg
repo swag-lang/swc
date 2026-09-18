@@ -43,10 +43,7 @@ private func mathResolveFont(baseFont: *Font, variant: MathFontVariant, text: st
     return baseFont.owner.createFont(baseFont.cache.typeFace, baseFont.size, baseFont.renderMode(), bold, italic)
 }
 
-private func mathRuleThickness(font: *Font, options: MathLayoutOptions, scale: f32)->f32
-{
-    return Math.max(options.minRuleThickness, cast(f32) font.size * options.ruleThicknessEm * scale)
-}
+private func mathRuleThickness(font: *Font, options: MathLayoutOptions, scale: f32)->f32 => Math.max(options.minRuleThickness, cast(f32) font.size * options.ruleThicknessEm * scale)
 
 private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
 {
@@ -919,8 +916,10 @@ impl MathExpression
 
 impl Painter
 {
-    // Draw a parsed expression with its top-left at (left, top), returning the same
-    // metrics as MathExpression.measure.
+    // Draws a parsed expression with its top-left corner at `(left, top)`.
+    //
+    // Returns the metrics [[Pixel.MathExpression.measure]] reports. A fully transparent color
+    // measures without drawing.
     #[Swag.Discardable]
     mtd drawMath(left, top: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
     {
@@ -930,7 +929,7 @@ impl Painter
         return metrics
     }
 
-    // Draw a parsed expression centered on (centerX, centerY).
+    // Draws a parsed expression centered on `(centerX, centerY)` and returns its metrics.
     #[Swag.Discardable]
     mtd drawMathCenter(centerX, centerY: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
     {
@@ -940,8 +939,10 @@ impl Painter
         return metrics
     }
 
-    // Parse and draw a one-shot LaTeX expression. Cache MathExpression.parse when
-    // the same formula is drawn every frame.
+    // Parses and draws a one-shot LaTeX expression with its top-left corner at `(left, top)`.
+    //
+    // Keep the result of [[Pixel.MathExpression.parse]] instead when the same formula is drawn
+    // every frame. Parse failures are reported through `fail`.
     #[Swag.Discardable]
     mtd drawMathLatex(left, top: f32, source: string, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics fail
     {

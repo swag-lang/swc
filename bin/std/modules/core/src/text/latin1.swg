@@ -5,52 +5,61 @@ using Swag
 
 #[Inline, ConstExpr]
 {
-    // Returns whether ascii.
+    // Returns whether `c` is an ASCII byte, below 0x80.
     func isAscii(c: u8) => c <= 0x7F
 
-    // Returns whether digit.
-    func isDigit(c: u8) => cast(bool) (CharProperties[c] & .Digit)
+    // Returns whether `c` is a decimal digit, '0' to '9'.
+    //
+    // These are the only Latin-1 characters of the Unicode decimal digit category, so a parser can
+    // take `c - '0'` as the digit value.
+    func isDigit(c: u8) => c >= '0' and c <= '9'
 
-    // Returns whether number.
+    // Returns whether `c` is a Latin-1 number.
+    //
+    // Besides the decimal digits, Latin-1 counts the superscripts U+00B2, U+00B3 and U+00B9 and
+    // the fractions U+00BC to U+00BE, which have no decimal value.
     func isNumber(c: u8) => cast(bool) (CharProperties[c] & .Digit)
 
-    // Returns whether bin digit.
+    // Returns whether `c` is a binary digit, '0' or '1'.
     func isBinDigit(c: u8) => cast(bool) (CharProperties[c] & .BinDigit)
 
-    // Returns whether hex digit.
+    // Returns whether `c` is a hexadecimal digit: '0' to '9', 'a' to 'f' or 'A' to 'F'.
     func isHexDigit(c: u8) => cast(bool) (CharProperties[c] & .HexDigit)
 
-    // Returns whether upper.
+    // Returns whether `c` is a Latin-1 upper-case letter.
     func isUpper(c: u8) => cast(bool) (CharProperties[c] & .Upper)
 
-    // Returns whether lower.
+    // Returns whether `c` is a Latin-1 lower-case letter.
     func isLower(c: u8) => cast(bool) (CharProperties[c] & .Lower)
 
-    // Returns whether punctuation.
+    // Returns whether `c` is a Latin-1 punctuation character.
     func isPunctuation(c: u8) => cast(bool) (CharProperties[c] & .Punctuation)
 
-    // Returns whether letter.
+    // Returns whether `c` is a Latin-1 letter.
     func isLetter(c: u8) => cast(bool) (CharProperties[c] & .Letter)
 
-    // Returns whether letter or digit.
+    // Returns whether `c` is a Latin-1 letter or digit.
     func isLetterOrDigit(c: u8) => cast(bool) (CharProperties[c] & (.Letter | .Digit))
 
-    // Returns whether space.
+    // Returns whether `c` is Latin-1 white space.
+    //
+    // That is a tab, a line feed, a vertical tab, a form feed, a carriage return, a space,
+    // U+0085 or U+00A0.
     func isSpace(c: u8) => cast(bool) (CharProperties[c] & .Spacing)
 
-    // Returns whether control.
+    // Returns whether `c` is a Latin-1 control character.
     func isControl(c: u8) => cast(bool) (CharProperties[c] & .Control)
 
-    // Returns whether symbol.
+    // Returns whether `c` is a Latin-1 symbol, such as a currency or mathematical sign.
     func isSymbol(c: u8) => cast(bool) (CharProperties[c] & .Symbol)
 
-    // Returns whether word.
+    // Returns whether `c` is a word character: a Latin-1 letter or digit, or '_'.
     func isWord(c: u8) => isLetter(c) or isDigit(c) or c == '_'
 
     // Returns the lowercase Latin-1 byte, preserving bytes with no lowercase mapping.
     func toLower(c: u8) => isUpper(c) ? (c | 0x20'u8) : c
 
-    // Returns the uppercase Latin-1 byte, preserving mappings outside this repertoire.
+    // Returns the uppercase Latin-1 byte, preserving bytes with no uppercase mapping.
     func toUpper(c: u8) => ((c >= 0x61 and c <= 0x7A) or (c >= 0xE0 and c <= 0xFE and c != 0xF7)) ? (c & ~0x20'u8) : c
 }
 
@@ -374,9 +383,9 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
     for
     {
         if ai < src.count and (isAsciiSpace(src[ai]) or src.count - ai >= 2 and isEncodedSpace(src[ai], src[ai + 1])) do
-            ai += firstNonSpace(src[ai until src.count])
+            ai += firstNonSpace(src[ai to])
         if bi < dst.count and (isAsciiSpace(dst[bi]) or dst.count - bi >= 2 and isEncodedSpace(dst[bi], dst[bi + 1])) do
-            bi += firstNonSpace(dst[bi until dst.count])
+            bi += firstNonSpace(dst[bi to])
         if ai == src.count or bi == dst.count do
             return (src.count - ai) <=> (dst.count - bi)
 
@@ -386,8 +395,8 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         // A UTF-8 continuation byte is never part of an ASCII decimal run.
         if ca >= '0'u8 and ca <= '9'u8 and cb >= '0'u8 and cb <= '9'u8
         {
-            let left   = src[ai until src.count]
-            let right  = dst[bi until dst.count]
+            let left   = src[ai to]
+            let right  = dst[bi to]
             let result = ca == '0'u8 or cb == '0'u8 ? compareLeft(left, right) : compareRight(left, right)
             if result do
                 return result
@@ -413,11 +422,10 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 // whitespace is preserved; the returned view remains valid while `str` does.
 func trim(str: string)->string
 {
-    let bytes = Swag.makeSlice(str.buffer, str.count)
+    let bytes = cast(const [..] u8) str
     let first = firstNonSpace(bytes)
     if first == str.count do
         return ""
-    let tail = bytes[first until bytes.count]
-    let last = first + lastNonSpace(tail)
-    return Swag.makeString(str.buffer + first, last - first)
+    let last = first + lastNonSpace(bytes[first to])
+    return str[first until last]
 }

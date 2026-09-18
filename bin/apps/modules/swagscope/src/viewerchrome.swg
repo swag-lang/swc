@@ -1,5 +1,7 @@
 using Core, Pixel, Gui
 
+// A toolbar band that keeps one group centered on the complete bar, independently of the action
+// cluster and the viewer selector docked at its opposite edges.
 struct ViewerActionBar
 {
     using wnd:       Wnd
@@ -27,6 +29,7 @@ impl ViewerActionBar
         return result
     }
 
+    // Centers `centerGroup` on the bar at its preferred width, clamped to the padded client area.
     mtd centerContent()
     {
         if not .centerGroup do
@@ -64,7 +67,7 @@ impl IWnd for ViewerInfoLayout
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if (.fileGroup != null) and (.generalLabel != null) do
+        if .fileGroup != null and .generalLabel != null do
             .computeLayout()
     }
 }
@@ -254,9 +257,7 @@ impl ViewerSearchOverlay
     {
         let parent  = .parent!
         let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
-        .setPosition({topLeft.x - ViewerSearchOverlayInsetX, topLeft.y - ViewerSearchOverlayInsetY,
-                      bounds.width + ViewerSearchOverlayInsetX * 2, bounds.height + ViewerSearchOverlayInsetY * 2},
-                     computeLayout: false)
+        .setPosition({topLeft.x - ViewerSearchOverlayInsetX, topLeft.y - ViewerSearchOverlayInsetY, bounds.width + ViewerSearchOverlayInsetX * 2, bounds.height + ViewerSearchOverlayInsetY * 2}, computeLayout: false)
         .show()
         .bringToFront()
     }
@@ -323,7 +324,7 @@ impl ViewerLoadingOverlay
         var fade: AnimationOptions
         fade.duration = ViewerLoadingFadeIn
         fade.easing   = .EaseOut
-        .fadeAni      = animator.animateF32(me, AnimationChannel.from("scope.Loading.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value); }, fade)
+        .fadeAni      = animator.animateF32(me, AnimationChannel.from("scope.Loading.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, fade)
     }
 
     // Hides the mark at once; a wait that ends is not announced.
@@ -338,6 +339,7 @@ impl ViewerLoadingOverlay
 
 impl ViewerErrorView
 {
+    // Creates the error surface that states `reason` under the standard decoder-failure heading.
     func create(parent: *Wnd, reason: string)->*ViewerErrorView
     {
         let result = Wnd.create'ViewerErrorView(parent, "scope.error")
@@ -348,25 +350,25 @@ impl ViewerErrorView
             .dockStyle = .Center
             .padding   = {48, 48, 48, 48}
             .spacing   = 8
+        }
 
-            with result.iconLabel = Label.create(stack, "", {0, 0, 48, 48})
-            {
-                .layoutSpec.alignX = .Center
-                .setIcon(result.theme().icon(.Critical, 48))
-                .setIconColor(result.themeColors().error)
-            }
+        with result.iconLabel = Label.create(stack, "", {0, 0, 48, 48})
+        {
+            .layoutSpec.alignX = .Center
+            .setIcon(result.theme().icon(.Critical, 48))
+            .setIconColor(result.themeColors().error)
+        }
 
-            with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
-            {
-                .layoutSpec.alignX = .Center
-                .setTextAlignment(.Center, .Center)
-            }
+        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        {
+            .layoutSpec.alignX = .Center
+            .setTextAlignment(.Center, .Center)
+        }
 
-            with result.reasonLabel = Label.create(stack, reason, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight)
-            {
-                .layoutSpec.alignX = .Center
-                .setTextAlignment(.Center, .Center)
-            }
+        with result.reasonLabel = Label.create(stack, reason, {0, 0, ViewerErrorTextWidth, 0}, null, .WordWrap | .AutoHeight)
+        {
+            .layoutSpec.alignX = .Center
+            .setTextAlignment(.Center, .Center)
         }
 
         result.applyLayout()

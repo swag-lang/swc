@@ -4,7 +4,7 @@ using Core, Pixel
 #[Swag.Opaque]
 public struct RichEditView
 {
-    public using wnd: Wnd     // Embedded wnd state.
+    public using wnd: Wnd     // Embedded window behavior and presentation.
 
     // The control this view paints for, and the transient state of one editing gesture.
 
@@ -47,7 +47,7 @@ impl IWnd for RichEditView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         let ed = .ed
-        if ed and ed.flags & .WordWrap do
+        if ed and ed.flags.has(.WordWrap) do
             ed.recomputeScroll = true
     }
 
@@ -72,10 +72,10 @@ impl IWnd for RichEditView
                 let cp = edn.cursorAt(pt)
                 .firstLineSelMode = cp.lineIndex
                 edn.setCursorPos(cp)
-                if not (evt.modifiers & .Shift) do
+                if not evt.modifiers.has(.Shift) do
                     edn.selBeg = cp
                 .selMode = true
-                edn.setRectangularSelection(evt.modifiers & .Alt ? true : false)
+                edn.setRectangularSelection(evt.modifiers.has(.Alt))
                 edn.ensureCaretIsVisible()
                 .captureMouse()
             }
@@ -125,7 +125,7 @@ impl IWnd for RichEditView
         if evt.kind == .Pressed
         {
             // Lose focus with escape or enter
-            if edn.flags & .AutoLoseFocus
+            if edn.flags.has(.AutoLoseFocus)
             {
                 if evt.key == .Escape or (evt.key == .Enter and evt.modifiers.equals(.None))
                 {
@@ -265,7 +265,7 @@ impl IWnd for RichEditView
             l.drawingRect.height = size.y
 
             // Current line
-            if bvis and edn.isSelectionEmpty() and i == edn.cursorPos.lineIndex and edn.flags & .CurLineBorder
+            if bvis and edn.isSelectionEmpty() and i == edn.cursorPos.lineIndex and edn.flags.has(.CurLineBorder)
             {
                 var fullRect = l.drawingRect
                 fullRect.y -= .scrollPos.y
@@ -290,7 +290,7 @@ impl IWnd for RichEditView
                 l.dirtyStyle = false
             }
 
-            if bvis or (edn.recomputeScroll and not (edn.flags & .WordWrap))
+            if bvis or (edn.recomputeScroll and not edn.flags.has(.WordWrap))
             {
                 x = .paintLine(evt.paintContext, i, y - .scrollPos.y, bvis)
             }
@@ -334,7 +334,7 @@ impl IWnd for RichEditView
         // Scroll size
         edn.loadedContentHeight = cast(f32) (edn.countVisibleLines * size.y)
         y = Math.max(edn.residentContentOffset + edn.loadedContentHeight, edn.estimatedContentHeight)
-        if edn.flags & .WordWrap do
+        if edn.flags.has(.WordWrap) do
             maxx = 0
         elif not edn.recomputeScroll do
             maxx = edn.scrollWnd.scrollSize.x
@@ -488,7 +488,7 @@ impl RichEditView
             {
                 if .hasFocus() do
                     newStyle = edn.stylesSelect[0]
-                elif edn.flags & .ShowFocusSel do
+                elif edn.flags.has(.ShowFocusSel) do
                     newStyle = edn.stylesSelect[1]
                 if not newStyle.colFg.a do
                     newStyle.colFg = edn.styles[pStyle[]].colFg
@@ -496,7 +496,7 @@ impl RichEditView
                 newStyle.underline = edn.styles[pStyle[]].underline
             }
 
-            if edn.flags & .DrawBlanks
+            if edn.flags.has(.DrawBlanks)
             {
                 if cr == ' ' and pChar != &dummyChar
                 {

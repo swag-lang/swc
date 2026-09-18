@@ -17,18 +17,12 @@ internal impl NativeRenderOgl
     }
 
     // Creates a rendering context for an environment window.
-    mtd createContext(window: *Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail
-    {
-        return try .createWindowContext(window.nativeRenderHandle(), width, height, cast(const *void?) mainRC)
-    }
+    mtd createContext(window: *Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail => try .createWindowContext(window.nativeRenderHandle(), width, height, cast(const *void?) mainRC)
 
     // Creates a rendering context for an existing device context.
     //
     // The device context remains caller-owned. A supplied `mainRC` is borrowed.
-    mtd createDeviceContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->OglContext fail
-    {
-        return try .createContextForDeviceContext(cast(const *void?) hdc, width, height, cast(const *void?) mainRC)
-    }
+    mtd createDeviceContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->OglContext fail => try .createContextForDeviceContext(cast(const *void?) hdc, width, height, cast(const *void?) mainRC)
 
     // Establishes the pixel format and the rendering context of a device context.
     //

@@ -267,7 +267,7 @@ impl Label
         .updateAutomaticHeight()
     }
 
-    // Returns the displayed plain text.
+    // Returns the displayed text, including any formatting markers.
     mtd text()->string => .name.raw
 
     // Adds and removes label options, then updates layout and presentation.
@@ -419,28 +419,28 @@ impl Label
     // unless `AutoHeight` is active.
     mtd updateAutomaticHeight()
     {
-        if .flags.has(.AutoHeight)
-        {
-            let sf   = .getStringFormat(false)
-            var rect = .position
-            if rect.width <= 0 do
-                rect.width = .preferredSize.x
-            if rect.height <= 0 do
-                rect.height = sf.font.regular!.height
+        if not .flags.has(.AutoHeight) do
+            return
 
-            // The text is drawn inside textPadding, so wrap against that inset width (else a
-            // padded label under-measures and clips), and add the vertical inset back in.
-            rect.applyPadding(.textPadding)
+        let sf   = .getStringFormat(false)
+        var rect = .position
+        if rect.width <= 0 do
+            rect.width = .preferredSize.x
+        if rect.height <= 0 do
+            rect.height = sf.font.regular!.height
 
-            .name.compute()
-            Painter.computeLayout(rect, &.name, sf, .deviceScale())
+        // The text is drawn inside textPadding, so wrap against that inset width (else a
+        // padded label under-measures and clips), and add the vertical inset back in.
+        rect.applyPadding(.textPadding)
 
-            var height = .name.boundRect.height
-            if not .name.isEmpty() do
-                height = Math.max(height, sf.font.regular!.height)
-            height += .textPadding.y + .textPadding.w
-            .position.height = height
-            .invalidateLayout()
-        }
+        .name.compute()
+        Painter.computeLayout(rect, &.name, sf, .deviceScale())
+
+        var height = .name.boundRect.height
+        if not .name.isEmpty() do
+            height = Math.max(height, sf.font.regular!.height)
+        height += .textPadding.y + .textPadding.w
+        .position.height = height
+        .invalidateLayout()
     }
 }

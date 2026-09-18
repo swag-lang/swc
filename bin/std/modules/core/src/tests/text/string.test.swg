@@ -28,14 +28,8 @@ func makePatternString(count: u64)->String
 
 func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 {
-    for byte, index in value.reversed()
-    {
-        if byte < minByte do
-            continue
-
+    for byte, index in value.reversed() where byte >= minByte do
         return index
-    }
-
     return Swag.U64.Max
 }
 
@@ -394,4 +388,38 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
     empty = "abc"
     Swag.assert(empty.storage()[0] == 'a')
+}
+
+// Replacing a rune removes all of its bytes, whatever its encoded length.
+#test
+{
+    var text = String.from("a€b€c")
+    text.replace('€', "EUR")
+    Swag.assert(text == "aEURbEURc")
+
+    var shorter = String.from("x→y→z")
+    shorter.replace('→', "")
+    Swag.assert(shorter == "xyz")
+}
+
+// Trimming the start moves the kept text over the space it removes.
+#test
+{
+    var text = String.from("  \t  leading space removed, longer than the inline storage")
+    text.trimStart()
+    Swag.assert(text == "leading space removed, longer than the inline storage")
+}
+
+// A Unicode case change keeps the zero terminator a cstring view relies on.
+#test
+{
+    var text = String.from("ÉTÉ")
+    text.makeLower(.Unicode)
+    Swag.assert(text == "été")
+    Swag.assert(text.storage()[text.length] == 0)
+
+    let runes: [3] rune = ['😀', '😀', '😀']
+    let wide = Utf8.fromUnicode(runes)
+    Swag.assert(wide.length == 12)
+    Swag.assert(wide.storage()[wide.length] == 0)
 }

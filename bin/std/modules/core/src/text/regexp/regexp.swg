@@ -134,13 +134,13 @@ public impl RegExp
         .compiled = false
     }
 
-    // Releases resources owned by this value.
+    // Releases everything the expression holds.
     mtd opDrop()
     {
         .clear()
     }
 
-    // Number of capturing groups in the pattern, not counting the whole match.
+    // Returns the number of capturing groups in the pattern, not counting the whole match.
     mtd const captureCount() => .program.captureCount
 
     //
@@ -161,8 +161,7 @@ public impl RegExp
         return .match(str)
     }
 
-    // Returns the longest prefix of the subject that matches the pattern, or `null` when the
-    // subject does not begin with an occurrence.
+    // Returns the occurrence of the pattern at the start of the subject, or `null` when there is none.
     //
     // The returned string points into `str`.
     mtd partialMatch(str: string?)->string?
@@ -208,12 +207,8 @@ public impl RegExp
         var result: retval
 
         let subject = str orelse ""
-        for &span in .findAll(str)
-        {
-            let data = subject.buffer + span.start
-            result.add(Swag.makeString(data, span.end - span.start))
-        }
-
+        for &span in .findAll(str) do
+            result.add(subject[span.start until span.end])
         return result
     }
 
@@ -269,28 +264,25 @@ public impl RegExp
     // Capture groups.
     //
 
-    // Returns what capture group `rank` matched in the last successful match, or an empty
-    // string when the group did not take part in it.
+    // Returns what capture group `rank` matched in the last successful match.
     //
-    // Group zero is the whole match. The returned string points into the subject of that match.
+    // The result is empty when the group did not take part in the match. Group zero is the whole
+    // match. The returned string points into the subject of that match.
     mtd getCapture(rank: u32)->string
     {
         let span = .captureSpan(rank)
         if not span.found do
             return ""
-        return Swag.makeString((.subject).buffer + span.span.start, span.span.end - span.span.start)
+        return .subject[span.span.start until span.span.end]
     }
 
-    // Returns what the capture group of that name matched, or an empty string when there is
-    // no such group or it did not take part in the match.
+    // Returns what the capture group called `name` matched in the last successful match.
+    //
+    // The result is empty when there is no such group or it did not take part in the match.
     mtd getCapture(name: string)->string
     {
-        for var rank = 0'u32; rank < .captureNames.count; rank += 1
-        {
-            if .captureNames[rank].toString() == name do
-                return .getCapture(rank)
-        }
-
+        for captureName, rank in .captureNames where captureName.toString() == name do
+            return .getCapture(cast(u32) rank)
         return ""
     }
 
@@ -330,13 +322,8 @@ public impl RegExp
     mtd captures()->Array'(string)
     {
         var result: retval
-
-        for var rank = 1'u32; rank <= .program.captureCount; rank += 1
-        {
-            if .captureSpan(rank).found do
-                result.add(.getCapture(rank))
-        }
-
+        for rank in 1'u32 to .program.captureCount where .captureSpan(rank).found do
+            result.add(.getCapture(rank))
         return result
     }
 
@@ -368,13 +355,13 @@ public impl RegExp
             if not step.found do
                 break
 
-            result.append(Swag.makeString(subject.buffer + copied, step.span.start - copied))
+            result.append(subject[copied until step.span.start])
             .appendReplacement(&result, replacement)
             copied = step.span.end
             at     = step.next
         }
 
-        result.append(Swag.makeString(subject.buffer + copied, subject.count - copied))
+        result.append(subject[copied to])
         return result
     }
 
@@ -394,11 +381,11 @@ public impl RegExp
             // An empty separator would only cut the subject into its scalar values.
             if span.end == span.start do
                 continue
-            result.add(Swag.makeString(subject.buffer + at, span.start - at))
+            result.add(subject[at until span.start])
             at = span.end
         }
 
-        result.add(Swag.makeString(subject.buffer + at, subject.count - at))
+        result.add(subject[at to])
         return result
     }
 }
@@ -449,7 +436,7 @@ private impl RegExp
         if not .compiled do
             return false
 
-        let hay   = Swag.makeSlice(subject.buffer, subject.count)
+        let hay   = cast(const [..] u8) subject
         let limit = subject.count
 
         // Only the backtracker can run a backreference; every other pattern goes to an engine
@@ -510,7 +497,7 @@ private impl RegExp
 
         let destination = .slots.storage()
         let filled      = source
-        for var s = 0'u64; s < count; s += 1 do
+        for s in count do
             destination[s] = filled[s]
 
         .matchStart = destination[0]
@@ -739,7 +726,7 @@ private impl RegExp
         .matched = false
         .subject = subject
 
-        let hay   = Swag.makeSlice(subject.buffer, subject.count)
+        let hay   = cast(const [..] u8) subject
         let limit = subject.count
 
         // Occurrences are collected in batches: appending one at a time would put a container
@@ -951,11 +938,8 @@ private impl RegExp
         return result
     }
 
-    mtd matchedText()->string
-    {
-        let span = .matchedSpan()
-        return Swag.makeString((.subject).buffer + span.start, span.end - span.start)
-    }
+    // The text of the whole match.
+    mtd matchedText()->string => .subject[.matchStart until .matchEnd]
 
     // Appends one replacement, expanding the group references it names.
     mtd appendReplacement(dest: *String, replacement: string)
@@ -988,17 +972,13 @@ private impl RegExp
 
             if next == '{'
             {
-                var name: String
                 var j = i + 2
-                while j < replacement.count and replacement[j] != '}'
-                {
-                    name.append(replacement[j])
+                while j < replacement.count and replacement[j] != '}' do
                     j += 1
-                }
 
                 if j < replacement.count
                 {
-                    dest.append(.getCapture(name.toString()))
+                    dest.append(.getCapture(replacement[i + 2 until j]))
                     i = j + 1
                     continue
                 }

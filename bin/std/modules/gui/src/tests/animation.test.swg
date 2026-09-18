@@ -54,6 +54,7 @@ func animationCompleted(result: AnimationResult)
     AnimationTestCompleted += 1
 }
 
+// Returns the options of a linear track that runs for one second.
 func linearSecond()->AnimationOptions
 {
     var result: retval
@@ -491,7 +492,7 @@ func linearSecond()->AnimationOptions
     Swag.assert(target.presentationScale == Math.Point{1, 1} and target.presentationPivot == Math.Point{0.5, 0.5})
 
     // The same state, driven through the scheduler.
-    discard host.app.animator.animateF32(target, AnimationChannel.from("test.scale"), 1, 2, func(wnd, value) { wnd.setPresentationScale({value, value}); }, linearSecond())
+    discard host.app.animator.animateF32(target, AnimationChannel.from("test.scale"), 1, 2, func(wnd, value) { wnd.setPresentationScale({value, value}) }, linearSecond())
     host.advanceAnimations(0.5)
     Swag.assert(target.presentationScale == Math.Point{1.5, 1.5})
     Swag.assert(target.presentationRect() == Math.Rectangle{15, 7.5, 150, 75})

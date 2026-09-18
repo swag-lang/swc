@@ -3,12 +3,6 @@
 
 using Core
 
-func sameCryptoBytes(left, right: const [..] u8)->bool
-{
-    return left.count == right.count and
-           Swag.memcmp(left.buffer, right.buffer, left.count) == 0
-}
-
 func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     var result: retval
@@ -29,12 +23,12 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     var cipher: [6] u8
     var tag:    [Crypto.TagSize] u8
     expect Crypto.seal(&keys, 7, 11, plain, nonce, cipher, tag)
-    Swag.assert(not sameCryptoBytes(cipher, plain))
+    Swag.assert(not Slice.equals(cipher, plain))
 
     var opened: [6] u8
     var authenticated = expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)
     Swag.assert(authenticated)
-    Swag.assert(sameCryptoBytes(opened, plain))
+    Swag.assert(Slice.equals(opened, plain))
 
     cipher[0]     ^= 1
     authenticated = expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)
@@ -77,19 +71,19 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     let master = testMasterKey(3)
     var first  = expect Crypto.deriveKeys(master)
     var second = expect Crypto.deriveKeys(master)
-    Swag.assert(sameCryptoBytes(first.record, second.record))
-    Swag.assert(sameCryptoBytes(first.locator, second.locator))
-    Swag.assert(not sameCryptoBytes(first.record, first.locator))
+    Swag.assert(Slice.equals(first.record, second.record))
+    Swag.assert(Slice.equals(first.locator, second.locator))
+    Swag.assert(not Slice.equals(first.record, first.locator))
 
     var different = expect Crypto.deriveKeys(testMasterKey(4))
-    Swag.assert(not sameCryptoBytes(first.record, different.record))
-    Swag.assert(not sameCryptoBytes(first.locator, different.locator))
+    Swag.assert(not Slice.equals(first.record, different.record))
+    Swag.assert(not Slice.equals(first.locator, different.locator))
 
     let locator = expect Crypto.recordLocator(first.locator, 3, 0)
-    Swag.assert(sameCryptoBytes(locator, expect Crypto.recordLocator(first.locator, 3, 0)))
-    Swag.assert(not sameCryptoBytes(locator, expect Crypto.recordLocator(first.locator, 3, 1)))
-    Swag.assert(not sameCryptoBytes(locator, expect Crypto.recordLocator(first.locator, 4, 0)))
-    Swag.assert(not sameCryptoBytes(locator, expect Crypto.recordLocator(first.record, 3, 0)))
+    Swag.assert(Slice.equals(locator, expect Crypto.recordLocator(first.locator, 3, 0)))
+    Swag.assert(not Slice.equals(locator, expect Crypto.recordLocator(first.locator, 3, 1)))
+    Swag.assert(not Slice.equals(locator, expect Crypto.recordLocator(first.locator, 4, 0)))
+    Swag.assert(not Slice.equals(locator, expect Crypto.recordLocator(first.record, 3, 0)))
 
     first.clear()
     second.clear()
@@ -101,19 +95,19 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     // A key slot wraps the master key under the key derived once for the whole
     // slot area. Wrapped bytes never repeat because each slot draws a fresh nonce.
     let master        = testMasterKey(5)
-    let password      = Swag.makeSlice(cast(const [*] u8) ("slot password").buffer, 13)
-    let wrongPassword = Swag.makeSlice(cast(const [*] u8) ("slot passwore").buffer, 13)
+    let password      = cast(const [..] u8) "slot password"
+    let wrongPassword = cast(const [..] u8) "slot passwore"
     let salt: [Crypto.SaltSize] u8 = [11]
     var slotKey       = expect Crypto.deriveSlotKey(password, salt)
     var wrongSlotKey  = expect Crypto.deriveSlotKey(wrongPassword, salt)
 
     var slot  = expect KeySlot.create(slotKey, master, 0)
     var other = expect KeySlot.create(slotKey, master, 0)
-    Swag.assert(not sameCryptoBytes(slot.wrapped, other.wrapped))
+    Swag.assert(not Slice.equals(slot.wrapped, other.wrapped))
 
     var unwrapped: [Crypto.MasterKeySize] u8
     Swag.assert(expect slot.unwrap(slotKey, 0, unwrapped))
-    Swag.assert(sameCryptoBytes(unwrapped, master))
+    Swag.assert(Slice.equals(unwrapped, master))
 
     // The slot index is bound into the record, so a slot cannot be copied to
     // another position.
@@ -126,12 +120,12 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     Swag.assert(record.count == KeySlotPayloadSize)
     var decoded = KeySlot.decode(record)
     Swag.assert(expect decoded.unwrap(slotKey, 0, unwrapped))
-    Swag.assert(sameCryptoBytes(unwrapped, master))
+    Swag.assert(Slice.equals(unwrapped, master))
 
     // Two encodings of the same slot differ only in their random padding.
     let again = expect slot.encode()
-    Swag.assert(not sameCryptoBytes(record, again))
-    Swag.assert(sameCryptoBytes(record[0 until KeySlotPlainSize], again[0 until KeySlotPlainSize]))
+    Swag.assert(not Slice.equals(record, again))
+    Swag.assert(Slice.equals(record[0 until KeySlotPlainSize], again[0 until KeySlotPlainSize]))
 
     // Pure noise decodes without failing and simply does not unwrap, which is
     // what makes an unused slot indistinguishable from a used one.
@@ -153,8 +147,8 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     // Version 1 uses one fixed KDF profile. Derivation is reproducible and both
     // the password and the common salt contribute to the resulting key.
-    let password = Swag.makeSlice(cast(const [*] u8) ("profiles").buffer, 8)
-    let differentPassword = Swag.makeSlice(cast(const [*] u8) ("profilet").buffer, 8)
+    let password = cast(const [..] u8) "profiles"
+    let differentPassword = cast(const [..] u8) "profilet"
     let salt: [Crypto.SaltSize] u8 = [17]
     let differentSalt: [Crypto.SaltSize] u8 = [18]
 
@@ -162,9 +156,9 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     var second            = expect Crypto.deriveSlotKey(password, salt)
     var withOtherPassword = expect Crypto.deriveSlotKey(differentPassword, salt)
     var withOtherSalt     = expect Crypto.deriveSlotKey(password, differentSalt)
-    Swag.assert(sameCryptoBytes(first, second))
-    Swag.assert(not sameCryptoBytes(first, withOtherPassword))
-    Swag.assert(not sameCryptoBytes(first, withOtherSalt))
+    Swag.assert(Slice.equals(first, second))
+    Swag.assert(not Slice.equals(first, withOtherPassword))
+    Swag.assert(not Slice.equals(first, withOtherSalt))
     Core.Crypto.secureClear(first)
     Core.Crypto.secureClear(second)
     Core.Crypto.secureClear(withOtherPassword)

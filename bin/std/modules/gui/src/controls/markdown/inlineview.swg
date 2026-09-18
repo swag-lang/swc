@@ -712,10 +712,7 @@ impl InlineView
     }
 
     // Atom bounds include taller fallback faces; Painter draws against the primary baseline.
-    private mtd textTop(atom: const *InlineAtom, font: *Font)->f32
-    {
-        return atom.ascent == font.ascent ? atom.position.y : atom.position.y + (atom.ascent - font.ascent)
-    }
+    private mtd textTop(atom: const *InlineAtom, font: *Font)->f32 => atom.ascent == font.ascent ? atom.position.y : atom.position.y + (atom.ascent - font.ascent)
 
     // Places one finished line of atoms and returns the height it takes.
     //
@@ -1007,10 +1004,7 @@ impl InlineView
     //
     // A bullet, a task box and a formula all stand for their text without being it, so a point
     // inside one names its start or its end and never a position between two of its bytes.
-    private func isAtomOpaque(atom: const *InlineAtom)->bool
-    {
-        return atom.isMath or atom.imageLoaded or atom.flags.has(.ListBullet) or atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
-    }
+    private func isAtomOpaque(atom: const *InlineAtom)->bool => atom.isMath or atom.imageLoaded or atom.flags.has(.ListBullet) or atom.flags.has(.ListUnchecked) or atom.flags.has(.ListChecked)
 
     // Returns how wide the first `bytes` of one atom are drawn.
     private mtd prefixWidth(atom: const *InlineAtom, bytes: u64)->f32

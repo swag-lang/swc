@@ -26,21 +26,17 @@ private func load32Le(data: const [*] u8)->u64
 //
 // A Poly1305 key authenticates exactly one message. Reusing it across two
 // messages lets an observer recover the key material and forge tags, which is
-// why [[Crypto.chacha20Poly1305Seal]] derives a fresh one from each nonce.
+// why [[Core.Crypto.chacha20Poly1305Seal]] derives a fresh one from each nonce.
 #[Swag.NoCopy]
 #[Swag.Opaque]
 public struct Poly1305
 {
-    r: [5] u64
-
-    public
-    {
-        pad:         [4] u64
-        accumulator: [5] u64
-        buffer:      [Poly1305BlockSize] u8
-        bufferCount: u64
-        initialized: bool
-    }
+    r:           [5] u64
+    pad:         [4] u64
+    accumulator: [5] u64
+    buffer:      [Poly1305BlockSize] u8
+    bufferCount: u64
+    initialized: bool
 }
 
 public impl Poly1305
@@ -53,7 +49,9 @@ public impl Poly1305
         return result
     }
 
-    // Replaces any previous state and starts a new sequence for `key`.
+    // Replaces any previous state and starts a new sequence for the 32-byte one-time key `key`.
+    //
+    // Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes.
     mtd reset(key: const [..] u8) fail
     {
         if key.count != Poly1305KeySize do
@@ -99,8 +97,9 @@ public impl Poly1305
         }
     }
 
-    // Finalizes the sequence, returns its authentication tag, and clears the
-    // keyed state. Call [[Core.Crypto.Poly1305.reset]] before reusing this value.
+    // Finalizes the sequence, returns its authentication tag, and clears the keyed state.
+    //
+    // Call [[Core.Crypto.Poly1305.reset]] before reusing this value.
     mtd finalize()->Poly1305Tag
     {
         Swag.assert(.initialized, "Poly1305 needs an initialized sequence")

@@ -130,7 +130,7 @@ impl Image
 
     // Returns a copy converted to another packed pixel representation.
     //
-    // Conversion semantics match [[Image.convertTo]].
+    // Conversion semantics match [[Pixel.Image.convertTo]].
     public mtd const convertedTo(newPf: PixelFormat)->Image
     {
         Swag.assert(.pixels.buffer != null)

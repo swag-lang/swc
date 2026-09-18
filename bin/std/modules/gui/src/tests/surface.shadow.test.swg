@@ -11,7 +11,7 @@ using Swag, Core, Pixel
         var host: Testing.HeadlessHost
         host.setup(180, 120, scale)
         defer host.shutdown()
-        host.surface.flags = SurfaceFlags.StandardWindow
+        host.surface.flags = .StandardWindow
         host.theme.metrics.surfaceWnd_ShadowSize   = 18
         host.theme.metrics.surfaceWnd_CornerRadius = 0
         host.surface.setPosition({0, 0, 180 * scale, 120 * scale})
@@ -49,7 +49,7 @@ using Swag, Core, Pixel
         var host: Testing.HeadlessHost
         host.setup(180, 120, scale)
         defer host.shutdown()
-        host.surface.flags = SurfaceFlags.StandardWindow
+        host.surface.flags = .StandardWindow
         host.theme.metrics.surfaceWnd_ShadowSize   = 18
         host.theme.metrics.surfaceWnd_CornerRadius = 12
         host.surface.setPosition({0, 0, 180 * scale, 120 * scale})

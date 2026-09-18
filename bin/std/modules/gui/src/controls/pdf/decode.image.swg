@@ -217,8 +217,7 @@ func resolveNamedColorSpace(parser: *PdfParser, name: string, resourcesId: u32, 
     let named = parser.dictRaw(parser.dict(resourcesId, "ColorSpace"), name)
     if named == InvalidNode do
         fail UnsupportedFormatError{"PDF color space is not supported"}
-    var result = #move try resolveImageSpace(parser, named, resourcesId, depth + 1)
-    return #move result
+    return try resolveImageSpace(parser, named, resourcesId, depth + 1)
 }
 
 // Reduces a color space object, however it is spelled, to the family and component count
@@ -237,11 +236,8 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         return result
     }
 
-    if parser.nodes[spaceId].kind == .Name
-    {
-        var result = #move try resolveNamedColorSpace(parser, parser.nodes[spaceId].text.toString(), resourcesId, depth)
-        return #move result
-    }
+    if parser.nodes[spaceId].kind == .Name do
+        return try resolveNamedColorSpace(parser, parser.nodes[spaceId].text.toString(), resourcesId, depth)
 
     if parser.nodes[spaceId].kind != .Array or not parser.nodes[spaceId].values.count do
         fail UnsupportedFormatError{"PDF image color space is not supported"}
@@ -745,8 +741,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         // A stencil is painted in the fill color in force, so two pages that share the object
         // do not share the result; it is also the cheapest kind to read back.
         let stencil = #move try readMaskPlane(parser, nodeId, resourcesId, true)
-        var result  = #move planeToImage(&stencil, &fillColor)
-        return #move result
+        return planeToImage(&stencil, &fillColor)
     }
 
     let cacheKey = imageCacheKey(nodeId, resourcesId)

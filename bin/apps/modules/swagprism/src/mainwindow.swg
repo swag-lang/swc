@@ -2,13 +2,14 @@
 
 using Core, Gui
 
+// What the status line says about the formatter.
 enum FormatStatus
 {
-    None
-    Working
-    Done
-    Failed
-    Changed
+    None        // Nothing to report, or a compilation has replaced the report.
+    Working     // The formatter is running.
+    Done        // The formatted source replaced the editor text.
+    Failed      // The formatter stopped on an error, shown as the status tooltip.
+    Changed     // The source was edited while it was formatted, so the result was dropped.
 }
 
 // Owns the shared source and one or two independently configured viewers.
@@ -19,11 +20,7 @@ struct MainWindow
     late
     {
         appearanceButton: *AppearanceButton
-        exampleCombo:     *ComboBox
-        liveEdit:         *CheckButton
-        formatButton:     *PushButton
         spinner:          *Spinner
-        runButton:        *PushButton
         layoutButton:     *IconButton
         sourcePanel:      *Wnd
         editor:           *RichEditCtrl
@@ -70,25 +67,7 @@ impl MainWindow
         result.backgroundStyle = .ToolBar
         result.language        = ReferenceLanguage
 
-        result.appearanceButton = AppearanceButton.create(surface, "prism.appearance")
-        result.appearanceButton.sigThemeChanged += func|window = result|(button)
-        {
-            window.themeIndex = cast(u32) button.appearanceTheme
-            catch g_App.saveState()
-        }
-
-        result.appearanceButton.sigLanguageChanged += func|window = result|(button)
-        {
-            window.language = button.language
-            catch g_App.saveState()
-        }
-
-        result.appearanceButton.sigAboutRequested += func|window = result|(button)
-        {
-            discard button
-            window.showAbout()
-        }
-
+        result.createAppearanceButton()
         Separator.create(result, .Top, .Accent)
         result.createStatusLine()
         result.createPanes()
@@ -98,121 +77,156 @@ impl MainWindow
         return result
     }
 
+    // Returns an application glyph at the toolbar size.
+    mtd icon(kind: PrismIcon)->Icon => .icons.icon(cast(s32) kind, 18, .theme().res.atlasScale)
+
+    // Creates the caption's appearance action, which persists the palette and language it applies.
+    mtd createAppearanceButton()
+    {
+        with .appearanceButton = AppearanceButton.create(.surface!, "prism.appearance")
+        {
+            .sigThemeChanged += func|window = me|(button)
+            {
+                window.themeIndex = cast(u32) button.appearanceTheme
+                catch g_App.saveState()
+            }
+
+            .sigLanguageChanged += func|window = me|(button)
+            {
+                window.language = button.language
+                catch g_App.saveState()
+            }
+
+            .sigAboutRequested += func|window = me|(button)
+            {
+                discard button
+                window.showAbout()
+            }
+        }
+    }
+
+    // Creates the source toolbar above the editor and routes its actions to the window.
     mtd createCommandBar()
     {
-        .commandBar                 = Wnd.create'SourceActions(.sourcePanel)
-        .commandBar.dockStyle       = .Top
-        .commandBar.backgroundStyle = .CommandBar
-        .commandBar.padding         = 0
-        .commandBar.margin          = {0, 0, 0, 8}
-        .runButton                  = PushButton.create(.commandBar, appStrings().ui_CompileVisible, {0, 0, 0, 36}, "prism.run", .Strong)
-        .runButton.style.setStyleSheetMetrics("btnPush_Width 0")
-        .runButton.setIcon(.theme().icon(.Play, 18))
-        .runButton.setIconSize(18, 18)
-        .runButton.sigPressed += func|window = me|(button)
+        with .commandBar = Wnd.create'SourceActions(.sourcePanel)
         {
-            discard button
-            window.compile(force: true)
+            .dockStyle       = .Top
+            .backgroundStyle = .CommandBar
+            .padding         = 0
+            .margin          = {0, 0, 0, 8}
         }
 
-        .formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
-        .formatButton.style.setStyleSheetMetrics("btnPush_Width 0")
-        .formatButton.setIcon(.icons.icon(1, 18, .theme().res.atlasScale))
-        .formatButton.setIconSize(18, 18)
-        .formatButton.sigPressed += func|window = me|(button)
+        with .commandBar.runButton = PushButton.create(.commandBar, appStrings().ui_CompileVisible, {0, 0, 0, 36}, "prism.run", .Strong)
         {
-            discard button
-            window.format()
-        }
-
-        .liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
-        .liveEdit.style.setStyleSheetMetrics("btnPush_Width 0")
-        .liveEdit.setState(.Checked)
-        .liveEdit.sigChanged += func|window = me|(button)
-        {
-            discard button
-            window.scheduleCompile()
-        }
-
-        .exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
-        .exampleCombo.sigChanged += func|window = me|(combo, index)
-        {
-            discard combo
-            window.openExample(cast(ExampleKind) index)
-        }
-    }
-
-    mtd createLayoutButton()
-    {
-        .layoutButton        = IconButton.create(.panels[0].header, .icons.icon(0, 18, .theme().res.atlasScale), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
-        .layoutButton.margin = {8, 0, 0, 0}
-        .layoutButton.setIconSize(18, 18)
-        .layoutButton.setCheckIndicator(.Frame)
-        .layoutButton.sendToBack()
-        .layoutButton.dockStyle         = .Right
-        .layoutButton.sigCheckedChanged += func|window = me|(button)
-        {
-            window.setComparisonEnabled(button.isChecked)
-        }
-    }
-
-    mtd createStatusLine()
-    {
-        .statusBar                 = Wnd.create'Wnd(&.wnd, {0, 0, 0, 32})
-        .statusBar.dockStyle       = .Bottom
-        .statusBar.backgroundStyle = .InformationBar
-        .statusBar.padding         = {Gutter, 4, Gutter, 4}
-        .spinner                   = Spinner.create(.statusBar, {0, 0, 16, 16}, "prism.busy")
-        .spinner.dockStyle         = .Left
-        .spinner.margin            = {0, 4, 8, 4}
-        .spinner.hide()
-        .status = Label.create(.statusBar, "", {}, null, .SecondaryText)
-        .status.dockStyle = .Center
-        .status.setTextAlignment(.Left, .Center)
-    }
-
-    mtd createPanes()
-    {
-        .sourceSplit                 = SplitterCtrl.create(&.wnd, {}, false, "prism.split")
-        .sourceSplit.dockStyle       = .Center
-        .sourceSplit.backgroundStyle = .Transparent
-        .sourcePanel                 = Wnd.create'Wnd(.sourceSplit)
-        .sourcePanel.backgroundStyle = .Panel
-        .sourcePanel.padding         = 8
-        .createCommandBar()
-        .editor = RichEditCtrl.create(.sourcePanel)
-        .editor.dockStyle = .Center
-        .editor.setLexer(&.lexer)
-        .editor.setText(exampleSource(.Plasma))
-
-        .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
-        .viewerSplit.backgroundStyle = .Transparent
-        for index in 2
-        {
-            let level: Swag.BuildCfgBackendOptimLevel = index == 0 ? .O0 : .O2
-            let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
-            panel.sigChanged += func|window = me|(sender)
+            .style.setStyleSheetMetrics("btnPush_Width 0")
+            .setIcon(me.theme().icon(.Play, 18))
+            .setIconSize(18, 18)
+            .sigPressed += func|window = me|(button)
             {
-                discard sender
-                window.refreshStatus()
+                discard button
+                window.compile(force: true)
             }
+        }
 
-            panel.sigCompileRequested += func|window = me|(sender)
+        with .commandBar.formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
+        {
+            .style.setStyleSheetMetrics("btnPush_Width 0")
+            .setIcon(me.icon(.Format))
+            .setIconSize(18, 18)
+            .sigPressed += func|window = me|(button)
             {
-                discard sender
-                window.compile()
+                discard button
+                window.format()
             }
+        }
 
-            panel.sigOptionsChanged += func|window = me|(sender)
+        with .commandBar.liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
+        {
+            .style.setStyleSheetMetrics("btnPush_Width 0")
+            .setState(.Checked)
+            .sigChanged += func|window = me|(button)
             {
-                discard sender
+                discard button
                 window.scheduleCompile()
             }
-
-            .panels.add(panel)
-            let pane = .viewerSplit.addPane(panel, 540)
-            pane.minimumSize = ViewerPanel.MinWidth
         }
+
+        with .commandBar.exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
+        {
+            .sigChanged += func|window = me|(combo, index)
+            {
+                discard combo
+                window.openExample(cast(ExampleKind) index)
+            }
+        }
+    }
+
+    // Creates the one-or-two-viewers toggle in the header of the first panel.
+    mtd createLayoutButton()
+    {
+        with .layoutButton = IconButton.create(.panels[0].header, .icon(.Layout), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
+        {
+            .margin = {8, 0, 0, 0}
+            .setIconSize(18, 18)
+            .setCheckIndicator(.Frame)
+            .sendToBack()
+            .dockStyle = .Right
+            .sigCheckedChanged += func|window = me|(button) { window.setComparisonEnabled(button.isChecked) }
+        }
+    }
+
+    // Creates the status line at the bottom of the window.
+    mtd createStatusLine()
+    {
+        with .statusBar = Wnd.create'Wnd(&.wnd, {0, 0, 0, 32})
+        {
+            .dockStyle       = .Bottom
+            .backgroundStyle = .InformationBar
+            .padding         = {Gutter, 4, Gutter, 4}
+        }
+
+        with .spinner = Spinner.create(.statusBar, {0, 0, 16, 16}, "prism.busy")
+        {
+            .dockStyle = .Left
+            .margin    = {0, 4, 8, 4}
+            .hide()
+        }
+
+        with .status = Label.create(.statusBar, "", {}, null, .SecondaryText)
+        {
+            .dockStyle = .Center
+            .setTextAlignment(.Left, .Center)
+        }
+    }
+
+    // Creates the source pane and the viewer split beside it.
+    mtd createPanes()
+    {
+        with .sourceSplit = SplitterCtrl.create(&.wnd, {}, false, "prism.split")
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+        }
+
+        with .sourcePanel = Wnd.create'Wnd(.sourceSplit)
+        {
+            .backgroundStyle = .Panel
+            .padding         = 8
+        }
+
+        .createCommandBar()
+        with .editor = RichEditCtrl.create(.sourcePanel)
+        {
+            .dockStyle = .Center
+            .setLexer(&me.lexer)
+            .setText(exampleSource(.Plasma))
+        }
+
+        // The first viewer opens on unoptimized code, the comparison on optimized code.
+        .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
+        .viewerSplit.backgroundStyle = .Transparent
+        .createViewerPanel(.O0)
+        .createViewerPanel(.O2)
 
         let sourcePane = .sourceSplit.addPane(.sourcePanel, 480)
         sourcePane.minimumSize = 360
@@ -227,6 +241,35 @@ impl MainWindow
             discard editor
             window.scheduleCompile()
         }
+    }
+
+    // Creates one viewer panel in the viewer split and routes its requests to the window.
+    mtd createViewerPanel(level: Swag.BuildCfgBackendOptimLevel)
+    {
+        with let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
+        {
+            .sigChanged += func|window = me|(sender)
+            {
+                discard sender
+                window.refreshStatus()
+            }
+
+            .sigCompileRequested += func|window = me|(sender)
+            {
+                discard sender
+                window.compile()
+            }
+
+            .sigOptionsChanged += func|window = me|(sender)
+            {
+                discard sender
+                window.scheduleCompile()
+            }
+        }
+
+        .panels.add(panel)
+        let pane = .viewerSplit.addPane(panel, 540)
+        pane.minimumSize = ViewerPanel.MinWidth
     }
 
     mtd refreshPaneLayout()
@@ -311,7 +354,7 @@ impl MainWindow
         .formatSource    = .editor.text()
         .formatCancelled = 0
         .formatStatus    = .Working
-        .formatButton.enable(false)
+        .commandBar.formatButton.enable(false)
         .formatTimer = .app().addTimer(20'ms, me)
         .formatTask.submit(func|window = me|()
         {
@@ -328,7 +371,7 @@ impl MainWindow
     {
         .removeTimer(.formatTimer!)
         .formatTimer = null
-        .formatButton.enable()
+        .commandBar.formatButton.enable()
         if .formatResult.failed do
             .formatStatus = .Failed
         elif .editor.text() != .formatSource do
@@ -363,7 +406,7 @@ impl MainWindow
     mtd scheduleCompile()
     {
         .cancelEditTimer()
-        if .liveEdit.isChecked() do
+        if .commandBar.liveEdit.isChecked() do
             .editTimer = .app().addTimer(150'ms, me)
     }
 
@@ -372,7 +415,7 @@ impl MainWindow
         .selectedExample = kind
         .editor.setText(exampleSource(kind))
         .panels[0].selectViewer(exampleViewer(kind))
-        .exampleCombo.setSelectedIndex(cast(u32) kind, notify: false)
+        .commandBar.exampleCombo.setSelectedIndex(cast(u32) kind, notify: false)
         .compile()
     }
 
@@ -417,18 +460,7 @@ impl MainWindow
 
     mtd retranslate()
     {
-        .exampleCombo.clear()
-        for label in [appStrings().ui_Plasma, appStrings().ui_Julia, appStrings().ui_GuiExample, appStrings().ui_Dot] do
-            .exampleCombo.addItem(label)
-        .exampleCombo.setSelectedIndex(cast(u32) .selectedExample, notify: false)
-        .exampleCombo.toolTip = appStrings().ui_Examples
-        .liveEdit.setText(appStrings().ui_AutoCompile)
-        .liveEdit.toolTip = appStrings().ui_LiveEdit
-        .formatButton.setText(appStrings().ui_Format)
-        .formatButton.toolTip = appStrings().ui_FormatHint
-        .runButton.setText(appStrings().ui_CompileVisible)
-        .runButton.toolTip = appStrings().ui_CompileVisibleHint
-        .commandBar.layoutFields()
+        .commandBar.retranslate(.selectedExample)
         .layoutButton.setChecked(.comparisonEnabled)
         .layoutButton.toolTip = .comparisonEnabled ? appStrings().ui_OneViewer : appStrings().ui_TwoViewers
         .surface!.setTitle(appStrings().ui_WindowTitle)
@@ -480,9 +512,9 @@ impl IWnd for MainWindow
             .retranslate()
         elif evt.kind == .ThemeChanged
         {
-            .layoutButton.setIcon(.icons.icon(0, 18, .theme().res.atlasScale))
-            .runButton.setIcon(.theme().icon(.Play, 18))
-            .formatButton.setIcon(.icons.icon(1, 18, .theme().res.atlasScale))
+            .layoutButton.setIcon(.icon(.Layout))
+            .commandBar.runButton.setIcon(.theme().icon(.Play, 18))
+            .commandBar.formatButton.setIcon(.icon(.Format))
             .refreshPaneLayout()
         }
 

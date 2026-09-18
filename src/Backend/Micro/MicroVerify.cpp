@@ -90,7 +90,7 @@ namespace
 
     bool isValidCondition(const MicroCond cond)
     {
-        return static_cast<uint8_t>(cond) <= static_cast<uint8_t>(MicroCond::NotZero);
+        return static_cast<uint8_t>(cond) <= static_cast<uint8_t>(MicroCond::NotSign);
     }
 
     bool isValidCallConv(const CallConvKind kind)

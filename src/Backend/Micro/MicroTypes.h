@@ -332,6 +332,7 @@ enum class MicroCond : uint8_t
     Unconditional,
     Zero,
     NotZero,
+    NotSign,
 };
 
 struct MicroJump

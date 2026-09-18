@@ -493,6 +493,8 @@ namespace
                 return "p";
             case MicroCond::Sign:
                 return "s";
+            case MicroCond::NotSign:
+                return "ns";
             case MicroCond::Unconditional:
                 return "jmp";
             case MicroCond::Zero:

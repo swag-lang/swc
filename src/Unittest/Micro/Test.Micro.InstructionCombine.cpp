@@ -1661,10 +1661,9 @@ SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
         InterveningFlags,
         NarrowInitial,
         UnsupportedConstant,
-        PartialMask,
-        NoComplement
+        PartialMask
     };
-    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedConstant, Case::PartialMask, Case::NoComplement})
+    for (const Case test : {Case::SharedSource, Case::InterveningFlags, Case::NarrowInitial, Case::UnsupportedConstant, Case::PartialMask})
     {
         constexpr MicroReg dst = MicroReg::virtualIntReg(1);
         constexpr MicroReg src = MicroReg::virtualIntReg(2);
@@ -1677,7 +1676,7 @@ SWC_TEST_BEGIN(InstructionCombine_KeepsUnsafeBooleanSelect)
         builder.emitLoadRegImm(src, ApInt(0, 64), MicroOpBits::B64);
         if (test == Case::InterveningFlags)
             builder.emitCmpRegReg(MicroReg::intReg(3), MicroReg::intReg(2), MicroOpBits::B64);
-        builder.emitLoadCondRegReg(dst, src, test == Case::NoComplement ? MicroCond::Sign : MicroCond::Equal, MicroOpBits::B64);
+        builder.emitLoadCondRegReg(dst, src, MicroCond::Equal, MicroOpBits::B64);
         if (test == Case::SharedSource)
             builder.emitLoadMemReg(MicroReg::intReg(2), 8, src, MicroOpBits::B64);
         builder.emitLoadMemReg(MicroReg::intReg(2), 0, dst, MicroOpBits::B64);

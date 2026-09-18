@@ -132,3 +132,11 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     Swag.assert(Format.byteSize(650 * 1024 * 1024) == "650 MB")
     Swag.assert(Format.byteSize(1024'u64 * 1024 * 1024 * 1024) == "1.00 TB")
 }
+
+#test
+{
+    Swag.assert(StrConv.toDisplaySize(0) == "0 bytes")
+    Swag.assert(StrConv.toDisplaySize(1) == "1 byte")
+    Swag.assert(StrConv.toDisplaySize(1023) == "1023 bytes")
+    Swag.assert(StrConv.toDisplaySize(1536) == "1 KB")
+}

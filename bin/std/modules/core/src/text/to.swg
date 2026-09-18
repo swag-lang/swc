@@ -3,11 +3,14 @@
 
 // Returns the size `value`, in bytes, as a whole number of the largest 1024-based unit it reaches.
 //
-// The units are spelled `bytes`, `KB`, `MB`, `GB` and `TB`, and the division truncates:
-// 1536 bytes give `"1 KB"`. See [[Core.Format.byteSize]] for a size with fractional digits.
+// The units are spelled `bytes` (`byte` for one), `KB`, `MB`, `GB` and `TB`, and the division
+// truncates: 1536 bytes give `"1 KB"`. See [[Core.Format.byteSize]] for a size with fractional
+// digits.
 func toDisplaySize(value: u64)->String
 {
     var size = value
+    if size == 1 do
+        return "1 byte"
     if size < 1024 do
         return Format.toString("% bytes", size)
     size /= 1024

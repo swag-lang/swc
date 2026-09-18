@@ -10,6 +10,7 @@
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -84,12 +85,23 @@ namespace
 
         if (info.storageTypeInfo->isFloat())
         {
-            // The micro layer exposes float subtraction but no dedicated float negate, so lower `-x` as
-            // `0 - x`.
-            const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(info.storageTypeRef);
-            builder.emitClearReg(zeroReg, info.opBits);
-            builder.emitOpBinaryRegReg(zeroReg, resultPayload.reg, MicroOp::FloatSubtract, info.opBits);
-            resultPayload.reg = zeroReg;
+            // XORing the scalar lane's sign bit preserves every payload bit, including
+            // signed zero and NaN. The x64 bitwise forms read a complete XMM operand,
+            // so keep the mask at 16 bytes even though only its first lane is observed.
+            std::array<char, 16> signMask = {};
+            signMask[info.opBits == MicroOpBits::B64 ? 7 : 3] = static_cast<char>(0x80);
+
+            DataSegmentRef         maskRef;
+            const std::string_view maskStorage = codeGen.cstMgr().addPayloadBuffer(std::string_view{signMask.data(), signMask.size()}, &maskRef);
+            builder.emitOpBinaryRegMem(resultPayload.reg, MicroReg::instructionPointer(), 0, MicroOp::FloatXor, info.opBits);
+            builder.addRelocation({
+                .kind           = MicroRelocation::Kind::ConstantAddress,
+                .form           = MicroRelocation::Form::Relative32,
+                .instructionRef = builder.instructions().lastInstructionRef(),
+                .targetAddress  = reinterpret_cast<uint64_t>(maskStorage.data()),
+                .constantShard  = maskRef.shardIndex,
+                .constantOffset = maskRef.offset,
+            });
             return Result::Continue;
         }
 

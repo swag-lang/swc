@@ -1789,6 +1789,58 @@ SWC_TEST_BEGIN(PostRAPeephole_DifferentCompareAfterBranch_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    // [add eax, ecx (dword) | add rax, rcx (qword)] ; mov eax, eax ; store rax
+    void emitSelfCopyAfter(MicroBuilder& builder, MicroOpBits writeBits)
+    {
+        constexpr MicroReg rax = MicroReg::intReg(0);
+        constexpr MicroReg rcx = MicroReg::intReg(1);
+        constexpr MicroReg r8  = MicroReg::intReg(8);
+
+        builder.emitLoadRegMem(rax, r8, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(rcx, r8, 8, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(rax, rcx, MicroOp::Add, writeBits);
+        builder.emitLoadRegReg(rax, rax, MicroOpBits::B32);
+        builder.emitLoadMemReg(r8, 16, rax, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    uint32_t countSelfCopies(const MicroBuilder& builder)
+    {
+        uint32_t count = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == ops[1].reg)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// After a dword write the upper half is clear: `mov eax, eax` goes.
+SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterDwordWrite_Erased)
+{
+    MicroBuilder builder(ctx);
+    emitSelfCopyAfter(builder, MicroOpBits::B32);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return countSelfCopies(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// After a qword write it still clears something.
+SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterQwordWrite_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitSelfCopyAfter(builder, MicroOpBits::B64);
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return countSelfCopies(builder) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

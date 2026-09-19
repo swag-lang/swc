@@ -1,16 +1,12 @@
 #global if WINDOWS
 
-#foreignlib("advapi32")
-#foreignlib("kernel32")
-#foreignlib("shell32")
-
-using Core
+using Core, Win32
 
 namespace WinFsp
 {
-    alias NativeHandle = const [*] void?
+    alias NativeHandle = HANDLE
 
-    alias NativeModule = const [*] void?
+    alias NativeModule = HMODULE
 
     const InvalidHandle = cast(NativeHandle) cast #bit (u64) -1's64
     const GenericWrite  = 0x40000000'u32
@@ -202,34 +198,6 @@ namespace WinFsp
     }
 
     var g_WinFsp: WinFspApi
-
-    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
-    {
-        func LoadLibraryW(name: const [*] u16?)->NativeModule
-        func GetProcAddress(module: NativeModule, name: const [*] u8)->const *void?
-        func FreeLibrary(module: NativeModule)->s32
-        func GetEnvironmentVariableA(name: const [*] u8, value: [*] u8, capacity: u32)->u32
-        func GetLastError()->u32
-        func CreateFileW(fileName: const [*] u16?, access, share: u32, security: *void?, disposition, flags: u32, templateFile: NativeHandle)->NativeHandle
-        func CloseHandle(handle: NativeHandle)->s32
-        func OpenProcess(access: u32, inheritHandle: s32, processId: u32)->NativeHandle
-        func WaitForSingleObject(handle: NativeHandle, milliseconds: u32)->u32
-        func MoveFileExW(existing, replacement: const [*] u16?, flags: u32)->s32
-        func RemoveDirectoryW(path: const [*] u16?)->s32
-        func LocalFree(memory: *void?)->*void?
-    }
-
-    #[Swag.Foreign("advapi32", callconv: Swag.CallConv.C)]
-    {
-        func ConvertStringSecurityDescriptorToSecurityDescriptorW(text: const [*] u16?, revision: u32, descriptor: *(*void?), size: *u32?)->s32
-        func GetSecurityDescriptorLength(descriptor: const *void?)->u32
-    }
-
-    #[Swag.Foreign("shell32", callconv: Swag.CallConv.C)]
-    {
-        func IsUserAnAdmin()->s32
-        func ShellExecuteW(window: *void?, operation, file, parameters, directory: const [*] u16?, show: s32)->const *void?
-    }
 
     func isElevated()->bool => IsUserAnAdmin() != 0
 

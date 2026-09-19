@@ -1,19 +1,15 @@
 #global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
 #global private
 
-#[Swag.Foreign("kernel32", "VirtualAlloc")]
-func allocateYuvGuard(address: *void?, size: u64, allocationType, protection: u32)->[*] u8?
-
-#[Swag.Foreign("kernel32", "VirtualFree")]
-func releaseYuvGuard(address: *void?, size: u64, freeType: u32)->s32
+using Win32
 
 // A tightly packed final chroma row ends at an inaccessible page. Sixteen luma samples
 // consume only eight chroma bytes, including when the visible crop is unaligned.
 #test
 {
-    let pages = allocateYuvGuard(null, 8192, 0x2000, 0x04)!
-    defer discard releaseYuvGuard(pages, 0, 0x8000)
-    let committed = allocateYuvGuard(pages, 4096, 0x1000, 0x04)
+    let pages = cast([*] u8) VirtualAlloc(null, 8192, MEM_RESERVE, PAGE_READWRITE)!
+    defer discard VirtualFree(pages, 0, MEM_RELEASE)
+    let committed = VirtualAlloc(pages, 4096, MEM_COMMIT, PAGE_READWRITE)
     Swag.assert(committed != null)
     for width in 16's32 until 33
     {

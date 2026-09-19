@@ -64,6 +64,8 @@ private const NativeSourceFiles = [
     "bin/std/modules/pixel/src/image/image.win32.swg",
     "bin/std/modules/pixel/src/tests/image.win32.test.swg",
     "bin/std/modules/pixel/src/tests/yuv.win32.test.swg",
+    "bin/std/modules/pixel/src/tests/sampling.ogl.test.swg",
+    "bin/std/modules/pixel/src/tests/text.fallback.win32.test.swg",
     "bin/std/modules/pixel/src/text/fontfamily.win32.swg",
     "bin/std/modules/pixel/src/text/typeface.win32.swg",
     "bin/std/modules/audio/src/driver/xaudio2.swg",
@@ -89,7 +91,8 @@ private const OsDispatchFiles = [
     "bin/std/modules/core/src/config.swg",
     "bin/std/modules/core/src/tests/config.test.swg",
     "bin/std/modules/audio/module.swg",
-    "bin/std/modules/audio/src/driver/backend.swg"]
+    "bin/std/modules/audio/src/driver/backend.swg",
+    "bin/std/modules/pixel/src/text/font.swg"]
 
 private const NativeNamespaces = ["Win32", "Gdi32", "Gdi32Priv", "Gdiplus", "XInput", "XAudio2"]
 
@@ -185,6 +188,25 @@ public func auditPortability(context: *Context)->s32 fail
     for root in ["bin/runtime", "bin/std/modules", "bin/apps/modules"] do
         errors += try auditPortabilityRoot(context, root)
 
+    // Examples, tools, and benchmarks consume the same wrappers, even though the broader platform API
+    // boundary does not restrict their choice of native demonstrations.
+    for root in ["bin/examples/modules", "bin/examples/scripts", "tools", "bench"]
+    {
+        let directory = Path.combine(context.root.toString(), root)
+        for extension in [".swg", ".swgs"]
+        {
+            let files = try Directory.enumerateFiles(directory.toString(), extension, recurse: true)
+            for file in files
+            {
+                let relative = portabilityRelativePath(context, file.fullName.toString())
+                if containsText(relative.toString(), "/.output/") or containsText(relative.toString(), "/.dep/") or isUnderAny(relative.toString(), ["bench/out/"]) do
+                    continue
+                let content = try File.readAllText(file.fullName.toString())
+                errors += auditForeignImports(relative.toString(), content.toString())
+            }
+        }
+    }
+
     if errors != 0
     {
         Console.println("error: portability validation found ", errors, errors == 1 ? " problem" : " problems")
@@ -203,6 +225,8 @@ private func auditPortabilityRoot(context: *Context, root: string)->u32 fail
     for file in files
     {
         let relative = portabilityRelativePath(context, file.fullName.toString())
+        let content  = try File.readAllText(file.fullName.toString())
+        errors += auditForeignImports(relative.toString(), content.toString())
         if isUnderAny(relative.toString(), PortabilityExcludedRoots) do
             continue
         errors += try auditPortabilityFile(context, relative.toString())
@@ -257,12 +281,6 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
             errors += 1
         }
 
-        if (containsText(trimmed, "#foreignlib(") or containsText(trimmed, "Swag.Foreign(")) and not native
-        {
-            reportPortability(path, lineNumber, "platform-neutral source cannot declare a native foreign operation")
-            errors += 1
-        }
-
         let nativeNamespace = nativeNamespaceOnLine(trimmed)
         let nativeType      = nativeIdentifierOnLine(trimmed)
         let approvedLine    = isApprovedDeclaration(path, trimmed)
@@ -276,6 +294,34 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
         if native do
             errors += auditPublicNativeDeclaration(path, trimmed, lineNumber, nativeType, approvedLine, &state)
         updatePublicScope(trimmed, &state)
+    }
+
+    return errors
+}
+
+// Checks import ownership independently of whether a source is an approved platform backend.
+// A host leaf consumes bindings; only the ABI modules declare them. The runtime is below the
+// standard library and necessarily owns its bootstrap imports instead of depending on win32.
+public func auditForeignImports(path: string, content: string)->u32
+{
+    let bindingModule = isUnderAny(path, NativeInteropRoots) or isUnderAny(path, ["bin/std/modules/ogl/"])
+    if bindingModule and not containsText(path, "/src/tests/") or samePath(path, "bin/runtime/os.win32.swg") do
+        return 0
+
+    var state:  PortabilityParseState
+    var errors: u32
+    var lineNumber = 0'u64
+    for line in Tokenize.splitLines(content)
+    {
+        lineNumber += 1
+        let code = portabilityCode(line, &state)
+        let foreignLibrary   = containsText(code.toString(), "#foreignlib")
+        let foreignAttribute = containsIdentifier(code.toString(), "Foreign") and not declarationStartsWith(Latin1.trim(code.toString()), "attr")
+        if foreignLibrary or foreignAttribute
+        {
+            reportPortability(path, lineNumber, "native imports belong in the official binding modules; use or extend their wrappers")
+            errors += 1
+        }
     }
 
     return errors

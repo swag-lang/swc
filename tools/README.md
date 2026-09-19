@@ -80,6 +80,12 @@ contract - every scoped `THIRDPARTY.md` is indexed and every `@NOTICE:` resolves
 selects or starts a test campaign. `bin\swc.exe --num-cores 6 tools\tests\repository.swgs .`
 runs the backlog check alone.
 
+`portability.swgs` also rejects local native imports in applications, libraries, tests, tools, examples, and benchmarks,
+including approved `.win32.swg` files. Add missing operations to their official ABI modules
+instead. Only the runtime bootstrap owns imports below the standard library. Run
+`bin\swc.dm.exe --num-cores 6 tools\tests\portability.swgs` to exercise this guard; the complete
+test campaign includes those regression checks.
+
 In a Git checkout, the backlog check also compares new working-tree identifiers with `HEAD` and
 the checked-out branch's history. Deleted suffixes remain reserved, and new suffixes must follow
 the historical maximum consecutively. Stage domain renames before checking; the audit follows

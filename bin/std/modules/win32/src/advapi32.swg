@@ -32,6 +32,9 @@ const KEY_WOW64_64KEY        = 0x0100
 const KEY_WOW64_RES          = 0x0300
 const KEY_READ               = 0x00020019
 
+alias PSECURITY_DESCRIPTOR = *void?
+const SDDL_REVISION_1 = 1'u32
+
 const REG_NONE                       = 0'u32     // No value type
 const REG_SZ                         = 1'u32     // Unicode nul terminated string
 const REG_EXPAND_SZ                  = 2'u32     // Unicode nul terminated string
@@ -49,6 +52,8 @@ const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_
 
 #[Foreign("advapi32", callconv: Swag.CallConv.C), Swag.Discardable]
 {
+    func ConvertStringSecurityDescriptorToSecurityDescriptorW(StringSecurityDescriptor: LPCWSTR, StringSDRevision: DWORD, SecurityDescriptor: *PSECURITY_DESCRIPTOR, SecurityDescriptorSize: LPDWORD)->BOOL
+    func GetSecurityDescriptorLength(pSecurityDescriptor: PSECURITY_DESCRIPTOR)->DWORD
     func RegCreateKeyExA(hKey: HKEY, lpSubKey: LPCSTR, reserved: DWORD, lpClass: LPSTR?, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: const *SECURITY_ATTRIBUTES?, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
     func RegCreateKeyExW(hKey: HKEY, lpSubKey: LPCWSTR, reserved: DWORD, lpClass: LPWSTR?, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: const *SECURITY_ATTRIBUTES?, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
     func RegOpenCurrentUser(samDesired: REGSAM, phkResult: *HKEY)->LSTATUS

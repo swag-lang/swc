@@ -1,6 +1,6 @@
 #global if WINDOWS
 
-using Core
+using Core, Win32
 
 namespace WinFsp
 {
@@ -57,12 +57,12 @@ namespace WinFsp
         {
             discard catch writeGuardianStatus(statusPath, Format.toString("ERROR\n%", guardianErrorText(startError)))
             unloadWinFsp()
-            discard CloseHandle(parent)
+            CloseHandle(parent)
             return 1
         }
 
-        discard WaitForSingleObject(parent, WaitInfinite)
-        discard CloseHandle(parent)
+        expect WaitForSingleObject(parent, WaitInfinite)
+        CloseHandle(parent)
         unloadWinFsp()
         let communicationRoot = Path.directoryName(statusPath) orelse ""
         if communicationRoot.count do
@@ -107,11 +107,11 @@ namespace WinFsp
         let operation16    = Utf16.toZeroTerminated("runas")
         let parameters16   = Utf16.toZeroTerminated(parameters)
         let directory16    = Utf16.toZeroTerminated(Path.directoryName(executablePath) orelse "")
-        let launch         = ShellExecuteW(null, operation16.buffer, executable16.buffer, parameters16.buffer, directory16.buffer, 0)
-        if cast(u64) launch <= 32
+        discard catch ShellExecuteW(null, operation16.buffer, executable16.buffer, parameters16.buffer, directory16.buffer, 0) as launchError
+        if launchError != null
         {
             removeRuntimeTree(communicationRoot)
-            try failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).", cast(u64) launch, GetLastError()))
+            try failWith(Format.toString("Windows could not start the portable WinFsp helper: %.", Errors.message(launchError)))
         }
 
         for attempt in 1200
@@ -161,15 +161,16 @@ namespace WinFsp
                     if deleteError != null
                     {
                         let entry16 = Utf16.toZeroTerminated(entry.fullName)
-                        discard MoveFileExW(entry16.buffer, null, MoveDelayUntilReboot)
+                        catch MoveFileExW(entry16.buffer, null, MoveDelayUntilReboot)
                     }
                 }
             }
         }
 
         let path16 = Utf16.toZeroTerminated(path)
-        if not RemoveDirectoryW(path16.buffer) do
-            discard MoveFileExW(path16.buffer, null, MoveDelayUntilReboot)
+        catch RemoveDirectoryW(path16.buffer) as error
+        if error != null do
+            catch MoveFileExW(path16.buffer, null, MoveDelayUntilReboot)
     }
 
     func stagePortableWinFsp()->String fail

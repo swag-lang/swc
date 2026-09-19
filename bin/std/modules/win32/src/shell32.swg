@@ -471,6 +471,9 @@ internal namespace Shell32Priv
 
 #[Foreign("shell32", callconv: Swag.CallConv.C)]
 {
+    func IsUserAnAdmin()->BOOL
+    func SHParseDisplayName(pszName: PCWSTR, pbc: *IBindCtx?, ppidl: *PIDLIST_ABSOLUTE, sfgaoIn: SFGAOF, psfgaoOut: *SFGAOF?)->HRESULT
+    func SHCreateShellItemArrayFromIDLists(cidl: UINT, rgpidl: const [*] PCIDLIST_ABSOLUTE, ppsiItemArray: *(*IShellItemArray?))->HRESULT
     func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func DragAcceptFiles(hWnd: HWND, fAccept: BOOL)

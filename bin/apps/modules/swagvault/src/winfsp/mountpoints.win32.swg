@@ -1,24 +1,9 @@
 #global if WINDOWS
 
-using Core
+using Core, Win32
 
 namespace WinFsp
 {
-    alias HKEY = *void?
-
-    const KEY_READ = 0x0002_0019'u32
-    const ERROR_FILE_NOT_FOUND = 2'u32
-
-    #[Swag.Foreign("advapi32", callconv: Swag.CallConv.C)]
-    {
-        func RegOpenCurrentUser(access: u32, result: *HKEY)->u32
-        func RegOpenKeyExW(key: HKEY, subkey: const [*] u16, options: u32, access: u32, result: *HKEY)->u32
-        func RegCloseKey(key: HKEY)->u32
-    }
-
-    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
-    func GetLogicalDrives()->u32
-
     private func rememberedNetworkDriveMask()->u32
     {
         var currentUser: HKEY = null

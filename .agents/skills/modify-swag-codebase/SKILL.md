@@ -119,6 +119,20 @@ or as a link against an artifact nothing can explain.
 - Do not bump it for a change that only touches `bin/`, `backlog/`, or documentation.
 - One bump per change, not one per file.
 
+## Consume Official Native Wrappers
+
+Native implementation files and integration tests call the repository's official binding
+modules (`win32`, `gdi32`, `ogl`, and the other dedicated ABI modules). Never redeclare an
+operating-system function, foreign attribute, or foreign library locally, even inside an
+approved `.win32.swg` backend. Search the owning module first; add missing bindings there,
+preserving the native ABI and the module's error contract, then use them from the consumer.
+Keep native constants and ABI types with those bindings too.
+
+The runtime bootstrap cannot depend on the standard library, and language/compiler tests or
+reference pages demonstrating foreign imports test that syntax itself; those are deliberate
+boundaries, not precedents for applications. Run `tools/portability.swgs` after a binding or
+native-backend change: its import-ownership check also covers otherwise approved host leaves.
+
 ## Improve The Platform Along The Way
 
 Treat every repository task, especially every Swag programming task, as an opportunity to

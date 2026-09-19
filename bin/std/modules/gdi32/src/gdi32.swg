@@ -458,6 +458,7 @@ func RGB(r, g, b: s32)->COLORREF => r | g << 8 | b << 16
 
 #[Foreign("Gdi32", callconv: Swag.CallConv.C)]
 {
+    func CreateRectRgn(x1, y1, x2, y2: INT)->HRGN
     func GetPixel(hdc: HDC, x, y: s32)->COLORREF
     func GetStockObject(i: s32)->HGDIOBJ
 }

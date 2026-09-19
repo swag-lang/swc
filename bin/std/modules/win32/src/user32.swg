@@ -25,6 +25,43 @@ const MOD_SHIFT    = 0x0004
 const MOD_WIN      = 0x0008
 const MOD_NOREPEAT = 0x4000
 
+const SPI_GETCLIENTAREAANIMATION = 0x1042'u32
+const GA_ROOT        = 2'u32
+const PBT_APMSUSPEND = 0x0004'u32
+
+const QS_KEY            = 0x0001'u32
+const QS_MOUSEMOVE      = 0x0002'u32
+const QS_MOUSEBUTTON    = 0x0004'u32
+const QS_POSTMESSAGE    = 0x0008'u32
+const QS_TIMER          = 0x0010'u32
+const QS_PAINT          = 0x0020'u32
+const QS_SENDMESSAGE    = 0x0040'u32
+const QS_HOTKEY         = 0x0080'u32
+const QS_ALLPOSTMESSAGE = 0x0100'u32
+const QS_RAWINPUT       = 0x0400'u32
+const QS_TOUCH          = 0x0800'u32
+const QS_POINTER        = 0x1000'u32
+const QS_MOUSE          = QS_MOUSEMOVE | QS_MOUSEBUTTON
+const QS_INPUT          = QS_MOUSE | QS_KEY | QS_RAWINPUT | QS_TOUCH | QS_POINTER
+const QS_ALLINPUT       = QS_INPUT | QS_POSTMESSAGE | QS_TIMER | QS_PAINT | QS_HOTKEY | QS_SENDMESSAGE
+
+const MWMO_WAITALL        = 0x0001'u32
+const MWMO_ALERTABLE      = 0x0002'u32
+const MWMO_INPUTAVAILABLE = 0x0004'u32
+
+alias UINT_PTR  = u64
+alias HRGN      = const *void?
+alias TIMERPROC = func(HWND, UINT, UINT_PTR, DWORD)
+
+struct LASTINPUTINFO
+{
+    public
+    {
+        cbSize: UINT
+        dwTime: DWORD
+    }
+}
+
 const VK_LBUTTON                         = 0x01
 const VK_RBUTTON                         = 0x02
 const VK_CANCEL                          = 0x03
@@ -1055,6 +1092,12 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 
 #[Foreign("user32", callconv: Swag.CallConv.C)]
 {
+    func SetTimer(hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: TIMERPROC?)->UINT_PTR
+    func KillTimer(hWnd: HWND, uIDEvent: UINT_PTR)->BOOL
+    func ValidateRect(hWnd: HWND, lpRect: const *RECT?)->BOOL
+    func GetLastInputInfo(plii: *LASTINPUTINFO)->BOOL
+    func GetWindowThreadProcessId(hWnd: HWND, lpdwProcessId: LPDWORD)->DWORD
+    func GetAncestor(hWnd: HWND, gaFlags: UINT)->HWND
     func GetAsyncKeyState(vKey: s32)->SHORT
     func GetKeyboardState(lpKeystate: *u8)->BOOL
     func SetCursorPos(x, y: s32)
@@ -1163,6 +1206,8 @@ internal namespace User32Priv
 {
     #[Foreign("user32", callconv: Swag.CallConv.C)]
     {
+        func SystemParametersInfoW(uiAction, uiParam: UINT, pvParam: LPVOID, fWinIni: UINT)->BOOL
+        func MsgWaitForMultipleObjectsEx(nCount: DWORD, pHandles: const *HANDLE?, dwMilliseconds, dwWakeMask, dwFlags: DWORD)->DWORD
         func RegisterClassA(lpWndClass: const *WNDCLASSA)->ATOM
         func RegisterClassW(lpWndClass: const *WNDCLASSW)->ATOM
 
@@ -1192,6 +1237,23 @@ internal namespace User32Priv
 
 #[Inline]
 {
+    // Reports a native failure as [[Swag.SystemError]] instead of returning FALSE.
+    func SystemParametersInfoW(uiAction, uiParam: UINT, pvParam: LPVOID, fWinIni: UINT) fail
+    {
+        if not User32Priv.SystemParametersInfoW(uiAction, uiParam, pvParam, fWinIni) do
+            try failWinError(GetLastError())
+    }
+
+    // Returns the native wait status; reports WAIT_FAILED as [[Swag.SystemError]].
+    #[Discardable]
+    func MsgWaitForMultipleObjectsEx(nCount: DWORD, pHandles: const *HANDLE?, dwMilliseconds, dwWakeMask, dwFlags: DWORD)->DWORD fail
+    {
+        let result = User32Priv.MsgWaitForMultipleObjectsEx(nCount, pHandles, dwMilliseconds, dwWakeMask, dwFlags)
+        if result == WAIT_FAILED do
+            try failWinError(GetLastError())
+        return result
+    }
+
     func RegisterHotKey(hWnd: HWND, id: s32, fsModifiers: UINT, vk: UINT) fail
     {
         if not User32Priv.RegisterHotKey(hWnd, id, fsModifiers, vk) do

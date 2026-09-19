@@ -2,15 +2,6 @@
 
 using Win32, Core, Pixel, Gdi32
 
-#foreignlib("user32")
-
-private const SPI_GETCLIENTAREAANIMATION = 0x1042'u32
-
-private #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
-{
-    func SystemParametersInfoW(uiAction, uiParam: UINT, pvParam: LPVOID, fWinIni: UINT)->BOOL
-}
-
 // Dependency-visible Windows storage embedded by [[Gui.Application]].
 #[Swag.Opaque, Swag.NoDoc]
 public struct ApplicationNative
@@ -34,7 +25,8 @@ impl Application
     internal mtd refreshSystemMotionPreference()
     {
         var animationsEnabled = TRUE
-        if not SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0) do
+        catch SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0) as error
+        if error != null do
             return
 
         let wasReduced = .isReducedMotion()

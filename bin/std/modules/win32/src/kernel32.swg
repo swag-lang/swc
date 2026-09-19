@@ -58,6 +58,11 @@ const ATTACH_PARENT_PROCESS = cast #bit (DWORD) -1
 const FALSE = 0
 const TRUE  = 1
 
+const MEM_COMMIT  = 0x1000'u32
+const MEM_RESERVE = 0x2000'u32
+const MEM_RELEASE = 0x8000'u32
+const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000'u32
+
 const CSTR_EQUAL = 2
 
 const FOREGROUND_BLUE      = 0x0001
@@ -551,6 +556,18 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
 #[Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
+    func LoadLibraryW(lpLibFileName: LPCWSTR)->HMODULE
+    func FreeLibrary(hLibModule: HMODULE)->BOOL
+    func OpenProcess(dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD)->HANDLE
+    func QueryFullProcessImageNameW(hProcess: HANDLE, dwFlags: DWORD, lpExeName: LPWSTR, lpdwSize: LPDWORD)->BOOL
+    func GetEnvironmentVariableA(lpName: LPCSTR, lpBuffer: LPSTR, nSize: DWORD)->DWORD
+    func SetFileAttributesW(lpFileName: LPCWSTR, dwFileAttributes: DWORD)->BOOL
+    func GetFinalPathNameByHandleW(hFile: HANDLE, lpszFilePath: LPWSTR, cchFilePath: DWORD, dwFlags: DWORD)->DWORD
+    func GetTickCount()->DWORD
+    func VirtualAlloc(lpAddress: LPVOID, dwSize: SIZE_T, flAllocationType, flProtect: DWORD)->LPVOID
+    func VirtualFree(lpAddress: LPVOID, dwSize: SIZE_T, dwFreeType: DWORD)->BOOL
+    func GetTempFileNameA(lpPathName, lpPrefixString: LPCSTR, uUnique: UINT, lpTempFileName: LPSTR)->UINT
+    func DeviceIoControl(hDevice: HANDLE, dwIoControlCode: DWORD, lpInBuffer: LPVOID, nInBufferSize: DWORD, lpOutBuffer: LPVOID, nOutBufferSize: DWORD, lpBytesReturned: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
     func VirtualUnlock(lpAddress: LPVOID, dwSize: SIZE_T)->BOOL
     func GetLastError()->DWORD
     func SetLastError(dwErrCode: DWORD)
@@ -608,6 +625,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func ExitProcess(uExitCode: UINT)
     func GetCurrentThreadId()->DWORD
     func GetCurrentThread()->HANDLE
+    func GetThreadTimes(hThread: HANDLE, lpCreationTime, lpExitTime, lpKernelTime, lpUserTime: *FILETIME)->BOOL
 
     func AcquireSRWLockExclusive(SRWLock: *SRWLOCK)
     func AcquireSRWLockShared(SRWLock: *SRWLOCK)

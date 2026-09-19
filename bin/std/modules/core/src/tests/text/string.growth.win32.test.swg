@@ -1,19 +1,15 @@
 #global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
 #global private
 
-#[Swag.Foreign("kernel32", "VirtualAlloc")]
-func allocateStringGuard(address: *void?, size: u64, allocationType, protection: u32)->[*] u8?
-
-#[Swag.Foreign("kernel32", "VirtualFree")]
-func releaseStringGuard(address: *void?, size: u64, freeType: u32)->s32
+using Win32
 
 // Growing an inline string must read only its old contents. The following native page
 // remains reserved, so copying the new length out of the inline buffer faults.
 #test
 {
-    let pages = allocateStringGuard(null, 8192, 0x2000, 0x04)!
-    defer discard releaseStringGuard(pages, 0, 0x8000)
-    let committed = allocateStringGuard(pages, 4096, 0x1000, 0x04)
+    let pages = cast([*] u8) VirtualAlloc(null, 8192, MEM_RESERVE, PAGE_READWRITE)!
+    defer discard VirtualFree(pages, 0, MEM_RELEASE)
+    let committed = VirtualAlloc(pages, 4096, MEM_COMMIT, PAGE_READWRITE)
     Swag.assert(committed != null)
 
     let value = cast(*String) (pages + 4096 - #sizeof(String))

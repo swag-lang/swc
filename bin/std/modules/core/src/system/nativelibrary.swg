@@ -7,7 +7,7 @@ private const SwagRuntimeHookSync          = 0'u64
 private const SwagRuntimeHookDynamicLoad   = 4'u64
 private const SwagRuntimeHookDynamicUnload = 5'u64
 
-private func callSwagRuntimeHook(handle: *void, stage: u64)
+private func callSwagRuntimeHook(handle: const *void, stage: u64)
 {
     let runtimeHook = nativeLibrarySymbol(handle, SwagRuntimeHookSymbol)
     if not runtimeHook do
@@ -25,7 +25,7 @@ private func callSwagRuntimeHook(handle: *void, stage: u64)
 #[Swag.NoCopy]
 struct NativeLibrary
 {
-    internal handle: *void?     // Platform module handle, or null while closed.
+    internal handle: const *void?     // Platform module handle, or null while closed.
 }
 
 impl NativeLibrary

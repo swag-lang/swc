@@ -1,74 +1,7 @@
 #global public
 #global if #os == Swag.TargetOs.Windows
 
-#foreignlib("dwmapi")
-#foreignlib("gdi32")
-#foreignlib("user32")
-using Core, Win32
-
-// Region and flags the compositor blurs behind a window, and reads its alpha through.
-private struct DWM_BLURBEHIND
-{
-    dwFlags:  DWORD
-    fEnable:  BOOL
-    hRgnBlur: *void?
-    fTransitionOnMaximized: BOOL
-}
-
-// Selects the fields of DWM_BLURBEHIND that carry a value.
-private const DWM_BB_ENABLE = 0x00000001'u32
-
-// Selects the region field of DWM_BLURBEHIND.
-private const DWM_BB_BLURREGION = 0x00000002'u32
-
-// DWM animates a cached bitmap when a native window changes placement. A surface paints its
-// complete chrome and alpha itself, so that cache cannot follow its simultaneous layout change.
-private const DWMWA_TRANSITIONS_FORCEDISABLED = 3'u32
-
-private #[Swag.Foreign("dwmapi", callconv: Swag.CallConv.C)]
-{
-    // Performs the dwm set window attribute operation.
-    func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32
-
-    // Applies `pBlurBehind` to `hWnd`, which is also what makes the compositor read its alpha.
-    func DwmEnableBlurBehindWindow(hWnd: HWND, pBlurBehind: const *DWM_BLURBEHIND)->s32
-}
-
-private #[Swag.Foreign("gdi32", callconv: Swag.CallConv.C)]
-{
-    // Creates a rectangular region; an inverted rectangle yields the empty region.
-    func CreateRectRgn(x1, y1, x2, y2: s32)->*void?
-
-    // Releases a GDI object.
-    func DeleteObject(ho: *void?)->BOOL
-}
-
-private #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
-{
-    // Starts a low-priority window timer used to pace interactive resize frames.
-    func SetTimer(hWnd: HWND, nIDEvent: u64, uElapse: UINT, lpTimerFunc: *void?)->u64
-
-    // Stops a window timer.
-    func KillTimer(hWnd: HWND, uIDEvent: u64)->BOOL
-
-    // Removes a native update region after an equivalent frame was presented directly.
-    func ValidateRect(hWnd: HWND, lpRect: const *RECT?)->BOOL
-}
-
-// Defines dwmwa window corner preference.
-private const DWMWA_WINDOW_CORNER_PREFERENCE = 33'u32
-
-// Defines dwmwa border color.
-private const DWMWA_BORDER_COLOR = 34'u32
-
-// Defines dwmwa color none.
-private const DWMWA_COLOR_NONE = 0xFFFFFFFE'u32
-
-// Defines dwmwcp donotround.
-private const DWMWCP_DONOTROUND = 1'u32
-
-// Defines dwmwcp round.
-private const DWMWCP_ROUND = 2'u32
+using Core, Win32, Gdi32
 
 // Defines htclient.
 private const HTCLIENT = 1
@@ -603,7 +536,7 @@ impl Surface
         // An inverted rectangle is the empty region.
         let emptyRegion = CreateRectRgn(0, 0, -1, -1)
         defer if emptyRegion do
-            discard DeleteObject(emptyRegion)
+            catch DeleteObject(cast(Gdi32.HGDIOBJ) emptyRegion)
 
         with var blurBehind: DWM_BLURBEHIND
         {

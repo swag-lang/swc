@@ -1,6 +1,6 @@
 #global if WINDOWS
 
-using Core
+using Core, Win32
 
 namespace WinFsp
 {
@@ -68,7 +68,9 @@ namespace WinFsp
     func beginWinFspLog()->NativeHandle
     {
         let logPath16 = Utf16.toZeroTerminated(winFspLogPath())
-        let handle    = CreateFileW(logPath16.buffer, GenericWrite, ShareRead, null, 2, NormalFile, null)
+        let handle    = catch CreateFileW(logPath16.buffer, GenericWrite, ShareRead, null, 2, NormalFile, null) as error
+        if error != null do
+            return InvalidHandle
         if handle != InvalidHandle do
             (g_WinFsp.setDebugLogHandle)(handle)
         return handle
@@ -79,7 +81,7 @@ namespace WinFsp
         if handle == InvalidHandle do
             return
         (g_WinFsp.setDebugLogHandle)(InvalidHandle)
-        discard CloseHandle(handle)
+        CloseHandle(handle)
     }
 
     func winFspLogDetail()->String

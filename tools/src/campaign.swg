@@ -31,12 +31,15 @@ public func runTests(context: *Context, options: *Options)->s32 fail
         return 1
     }
 
-    var tooling: Arguments
-    options.appendExtra(&tooling)
-    tooling.add([Path.combine(context.root.toString(), "tools", "tests", "repository.swgs").toString()])
-    let checked = try context.runCompiler(tooling)
-    if checked != 0 do
-        return checked
+    for test in ["repository.swgs", "portability.swgs"]
+    {
+        var tooling: Arguments
+        options.appendExtra(&tooling)
+        tooling.add([Path.combine(context.root.toString(), "tools", "tests", test).toString()])
+        let checked = try context.runCompiler(tooling)
+        if checked != 0 do
+            return checked
+    }
 
     return try runWholeSet(context, options)
 }

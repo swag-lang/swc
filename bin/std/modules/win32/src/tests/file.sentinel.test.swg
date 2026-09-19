@@ -3,12 +3,6 @@
 
 using Swag
 
-#[Foreign("kernel32", callconv: Swag.CallConv.C)]
-{
-    func GetTempFileNameA(path, prefix: LPCSTR, unique: UINT, fileName: LPSTR)->UINT
-    func DeviceIoControl(handle: HANDLE, code: DWORD, input: LPVOID, inputSize: DWORD, output: LPVOID, outputSize: DWORD, returned: LPDWORD, overlapped: LPOVERLAPPED)->BOOL
-}
-
 // Both legacy file APIs can return 0xffffffff on success. A sparse temporary file proves
 // the size case without allocating four gigabytes of disk space or writing a large payload.
 #test

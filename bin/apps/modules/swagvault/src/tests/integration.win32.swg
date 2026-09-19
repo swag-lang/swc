@@ -1,9 +1,6 @@
 #global if WINDOWS and #hastag("vault.integration")
 
-#foreignlib("kernel32")
-#foreignlib("shell32")
-
-using Core
+using Core, Win32
 
 namespace Integration
 {
@@ -36,52 +33,6 @@ namespace Integration
         return writeError == null ? 0 : 1
     }
 
-    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
-    {
-        func MoveFileExW(existing, replacement: const [*] u16?, flags: u32)->s32
-        func SetFileAttributesW(path: const [*] u16?, attributes: u32)->s32
-        func GetFileAttributesW(path: const [*] u16?)->u32
-        func GetLastError()->u32
-        func GetFinalPathNameByHandleW(handle: WinFsp.NativeHandle, path: [*] u16, capacity, flags: u32)->u32
-    }
-
-    // Only the Shell methods used by this harness are callable; the other slots retain ABI order.
-    struct IFileOperation
-    {
-        lpVtbl: *IFileOperationVtbl
-    }
-
-    struct IFileOperationVtbl
-    {
-        base:                    Win32.IUnknownVtbl
-        Advise:                  *void?
-        Unadvise:                *void?
-        SetOperationFlags:       func(*IFileOperation, u32)->s32
-        SetProgressMessage:      *void?
-        SetProgressDialog:       *void?
-        SetProperties:           *void?
-        SetOwnerWindow:          *void?
-        ApplyPropertiesToItem:   *void?
-        ApplyPropertiesToItems:  *void?
-        RenameItem:              *void?
-        RenameItems:             func(*IFileOperation, *Win32.IUnknown, const [*] u16)->s32
-        MoveItem:                *void?
-        MoveItems:               *void?
-        CopyItem:                *void?
-        CopyItems:               *void?
-        DeleteItem:              *void?
-        DeleteItems:             *void?
-        NewItem:                 *void?
-        PerformOperations:       func(*IFileOperation)->s32
-        GetAnyOperationsAborted: func(*IFileOperation, *s32)->s32
-    }
-
-    #[Swag.Foreign("shell32", callconv: Swag.CallConv.C)]
-    {
-        func SHParseDisplayName(name: const [*] u16, context: *void?, idList: *(*void?), attributes: u32, resultAttributes: *u32?)->s32
-        func SHCreateShellItemArrayFromIDLists(count: u32, idLists: const [*] (*void?), items: *(*Win32.IUnknown?))->s32
-    }
-
     func shellRenameItems(paths: const [..] String, name: string) fail
     {
         try verify(Win32.CoInitializeEx(null, Win32.COINIT_APARTMENTTHREADED) >= 0, "the Shell rename test needs a COM apartment")
@@ -94,11 +45,11 @@ namespace Integration
         let operation = cast(*IFileOperation) raw!
         defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown) raw!)
 
-        var idLists: Array'(*void?)
+        var idLists: Array'PIDLIST_ABSOLUTE
         defer
         {
             for idList in idLists do
-                Win32.CoTaskMemFree(idList)
+                Win32.CoTaskMemFree(cast(LPVOID) idList)
         }
 
         for path in paths
@@ -107,21 +58,21 @@ namespace Integration
             var shellPath = String.from(path.toString())
             shellPath.replace('/', "\\")
             let path16 = Utf16.toZeroTerminated(shellPath)
-            var idList: *void?
+            var idList: PIDLIST_ABSOLUTE
             let status = SHParseDisplayName(path16.storage(), null, &idList, 0, null)
             try verify(status >= 0, Format.toString("the Shell cannot resolve [[%]] (HRESULT 0x%{X})", shellPath, cast #bit (u32) status))
             idLists.add(idList)
         }
 
-        var items: *Win32.IUnknown?
-        try verify(SHCreateShellItemArrayFromIDLists(cast(u32) idLists.count, idLists.storage(), &items) >= 0, "the Shell must collect the batch rename sources")
-        defer discard (items!.lpVtbl.Release)(items)
+        var items: *IShellItemArray?
+        try verify(SHCreateShellItemArrayFromIDLists(cast(u32) idLists.count, cast(const [*] PCIDLIST_ABSOLUTE) idLists.storage(), &items) >= 0, "the Shell must collect the batch rename sources")
+        defer discard (items!.lpVtbl.Release)(cast(*IUnknown) cast(*void) items)
 
         // Suppress UI, stop on errors, and let Windows choose numbered names while keeping extensions.
         const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
         try verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
         let name16 = Utf16.toZeroTerminated(name)
-        try verify((operation.lpVtbl.RenameItems)(operation, items!, name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
+        try verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown) cast(*void) items!, name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
         try verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
         var aborted: s32
         try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
@@ -173,8 +124,9 @@ namespace Integration
     {
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
-        if not MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) do
-            try failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].", GetLastError(), existing, replacement))
+        catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) as error
+        if error != null do
+            try failWith(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
     }
 
     func setAttributes(path: string, attributes: u32) fail
@@ -186,8 +138,9 @@ namespace Integration
 
     func attributes(path: string)->u32
     {
-        let path16 = Utf16.toZeroTerminated(path)
-        return GetFileAttributesW(path16.buffer)
+        let path16     = Utf16.toZeroTerminated(path)
+        let attributes = catch GetFileAttributesW(path16.buffer) as error
+        return error != null ? INVALID_FILE_ATTRIBUTES : attributes
     }
 
     func verifyFinalPath(path: string) fail
@@ -195,25 +148,26 @@ namespace Integration
         let path16 = Utf16.toZeroTerminated(path)
 
         // Match Python's realpath: query metadata with all sharing modes and allow directories.
-        let handle = WinFsp.CreateFileW(path16.buffer, 0, 7, null, 3, 0x02000000, null)
+        let handle = try CreateFileW(path16.buffer, 0, 7, null, 3, 0x02000000, null)
         try verify(handle != WinFsp.InvalidHandle, Format.toString("Windows cannot open [[%]] for path resolution", path))
-        defer discard WinFsp.CloseHandle(handle)
+        defer CloseHandle(handle)
 
         var buffer: [32768] u16
         let count = GetFinalPathNameByHandleW(handle, buffer.buffer, cast(u32) buffer.count, 0)
         try verify(count != 0 and count < buffer.count, Format.toString("Windows cannot resolve [[%]] from its handle (error %)", path, GetLastError()))
         let resolved   = Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
         let resolved16 = Utf16.toZeroTerminated(resolved)
-        let reopened   = WinFsp.CreateFileW(resolved16.buffer, 0, 7, null, 3, 0x02000000, null)
+        let reopened   = try CreateFileW(resolved16.buffer, 0, 7, null, 3, 0x02000000, null)
         try verify(reopened != WinFsp.InvalidHandle, Format.toString("Windows cannot reopen the resolved path [[%]]", resolved))
-        defer discard WinFsp.CloseHandle(reopened)
+        defer CloseHandle(reopened)
     }
 
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        if not WinFsp.RemoveDirectoryW(path16.buffer) do
-            try failWith(Format.toString("Windows error %: cannot remove directory [[%]].", GetLastError(), path))
+        catch RemoveDirectoryW(path16.buffer) as error
+        if error != null do
+            try failWith(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -484,11 +438,13 @@ namespace Integration
         var renamePaths: Array'String
         for index in 24
         {
-            let source    = Path.combine(bulk, Format.toString("item-%.bin", index))
-            let source16  = Utf16.toZeroTerminated(source)
-            let collision = MoveFileExW(source16.buffer, occupied16.buffer, 0)
-            let error     = GetLastError()
-            try verify(not collision and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
+            let source   = Path.combine(bulk, Format.toString("item-%.bin", index))
+            let source16 = Utf16.toZeroTerminated(source)
+            catch MoveFileExW(source16.buffer, occupied16.buffer, 0) as collision
+            var error: u64
+            if collision is Swag.SystemError as system do
+                error = system.errorID
+            try verify(collision != null and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
             try verify(File.exists(source) and Slice.equals((try File.readAllBytes(occupied)).toSlice(), first), "a refused rename must preserve both files")
 
             let destination = Path.combine(bulk, Format.toString("clip (%).mp4", index + 1))
@@ -607,8 +563,8 @@ namespace Integration
     {
         let module = WinFsp.loadLibrary(path)
         try verify(module != null, "Windows must load each staged WinFsp runtime")
-        defer discard WinFsp.FreeLibrary(module)
-        let address = WinFsp.GetProcAddress(module, ("FspSxsIdent").buffer)
+        defer discard FreeLibrary(module)
+        let address = GetProcAddress(module, ("FspSxsIdent").buffer)
         try verify(address != null, "WinFsp must expose its active SxS identity")
         let readIdentity = cast(func()->const [*] u16) address!
         let identity     = readIdentity()

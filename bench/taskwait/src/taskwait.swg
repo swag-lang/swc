@@ -1,21 +1,16 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core
-
-#[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
-{
-    func GetCurrentThread()->*void?
-    func GetThreadTimes(thread: *void?, created, exited, kernel, user: *u64)->s32
-    func Sleep(milliseconds: u32)
-}
+using Core, Win32
 
 #[Swag.Safety(.Assert, true)]
 func cpuMicroseconds()->u64
 {
-    var created, exited, kernel, user: u64
+    var created, exited, kernel, user: FILETIME
     let queried = GetThreadTimes(GetCurrentThread(), &created, &exited, &kernel, &user)
     Swag.assert(queried != 0)
-    return (kernel + user) / 10
+    let kernelTicks = (cast(u64) kernel.dwHighDateTime << 32) | kernel.dwLowDateTime
+    let userTicks   = (cast(u64) user.dwHighDateTime << 32) | user.dwLowDateTime
+    return (kernelTicks + userTicks) / 10
 }
 
 #[Swag.Safety(.Assert, true)]

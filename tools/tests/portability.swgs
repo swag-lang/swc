@@ -1,0 +1,30 @@
+#import("core", location: "swag@std")
+#load("../src/tool.swg")
+
+using Core
+
+#main
+{
+    let imports = "#foreignlib(\"user32\")\nprivate #[Swag.Foreign(\"user32\")]\nfunc Probe()\n"
+    for path in ["bin/std/modules/gui/src/application.win32.swg", "bin/std/modules/core/src/system/nativelibrary.win32.swg", "bin/apps/modules/swagvault/src/winfsp/abi.win32.swg", "bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg", "bin/apps/modules/newapp/src/backend.win32.swg", "bin/examples/scripts/sample.swgs", "tools/sample.swgs", "bench/src/swag/common.swg"]
+    {
+        let errors = Tool.auditForeignImports(path, imports)
+        Swag.assert(errors == 2)
+    }
+
+    for path in ["bin/std/modules/win32/src/user32.swg", "bin/std/modules/gdi32/src/gdi32.swg", "bin/std/modules/ogl/src/ogl.win32.swg", "bin/runtime/os.win32.swg"]
+    {
+        let errors = Tool.auditForeignImports(path, imports)
+        Swag.assert(errors == 0)
+    }
+
+    let shortAttribute = Tool.auditForeignImports("bin/std/modules/gui/src/surface.win32.swg", "using Swag\n#[Foreign (\n\"user32\")]\nfunc Probe()")
+    Swag.assert(shortAttribute == 1)
+    let comments = Tool.auditForeignImports("bin/std/modules/gui/src/surface.win32.swg", "// #[Foreign(\"user32\")]\n/* #foreignlib(\"user32\") */\nlet text = \"Swag.Foreign(\"\nlet longerForeignName = 0\n")
+    Swag.assert(comments == 0)
+    let declaration = Tool.auditForeignImports("bin/runtime/api.swg", "attr Foreign(module: string)\n")
+    Swag.assert(declaration == 0)
+    let bindingTest = Tool.auditForeignImports("bin/std/modules/win32/src/tests/example.test.swg", imports)
+    Swag.assert(bindingTest == 2)
+    Console.println("native import ownership regression checks passed")
+}

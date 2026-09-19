@@ -3,9 +3,6 @@
 
 using Swag, Win32
 
-#[Foreign("kernel32", callconv: Swag.CallConv.C)]
-func SetLastError(errorCode: DWORD)
-
 // A missing font table returns GDI_ERROR without necessarily setting a last-error code.
 #test
 {

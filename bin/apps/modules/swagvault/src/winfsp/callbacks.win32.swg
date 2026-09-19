@@ -1,6 +1,6 @@
 #global if WINDOWS
 
-using Core
+using Core, Win32
 
 namespace WinFsp
 {

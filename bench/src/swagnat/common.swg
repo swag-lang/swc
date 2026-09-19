@@ -1,6 +1,6 @@
 // Shared prelude for the pure-Swag benchmarks.
-// No dependency on any pre-compiled Swag module: only the default runtime allocator,
-// compiler intrinsics, and the two kernel32 clock entry points used for timing.
+// Uses the default runtime allocator and compiler intrinsics; timing consumes the official
+// Win32 bindings without depending on the portable standard-library implementations.
 
 struct BenchAllocationHeader
 {
@@ -40,18 +40,11 @@ func benchFree(ptr: [*] void?)
     allocator.free(&request)
 }
 
-#[Swag.Foreign("kernel32", "QueryPerformanceCounter")]
-func qpc(v: *u64)->s32
-
-#[Swag.Foreign("kernel32", "QueryPerformanceFrequency")]
-func qpf(v: *u64)->s32
-
 func now()->f64
 {
-    var c: u64
-    var f: u64
-    discard qpc(&c)
-    discard qpf(&f)
+    var c, f: Win32.LARGE_INTEGER
+    Win32.QueryPerformanceCounter(&c)
+    Win32.QueryPerformanceFrequency(&f)
     return cast(f64) c / cast(f64) f
 }
 

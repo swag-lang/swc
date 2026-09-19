@@ -2,24 +2,6 @@
 
 using Core, Win32, Gdi32
 
-namespace CaptureNative
-{
-    const ProcessQueryLimitedInformation = 0x1000'u32
-    const AncestorRoot = 2'u32
-
-    #[Swag.Foreign("user32", callconv: Swag.CallConv.C)]
-    {
-        func GetWindowThreadProcessId(hWnd: HWND, processId: *u32)->u32
-        func GetAncestor(hWnd: HWND, flags: u32)->HWND
-    }
-
-    #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
-    {
-        func OpenProcess(access: u32, inheritHandle: s32, processId: u32)->HANDLE
-        func QueryFullProcessImageNameW(process: HANDLE, flags: u32, fileName: [*] u16, size: *u32)->s32
-    }
-}
-
 // Restores the caller's DPI-awareness context when a capture operation ends.
 #[Swag.NoCopy]
 struct CapturePlatformScope
@@ -90,7 +72,7 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
         return result
 
     var window = hWnd
-    let root   = CaptureNative.GetAncestor(window, CaptureNative.AncestorRoot)
+    let root   = GetAncestor(window, GA_ROOT)
     if root do
         window = root
 
@@ -105,11 +87,11 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
         result.className = Utf8.fromUtf16(Swag.makeSlice(&className[0], cast(u64) classLength))
 
     var processId: u32
-    discard CaptureNative.GetWindowThreadProcessId(window, &processId)
+    discard GetWindowThreadProcessId(window, &processId)
     if not processId do
         return result
 
-    let process = CaptureNative.OpenProcess(CaptureNative.ProcessQueryLimitedInformation, 0, processId)
+    let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, processId)
     if not process do
         return result
     defer CloseHandle(process)
@@ -117,7 +99,7 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
     var path: Array'u16
     path.resize(32768)
     var pathLength = cast(u32) path.count
-    if not CaptureNative.QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength) do
+    if not QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength) do
         return result
 
     result.executable  = Utf8.fromUtf16(Swag.makeSlice((path.toSlice()).buffer, cast(u64) pathLength))
@@ -179,7 +161,7 @@ func getCaptureWindowForRect(srf: *Surface, captureRect: Math.Rectangle)->Captur
     if not hit do
         return {}
 
-    var window = CaptureNative.GetAncestor(hit, CaptureNative.AncestorRoot)
+    var window = GetAncestor(hit, GA_ROOT)
     if not window do
         window = hit
 

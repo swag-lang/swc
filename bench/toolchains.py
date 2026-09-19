@@ -152,7 +152,8 @@ def make_recipes(t, env, swc):
     def swag(cfg):
         def make(task, name):
             wd = os.path.join(OUT, "swag_" + name)
-            cmd = [swc, "build", "--build-cfg", cfg, "-n", name, "-od", wd, "-wd", wd]
+            cmd = [swc, "build", "--build-cfg", cfg, "-n", name, "-od", wd, "-wd", wd,
+                   "--module-file", os.path.join(SRC, "module.swg")]
             for f in swag_files(task, "swagnat"):
                 cmd += ["-f", f]
             return {"cmd": cmd, "exe": os.path.join(wd, name + ".exe"), "clean": [wd], "cwd": BENCH}
@@ -229,7 +230,8 @@ def make_runtimes(t, swc):
     """id -> callable(task) -> command line, for everything that compiles at launch."""
     def jit(cfg):
         def make(task):
-            cmd = [swc, "sema", "--build-cfg", cfg]
+            cmd = [swc, "sema", "--build-cfg", cfg,
+                   "--module-file", os.path.join(SRC, "module.swg")]
             for f in swag_files(task, "swag"):
                 cmd += ["-f", f]
             return cmd

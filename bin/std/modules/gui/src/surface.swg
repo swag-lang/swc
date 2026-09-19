@@ -501,6 +501,7 @@ impl Surface
         // one, so it runs unscaled: destination and source are both device pixels.
         .painter.begin()
         .painter.setContentScale(1)
+        .painter.setDefaultShader(.Simple)
         .painter.setColorMaskFull()
         .painter.setInterpolationMode(.Pixel)
         .painter.setBlendingMode(.Copy)
@@ -619,6 +620,14 @@ impl Surface
 
         let body   = .bodyShape()
         let radius = .cornerRadius()
+
+        // A scrolling viewport lies inside the outline. Reject it before recording a stroke:
+        // the overlap-safe renderer would otherwise clear alpha across its whole bounding box
+        // even when every edge of that stroke is clipped away.
+        var interior = body
+        interior.inflate(-Math.max(radius, pen.size) - Math.ceil(1 / .dpiScale) - 1)
+        if not interior.isEmpty() and interior.contains(.painter.clippingRect()) do
+            return
 
         .painter.resetTransform()
         .painter.setColorMaskColor()

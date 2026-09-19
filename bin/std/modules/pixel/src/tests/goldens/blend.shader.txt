@@ -5,8 +5,10 @@ ColorMask rgb-
 SetShader shader#0
 SetShaderParam p#0 f32=0.5
 SetShaderParam p#1 s32=3
+ResetTexture0
 DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
 SetShader shader#1
 SetShaderParam p#0 f32=1.5
+ResetTexture0
 DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
 SetShader none

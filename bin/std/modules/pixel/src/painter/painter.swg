@@ -361,8 +361,9 @@ struct Painter
         // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
         // program's paint uniforms stale, so a program switch forces the next texture0
         // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
-        texture0Dirty:  bool     // Whether brush uniforms must be re-emitted.
-        curTextProgram: s32      // Active text program: `0` none, `1` bitmap, `2` MSDF.
+        texture0Dirty:     bool            // Whether brush uniforms must be re-emitted.
+        curTextProgram:    s32             // Active text program: `0` none, `1` bitmap, `2` MSDF.
+        usesDefaultShader: bool = true     // Whether plain copies may temporarily select the simple program.
 
         // Last MSDF font-effect uniforms emitted this frame, to skip redundant
         // SetFontEffect commands (most text shares the same -- usually empty -- effect).
@@ -648,6 +649,7 @@ impl Painter
 
     private mtd startFont()
     {
+        .usesDefaultShader = false
         if .curTextProgram != 1
         {
             .curTextProgram = 1
@@ -659,6 +661,7 @@ impl Painter
 
     private mtd startMsdfFont()
     {
+        .usesDefaultShader = false
         if .curTextProgram != 2
         {
             .curTextProgram = 2
@@ -670,6 +673,7 @@ impl Painter
 
     private mtd endFont()
     {
+        .usesDefaultShader = true
         if .curTextProgram != 0
         {
             .curTextProgram = 0
@@ -1066,15 +1070,16 @@ impl Painter
         .transientTextures.clear()
         .transientTargets.clear()
 
-        .drawingBegin   = true
-        .layoutOnly     = layoutOnly
-        .canSetTexture0 = true
-        .overlapMode    = false
-        .hasFontEffect  = false
-        .texture0Dirty  = true
-        .curTextProgram = 0
-        .curRT          = null
-        .curPaintAlpha  = false
+        .drawingBegin      = true
+        .layoutOnly        = layoutOnly
+        .canSetTexture0    = true
+        .overlapMode       = false
+        .hasFontEffect     = false
+        .texture0Dirty     = true
+        .curTextProgram    = 0
+        .usesDefaultShader = true
+        .curRT             = null
+        .curPaintAlpha     = false
         .stackRT.clear()
         .stackPaintAlpha.clear()
 
@@ -1569,6 +1574,8 @@ impl Painter
     // Custom shaders are OpenGL programs; submitting one to [[Pixel.RenderCpu]] is a programmer error.
     mtd setShader(shader: *ShaderBase? = null)
     {
+        .usesDefaultShader = shader == null
+        .texture0Dirty     = true
         let cmd = .newCommand(.SetShader, true)
         cmd.shader.shader = shader
     }
@@ -1580,6 +1587,8 @@ impl Painter
     mtd setDefaultShader(shader: DefaultShaderId = .Default)
     {
         Swag.assert(shader == .Default or shader == .Simple)
+        .usesDefaultShader = shader == .Default
+        .texture0Dirty     = true
         let cmd = .newCommand(.SetDefaultShader, true)
         cmd.defaultShader.id     = shader
         cmd.defaultShader.axis   = 0
@@ -1594,6 +1603,8 @@ impl Painter
     mtd setBlurShader(axis: s32, radius: f32)
     {
         Swag.assert((axis == 0 or axis == 1) and radius > 0)
+        .usesDefaultShader = false
+        .texture0Dirty     = true
         let cmd = .newCommand(.SetDefaultShader, true)
         cmd.defaultShader.id     = .Blur
         cmd.defaultShader.axis   = axis
@@ -1607,6 +1618,8 @@ impl Painter
     mtd setResolveShader(factor: s32)
     {
         Swag.assert(factor >= 1 and factor <= 8)
+        .usesDefaultShader = false
+        .texture0Dirty     = true
         let cmd = .newCommand(.SetDefaultShader, true)
         cmd.defaultShader.id     = .Resolve
         cmd.defaultShader.axis   = 0

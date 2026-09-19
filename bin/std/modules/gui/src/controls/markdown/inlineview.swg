@@ -1322,7 +1322,6 @@ impl IWnd for InlineView
         let rect    = .clientRect()
         let painter = evt.paintContext.painter
         discard .layout(rect.width)
-        .prepareTextBatches(painter)
 
         let transform   = painter.transform()
         let width       = cast(s32) Math.ceil(rect.width)
@@ -1339,6 +1338,7 @@ impl IWnd for InlineView
             return
         }
 
+        .prepareTextBatches(painter)
         .releaseRenderCache()
         var caching: bool
         if canCache

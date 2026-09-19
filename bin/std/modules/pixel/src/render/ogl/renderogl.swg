@@ -607,11 +607,9 @@ impl RenderOgl
 
     // Finishes and presents the current frame.
     //
-    // Presenting does not wait for the picture to be drawn. A swap is ordered after everything
-    // submitted before it, so what reaches the screen is always the frame that was just recorded;
-    // waiting for the processor to see it finish only stops this thread for the whole of the
-    // drawing. On a shared-memory adapter that is tens of milliseconds a frame, and a caller that
-    // presents on a clock — a video player above all — loses exactly that much of every period.
+    // Do not force GPU completion here: a swap is ordered after the submitted drawing.
+    // The native present can still block on driver backpressure or display synchronization;
+    // callers presenting on the UI thread cannot process input during that wait.
     internal mtd endImpl()
     {
         glFlush()

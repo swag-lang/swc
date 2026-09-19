@@ -33,6 +33,32 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.054 — Presenting a small update still copies the whole surface render target
+
+- Recorded: 2026-08-24 08:48
+- Updated: 2026-09-19 10:15 — confirm that native presentation can still block the input thread
+- Evidence: `Surface.paintWnd` calls `drawTexture(dstRect, dstRect, ...)` for the whole surface.
+  On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
+  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. The explicit GPU
+  completion wait is gone from `RenderOgl.endImpl`, but `SwapBuffers` still runs synchronously
+  inside `Application.runFrame`, on the thread that dispatches mouse and keyboard events.
+  No `wglSwapIntervalEXT` policy is selected. A 2026-09-19 maximized manuscript repaint probe
+  spent 9.09 of 11.22 ms per frame in `end`; repeated runs of a candidate shader change spent
+  19.51 and 6.85 ms there. These totals include driver backpressure and earlier GPU work:
+  they do not establish a VSync cause, an input-latency measurement, or a comparative speedup.
+- Rejected approach: bounding that copy alone relied on preserved back-buffer contents. The
+  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy was
+  requested, so the unexercised partial-copy machinery was removed.
+- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input; query
+  the effective swap interval and separate GPU execution from native-present wait. Compare
+  bounded frame pacing or rendering/presentation off the UI thread without allowing an unbounded
+  queue of stale frames. Also measure whether surfaces that do not require compositing can render
+  directly to the back buffer. Keep the render target where effects need it; any different native
+  presentation backend must follow the target matrix in platform.portability.066.
+- Complete when: unnecessary surface copies and input-thread stalls have a measured policy,
+  equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.
+- Related: std.gui.049, platform.portability.066
+
 ### std.gui.003 — Construction-time text does not automatically retranslate
 
 - Recorded: 2026-08-09 11:30
@@ -162,24 +188,6 @@ date/name data and plural selection instead of maintaining GUI-local culture tab
 - Complete when: distant local changes stay local under a bounded invalidation policy, or the
   single rectangle is retained for a measured reason, with paint/golden tests for the decision.
 - Related: std.gui.054
-
-### std.gui.054 — Presenting a small update still copies the whole surface render target
-
-- Recorded: 2026-08-24 08:48
-- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
-- Evidence: `Surface.paintWnd` calls `drawTexture(dstRect, dstRect, ...)` for the whole surface.
-  On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
-  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. The former synchronous
-  adapter wait is already gone from `RenderOgl.endImpl`.
-- Rejected approach: bounding that copy alone relied on preserved back-buffer contents. The
-  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy was
-  requested, so the unexercised partial-copy machinery was removed.
-- Next: measure whether surfaces that do not require compositing can render directly to the back
-  buffer. Keep the render target where effects need it; any different native presentation backend
-  must follow the target matrix in platform.portability.066.
-- Complete when: the whole-surface copy is avoided where valid, with equivalent pixels and
-  measured adapter cost, or retained for a measured compositing requirement.
-- Related: std.gui.049, platform.portability.066
 
 ### std.gui.011 — No pointer-event model
 

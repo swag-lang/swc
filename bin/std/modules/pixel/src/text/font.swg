@@ -218,6 +218,13 @@ public struct FontCache
     }
 }
 
+// Layout controls and non-scalars have no fallback ink, regardless of the font provider.
+internal func isFontFallbackRune(c: rune)->bool
+{
+    let code = cast(u32) c
+    return code >= 0x20 and not (code >= 0x7F and code <= 0x9F) and code <= 0x10FFFF and not (code >= 0xD800 and code <= 0xDFFF) and not (code >= 0xFDD0 and code <= 0xFDEF) and (code & 0xFFFF) < 0xFFFE
+}
+
 private func mulFix(a, b: s32)->s32
 {
     let ab = cast(s64) a * cast(s64) b
@@ -436,6 +443,8 @@ public impl Font
     {
         if .glyphIndex(c) do
             return me
+        if not isFontFallbackRune(c) do
+            return me
         if let found = .fallbackFonts.tryFind(c) do
             return found.value
 
@@ -449,8 +458,11 @@ public impl Font
             }
         }
 
-        if not face and .owner.useSystemFallback do
-            face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)
+        #static if #os == Swag.TargetOs.Windows
+        {
+            if not face and .owner.useSystemFallback do
+                face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)
+        }
 
         let resolved = face ? .withTypeFace(face) : me
         .fallbackFonts.add(c, resolved)

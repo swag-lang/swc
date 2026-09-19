@@ -1554,6 +1554,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.resize(720, 1000)
     view.applyLayout()
     host.fireTimer(view.loadTimer)
+
+    // Give the requested glide a fully loaded viewport; otherwise the loading boundary
+    // legitimately pauses it and the next batch resumes its pending target.
+    for 64 where view.loadedDocumentHeight() < 1120 and view.isLoading() do
+        host.fireTimer(view.loadTimer)
     let first         = view.blocks[0].wnd
     let html          = view.blocks[1].wnd
     let firstPosition = first.position

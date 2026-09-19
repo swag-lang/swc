@@ -187,6 +187,8 @@ public:
     uint32_t                        nativeProcessInfosOffset();
     void                            ensureProcessInfosRunArgs();
     const Runtime::ProcessInfos&    processInfos();
+    void                            markImportedNativeExecution() { importedNativeExecuted_.store(true, std::memory_order_release); }
+    bool                            importedNativeExecuted() const { return importedNativeExecuted_.load(std::memory_order_acquire); }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -589,6 +591,7 @@ private:
     std::set<fs::path>                             moduleSetupLoadedFiles_;
     std::map<fs::path, fs::file_time_type>         moduleApiReadTimes_;
     std::map<fs::path, fs::file_time_type>         moduleNativeReadTimes_;
+    std::map<fs::path, fs::file_time_type>         moduleStaticLinkReadTimes_;
     std::vector<fs::path>                          moduleApiInputs_;
     mutable std::mutex                             moduleInputsMutex_;
     std::set<fs::path>                             compilerInputFiles_;
@@ -609,6 +612,7 @@ private:
     std::unique_ptr<NativeBackendBuilder>                            deferredBuilder_;
     Utf8                                                             lastArtifactLabel_;
     bool                                                             nativeArtifactBuilt_ = false;
+    std::atomic_bool                                                  importedNativeExecuted_ = false;
     WorkspaceBuildLogState                                           workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>                           workspaceModuleLogState_;
     bool                                                             suppressBuildConfigurationLog_ = false;

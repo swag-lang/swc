@@ -131,7 +131,7 @@ namespace
         return Result::Error;
     }
 
-    Result clearGeneratedModuleApiFiles(TaskContext& ctx, const fs::path& path)
+    Result removeStaleGeneratedModuleApiFiles(TaskContext& ctx, const fs::path& path, std::span<const fs::path> publishedPaths)
     {
         if (path.empty())
             return Result::Continue;
@@ -149,13 +149,17 @@ namespace
         if (!isDirectory)
             return reportModuleApiDirectoryClearError(ctx, path, FileSystem::describePathProblem(FileSystem::PathProblem::NotDirectory));
 
+        std::unordered_set<fs::path> normalizedPublishedPaths;
+        for (const fs::path& publishedPath : publishedPaths)
+            normalizedPublishedPaths.insert(publishedPath.lexically_normal());
+
         for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
             if (ec)
                 return reportModuleApiDirectoryClearError(ctx, path, FileSystem::normalizeSystemMessage(ec));
 
             const fs::path entryPath = it->path();
-            if (!ModuleApi::isPublishedFile(entryPath))
+            if (!ModuleApi::isPublishedFile(entryPath) || normalizedPublishedPaths.contains(entryPath.lexically_normal()))
                 continue;
 
             std::error_code removeEc;
@@ -234,6 +238,17 @@ namespace ModuleApiExport
 
     Result writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content)
     {
+        std::error_code ec;
+        const uintmax_t existingSize = fs::file_size(dstPath, ec);
+        if (!ec && existingSize == content.size())
+        {
+            std::vector<char>        existingContent;
+            FileSystem::IoErrorInfo readError;
+            if (FileSystem::readBinaryFile(dstPath, existingContent, readError) == Result::Continue &&
+                std::ranges::equal(existingContent, content))
+                return Result::Continue;
+        }
+
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::writeBinaryFile(dstPath, content.data(), content.size(), ioError) == Result::Continue)
             return Result::Continue;
@@ -352,8 +367,9 @@ namespace ModuleApi
         return Result::Continue;
     }
 
-    static Result finishPublication(TaskContext& ctx, DirectoryAccess& publication, const fs::path& directory)
+    static Result finishPublication(TaskContext& ctx, DirectoryAccess& publication, const fs::path& directory, std::span<const fs::path> publishedPaths)
     {
+        SWC_RESULT(removeStaleGeneratedModuleApiFiles(ctx, directory, publishedPaths));
         Utf8 because;
         if (publication.completePublication(because) != Result::Continue)
             return reportInvalidFolder(ctx, directory, because);
@@ -400,9 +416,10 @@ namespace ModuleApi
         Utf8            because;
         if (publication.beginPublication(because, exportApiDir) != Result::Continue)
             return reportInvalidFolder(ctx, exportApiDir, because);
-        SWC_RESULT(clearGeneratedModuleApiFiles(ctx, exportApiDir));
+
+        std::vector<fs::path> publishedPaths;
         if (suppressExport)
-            return finishPublication(ctx, publication, exportApiDir);
+            return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
         const Utf8        moduleNamespace  = buildModuleNamespaceName(compiler);
         const SourceFile* firstSourceFile  = nullptr;
@@ -426,7 +443,7 @@ namespace ModuleApi
         }
 
         if (!hasModuleSources)
-            return finishPublication(ctx, publication, exportApiDir);
+            return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
         // Extract each file's generated roots in parallel (independent per file), then merge
         // sequentially in file order. The merge feeds appendGeneratedRootUnique in exactly the
@@ -480,6 +497,7 @@ namespace ModuleApi
             }
 
             wholeExports.push_back({file, std::move(dstPath), fileInfo.hasModuleNamespace});
+            publishedPaths.push_back(wholeExports.back().dstPath);
         }
 
         // Build + write each whole-file export in parallel (each targets a distinct file).
@@ -494,11 +512,13 @@ namespace ModuleApi
                 return Result::Error;
 
         if (!firstSourceFile)
-            return finishPublication(ctx, publication, exportApiDir);
+            return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
         SWC_RESULT(writeGeneratedModuleImports(ctx, exportApiDir, preferredLineEnding(*firstSourceFile)));
+        if (!compiler.moduleSetupImports().empty())
+            publishedPaths.push_back((exportApiDir / ".swc-deps").lexically_normal());
         if (generatedRoots.empty())
-            return finishPublication(ctx, publication, exportApiDir);
+            return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
         sortGeneratedModuleApiRoots(ctx, generatedRoots);
 
@@ -514,7 +534,8 @@ namespace ModuleApi
         SWC_RESULT(buildGeneratedModuleApiSingleFileContent(ctx, generatedRoots, moduleNamespace.view(), preferredLineEnding(*firstSourceFile), content));
         if (writeModuleApiFile(ctx, generatedDstPath, content.view()) != Result::Continue)
             return Result::Error;
-        return finishPublication(ctx, publication, exportApiDir);
+        publishedPaths.push_back(generatedDstPath);
+        return finishPublication(ctx, publication, exportApiDir, publishedPaths);
     }
 }
 

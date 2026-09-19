@@ -160,6 +160,8 @@ namespace
         if (runtimeImports.empty())
             return Result::Continue;
 
+        ctx.compiler().markImportedNativeExecution();
+
         // Constexpr evaluation can enter imported modules from several sema workers at once.
         // Their hooks own process-wide DLL lifecycle state: one worker must finish Init and
         // PreMain before another worker can observe or refresh that state.

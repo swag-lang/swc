@@ -1038,6 +1038,107 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     return 0
 }
 
+// A private implementation edit changes the producer's native image, but not the interface that
+// ordinary shared-library consumers compile against. Those consumers stay reusable; consumers
+// that incorporated static code or ran the dependency at compile time still invalidate.
+private func verifyPrivateDependencyInvalidation(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+{
+    let scratch = Path.combine(workspace, ".tmp", "private-dependency-invalidation-probe")
+    if Directory.exists(scratch) do
+        try Directory.delete(scratch.toString(), recurse: true)
+    defer discard catch Directory.delete(scratch.toString(), recurse: true)
+
+    let modules = Path.combine(scratch.toString(), "modules")
+    try Directory.create(scratch.toString())
+    try Directory.create(modules.toString())
+    for module in ["provider", "middle", "leaf", "compile_time", "static_provider", "static_consumer"]
+    {
+        let moduleDirectory = Path.combine(modules.toString(), module)
+        try Directory.create(moduleDirectory.toString())
+        try Directory.create(Path.combine(moduleDirectory.toString(), "src").toString())
+    }
+
+    try File.writeAllText(Path.combine(modules.toString(), "provider", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Provider\" }\n")
+    let providerSource = Path.combine(modules.toString(), "provider", "src", "main.swg")
+    try File.writeAllText(providerSource.toString(), "private func privateValue()->s32 => 1\npublic func value()->s32 => privateValue()\n")
+
+    try File.writeAllText(Path.combine(modules.toString(), "middle", "module.swg").toString(), "#import(\"provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Middle\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "middle", "src", "main.swg").toString(), "public func value()->s32 => Provider.value()\n")
+
+    try File.writeAllText(Path.combine(modules.toString(), "leaf", "module.swg").toString(), "#import(\"middle\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Leaf\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "leaf", "src", "main.swg").toString(), "public func value()->s32 => Middle.value()\n")
+
+    try File.writeAllText(Path.combine(modules.toString(), "compile_time", "module.swg").toString(), "#import(\"provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"CompileTime\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "compile_time", "src", "main.swg").toString(), "public const Captured = #run Provider.value()\n")
+
+    try File.writeAllText(Path.combine(modules.toString(), "static_provider", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .StaticLibrary; cfg.moduleNamespace = \"StaticProvider\" }\n")
+    let staticProviderSource = Path.combine(modules.toString(), "static_provider", "src", "main.swg")
+    try File.writeAllText(staticProviderSource.toString(), "private func privateValue()->s32 => 1\npublic func value()->s32 => privateValue()\n")
+
+    try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"StaticConsumer\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "src", "main.swg").toString(), "public func value()->s32 => StaticProvider.value()\n")
+
+    var leaf = workspaceModuleCommand("build", scratch.toString(), "leaf", buildCfg)
+    options.appendExtra(&leaf)
+    let firstLeafCode = try context.runCompiler(leaf)
+    if firstLeafCode != 0 do
+        return firstLeafCode
+
+    var compileTime = workspaceModuleCommand("build", scratch.toString(), "compile_time", buildCfg)
+    options.appendExtra(&compileTime)
+    let firstCompileTimeCode = try context.runCompiler(compileTime)
+    if firstCompileTimeCode != 0 do
+        return firstCompileTimeCode
+
+    var staticConsumer = workspaceModuleCommand("build", scratch.toString(), "static_consumer", buildCfg)
+    options.appendExtra(&staticConsumer)
+    let firstStaticConsumerCode = try context.runCompiler(staticConsumer)
+    if firstStaticConsumerCode != 0 do
+        return firstStaticConsumerCode
+
+    let providerOutput = Path.combine(scratch.toString(), ".output", "provider", "shared-library", buildCfg, options.targetArch.toString())
+    let providerApi    = Path.combine(providerOutput.toString(), "provider.swg")
+    let originalApi    = try File.readAllBytes(providerApi.toString())
+    let originalTime   = (try File.info(providerApi.toString())).lastWriteTime
+
+    try File.writeAllText(providerSource.toString(), "private func privateValue()->s32 => 2\npublic func value()->s32 => privateValue()\n")
+    let leafOutput = try context.captureCompiler(leaf)
+    Console.print(leafOutput.toString())
+
+    let currentApi  = try File.readAllBytes(providerApi.toString())
+    let currentTime = (try File.info(providerApi.toString())).lastWriteTime
+    if currentApi.toSlice() != originalApi.toSlice() or currentTime != originalTime
+    {
+        Console.println("A private implementation edit changed the provider's stable public API publication.")
+        return 1
+    }
+
+    for artifact in ["middle.dll", "leaf.dll"] where not artifactReportedUpToDate(leafOutput.toString(), artifact)
+    {
+        Console.println("A private dependency edit recompiled an interface-stable library: ", artifact)
+        return 1
+    }
+
+    let compileTimeOutput = try context.captureCompiler(compileTime)
+    Console.print(compileTimeOutput.toString())
+    if artifactReportedUpToDate(compileTimeOutput.toString(), "compile_time")
+    {
+        Console.println("A module reused compile-time results from an older native dependency generation.")
+        return 1
+    }
+
+    try File.writeAllText(staticProviderSource.toString(), "private func privateValue()->s32 => 2\npublic func value()->s32 => privateValue()\n")
+    let staticConsumerOutput = try context.captureCompiler(staticConsumer)
+    Console.print(staticConsumerOutput.toString())
+    if artifactReportedUpToDate(staticConsumerOutput.toString(), "static_consumer.dll")
+    {
+        Console.println("A shared library reused code from an older static dependency generation.")
+        return 1
+    }
+
+    return 0
+}
+
 // WriteFile publishes fresh native bytes and their completion marker without redating the API.
 private func workspaceNativePublisher(sourceDirectory, destinationDirectory: string)->String
 {
@@ -1166,6 +1267,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let nativeReadCode = try verifyWorkspaceNativeReadDuringBuild(context, options, workspace.toString(), buildCfg)
     if nativeReadCode != 0 do
         return nativeReadCode
+
+    let privateDependencyCode = try verifyPrivateDependencyInvalidation(context, options, workspace.toString(), buildCfg)
+    if privateDependencyCode != 0 do
+        return privateDependencyCode
 
     // Documentation consumes local native artifacts for compile-time execution, but does not
     // produce those artifacts itself. Starting it from a clean workspace proves that its publish

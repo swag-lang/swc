@@ -1778,20 +1778,6 @@ namespace
         if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
             return false;
 
-        fs::file_time_type latestDependencyTime{};
-        bool               hasDependencyTime = false;
-        for (const fs::path& dependencyDir : currentDependencyDirs)
-        {
-            fs::file_time_type dependencyTime;
-            if (!tryGetWorkspaceDependencyBuildTime(dependencyTime, dependencyDir, manifestPath))
-                return false;
-            if (!hasDependencyTime || dependencyTime > latestDependencyTime)
-            {
-                latestDependencyTime = dependencyTime;
-                hasDependencyTime    = true;
-            }
-        }
-
         std::vector<fs::path> absoluteArtifactPaths;
         absoluteArtifactPaths.reserve(manifest.artifacts.size() + requiredArtifacts.size());
         for (const fs::path& relativeArtifactPath : manifest.artifacts)
@@ -1849,10 +1835,9 @@ namespace
         }
 
         // Publication certifies that artifacts finished, not that late source edits were read.
-        // Setup is read before dependencies build; dependency artifacts are consumed afterward.
+        // API and native read boundaries above own dependency freshness at the granularity this
+        // module consumed; an unrelated dependency artifact generation does not date this build.
         if (hasInputTime && manifest.inputsReadTime < latestInputTime)
-            return false;
-        if (hasDependencyTime && manifest.dependenciesReadTime < latestDependencyTime)
             return false;
         return manifest.inputsReadTime >= compilerTime;
     }
@@ -2379,6 +2364,7 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
     instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
     instance().moduleApiReadTimes_.clear();
     instance().moduleNativeReadTimes_.clear();
+    instance().moduleStaticLinkReadTimes_.clear();
     instance().moduleApiInputs_.clear();
 
     std::vector<std::unique_ptr<CompilerInstance::DependencyPlan>> localPlans;
@@ -2432,6 +2418,12 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
             if (!inserted)
                 readTime->second = std::min(readTime->second, node.apiReadTime);
             const fs::path& linkSourceDir = linkDependenciesIn && !node.paths.staticDir.empty() ? node.sourcePaths.staticDir : node.sourcePaths.linkDir;
+            if (!node.sourcePaths.staticDir.empty() && FileSystem::pathEquals(linkSourceDir, node.sourcePaths.staticDir))
+            {
+                auto [staticReadTime, staticInserted] = instance().moduleStaticLinkReadTimes_.emplace(linkSourceDir, node.nativeReadTime);
+                if (!staticInserted)
+                    staticReadTime->second = std::min(staticReadTime->second, node.nativeReadTime);
+            }
             for (const fs::path& sourceDir : {linkSourceDir, node.sourcePaths.sharedDir})
             {
                 if (sourceDir.empty())
@@ -3811,7 +3803,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
                 manifest.dependenciesReadTime = dependenciesReadTime;
                 manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-                manifest.nativeReadTimes      = moduleCompiler->moduleNativeReadTimes_;
+                if (moduleCompiler->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable || moduleCompiler->importedNativeExecuted())
+                    manifest.nativeReadTimes = moduleCompiler->moduleNativeReadTimes_;
+                else
+                    manifest.nativeReadTimes = moduleCompiler->moduleStaticLinkReadTimes_;
                 manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
                 normalizeWorkspacePathsLexically(manifest.apiInputs);
                 manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);
@@ -3842,7 +3837,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             link->manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
             link->manifest.dependenciesReadTime = dependenciesReadTime;
             link->manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-            link->manifest.nativeReadTimes      = moduleCompiler->moduleNativeReadTimes_;
+            if (moduleCompiler->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable || moduleCompiler->importedNativeExecuted())
+                link->manifest.nativeReadTimes = moduleCompiler->moduleNativeReadTimes_;
+            else
+                link->manifest.nativeReadTimes = moduleCompiler->moduleStaticLinkReadTimes_;
             link->manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
             normalizeWorkspacePathsLexically(link->manifest.apiInputs);
             link->manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);

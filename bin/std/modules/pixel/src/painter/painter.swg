@@ -520,6 +520,9 @@ impl Painter
         return .rendererItf
     }
 
+    // Reports whether commands are currently being recorded between `begin` and `end`.
+    internal mtd const isRecording()->bool => .drawingBegin
+
     // Queues a transient texture for release after every preceding command has consumed it.
     internal mtd releaseTexture(texture: Texture)
     {

@@ -39,6 +39,7 @@ struct LayerDrawInfo
         dstRect:           Math.Rectangle                                     // Destination rectangle in painter path space.
         color:             Color             = Color.fromArgb(Argb.White)     // Multiplicative tint.
         interpolationMode: InterpolationMode = .Linear                        // Sampling used while scaling.
+        blendingMode:      BlendingMode      = .Alpha                         // Color blend operation used to composite the layer.
         writeAlpha:        bool              = true                           // Composite the layer alpha channel separately.
         alphaBlendingMode: BlendingMode      = .Max                           // Blend operation for the alpha-only pass.
         releaseAfterDraw:  bool              = true                           // Queue layer targets for release after drawing.
@@ -320,7 +321,7 @@ impl Layer
             .setAntialiased(false)
             .setInterpolationMode(info.interpolationMode)
             .setColorMaskColor()
-            .setBlendingMode(.Alpha)
+            .setBlendingMode(info.blendingMode)
             .drawTexture(dstRect, srcRect, texture, info.color)
 
             if info.writeAlpha
@@ -377,15 +378,21 @@ impl Layer
         .resolved      = false
     }
 
-    // Returns every owned render target straight to the renderer pool and resets the layer.
+    // Releases every owned render target safely for the painter's current recording state.
     //
     // [[Pixel.Layer.release]] records the release into the painter command stream, which is
     // right in the middle of a frame but wrong for a layer retained across frames:
     // [[Pixel.Painter.begin]] discards pending commands, so a release recorded between two
-    // frames would be lost with them. Call this form instead when releasing a retained layer,
-    // once no recorded frame still draws from its targets.
+    // frames would be lost with them. This form queues the release while the painter is recording
+    // and otherwise returns the targets directly to the renderer pool.
     mtd releaseImmediate()
     {
+        if .painter and .painter.isRecording()
+        {
+            .release()
+            return
+        }
+
         if .renderer
         {
             let paintTarget   = .paintTarget

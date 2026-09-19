@@ -97,6 +97,17 @@ internal impl VisualBlock
         .table?.clearSearchHighlight()
         .html?.clearSearchHighlight()
     }
+
+    // Retires text rasters owned by this block, including table-cell views.
+    mtd releaseRenderCaches()
+    {
+        .inline?.releaseRenderCache()
+        if .table
+        {
+            for &cell in .table.cells do
+                cell.view.releaseRenderCache()
+        }
+    }
 }
 
 // One end of a document selection: a rendered text view, and a byte offset into its text.
@@ -313,6 +324,17 @@ private func takeStreamSource(source: *String, sourceDone: bool)->String
 
 private impl View
 {
+    // Keeps retained text rasters around the viewport for a quick wheel reversal, while bounding
+    // their device memory independently of the progressively loaded source reserve.
+    mtd trimRenderCaches(positionY: f32)
+    {
+        let viewport = .scroll.paddedClientRect()
+        let keepTop  = positionY - viewport.height
+        let keepEnd  = positionY + viewport.height * 2
+        for &block in .blocks where block.wnd.position.bottom() < keepTop or block.wnd.position.y > keepEnd do
+            block.releaseRenderCaches()
+    }
+
     mtd documentGeometry()->{ x: f32, width: f32 }
     {
         let viewport = .scroll.paddedClientRect()
@@ -989,7 +1011,7 @@ private impl View
             return
         let last = Math.min(Math.max(one, other), .inlineOrder.count - 1)
         for index in first to last do
-            .inlineOrder[index].invalidate()
+            .inlineOrder[index].invalidateRenderCache()
     }
 
     // Returns the document position nearest to a surface point.
@@ -1044,6 +1066,7 @@ private impl View
         .scroll.verticalScrollStep = .documentFont(.Paragraph, .documentStyle.bodyFontSize).height * .documentStyle.lineHeight
         for &block in .blocks
         {
+            block.releaseRenderCaches()
             if block.inline
             {
                 block.inline.layoutWidth = 0
@@ -1118,6 +1141,7 @@ impl View
         result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
         {
             discard scroll
+            view.trimRenderCaches(newPosition.y)
             if (view.jumpToEnd and not view.prioritizeViewport) or view.repositioning do
                 return
 
@@ -1290,6 +1314,9 @@ impl View
     {
         .documentThemeColors = styleSheetColors
         applyThemeColors(me, styleSheetColors)
+        for &block in .blocks do
+            block.releaseRenderCaches()
+        .invalidate()
     }
 
     // Reports whether progressive file-loading work is currently scheduled.
@@ -1801,7 +1828,7 @@ internal impl View
         .selAnchor = {view.orderIndex, word.start}
         .selCaret  = {view.orderIndex, word.end}
         .selecting = false
-        view.invalidate()
+        view.invalidateRenderCache()
     }
 
     // Returns the selection normalized to reading order, with `has` false when it is empty.
@@ -1877,7 +1904,7 @@ internal impl IWnd for View
                 let displayText = blockDisplayText(block.kind, block.searchText.toString())
                 block.inline!.clearSearchHighlight()
                 block.inline.parse(displayText.toString())
-                block.inline.invalidate()
+                block.inline.invalidateRenderCache()
                 changed = true
             }
 

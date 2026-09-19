@@ -7,6 +7,9 @@ using Core, Pixel
 // uses, so a line one engine leaves ragged is left ragged by the other for the same reason.
 private const JustifyLimit = 2.0
 
+// A malformed or unusually long paragraph must not pin an oversized retained texture.
+private const MaxRenderCacheDim = 4096
+
 #[Swag.EnumFlags]
 private enum InlineFlags
 {
@@ -148,14 +151,16 @@ public struct InlineView
 {
     using wnd: Wnd
 
-    late owner:      *View
-    kind:            BlockKind
-    atoms:           Array'InlineAtom
-    lines:           Array'InlineLine
-    images:          HtmlImageCache
-    textBatches:     Array'InlineTextBatch
-    textBatchScale:  f32
-    textBatchOffset: f32
+    late owner:       *View
+    kind:             BlockKind
+    atoms:            Array'InlineAtom
+    lines:            Array'InlineLine
+    images:           HtmlImageCache
+    textBatches:      Array'InlineTextBatch
+    textBatchScale:   f32
+    textBatchOffset:  f32
+    renderLayer:      Layer
+    renderCachePhase: Math.Point
 
     // Where this view sits in the reading order of every text view the document owns, which is
     // the coordinate a document-wide selection is expressed in. Assigned once, at creation.
@@ -172,6 +177,40 @@ public struct InlineView
 
 impl InlineView
 {
+    // Releases the retained rendering outside a paint recording scope.
+    mtd releaseRenderCache()
+    {
+        .renderLayer.releaseImmediate()
+    }
+
+    // Repaints this view after retiring the raster that represented its previous visual state.
+    mtd invalidateRenderCache()
+    {
+        .releaseRenderCache()
+        .invalidate()
+    }
+
+    // Composites a retained block without changing the surface alpha built by its owner.
+    mtd drawRenderCache(painter: *Painter, rect: Math.Rectangle)
+    {
+        with var info: LayerDrawInfo
+        {
+            .dstRect = {
+                x: rect.x - me.renderCachePhase.x,
+                y: rect.y - me.renderCachePhase.y,
+                width: cast(f32) me.renderLayer.width,
+                height: cast(f32) me.renderLayer.height}
+            .interpolationMode = .Pixel
+            .blendingMode      = .Copy
+            .writeAlpha        = false
+            .releaseAfterDraw  = false
+        }
+
+        painter.pushClippingRect(rect)
+        .renderLayer.draw(info)
+        painter.popClippingRect()
+    }
+
     mtd clearSearchHighlight()
     {
         var changed = .searchStart != Swag.U64.Max
@@ -184,7 +223,7 @@ impl InlineView
         }
 
         if changed do
-            .invalidate()
+            .invalidateRenderCache()
     }
 
     // Returns the whole text of the view: what a search matches against, and what a selection
@@ -261,7 +300,7 @@ impl InlineView
         .searchEnd   = match + text.count
         for &atom in .atoms where atom.textStart < .searchEnd and atom.textStart + atomTextLength(atom) > .searchStart do
             atom.searchHit = true
-        .invalidate()
+        .invalidateRenderCache()
         return true
     }
 
@@ -390,6 +429,7 @@ impl InlineView
 
     mtd parse(text: string)
     {
+        .releaseRenderCache()
         .atoms.clear()
         var state: InlineState
         var index     = 0'u64
@@ -1273,6 +1313,7 @@ impl IWnd for InlineView
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        .releaseRenderCache()
         .images.clear()
     }
 
@@ -1282,6 +1323,46 @@ impl IWnd for InlineView
         let painter = evt.paintContext.painter
         discard .layout(rect.width)
         .prepareTextBatches(painter)
+
+        let transform   = painter.transform()
+        let width       = cast(s32) Math.ceil(rect.width)
+        let height      = cast(s32) Math.ceil(rect.height)
+        let scale       = painter.contentScale()
+        let padding     = cast(s32) Math.ceil(1 / scale)
+        let layerWidth  = width + padding
+        let layerHeight = height + padding
+        let canCache    = .kind == .Paragraph and .images.entries.isEmpty() and width > 0 and height > 0 and transform.isTranslationOnly() and cast(f32) layerWidth * scale <= MaxRenderCacheDim and cast(f32) layerHeight * scale <= MaxRenderCacheDim
+        let cacheReady  = canCache and .renderLayer.contentTarget != null and .renderLayer.width == layerWidth and .renderLayer.height == layerHeight and .renderLayer.deviceScale == scale
+        if cacheReady
+        {
+            .drawRenderCache(painter, rect)
+            return
+        }
+
+        .releaseRenderCache()
+        var caching: bool
+        if canCache
+        {
+            .renderCachePhase = {
+                x: transform.tx - Math.floor(transform.tx * scale) / scale,
+                y: transform.ty - Math.floor(transform.ty * scale) / scale}
+            .renderLayer.begin(painter, {
+                width: layerWidth,
+                height: layerHeight,
+                paintAlpha: false,
+                clearColor: .themeColors().view_Bk})
+            painter.translateTransform(.renderCachePhase.x, .renderCachePhase.y)
+            caching = true
+        }
+
+        defer
+        {
+            if caching
+            {
+                .renderLayer.end()
+                .drawRenderCache(painter, rect)
+            }
+        }
 
         if .kind == .Code
         {
@@ -1419,7 +1500,7 @@ impl IWnd for InlineView
             if atom != .hotAtom
             {
                 .hotAtom = atom
-                .invalidate()
+                .invalidateRenderCache()
             }
 
             if atom do
@@ -1431,7 +1512,7 @@ impl IWnd for InlineView
             if .hotAtom
             {
                 .hotAtom = null
-                .invalidate()
+                .invalidateRenderCache()
             }
 
         case .Pressed where evt.button == .Left:

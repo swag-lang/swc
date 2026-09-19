@@ -8,22 +8,22 @@ struct(T) Const
 {
     const Pi:         T = 3.14159265358979323846264338327950288     // Ratio of a circle's circumference to its diameter
     const E:          T = 2.71828182845904523536028747135266250     // Euler's number, the base of the natural logarithm
-    const TwoPi:      T = 2 * Pi                       // Two times Pi, a full turn in radians
-    const PiBy2:      T = Pi / 2                       // Pi divided by 2, a quarter turn in radians
-    const PiBy3:      T = Pi / 3                       // Pi divided by 3
-    const PiBy4:      T = Pi / 4                       // Pi divided by 4
-    const PiBy6:      T = Pi / 6                       // Pi divided by 6
-    const PiBy8:      T = Pi / 8                       // Pi divided by 8
-    const ThreePiBy4: T = 3 * Pi / 4                   // Three times Pi divided by 4
-    const OneByPi:    T = 1 / Pi                       // Reciprocal of Pi
-    const TwoByPi:    T = 2 / Pi                       // Two divided by Pi
-    const Sqrt2:      T = sqrt(cast(T) 2)              // Square root of 2
-    const OneBySqrt2: T = 1 / Sqrt2                    // Reciprocal of the square root of 2
-    const Ln2:        T = log(cast(T) 2)               // Natural logarithm of 2
-    const Ln10:       T = log(cast(T) 10)              // Natural logarithm of 10
-    const Log2E:      T = log2(E)                      // Base-two logarithm of Euler's number
-    const Log10E:     T = log10(E)                     // Base-ten logarithm of Euler's number
-    const Epsilon:    T = 1e-06                        // Default absolute tolerance of the epsilon comparisons
+    const TwoPi:      T = 2 * Pi                                    // Two times Pi, a full turn in radians
+    const PiBy2:      T = Pi / 2                                    // Pi divided by 2, a quarter turn in radians
+    const PiBy3:      T = Pi / 3                                    // Pi divided by 3
+    const PiBy4:      T = Pi / 4                                    // Pi divided by 4
+    const PiBy6:      T = Pi / 6                                    // Pi divided by 6
+    const PiBy8:      T = Pi / 8                                    // Pi divided by 8
+    const ThreePiBy4: T = 3 * Pi / 4                                // Three times Pi divided by 4
+    const OneByPi:    T = 1 / Pi                                    // Reciprocal of Pi
+    const TwoByPi:    T = 2 / Pi                                    // Two divided by Pi
+    const Sqrt2:      T = sqrt(cast(T) 2)                           // Square root of 2
+    const OneBySqrt2: T = 1 / Sqrt2                                 // Reciprocal of the square root of 2
+    const Ln2:        T = log(cast(T) 2)                            // Natural logarithm of 2
+    const Ln10:       T = log(cast(T) 10)                           // Natural logarithm of 10
+    const Log2E:      T = log2(E)                                   // Base-two logarithm of Euler's number
+    const Log10E:     T = log10(E)                                  // Base-ten logarithm of Euler's number
+    const Epsilon:    T = 1e-06                                     // Default absolute tolerance of the epsilon comparisons
 }
 
 // Names the mathematical constants in `f32` precision.

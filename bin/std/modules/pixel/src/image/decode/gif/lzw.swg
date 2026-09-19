@@ -25,7 +25,7 @@ impl Decoder
 
     mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 fail
     {
-        var key       = 0'u32
+        var key      = 0'u32
         var fragSize = 0
         for var bitsRead = 0; bitsRead < keySize; bitsRead += fragSize
         {

@@ -394,14 +394,30 @@ impl ColorPickerCtrl
 
                 switch i
                 {
-                case 0: .addColor(Argb.White)
-                case 1: .addColor(Argb.Gray)
-                case 2: .addColor(Argb.Black)
-                case 3: .addColor(Argb.Red)
-                case 4: .addColor(Argb.Green)
-                case 5: .addColor(Argb.Blue)
-                case 6: .addColor(Argb.Yellow)
-                case 7: .addColor(Argb.Purple)
+                case 0:
+                    .addColor(Argb.White)
+
+                case 1:
+                    .addColor(Argb.Gray)
+
+                case 2:
+                    .addColor(Argb.Black)
+
+                case 3:
+                    .addColor(Argb.Red)
+
+                case 4:
+                    .addColor(Argb.Green)
+
+                case 5:
+                    .addColor(Argb.Blue)
+
+                case 6:
+                    .addColor(Argb.Yellow)
+
+                case 7:
+                    .addColor(Argb.Purple)
+
                 case 8:
                     if flags.has(.AllowAlpha) do
                         .addColor(Color.fromArgb(0))

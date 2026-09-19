@@ -43,7 +43,7 @@ func slowShift(x: u64, k: u32)->u64 => x << k
     }
 
     var values: [3] u64 = [1, 0xFFFFFFFFFFFFFFFF, 0x8000000000000001]
-    var expected = 0'u64
+    var expected        = 0'u64
     for v in values do
         expected += slowShift(v, 2) | v
     Swag.assert(shiftSum(&values[0], 3) == expected)

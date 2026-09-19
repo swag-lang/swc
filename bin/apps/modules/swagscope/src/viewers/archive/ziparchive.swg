@@ -43,8 +43,8 @@ struct ZipEntry
 struct ZipArchive
 {
     entries:          Array'ZipEntry
-    compressedSize:   u64 // Sum over the file entries; directories do not count
-    uncompressedSize: u64 // Sum over the file entries; directories do not count
+    compressedSize:   u64     // Sum over the file entries; directories do not count
+    uncompressedSize: u64     // Sum over the file entries; directories do not count
     comment:          String
 }
 

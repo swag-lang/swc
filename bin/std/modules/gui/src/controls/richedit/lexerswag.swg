@@ -41,8 +41,8 @@ struct RichEditLexerSwag
         Declaration
         Control
         Intrinsic
-        Namespace             // Built-in `Swag` namespace.
-        Builtin               // Compiler builtin function.
+        Namespace     // Built-in `Swag` namespace.
+        Builtin       // Compiler builtin function.
         Compiler
         CompilerFunction
         CompilerGlobal

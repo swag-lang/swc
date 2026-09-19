@@ -870,9 +870,9 @@ impl SoundViewer
 
         with .backwardButton = IconButton.create(.commands, .theme().icon(.SeekBackward, iconSize), {0, 0, buttonSize, buttonSize})
         {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = soundStrings().ui_TipBackward
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = soundStrings().ui_TipBackward
             .enable(false)
             .sigPressed += func|view = me|(button)
             {
@@ -883,9 +883,9 @@ impl SoundViewer
 
         with .forwardButton = IconButton.create(.commands, .theme().icon(.SeekForward, iconSize), {0, 0, buttonSize, buttonSize})
         {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = soundStrings().ui_TipForward
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = soundStrings().ui_TipForward
             .enable(false)
             .sigPressed += func|view = me|(button)
             {
@@ -930,9 +930,9 @@ impl SoundViewer
 
         with .timeline = Slider.create(.commands, {0, 0, 0, 36})
         {
-            .dockStyle    = .Center
-            .margin       = {12, 1, 12, 1}
-            .toolTip      = soundStrings().ui_TipSeek
+            .dockStyle = .Center
+            .margin    = {12, 1, 12, 1}
+            .toolTip   = soundStrings().ui_TipSeek
             .enable(false)
             .sigEndChange += func|view = me|(slider)
             {

@@ -18,8 +18,8 @@ const HexMinBytesPerRow = 8'u64
 const HexMaxBytesPerRow = 64'u64
 
 // Zoom range of the grid font, and the pace of the autoscroll a drag outside the rows keeps up.
-const HexMinFontSize    = 8'u32
-const HexMaxFontSize    = 24'u32
+const HexMinFontSize = 8'u32
+const HexMaxFontSize = 24'u32
 const HexDragScrollRate: Time.Duration = 50'ms
 
 // Largest pixel span the vertical scrollbar is given.
@@ -1426,7 +1426,7 @@ impl HexGridView
 
         with let result = scroll.createView'HexGridView()
         {
-            .scroll          = scroll
+            .scroll = scroll
             .backgroundStyle = .View
             .registerAction'ActionHex()
             .focusPolicy = .Tab

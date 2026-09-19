@@ -102,7 +102,7 @@ func buildOpenDocumentFixture(kind: OpenDocumentKind, content: string, template 
     entries[1].plain.add(content)
     entries[2].name  = "Pictures/figure.png"
     entries[2].plain = expect Base64.decode(OpenDocumentFixtureImage)
-    entries[3].name = "styles.xml"
+    entries[3].name  = "styles.xml"
     entries[3].plain.add(OpenDocumentFixtureStyles)
     entries[4].name = "meta.xml"
     entries[4].plain.add(OpenDocumentFixtureMetadata)

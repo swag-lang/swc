@@ -322,7 +322,7 @@ func createMarkdownViewer(host: Viewer.Host)
         return
     }
 
-    let commandGroup = host.createCommandGroup(264)
+    let commandGroup    = host.createCommandGroup(264)
     with let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
     {
         .dockStyle = .Right

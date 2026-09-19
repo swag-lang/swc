@@ -58,7 +58,7 @@ public impl Xml
     {
         let tag   = try .readTag()
         let start = .stackTags.popBack()
-        if not Utf8.startsWith(tag, "/") or tag[1 to] != start do
+        if not Utf8.startsWith(tag, "/") or tag[1 to ] != start do
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
     }
 
@@ -67,7 +67,7 @@ public impl Xml
     {
         const Names = ["lt;", "gt;", "amp;", "quot;", "apos;"]
         const Chars = "<>&\"'"
-        let rest    = .stream.remainingString()
+        let rest = .stream.remainingString()
         for index in Names.count
         {
             if Utf8.startsWith(rest, Names[index])

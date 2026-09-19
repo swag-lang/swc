@@ -112,8 +112,8 @@ private impl KeyFileField
     {
         with var options: FileDlgOptions
         {
-            .mode              = .SelectFiles
-            .title             = appStrings().dlg_TitleKeyFiles
+            .mode  = .SelectFiles
+            .title = appStrings().dlg_TitleKeyFiles
             .confirmButtonText = appStrings().dlg_BtnAdd
             .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
             .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})

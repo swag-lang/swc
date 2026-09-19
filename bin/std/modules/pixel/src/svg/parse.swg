@@ -1067,7 +1067,6 @@ private func prependTranslation(transform: Math.Transform2, x, y: f32)->Math.Tra
 #[Swag.Inline]
 private func mapPoint(state: *GroupState, x, y: f32)->Vector2 => state.transform.transformPoint({x, y})
 
-
 // The single length scale a transform applies, as the square root of the area it multiplies.
 //
 // A stroke width, a dash length and a dash offset are one number in user units, and an
@@ -2278,7 +2277,7 @@ private impl Parser
         // A raster rectangle has no rotated form here: the origin is transformed and the extents
         // take the axis scales, which is exact for every transform that keeps the axes.
         let origin = mapPoint(state, .geoNumber(geo, "x"), .geoNumber(geo, "y"))
-        let scale    = state.transform.axisScale()
+        let scale  = state.transform.axisScale()
         item.rect    = {origin.x, origin.y, width * scale.x, height * scale.y}
         item.opacity = state.opacity
         if not state.inDefs do
@@ -2332,11 +2331,11 @@ private impl Parser
         run.hasY     = first or y != null
         let anchor = mapPoint(state, x ? .geoNumber(geo, "x") : 0, y ? .geoNumber(geo, "y") : 0)
         let offset = state.transform.transformVector({dx, dy})
-        run.x             = anchor.x
-        run.y             = anchor.y
-        run.dx            = offset.x
-        run.dy            = offset.y
-        let scale         = state.transform.axisScale()
+        run.x  = anchor.x
+        run.y  = anchor.y
+        run.dx = offset.x
+        run.dy = offset.y
+        let scale = state.transform.axisScale()
         run.fontSize      = state.fontSize * scale.y
         run.letterSpacing = state.letterSpacing * scale.x
         run.wordSpacing   = state.wordSpacing * scale.x

@@ -117,9 +117,9 @@ using Swag, Core, File
     defer host.shutdown()
     with var opt: FileDlgOptions
     {
-        .mode              = .SelectFile
+        .mode  = .SelectFile
         .showLocationsPane = false
-        .state             = &state
+        .state = &state
         .filters.add({"Text", ".txt"})
     }
 

@@ -151,7 +151,7 @@ func expectRect(actual, expected: Math.Rectangle)
     quarter.multiply(quarter)
     expectTransform(quarter, Math.Transform2.createRotation(Math.ConstF32.Pi, 0, 0))
 
-    var skew = Math.Transform2{1, 0.5, 0.25, 1, 3, -2}
+    var skew     = Math.Transform2{1, 0.5, 0.25, 1, 3, -2}
     var expected = skew
     expected.multiply(Math.Transform2{1, 0.5, 0.25, 1, 3, -2})
     skew.multiply(skew)

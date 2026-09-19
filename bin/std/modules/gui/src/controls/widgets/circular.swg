@@ -68,9 +68,9 @@ struct Circular
     hasUpperValue:  bool     // Whether the second value was established.
 
     // Track geometry, computed by `updateGeometry`.
-    radius:       f32     // Radius of the main circular track.
-    centerX:      f32     // X coordinate of the track center.
-    centerY:      f32     // Y coordinate of the track center.
+    radius:  f32     // Radius of the main circular track.
+    centerX: f32     // X coordinate of the track center.
+    centerY: f32     // Y coordinate of the track center.
 
     lowerMarkerAnimation: BlendColor     // Color animation of the first marker.
     upperMarkerAnimation: BlendColor     // Color animation of the second marker.

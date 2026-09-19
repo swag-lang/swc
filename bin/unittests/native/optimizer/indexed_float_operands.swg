@@ -47,7 +47,7 @@ func ratiosRef(d: [*] f32, a, b: const [*] f32, n: u64)
     let b: [6] f32 = [2, 0.25, -1, 3, 5, -4]
     Swag.assert(dotF(&a[0], &b[0], 6) == dotFRef(&a[0], &b[0], 6))
 
-    let w: [6] f64 = [1, 4, 9, 16, 25, 36]
+    let w:  [6] f64 = [1, 4, 9, 16, 25, 36]
     var d1: [5] f64
     var d2: [5] f64
     diffNext(&d1[0], &w[0], 5)

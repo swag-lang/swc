@@ -22,6 +22,7 @@ impl Vec
             .buffer   = cast([*] T) Memory.alloc(8 * #sizeof(T))
             .capacity = 8
         }
+
         Swag.init(.buffer! + .count, 1)
         .buffer![.count] = #nodrop #fwd value
         .count += 1

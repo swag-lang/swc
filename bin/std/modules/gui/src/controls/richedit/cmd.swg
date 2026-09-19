@@ -5,51 +5,51 @@ using Core
 // Identifies an editor action that can be bound to a keyboard shortcut.
 enum RichEditCommand
 {
-    None                // Runs no command.
-    CursorLeft          // Moves the caret one rune left.
-    CursorRight         // Moves the caret one rune right.
-    CursorUp            // Moves the caret one display line up.
-    CursorDown          // Moves the caret one display line down.
-    CursorStartLine     // Moves the caret to the start of its logical line.
-    CursorEndLine       // Moves the caret to the end of its logical line.
-    CursorStartFile     // Moves the caret to the start of the document.
-    CursorEndFile       // Moves the caret to the end of the document.
-    CursorWordLeft      // Moves the caret to the previous word boundary.
-    CursorWordRight     // Moves the caret to the next word boundary.
-    CursorPageUp        // Moves the caret one viewport page up.
-    CursorPageDown      // Moves the caret one viewport page down.
-    ScrollLineUp       // Scrolls the viewport one display line up.
-    ScrollLineDown     // Scrolls the viewport one display line down.
-    DeleteLeft         // Deletes the selection or the rune before the caret.
-    DeleteRight        // Deletes the selection or the rune after the caret.
-    DeleteLine         // Deletes the logical line containing the caret.
+    None                   // Runs no command.
+    CursorLeft             // Moves the caret one rune left.
+    CursorRight            // Moves the caret one rune right.
+    CursorUp               // Moves the caret one display line up.
+    CursorDown             // Moves the caret one display line down.
+    CursorStartLine        // Moves the caret to the start of its logical line.
+    CursorEndLine          // Moves the caret to the end of its logical line.
+    CursorStartFile        // Moves the caret to the start of the document.
+    CursorEndFile          // Moves the caret to the end of the document.
+    CursorWordLeft         // Moves the caret to the previous word boundary.
+    CursorWordRight        // Moves the caret to the next word boundary.
+    CursorPageUp           // Moves the caret one viewport page up.
+    CursorPageDown         // Moves the caret one viewport page down.
+    ScrollLineUp           // Scrolls the viewport one display line up.
+    ScrollLineDown         // Scrolls the viewport one display line down.
+    DeleteLeft             // Deletes the selection or the rune before the caret.
+    DeleteRight            // Deletes the selection or the rune after the caret.
+    DeleteLine             // Deletes the logical line containing the caret.
     EditTabulation         // Indents the selection or inserts a tabulation.
     EditBackTabulation     // Removes one indentation level from selected lines.
     DeleteWordLeft         // Deletes through the previous word boundary.
     DeleteWordRight        // Deletes through the next word boundary.
-    ToggleOverwrite     // Toggles insert and overwrite modes.
-    ClipboardCopy       // Copies the selection to the clipboard.
-    ClipboardPaste      // Inserts compatible clipboard text.
-    ClipboardCut        // Copies then deletes the selection.
-    Undo                // Reverts the most recent undo group.
-    Redo                // Reapplies the next reverted undo group.
-    SelectRuneLeft      // Extends the linear selection one rune left.
-    SelectRuneRight     // Extends the linear selection one rune right.
-    SelectRuneUp        // Extends the linear selection one display line up.
-    SelectRuneDown      // Extends the linear selection one display line down.
-    SelectRectLeft      // Extends the rectangular selection one rune left.
-    SelectRectRight     // Extends the rectangular selection one rune right.
-    SelectRectUp        // Extends the rectangular selection one display line up.
-    SelectRectDown      // Extends the rectangular selection one display line down.
-    SelectStartLine     // Extends the selection to the start of the logical line.
-    SelectEndLine       // Extends the selection to the end of the logical line.
-    SelectStartFile     // Extends the selection to the start of the document.
-    SelectEndFile       // Extends the selection to the end of the document.
-    SelectAllFile       // Selects the complete document.
-    SelectWordLeft      // Extends the selection to the previous word boundary.
-    SelectWordRight     // Extends the selection to the next word boundary.
-    SelectPageUp        // Extends the selection one viewport page up.
-    SelectPageDown      // Extends the selection one viewport page down.
+    ToggleOverwrite        // Toggles insert and overwrite modes.
+    ClipboardCopy          // Copies the selection to the clipboard.
+    ClipboardPaste         // Inserts compatible clipboard text.
+    ClipboardCut           // Copies then deletes the selection.
+    Undo                   // Reverts the most recent undo group.
+    Redo                   // Reapplies the next reverted undo group.
+    SelectRuneLeft         // Extends the linear selection one rune left.
+    SelectRuneRight        // Extends the linear selection one rune right.
+    SelectRuneUp           // Extends the linear selection one display line up.
+    SelectRuneDown         // Extends the linear selection one display line down.
+    SelectRectLeft         // Extends the rectangular selection one rune left.
+    SelectRectRight        // Extends the rectangular selection one rune right.
+    SelectRectUp           // Extends the rectangular selection one display line up.
+    SelectRectDown         // Extends the rectangular selection one display line down.
+    SelectStartLine        // Extends the selection to the start of the logical line.
+    SelectEndLine          // Extends the selection to the end of the logical line.
+    SelectStartFile        // Extends the selection to the start of the document.
+    SelectEndFile          // Extends the selection to the end of the document.
+    SelectAllFile          // Selects the complete document.
+    SelectWordLeft         // Extends the selection to the previous word boundary.
+    SelectWordRight        // Extends the selection to the next word boundary.
+    SelectPageUp           // Extends the selection one viewport page up.
+    SelectPageDown         // Extends the selection one viewport page down.
 }
 
 impl RichEditCtrl

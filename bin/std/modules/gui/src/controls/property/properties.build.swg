@@ -87,7 +87,7 @@ internal impl Properties
             .valueCellHeight = height != 0 ? height : me.gridLineHeight
         }
 
-        line.hookOnEvent = func|prop = me, item|(wnd, evt) => prop.onItemEvent(item, wnd, evt);
+        line.hookOnEvent = func|prop = me, item|(wnd, evt) => prop.onItemEvent(item, wnd, evt)
 
         // Name
         if flags.has(.Name)

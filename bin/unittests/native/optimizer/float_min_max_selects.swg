@@ -32,9 +32,9 @@ func bits(x: f32)->u32 => cast #bit (u32) x
 #[Swag.Safety(.All, false)]
 #test
 {
-    let nan     = cast #bit (f32) 0x7FC00000'u32
-    let negZero = cast #bit (f32) 0x80000000'u32
-    let inf     = cast #bit (f32) 0x7F800000'u32
+    let nan             = cast #bit (f32) 0x7FC00000'u32
+    let negZero         = cast #bit (f32) 0x80000000'u32
+    let inf             = cast #bit (f32) 0x7F800000'u32
     let values: [9] f32 = [0.0, negZero, 1.0, -1.0, 0.25, nan, inf, -inf, 2.0]
 
     for a in values

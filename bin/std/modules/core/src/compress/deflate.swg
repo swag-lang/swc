@@ -609,7 +609,7 @@ impl Deflate
 
         for i in tableLen
         {
-            var revCode = 0'u32
+            var revCode  = 0'u32
             let codeSize = d.huffCodeSizes[tableNum, i]
             if codeSize == 0 do
                 continue
@@ -618,7 +618,7 @@ impl Deflate
             for var l = codeSize; l > 0; l -= 1
             {
                 revCode = (revCode << 1) | (cde & 1)
-                cde      >>= 1
+                cde     >>= 1
             }
 
             d.huffCodes[tableNum, i] = cast(u16) revCode

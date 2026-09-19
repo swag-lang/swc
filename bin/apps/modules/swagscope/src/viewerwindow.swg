@@ -1582,9 +1582,9 @@ impl ViewerWindow
     {
         with var options: FileDlgOptions
         {
-            .state             = &me.fileDlgState
-            .mode              = .SelectFile
-            .title             = appStrings().dlg_TitleOpen
+            .state = &me.fileDlgState
+            .mode  = .SelectFile
+            .title = appStrings().dlg_TitleOpen
             .confirmButtonText = appStrings().dlg_ButtonOpen
             .filters.add({appStrings().dlg_AllFiles, ""})
         }
@@ -1860,7 +1860,7 @@ impl ViewerWindow
         if not instance.retireView() do
             return false
         instance.destroyWindows()
-        instance[] = {}
+        instance[]       = {}
         .currentView     = null
         .currentActions  = null
         .currentInfo     = null
@@ -2023,9 +2023,9 @@ impl ViewerWindow
                 discard next.retire(next.view)
             let reason = #move next.failureReason
             next.destroyWindows()
-            next               = {}
+            next      = {}
             next.failureReason = #move reason
-            next.view          = ViewerErrorView.create(.documentPanel, next.failureReason.toString())
+            next.view = ViewerErrorView.create(.documentPanel, next.failureReason.toString())
         }
 
         if not next.view

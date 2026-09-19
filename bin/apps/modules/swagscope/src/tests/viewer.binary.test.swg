@@ -1025,7 +1025,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String => RichString
     host.setup(1100, 640)
     defer host.shutdown()
 
-    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    let view    = createTestViewer(&host, fileName.toString(), 1100, 600)
     var reached = view.goToTypedOffset("400")
     Swag.assert(reached)
     Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")

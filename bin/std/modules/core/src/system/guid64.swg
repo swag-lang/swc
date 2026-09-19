@@ -3,6 +3,7 @@
 using Core.Errors
 
 // Each thread draws identifiers from its own generator and counter, so creation never takes a lock.
+
 tls
 {
     private var g_Rng:     Random.MersenneTwister64     // Generator of this thread
@@ -117,7 +118,7 @@ impl Guid64
         for i in reversed(16)
         {
             result[i] = Tbl[bits & 0xF]
-            bits >>= 4
+            bits      >>= 4
         }
     }
 

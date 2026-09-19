@@ -72,6 +72,7 @@ using Swag
     Swag.assert(Math.Point.Zero + Math.Point.One == Math.Point.One)
     Swag.assert(Math.Point.Zero - Math.Point.One == Math.Point{-1, -1})
     Swag.assert(Math.Point{7.5, -3.5} / 2 == Math.Point{3.75, -1.75})
+
     // Negation flips the sign bit, so the origin negates to (-0, -0): equal to zero as floats,
     // while the member-wise struct comparison compares their bytes.
     let negZero = -Math.Point.Zero

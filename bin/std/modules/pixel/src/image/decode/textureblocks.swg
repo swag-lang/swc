@@ -21,14 +21,9 @@ internal func blockBytes(format: Format)->u64
 {
     switch #complete format
     {
-    case .None:
-        unreachable
-
-    case .BC1, .BC4:
-        return 8
-
-    case .BC2, .BC3, .BC5:
-        return 16
+    case .None:            unreachable
+    case .BC1, .BC4:       return 8
+    case .BC2, .BC3, .BC5: return 16
     }
 }
 

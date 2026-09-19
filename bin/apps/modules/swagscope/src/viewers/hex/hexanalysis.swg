@@ -30,25 +30,25 @@ struct HexAnalysisRange
 // One inferred readable run and the exact bytes that produced it.
 struct HexAnalysisString
 {
-    offset: u64                       // First byte of the run in the file.
-    length: u64                       // Bytes the run covers, two per character in UTF-16.
+    offset: u64     // First byte of the run in the file.
+    length: u64     // Bytes the run covers, two per character in UTF-16.
     kind:   HexAnalysisStringKind
-    text:   String                    // Readable preview, ending in `...` when the run is longer.
+    text:   String     // Readable preview, ending in `...` when the run is longer.
 }
 
 // Bounded findings for one explicit file range.
 struct HexAnalysisResult
 {
     range:            HexAnalysisRange
-    scanned:          u64                         // Bytes read before completion, cancellation, or failure.
-    histogram:        [256] u64                   // Occurrences of each byte value.
+    scanned:          u64           // Bytes read before completion, cancellation, or failure.
+    histogram:        [256] u64     // Occurrences of each byte value.
     zeroCount:        u64
     printableCount:   u64                         // Bytes the text column shows as themselves.
     entropy:          f64                         // Shannon entropy of the scanned bytes, in bits per byte.
     strings:          Array'HexAnalysisString     // Inferred runs in file order, at most `HexAnalysisStringLimit`.
     stringsTruncated: bool                        // Whether more runs were found than `strings` keeps.
     cancelled:        bool
-    failureReason:    String                      // Empty unless the file could not be read.
+    failureReason:    String     // Empty unless the file could not be read.
 }
 
 // Readable run being accumulated in one encoding, flushed when a byte breaks it.

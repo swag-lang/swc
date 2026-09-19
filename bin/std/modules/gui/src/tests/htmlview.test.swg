@@ -431,7 +431,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 // Lengths read every unit a document uses, and math expressions keep what layout must resolve.
 #test
 {
-    var pool:    HtmlValuePool
+    var pool: HtmlValuePool
     let context = HtmlLengthContext{fontSize: 20, rootFontSize: 16, viewportWidth: 1000, viewportHeight: 500, basis: 400, hasBasis: true}
 
     Swag.assert(htmlParseLength(&pool, "12px", context).length.resolve(&pool, context) == 12)

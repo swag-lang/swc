@@ -845,7 +845,7 @@ impl QuickWnd
                 .quickWnd = me
                 .toolTip  = quickStyleTip(it)
 
-                .iconPainter = func(btn, bc, pos, flags) { paintForm(bc.painter, cast #assume (*QuickButton) btn) }
+                .iconPainter     = func(btn, bc, pos, flags) { paintForm(bc.painter, cast #assume (*QuickButton) btn) }
                 .sigRightPressed += func(btn) { (cast #assume (*QuickButton) btn).quickWnd.btnPopup(btn, btn.surfaceRect().center()) }
             }
 

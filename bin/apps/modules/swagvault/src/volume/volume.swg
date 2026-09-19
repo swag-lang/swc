@@ -8,12 +8,12 @@ const MaximumIoBatchBlocks = 256'u64
 struct CryptoBatch
 {
     keys:        const *Crypto.Keys
-    physical:    u64          // Container block of the first record.
-    records:     [..] u8      // Sealed records, `BlockRecordSize` bytes each.
-    plain:       [..] u8      // Plain blocks, `BlockSize` bytes each.
-    error:       any?         // First failure a job reported, or null.
+    physical:    u64         // Container block of the first record.
+    records:     [..] u8     // Sealed records, `BlockRecordSize` bytes each.
+    plain:       [..] u8     // Plain blocks, `BlockSize` bytes each.
+    error:       any?        // First failure a job reported, or null.
     errorLock:   Sync.Mutex
-    invalidTags: s32          // Number of records that failed authentication.
+    invalidTags: s32     // Number of records that failed authentication.
 }
 
 impl CryptoBatch

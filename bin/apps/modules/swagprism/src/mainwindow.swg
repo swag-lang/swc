@@ -170,7 +170,7 @@ impl MainWindow
             .setIconSize(18, 18)
             .setCheckIndicator(.Frame)
             .sendToBack()
-            .dockStyle = .Right
+            .dockStyle         = .Right
             .sigCheckedChanged += func|window = me|(button) { window.setComparisonEnabled(button.isChecked) }
         }
     }

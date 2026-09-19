@@ -305,13 +305,13 @@ impl DateTime
                 while digits < 3
                 {
                     fraction *= 10
-                    digits += 1
+                    digits   += 1
                 }
 
                 while digits > 3
                 {
                     fraction /= 10
-                    digits -= 1
+                    digits   -= 1
                 }
 
                 result.value.millisecond = cast(u16) fraction

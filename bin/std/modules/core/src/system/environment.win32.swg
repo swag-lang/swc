@@ -501,9 +501,10 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     enableDpiAwareness()
 
     var wc: WNDCLASSA
-    wc.style         = CS_OWNDC
-    wc.lpfnWndProc   = cast() &envWindowProc
-    wc.hInstance     = GetModuleHandleA(null)
+    wc.style       = CS_OWNDC
+    wc.lpfnWndProc = cast() &envWindowProc
+    wc.hInstance   = GetModuleHandleA(null)
+
     // Both names are read up to their terminator, which a 'string' view does not guarantee.
     let className = String.from(options.identifier)
     let title     = String.from(options.title)

@@ -54,7 +54,7 @@ func sumPicked(p: const [*] u8, n: u64)->u32
     Swag.assert(passFields(&second) == 7_000_000 + 12_000 + 34 - 1)
     Swag.assert(passFloats(&first, &second) == 1.5 * 2 + 7 - 0.25 * 3 - 45678)
 
-    var bytes: [4] u8 = [255, 1, 2, 3]
+    var bytes: [4] u8  = [255, 1, 2, 3]
     var words: [3] s16 = [-32768, 32767, -1]
     Swag.assert(passElements(&bytes[0], &words[0], 0, 0) == 255_000_000 - 32_768_000 - 7 + 5)
     Swag.assert(passElements(&bytes[0], &words[0], 1, 1) == 4_328_804_295's64)

@@ -40,12 +40,12 @@ struct Movie
     // The source the frames come from, and the decoding state that walks it.
     source:              MovieSource = None     // Kind of source the movie plays.
     imgList:             ImageList              // Frames of an image-list source.
-    reader:              ImageReader     // Decoder of an image-set source, open while one is loaded.
-    cachedFrames:        Array'Image     // Decoded image-set frames retained when caching is enabled.
-    elapsedFrameSeconds: f32             // Time accumulated toward the next frame.
-    dirtyFrame:          bool            // Whether a seek changed the current frame.
-    cachedBytes:         u64             // Pixel bytes held by `cachedFrames`.
-    completedLoops:      u32             // Playback cycles completed since the last load, seek, or resume.
+    reader:              ImageReader            // Decoder of an image-set source, open while one is loaded.
+    cachedFrames:        Array'Image            // Decoded image-set frames retained when caching is enabled.
+    elapsedFrameSeconds: f32                    // Time accumulated toward the next frame.
+    dirtyFrame:          bool                   // Whether a seek changed the current frame.
+    cachedBytes:         u64                    // Pixel bytes held by `cachedFrames`.
+    completedLoops:      u32                    // Playback cycles completed since the last load, seek, or resume.
 }
 
 private impl Movie

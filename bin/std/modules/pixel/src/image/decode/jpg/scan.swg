@@ -643,7 +643,7 @@ impl Decoder
             .blocksPerMcu = 0
             for cNum in .compsInScan
             {
-                let cid        = .compList[cNum]
+                let cid       = .compList[cNum]
                 var numBlocks = .compSampH[cid] * .compSampV[cid]
                 while numBlocks
                 {

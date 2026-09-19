@@ -88,9 +88,9 @@ impl IWnd for FrameWnd
 
         switch
         {
-        case bc.isDisabled:           colorBk = colors.frameWnd_DisabledBk
-        case me.showsFocusBorder():   colorBk = colors.frameWnd_FocusBk
-        default:            colorBk = colors.frameWnd_Bk
+        case bc.isDisabled:         colorBk = colors.frameWnd_DisabledBk
+        case me.showsFocusBorder(): colorBk = colors.frameWnd_FocusBk
+        default: colorBk = colors.frameWnd_Bk
         }
 
         let clientRect = .clientRect()
@@ -123,9 +123,9 @@ impl IWnd for FrameWnd
 
         switch
         {
-        case bc.isDisabled:       colorBorder = colors.frameWnd_DisabledBorder
+        case bc.isDisabled:         colorBorder = colors.frameWnd_DisabledBorder
         case me.showsFocusBorder(): colorBorder = colors.frameWnd_FocusBorder
-        default:            colorBorder = colors.frameWnd_Border
+        default: colorBorder = colors.frameWnd_Border
         }
 
         var clientRect = .clientRect()

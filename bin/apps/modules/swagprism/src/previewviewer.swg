@@ -59,7 +59,7 @@ impl PreviewViewer
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .sigClick += func|viewer = result|(point) { viewer.forwardClick(point) }
+            .sigClick        += func|viewer = result|(point) { viewer.forwardClick(point) }
         }
 
         with result.output = RichEditCtrl.create(result)

@@ -780,7 +780,7 @@ impl FileBrowserCtrl
         .currentEntries = catch Directory.enumerate(.currentFolder, options)
 
         let filterExtensions = .activeFilterExtensions()
-        let tokens           = Tokenize.split(filterExtensions orelse "", ';'rune)
+        let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)
 
         for &fi in .currentEntries
         {
@@ -939,7 +939,7 @@ impl FileBrowserCtrl
         var result: retval
 
         let filterExtensions = .activeFilterExtensions()
-        let tokens           = Tokenize.split(.editFile.text(), ';'rune)
+        let tokens = Tokenize.split(.editFile.text(), ';'rune)
         for t in tokens
         {
             // Be sure this is a valid file/folder name

@@ -51,6 +51,7 @@ impl Image
                 let radius       = params.kernel[0] / 2
                 var coefficients = params.kernel.buffer + 2
                 var sum          = PixelValue{0, 0, 0, 0}
+
                 // The buffer is bottom-up, so the top kernel row reads the highest buffer row.
                 for var dy = -radius; dy <= radius; dy += 1
                 {

@@ -796,7 +796,7 @@ impl IWnd for PlatformCatcher
 
     var session: DragSession
     let source = testDragSource(&session, &data)
-    var raw: LPVOID
+    var raw:     LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC) raw!

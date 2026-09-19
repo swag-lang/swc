@@ -281,7 +281,7 @@ private impl PdfViewer
             .reportFailure        = reportFailure
             .reportDetails        = reportDetails
             .reportLoadingChanged = reportLoadingChanged
-            .info                 = info
+            .info = info
         }
 
         result.createPageControls()

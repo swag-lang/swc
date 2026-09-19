@@ -134,7 +134,7 @@ func createHtmlViewer(host: Viewer.Host)
     with let result = Wnd.create'HtmlViewer(host.contentParent(), "scope.html")
     {
         .backgroundStyle = .View
-        .view            = HtmlView.createFile(result, host.fileName())
+        .view = HtmlView.createFile(result, host.fileName())
         .view.dockStyle  = .Center
     }
 

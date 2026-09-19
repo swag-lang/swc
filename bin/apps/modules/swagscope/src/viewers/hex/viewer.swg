@@ -382,7 +382,7 @@ impl HexViewer
     {
         if not .zoomLabel do
             return
-        let base = .themeMetrics().defaultFixedFontSize
+        let base      = .themeMetrics().defaultFixedFontSize
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
             .addItem("75%", "scope.hex.zoom75")

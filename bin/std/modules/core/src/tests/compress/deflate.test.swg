@@ -8,9 +8,9 @@ func fillRandom(buffer: [..] u8, seed: u32)
     var x = seed | 1
     for i in buffer.count
     {
-        x ^= x << 13
-        x ^= x >> 17
-        x ^= x << 5
+        x         ^= x << 13
+        x         ^= x >> 17
+        x         ^= x << 5
         buffer[i] = cast(u8) (x & 0xFF)
     }
 }

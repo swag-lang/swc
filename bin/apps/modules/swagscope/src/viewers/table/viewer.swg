@@ -21,12 +21,12 @@ func tableViewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const TableFileLimit         = 32 * 1024 * 1024'u64
-private const TableColumnLimit       = 256'u64
-private const TableColumnMinWidth    = 96.0
-private const TableColumnMaxWidth    = 320.0
-private const TableCellWidth         = 8.0
-const TableCellPreviewBytes = 1024'u64     // Most bytes of one cell handed to the list renderer.
+private const TableFileLimit      = 32 * 1024 * 1024'u64
+private const TableColumnLimit    = 256'u64
+private const TableColumnMinWidth = 96.0
+private const TableColumnMaxWidth = 320.0
+private const TableCellWidth      = 8.0
+const TableCellPreviewBytes       = 1024'u64     // Most bytes of one cell handed to the list renderer.
 
 // One record of a table.
 struct TableRow
@@ -51,7 +51,7 @@ struct TableDocument
     columns:          Array'String     // Column names, generated for the ones the header leaves empty.
     rows:             Array'TableRow
     delimiter:        u8
-    generatedColumns: Array'u32        // Columns whose name was generated rather than read.
+    generatedColumns: Array'u32     // Columns whose name was generated rather than read.
 }
 
 impl TableDocument

@@ -244,9 +244,9 @@ private func reportMidiChannelEvent(image: *BinaryImage, report: *BinaryReport, 
     switch kind
     {
     case 0x8, 0x9, 0xA: value = Format.toString("% · velocity %", first, second)
-    case 0xB: value = Format.toString("% = %", first, second)
-    case 0xC, 0xD: value = Format.toString("%", first)
-    case 0xE: value = Format.toString("%", first | second << 7)
+    case 0xB:           value = Format.toString("% = %", first, second)
+    case 0xC, 0xD:      value = Format.toString("%", first)
+    case 0xE:           value = Format.toString("%", first | second << 7)
     }
 
     report.field(at, next - at, midiChannelEventName(kind), value.toString(), detail.toString())

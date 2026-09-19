@@ -1478,7 +1478,7 @@ impl ListCtrl
         .dropMarkIndex = Swag.U32.Max
         .dropMark      = .None
         .virtualCount  = 0
-        .isVirtual    = false
+        .isVirtual     = false
         .idxLineToIdxList.clear()
         .nextLineIndex = 0
         .focusIndex    = Swag.U32.Max

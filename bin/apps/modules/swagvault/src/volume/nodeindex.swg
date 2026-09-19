@@ -20,10 +20,10 @@ struct NodeIndexSiblingLinks
 // order, so listing a directory never depends on how many nodes the volume holds.
 struct NodeIndex
 {
-    byId:       HashTable'(u64, u64)                        // Position of each node in the node table.
-    byParent:   HashTable'(String, u64)                     // Node of each case-folded name, per directory.
-    childLists: HashTable'(u64, NodeIndexChildList)         // Children of each non-empty directory.
-    siblings:   HashTable'(u64, NodeIndexSiblingLinks)      // Neighbours of each node except the root.
+    byId:       HashTable'(u64, u64)                       // Position of each node in the node table.
+    byParent:   HashTable'(String, u64)                    // Node of each case-folded name, per directory.
+    childLists: HashTable'(u64, NodeIndexChildList)        // Children of each non-empty directory.
+    siblings:   HashTable'(u64, NodeIndexSiblingLinks)     // Neighbours of each node except the root.
 }
 
 impl NodeIndex

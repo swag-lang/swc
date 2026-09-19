@@ -59,8 +59,8 @@ impl DocumentOutline
     {
         host.application().resources.addEmbedded(FrenchOutlineStringsName, FrenchOutlineStrings)
         Gui.registerStrings'DocumentOutlineStrings(&g_DocumentOutlineStrings, "scope.outline")
-        let theme  = host.contentParent().theme()
-        let side   = host.createSidePanel(276, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_DocumentOutlineStrings.title)
+        let theme       = host.contentParent().theme()
+        let side        = host.createSidePanel(276, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_DocumentOutlineStrings.title)
         with let result = Wnd.create'DocumentOutline(side.content, "scope.outline")
         {
             .dockStyle       = .Center
@@ -69,7 +69,7 @@ impl DocumentOutline
             .toggle          = side.toggle
         }
 
-        let size = themeCompactButtonSize(result.themeMetrics())
+        let size        = themeCompactButtonSize(result.themeMetrics())
         with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
         {
             .dockStyle       = .Top
@@ -102,9 +102,9 @@ impl DocumentOutline
 
         with result.list = ListCtrl.createSimple(result, {}, "scope.outline.list")
         {
-            .dockStyle                = .Center
-            .margin.y                 = 8
-            .backgroundStyle          = .Transparent
+            .dockStyle       = .Center
+            .margin.y        = 8
+            .backgroundStyle = .Transparent
             .listView.backgroundStyle = .Transparent
             .setFirstColumnIconMargin(false)
             .setIndentWidth(16)

@@ -40,7 +40,7 @@ impl PlaybackButton
     // its docking and spacing. A host without playback callbacks produces a disabled button.
     func create(parent: *Wnd, view: *Wnd, playback: PlaybackApi, showSlideDuration = false)->*PlaybackButton
     {
-        let metrics = parent.themeMetrics()
+        let metrics     = parent.themeMetrics()
         with let result = Wnd.create'PlaybackButton(parent, null, {0, 0, themeDropDownButtonWidth(metrics), themeActionButtonSize(metrics)})
         {
             .view              = view

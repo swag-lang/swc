@@ -13,7 +13,7 @@ const MATRIX_A = 0xB5026F5AA96619E9'u64
 const UM       = 0xFFFFFFFF80000000'u64
 const LM       = 0x7FFFFFFF'u64
 
-private const DefaultSeed = 5489'u64               // Seed of the reference implementation when none is given
+private const DefaultSeed = 5489'u64              // Seed of the reference implementation when none is given
 private const Unseeded    = StateSize + 1'u64     // Index of a generator that was never seeded
 
 // The MT19937-64 Mersenne Twister generator.

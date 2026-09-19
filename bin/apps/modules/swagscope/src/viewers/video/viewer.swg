@@ -1982,8 +1982,8 @@ private impl VideoViewer
 
         with .playButton = IconButton.create(.commands, .theme().icon(.Play, iconSize), {0, 0, buttonSize, buttonSize})
         {
-            .dockStyle  = .Left
-            .toolTip    = videoStrings().ui_TipPlay
+            .dockStyle = .Left
+            .toolTip   = videoStrings().ui_TipPlay
             .enable(false)
             .sigPressed += func|view = me|(button)
             {

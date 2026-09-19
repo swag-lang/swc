@@ -53,8 +53,8 @@ func slowBelow(x, y: u64)->bool => x < y
     {
         for y in values
         {
-            let x32 = cast #wrap (u32) x
-            let y32 = cast #wrap (u32) y
+            let x32     = cast #wrap (u32) x
+            let y32     = cast #wrap (u32) y
             let below32 = slowBelow(cast(u64) x32, cast(u64) y32)
             Swag.assert(belowMinusOne(x32, y32) == (below32 ? 9 : 10))
             Swag.assert(belowPlusOne(x32, y32) == (below32 ? 11 : 10))

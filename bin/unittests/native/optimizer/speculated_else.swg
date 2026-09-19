@@ -19,7 +19,7 @@ func byteOr7(p: const [*] u8, n, i: u64)->u32 => i >= n ? 7 : cast(u32) p[i]
     let a: [3] s32 = [10, -20, 30]
     let b: [3] s64 = [1, 2, 3]
     let c: [3] u32 = [4, 5, 6]
-    let d: [3] u8 = [200, 1, 2]
+    let d: [3] u8  = [200, 1, 2]
     for i in 5
     {
         let inside = i < 3

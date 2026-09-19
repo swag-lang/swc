@@ -1858,7 +1858,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // This is the path exercised by quickly moving from one file to the next in the sibling browser.
 #test
 {
-    let firstFile = Gui.Testing.tempFilePath("scope-switch-first-", ".txt")
+    let firstFile  = Gui.Testing.tempFilePath("scope-switch-first-", ".txt")
     let secondFile = Gui.Testing.tempFilePath("scope-switch-second-", ".txt")
     defer discard catch File.delete(firstFile)
     defer discard catch File.delete(secondFile)

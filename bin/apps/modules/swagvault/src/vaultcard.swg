@@ -31,7 +31,7 @@ impl VaultCard
             .padding         = {28, 24, 28, 24}
         }
 
-        let metrics = panel.themeMetrics()
+        let metrics         = panel.themeMetrics()
         with let titleLabel = Label.create(panel, title, {0, 0, 0, 30})
         {
             .setTextAlignment(.Left, .Center)

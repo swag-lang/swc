@@ -24,7 +24,7 @@ func countDown(from: s64)->s64
     while i >= 0
     {
         steps += 1
-        i -= 1
+        i     -= 1
     }
     return steps
 }

@@ -218,8 +218,8 @@ impl MediaInfoPanel
     func create(host: Viewer.Host)->*MediaInfoPanel
     {
         registerMediaInfoStrings(host.application())
-        let theme  = host.contentParent().theme()
-        let side   = host.createSidePanel(368, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_MediaInfoStrings.title)
+        let theme       = host.contentParent().theme()
+        let side        = host.createSidePanel(368, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_MediaInfoStrings.title)
         with let result = Wnd.create'MediaInfoPanel(side.content)
         {
             .dockStyle       = .Center
@@ -228,7 +228,7 @@ impl MediaInfoPanel
             .toggle          = side.toggle
         }
 
-        let size = themeCompactButtonSize(result.themeMetrics())
+        let size        = themeCompactButtonSize(result.themeMetrics())
         with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
         {
             .dockStyle       = .Top

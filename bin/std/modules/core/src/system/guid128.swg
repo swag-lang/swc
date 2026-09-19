@@ -3,6 +3,7 @@
 using Core.Errors
 
 // Each thread draws identifiers from its own generator, so creation never takes a lock.
+
 tls
 {
     private var g_Rng:     Random.MersenneTwister64     // Generator of this thread

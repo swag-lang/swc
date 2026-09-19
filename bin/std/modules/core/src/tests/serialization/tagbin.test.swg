@@ -701,6 +701,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
         releaseTagBinInterface(&decoded.score)
         Memory.delete(decoded)
     }
+
     Swag.assert(decoded.other == -11)
     let score = decoded.score!
     Swag.assert(score.score() == 37)

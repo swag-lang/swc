@@ -1715,7 +1715,7 @@ func buildSubject(rng: *Rng)->String
 // does not cover, and 'split' ignores them.
 #test
 {
-    var re = expect Parser.RegExp.create("a*")
+    var re  = expect Parser.RegExp.create("a*")
     let all = re.grepAll("baaa")
     Swag.assert(all.count == 3 and all[0] == "" and all[1] == "aaa" and all[2] == "")
     Swag.assert(re.replaceAll("baaac", "-") == "-b--c-")
@@ -1726,7 +1726,7 @@ func buildSubject(rng: *Rng)->String
     Swag.assert(empty.grepAll("abc").count == 4)
     Swag.assert(empty.replaceAll("abc", ".") == ".a.b.c.")
 
-    var comma = expect Parser.RegExp.create(",")
+    var comma  = expect Parser.RegExp.create(",")
     let fields = comma.split(",a,,b,")
     Swag.assert(fields.count == 5 and fields[0] == "" and fields[1] == "a" and fields[2] == "" and fields[4] == "")
     let none = comma.split("")

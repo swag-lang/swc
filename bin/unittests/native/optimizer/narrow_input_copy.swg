@@ -65,8 +65,8 @@ func minimumAdd(a, b, c: u32)->u32 => Swag.min(a, b) + c
     }
     let narrowValues = [0'u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
     for a in narrowValues do for b in narrowValues do for c in narrowValues
-    {
-        Swag.assert(maximumXor(a, b, c) == (a > b ? a : b) ^ c)
-        Swag.assert(minimumAdd(a, b, c) == (a < b ? a : b) + c)
-    }
+            {
+                Swag.assert(maximumXor(a, b, c) == (a > b ? a : b) ^ c)
+                Swag.assert(minimumAdd(a, b, c) == (a < b ? a : b) + c)
+            }
 }

@@ -333,7 +333,7 @@ impl String
             Memory.copyOverlapping(buffer + idx + byLength, buffer + idx + whatLength, .length - idx - whatLength)
             Memory.copy(buffer + idx, by.buffer, byLength)
             .length = .length - whatLength + byLength
-            idx += byLength
+            idx     += byLength
             if idx == .length do
                 break
             idx = Utf8.indexOf(.toString(), what, idx)

@@ -260,5 +260,6 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
         discard keys.findOrAdd(Format.toString("%", i))
         discard keys.findOrAdd(keys.find("first key that is long enough to allocate").key)
     }
+
     Swag.assert(keys.count == 101 and keys.getOrDefault("first key that is long enough to allocate", 0) == 1)
 }

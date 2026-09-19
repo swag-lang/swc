@@ -33,7 +33,7 @@ func initFrom(dst: *Owned, v: #fwd Owned)
 func initFromThenRead(dst: *Owned, v: #fwd Owned)->s32
 {
     var local: Owned = #fwd v
-    let left = v.id
+    let left         = v.id
     dst[] = #nodrop #move local
     return left
 }

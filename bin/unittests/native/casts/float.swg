@@ -54,7 +54,7 @@ func signed64ToF32(value: s64)->f32 { return cast(f32) value }
 
 #test
 {
-    var a: s64 = 5_000_000_000
+    var a: s64    = 5_000_000_000
     let converted = signed64ToF32(a)
     Swag.assert(converted > 4_990_000_000.0)
     Swag.assert(converted < 5_010_000_000.0)

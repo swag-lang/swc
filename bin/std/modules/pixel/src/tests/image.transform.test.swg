@@ -45,6 +45,7 @@ func sameImage(a, b: Image)->bool
         let r90  = img.rotated(.Clockwise90)
         let r270 = img.rotated(.Clockwise270)
         Swag.assert(r90.width == 2 and r90.height == 3)
+
         // Clockwise: the top-left pixel moves to the top-right corner.
         Swag.assert(r90.pixelColor(1, 0) == img.pixelColor(0, 0))
 

@@ -19,7 +19,7 @@ using Swag
     func roundDownToPowerOf2(x: u64)->u64 => x == 0 ? 0 : 1'u64 << cast(u32) (63 - Math.leadingZeros(x))
 
     // Returns whether `x` is a power of two; 0 is not one.
-    func isPowerOf2(x: u8)->bool => x and not (x & (x - 1))
+    func isPowerOf2(x: u8)->bool  => x and not (x & (x - 1))
     func isPowerOf2(x: u16)->bool => x and not (x & (x - 1))
     func isPowerOf2(x: u32)->bool => x and not (x & (x - 1))
     func isPowerOf2(x: u64)->bool => x and not (x & (x - 1))

@@ -1212,7 +1212,7 @@ impl IndesignViewer
         {
             .backgroundStyle = .View
             .dockStyle       = .Center
-            .sigZoomChanged += func|view = result|(imageView)
+            .sigZoomChanged  += func|view = result|(imageView)
             {
                 discard imageView
                 view.refreshZoom()

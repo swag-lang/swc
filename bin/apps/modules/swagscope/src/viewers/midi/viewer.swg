@@ -185,9 +185,9 @@ impl MidiViewer
 {
     func create(host: Viewer.Host)->*MidiViewer
     {
-        let services = host.services()
-        let commands = host.createCommandGroup(MidiCommandWidth)
-        let info     = host.createInfoGroup(ViewerZoomSlotWidth)
+        let services    = host.services()
+        let commands    = host.createCommandGroup(MidiCommandWidth)
+        let info        = host.createInfoGroup(ViewerZoomSlotWidth)
         with let result = Wnd.create'MidiViewer(host.contentParent(), "scope.midi")
         {
             .backgroundStyle      = .View

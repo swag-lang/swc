@@ -216,7 +216,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     // Final stored block announcing 0xFFFF bytes, followed by two.
-    let stored: [7] u8 = [0x01, 0xFF, 0xFF, 0x00, 0x00, 0x41, 0x42]
+    let stored:   [7] u8 = [0x01, 0xFF, 0xFF, 0x00, 0x00, 0x41, 0x42]
     var inflater: Compress.Inflate
     var decoded:  Array'u8
     catch inflater.decompress(&decoded, stored) as overlong

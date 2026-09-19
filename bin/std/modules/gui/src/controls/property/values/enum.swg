@@ -193,7 +193,7 @@ internal impl Properties
                 .flags.add(.NoSeparator)
             }
 
-            line.hookOnEvent = func|prop = me, itemB|(hwnd, evt) => prop.onItemEvent(itemB, hwnd, evt);
+            line.hookOnEvent = func|prop = me, itemB|(hwnd, evt) => prop.onItemEvent(itemB, hwnd, evt)
 
             let checkHeight = me.kind == .Condensed ? PropCondensedControlHeight : me.gridLineHeight
             with let ed     = CheckButton.create(line, "", {0, 0, checkHeight, checkHeight})

@@ -576,10 +576,11 @@ impl Array
         else
         {
             Memory.copy(buffer + index, values.buffer, #sizeof(T) * sliceCount)
-        // A bitwise move leaves the source holding the same resources: reset it so that its
-        // own drop releases nothing.
-        #static if Reflection.hasDrop(T) do
-            Swag.init(values.buffer, sliceCount)
+
+            // A bitwise move leaves the source holding the same resources: reset it so that its
+            // own drop releases nothing.
+            #static if Reflection.hasDrop(T) do
+                Swag.init(values.buffer, sliceCount)
         }
     }
 

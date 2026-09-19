@@ -1272,7 +1272,7 @@ impl LibraryWnd
 
         // Library roots and ordinary image folders are explicit choices, named like every
         // neighbouring command instead of leaving one unexplained glyph in the sentence.
-        .folderBtn = .createMenuButton(.theme().icon(.OpenFile, iconSize), appStrings().ui_BarFolders)
+        .folderBtn            = .createMenuButton(.theme().icon(.OpenFile, iconSize), appStrings().ui_BarFolders)
         .folderBtn.toolTip    = appStrings().tip_LibraryFolders
         .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(cast #assume (*IconButton) btn) }
 

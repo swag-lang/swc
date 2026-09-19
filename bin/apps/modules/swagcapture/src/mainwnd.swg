@@ -263,8 +263,8 @@ impl IWnd for MainWnd
                 try .serialize("MainWnd.libraryShowChangedLinked", &me.libWnd.showUnSavedLinkedImage)
                 try .serialize("MainWnd.libraryShowRatingOverlay", &me.libWnd.showRatingOverlay)
                 try .serialize("MainWnd.libraryShowLinkOverlay", &me.libWnd.showLinkOverlay)
-                try .serialize("MainWnd.RightBar.Pane0", &me.quickStyleBar.items[0]!.size)
-                try .serialize("MainWnd.RightBar.Pane1", &me.quickStyleBar.items[1]!.size)
+                try .serialize("MainWnd.RightBar.Pane0", &me .quickStyleBar.items[0]!.size)
+                try .serialize("MainWnd.RightBar.Pane1", &me .quickStyleBar.items[1]!.size)
                 try .serialize("MainWnd.captureOptions", &me.captureOptions)
                 try .serialize("MainWnd.editorOptions", &me.editorOptions)
             }

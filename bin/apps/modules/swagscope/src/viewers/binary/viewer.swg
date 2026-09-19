@@ -1157,7 +1157,7 @@ impl BinaryViewer
     // Creates the viewer of the file `host` opens, and starts reading that file in the background.
     func create(host: Viewer.Host)->*BinaryViewer? fail
     {
-        let services = host.services()
+        let services    = host.services()
         with let result = Wnd.create'BinaryViewer(host.contentParent(), "scope.binary")
         {
             .backgroundStyle = .View

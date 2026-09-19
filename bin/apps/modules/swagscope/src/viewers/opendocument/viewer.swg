@@ -1812,7 +1812,7 @@ private impl OpenDocumentViewer
     // Creates the reading surface for generated markup, whose activated links open in the system browser.
     mtd createHtmlView(markup: string)
     {
-        .html           = HtmlView.createText(me, markup)
+        .html = HtmlView.createText(me, markup)
         .html.dockStyle = .Center
         .applyZoom()
         .html.sigLinkActivated += func(html, url)

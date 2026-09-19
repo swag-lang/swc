@@ -58,13 +58,13 @@ struct BinaryStrings
     word_Event:      string = "event"          // One MIDI event.
     word_Events:     string = "events"         // Several MIDI events.
 
-    shr_Sections:    string = "Sections"                                                  // Group of whatever a format calls a section.
-    shr_Imports:     string = "Imports"                                                   // Group of what a file needs from elsewhere.
-    shr_Exports:     string = "Exports"                                                   // Group of what a file offers to others.
-    shr_Libraries:   string = "Required libraries"                                        // Group listing the libraries a file needs.
-    shr_BuildId:     string = "Build identity"                                            // Row giving a build fingerprint.
-    shr_Interpreter: string = "Interpreter"                                               // Row giving the program interpreter or loader.
-    shr_Entry:       string = "Entry point"                                               // Row giving where execution starts.
+    shr_Sections:    string = "Sections"               // Group of whatever a format calls a section.
+    shr_Imports:     string = "Imports"                // Group of what a file needs from elsewhere.
+    shr_Exports:     string = "Exports"                // Group of what a file offers to others.
+    shr_Libraries:   string = "Required libraries"     // Group listing the libraries a file needs.
+    shr_BuildId:     string = "Build identity"         // Row giving a build fingerprint.
+    shr_Interpreter: string = "Interpreter"            // Row giving the program interpreter or loader.
+    shr_Entry:       string = "Entry point"            // Row giving where execution starts.
 
     rep_File:        string = "File"                                             // Group naming the file itself.
     rep_Size:        string = "Size"                                             // Row giving the size on disk.

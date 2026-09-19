@@ -55,11 +55,11 @@ func wideOrder(a, b: f32)->s32 => cast(f64) a <=> cast(f64) b
 #[Swag.Safety(.All, false)]
 #test
 {
-    let nan      = cast #bit (f32) 0x7FC00000'u32
-    let negZero  = cast #bit (f32) 0x80000000'u32
-    let inf      = cast #bit (f32) 0x7F800000'u32
-    let tiny     = cast #bit (f32) 0x00000001'u32
-    let largest  = cast #bit (f32) 0x7F7FFFFF'u32
+    let nan     = cast #bit (f32) 0x7FC00000'u32
+    let negZero = cast #bit (f32) 0x80000000'u32
+    let inf     = cast #bit (f32) 0x7F800000'u32
+    let tiny    = cast #bit (f32) 0x00000001'u32
+    let largest = cast #bit (f32) 0x7F7FFFFF'u32
     let values: [12] f32 = [0.0, negZero, 1.0, -1.0, 0.5, nan, inf, -inf, tiny, -tiny, largest, -largest]
 
     for a in values

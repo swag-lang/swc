@@ -94,7 +94,7 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 {
     DestructuringDrops = 0
     {
-        let pair           = makeDestructuringPair'DestructuringOwner()
+        let pair = makeDestructuringPair'DestructuringOwner()
         let {first, count} = pair
         Swag.assert(first.isValid() and pair.first.isValid())
         Swag.assert(count == 9)

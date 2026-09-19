@@ -457,6 +457,7 @@ swc new module app --workspace my-project</span></div>
 </table>
 <p>Each configuration also asks for a backend optimization level, which <span class="code-inline">--optim-level</span> (<span class="code-inline">-O</span>) overrides: <span class="code-inline">0</span> runs no backend optimization, <span class="code-inline">1</span> runs everything that costs no compilation time, and <span class="code-inline">2</span> also runs what does. <span class="code-inline">devmode</span> asks for <span class="code-inline">1</span> and <span class="code-inline">release</span> for <span class="code-inline">2</span>.</p>
 <p>Neither configuration emits debug information by default. Add <span class="code-inline">--debug</span> to a <span class="code-inline">test</span>, <span class="code-inline">build</span>, or <span class="code-inline">run</span> command when a debugger needs symbols, types, and source line mappings. The option does not change optimization or guard policy.</p>
+<p><span class="code-inline">--debug</span> covers the whole program, not only the module being built: every dependency the program takes in is built with debug information too, and its symbols reach the program's own debug file. A debug build keeps what a debugger needs, such as a stack copy of each parameter, so it is a different program and lives beside the plain one instead of replacing it: its artifacts go under the configuration name followed by <span class="code-inline">-debug</span>, as in <span class="code-inline">devmode-debug</span>. Alternating between the two rebuilds neither.</p>
 <p>The target architecture currently exposed by <span class="code-inline">--arch</span> is <span class="code-inline">x86_64</span>. Select the artifact with <span class="code-inline">--artifact-kind</span> (<span class="code-inline">-ak</span>): <span class="code-inline">executable</span>, <span class="code-inline">shared-library</span>, <span class="code-inline">static-library</span>, or <span class="code-inline">export</span>.</p>
 <h3 id="_001_004_swc_command_line_swg_Common_Workflows">Common Workflows</h3>
 <div class="code-block"><span class="SCde">swc new script hello
@@ -605,6 +606,7 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">&lt;module&gt;/static-library/&lt;config&gt;/&lt;arch&gt;</span></td><td>an archive of the same code, one function per member</td></tr>
 </tbody>
 </table>
+<p><span class="code-inline">&lt;config&gt;</span> is the build configuration, followed by <span class="code-inline">-debug</span> when <span class="code-inline">--debug</span> asked for debug information. A consumer reads its dependencies from the directory of its own configuration, so a program built with <span class="code-inline">--debug</span> takes in dependencies built with <span class="code-inline">--debug</span> as well. The compiler builds standard modules on demand; a dependency imported from a <span class="code-inline">location:</span> it does not build has to provide that directory itself.</p>
 <p>Both are needed, and they answer different questions. The compiler loads the shared library to run that module's code at compile time — a <span class="code-inline">#run</span> calling into <span class="code-inline">core</span> calls into <span class="code-inline">core.dll</span>. The archive is what a program links.</p>
 <p>The consumer chooses, and its own kind chooses for it:</p>
 <ul>
@@ -773,7 +775,7 @@ indent-style = spaces</span></div>
 <p><span class="code-inline">me</span> names the receiver inside methods.</p>
 <h3 id="_002_007_keywords_swg_Control_Flow_and_Expressions">Control Flow and Expressions</h3>
 <div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
-<span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
+<span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
 <span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
@@ -990,14 +992,14 @@ indent-style = spaces</span></div>
 }</span></div>
 <p>Both spellings are legitimate, and the rule above says which is which: <span class="code-inline">#wrap</span> annotates one operation, <span class="code-inline">Swag.Safety</span> annotates a scope. Use the narrowest one that expresses the intent. A local <span class="code-inline">#wrap</span> documents one deliberate wrap more clearly than disabling overflow checks for a file.</p>
 <h3 id="_002_008_sigils_swg_Contextual_Keywords_Are_Different">Contextual Keywords Are Different</h3>
-<p><span class="code-inline">cast</span> is the common conversion expression. Its <span class="code-inline">#try</span> modifier returns a nullable view for a dynamic conversion; testing that view against <span class="code-inline">null</span> tests compatibility. Its <span class="code-inline">#assume</span> modifier asserts compatibility and checks that assertion when dynamic cast safety is enabled. A compile-time expression such as <span class="code-inline">cast #try(IFoo) T != null</span> can constrain a generic declaration with <span class="code-inline">where</span>. The contextual <span class="code-inline">as</span> in a <span class="code-inline">catch</span> clause names the caught error.</p>
+<p><span class="code-inline">cast</span> is the common conversion expression. Its <span class="code-inline">#try</span> modifier returns a nullable view for a dynamic conversion. Use 'value is T' to test compatibility directly. Its <span class="code-inline">#assume</span> modifier asserts compatibility and checks that assertion when dynamic cast safety is enabled. A compile-time expression such as <span class="code-inline">T is IFoo</span> can constrain a generic declaration with <span class="code-inline">where</span>. The contextual <span class="code-inline">as</span> names the caught error in a <span class="code-inline">catch</span> clause, or the borrowed view in an 'if value is T as name' or 'case T as name' pattern.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> value: <span class="STpe">any</span> = <span class="SStr">"text"</span>
 
-    <span class="SLgc">switch</span>
+    <span class="SLgc">switch</span> value
     {
-    <span class="SLgc">case</span> <span class="SKwd">let</span> text = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) value: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[] == <span class="SStr">"text"</span>)
+    <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> text: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[] == <span class="SStr">"text"</span>)
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
@@ -2244,7 +2246,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Use <span class="code-inline">cast #try (*T) value</span> when the concrete type is known only at runtime. It returns a nullable pointer: a compatible object produces a view of that object, and a type mismatch or null source produces <span class="code-inline">null</span>. It never copies the object or extends its lifetime. Test compatibility by comparing the result with <span class="code-inline">null</span>; save the result when the same branch needs to use it.</p>
 <p>Use <span class="code-inline">cast #assume (*T) value</span> when the concrete type is an invariant established by the caller. With <span class="code-inline">.DynCast</span> safety enabled, a failed assertion panics. With that safety disabled, the type assertion is unchecked. Pointer adjustments required by the destination representation still apply.</p>
 <p>These forms apply to <span class="code-inline">any</span>, interfaces, and pointers to dynamic structs. A plain struct pointer can expose a concrete enclosing type only when its struct is marked <span class="code-inline">#[Swag.DynCast]</span>, or inherits that capability through a by-value <span class="code-inline">using</span> field. The attribute adds a compiler-managed metadata pointer to object storage; pointers to the object retain their ordinary size. A pointer-valued <span class="code-inline">using</span> field does not make its pointee part of the enclosing object's storage.</p>
-<p>Converting towards a known embedded parent remains a static conversion. A plain <span class="code-inline">cast</span> cannot perform a downcast. The former expression operators <span class="code-inline">as</span> and <span class="code-inline">is</span> are replaced by <span class="code-inline">cast #try</span> and a null comparison when only a test is needed.</p>
+<p>Converting towards a known embedded parent remains a static conversion. A plain <span class="code-inline">cast</span> cannot perform a downcast. Use <span class="code-inline">value is T</span> for a boolean compatibility test, or <span class="code-inline">if value is T as name</span> to test and borrow the matching value. Expression <span class="code-inline">as</span> is not a conversion operator; it introduces a binding in a type pattern or a caught error.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">DynCast]</span>
 <span class="SKwd">struct</span> <span class="SCst">CastNode</span> { id: <span class="STpe">s32</span> }
 
@@ -2265,17 +2267,18 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (*<span class="SCst">CastButton</span>) node == &amp;button)
 }</span></div>
 <h4 id="_003_007_cast_swg_Testing_and_Using_the_Same_Result">Testing and Using the Same Result</h4>
-<p>A conditional binding tests presence and gives the branch a non-null view. The same binding works in an expressionless <span class="code-inline">switch</span>; a <span class="code-inline">where</span> clause can inspect the converted value before the case is selected.</p>
+<p>A type pattern tests compatibility and gives the branch a non-null borrowed view. <span class="code-inline">if value is T as name</span> borrows a <span class="code-inline">*T</span>, or an interface view when <span class="code-inline">T</span> is an interface. Constness follows the source. The source is evaluated once; the name belongs only to the successful branch and its optional <span class="code-inline">where</span> guard. A false guard continues to <span class="code-inline">elif</span> or <span class="code-inline">else</span>. No pattern copies the object or extends its lifetime.</p>
+<p>A <span class="code-inline">cast #try</span> cannot be used directly as a conditional binding, a boolean, or a comparison with <span class="code-inline">null</span>. Use <span class="code-inline">is</span> for compatibility and a pattern for binding. Store or return <span class="code-inline">cast #try</span> when the nullable conversion result itself is useful.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> counter = <span class="SCst">Counter</span>{<span class="SNum">42</span>}
     <span class="SKwd">let</span> view    = <span class="SKwd">cast</span>(<span class="SCst">ICount</span>) &amp;counter
-    <span class="SLgc">if</span> <span class="SKwd">let</span> found = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">Counter</span>) view <span class="SLgc">do</span>
+    <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="SCst">Counter</span> <span class="SLgc">as</span> found <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.value == <span class="SNum">42</span>)
 
-    <span class="SLgc">switch</span>
+    <span class="SLgc">switch</span> view
     {
-    <span class="SLgc">case</span> <span class="SKwd">let</span> found = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">Counter</span>) view <span class="SLgc">where</span> found.value &gt; <span class="SNum">0</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found == &amp;counter)
+    <span class="SLgc">case</span> <span class="SCst">Counter</span> <span class="SLgc">as</span> found <span class="SLgc">where</span> found.value &gt; <span class="SNum">0</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found == &amp;counter)
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
@@ -2285,27 +2288,28 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> boxed: <span class="STpe">any</span> = <span class="SNum">42</span>'<span class="STpe">s32</span>
-    <span class="SLgc">if</span> <span class="SKwd">let</span> value = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s32</span>) boxed <span class="SLgc">do</span>
+    <span class="SLgc">if</span> boxed <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> value <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value[] == <span class="SNum">42</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s64</span>) boxed == <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> (boxed <span class="SLgc">is</span> <span class="STpe">s64</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#assume</span> (<span class="STpe">s32</span>) boxed == <span class="SNum">42</span>)
 }</span></div>
 <h4 id="_003_007_cast_swg_Compile-Time_Compatibility">Compile-Time Compatibility</h4>
-<p>When the operand names a type, <span class="code-inline">cast #try (Target) Source</span> tests whether <span class="code-inline">Source</span> exposes a view of type <span class="code-inline">Target</span>. It produces the source type information on success and <span class="code-inline">null</span> otherwise. This also works in a generic <span class="code-inline">where</span> clause. The same rule applies when the source is a <span class="code-inline">typeinfo</span> value evaluated at runtime. Numeric widening does not establish type compatibility: <span class="code-inline">s32</span> and <span class="code-inline">s64</span> are different dynamic types. Non-strict aliases are transparent; strict aliases and enumerations retain their identity.</p>
-<div class="code-block"><span class="SCde"><span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SCst">ICount</span>) <span class="SCst">Counter</span> != <span class="SKwd">null</span>)
-<span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SCst">ICount</span>) <span class="STpe">s32</span> == <span class="SKwd">null</span>)
-<span class="SCmp">#assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="STpe">s64</span>) <span class="STpe">s32</span> == <span class="SKwd">null</span>)
+<p><span class="code-inline">Source is Target</span> tests whether <span class="code-inline">Source</span> exposes a view of type <span class="code-inline">Target</span> and returns a boolean. This relation also works in generic <span class="code-inline">where</span> constraints. Exact type equality remains <span class="code-inline">Source == Target</span>.</p>
+<p>Write <span class="code-inline">where Source is Target</span> for a generic compatibility constraint. The same relation applies when the source is a <span class="code-inline">typeinfo</span> value evaluated at runtime. Numeric widening does not establish type compatibility: <span class="code-inline">s32</span> and <span class="code-inline">s64</span> are different dynamic types. Non-strict aliases are transparent; strict aliases and enumerations retain their identity.</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#assert</span>(<span class="SCst">Counter</span> <span class="SLgc">is</span> <span class="SCst">ICount</span>)
+<span class="SCmp">#assert</span>(<span class="SLgc">not</span> (<span class="STpe">s32</span> <span class="SLgc">is</span> <span class="SCst">ICount</span>))
+<span class="SCmp">#assert</span>(<span class="SLgc">not</span> (<span class="STpe">s32</span> <span class="SLgc">is</span> <span class="STpe">s64</span>))
 
 <span class="SKwd">func</span> <span class="SFct">supportsCounterType</span>(source: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span>
 {
-    <span class="SLgc">return</span> <span class="SKwd">cast</span> <span class="SItr">#try</span>(<span class="SCst">ICount</span>) source != <span class="SKwd">null</span>
+    <span class="SLgc">return</span> source <span class="SLgc">is</span> <span class="SCst">ICount</span>
 }</span></div>
 <h4 id="_003_007_cast_swg_Targets_Chosen_at_Runtime">Targets Chosen at Runtime</h4>
-<p>The target can also be a <span class="code-inline">typeinfo</span> value, including a function result. With a type-information operand, 'cast #try' returns the source descriptor when the types are compatible, or <span class="code-inline">null</span>. With a value operand, it borrows a value of the requested type and returns an <span class="code-inline">any?</span>. The target must be a descriptor emitted by the compiler; constructing or copying a descriptor does not create a type.</p>
+<p>Both <span class="code-inline">value is target</span> and explicit dynamic casts accept a <span class="code-inline">typeinfo</span> target, including a function result. With a type-information operand, 'cast #try' returns the source descriptor when the types are compatible, or <span class="code-inline">null</span>. With a value operand, it borrows a value of the requested type and returns an <span class="code-inline">any?</span>. The target must be a descriptor emitted by the compiler; constructing or copying a descriptor does not create a type.</p>
 <p>The value result borrows its source and can also refer to an interface view in the current function. It does not allocate and must not escape that function. 'cast #assume' uses the same conversion and checks failure when dynamic cast safety is enabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">supportsRuntimeType</span>(target, source: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span>
 {
-    <span class="SLgc">return</span> <span class="SKwd">cast</span> <span class="SItr">#try</span>(target) source != <span class="SKwd">null</span>
+    <span class="SLgc">return</span> source <span class="SLgc">is</span> target
 }
 
 <span class="SFct">#test</span>
@@ -2318,7 +2322,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> value = <span class="SNum">42</span>'<span class="STpe">s32</span>
     <span class="SKwd">let</span> target: <span class="STpe">typeinfo</span> = <span class="STpe">s32</span>
     <span class="SKwd">let</span> view  = <span class="SKwd">cast</span> <span class="SItr">#try</span>(target) &amp;value
-    <span class="SLgc">if</span> <span class="SKwd">let</span> number = <span class="SKwd">cast</span> <span class="SItr">#try</span>(*<span class="STpe">s32</span>) view <span class="SLgc">do</span>
+    <span class="SLgc">if</span> view <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> number <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(number[] == <span class="SNum">42</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(view != <span class="SKwd">null</span>)
 }</span></div>
@@ -3287,7 +3291,9 @@ swc test -w path/to/workspace -m messages</span></div>
 <p><span class="code-inline">try</span>, <span class="code-inline">catch</span> and <span class="code-inline">expect</span> swallow everything to their right, so a <span class="code-inline">!</span> written after one of them applies to its <b>result</b>: <span class="code-inline">expect load(path)!</span> asserts the loaded value, not the fallible call. Parenthesize to assert something inside instead.</p>
 <p>A <span class="code-inline">?.</span> chain whose result is itself nullable-capable (a pointer, string, slice, interface...) simply produces the null outcome in its own type. A chain producing a plain value (an integer, a bool...) cannot carry the null outcome and must hand it to an immediate <span class="code-inline">orelse</span> fallback. A void call through <span class="code-inline">?.</span> is a statement that does nothing when the value is null.</p>
 <p>A proof made inside a branch belongs to that branch, and what holds after an <span class="code-inline">if</span> is what both paths prove: when every path assigns a present value, the value is proven for the code that follows without a <span class="code-inline">!</span>. A path that leaves the block — a <span class="code-inline">return</span>, a <span class="code-inline">break</span>, a <span class="code-inline">fail</span> — reaches none of that code, so the other path's proof holds alone.</p>
-<p>Write <span class="code-inline">!</span> where an invariant makes the value always present and a null would be a bug worth stopping on; write <span class="code-inline">?.</span> where absence is an ordinary outcome the code handles. Both are tolerated on a value the flow already proved, so a redundant one in a narrowed region is dead, not wrong.</p>
+<p>Write <span class="code-inline">!</span> where an invariant makes the value always present and a null would be a bug worth stopping on; write <span class="code-inline">?.</span> where absence is an ordinary outcome the code handles.</p>
+<p>A <span class="code-inline">!</span> is an assertion, so the code after it is reachable only when the value was there: it proves its own path for the remainder of the enclosing block, exactly like the <span class="code-inline">Swag.assert(p != null)</span> it stands for. A second <span class="code-inline">!</span> on that path therefore asserts what the first already established, and is rejected rather than charged for a guard that cannot fire. Written twice, <span class="code-inline">!</span> is saying the path has an invariant — and an invariant is stated once: give the value a non-null type, declare the field <span class="code-inline">late</span>, bind it to a local, or open the block with <span class="code-inline">Swag.assert</span>. Every proof dies where the path is reassigned, and the assertion is needed again.</p>
+<p>A <span class="code-inline">!</span> the flow reaches only after a decision taken to its left — the right operand of <span class="code-inline">and</span>/<span class="code-inline">or</span>, a branch of <span class="code-inline">?:</span>, the fallback of <span class="code-inline">orelse</span>, the tail of a <span class="code-inline">?.</span> chain — may not have run at all, so it proves nothing past its own region. A generic body is analyzed once per instantiation and an inlined body is judged at a call site it did not choose, so neither is reported: this is the same line <span class="code-inline">orelse</span> draws, on what the type can be rather than on what the flow proves at one site.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">struct</span> <span class="SCst">OptChainRefDoc</span>
@@ -3308,16 +3314,13 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">if</span> p != <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.count == <span class="SNum">2</span>)
 
-    <span class="SCmt">// The postfix '!' asserts the proof explicitly (panics at runtime if wrong).</span>
+    <span class="SCmt">// The postfix '!' asserts the proof explicitly (panics at runtime if wrong), and that</span>
+    <span class="SCmt">// assertion covers the rest of the block: 'p' needs no second '!' below.</span>
     <span class="SKwd">let</span> q = p!
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(q.count == <span class="SNum">2</span>)
-
-    <span class="SCmt">// 'Swag.assert' proves the path for the rest of the block, like a precondition.</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.count == <span class="SNum">2</span>)
 
-    <span class="SCmt">// p is already proven; '!' asserts the nullable next member instead of skipping it.</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.count == <span class="SNum">2</span>)
+    <span class="SCmt">// 'p' is already proven; '!' asserts the nullable next member instead of skipping it.</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.next!.count == <span class="SNum">7</span>)
 
     <span class="SCmt">// '?.' skips the access when null; 'orelse' provides the scalar fallback.</span>
@@ -3676,23 +3679,23 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_004_008_any_swg_Type_Checking_with__any_">Type Checking with <span class="code-inline">any</span></h3>
-<p>Compare the result of <span class="code-inline">cast #try (*T)</span> with <span class="code-inline">null</span> to test whether the value can be viewed as <span class="code-inline">T</span>. Save that result when the branch also needs to access the value.</p>
+<p>Use <span class="code-inline">value is T</span> to test whether the stored value can be viewed as <span class="code-inline">T</span>. Use <span class="code-inline">if value is T as name</span> when the branch also needs to access the value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> x: <span class="STpe">any</span>?
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SKwd">null</span>)
 
     x = <span class="SNum">6</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s32</span>) x != <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">bool</span>) x == <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x <span class="SLgc">is</span> <span class="STpe">s32</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> (x <span class="SLgc">is</span> <span class="STpe">bool</span>))
 
     x = <span class="SStr">"string"</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">s32</span>) x == <span class="SKwd">null</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x != <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> (x <span class="SLgc">is</span> <span class="STpe">s32</span>))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x <span class="SLgc">is</span> <span class="STpe">string</span>)
 
     <span class="SKwd">struct</span> <span class="SCst">A</span> {}
     x = <span class="SCst">A</span>{}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">A</span>) x != <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x <span class="SLgc">is</span> <span class="SCst">A</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg">Simd</h3>
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
@@ -4038,6 +4041,19 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     <span class="SLgc">else</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">true</span>)
+}</span></div>
+<h3 id="_005_001_if_swg_Binding_a_Dynamic_Type">Binding a Dynamic Type</h3>
+<p><span class="code-inline">if value is T as name</span> tests dynamic compatibility and binds the successful view. For a concrete <span class="code-inline">T</span>, <span class="code-inline">name</span> is a non-null pointer; for an interface, it is an interface view. Source constness is preserved. The source is evaluated once, and no binding copies the object or extends its lifetime.</p>
+<p>An optional <span class="code-inline">where</span> guard runs only after a match. The binding is visible in that guard and the successful body, but not in <span class="code-inline">elif</span>, <span class="code-inline">else</span>, or after the statement. A false guard continues to the next branch. <span class="code-inline">elif</span> accepts the same binding form.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> value: <span class="STpe">any</span> = <span class="SNum">42</span>'<span class="STpe">s32</span>
+    <span class="SLgc">if</span> value <span class="SLgc">is</span> <span class="STpe">s32</span> <span class="SLgc">as</span> number <span class="SLgc">where</span> number[] &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(number[] == <span class="SNum">42</span>)
+    <span class="SLgc">elif</span> value <span class="SLgc">is</span> <span class="STpe">string</span> <span class="SLgc">as</span> text <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[].count != <span class="SNum">0</span>)
+    <span class="SLgc">else</span> <span class="SLgc">do</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
 }</span></div>
 <h3 id="_005_002_for_swg">For</h3>
 <h3 id="_005_002_for_swg_The__for__Loop">The <span class="code-inline">for</span> Loop</h3>
@@ -4916,49 +4932,30 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 }</span></div>
 <h3 id="_005_005_switch_swg_Switching_on_Type_with__any__or__interface_">Switching on Type with <span class="code-inline">any</span> or <span class="code-inline">interface</span></h3>
-<p>Use the same <span class="code-inline">cast #try</span> as in an ordinary expression. A switch without a subject tests its cases in order; the first successful cast selects the branch.</p>
+<p>A switch over an <span class="code-inline">any</span>, an interface, or a pointer to a dynamic struct can match concrete types. Write <span class="code-inline">case T</span> to test compatibility, or <span class="code-inline">case T as name</span> to borrow the matching object. An interface type can also be the target of a case.</p>
+<p>The subject is evaluated once. Matching uses the same compatibility and pointer adjustments as <span class="code-inline">cast #try</span>. A null source does not match a type. The first matching case whose <span class="code-inline">where</span> guard succeeds is selected. Pointer subjects also retain ordinary pointer cases, including <span class="code-inline">case null</span>; these can appear alongside type cases.</p>
+<p>A concrete binding has type <span class="code-inline">*T</span>; an interface binding is an interface view. Both are non-null, preserve source constness, and borrow without extending the source's lifetime. The name is visible in its case's guard and body only.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"value"</span>
+    <span class="SKwd">let</span> value: <span class="STpe">any</span> = <span class="SStr">"value"</span>
+    <span class="SLgc">switch</span> value
+    {
+    <span class="SLgc">case</span> <span class="STpe">s32</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> text <span class="SLgc">where</span> text[] == <span class="SStr">"other"</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
+    <span class="SLgc">case</span> <span class="STpe">string</span> <span class="SLgc">as</span> text: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[] == <span class="SStr">"value"</span>)
+    <span class="SLgc">default</span>:  <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
+    }
+}</span></div>
+<p>A <span class="code-inline">fallthrough</span> into a typed case checks its type and <span class="code-inline">where</span> guard before entering its body; an unsuccessful match continues to the next case. <span class="code-inline">switch #complete</span> asserts that some case matches, with a panic on a miss when <span class="code-inline">.Switch</span> safety is enabled.</p>
+<p>An expressionless switch also accepts <span class="code-inline">case let name = expression</span>. It evaluates the expression once and enters the case if its result is present. This general binding remains useful for nullable results from ordinary expressions. A direct <span class="code-inline">cast #try</span> initializer is rejected; use a typed switch for dynamic dispatch.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">findText</span>(value: *<span class="STpe">string</span>?)-&gt;*<span class="STpe">string</span>? =&gt; value
+    <span class="SKwd">var</span> value = <span class="SStr">"value"</span>
     <span class="SLgc">switch</span>
     {
-    <span class="SLgc">case</span> <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x != <span class="SKwd">null</span>: <span class="SLgc">break</span>
+    <span class="SLgc">case</span> <span class="SKwd">let</span> text = <span class="SFct">findText</span>(&amp;value) <span class="SLgc">where</span> text[] == <span class="SStr">"value"</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(text[] == <span class="SStr">"value"</span>)
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
-    }
-}</span></div>
-<h3 id="_005_005_switch_swg_Switch_Statement_with_Type_Guard_and_Variable_Binding">Switch Statement with Type Guard and Variable Binding</h3>
-<p><span class="code-inline">case let name = expression</span> evaluates the expression once, binds its result, and enters the branch when that result is present. The binding belongs to that case. A <span class="code-inline">where</span> clause runs only after the binding succeeds and sees a non-null view. There is no separate type-testing or type-conversion operation in a case label.</p>
-<p><span class="code-inline">switch #complete</span> also accepts these conditional cases. It asserts that one case matches; a miss panics while <span class="code-inline">.Switch</span> safety is enabled. A <span class="code-inline">fallthrough</span> into a case binding evaluates that binding and its <span class="code-inline">where</span> clause before entering its body.</p>
-<p>Example 1: Simple Type Binding</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"value"</span>
-    <span class="SLgc">switch</span>
-    {
-    <span class="SLgc">case</span> <span class="SKwd">let</span> str = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str[] == <span class="SStr">"value"</span>)
-        <span class="SLgc">break</span>
-
-    <span class="SLgc">default</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
-    }
-}</span></div>
-<p>Example 2: Type Binding with <span class="code-inline">where</span> Clause</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> x: <span class="STpe">any</span> = <span class="SStr">"value"</span>
-    <span class="SLgc">switch</span>
-    {
-    <span class="SLgc">case</span> <span class="SKwd">let</span> str = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x <span class="SLgc">where</span> str[] == <span class="SStr">"value"</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str[] == <span class="SStr">"value"</span>)
-        <span class="SLgc">break</span>
-
-    <span class="SLgc">case</span> <span class="SKwd">let</span> str = <span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="STpe">string</span>) x <span class="SLgc">where</span> str[] == <span class="SStr">"not_a_value"</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(str[] == <span class="SStr">"not_a_value"</span>)
-        <span class="SLgc">break</span>
-
-    <span class="SLgc">default</span>:
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     }
 }</span></div>
 <h3 id="_005_005_switch_swg_Switch_Without_an_Expression">Switch Without an Expression</h3>
@@ -5180,7 +5177,7 @@ swc test -w path/to/workspace -m messages</span></div>
             <span class="SKwd">fail</span> <span class="SCst">ParallelInputError</span>{index}
         values[index] = index + <span class="SNum">1</span>
     } <span class="SLgc">as</span> error
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(error != <span class="SKwd">null</span> <span class="SLgc">and</span> (<span class="SKwd">cast</span> <span class="SItr">#try</span> (*<span class="SCst">ParallelInputError</span>) error != <span class="SKwd">null</span>))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(error != <span class="SKwd">null</span> <span class="SLgc">and</span> (error <span class="SLgc">is</span> <span class="SCst">ParallelInputError</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">3</span>] == <span class="SNum">0</span>)
 
     <span class="SKwd">expect</span> <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values| index <span class="SLgc">in</span> <span class="SNum">8</span> <span class="SLgc">do</span>
@@ -6168,7 +6165,31 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>When the source of a <span class="code-inline">#move</span> is a plain local that is provably never used again — no read or write after the move, no taken address, no capture, and a move that always executes when its scope exits — the compiler elides both the reset of the source and its scope-exit drop: <span class="code-inline">opDrop</span> is then NOT called on the reset value. A program can therefore not rely on counting the drops of fully consumed locals. Any use after the move (or any use the compiler cannot prove harmless) keeps the documented reset-then-drop behavior.</p>
 <p>Returning a named local moves it out the same way: the value is transferred to the caller, <span class="code-inline">opPostMove</span> restores its invariants in the caller's storage, and the local's own drop is elided — the resource is released exactly once, by the caller. Only a local still observed after the return — by a <span class="code-inline">defer</span> body or a closure — cannot move: the return then deep-copies through <span class="code-inline">opPostCopy</span> and the local drops normally.</p>
 <h3 id="_006_009_custom_copy_and_move_swg_Move_Expression_Positions">Move Expression Positions</h3>
-<p>An explicit <span class="code-inline">#move</span> can transfer into a variable declaration or assignment, or into a call parameter. It cannot currently appear as a struct-literal field, an array-literal element, or a branch of the conditional operator. Initialize the destination through ordinary statements and assign its owning fields with <span class="code-inline">#move</span> instead. This restriction does not prevent moving the completed aggregate as a whole.</p>
+<p>An explicit <span class="code-inline">#move</span> can transfer into a variable declaration, assignment, call parameter, struct-literal field, array-literal element, or conditional branch. The result has the value's type; it does not store a move reference. The '#move T' type itself remains restricted to function parameters.</p>
+<p>Literal operands are evaluated in source order, including named fields written out of declaration order. Evaluating '#move source' constructs an owned value, runs <span class="code-inline">opPostMove</span>, and resets a source with <span class="code-inline">opDrop</span> to its defaults. Without <span class="code-inline">opDrop</span>, the source is abandoned under the ordinary lifecycle-safety rules. A source that cannot be reset to defaults cannot be moved this way. Later operands therefore observe the reset source. If a later operand fails, completed owned temporaries are destroyed in reverse order; the literal is not completed, and the earlier sources remain moved-from.</p>
+<p>A conditional evaluates only its selected branch. A <span class="code-inline">#move</span> branch transfers its source; an unmarked lvalue branch copies and must support copying. A newly constructed branch gives its value to the result. Neither an unselected move nor its cleanup runs. A conditional containing a transfer produces an owned result, which a surrounding declaration, assignment, return, or literal can adopt. <span class="code-inline">opPostMove</span> also repairs values relocated from temporary storage to their final destination; a program must not rely on a fixed number of these repairs.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">MovedField</span> { value: <span class="SCst">Vector3</span> }
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> source = <span class="SCst">Vector3</span>{<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>}
+    <span class="SKwd">let</span> field  = <span class="SCst">MovedField</span>{<span class="SItr">#move</span> source}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(source.x == <span class="SNum">666</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(field.value.x &gt; <span class="SNum">1</span>)
+
+    <span class="SKwd">var</span> first  = <span class="SCst">Vector3</span>{<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>}
+    <span class="SKwd">var</span> second = <span class="SCst">Vector3</span>{<span class="SNum">40</span>, <span class="SNum">50</span>, <span class="SNum">60</span>}
+    <span class="SKwd">let</span> values = [<span class="SItr">#move</span> first, <span class="SItr">#move</span> second]
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(first.x == <span class="SNum">666</span> <span class="SLgc">and</span> second.x == <span class="SNum">666</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">0</span>].x &gt; <span class="SNum">10</span> <span class="SLgc">and</span> values[<span class="SNum">1</span>].x &gt; <span class="SNum">40</span>)
+
+    <span class="SKwd">var</span> left     = <span class="SCst">Vector3</span>{<span class="SNum">100</span>, <span class="SNum">200</span>, <span class="SNum">300</span>}
+    <span class="SKwd">var</span> right    = <span class="SCst">Vector3</span>{<span class="SNum">400</span>, <span class="SNum">500</span>, <span class="SNum">600</span>}
+    <span class="SKwd">let</span> selected = left.x &lt; right.x ? <span class="SItr">#move</span> left : <span class="SItr">#move</span> right
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(left.x == <span class="SNum">666</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(right.x == <span class="SNum">400</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(selected.x &gt; <span class="SNum">100</span>)
+}</span></div>
 <h3 id="_006_009_custom_copy_and_move_swg_Ownership_And_The_Copy">Ownership And The Copy</h3>
 <p>A struct that declares <span class="code-inline">opDrop</span> owns what that method releases, so it states no copy: a bitwise duplicate would leave two values releasing the same resource. Nothing has to be written for that; declaring <span class="code-inline">opDrop</span> is the declaration.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Owner</span>
@@ -7540,11 +7561,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">classify</span>(<span class="SNum">1.5</span>'<span class="STpe">f32</span>) == <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_009_003_where_constraints_swg_Interface_Requirements">Interface Requirements</h3>
-<p>An interface requirement uses the same conversion request as a value: <span class="code-inline">where cast #try (IValue) T != null</span>. When the operand denotes a type, the compiler checks whether that type can be viewed through the requested contract. Success retains the source type as a compile-time type value; failure returns <span class="code-inline">null</span>. This does not construct an object or perform a runtime check.</p>
+<p>An interface requirement uses the same compatibility test as a value: <span class="code-inline">where T is IValue</span>. When the operand denotes a type, the compiler checks whether that type can be viewed through the requested contract. The result is a compile-time boolean. This does not construct an object or perform a runtime check.</p>
 <p>A struct satisfies the interface contract when it implements that interface, directly or through a <span class="code-inline">using</span> field. An interface satisfies its own contract.</p>
 <p>The bound participates in overload selection just like other <span class="code-inline">where</span> clauses. Combine requirements with <span class="code-inline">and</span>, or write one <span class="code-inline">where</span> per interface.</p>
 <p>Borrow the concrete argument through the required interface to call its operations. The body is checked for each concrete specialization; the bound does not make the generic parameter an interface type or check the body independently of instantiation.</p>
-<p>A type that does not implement <span class="code-inline">IValue</span> is rejected at the call. The diagnostic names the function, its generic arguments, and the failed <span class="code-inline">where cast #try (IValue) T != null</span> declaration. For exact type equality, use <span class="code-inline">T == U</span>.</p>
+<p>A type that does not implement <span class="code-inline">IValue</span> is rejected at the call. The diagnostic names the function, its generic arguments, and the failed <span class="code-inline">where T is IValue</span> declaration. For exact type equality, use <span class="code-inline">T == U</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IValue</span>
 {
     <span class="SKwd">mtd</span> <span class="SFct">value</span>()-&gt;<span class="STpe">s32</span>
@@ -7558,7 +7579,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }
 
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">readValue</span>(value: *<span class="SCst">T</span>)-&gt;<span class="STpe">s32</span>
-    <span class="SLgc">where</span> <span class="SKwd">cast</span> <span class="SItr">#try</span> (<span class="SCst">IValue</span>) <span class="SCst">T</span> != <span class="SKwd">null</span>
+    <span class="SLgc">where</span> <span class="SCst">T</span> <span class="SLgc">is</span> <span class="SCst">IValue</span>
 {
     <span class="SKwd">let</span> view = <span class="SKwd">cast</span>(<span class="SCst">IValue</span>) value
     <span class="SLgc">return</span> view.<span class="SFct">value</span>()
@@ -8372,7 +8393,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_012_001_aggregate_reflection_swg">Aggregate Reflection</h3>
 <h3 id="_012_001_aggregate_reflection_swg_Struct_and_Enum_Reflection">Struct and Enum Reflection</h3>
-<p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Use 'cast #try' to borrow a specialized descriptor, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
+<p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Use an <span class="code-inline">is</span> pattern to borrow a specialized descriptor in a branch, or 'cast #assume' when its type is known. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ExportType(.Methods)]</span>
 <span class="SKwd">struct</span> <span class="SCst">ReflectedPoint</span>
 {
@@ -8430,10 +8451,10 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">2</span>].name == <span class="SStr">"Done"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">0</span>].pointedType == <span class="SCst">ReflectedState</span>)
 }</span></div>
-<p>Reflection describes declarations; it does not bypass visibility, constness, or ownership. When writing a generic serializer or editor, check the descriptor with 'cast #try', check nullable descriptor slices, and derive field addresses from a live instance plus <span class="code-inline">TypeValue.offset</span>.</p>
+<p>Reflection describes declarations; it does not bypass visibility, constness, or ownership. When writing a generic serializer or editor, check the descriptor with an <span class="code-inline">is</span> pattern, check nullable descriptor slices, and derive field addresses from a live instance plus <span class="code-inline">TypeValue.offset</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">reflectedFieldCount</span>(type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">u64</span>
 {
-    <span class="SLgc">if</span> <span class="SKwd">let</span> info = <span class="SKwd">cast</span> <span class="SItr">#try</span>(<span class="SKwd">const</span> *<span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span>) type <span class="SLgc">do</span>
+    <span class="SLgc">if</span> type <span class="SLgc">is</span> <span class="SNsp">Swag</span>.<span class="SCst">TypeInfoStruct</span> <span class="SLgc">as</span> info <span class="SLgc">do</span>
         <span class="SLgc">return</span> info.fields.count
     <span class="SLgc">return</span> <span class="SNum">0</span>
 }
@@ -9192,34 +9213,6 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 {
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">firstDraft</span>() == <span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">everythingOffExceptOne</span>() == <span class="SNum">1</span>)
-}
-
-<span class="SKwd">struct</span> <span class="SCst">WarnNode</span>
-{
-    value: <span class="STpe">s32</span>
-}
-
-<span class="SCmt">// The '!' this page describes is deliberately absent here: the dominating test is the proof.</span>
-<span class="SKwd">func</span> <span class="SFct">warnCount</span>(node: *<span class="SCst">WarnNode</span>?)-&gt;<span class="STpe">s32</span>
-{
-    <span class="SLgc">if</span> node == <span class="SKwd">null</span> <span class="SLgc">do</span>
-        <span class="SLgc">return</span> <span class="SNum">0</span>
-    <span class="SLgc">return</span> node.value
-}</span></div>
-<h3 id="_013_005_warnings_swg_An_Assertion_the_Flow_Already_Proved">An Assertion the Flow Already Proved</h3>
-<p><span class="code-inline">sema_warn_notnull_already_proven</span> reports a postfix <span class="code-inline">!</span> on a value that is already non-null. The assertion compiles -- it is a tolerated pass-through -- but it costs a runtime guard that can never fire, and it hides what really proves the value present.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">count</span>(node: *<span class="SCst">Node</span>?)-&gt;<span class="STpe">s32</span>
-{
-    <span class="SLgc">if</span> node == <span class="SKwd">null</span> <span class="SLgc">do</span>
-        <span class="SLgc">return</span> <span class="SNum">0</span>
-    <span class="SLgc">return</span> node!.value     <span class="SCmt">// warning: the test above already proved it</span>
-}</span></div>
-<p>A generic body is analyzed once per instantiation, and <span class="code-inline">value!</span> can be dead for one argument and needed for another; an inlined body and a macro expansion are judged at a call site they did not choose. Neither is reported. This is the same line <span class="code-inline">orelse</span> draws: what the type can be, not what the flow proves at one site.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">var</span> node = <span class="SCst">WarnNode</span>{value: <span class="SNum">4</span>}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">warnCount</span>(&amp;node) == <span class="SNum">4</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">warnCount</span>(<span class="SKwd">null</span>) == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_013_005_warnings_swg_Setting_the_Policy_for_a_Whole_Module">Setting the Policy for a Whole Module</h3>
 <p>Each field of <span class="code-inline">cfg.warnings</span> takes warning names separated with <span class="code-inline">|</span>.</p>
@@ -10184,7 +10177,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.666</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1028</div>
 </footer>
 </section>
 </main>
@@ -10739,6 +10732,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Basic Usage of if|_005_001_if_swg_Basic_Usage_of__if_|",
 "h|Variable Declaration in if|_005_001_if_swg_Variable_Declaration_in__if_|",
 "h|Adding Conditions with where|_005_001_if_swg_Adding_Conditions_with__where_|",
+"h|Binding a Dynamic Type|_005_001_if_swg_Binding_a_Dynamic_Type|",
 "h|For|_005_002_for_swg|",
 "h|The for Loop|_005_002_for_swg_The__for__Loop|",
 "h|Basic Usage|_005_002_for_swg_Basic_Usage|",
@@ -10798,7 +10792,6 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Using the where Clause in switch|_005_005_switch_swg_Using_the__where__Clause_in__switch_|",
 "h|Using where with default|_005_005_switch_swg_Using__where__with__default_|",
 "h|Switching on Type with any or interface|_005_005_switch_swg_Switching_on_Type_with__any__or__interface_|",
-"h|Switch Statement with Type Guard and Variable Binding|_005_005_switch_swg_Switch_Statement_with_Type_Guard_and_Variable_Binding|",
 "h|Switch Without an Expression|_005_005_switch_swg_Switch_Without_an_Expression|",
 "h|Break|_005_006_break_swg|",
 "h|The break Statement|_005_006_break_swg_The__break__Statement|",
@@ -11082,7 +11075,6 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Warnings|_013_005_warnings_swg_Warnings|",
 "h|Silencing a Warning at One Site|_013_005_warnings_swg_Silencing_a_Warning_at_One_Site|",
 "h|Unreachable Code|_013_005_warnings_swg_Unreachable_Code|",
-"h|An Assertion the Flow Already Proved|_013_005_warnings_swg_An_Assertion_the_Flow_Already_Proved|",
 "h|Setting the Policy for a Whole Module|_013_005_warnings_swg_Setting_the_Policy_for_a_Whole_Module|",
 "h|Compile-time Evaluation|_014_000_compile-time_evaluation_swg|",
 "h|Compile-Time Execution|_014_000_compile-time_evaluation_swg_Compile-Time_Execution|",

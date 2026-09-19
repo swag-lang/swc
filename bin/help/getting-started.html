@@ -79,7 +79,7 @@ swc run --workspace hello --workspace-module hello</span></div>
 swc build -w hello -m hello -bc devmode
 swc build -w hello -m hello -bc release
 swc build -w hello -m hello --debug</span></div>
-<p><span class="code-inline">devmode</span> is the default configuration. It keeps safety and sanity checks while using optimized code; <span class="code-inline">release</span> favors runtime performance. Neither emits debug information by default. Add <span class="code-inline">--debug</span> when a debugger needs symbols and source line mappings. Use <span class="code-inline">swc help build</span> for the authoritative option list and <span class="code-inline">--show-config</span> to inspect the resolved toolchain and output paths.</p>
+<p><span class="code-inline">devmode</span> is the default configuration. It keeps safety and sanity checks while using optimized code; <span class="code-inline">release</span> favors runtime performance. Neither emits debug information by default. Add <span class="code-inline">--debug</span> when a debugger needs symbols and source line mappings. It covers every dependency the program takes in, and keeps its artifacts in a directory of their own, so the plain build stays as it was. Use <span class="code-inline">swc help build</span> for the authoritative option list and <span class="code-inline">--show-config</span> to inspect the resolved toolchain and output paths.</p>
 <h2 id="Import_a_standard_module">Import a standard module</h2>
 <p>Module dependencies are declared at the top level of <span class="code-inline">module.swg</span>. This imports the standard <span class="code-inline">core</span> module:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)</span></div>
@@ -94,7 +94,7 @@ swc build -w hello -m hello --debug</span></div>
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.666</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1028</div>
 </footer>
 </section>
 </main>

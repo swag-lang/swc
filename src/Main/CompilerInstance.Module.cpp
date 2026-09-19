@@ -983,7 +983,26 @@ namespace
     Utf8 workspaceArtifactConfiguration(const CompilerInstance& compiler)
     {
         const Runtime::BuildCfgBackend& backend = compiler.buildCfg().backend;
-        return std::format("debug-info:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
+        Utf8 result = std::format("debug-info:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
+        if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && compiler.cmdLine().incremental)
+            result += ";incremental";
+        return result;
+    }
+
+    // A shared library whose public API did not change can be replaced without rebuilding an
+    // executable that imports it dynamically. Incremental mode keeps only the native generations
+    // whose code was incorporated into the executable. Compile-time execution remains stricter:
+    // its result may depend on any imported native implementation, whether linked statically or
+    // loaded dynamically.
+    const std::map<fs::path, fs::file_time_type>& workspaceNativeReadTimes(const CompilerInstance& compiler,
+                                                                           const std::map<fs::path, fs::file_time_type>& allReadTimes,
+                                                                           const std::map<fs::path, fs::file_time_type>& staticReadTimes)
+    {
+        if (compiler.importedNativeExecuted() ||
+            (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.cmdLine().incremental))
+            return allReadTimes;
+
+        return staticReadTimes;
     }
 
     // Each build mode keeps its own manifest, so alternating `test` and `run` does
@@ -3803,10 +3822,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
                 manifest.dependenciesReadTime = dependenciesReadTime;
                 manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-                if (moduleCompiler->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable || moduleCompiler->importedNativeExecuted())
-                    manifest.nativeReadTimes = moduleCompiler->moduleNativeReadTimes_;
-                else
-                    manifest.nativeReadTimes = moduleCompiler->moduleStaticLinkReadTimes_;
+                manifest.nativeReadTimes = workspaceNativeReadTimes(*moduleCompiler,
+                                                                    moduleCompiler->moduleNativeReadTimes_,
+                                                                    moduleCompiler->moduleStaticLinkReadTimes_);
                 manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
                 normalizeWorkspacePathsLexically(manifest.apiInputs);
                 manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);
@@ -3837,10 +3855,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             link->manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
             link->manifest.dependenciesReadTime = dependenciesReadTime;
             link->manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-            if (moduleCompiler->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable || moduleCompiler->importedNativeExecuted())
-                link->manifest.nativeReadTimes = moduleCompiler->moduleNativeReadTimes_;
-            else
-                link->manifest.nativeReadTimes = moduleCompiler->moduleStaticLinkReadTimes_;
+            link->manifest.nativeReadTimes = workspaceNativeReadTimes(*moduleCompiler,
+                                                                      moduleCompiler->moduleNativeReadTimes_,
+                                                                      moduleCompiler->moduleStaticLinkReadTimes_);
             link->manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
             normalizeWorkspacePathsLexically(link->manifest.apiInputs);
             link->manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);

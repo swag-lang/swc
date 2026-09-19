@@ -1075,6 +1075,9 @@ Result CommandLineParser::buildWarningPolicy(TaskContext& ctx) const
 
 Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 {
+    if (cmdLine_->rebuild && cmdLine_->incremental)
+        return reportConflictingArgument(ctx, "--incremental", "--rebuild");
+
     if (cmdLine_->command == CommandKind::New)
     {
         if (cmdLine_->newProjectKind == NewProjectKind::Script && !cmdLine_->workspacePath.empty())

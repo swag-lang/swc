@@ -124,6 +124,14 @@ swc format -mf <workspace>/modules/app --dry-run
 tools, tests, or emitted programs. '--show-config' prints the resolved command,
 environment, toolchain, and artifact configuration, then exits.
 
+Workspace builds already reuse modules whose inputs and consumed dependency API
+are unchanged. Add '--incremental' to extend that reuse across compatible native
+changes: for example, an executable keeps its existing image when only a private
+implementation inside a dynamically linked library changed, and the fresh library
+is published before the executable runs. Code incorporated from a static library
+and results obtained by executing imported code at compile time remain strict
+invalidation boundaries. '--incremental' and '--rebuild' are mutually exclusive.
+
 # Cleaning
 
 'swc clean' removes what a build wrote, and nothing else. It compiles nothing,

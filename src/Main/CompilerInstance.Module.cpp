@@ -947,6 +947,8 @@ namespace
         std::vector<fs::path>                  inputs;
         std::vector<fs::path>                  dependencyDirs;
         std::vector<fs::path>                  artifacts;
+        std::vector<fs::path>                  linkObjects;
+        std::vector<Utf8>                      linkLibraries;
         fs::file_time_type                     inputsReadTime{};
         fs::file_time_type                     dependenciesReadTime{};
         std::map<fs::path, fs::file_time_type> apiReadTimes;
@@ -1549,6 +1551,8 @@ namespace
             ApiReadTimes,
             NativeReadTimes,
             Artifacts,
+            LinkObjects,
+            LinkLibraries,
         };
 
         auto   currentSection          = Section::None;
@@ -1576,7 +1580,7 @@ namespace
                 continue;
             }
 
-            if (line == "version=8")
+            if (line == "version=9")
             {
                 validVersion = true;
                 if (end == content.size())
@@ -1642,22 +1646,25 @@ namespace
                 currentSection = Section::NativeReadTimes;
             else if (line == "[artifacts]")
                 currentSection = Section::Artifacts;
+            else if (line == "[link-objects]")
+                currentSection = Section::LinkObjects;
+            else if (line == "[link-libraries]")
+                currentSection = Section::LinkLibraries;
             else
             {
                 if (currentSection == Section::None)
                     return false;
 
-                fs::path parsedPath{std::string(line)};
                 switch (currentSection)
                 {
                     case Section::Inputs:
-                        outManifest.inputs.push_back(std::move(parsedPath));
+                        outManifest.inputs.emplace_back(std::string(line));
                         break;
                     case Section::ApiInputs:
-                        outManifest.apiInputs.push_back(std::move(parsedPath));
+                        outManifest.apiInputs.emplace_back(std::string(line));
                         break;
                     case Section::Dependencies:
-                        outManifest.dependencyDirs.push_back(std::move(parsedPath));
+                        outManifest.dependencyDirs.emplace_back(std::string(line));
                         break;
                     case Section::ApiReadTimes:
                     case Section::NativeReadTimes:
@@ -1680,7 +1687,18 @@ namespace
                         break;
                     }
                     case Section::Artifacts:
-                        outManifest.artifacts.push_back(std::move(parsedPath));
+                        outManifest.artifacts.emplace_back(std::string(line));
+                        break;
+                    case Section::LinkObjects:
+                    {
+                        fs::path path{std::string(line)};
+                        if (!path.is_absolute())
+                            return false;
+                        outManifest.linkObjects.push_back(std::move(path));
+                        break;
+                    }
+                    case Section::LinkLibraries:
+                        outManifest.linkLibraries.emplace_back(line);
                         break;
                     case Section::None:
                         break;
@@ -1697,12 +1715,15 @@ namespace
         normalizeWorkspacePathsLexically(outManifest.apiInputs);
         normalizeWorkspacePathsLexically(outManifest.dependencyDirs);
         normalizeWorkspacePathsLexically(outManifest.artifacts);
+        normalizeWorkspacePathsLexically(outManifest.linkObjects);
+        std::ranges::sort(outManifest.linkLibraries);
+        outManifest.linkLibraries.erase(std::ranges::unique(outManifest.linkLibraries).begin(), outManifest.linkLibraries.end());
         return validVersion && hasConfiguration && hasTags && hasInputsReadTime && hasDependenciesReadTime;
     }
 
     Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
     {
-        Utf8 content = std::format("version=8\nconfiguration={}\ntags={}\ninputs-read-at={}\ndependencies-read-at={}\n[inputs]\n", manifest.configuration.view(), manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count(), manifest.dependenciesReadTime.time_since_epoch().count());
+        Utf8 content = std::format("version=9\nconfiguration={}\ntags={}\ninputs-read-at={}\ndependencies-read-at={}\n[inputs]\n", manifest.configuration.view(), manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count(), manifest.dependenciesReadTime.time_since_epoch().count());
         for (const fs::path& path : manifest.inputs)
         {
             content += Utf8(path);
@@ -1738,6 +1759,20 @@ namespace
             content += '\n';
         }
 
+        content += "[link-objects]\n";
+        for (const fs::path& path : manifest.linkObjects)
+        {
+            content += Utf8(path);
+            content += '\n';
+        }
+
+        content += "[link-libraries]\n";
+        for (const Utf8& library : manifest.linkLibraries)
+        {
+            content += library;
+            content += '\n';
+        }
+
         std::error_code ec;
         fs::create_directories(manifestPath.parent_path(), ec);
         if (ec)
@@ -1770,14 +1805,40 @@ namespace
         return false;
     }
 
-    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const Utf8& configuration, const std::span<const Utf8> tags)
+    enum class WorkspaceArtifactState : uint8_t
+    {
+        Stale,
+        UpToDate,
+        Relink,
+    };
+
+    bool workspaceIncrementalObjectsAreUsable(const WorkspaceArtifactManifest& manifest, const fs::file_time_type buildTime)
+    {
+        if (manifest.linkObjects.empty())
+            return false;
+
+        for (const fs::path& path : manifest.linkObjects)
+        {
+            fs::file_time_type writeTime;
+            if (!tryGetWorkspacePathWriteTime(writeTime, path) || writeTime > buildTime)
+                return false;
+
+            std::error_code ec;
+            if (!fs::is_regular_file(path, ec) || ec || fs::file_size(path, ec) == 0 || ec)
+                return false;
+        }
+
+        return true;
+    }
+
+    WorkspaceArtifactState workspaceArtifactState(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const Utf8& configuration, const std::span<const Utf8> tags)
     {
         if (manifest.configuration != configuration || manifest.tagsFingerprint != workspaceTagsFingerprint(tags))
-            return false;
+            return WorkspaceArtifactState::Stale;
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
-            return false;
+            return WorkspaceArtifactState::Stale;
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
-            return false;
+            return WorkspaceArtifactState::Stale;
 
         fs::file_time_type latestInputTime{};
         bool               hasInputTime = false;
@@ -1785,7 +1846,7 @@ namespace
         {
             fs::file_time_type pathTime;
             if (!tryGetWorkspacePathWriteTime(pathTime, path))
-                return false;
+                return WorkspaceArtifactState::Stale;
             if (!hasInputTime || pathTime > latestInputTime)
             {
                 latestInputTime = pathTime;
@@ -1795,7 +1856,7 @@ namespace
 
         fs::file_time_type compilerTime{};
         if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
-            return false;
+            return WorkspaceArtifactState::Stale;
 
         std::vector<fs::path> absoluteArtifactPaths;
         absoluteArtifactPaths.reserve(manifest.artifacts.size() + requiredArtifacts.size());
@@ -1818,30 +1879,33 @@ namespace
         {
             fs::file_time_type artifactTime;
             if (!tryGetWorkspacePathWriteTime(artifactTime, artifactPath))
-                return false;
+                return WorkspaceArtifactState::Stale;
         }
 
         // The manifest is rewritten at the end of every successful build, so its write time
         // reliably reflects when this module was last produced by the compiler.
         fs::file_time_type buildTime{};
         if (!tryGetWorkspacePathWriteTime(buildTime, manifestPath))
-            return false;
+            return WorkspaceArtifactState::Stale;
         if (manifest.inputsReadTime > buildTime || manifest.dependenciesReadTime > buildTime)
-            return false;
+            return WorkspaceArtifactState::Stale;
         std::vector<fs::path> currentApiInputs;
         for (const auto& [directory, readTime] : manifest.apiReadTimes)
         {
             if (readTime > buildTime || !workspaceApiInputsAreUpToDate(currentApiInputs, directory, readTime))
-                return false;
+                return WorkspaceArtifactState::Stale;
         }
         normalizeWorkspacePathsLexically(currentApiInputs);
         if (!sameWorkspacePathList(manifest.apiInputs, currentApiInputs))
-            return false;
+            return WorkspaceArtifactState::Stale;
+        bool nativeDependencyChanged = false;
         for (const auto& [directory, readTime] : manifest.nativeReadTimes)
         {
             fs::file_time_type dependencyTime;
-            if (readTime > buildTime || !tryGetWorkspaceDependencyBuildTime(dependencyTime, directory, manifestPath) || dependencyTime > readTime)
-                return false;
+            if (readTime > buildTime || !tryGetWorkspaceDependencyBuildTime(dependencyTime, directory, manifestPath))
+                return WorkspaceArtifactState::Stale;
+            if (dependencyTime > readTime)
+                nativeDependencyChanged = true;
         }
 
         // Backstop for an artifact replaced behind the compiler's back. Build modes no
@@ -1850,15 +1914,19 @@ namespace
         {
             fs::file_time_type artifactTime;
             if (!tryGetWorkspacePathWriteTime(artifactTime, artifactPath) || artifactTime > buildTime)
-                return false;
+                return WorkspaceArtifactState::Stale;
         }
 
         // Publication certifies that artifacts finished, not that late source edits were read.
         // API and native read boundaries above own dependency freshness at the granularity this
         // module consumed; an unrelated dependency artifact generation does not date this build.
         if (hasInputTime && manifest.inputsReadTime < latestInputTime)
-            return false;
-        return manifest.inputsReadTime >= compilerTime;
+            return WorkspaceArtifactState::Stale;
+        if (manifest.inputsReadTime < compilerTime)
+            return WorkspaceArtifactState::Stale;
+        if (!nativeDependencyChanged)
+            return WorkspaceArtifactState::UpToDate;
+        return workspaceIncrementalObjectsAreUsable(manifest, buildTime) ? WorkspaceArtifactState::Relink : WorkspaceArtifactState::Stale;
     }
 
     bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind)
@@ -1959,6 +2027,15 @@ namespace
     {
         std::vector<Utf8> parts;
         parts.push_back(ScopedTimedLog::formatStatName(ctx, "up-to-date"));
+        if (!compiler.lastArtifactLabel().empty())
+            parts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
+        return ScopedTimedLog::joinStatItems(ctx, parts);
+    }
+
+    Utf8 formatWorkspaceRelinkStat(const TaskContext& ctx, const CompilerInstance& compiler)
+    {
+        std::vector<Utf8> parts;
+        parts.push_back(ScopedTimedLog::formatStatName(ctx, "relinked"));
         if (!compiler.lastArtifactLabel().empty())
             parts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
         return ScopedTimedLog::joinStatItems(ctx, parts);
@@ -3114,6 +3191,19 @@ namespace
 
         if (link.writeManifest)
         {
+            const LinkJob& linkJob = link.builder->deferredToolRun();
+            if (linkJob.incrementalCachePublished)
+            {
+                link.manifest.linkObjects.reserve(linkJob.incrementalObjects.size());
+                for (const LinkJob::IncrementalObject& object : linkJob.incrementalObjects)
+                    link.manifest.linkObjects.push_back(object.path);
+                normalizeWorkspacePathsLexically(link.manifest.linkObjects);
+
+                link.manifest.linkLibraries = linkJob.incrementalLibraries;
+                std::ranges::sort(link.manifest.linkLibraries);
+                link.manifest.linkLibraries.erase(std::ranges::unique(link.manifest.linkLibraries).begin(), link.manifest.linkLibraries.end());
+            }
+
             collectWorkspaceOutputArtifacts(link.manifest.artifacts, link.outDir);
             SWC_RESULT(writeWorkspaceArtifactManifest(link.builder->ctx(), link.manifest, link.manifestPath));
         }
@@ -3726,9 +3816,11 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
         std::error_code           unexpectedPdbError;
         const bool                hasUnexpectedPdb = !unexpectedPdbPath.empty() && fs::exists(unexpectedPdbPath, unexpectedPdbError);
-        if (!hasUnexpectedPdb && !unexpectedPdbError &&
-            readWorkspaceArtifactManifest(manifest, manifestPath) &&
-            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, workspaceArtifactConfiguration(probeCompiler), moduleCmdLine.tags))
+        WorkspaceArtifactState    artifactState = WorkspaceArtifactState::Stale;
+        if (!hasUnexpectedPdb && !unexpectedPdbError && readWorkspaceArtifactManifest(manifest, manifestPath))
+            artifactState = workspaceArtifactState(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, workspaceArtifactConfiguration(probeCompiler), moduleCmdLine.tags);
+
+        if (artifactState == WorkspaceArtifactState::UpToDate)
         {
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
@@ -3781,6 +3873,38 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 moduleStage.setStat(formatWorkspaceReuseStat(probeCtx, probeCompiler));
             }
             return Result::Continue;
+        }
+
+        if (artifactState == WorkspaceArtifactState::Relink)
+        {
+            ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
+            if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
+                return Result::Error;
+
+            NativeBackendBuilder relinkBuilder(probeCompiler, isRunLikeCommand(moduleCmdLine.command));
+            bool                 prepared = false;
+            if (relinkBuilder.tryPrepareIncrementalLink(prepared, manifest.linkObjects, manifest.linkLibraries) != Result::Continue)
+                return Result::Error;
+            if (prepared)
+            {
+                Linker::executeLink(relinkBuilder.deferredToolRun());
+                if (relinkBuilder.finishDeferredLink() != Result::Continue)
+                    return Result::Error;
+
+                manifest.dependenciesReadTime = dependenciesReadTime;
+                manifest.apiReadTimes         = probeCompiler.moduleApiReadTimes_;
+                manifest.nativeReadTimes = workspaceNativeReadTimes(probeCompiler,
+                                                                    probeCompiler.moduleNativeReadTimes_,
+                                                                    probeCompiler.moduleStaticLinkReadTimes_);
+                manifest.apiInputs = probeCompiler.moduleApiInputs_;
+                normalizeWorkspacePathsLexically(manifest.apiInputs);
+                collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
+                if (writeWorkspaceArtifactManifest(probeCtx, manifest, manifestPath) != Result::Continue)
+                    return Result::Error;
+
+                moduleStage.setStat(formatWorkspaceRelinkStat(probeCtx, probeCompiler));
+                return Result::Continue;
+            }
         }
     }
 

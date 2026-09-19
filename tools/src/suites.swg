@@ -269,6 +269,17 @@ private func artifactReportedUpToDate(output, name: string)->bool
     return false
 }
 
+private func artifactReportedRelinked(output, name: string)->bool
+{
+    for line in Tokenize.splitLines(output)
+    {
+        if Utf8.contains(line, "relinked") and Utf8.contains(line, name) do
+            return true
+    }
+
+    return false
+}
+
 // Counts permanent module report lines for one dependency. Progress frames are absent from captured
 // output, so a repeated line proves that the dependency was reported more than once.
 private func moduleReportCount(output, module: string)->u32
@@ -1051,7 +1062,7 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     let modules = Path.combine(scratch.toString(), "modules")
     try Directory.create(scratch.toString())
     try Directory.create(modules.toString())
-    for module in ["provider", "middle", "leaf", "compile_time", "dynamic_consumer", "static_provider", "static_consumer"]
+    for module in ["provider", "middle", "leaf", "compile_time", "dynamic_consumer", "static_provider", "static_consumer", "incremental_static_consumer"]
     {
         let moduleDirectory = Path.combine(modules.toString(), module)
         try Directory.create(moduleDirectory.toString())
@@ -1081,6 +1092,9 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"StaticConsumer\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "src", "main.swg").toString(), "public func value()->s32 => StaticProvider.value()\n")
 
+    try File.writeAllText(Path.combine(modules.toString(), "incremental_static_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "incremental_static_consumer", "src", "main.swg").toString(), "#main { if StaticProvider.value() == 1 do Swag.print(\"static-incremental-value=1\\n\") else do Swag.print(\"static-incremental-value=2\\n\") }\n")
+
     var leaf = workspaceModuleCommand("build", scratch.toString(), "leaf", buildCfg)
     options.appendExtra(&leaf)
     let firstLeafCode = try context.runCompiler(leaf)
@@ -1109,6 +1123,25 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     let firstStaticConsumerCode = try context.runCompiler(staticConsumer)
     if firstStaticConsumerCode != 0 do
         return firstStaticConsumerCode
+
+    var incrementalStaticConsumer = workspaceModuleCommand("run", scratch.toString(), "incremental_static_consumer", buildCfg)
+    incrementalStaticConsumer.add(["--incremental"])
+    options.appendExtra(&incrementalStaticConsumer)
+    let firstIncrementalStaticOutput = try context.captureCompiler(incrementalStaticConsumer)
+    Console.print(firstIncrementalStaticOutput.toString())
+    if not Utf8.contains(firstIncrementalStaticOutput.toString(), "static-incremental-value=1")
+    {
+        Console.println("The initial incremental executable did not run with its static dependency")
+        return 1
+    }
+
+    let incrementalObject = Path.combine(scratch.toString(), ".tmp", "incremental_static_consumer", "executable", buildCfg, options.targetArch.toString(), "incremental_static_consumer_00.obj")
+    if not File.exists(incrementalObject.toString())
+    {
+        Console.println("The incremental executable did not publish its link object")
+        return 1
+    }
+    let originalIncrementalObjectTime = (try File.info(incrementalObject.toString())).lastWriteTime
 
     let providerOutput = Path.combine(scratch.toString(), ".output", "provider", "shared-library", buildCfg, options.targetArch.toString())
     let providerApi    = Path.combine(providerOutput.toString(), "provider.swg")
@@ -1155,6 +1188,27 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     if artifactReportedUpToDate(staticConsumerOutput.toString(), "static_consumer.dll")
     {
         Console.println("A shared library reused code from an older static dependency generation.")
+        return 1
+    }
+
+    let incrementalStaticOutput = try context.captureCompiler(incrementalStaticConsumer)
+    Console.print(incrementalStaticOutput.toString())
+    if not artifactReportedRelinked(incrementalStaticOutput.toString(), "incremental_static_consumer.exe") or not Utf8.contains(incrementalStaticOutput.toString(), "static-incremental-value=2")
+    {
+        Console.println("Incremental relinking did not incorporate the rebuilt static dependency")
+        return 1
+    }
+    if (try File.info(incrementalObject.toString())).lastWriteTime != originalIncrementalObjectTime
+    {
+        Console.println("Incremental relinking recompiled the executable's unchanged object")
+        return 1
+    }
+
+    let warmIncrementalStaticOutput = try context.captureCompiler(incrementalStaticConsumer)
+    Console.print(warmIncrementalStaticOutput.toString())
+    if not artifactReportedUpToDate(warmIncrementalStaticOutput.toString(), "incremental_static_consumer.exe") or not Utf8.contains(warmIncrementalStaticOutput.toString(), "static-incremental-value=2")
+    {
+        Console.println("The incrementally relinked executable was not reusable")
         return 1
     }
 

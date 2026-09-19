@@ -119,6 +119,7 @@ public:
     // finishDeferredLink() back on the foreground thread to report results and, for an executable run,
     // launch the artifact.
     Result   prepareForLink();
+    Result   tryPrepareIncrementalLink(bool& outPrepared, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames);
     Result   finishDeferredLink();
     LinkJob& deferredToolRun() { return deferredToolRun_; }
 

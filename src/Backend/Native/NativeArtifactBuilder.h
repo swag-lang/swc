@@ -59,6 +59,7 @@ public:
     // Valid only once the artifact this module publishes has been lowered, because it overwrites
     // the text offsets that lowering computed.
     Result partitionArchiveObjects() const;
+    Result partitionIncrementalObject() const;
 
 private:
     Result buildRuntimeHook(TaskContext& ctx) const;

@@ -880,6 +880,30 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
     return Result::Continue;
 }
 
+Result NativeArtifactBuilder::partitionIncrementalObject() const
+{
+    builder_->objectDescriptions.clear();
+    builder_->objectDescriptions.resize(1);
+
+    NativeArtifactPaths paths;
+    queryPaths(paths, 1);
+
+    NativeObjDescription& description = builder_->objectDescriptions.front();
+    description.index                 = 0;
+    description.objPath               = paths.objectPaths.front();
+    description.includeData           = true;
+    description.includeMergedRData    = true;
+    description.startup               = builder_->startup.get();
+    description.functions.reserve(builder_->functionInfos.size());
+    for (NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        info.jobIndex = 0;
+        description.functions.push_back(&info);
+    }
+
+    return Result::Continue;
+}
+
 Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
 {
     builder_->startup.reset();

@@ -9,32 +9,24 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-19 09:35 — define a staged persistent-object design after adding the first explicit incremental reuse boundary
+- Updated: 2026-09-19 10:23 — ship the first persistent COFF relink cache and narrow the next layer to function-level reuse
 
 **Current boundary.** Workspace manifests already keep a completed module when its own inputs and
-the dependency API generations it consumed are unchanged. `--incremental` now also keeps an
-executable image when only an interface-compatible dynamically linked implementation changed;
-the fresh DLL is republished before a run. Static inputs and imported native code executed at
-compile time remain native invalidation boundaries. This path adds no hashing or cache lookup and
-checks fewer timestamps than the conservative path.
+the dependency API generations it consumed are unchanged. `--incremental` keeps an executable
+image when only an interface-compatible dynamically linked implementation changed; the fresh DLL
+is republished before a run. It also persists one deterministic COFF object containing a non-debug
+executable's module-owned code and data. When only a static native dependency generation changes,
+the workspace reloads that object, resolves the fresh archives, and writes a new PE without running
+the consumer's front end or code generation. Imported native code executed at compile time remains
+a strict invalidation boundary. Cache publication is atomic and best-effort, and a missing or
+modified object falls back to a normal compilation.
 
-**Evidence for the next layer.** Native executable and DLL links currently consume each compiled
-function's `MachineCode` and data descriptions in memory. `NativeObjFileWriter` serializes the same
-descriptions as COFF only for static-library members, while `PELinker` can already read COFF archive
-members into a link image. Therefore a statically linked dependency change currently throws away a
-still-valid front end and code generation for the consuming module merely because the final image
-must be linked again. The existing workspace manifest already records the source, compiler,
-configuration, API, and native read boundaries needed to decide whether that module-owned code is
-still valid.
-
-**Next — deterministic module link capsules.** After a successful native compilation, optionally
-publish the module-owned code and data as a relocatable COFF archive beside the workspace manifest.
-Publication is atomic and happens only after the normal build succeeds. A later build whose own
-inputs and observed APIs are unchanged, but whose static native inputs changed, loads this capsule
-and performs only library resolution and the final PE/PDB link. The cache identity includes the
-compiler build, target, backend configuration, safety/debug/optimization settings, tags, module
-inputs, and observed API generations. COFF timestamps and member ordering are canonical so worker
-count and scheduling cannot change the cache bytes.
+**Evidence for the next layer.** The module object proves the invalidation boundary and removes the
+largest redundant work after a static-dependency edit, but a body edit in the executable still
+invalidates that whole object. `NativeObjFileWriter` can already serialize one function per object,
+and the integrated linker already folds identical archive functions and read-only data. The next
+useful boundary is therefore the typed function plus the constants and metadata its generated code
+owns, not another whole-module cache format.
 
 Do not content-hash the source tree in a separate warm-build pass. Reuse the manifest's read
 boundaries for the cheap eligibility decision; when content fingerprints are later needed, compute
@@ -43,7 +35,7 @@ builds, and allow the write to be skipped below a measured code-generation cost 
 cache decision time, bytes read/written, and saved code-generation/link time so a hit that costs
 more than it saves is visible.
 
-**After the module capsule.** Cache code generation at function granularity. Key each relocatable
+**Next — function-level code generation.** Cache code generation at function granularity. Key each relocatable
 function object and its owned read-only data by a canonical typed-IR fingerprint plus the reachable
 ABI and inlinable-body fingerprints that can affect generated code. Stable symbol identities must
 replace arena addresses; debug, unwind, relocation, and generic-instantiation metadata belong to
@@ -60,7 +52,7 @@ bounds hold in both DevMode and Release.
 **Complete when.**
 
 - A static-dependency implementation edit relinks a consumer without re-running its front end or
-  code generation.
+  code generation. Done for non-debug executable build/run/smoke commands.
 - A body-only edit regenerates the changed function and any function whose generated code depends
   on it, while unrelated functions are reused.
 - Reuse works for native and JIT builds, including debug and unwind metadata.

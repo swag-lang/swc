@@ -958,6 +958,26 @@ Result NativeBackendBuilder::prepareForLink()
     return deferredLinker_->prepareLink(deferredToolRun_);
 }
 
+Result NativeBackendBuilder::tryPrepareIncrementalLink(bool& outPrepared, const std::span<const fs::path> objectPaths, const std::span<const Utf8> libraryNames)
+{
+    outPrepared = false;
+    SWC_ASSERT(compiler_ != nullptr);
+    SWC_RESULT(validateTarget());
+
+    const NativeArtifactBuilder artifactBuilder(*this);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    buildDir     = paths.buildDir;
+    artifactPath = paths.artifactPath;
+    pdbPath      = paths.pdbPath;
+    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+
+    deferredLinker_ = Linker::create(*this);
+    SWC_ASSERT(deferredLinker_ != nullptr);
+    deferredToolRun_ = {};
+    return deferredLinker_->tryPrepareIncrementalLink(outPrepared, deferredToolRun_, objectPaths, libraryNames);
+}
+
 // Foreground continuation of the deferred link: interpret the result of the background process,
 // report diagnostics/output in order, then run the artifact if this is an executable run.
 Result NativeBackendBuilder::finishDeferredLink()

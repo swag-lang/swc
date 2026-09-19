@@ -31,6 +31,28 @@ namespace
         return true;
     }
 
+    void publishIncrementalCache(LinkJob& job)
+    {
+        if (job.incrementalObjects.empty())
+            return;
+
+        for (LinkJob::IncrementalObject& object : job.incrementalObjects)
+        {
+            std::error_code ec;
+            fs::create_directories(object.path.parent_path(), ec);
+            if (ec)
+                return;
+
+            FileSystem::IoErrorInfo ioError;
+            if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError) != Result::Continue)
+                return;
+        }
+
+        job.incrementalCachePublished = true;
+        for (LinkJob::IncrementalObject& object : job.incrementalObjects)
+            object.bytes.clear();
+    }
+
     // Serialises the LinkImage (or archives the objects) and writes the artifact, returning false with
     // job.error filled on any failure. Split out so executeInternalLink records job.ok in one place.
     bool runInternalLink(LinkJob& job, ImageWriter& writer)
@@ -106,6 +128,8 @@ namespace
             if (!writeJobArtifact(job, job.staticLibraryPath, archiveBytes))
                 return false;
         }
+
+        publishIncrementalCache(job);
 
         return true;
     }

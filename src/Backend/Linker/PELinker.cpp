@@ -1566,6 +1566,90 @@ Result PELinker::prepareStaticLibrarySideArchive(LinkJob& outJob) const
     return Result::Continue;
 }
 
+Result PELinker::prepareIncrementalObjects(LinkJob& outJob) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+    const CompilerInstance& compiler = builder_->compiler();
+    if (!compiler.cmdLine().incremental ||
+        compiler.cmdLine().command == CommandKind::Test ||
+        compiler.buildCfg().backend.debugInfo ||
+        !compiler.hasImportedStaticLinkInputs() ||
+        compiler.importedNativeExecuted())
+        return Result::Continue;
+
+    const NativeArtifactBuilder artifactBuilder(*builder_);
+    SWC_RESULT(artifactBuilder.partitionIncrementalObject());
+    SWC_RESULT(builder_->buildObjectBytes());
+
+    outJob.incrementalObjects.reserve(builder_->objectDescriptions.size());
+    for (NativeObjDescription& description : builder_->objectDescriptions)
+    {
+        LinkJob::IncrementalObject object;
+        object.path  = FileSystem::normalizePath(description.objPath);
+        object.bytes = std::move(description.objBytes);
+        outJob.incrementalObjects.push_back(std::move(object));
+    }
+
+    std::set<Utf8>        libraryNames;
+    std::vector<fs::path> libraryDirs;
+    collectLibrarySearch(libraryNames, libraryDirs);
+    outJob.incrementalLibraries.assign(libraryNames.begin(), libraryNames.end());
+    return Result::Continue;
+}
+
+Result PELinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, const std::span<const fs::path> objectPaths, const std::span<const Utf8> libraryNames)
+{
+    outPrepared = false;
+    SWC_ASSERT(builder_ != nullptr);
+    if (objectPaths.empty() ||
+        builder_->compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
+        builder_->compiler().buildCfg().backend.debugInfo)
+        return Result::Continue;
+
+    std::vector<CoffObject>             objects;
+    std::vector<SymbolTable::Entry>     symbols;
+    objects.reserve(objectPaths.size());
+    for (const fs::path& objectPath : objectPaths)
+    {
+        FileSystem::IoErrorInfo ioError;
+        ByteArray               bytes;
+        if (FileSystem::readBinaryFile(objectPath, bytes, ioError) != Result::Continue)
+            return Result::Continue;
+
+        CoffObject object;
+        Diagnostic diag;
+        if (!readCoffObject(object, diag, bytes))
+            return Result::Continue;
+        appendMemberSymbols(symbols, object);
+        objects.push_back(std::move(object));
+    }
+
+    Diagnostic mergeDiag;
+    if (!mergeCoffObjectsIntoImage(outJob.image, mergeDiag, objects))
+        return Result::Continue;
+
+    std::set<Utf8>        searchNames(libraryNames.begin(), libraryNames.end());
+    std::vector<fs::path> searchDirs;
+    collectPeLibrarySearch(*builder_, searchNames, searchDirs);
+
+    std::vector<Archive> archives;
+    SWC_RESULT(loadArchivesFromSearch(archives, searchNames, searchDirs));
+    SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, symbols, archives));
+    appendSymbolTable(outJob.image, symbols);
+
+    LinkWin32ApplicationConfig win32Config;
+    SWC_RESULT(collectWin32ApplicationConfig(win32Config));
+    finishImage(outJob.image, std::move(win32Config));
+    outJob.image.entrySymbol = "mainCRTStartup";
+
+    outJob.output     = LinkJob::Output::Executable;
+    outJob.outputPath = builder_->artifactPath;
+    outJob.buildDir   = builder_->buildDir;
+    outJob.targetOs   = builder_->ctx().cmdLine().targetOs;
+    outPrepared       = true;
+    return Result::Continue;
+}
+
 Result PELinker::prepareLink(LinkJob& outJob)
 {
     SWC_ASSERT(builder_ != nullptr);
@@ -1576,7 +1660,8 @@ Result PELinker::prepareLink(LinkJob& outJob)
     switch (builder_->compiler().buildCfg().backendKind)
     {
         case Runtime::BuildCfgBackendKind::Executable:
-            return prepareImageLink(outJob, LinkJob::Output::Executable);
+            SWC_RESULT(prepareImageLink(outJob, LinkJob::Output::Executable));
+            return prepareIncrementalObjects(outJob);
         case Runtime::BuildCfgBackendKind::SharedLibrary:
             SWC_RESULT(prepareImageLink(outJob, LinkJob::Output::SharedLibrary));
             return prepareStaticLibrarySideArchive(outJob);

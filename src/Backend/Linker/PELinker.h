@@ -20,6 +20,7 @@ public:
     explicit PELinker(NativeBackendBuilder& builder);
 
     Result prepareLink(LinkJob& outJob) override;
+    Result tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) override;
 
 private:
     Result buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const;
@@ -28,6 +29,7 @@ private:
     Result prepareImageLinkParallel(LinkJob& outJob) const;
     Result prepareStaticLibraryLink(LinkJob& outJob) const;
     Result prepareStaticLibrarySideArchive(LinkJob& outJob) const;
+    Result prepareIncrementalObjects(LinkJob& outJob) const;
     Result collectArchiveMembers(std::vector<LinkArchiveMember>& outMembers) const;
     Result loadArchives(std::vector<Archive>& outArchives) const;
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;

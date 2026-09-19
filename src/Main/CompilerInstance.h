@@ -189,6 +189,7 @@ public:
     const Runtime::ProcessInfos&    processInfos();
     void                            markImportedNativeExecution() { importedNativeExecuted_.store(true, std::memory_order_release); }
     bool                            importedNativeExecuted() const { return importedNativeExecuted_.load(std::memory_order_acquire); }
+    bool                            hasImportedStaticLinkInputs() const { return !moduleStaticLinkReadTimes_.empty(); }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }

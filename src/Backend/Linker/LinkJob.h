@@ -14,6 +14,12 @@ SWC_BEGIN_NAMESPACE();
 // the artifact back on the foreground thread.
 struct LinkJob
 {
+    struct IncrementalObject
+    {
+        fs::path  path;
+        ByteArray bytes;
+    };
+
     enum class Output : uint8_t
     {
         Executable,
@@ -37,6 +43,12 @@ struct LinkJob
     // publishes the image alone.
     fs::path                       staticLibraryPath;
     std::vector<LinkArchiveMember> staticLibraryMembers;
+
+    // Best-effort persistent inputs for a later incremental relink. They are published only after
+    // the primary artifact succeeds, and never make an otherwise successful build fail.
+    std::vector<IncrementalObject> incrementalObjects;
+    std::vector<Utf8>              incrementalLibraries;
+    bool                           incrementalCachePublished = false;
 
     // Outputs filled by executeLink. On failure, error carries a ready-to-report diagnostic built off
     // the foreground thread (Diagnostic::get/addArgument touch no compiler/logger state); finishLink

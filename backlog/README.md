@@ -35,9 +35,9 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-19 10:23 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-19 10:15 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-19 09:43 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-19 09:35 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-18 19:48 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-18 14:05 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-16 07:54 |

@@ -128,9 +128,11 @@ Workspace builds already reuse modules whose inputs and consumed dependency API
 are unchanged. Add '--incremental' to extend that reuse across compatible native
 changes: for example, an executable keeps its existing image when only a private
 implementation inside a dynamically linked library changed, and the fresh library
-is published before the executable runs. Code incorporated from a static library
-and results obtained by executing imported code at compile time remain strict
-invalidation boundaries. '--incremental' and '--rebuild' are mutually exclusive.
+is published before the executable runs. When code incorporated from a static
+library changes, a non-debug executable reuses its stored module object and only
+links again. Debug executables and results obtained by executing imported code at
+compile time remain strict invalidation boundaries. '--incremental' and '--rebuild'
+are mutually exclusive.
 
 # Cleaning
 

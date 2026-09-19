@@ -33,8 +33,8 @@ struct Application
 {
     public
     {
-        using native: ApplicationNative                 // Platform-specific application state.
-        sigFrame:     SigArray'FrameCallback            // Emitted after each processed frame.
+        using native: ApplicationNative          // Platform-specific application state.
+        sigFrame:     SigArray'FrameCallback     // Emitted after each processed frame.
 
         options: ApplicationOptions     // Diagnostics and development options.
         appIcon: Pixel.Image            // Icon used for native windows created by the application.
@@ -62,8 +62,10 @@ struct Application
         }
     }
 
-    rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
-    deterministicStreaming: bool     // Headless hosts limit streaming turns by work alone.
+    rendererOgl:            Pixel.RenderOgl        // Default OpenGL renderer used when none is selected.
+    rendererThread:         Pixel.RenderThread     // Owns native rendering and bounds presentation to one frame.
+    nextPaintSurface:       u64                    // Round-robin starting point so animated surfaces cannot starve popups.
+    deterministicStreaming: bool                   // Headless hosts limit streaming turns by work alone.
 
     public
     {
@@ -83,6 +85,7 @@ struct Application
 
         // Frame and input bookkeeping. Reading it tells what the application is doing this frame;
         // writing it from outside would desynchronize the loop from the window tree.
+
         readonly
         {
             timing:           Time.FrameTiming               // Timing of the frame being run.
@@ -415,7 +418,7 @@ private impl Application
         if not targetWnd do
             return
 
-        var evt      = MouseEvent{kind: .Wheel}
+        var evt = MouseEvent{kind: .Wheel}
         evt.surfacePos = targetWnd.screenToSurface(screenPos)
         evt.delta.y    = z
         evt.modifiers  = .keyboard.pressedModifiers()
@@ -703,14 +706,26 @@ private impl Application
             }
         }
 
-        for s in .surfaces do
-            s.paint()
+        let count = .surfaces.count
+        if not count do
+            return
+        let first = .nextPaintSurface % count
+        for offset in count
+        {
+            if not .rendererThread.isReady() do
+                break
+            let index = (first + offset) % count
+            .surfaces[index].paint()
+            .nextPaintSurface = (index + 1) % count
+        }
     }
 
     // Processes one complete input, event, paint, and frame-callback cycle.
     public mtd runFrame()
     {
         .frameTrace.beginFrame()
+        .waitForPresentationOrInput()
+        .frameTrace.swapUs += .rendererThread.takePresentMicroseconds()
         .timing.update()
         Memory.releaseTemporaryAllocations()
 
@@ -897,6 +912,7 @@ impl Application
 
         if .theme != null do
             .theme.freeDefault()
+        .rendererThread.close()
     }
 
     // Turns the keyboard-focus ring on or off, and repaints what showed it.
@@ -1040,8 +1056,12 @@ impl Application
         if not .mainSurface
         {
             .refreshSystemMotionPreference()
-            if .renderer == null do
-                .setRenderer(&.rendererOgl)
+            if .renderer == null
+            {
+                .rendererThread.start(&.rendererOgl)
+                .setRenderer(&.rendererThread)
+            }
+
             if .theme == null do
                 .theme = Memory.new'Theme()
             .style.set(.theme)

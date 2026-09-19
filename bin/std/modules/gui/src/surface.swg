@@ -397,6 +397,10 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
+        // A frame still presenting owns the worker. Leave the dirty region and layout intact:
+        // input can keep changing them, and only their newest state will be recorded next time.
+        if not .app.rendererThread.isReady() do
+            return
         root.flushLayout()
         .createRT()
 

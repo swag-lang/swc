@@ -62,6 +62,7 @@ private const NativeSourceFiles = [
     "bin/std/modules/gui/src/surface.win32.swg",
     "bin/std/modules/gui/src/tests/dragdrop.win32.test.swg",
     "bin/std/modules/pixel/src/image/image.win32.swg",
+    "bin/std/modules/pixel/src/render/renderthread.win32.swg",
     "bin/std/modules/pixel/src/tests/image.win32.test.swg",
     "bin/std/modules/pixel/src/tests/yuv.win32.test.swg",
     "bin/std/modules/pixel/src/tests/sampling.ogl.test.swg",
@@ -117,6 +118,9 @@ private const NativeIdentifierPrefixes = [
 // Existing native API adapters are exact declarations, not blanket file approvals. platform.portability.016 owns
 // the installed-font descriptor; platform.portability.014 owns image, surface, and keyboard interoperability.
 private const NativeDeclarationApprovals = [
+    // A borrowed completion handle lets the GUI wait for presentation and native input together.
+    "bin/std/modules/pixel/src/render/renderthread.win32.swg",
+    "public mtd const win32CompletionHandle()->HANDLE?",
     "bin/std/modules/core/src/input/key.swg",
     "public alias VirtualKey = u32",
     "bin/std/modules/core/src/input/keyboardstate.win32.swg",

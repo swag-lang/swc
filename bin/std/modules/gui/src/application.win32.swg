@@ -22,6 +22,16 @@ public struct ApplicationNative
 
 impl Application
 {
+    internal mtd waitForPresentationOrInput()
+    {
+        if .rendererThread.isReady() do
+            return
+        let handle = .rendererThread.win32CompletionHandle()
+
+        // Completion or input wakes the UI; the timeout keeps timers and posted work advancing.
+        expect MsgWaitForMultipleObjectsEx(1, &handle, 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE)
+    }
+
     internal mtd refreshSystemMotionPreference()
     {
         var animationsEnabled = TRUE

@@ -36,24 +36,33 @@ prove it. Operating-system integrations live in
 ### std.gui.054 — Presenting a small update still copies the whole surface render target
 
 - Recorded: 2026-08-24 08:48
-- Updated: 2026-09-19 10:15 — confirm that native presentation can still block the input thread
+- Updated: 2026-09-19 11:34 — move default native presentation off the UI thread and retain the input-latency investigation
 - Evidence: `Surface.paintWnd` calls `drawTexture(dstRect, dstRect, ...)` for the whole surface.
   On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
   3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. The explicit GPU
-  completion wait is gone from `RenderOgl.endImpl`, but `SwapBuffers` still runs synchronously
-  inside `Application.runFrame`, on the thread that dispatches mouse and keyboard events.
+  completion wait was removed from `RenderOgl.endImpl`, but `SwapBuffers` then still ran
+  synchronously inside `Application.runFrame`, on the input thread.
   No `wglSwapIntervalEXT` policy is selected. A 2026-09-19 maximized manuscript repaint probe
   spent 9.09 of 11.22 ms per frame in `end`; repeated runs of a candidate shader change spent
   19.51 and 6.85 ms there. These totals include driver backpressure and earlier GPU work:
   they do not establish a VSync cause, an input-latency measurement, or a comparative speedup.
+- Current boundary: the default native renderer now owns its OpenGL context on a dedicated
+  `Pixel.RenderThread`. Drawing/resource calls remain synchronous, but presentation returns to
+  the UI with at most one pending request. The GUI waits for completion or native input and
+  coalesces dirty state while busy; headless/custom renderers keep their existing path. A gated
+  backend regression proves that the caller continues while `end` is blocked, and native GPU,
+  error-transfer, shutdown, and 210 unchanged golden tests pass. A 300-frame maximized manuscript
+  repaint run measured 9.13 ms average, including 7.21 ms in worker presentation and 0.99 ms in
+  target submission. This is a repaint probe, not a paired scrolling or input-to-display result.
 - Rejected approach: bounding that copy alone relied on preserved back-buffer contents. The
   measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy was
   requested, so the unexercised partial-copy machinery was removed.
 - Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input; query
   the effective swap interval and separate GPU execution from native-present wait. Compare
-  bounded frame pacing or rendering/presentation off the UI thread without allowing an unbounded
-  queue of stale frames. Also measure whether surfaces that do not require compositing can render
-  directly to the back buffer. Keep the render target where effects need it; any different native
+  input latency against the synchronous baseline, including expensive resource changes that
+  still wait for the worker and any driver-owned frame queue. Also measure whether surfaces that
+  do not require compositing can render directly to the back buffer. Keep the render target where
+  effects need it; any different native
   presentation backend must follow the target matrix in platform.portability.066.
 - Complete when: unnecessary surface copies and input-thread stalls have a measured policy,
   equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.

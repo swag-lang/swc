@@ -14,7 +14,7 @@ enum ThreadPriority
     Highest         // Two steps above normal
 }
 
-// Owns an operating-system thread that runs a lambda with its own copy of the creating thread's context.
+// Owns an operating-system thread with inherited context settings and independent scratch storage.
 //
 // [[Core.Threading.Thread.init]] creates the thread suspended and [[Core.Threading.Thread.start]]
 // runs it. The value must be waited for, with [[Core.Threading.Thread.wait]] or
@@ -26,7 +26,7 @@ struct Thread
     {
         userLambda: (func||(Thread))?     // Body the thread runs; it receives this value.
 
-        context:   Swag.Context     // Context the thread runs with, copied from the creating thread.
+        context:   Swag.Context     // Inherited settings with thread-owned temporary and error storage.
         userParam: *void?           // Caller data the body can read back.
 
         priority   = ThreadPriority.Normal     // Current scheduling priority.
@@ -76,10 +76,11 @@ impl Thread
         yieldNative()
     }
 
-    // Creates a suspended thread that runs `lambda` with a copy of the calling thread's context.
+    // Creates a suspended thread that runs `lambda` with the calling thread's context settings.
     //
     // `tempAllocSize` sets the capacity of the thread's temporary allocator in bytes; zero
-    // leaves it without capacity. Call [[Core.Threading.Thread.start]] to run the thread.
+    // leaves it without capacity. Error storage and propagation state are never shared with the
+    // creating thread. Call [[Core.Threading.Thread.start]] to run the thread.
     mtd init(lambda: func||(Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
         Swag.assert(not .isValid(), "thread already created")
@@ -87,6 +88,14 @@ impl Thread
         .context = Swag.getContext()[]
         let inheritedCapacity = .context.tempAllocator.capacity
         Swag.init(&.context.tempAllocator, 1)
+
+        // A worker inherits allocator policy, not the creator's live scratch blocks or errors.
+        Swag.init(&.context.errorAllocator, 1)
+        Swag.init(.context.errors.buffer, .context.errors.count)
+        Swag.init(&.context.curError, 1)
+        .context.errorIndex = 0
+        .context.traceIndex = 0
+        .context.hasError   = 0
         let allocator = .context.allocator!
         if tempAllocSize < 0 do
             .context.tempAllocator.setCapacity(inheritedCapacity, allocator)
@@ -142,6 +151,7 @@ private func threadEntry(param: *void?)->u32
         lambda(thread[])
 
     thread.context.tempAllocator.release()
+    thread.context.errorAllocator.release()
     Swag.releaseAllocatorThreadCache()
     return 0
 }

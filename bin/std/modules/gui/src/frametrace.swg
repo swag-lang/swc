@@ -41,7 +41,9 @@ struct FrameTrace
     scratchPixels: u64     // Alpha scratch the overlap-safe path cleared.
     scratchFull:   u64     // Alpha scratch it would have cleared with no per-batch bound.
 
-    watch: Time.Stopwatch
+    watch:            Time.Stopwatch
+    paintedThisFrame: bool
+    pendingUs:        u64     // Event-only turns between two submitted frames, including presentation waits.
 }
 
 // Frames dropped before the totals start, letting the adapter, the caches and the atlases settle.
@@ -105,6 +107,7 @@ internal impl FrameTrace
     // Starts timing one frame.
     mtd beginFrame()
     {
+        .paintedThisFrame = false
         if .enabled do
             .watch.restart()
     }
@@ -114,13 +117,14 @@ internal impl FrameTrace
     {
         if not .enabled do
             return
-        .recordUs  += recordUs
-        .targetUs  += targetUs
-        .presentUs += presentUs
-        .swapUs    += swapUs
-        .pixels    += pixels
-        .vertices  += vertices
-        .batches   += batches
+        .paintedThisFrame = true
+        .recordUs         += recordUs
+        .targetUs         += targetUs
+        .presentUs        += presentUs
+        .swapUs           += swapUs
+        .pixels           += pixels
+        .vertices         += vertices
+        .batches          += batches
     }
 
     // Adds what the batch bound saved on one surface's frame.
@@ -137,8 +141,11 @@ internal impl FrameTrace
     {
         if not .enabled do
             return
-
-        let us = .watch.elapsedMicroseconds()
+        .pendingUs += .watch.elapsedMicroseconds()
+        if not .paintedThisFrame do
+            return
+        let us = .pendingUs
+        .pendingUs = 0
         if .warmedUp < WarmUpFrames
         {
             .warmedUp  += 1

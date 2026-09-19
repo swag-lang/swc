@@ -15,6 +15,18 @@ import toolchains as tc
 
 
 class HarnessTests(unittest.TestCase):
+    def test_swag_benchmarks_import_official_native_bindings(self):
+        module = os.path.join(tc.SRC, "module.swg")
+        with patch.object(tc, "resolve", return_value="cl.exe"):
+            recipes = tc.make_recipes({"clang_cl": "clang-cl.exe"}, {}, "swc.exe")
+        runtimes = tc.make_runtimes({}, "swc.exe")
+        for name in ("swag-release", "swag-fast-debug"):
+            command = recipes[name]("sha256", "probe")["cmd"]
+            self.assertEqual(command[command.index("--module-file") + 1], module)
+        for name in ("swc-jit-release", "swc-jit-fast-debug"):
+            command = runtimes[name]("sha256")
+            self.assertEqual(command[command.index("--module-file") + 1], module)
+
     def test_installed_toolchains_are_found_without_path_or_overrides(self):
         with tempfile.TemporaryDirectory(prefix="bench programs ") as folder:
             installed = {"zig": "Zig/zig.exe", "ldc2": "LDC/bin/ldc2.exe", "odin": "Odin/odin.exe"}

@@ -31,6 +31,20 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.030 — Plain non-copy rectangles still use the general coverage shader
+
+- Recorded: 2026-09-19 09:43
+- Evidence: `Painter.fillRectRaw` emits fully covered, device-aligned triangles, but ordinary
+  alpha-composited textures and solid widget backgrounds still execute `aa.frag`. That program
+  computes coverage derivatives and samples the glyph-mask texture even for these rectangles.
+  Replacing it blindly with `simple.frag` changes zero-alpha discard behavior in non-copy blend
+  modes, and can override explicit blur, resolve, font, or custom programs.
+- Next: measure these remaining batches separately from `Copy` blits, establish equivalence for
+  each blend and clip-mask operation, then select the cheapest correct program centrally. Include
+  the extra program switches in the cost rather than counting fragment instructions alone.
+- Complete when: the safe cases have a measured program-selection policy, transparent-texel and
+  clip-mask regressions cover its boundaries, and native CPU/GPU comparisons preserve output.
+
 ### std.pixel.029 — OpenGL glyph atlases retain a complete CPU pixel copy
 
 - Recorded: 2026-09-19 08:07

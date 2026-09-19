@@ -73,6 +73,19 @@ impl Painter
     // boundaries and need no fringe.
     private mtd fillRectRaw(l, t, w, h: f32, brush: Brush)
     {
+        // A device-aligned copy has no edge coverage to compute or glyph mask to sample.
+        // Keep this choice beside the geometry, so layers and ordinary texture copies share it.
+        // Other blend modes can depend on the general shader discarding zero-alpha texels;
+        // explicit effects and custom shaders must never be replaced by this shortcut.
+        let simpleCopy = .usesDefaultShader and brush.type == .Texture and .curState.blendingMode == .Copy
+        if simpleCopy do
+            .setDefaultShader(.Simple)
+        defer
+        {
+            if simpleCopy do
+                .setDefaultShader()
+        }
+
         .setTexture0({l, t}, {l + w, t + h}, brush)
         .resetTextureFont()
 

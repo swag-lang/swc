@@ -9,12 +9,12 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-19 11:46 — reuse unchanged relocation-free leaf functions from a persistent COFF archive
+- Updated: 2026-09-19 12:32 — make every safe native cache part of the default build path
 
-**Current boundary.** Workspace manifests already keep a completed module when its own inputs and
-the dependency API generations it consumed are unchanged. `--incremental` keeps an executable
-image when only an interface-compatible dynamically linked implementation changed; the fresh DLL
-is republished before a run. It also persists one deterministic COFF object containing a non-debug
+**Current boundary.** Workspace manifests keep a completed module when its own inputs and the
+dependency API generations it consumed are unchanged. The default build keeps an executable image
+when only an interface-compatible dynamically linked implementation changed; the fresh DLL is
+republished before a run. It also persists one deterministic COFF object containing a non-debug
 executable's module-owned code and data. When only a static native dependency generation changes,
 the workspace reloads that object, resolves the fresh archives, and writes a new PE without running
 the consumer's front end or code generation. Imported native code executed at compile time remains
@@ -22,7 +22,7 @@ a strict invalidation boundary. Cache publication is atomic and best-effort, and
 modified object falls back to a normal compilation.
 
 The next cache layer now fingerprints raw per-function microcode before optimization. For a
-non-debug incremental executable, an unchanged function with at least 64 micro-instructions and no
+non-debug executable, an unchanged function with at least 64 micro-instructions and no
 code relocation reuses its COFF archive member, including unwind metadata, and skips the micro
 passes and encoder. The cache remains one archive plus a compact index rather than one persistent
 file per function. Entries carry the compiler build and backend configuration identity; malformed,
@@ -54,8 +54,8 @@ inventing a second dependency graph.
 **Performance gate.** Compare clean, no-op, private-body edit, static-dependency edit, and public-API
 edit workloads with compiler.core.004. A clean build may not regress outside the established noise
 band, a no-op cache decision must stay cheaper than launching code generation, and cache writes may
-not extend the reported critical path. Keep the simpler nonincremental path available until those
-bounds hold in both DevMode and Release.
+not extend the reported critical path. `--rebuild` remains the clean-build oracle while every safe
+cache is part of the normal DevMode and Release paths.
 
 **Complete when.**
 

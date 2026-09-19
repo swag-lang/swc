@@ -770,7 +770,7 @@ void NativeBackendBuilder::prepareFunctionCache()
     functionCacheIndexPath_.clear();
 
     const CommandLine& commandLine = compiler_->cmdLine();
-    if (!commandLine.incremental || commandLine.rebuild || commandLine.command == CommandKind::Test ||
+    if (commandLine.rebuild || commandLine.command == CommandKind::Test ||
         compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
         compiler_->buildCfg().backend.debugInfo || compiler_->importedNativeExecuted())
         return;

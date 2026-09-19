@@ -1062,7 +1062,7 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     let modules = Path.combine(scratch.toString(), "modules")
     try Directory.create(scratch.toString())
     try Directory.create(modules.toString())
-    for module in ["provider", "middle", "leaf", "compile_time", "dynamic_consumer", "static_provider", "static_consumer", "incremental_static_consumer"]
+    for module in ["provider", "middle", "leaf", "compile_time", "dynamic_consumer", "static_provider", "static_consumer", "relink_consumer"]
     {
         let moduleDirectory = Path.combine(modules.toString(), module)
         try Directory.create(moduleDirectory.toString())
@@ -1083,7 +1083,7 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     try File.writeAllText(Path.combine(modules.toString(), "compile_time", "src", "main.swg").toString(), "public const Captured = #run Provider.value()\n")
 
     try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "module.swg").toString(), "#import(\"provider\", link: \"shared-library\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.publishDependencies = true }\n")
-    try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "src", "main.swg").toString(), "#main { if Provider.value() == 1 do Swag.print(\"incremental-value=1\\n\") else do Swag.print(\"incremental-value=2\\n\") }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "src", "main.swg").toString(), "#main { if Provider.value() == 1 do Swag.print(\"dynamic-value=1\\n\") else do Swag.print(\"dynamic-value=2\\n\") }\n")
 
     try File.writeAllText(Path.combine(modules.toString(), "static_provider", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .StaticLibrary; cfg.moduleNamespace = \"StaticProvider\" }\n")
     let staticProviderSource = Path.combine(modules.toString(), "static_provider", "src", "main.swg")
@@ -1092,8 +1092,8 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"StaticConsumer\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "src", "main.swg").toString(), "public func value()->s32 => StaticProvider.value()\n")
 
-    try File.writeAllText(Path.combine(modules.toString(), "incremental_static_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")
-    try File.writeAllText(Path.combine(modules.toString(), "incremental_static_consumer", "src", "main.swg").toString(), "#main { if StaticProvider.value() == 1 do Swag.print(\"static-incremental-value=1\\n\") else do Swag.print(\"static-incremental-value=2\\n\") }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "relink_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "relink_consumer", "src", "main.swg").toString(), "#main { if StaticProvider.value() == 1 do Swag.print(\"static-value=1\\n\") else do Swag.print(\"static-value=2\\n\") }\n")
 
     var leaf = workspaceModuleCommand("build", scratch.toString(), "leaf", buildCfg)
     options.appendExtra(&leaf)
@@ -1108,13 +1108,24 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
         return firstCompileTimeCode
 
     var dynamicConsumer = workspaceModuleCommand("run", scratch.toString(), "dynamic_consumer", buildCfg)
-    dynamicConsumer.add(["--incremental"])
     options.appendExtra(&dynamicConsumer)
+
+    var removedIncrementalOption = workspaceModuleCommand("run", scratch.toString(), "dynamic_consumer", buildCfg)
+    removedIncrementalOption.add(["--incremental"])
+    options.appendExtra(&removedIncrementalOption)
+    var removedIncrementalOutput: String
+    let removedIncrementalCode = try context.captureCompilerReport(&removedIncrementalOutput, removedIncrementalOption)
+    if removedIncrementalCode == 0 or not Utf8.contains(removedIncrementalOutput.toString(), "unknown command-line argument '--incremental'")
+    {
+        Console.println("The retired '--incremental' option was still accepted")
+        return 1
+    }
+
     let firstDynamicOutput = try context.captureCompiler(dynamicConsumer)
     Console.print(firstDynamicOutput.toString())
-    if not Utf8.contains(firstDynamicOutput.toString(), "incremental-value=1")
+    if not Utf8.contains(firstDynamicOutput.toString(), "dynamic-value=1")
     {
-        Console.println("The initial incremental executable did not run with its shared dependency")
+        Console.println("The initial executable did not run with its shared dependency")
         return 1
     }
 
@@ -1124,24 +1135,24 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     if firstStaticConsumerCode != 0 do
         return firstStaticConsumerCode
 
-    var incrementalStaticConsumer = workspaceModuleCommand("run", scratch.toString(), "incremental_static_consumer", buildCfg)
-    incrementalStaticConsumer.add(["--incremental"])
-    options.appendExtra(&incrementalStaticConsumer)
-    let firstIncrementalStaticOutput = try context.captureCompiler(incrementalStaticConsumer)
-    Console.print(firstIncrementalStaticOutput.toString())
-    if not Utf8.contains(firstIncrementalStaticOutput.toString(), "static-incremental-value=1")
+    var relinkConsumer = workspaceModuleCommand("run", scratch.toString(), "relink_consumer", buildCfg)
+    options.appendExtra(&relinkConsumer)
+    let firstRelinkOutput = try context.captureCompiler(relinkConsumer)
+    Console.print(firstRelinkOutput.toString())
+    if not Utf8.contains(firstRelinkOutput.toString(), "static-value=1")
     {
-        Console.println("The initial incremental executable did not run with its static dependency")
+        Console.println("The initial executable did not run with its static dependency")
         return 1
     }
 
-    let incrementalObject = Path.combine(scratch.toString(), ".tmp", "incremental_static_consumer", "executable", buildCfg, options.targetArch.toString(), "incremental_static_consumer_00.obj")
-    if not File.exists(incrementalObject.toString())
+    let cachedObject = Path.combine(scratch.toString(), ".tmp", "relink_consumer", "executable", buildCfg, options.targetArch.toString(), "relink_consumer_00.obj")
+    if not File.exists(cachedObject.toString())
     {
-        Console.println("The incremental executable did not publish its link object")
+        Console.println("The executable did not publish its reusable link object")
         return 1
     }
-    let originalIncrementalObjectTime = (try File.info(incrementalObject.toString())).lastWriteTime
+
+    let originalCachedObjectTime = (try File.info(cachedObject.toString())).lastWriteTime
 
     let providerOutput = Path.combine(scratch.toString(), ".output", "provider", "shared-library", buildCfg, options.targetArch.toString())
     let providerApi    = Path.combine(providerOutput.toString(), "provider.swg")
@@ -1168,9 +1179,9 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
 
     let dynamicOutput = try context.captureCompiler(dynamicConsumer)
     Console.print(dynamicOutput.toString())
-    if not artifactReportedUpToDate(dynamicOutput.toString(), "dynamic_consumer.exe") or not Utf8.contains(dynamicOutput.toString(), "incremental-value=2")
+    if not artifactReportedUpToDate(dynamicOutput.toString(), "dynamic_consumer.exe") or not Utf8.contains(dynamicOutput.toString(), "dynamic-value=2")
     {
-        Console.println("Incremental mode did not reuse an executable with a fresh interface-compatible shared dependency")
+        Console.println("The build did not reuse an executable with a fresh interface-compatible shared dependency")
         return 1
     }
 
@@ -1191,31 +1202,32 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
         return 1
     }
 
-    let incrementalStaticOutput = try context.captureCompiler(incrementalStaticConsumer)
-    Console.print(incrementalStaticOutput.toString())
-    if not artifactReportedRelinked(incrementalStaticOutput.toString(), "incremental_static_consumer.exe") or not Utf8.contains(incrementalStaticOutput.toString(), "static-incremental-value=2")
+    let relinkOutput = try context.captureCompiler(relinkConsumer)
+    Console.print(relinkOutput.toString())
+    if not artifactReportedRelinked(relinkOutput.toString(), "relink_consumer.exe") or not Utf8.contains(relinkOutput.toString(), "static-value=2")
     {
-        Console.println("Incremental relinking did not incorporate the rebuilt static dependency")
-        return 1
-    }
-    if (try File.info(incrementalObject.toString())).lastWriteTime != originalIncrementalObjectTime
-    {
-        Console.println("Incremental relinking recompiled the executable's unchanged object")
+        Console.println("Relinking did not incorporate the rebuilt static dependency")
         return 1
     }
 
-    let warmIncrementalStaticOutput = try context.captureCompiler(incrementalStaticConsumer)
-    Console.print(warmIncrementalStaticOutput.toString())
-    if not artifactReportedUpToDate(warmIncrementalStaticOutput.toString(), "incremental_static_consumer.exe") or not Utf8.contains(warmIncrementalStaticOutput.toString(), "static-incremental-value=2")
+    if (try File.info(cachedObject.toString())).lastWriteTime != originalCachedObjectTime
     {
-        Console.println("The incrementally relinked executable was not reusable")
+        Console.println("Relinking recompiled the executable's unchanged object")
+        return 1
+    }
+
+    let warmRelinkOutput = try context.captureCompiler(relinkConsumer)
+    Console.print(warmRelinkOutput.toString())
+    if not artifactReportedUpToDate(warmRelinkOutput.toString(), "relink_consumer.exe") or not Utf8.contains(warmRelinkOutput.toString(), "static-value=2")
+    {
+        Console.println("The relinked executable was not reusable")
         return 1
     }
 
     return 0
 }
 
-private func incrementalFunctionCacheSource(seed: u64, marker: u32)->String
+private func functionCacheSource(seed: u64, marker: u32)->String
 {
     return Format.toString(#raw """
         #global private
@@ -1267,9 +1279,9 @@ private func incrementalFunctionCacheSource(seed: u64, marker: u32)->String
 
 // A source edit rebuilds the module, but an unchanged relocation-free leaf keeps its cached COFF
 // member and skips the expensive micro passes and encoder.
-private func verifyIncrementalFunctionCache(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+private func verifyFunctionCache(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
 {
-    let scratch = Path.combine(workspace, ".tmp", "incremental-function-cache-probe")
+    let scratch = Path.combine(workspace, ".tmp", "function-cache-probe")
     if Directory.exists(scratch) do
         try Directory.delete(scratch.toString(), recurse: true)
     defer discard catch Directory.delete(scratch.toString(), recurse: true)
@@ -1284,17 +1296,16 @@ private func verifyIncrementalFunctionCache(context: *Context, options: *Options
     try File.writeAllText(Path.combine(moduleDirectory.toString(), "module.swg").toString(), "#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")
 
     let sourcePath = Path.combine(sourceDirectory.toString(), "main.swg")
-    try File.writeAllText(sourcePath.toString(), incrementalFunctionCacheSource(1, 1))
+    try File.writeAllText(sourcePath.toString(), functionCacheSource(1, 1))
 
     var command = workspaceModuleCommand("run", scratch.toString(), "function_cache", buildCfg)
-    command.add(["--incremental"])
     options.appendExtra(&command)
 
     let firstOutput = try context.captureCompiler(command)
     Console.print(firstOutput.toString())
     if not Utf8.contains(firstOutput.toString(), "function-cache-value=1")
     {
-        Console.println("The initial incremental function-cache executable did not run")
+        Console.println("The initial function-cache executable did not run")
         return 1
     }
 
@@ -1303,29 +1314,30 @@ private func verifyIncrementalFunctionCache(context: *Context, options: *Options
     let cacheIndex     = Path.combine(cacheDirectory.toString(), "function_cache.incremental.idx")
     if not File.exists(cacheArchive.toString()) or not File.exists(cacheIndex.toString())
     {
-        Console.println("The initial incremental build did not publish its function cache")
+        Console.println("The initial build did not publish its function cache")
         return 1
     }
+
     let originalArchive = try File.readAllBytes(cacheArchive.toString())
     let originalIndex   = try File.readAllBytes(cacheIndex.toString())
 
-    try File.writeAllText(sourcePath.toString(), incrementalFunctionCacheSource(2, 2))
+    try File.writeAllText(sourcePath.toString(), functionCacheSource(2, 2))
     let editedOutput = try context.captureCompiler(command)
     Console.print(editedOutput.toString())
     if not Utf8.contains(editedOutput.toString(), "function-cache-value=2") or not Utf8.contains(editedOutput.toString(), "reused function")
     {
-        Console.println("A body edit did not reuse an unchanged function from the incremental cache")
+        Console.println("A body edit did not reuse an unchanged function from the function cache")
         return 1
     }
 
-    try File.writeAllText(sourcePath.toString(), incrementalFunctionCacheSource(1, 1))
+    try File.writeAllText(sourcePath.toString(), functionCacheSource(1, 1))
     let restoredOutput = try context.captureCompiler(command)
     Console.print(restoredOutput.toString())
     let restoredArchive = try File.readAllBytes(cacheArchive.toString())
     let restoredIndex   = try File.readAllBytes(cacheIndex.toString())
     if not Utf8.contains(restoredOutput.toString(), "function-cache-value=1") or restoredArchive.toSlice() != originalArchive.toSlice() or restoredIndex.toSlice() != originalIndex.toSlice()
     {
-        Console.println("Rebuilding identical functions did not reproduce the same incremental cache")
+        Console.println("Rebuilding identical functions did not reproduce the same function cache")
         return 1
     }
 
@@ -1336,7 +1348,7 @@ private func verifyIncrementalFunctionCache(context: *Context, options: *Options
     Console.print(rebuiltOutput.toString())
     if Utf8.contains(rebuiltOutput.toString(), "reused function")
     {
-        Console.println("A rebuild reused the incremental function cache")
+        Console.println("A rebuild reused the function cache")
         return 1
     }
 
@@ -1476,9 +1488,9 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if privateDependencyCode != 0 do
         return privateDependencyCode
 
-    let incrementalFunctionCacheCode = try verifyIncrementalFunctionCache(context, options, workspace.toString(), buildCfg)
-    if incrementalFunctionCacheCode != 0 do
-        return incrementalFunctionCacheCode
+    let functionCacheCode = try verifyFunctionCache(context, options, workspace.toString(), buildCfg)
+    if functionCacheCode != 0 do
+        return functionCacheCode
 
     // Documentation consumes local native artifacts for compile-time execution, but does not
     // produce those artifacts itself. Starting it from a clean workspace proves that its publish

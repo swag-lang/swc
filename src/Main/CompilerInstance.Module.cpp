@@ -985,23 +985,18 @@ namespace
     Utf8 workspaceArtifactConfiguration(const CompilerInstance& compiler)
     {
         const Runtime::BuildCfgBackend& backend = compiler.buildCfg().backend;
-        Utf8 result = std::format("debug-info:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
-        if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && compiler.cmdLine().incremental)
-            result += ";incremental";
-        return result;
+        return std::format("debug-info:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
     }
 
     // A shared library whose public API did not change can be replaced without rebuilding an
-    // executable that imports it dynamically. Incremental mode keeps only the native generations
-    // whose code was incorporated into the executable. Compile-time execution remains stricter:
-    // its result may depend on any imported native implementation, whether linked statically or
-    // loaded dynamically.
+    // executable that imports it dynamically. Keep only the native generations whose code was
+    // incorporated into the artifact. Compile-time execution remains stricter: its result may
+    // depend on any imported native implementation, whether linked statically or loaded dynamically.
     const std::map<fs::path, fs::file_time_type>& workspaceNativeReadTimes(const CompilerInstance& compiler,
                                                                            const std::map<fs::path, fs::file_time_type>& allReadTimes,
                                                                            const std::map<fs::path, fs::file_time_type>& staticReadTimes)
     {
-        if (compiler.importedNativeExecuted() ||
-            (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.cmdLine().incremental))
+        if (compiler.importedNativeExecuted())
             return allReadTimes;
 
         return staticReadTimes;

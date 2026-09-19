@@ -124,17 +124,17 @@ swc format -mf <workspace>/modules/app --dry-run
 tools, tests, or emitted programs. '--show-config' prints the resolved command,
 environment, toolchain, and artifact configuration, then exits.
 
-Workspace builds already reuse modules whose inputs and consumed dependency API
-are unchanged. Add '--incremental' to extend that reuse across compatible native
-changes: for example, an executable keeps its existing image when only a private
-implementation inside a dynamically linked library changed, and the fresh library
-is published before the executable runs. When code incorporated from a static
-library changes, a non-debug executable reuses its stored module object and only
-links again. After a source edit, sufficiently large unchanged native leaf functions
-without external references reuse their cached object members instead of repeating
-microcode optimization and encoding. Debug executables and results obtained by
-executing imported code at compile time remain strict invalidation boundaries.
-'--incremental' and '--rebuild' are mutually exclusive.
+Workspace builds reuse every compatible result by default. A module remains current
+while its inputs and the dependency API it consumed are unchanged. An executable
+keeps its existing image when only a private implementation inside a dynamically
+linked library changed, and the fresh library is published before the executable
+runs. When code incorporated from a static library changes, a non-debug executable
+reuses its stored module object and only links again. After a source edit,
+sufficiently large unchanged native leaf functions without external references reuse
+their cached object members instead of repeating microcode optimization and encoding.
+Debug executables and results obtained by executing imported code at compile time
+remain strict invalidation boundaries. Use '--rebuild' to recompile every selected
+module without consuming these cached compilation results.
 
 # Cleaning
 

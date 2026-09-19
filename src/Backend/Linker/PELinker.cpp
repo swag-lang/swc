@@ -1662,8 +1662,7 @@ Result PELinker::prepareIncrementalObjects(LinkJob& outJob) const
 {
     SWC_ASSERT(builder_ != nullptr);
     const CompilerInstance& compiler = builder_->compiler();
-    if (!compiler.cmdLine().incremental ||
-        compiler.cmdLine().command == CommandKind::Test ||
+    if (compiler.cmdLine().command == CommandKind::Test ||
         compiler.buildCfg().backend.debugInfo ||
         compiler.importedNativeExecuted())
         return Result::Continue;

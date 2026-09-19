@@ -151,16 +151,9 @@ vec4 sampleSubRectLinear(vec2 paintPos)
     vec2 p    = subRectPixelFromPaint(paintPos);
     p = clamp(p, minP, maxP);
 
-    vec2 p0 = clamp(floor(p), minP, maxP);
-    vec2 p1 = clamp(p0 + 1.0, minP, maxP);
-    vec2 f  = p - p0;
-
-    vec4 c00 = texture(inTexture0, subRectUVFromPixel(p0));
-    vec4 c10 = texture(inTexture0, subRectUVFromPixel(vec2(p1.x, p0.y)));
-    vec4 c01 = texture(inTexture0, subRectUVFromPixel(vec2(p0.x, p1.y)));
-    vec4 c11 = texture(inTexture0, subRectUVFromPixel(p1));
-
-    return mix(mix(c00, c10, f.x), mix(c01, c11, f.x), f.y);
+    // Linear brushes already bind GL_LINEAR. Clamp to the source texel centers before
+    // sampling, so the hardware filters once without bleeding into neighboring atlas cells.
+    return texture(inTexture0, subRectUVFromPixel(p));
 }
 
 // Sharp bilinear: nearest sampling with exactly one device pixel of smoothing at
@@ -207,6 +200,11 @@ vec4 sampleTexture(vec2 paintPos, vec2 uv)
 
 vec4 samplePaint(vec2 paintPos, vec2 uv)
 {
+    // A solid brush carries all its color in the vertices; its bound white texture is
+    // only compatibility state for custom programs, not a source that needs sampling.
+    if(paintType < 0.5)
+        return vec4(1.0);
+
     if(paintType < 2.5)
         return sampleTexture(paintPos, uv);
 

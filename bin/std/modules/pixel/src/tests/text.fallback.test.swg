@@ -74,6 +74,23 @@ private func fallbackTestFace(symbols: bool)->*TypeFace? fail
     return try TypeFace.create(symbols ? "pixel-fallback-symbol-fixture" : "pixel-fallback-primary-fixture", bytes.toSlice())
 }
 
+// Layout controls never enter fallback discovery or its miss cache, on any platform.
+#test
+{
+    var cache: FontCache
+    cache.setFallbackTypeFaces([(expect fallbackTestFace(true)!)])
+    let font = cache.createFont((expect fallbackTestFace(false)!), 19, .Bitmap, true, true)
+    for c in [0'rune, '\t'rune, '\n'rune, '\r'rune, '\u007F'rune, '\u0085'rune, '\u009F'rune, '\U0010FFFF'rune]
+    {
+        let resolved = font.resolveRune(c)
+        Swag.assert(not isFontFallbackRune(c))
+        Swag.assert(resolved == font)
+        Swag.assert(font.fallbackFonts.count == 0)
+    }
+
+    Swag.assert(isFontFallbackRune(' ') and isFontFallbackRune('\u2192'rune))
+}
+
 // Coverage, negative caching, policy replacement, UTF-8 byte clusters, spacing and cache identity.
 #test
 {

@@ -908,7 +908,7 @@ private impl View
         let viewport = .scroll.paddedClientRect()
         let origin   = .retainedBlocks.isEmpty() ? .virtualOrigin : .retainedOrigin
         let height   = .retainedBlocks.isEmpty() ? .contentHeight : .retainedHeight
-        if height - origin < viewport.height do
+        if height - origin < viewport.height and not .hasUnloadedSource() do
             return
         let safeY = Math.clamp(newPosition.y, origin, Math.max(origin, height - viewport.height))
         if safeY == newPosition.y do
@@ -1223,16 +1223,27 @@ impl View
             if evt is MouseEvent as mouse where mouse.kind == .Wheel and not mouse.modifiers.has(.Shift)
             {
                 let position = view.scroll.scrollPosition()
-                var target   = view.scroll.scrollTarget()
+                var target   = view.waitingScroll ? view.waitingScrollTarget : view.scroll.scrollTarget()
                 let distance = -mouse.delta.y * view.scroll.verticalScrollStep * 3
 
                 // Reversing the wheel responds immediately instead of first consuming a queued glide.
                 if (distance < 0 and target.y > position.y) or (distance > 0 and target.y < position.y) do
                     target = position
                 target.y += distance
+                view.waitingScroll  = false
                 view.wheelScrolling = true
                 view.scroll.smoothScrollTo(target)
                 view.wheelScrolling = false
+
+                // Before the first streamed block, ScrollWnd has no range and clamps the
+                // destination to zero without a position notification. Keep that intent until
+                // enough content is available; later notches accumulate into the same request.
+                if view.hasUnloadedSource() and target.y > view.scroll.scrollTarget().y + 1
+                {
+                    view.waitingScroll       = true
+                    view.waitingScrollTarget = target
+                }
+
                 view.scheduleMore()
                 return true
             }

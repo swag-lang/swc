@@ -35,13 +35,13 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-19 08:07 |
 | [compiler.optimization.md](compiler.optimization.md) | Backend optimization passes, register allocation, and generated-code performance | 2026-09-18 19:48 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-18 14:05 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-17 08:42 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-16 07:54 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
-| [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-12 19:53 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-12 18:05 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-12 17:40 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-12 10:21 |

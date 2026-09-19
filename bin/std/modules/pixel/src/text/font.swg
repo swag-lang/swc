@@ -16,9 +16,40 @@ public struct GlyphAtlas
         bytesPerPixel: u32          // Bytes used by one atlas pixel.
         data:          Array'u8     // CPU-side pixel storage.
         dirty:         bool         // Whether `data` contains changes not uploaded to `texture`.
+        dirtyMinX:     u32          // Inclusive changed column in texture pixels.
+        dirtyMinY:     u32          // Inclusive changed row in bottom-up texture storage.
+        dirtyMaxX:     u32          // Exclusive changed column in texture pixels.
+        dirtyMaxY:     u32          // Exclusive changed row in bottom-up texture storage.
         curX:          s32          // Byte offset of the next glyph in the current row.
         curY:          s32          // Pixel offset of the current row.
         nextY:         s32          // Pixel offset available for the following row.
+    }
+}
+
+impl GlyphAtlas
+{
+    // Track the bytes actually written, not the top-down placement coordinates used by glyph UVs.
+    mtd markDirty(x, y, width, height: u32)
+    {
+        if width == 0 or height == 0 do
+            return
+
+        if .dirty
+        {
+            .dirtyMinX = Math.min(.dirtyMinX, x)
+            .dirtyMinY = Math.min(.dirtyMinY, y)
+            .dirtyMaxX = Math.max(.dirtyMaxX, x + width)
+            .dirtyMaxY = Math.max(.dirtyMaxY, y + height)
+        }
+        else
+        {
+            .dirtyMinX = x
+            .dirtyMinY = y
+            .dirtyMaxX = x + width
+            .dirtyMaxY = y + height
+        }
+
+        .dirty = true
     }
 }
 
@@ -637,8 +668,8 @@ impl GlyphCache
 
         refr.atlasIndex = cast(u32) (.atlases.count - 1)
 
-        .dirty   = true
-        ca.dirty = true
+        ca.markDirty(cast(u32) x / bpp, ca.height - cast(u32) y - bmpRef.rows, bmpRef.width, bmpRef.rows)
+        .dirty = .dirty or ca.dirty
 
         return refr
     }

@@ -1496,8 +1496,16 @@ impl RenderOgl
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
                     glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
                 }
-                else do
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
+                else
+                {
+                    // New glyphs occupy only a small part of an existing page. Keep the atlas
+                    // row stride while uploading its changed rectangle, then restore unpack
+                    // state so ordinary image uploads still read tightly packed rows.
+                    let pixels = atlas.data.buffer + cast(u64) atlas.dirtyMinY * atlas.width + atlas.dirtyMinX * bpp
+                    glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint) atlas.texture.width)
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, cast(GLint) atlas.dirtyMinX, cast(GLint) atlas.dirtyMinY, cast(GLsizei) (atlas.dirtyMaxX - atlas.dirtyMinX), cast(GLsizei) (atlas.dirtyMaxY - atlas.dirtyMinY), fmt, GL_UNSIGNED_BYTE, pixels)
+                    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+                }
 
                 // Build the mip chain for distance-field atlases. Each glyph keeps a
                 // 'spread'-texel margin, so low mips do not bleed neighbouring glyphs.

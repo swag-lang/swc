@@ -31,6 +31,20 @@ output, path measurement and effects, and the modern renderer choice tracked by
 
 ## Entries
 
+### std.pixel.029 — OpenGL glyph atlases retain a complete CPU pixel copy
+
+- Recorded: 2026-09-19 08:07
+- Evidence: `GlyphAtlas.data` retains every bitmap/MSDF page after upload. `RenderCpu` samples
+  those bytes directly. OpenGL now uploads the bounding rectangle of appended glyphs, but that
+  rectangle can include existing pixels, and initial texture allocation still reads the full page.
+- Next: measure retained atlas bytes in a long document session, then separate backend storage
+  policy. Keep full pages for CPU rendering; investigate tightly packed pending-glyph buffers for
+  OpenGL, with zero-initialized texture storage, bounded staging memory, and an explicit texture
+  recreation strategy. Do not discard page bytes while rectangle uploads still depend on them.
+- Complete when: OpenGL releases uploaded staging pixels without changing bitmap/MSDF output,
+  fallback fonts, mipmap padding, or context/resource lifetime; CPU rendering remains unchanged
+  and the measured host-memory saving justifies the additional ownership machinery.
+
 ### std.pixel.028 — Fallback selection does not yet preserve shaping clusters
 
 - Recorded: 2026-09-12 19:53

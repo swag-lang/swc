@@ -80,6 +80,35 @@ using Swag, Core
     Testing.assertGolden(&painter, "layer.draw")
 }
 
+// An opaque retained layer can replace destination colors without a second alpha blend.
+#test
+{
+    var cpu:   RenderCpu
+    var painter = Painter.create(&cpu)
+    var layer: Layer
+    var draw:  LayerDrawInfo
+
+    draw.dstRect          = {10, 10, 64, 32}
+    draw.blendingMode     = .Copy
+    draw.releaseAfterDraw = false
+
+    painter.begin()
+    layer.begin(&painter, {width: 64, height: 32})
+    painter.fillRect(0, 0, 64, 32, Color.fromArgb(Argb.Red))
+    layer.end()
+    layer.draw(draw)
+    layer.releaseImmediate()
+    painter.end()
+
+    var sawCopy:    bool
+    var sawRelease: bool
+    for cmd in painter.commandBuffer where cmd.id == .SetBlendingMode and cmd.blendingMode.mode == .Copy do
+        sawCopy = true
+    for cmd in painter.commandBuffer where cmd.id == .ReleaseRenderTarget do
+        sawRelease = true
+    Swag.assert(sawCopy and sawRelease and layer.contentTarget == null)
+}
+
 // A shadow adds the separable blur passes and a second composite. This is the only golden that
 // exercises the built-in blur program and its parameters.
 #[Swag.TestTag("golden")]

@@ -854,6 +854,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     let apiPath        = Path.combine(dependencyRoot.toString(), "provider", "export", buildCfg, options.targetArch.toString(), "provider.swg")
     let consumerSetup  = Format.toString(#raw """
         #import("provider", location: "%")
+        #import("core", location: "swag@std")
         #run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
         """, dependencyRoot.toString())
     try File.writeAllBytes(modulePath.toString(), cast(const [..] u8) consumerSetup.toString())
@@ -884,14 +885,12 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     }
 
     let deletingConsumer = Format.toString(#raw """
-        #[Swag.Foreign("kernel32", "DeleteFileA")]
-        func deleteFile(path: const [*] u8)->bool
         #run
         {
             if #defined(ReadApi.Value)
             {
                 let path = #raw "%"
-                Swag.assert(deleteFile(path.buffer))
+                expect Core.File.delete(path)
             }
         }
         #main
@@ -980,7 +979,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
         return 1
     }
 
-    try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n")
+    try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8) "#import(\"core\", location: \"swag@std\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n")
     let writer     = workspaceNativePublisher(replacementNative.toString(), nativeOutput.toString())
     let writerPath = Path.combine(writerModule.toString(), "src", "main.swg")
     try File.writeAllText(writerPath.toString(), "public const Marker = 1\n")
@@ -1044,38 +1043,13 @@ private func workspaceNativePublisher(sourceDirectory, destinationDirectory: str
 {
     return Format.toString(#raw """
         #global private
-        #[Swag.Foreign("kernel32", "CreateFileA")]
-        func createFile(path: const [*] u8, access, share: u32, security: *void?, creation, flags: u32, template: *void?)->*void?
-        #[Swag.Foreign("kernel32", "ReadFile")]
-        func readFile(file: *void?, bytes: [*] u8, count: u32, read: *u32, overlapped: *void?)->bool
-        #[Swag.Foreign("kernel32", "WriteFile")]
-        func writeFile(file: *void?, bytes: const [*] u8, count: u32, written: *u32, overlapped: *void?)->bool
-        #[Swag.Foreign("kernel32", "CloseHandle")]
-        func closeHandle(file: *void?)->bool
-        func publishFile(sourcePath, destinationPath: string)
-        {
-            let input = createFile(sourcePath.buffer, 0x80000000, 1, null, 3, 0, null)
-            Swag.assert(cast(u64) input != Swag.U64.Max)
-            defer discard closeHandle(input)
-            let output = createFile(destinationPath.buffer, 0x40000000, 1, null, 2, 0, null)
-            Swag.assert(cast(u64) output != Swag.U64.Max)
-            defer discard closeHandle(output)
-            var bytes: [8192] u8
-            for
-            {
-                var read, written: u32
-                Swag.assert(readFile(input, cast([*] u8) &bytes, cast(u32) bytes.count, &read, null))
-                if read == 0 do break
-                Swag.assert(writeFile(output, cast(const [*] u8) &bytes, read, &written, null) and written == read)
-            }
-        }
         public const Marker = 1
         #run
         {
-            publishFile(#raw "%/provider.dll", #raw "%/provider.dll")
-            publishFile(#raw "%/.swc-artifacts", #raw "%/.swc-artifacts")
+            expect Core.File.duplicate(#raw "%/provider.dll", #raw "%/provider.dll")
+            expect Core.File.duplicate(#raw "%/.swc-artifacts", #raw "%/.swc-artifacts")
         }
-        """, sourceDirectory, destinationDirectory, sourceDirectory, destinationDirectory)
+        """, destinationDirectory, sourceDirectory, destinationDirectory, sourceDirectory)
 }
 
 // Runs the multi-module workspace suite.

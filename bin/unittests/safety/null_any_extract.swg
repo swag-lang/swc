@@ -19,8 +19,10 @@
 
 #test
 {
-    #[Swag.Safety(.Null, true)]
-    func nullAnyExtractPointerPanic()->bool
+    // Pointer targets use the dynamic-cast path: the nullable boxed type does not
+    // match the requested non-null pointer type.
+    #[Swag.Safety(.DynCast, true)]
+    func nullAnyPointerDynamicCastPanic()->bool
     {
         var np:    *s32? = null
         let boxed: any   = np
@@ -28,7 +30,7 @@
         return back == null
     }
 
-    const value = #run nullAnyExtractPointerPanic()
+    const value = #run nullAnyPointerDynamicCastPanic()
 }
 
 #test

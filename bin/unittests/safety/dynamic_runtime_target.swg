@@ -1,6 +1,6 @@
 #global private
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.DynCast, true), Swag.NoInline]
 func assumeRuntimeValue(target: typeinfo, source: any)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}
@@ -12,7 +12,7 @@ func assumeRuntimeValue(target: typeinfo, source: any)
     assumeRuntimeValue(s64, 42's32)
 }
 
-#[Swag.Safety(.DynCast, true)]
+#[Swag.Safety(.DynCast, true), Swag.NoInline]
 func assumeRuntimeType(target, source: typeinfo)
 {
     // swc-expected-error@(+1) {{safety_err_runtime}}

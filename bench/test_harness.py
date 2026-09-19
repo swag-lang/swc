@@ -16,16 +16,36 @@ import toolchains as tc
 
 class HarnessTests(unittest.TestCase):
     def test_swag_benchmarks_import_official_native_bindings(self):
-        module = os.path.join(tc.SRC, "module.swg")
-        with patch.object(tc, "resolve", return_value="cl.exe"):
+        dependencies = ["kernel32.swg"]
+        with (patch.object(tc, "resolve", return_value="cl.exe"),
+              patch.object(tc, "swag_dependency_api_files", return_value=dependencies)):
             recipes = tc.make_recipes({"clang_cl": "clang-cl.exe"}, {}, "swc.exe")
-        runtimes = tc.make_runtimes({}, "swc.exe")
-        for name in ("swag-release", "swag-fast-debug"):
-            command = recipes[name]("sha256", "probe")["cmd"]
-            self.assertEqual(command[command.index("--module-file") + 1], module)
-        for name in ("swc-jit-release", "swc-jit-fast-debug"):
-            command = runtimes[name]("sha256")
-            self.assertEqual(command[command.index("--module-file") + 1], module)
+            runtimes = tc.make_runtimes({}, "swc.exe")
+            commands = [recipes[name]("sha256", "probe")["cmd"]
+                        for name in ("swag-release", "swag-fast-debug")]
+            commands += [runtimes[name]("sha256")
+                         for name in ("swc-jit-release", "swc-jit-fast-debug")]
+        for command in commands:
+            self.assertNotIn("--module-file", command)
+            self.assertEqual([command[index + 1] for index, arg in enumerate(command)
+                              if arg == "--import-api-file"], dependencies)
+
+    def test_swag_dependencies_are_prepared_before_timed_samples(self):
+        completed = {"exit": 0, "stdout": "", "stderr": "", "wall_ms": 12.5}
+        with (patch.object(driver.tc, "worktree", return_value="checkout"),
+              patch.object(driver.tc, "swag_dependency_api_files",
+                           side_effect=[["release-kernel32.swg"], ["devmode-kernel32.swg"]]),
+              patch.object(driver.winproc, "run", return_value=completed) as run,
+              contextlib.redirect_stdout(io.StringIO())):
+            error = driver.prepare_swag_dependencies("swc.exe", {"BENCH": "1"})
+
+        self.assertIsNone(error)
+        self.assertEqual(run.call_count, 2)
+        for call, cfg in zip(run.call_args_list, ("release", "devmode")):
+            self.assertEqual(call.args[0], [
+                "swc.exe", "build", "--workspace", os.path.join("checkout", "bin", "std"),
+                "--workspace-module", "win32", "--build-cfg", cfg, "--num-cores", "6"])
+            self.assertEqual(call.kwargs, {"cwd": "checkout", "env": {"BENCH": "1"}})
 
     def test_installed_toolchains_are_found_without_path_or_overrides(self):
         with tempfile.TemporaryDirectory(prefix="bench programs ") as folder:

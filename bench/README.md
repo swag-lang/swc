@@ -47,6 +47,14 @@ including the standard-library code it needs, rather than retrieving a previousl
 The MSVC target uses the installed Windows SDK and runtime libraries instead of building a
 separate MinGW C runtime. Every available language is remeasured on every campaign.
 
+The Swag ports use the standard Win32 module for the same platform services that the C++, D and
+Odin ports import. The campaign publishes Win32 in `release` and `devmode` once before any timed
+sample, then passes its published `kernel32.swg` API directly to every Swag command. A Swag build therefore
+measures consuming the already-built API, never loading a benchmark module setup and never checking
+or compiling the dependency's source workspace inside the timed command. Only the published
+`kernel32.swg` interface is passed because the benchmark uses only the performance counter, just
+as the Zig port declares only those native entry points.
+
 ## The edit-build loop
 
 The seven tasks and the hello world price a compiler on a small program. None of them

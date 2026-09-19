@@ -101,6 +101,25 @@ def prepare(recipe):
         os.makedirs(p, exist_ok=True)
 
 
+def prepare_swag_dependencies(swc, env):
+    """Publish dependencies once, outside every timed compiler sample."""
+    std = os.path.join(tc.worktree(), "bin", "std")
+    for cfg in ("release", "devmode"):
+        cmd = [swc, "build", "--workspace", std, "--workspace-module", "win32",
+               "--build-cfg", cfg, "--num-cores", "6"]
+        r = winproc.run(cmd, cwd=tc.worktree(), env=env)
+        if r["exit"] != 0:
+            return "win32/%s: exit=%d %s" % (
+                cfg, r["exit"], (r["stdout"] + r["stderr"])[-900:])
+        try:
+            api_files = tc.swag_dependency_api_files(cfg)
+        except RuntimeError as error:
+            return str(error)
+        print("  win32/%-8s ready outside the clock (%d API files, %6.1f ms)" %
+              (cfg, len(api_files), r["wall_ms"]))
+    return None
+
+
 def build_once(recipe, env):
     prepare(recipe)
     r = winproc.run(recipe["cmd"], cwd=recipe["cwd"], env=env)
@@ -300,6 +319,12 @@ def main():
           (RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS, BUILD_BUDGET_MS))
     print("timed runs pinned to : 0x%x (%d performance cores)" %
           (winproc.PIN_MASK, bin(winproc.PIN_MASK).count("1")))
+
+    print("preparing Swag dependencies...")
+    dependency_error = prepare_swag_dependencies(swc, env)
+    if dependency_error:
+        print("dependency preparation failed: %s" % dependency_error)
+        return 1
 
     if not args.quick:
         idle = wait_for_quiet()

@@ -2330,7 +2330,6 @@ struct DependencyPlanBuilder
     // Parsing and checking dependency metadata is expensive, and several roots can reach the same
     // file. Cache its import list so the global resolution visits it once.
     Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
-    bool   tryCaptureGeneratedDependencyImports(const fs::path& depsFile, std::vector<CompilerInstance::ModuleSetupImport>& outImports) const;
     Result resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
     void   collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, size_t nodeIndex) const;
 
@@ -2812,7 +2811,10 @@ Result DependencyPlanBuilder::captureDependencyImportSnapshot(const fs::path& de
     return instance().captureModuleSetupSnapshot(taskCtx(), setupCmdLine, outSnapshot);
 }
 
-bool DependencyPlanBuilder::tryCaptureGeneratedDependencyImports(const fs::path& depsFile, std::vector<CompilerInstance::ModuleSetupImport>& outImports) const
+// Generated dependency metadata and small declarative module files share the same literal import
+// grammar. Returning false is deliberately silent: the regular parser and semantic pass then own
+// every diagnostic and every more expressive setup form.
+static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector<CompilerInstance::ModuleSetupImport>& outImports)
 {
     std::string             content;
     FileSystem::IoErrorInfo ioError;
@@ -2924,7 +2926,7 @@ Result DependencyPlanBuilder::captureDependencyImports(const fs::path& depsFile,
     }
 
     std::vector<CompilerInstance::ModuleSetupImport> imports;
-    if (!tryCaptureGeneratedDependencyImports(depsFile, imports))
+    if (!tryCaptureLiteralModuleImports(depsFile, imports))
     {
         CompilerInstance::ModuleSetupSnapshot snapshot;
         SWC_RESULT(captureDependencyImportSnapshot(depsFile, snapshot));
@@ -4328,6 +4330,16 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 // it, since the next command is not a rebuild.
 Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const Utf8& moduleName, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const
 {
+    ModuleSetupSnapshot literalImports;
+    literalImports.inputsReadTime = fs::file_time_type::clock::now();
+    if (tryCaptureLiteralModuleImports(moduleFile, literalImports.imports))
+    {
+        literalImports.buildCfg = setupCmdLine.defaultBuildCfg;
+        ownBuildCfgStrings(literalImports.buildCfg, literalImports.ownedStrings);
+        outSnapshot = std::move(literalImports);
+        return Result::Continue;
+    }
+
     const fs::path cachePath   = moduleSetupCachePath(cmdLine(), moduleName);
     const Utf8     fingerprint = moduleSetupFingerprint(setupCmdLine, exeFullName_);
     if (fingerprint.empty())

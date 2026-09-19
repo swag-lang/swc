@@ -112,7 +112,7 @@ namespace
                 continue;
             if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
                 continue;
-            if (dependency->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+            if (dependency->hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
                 continue;
             if (dependency->jitPatchAddress() || dependency->jitEntryAddress())
                 continue;

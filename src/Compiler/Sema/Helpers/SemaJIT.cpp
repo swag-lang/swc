@@ -389,9 +389,9 @@ namespace
             return false;
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        if (fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+        if (fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
-        return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+        return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody);
     }
 
     bool isIncludableOptionalConstantJitRoot(const SymbolFunction& root)

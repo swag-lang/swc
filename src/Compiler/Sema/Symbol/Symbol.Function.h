@@ -40,8 +40,8 @@ enum class SymbolFunctionFlagsE : uint16_t
     UsesGvtd               = 1 << 8,
     GenericRoot            = 1 << 9,
     GenericInstance        = 1 << 10,
-    LazyGenericBody        = 1 << 11,
-    LazyGenericBodyRunning = 1 << 12,
+    LazyBody               = 1 << 11,
+    LazyBodyRunning        = 1 << 12,
     WhereConstraintFailed  = 1 << 13,
     InlineLocalFunction    = 1 << 14,
     BoundToClosure         = 1 << 15, // A function literal typed by a closure binding.
@@ -352,9 +352,9 @@ public:
     AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
     void                    cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     std::recursive_mutex&   genericEvalRunMutex(const TaskContext& ctx) const noexcept;
-    std::mutex&             lazyGenericBodyRunMutex() const noexcept { return lazyGenericBodyRunMutex_; }
-    std::shared_ptr<void>*  lazyGenericBodyRunState() const noexcept;
-    std::shared_ptr<void>&  ensureLazyGenericBodyRunState(const TaskContext& ctx) const noexcept;
+    std::mutex&            lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
+    std::shared_ptr<void>* lazyBodyRunState() const noexcept;
+    std::shared_ptr<void>& ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol = nullptr);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
@@ -461,7 +461,7 @@ private:
     MachineCode                          loweredMicroCode_;
     mutable std::shared_mutex            callDependenciesMutex_;
     mutable std::mutex                   closureAdapterMutex_;
-    mutable std::mutex                   lazyGenericBodyRunMutex_;
+    mutable std::mutex                   lazyBodyRunMutex_;
     mutable std::atomic<SymbolFunction*> closureAdapterPublished_ = nullptr;
     std::mutex                           emitMutex_;
     JITMemory                            jitExecMemory_;

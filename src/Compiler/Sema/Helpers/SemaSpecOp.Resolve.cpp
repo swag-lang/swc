@@ -40,7 +40,7 @@ namespace
                               sema.curNodeRef().isValid() ? sema.curNodeRef().get() : 0,
                               allowConstEval,
                               allowInline,
-                              calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                              calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning),
                               calledFn.isTyped());
         return detail;
     }
@@ -911,10 +911,10 @@ namespace
         SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
 
 #if SWC_DEV_MODE
-        if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) && !calledFn.isSemaCompleted())
+        if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody) && !calledFn.isSemaCompleted())
         {
             const Utf8 detail = formatSyntheticCallUnmaterializedLazyBody(sema, calledFn, allowConstEval, allowInline);
-            swcAssertDetail("!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) || calledFn.isSemaCompleted()", __FILE__, __LINE__, detail.view());
+            swcAssertDetail("!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody) || calledFn.isSemaCompleted()", __FILE__, __LINE__, detail.view());
         }
 #endif
 

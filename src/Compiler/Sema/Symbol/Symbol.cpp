@@ -25,7 +25,7 @@ namespace
                               static_cast<const void*>(&function),
                               function.getFullScopedName(ctx).c_str(),
                               function.declNodeRef().isValid() ? function.declNodeRef().get() : 0,
-                              function.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                              function.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning),
                               function.isGenericRoot(),
                               function.isGenericInstance(),
                               function.isSemaCompleted());
@@ -185,10 +185,10 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
 #if SWC_DEV_MODE
     if (const auto* function = safeCast<SymbolFunction>())
     {
-        if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
+        if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
         {
             const Utf8 detail = formatLazyFunctionMarkedSemaComplete(ctx, *function);
-            swcAssertDetail("!isFunction() || !cast<SymbolFunction>().hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody)", __FILE__, __LINE__, detail.view());
+            swcAssertDetail("!isFunction() || !cast<SymbolFunction>().hasExtraFlag(SymbolFunctionFlagsE::LazyBody)", __FILE__, __LINE__, detail.view());
         }
     }
 #endif

@@ -164,7 +164,7 @@ func print(params: ...)
 
         if ko.flags & TypeInfoFlags.PointerRef
         {
-            let ptr = cast #assume(const *TypeInfoPointer) ko
+            let ptr = cast(const *TypeInfoPointer) cast(const *void) ko
             ko = cast() ptr.pointedType
             let val = cast(**u64) v.buffer
             v = Swag.makeAny(val[], ko)
@@ -173,7 +173,7 @@ func print(params: ...)
         if ko.flags & TypeInfoFlags.PointerTypeInfo
         {
             #[Safety(.DynCast, false)]
-            let ptr = cast #assume (const *TypeInfo) v
+            let ptr = (cast(const *const *TypeInfo) v.buffer)[]
             __printString(ptr.name)
             continue
         }
@@ -181,7 +181,7 @@ func print(params: ...)
         if ko.flags & TypeInfoFlags.CString
         {
             #[Safety(.DynCast, false)]
-            let ptr = cast #assume (const [*] u8) v
+            let ptr = (cast(const *const [*] u8) v.buffer)[]
             let len = (cast(const cstring) ptr).count
             __printString(Swag.makeString(ptr, len))
             continue
@@ -190,7 +190,7 @@ func print(params: ...)
         if ko.kind == .Pointer
         {
             #[Safety(.DynCast, false)]
-            __printU64(cast #assume (u64) v)
+            __printU64((cast(const *u64) v.buffer)[])
             continue
         }
 
@@ -199,7 +199,7 @@ func print(params: ...)
         // the '?' fallback and silently drop the value it was asked to print.
         if ko.kind == .Native
         {
-            let native = cast #assume(const *TypeInfoNative) ko
+            let native = cast(const *TypeInfoNative) cast(const *void) ko
             let data   = v.buffer
             switch native.nativeKind
             {

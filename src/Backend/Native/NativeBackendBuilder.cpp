@@ -418,7 +418,7 @@ namespace
             return false;
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        return shouldPrepareSymbol(builder, fn) && (fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody));
+        return shouldPrepareSymbol(builder, fn) && (fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody));
     }
 
     bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, size_t& nextFunctionIndex)
@@ -1307,6 +1307,11 @@ Result NativeBackendBuilder::prepare()
     SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_);
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
+    if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+    {
+        auto executableRoots = collectExecutableFunctionRoots(*this);
+        functions.insert(functions.end(), executableRoots.begin(), executableRoots.end());
+    }
 
     const auto& importedRuntimeDeps = compiler_->nativeRuntimeImports();
     runtimeDependencies.reserve(importedRuntimeDeps.size());

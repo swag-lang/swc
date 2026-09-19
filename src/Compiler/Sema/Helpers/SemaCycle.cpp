@@ -96,8 +96,8 @@ namespace
                          function->isIgnored(),
                          function->isGenericRoot(),
                          function->isGenericInstance(),
-                         function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody),
-                         function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                         function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody),
+                         function->hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning),
                          function->declNodeRef().isValid() ? function->declNodeRef().get() : 0);
             if (ownerStruct)
             {

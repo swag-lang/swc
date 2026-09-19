@@ -1513,7 +1513,7 @@ namespace
         SWC_ASSERT(nodeSymView.hasSymbol());
 
         auto&        calledFn   = nodeSymView.sym()->cast<SymbolFunction>();
-        const Result lazyResult = sema.completeLazyGenericFunction(calledFn);
+        const Result lazyResult = sema.completeLazyFunction(calledFn);
         SWC_RESULT(lazyResult);
 
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);

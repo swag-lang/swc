@@ -15,18 +15,18 @@ namespace
 #if SWC_DEV_MODE
     void panicUnmaterializedCodeGenTarget(const TaskContext& ctx, const SymbolFunction& symbol)
     {
-        const Utf8 detail = std::format("function: {}\ndeclaration node: {}\nsemantic analysis complete: {}\ncode generation pre-solved: {}\ncode generation complete: {}\nlazy generic body: {}\nlazy generic body running: {}\ngeneric root: {}\ngeneric instance: {}\nignored: {}\n",
+        const Utf8 detail = std::format("function: {}\ndeclaration node: {}\nsemantic analysis complete: {}\ncode generation pre-solved: {}\ncode generation complete: {}\nlazy body: {}\nlazy body running: {}\ngeneric root: {}\ngeneric instance: {}\nignored: {}\n",
                                         symbol.getFullScopedName(ctx),
                                         symbol.declNodeRef().isValid() ? symbol.declNodeRef().get() : 0,
                                         symbol.isSemaCompleted(),
                                         symbol.isCodeGenPreSolved(),
                                         symbol.isCodeGenCompleted(),
-                                        symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody),
-                                        symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                                        symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyBody),
+                                        symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning),
                                         symbol.isGenericRoot(),
                                         symbol.isGenericInstance(),
                                         symbol.isIgnored());
-        swcPanic("code generation scheduled for an unmaterialized generic body", __FILE__, __LINE__, "symbol.hasUnmaterializedGenericBody()", detail.view());
+        swcPanic("code generation scheduled for an unmaterialized lazy body", __FILE__, __LINE__, "symbol.hasUnmaterializedLazyBody()", detail.view());
     }
 #endif
 

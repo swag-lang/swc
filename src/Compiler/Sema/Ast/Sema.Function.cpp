@@ -23,6 +23,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -58,7 +59,7 @@ namespace
         return sym;
     }
 
-    SymbolMap* lazyGenericFunctionStartSymMap(const SymbolFunction& function)
+    SymbolMap* lazyFunctionStartSymMap(const SymbolFunction& function)
     {
         return const_cast<SymbolMap*>(function.genericRootOrSelf()->ownerSymMap());
     }
@@ -172,7 +173,7 @@ namespace
 
     bool canDelayGenericInstanceFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
-        if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+        if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
         if (sym.isGenericRoot() || sym.isGenericInstance() || sym.isEmpty())
             return false;
@@ -193,14 +194,65 @@ namespace
         return node.nodeBodyRef.isValid();
     }
 
-    struct LazyGenericBodyRun
+    bool canDelayImportedFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    {
+        if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
+            return false;
+        const SourceFile* file = sema.file();
+        if (!file || !file->isImportedApi())
+            return false;
+        // Imported methods need the receiver binding created while walking their declaration
+        // scope. Replaying only the function body cannot currently reconstruct that binding.
+        if (sym.isMethod())
+            return false;
+        if (declImpl && declImpl->isForInterface())
+            return false;
+        if (sym.isEmpty() || sym.specOpKind() != SpecOpKind::None)
+            return false;
+        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
+        if (isImplicitGeneratedLifecycleWrapper(sema, sym))
+            return false;
+        if (functionSignatureNeedsBody(node))
+            return false;
+        return node.nodeBodyRef.isValid();
+    }
+
+    bool canDelayRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    {
+        if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
+            return false;
+        const SourceFile* file = sema.file();
+        if (!file || !file->isRuntime())
+            return false;
+        if (declImpl && declImpl->isForInterface())
+            return false;
+        if (sym.isEmpty() || sym.specOpKind() != SpecOpKind::None)
+            return false;
+        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
+        if (isImplicitGeneratedLifecycleWrapper(sema, sym))
+            return false;
+        if (functionSignatureNeedsBody(node))
+            return false;
+        return node.nodeBodyRef.isValid();
+    }
+
+    bool canDelayFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    {
+        return canDelayGenericInstanceFunctionBody(sema, node, sym, declImpl) ||
+               canDelayImportedFunctionBody(sema, node, sym, declImpl) ||
+               canDelayRuntimeFunctionBody(sema, node, sym, declImpl);
+    }
+
+    struct LazyBodyRun
     {
         const TaskContext*    ownerCtx = nullptr;
         bool                  running  = false;
         std::unique_ptr<Sema> sema;
     };
 
-    bool isReentrantLazyGenericBodyRun(const Sema& sema, const SymbolFunction& calledFn, const LazyGenericBodyRun& run)
+    bool isReentrantLazyBodyRun(const Sema& sema, const SymbolFunction& calledFn, const LazyBodyRun& run)
     {
         if (sema.currentFunction() == &calledFn)
             return true;
@@ -218,52 +270,52 @@ namespace
         return run.sema.get() == &sema;
     }
 
-    LazyGenericBodyRun* lazyGenericBodyRun(const SymbolFunction& calledFn)
+    LazyBodyRun* lazyBodyRun(const SymbolFunction& calledFn)
     {
-        const auto* state = calledFn.lazyGenericBodyRunState();
+        const auto* state = calledFn.lazyBodyRunState();
         if (!state || !(*state))
             return nullptr;
 
-        return static_cast<LazyGenericBodyRun*>(state->get());
+        return static_cast<LazyBodyRun*>(state->get());
     }
 
-    LazyGenericBodyRun& ensureLazyGenericBodyRun(const TaskContext& ctx, const SymbolFunction& calledFn)
+    LazyBodyRun& ensureLazyBodyRun(const TaskContext& ctx, const SymbolFunction& calledFn)
     {
-        auto& state = calledFn.ensureLazyGenericBodyRunState(ctx);
+        auto& state = calledFn.ensureLazyBodyRunState(ctx);
         if (!state)
         {
             // A paused lazy body is shared only between tasks waiting on the same
             // function, so keep it on that function instead of routing every lookup
             // through a compiler-wide mutex and map.
-            state = std::make_shared<LazyGenericBodyRun>();
+            state = std::make_shared<LazyBodyRun>();
         }
 
-        auto* run = static_cast<LazyGenericBodyRun*>(state.get());
+        auto* run = static_cast<LazyBodyRun*>(state.get());
         SWC_ASSERT(run != nullptr);
         return *run;
     }
 
-    bool isCurrentLazyGenericBodySema(const Sema& sema, const SymbolFunction& calledFn)
+    bool isCurrentLazyBodySema(const Sema& sema, const SymbolFunction& calledFn)
     {
-        const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
-        const auto*            run = lazyGenericBodyRun(calledFn);
+        const std::scoped_lock lock(calledFn.lazyBodyRunMutex());
+        const auto*            run = lazyBodyRun(calledFn);
         if (!run)
             return false;
 
         return run->sema.get() == &sema;
     }
 
-    Result waitForOtherLazyGenericBodyRunner(Sema& sema, const SymbolFunction& symbol)
+    Result waitForOtherLazyBodyRunner(Sema& sema, const SymbolFunction& symbol)
     {
-        if (!symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+        if (!symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return Result::Continue;
-        if (isCurrentLazyGenericBodySema(sema, symbol))
+        if (isCurrentLazyBodySema(sema, symbol))
             return Result::Continue;
 
         return sema.waitSemaCompletedNoLazy(&symbol, symbol.codeRef());
     }
 
-    std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, const SymbolFunction& calledFn, AstNodeRef declRef)
+    std::unique_ptr<Sema> makeLazyBodySema(Sema& sema, const SymbolFunction& calledFn, AstNodeRef declRef)
     {
         auto payloadContext = const_cast<NodePayload*>(calledFn.declNodePayloadContext());
         if (!payloadContext)
@@ -284,43 +336,43 @@ namespace
             child = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
         }
 
-        SemaGeneric::prepareGenericInstantiationContext(*child, lazyGenericFunctionStartSymMap(calledFn), functionDeclImplContext(sema, &calledFn), functionDeclInterfaceContext(sema, &calledFn), calledFn.attributes());
+        SemaGeneric::prepareGenericInstantiationContext(*child, lazyFunctionStartSymMap(calledFn), functionDeclImplContext(sema, &calledFn), functionDeclInterfaceContext(sema, &calledFn), calledFn.attributes());
         return child;
     }
 
-    void finishLazyGenericBodyRun(SymbolFunction& calledFn, Result result)
+    void finishLazyBodyRun(SymbolFunction& calledFn, Result result)
     {
-        const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
-        // Reset both run.running and LazyGenericBodyRunning atomically under the same
-        // lock to prevent another task from seeing LazyGenericBodyRunning=false while
+        const std::scoped_lock lock(calledFn.lazyBodyRunMutex());
+        // Reset both run.running and LazyBodyRunning atomically under the same
+        // lock to prevent another task from seeing LazyBodyRunning=false while
         // run.running is still true, which would cause it to wait on calledFn instead
         // of taking over the paused body — potentially deadlocking if that task is the
         // owner of a generic instance that calledFn's body is waiting for.
-        calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
-        auto* state = calledFn.lazyGenericBodyRunState();
+        calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
+        auto* state = calledFn.lazyBodyRunState();
         if (!state || !(*state))
             return;
 
-        auto* run = static_cast<LazyGenericBodyRun*>(state->get());
+        auto* run = static_cast<LazyBodyRun*>(state->get());
         SWC_ASSERT(run != nullptr);
         run->running = false;
         if (result != Result::Pause)
             state->reset();
     }
 
-    Result completeLazyGenericFunctionImpl(Sema& sema, SymbolFunction& calledFn)
+    Result completeLazyFunctionImpl(Sema& sema, SymbolFunction& calledFn)
     {
         if (calledFn.isSemaCompleted())
             return Result::Continue;
         if (calledFn.isIgnored())
             return Result::Error;
-        if (!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
+        if (!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
             return Result::Continue;
-        if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+        if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
         {
-            const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
-            const auto*            run = lazyGenericBodyRun(calledFn);
-            if (run && run->running && isReentrantLazyGenericBodyRun(sema, calledFn, *run))
+            const std::scoped_lock lock(calledFn.lazyBodyRunMutex());
+            const auto*            run = lazyBodyRun(calledFn);
+            if (run && run->running && isReentrantLazyBodyRun(sema, calledFn, *run))
                 return Result::Continue;
             return sema.waitSemaCompletedNoLazy(&calledFn, calledFn.codeRef());
         }
@@ -331,8 +383,8 @@ namespace
 
         Sema* child = nullptr;
         {
-            const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
-            auto&                  run = ensureLazyGenericBodyRun(sema.ctx(), calledFn);
+            const std::scoped_lock lock(calledFn.lazyBodyRunMutex());
+            auto&                  run = ensureLazyBodyRun(sema.ctx(), calledFn);
             if (run.sema)
             {
                 if (run.running)
@@ -350,7 +402,7 @@ namespace
             else
             {
                 run.ownerCtx = &sema.ctx();
-                run.sema     = makeLazyGenericBodySema(sema, calledFn, declRef);
+                run.sema     = makeLazyBodySema(sema, calledFn, declRef);
             }
 
             run.running = true;
@@ -358,9 +410,9 @@ namespace
         }
 
         SWC_ASSERT(child);
-        calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+        calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
         const Result result = child->execResult();
-        finishLazyGenericBodyRun(calledFn, result);
+        finishLazyBodyRun(calledFn, result);
         return result;
     }
 
@@ -403,9 +455,9 @@ namespace
 
 }
 
-Result Sema::completeLazyGenericFunction(SymbolFunction& calledFn)
+Result Sema::completeLazyFunction(SymbolFunction& calledFn)
 {
-    return completeLazyGenericFunctionImpl(*this, calledFn);
+    return completeLazyFunctionImpl(*this, calledFn);
 }
 
 Result Sema::prepareFunctionSignature(AstNodeRef functionRef)
@@ -493,7 +545,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sym.isSemaCompleted())
         return Result::SkipChildren;
 
-    const Result waitResult = waitForOtherLazyGenericBodyRunner(sema, sym);
+    const Result waitResult = waitForOtherLazyBodyRunner(sema, sym);
     if (waitResult != Result::Continue)
         return waitResult;
 
@@ -1596,14 +1648,14 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (sym.isSemaCompleted())
             return Result::SkipChildren;
 
-        const Result waitResult = waitForOtherLazyGenericBodyRunner(sema, sym);
+        const Result waitResult = waitForOtherLazyBodyRunner(sema, sym);
         if (waitResult != Result::Continue)
             return waitResult;
 
         const bool interfaceMethod = declImpl && declImpl->isForInterface();
-        if (!interfaceMethod && sym.isTyped() && canDelayGenericInstanceFunctionBody(sema, *this, sym, declImpl))
+        if (!interfaceMethod && sym.isTyped() && canDelayFunctionBody(sema, *this, sym, declImpl))
         {
-            sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+            sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
             return Result::SkipChildren;
         }
 
@@ -1636,9 +1688,9 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (spanConstraintsRef.isValid())
             sym.setConstraintsResolved(sema.ctx());
 
-        if (sym.isTyped() && canDelayGenericInstanceFunctionBody(sema, *this, sym, declImpl))
+        if (sym.isTyped() && canDelayFunctionBody(sema, *this, sym, declImpl))
         {
-            sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+            sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
             return Result::SkipChildren;
         }
 
@@ -1791,8 +1843,8 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         // Signature-only preparation can stop here before the declaring walk visits
         // the body. Publish its deferred work before Typed wakes callers, otherwise
         // they can consume an empty borrow summary and leave the body unanalysed.
-        if (canDelayGenericInstanceFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
-            sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+        if (canDelayFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
+            sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
         sym.setTyped(sema.ctx());
 
         SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));
@@ -1834,11 +1886,11 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     if (sym.isSemaCompleted())
         return Result::Continue;
 
-    const Result waitResult = waitForOtherLazyGenericBodyRunner(sema, sym);
+    const Result waitResult = waitForOtherLazyBodyRunner(sema, sym);
     if (waitResult != Result::Continue)
         return waitResult;
 
-    if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) && !sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+    if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBody) && !sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
         return Result::Continue;
 
     if (sym.isForeign() && !sym.isEmpty())
@@ -1846,8 +1898,8 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 
     if (sym.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
     {
-        sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
-        sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+        sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBody);
+        sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
         sym.setSemaCompleted(sema.ctx());
         return Result::Continue;
     }
@@ -1866,8 +1918,8 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
     SemaPurity::computePurityFlag(sema, sym);
-    sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
-    sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+    sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBody);
+    sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         sema.compiler().registerNativeCodeFunction(&sym);

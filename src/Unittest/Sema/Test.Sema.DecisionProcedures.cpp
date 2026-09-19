@@ -272,7 +272,7 @@ SWC_TEST_BEGIN(Sema_GenericMethodSignaturePublishesLazyBody)
     SWC_RESULT(decl->semaPostNodeChild(functionSema, paramsRef));
     if (!function->isTyped() || function->isSemaCompleted())
         return Result::Error;
-    if (!function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
+    if (!function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
         return Result::Error;
 }
 SWC_TEST_END()

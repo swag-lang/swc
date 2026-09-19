@@ -128,6 +128,54 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_IncompletePublicationIsRejectedAndCanBeRebui
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_AnalyzesImportedFunctionBodiesOnDemand)
+{
+    ApiPublicationTestDirectory directory("LazyBodies");
+    constexpr std::string_view apiSource = R"(#global public
+struct ImportedValue
+{
+    public value: s32
+}
+impl ImportedValue
+{
+    mtd read()->s32 => .value
+}
+func importedValue()->s32 => 42
+func importedFailure()->s32 => MissingImportedBodySymbol
+)";
+    constexpr std::string_view validConsumer = R"(#main
+{
+    const value = importedValue()
+    Swag.assert(value == 42)
+    var imported: ImportedValue
+    imported.value = value
+    Swag.assert(imported.read() == 42)
+}
+)";
+    constexpr std::string_view invalidConsumer = R"(#main
+{
+    discard importedFailure()
+}
+)";
+
+    SWC_RESULT(writePublicationSource(directory.apiDirectory() / "value.swg", apiSource));
+    SWC_RESULT(writePublicationSource(directory.path() / "consumer.swg", validConsumer));
+
+    ImportResult unusedInvalidBody;
+    runPublicationImporter(unusedInvalidBody, directory);
+    if (unusedInvalidBody.process != Os::ProcessRunResult::Ok || unusedInvalidBody.exitCode != 0)
+        return Result::Error;
+
+    SWC_RESULT(writePublicationSource(directory.path() / "consumer.swg", invalidConsumer));
+    ImportResult usedInvalidBody;
+    runPublicationImporter(usedInvalidBody, directory);
+    if (usedInvalidBody.process != Os::ProcessRunResult::Ok || usedInvalidBody.exitCode == 0)
+        return Result::Error;
+    if (usedInvalidBody.output.find("MissingImportedBodySymbol") == std::string::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterWaitsForCompletePublication)
 {
     ApiPublicationTestDirectory directory("Concurrent");

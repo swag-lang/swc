@@ -513,6 +513,22 @@ namespace
         if (!sema.isCurrentFunction())
             return Result::Continue;
 
+        // An unchecked '#assume' value extraction reads the boxed storage directly. Runtime
+        // lookup can neither adjust that value nor report a mismatch when dynamic-cast safety
+        // is disabled, so pulling the complete dynamic-cast runtime into the call graph only
+        // adds dead work and code. Pointer, reference, and interface destinations still need
+        // lookup because their borrowed address may require adjustment.
+        const bool directAssumedValue = castFlags.has(CastFlagsE::Assume) &&
+                                        !castFlags.hasAny({CastFlagsE::Try, CastFlagsE::NoOverflow, CastFlagsE::UnConst}) &&
+                                        !dstType.isAnyPointer() && !dstType.isReference() && !dstType.isMoveReference() &&
+                                        !dstType.isInterface() && !dstType.isTypeInfo();
+        if (directAssumedValue && !hasDynCastSafety)
+        {
+            if (hasNullExtractSafety)
+                SWC_RESULT(SemaHelpers::requireRuntimeSafetyPanicDependency(sema, sema.node(nodeRef).codeRef()));
+            return Result::Continue;
+        }
+
         const auto& codeRef = sema.node(nodeRef).codeRef();
         SWC_RESULT(SemaHelpers::attachRuntimeAsFunctionToNode(sema, nodeRef, codeRef));
 

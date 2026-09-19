@@ -592,7 +592,7 @@ struct SymbolFunction::GenericData
     mutable std::atomic<uint32_t>                 completionDepth = 0;
     mutable std::atomic<bool>                     nodeCompleted   = false;
     SymbolFunction*                               rootSym         = nullptr;
-    std::shared_ptr<void>                         lazyGenericBodyRun;
+    std::shared_ptr<void>                         lazyBodyRun;
     mutable std::recursive_mutex                  evalRunMutex;
     mutable std::shared_mutex                     evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
@@ -1070,15 +1070,15 @@ bool SymbolFunction::tryGetGenericInstanceArgs(const TaskContext& ctx, SmallVect
     return root && root->tryGetGenericInstanceArgs(ctx, *this, outArgs);
 }
 
-std::shared_ptr<void>* SymbolFunction::lazyGenericBodyRunState() const noexcept
+std::shared_ptr<void>* SymbolFunction::lazyBodyRunState() const noexcept
 {
     auto* data = genericData();
-    return data ? &data->lazyGenericBodyRun : nullptr;
+    return data ? &data->lazyBodyRun : nullptr;
 }
 
-std::shared_ptr<void>& SymbolFunction::ensureLazyGenericBodyRunState(const TaskContext& ctx) const noexcept
+std::shared_ptr<void>& SymbolFunction::ensureLazyBodyRunState(const TaskContext& ctx) const noexcept
 {
-    return ensureGenericData(ctx).lazyGenericBodyRun;
+    return ensureGenericData(ctx).lazyBodyRun;
 }
 
 AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const

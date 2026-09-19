@@ -1004,7 +1004,7 @@ namespace
     {
         if (!relocation.allowUnresolvedFunction)
             return false;
-        if (targetFunction.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+        if (targetFunction.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return true;
 
         return !isOptionalFunctionRelocationReady(targetFunction);

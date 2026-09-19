@@ -1051,7 +1051,7 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     let modules = Path.combine(scratch.toString(), "modules")
     try Directory.create(scratch.toString())
     try Directory.create(modules.toString())
-    for module in ["provider", "middle", "leaf", "compile_time", "static_provider", "static_consumer"]
+    for module in ["provider", "middle", "leaf", "compile_time", "dynamic_consumer", "static_provider", "static_consumer"]
     {
         let moduleDirectory = Path.combine(modules.toString(), module)
         try Directory.create(moduleDirectory.toString())
@@ -1071,6 +1071,9 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     try File.writeAllText(Path.combine(modules.toString(), "compile_time", "module.swg").toString(), "#import(\"provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"CompileTime\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "compile_time", "src", "main.swg").toString(), "public const Captured = #run Provider.value()\n")
 
+    try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "module.swg").toString(), "#import(\"provider\", link: \"shared-library\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.publishDependencies = true }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "src", "main.swg").toString(), "#main { if Provider.value() == 1 do Swag.print(\"incremental-value=1\\n\") else do Swag.print(\"incremental-value=2\\n\") }\n")
+
     try File.writeAllText(Path.combine(modules.toString(), "static_provider", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .StaticLibrary; cfg.moduleNamespace = \"StaticProvider\" }\n")
     let staticProviderSource = Path.combine(modules.toString(), "static_provider", "src", "main.swg")
     try File.writeAllText(staticProviderSource.toString(), "private func privateValue()->s32 => 1\npublic func value()->s32 => privateValue()\n")
@@ -1089,6 +1092,17 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     let firstCompileTimeCode = try context.runCompiler(compileTime)
     if firstCompileTimeCode != 0 do
         return firstCompileTimeCode
+
+    var dynamicConsumer = workspaceModuleCommand("run", scratch.toString(), "dynamic_consumer", buildCfg)
+    dynamicConsumer.add(["--incremental"])
+    options.appendExtra(&dynamicConsumer)
+    let firstDynamicOutput = try context.captureCompiler(dynamicConsumer)
+    Console.print(firstDynamicOutput.toString())
+    if not Utf8.contains(firstDynamicOutput.toString(), "incremental-value=1")
+    {
+        Console.println("The initial incremental executable did not run with its shared dependency")
+        return 1
+    }
 
     var staticConsumer = workspaceModuleCommand("build", scratch.toString(), "static_consumer", buildCfg)
     options.appendExtra(&staticConsumer)
@@ -1116,6 +1130,14 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     for artifact in ["middle.dll", "leaf.dll"] where not artifactReportedUpToDate(leafOutput.toString(), artifact)
     {
         Console.println("A private dependency edit recompiled an interface-stable library: ", artifact)
+        return 1
+    }
+
+    let dynamicOutput = try context.captureCompiler(dynamicConsumer)
+    Console.print(dynamicOutput.toString())
+    if not artifactReportedUpToDate(dynamicOutput.toString(), "dynamic_consumer.exe") or not Utf8.contains(dynamicOutput.toString(), "incremental-value=2")
+    {
+        Console.println("Incremental mode did not reuse an executable with a fresh interface-compatible shared dependency")
         return 1
     }
 

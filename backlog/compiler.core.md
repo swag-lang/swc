@@ -6,6 +6,71 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.003 — Code-generation invalidation is module-wide
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-19 09:35 — define a staged persistent-object design after adding the first explicit incremental reuse boundary
+
+**Current boundary.** Workspace manifests already keep a completed module when its own inputs and
+the dependency API generations it consumed are unchanged. `--incremental` now also keeps an
+executable image when only an interface-compatible dynamically linked implementation changed;
+the fresh DLL is republished before a run. Static inputs and imported native code executed at
+compile time remain native invalidation boundaries. This path adds no hashing or cache lookup and
+checks fewer timestamps than the conservative path.
+
+**Evidence for the next layer.** Native executable and DLL links currently consume each compiled
+function's `MachineCode` and data descriptions in memory. `NativeObjFileWriter` serializes the same
+descriptions as COFF only for static-library members, while `PELinker` can already read COFF archive
+members into a link image. Therefore a statically linked dependency change currently throws away a
+still-valid front end and code generation for the consuming module merely because the final image
+must be linked again. The existing workspace manifest already records the source, compiler,
+configuration, API, and native read boundaries needed to decide whether that module-owned code is
+still valid.
+
+**Next — deterministic module link capsules.** After a successful native compilation, optionally
+publish the module-owned code and data as a relocatable COFF archive beside the workspace manifest.
+Publication is atomic and happens only after the normal build succeeds. A later build whose own
+inputs and observed APIs are unchanged, but whose static native inputs changed, loads this capsule
+and performs only library resolution and the final PE/PDB link. The cache identity includes the
+compiler build, target, backend configuration, safety/debug/optimization settings, tags, module
+inputs, and observed API generations. COFF timestamps and member ordering are canonical so worker
+count and scheduling cannot change the cache bytes.
+
+Do not content-hash the source tree in a separate warm-build pass. Reuse the manifest's read
+boundaries for the cheap eligibility decision; when content fingerprints are later needed, compute
+them while bytes are already being read. Do not write capsules for non-native outputs or failed
+builds, and allow the write to be skipped below a measured code-generation cost threshold. Record
+cache decision time, bytes read/written, and saved code-generation/link time so a hit that costs
+more than it saves is visible.
+
+**After the module capsule.** Cache code generation at function granularity. Key each relocatable
+function object and its owned read-only data by a canonical typed-IR fingerprint plus the reachable
+ABI and inlinable-body fingerprints that can affect generated code. Stable symbol identities must
+replace arena addresses; debug, unwind, relocation, and generic-instantiation metadata belong to
+the entry. The linker assembles hits and newly generated misses in canonical order. Front-end state
+and binary module interfaces remain compiler.core.002 and compiler.core.001 respectively; this
+entry consumes their semantic fingerprints rather than inventing a second dependency graph.
+
+**Performance gate.** Compare clean, no-op, private-body edit, static-dependency edit, and public-API
+edit workloads with compiler.core.004. A clean build may not regress outside the established noise
+band, a no-op cache decision must stay cheaper than launching code generation, and cache writes may
+not extend the reported critical path. Keep the simpler nonincremental path available until those
+bounds hold in both DevMode and Release.
+
+**Complete when.**
+
+- A static-dependency implementation edit relinks a consumer without re-running its front end or
+  code generation.
+- A body-only edit regenerates the changed function and any function whose generated code depends
+  on it, while unrelated functions are reused.
+- Reuse works for native and JIT builds, including debug and unwind metadata.
+- Clean and warm builds produce byte-identical deterministic cache entries and observably identical
+  programs, and reject compiler, target, configuration, ABI, API, and optimization changes.
+- The compiler.core.004 edit-build workloads demonstrate a material win with no measurable clean
+  build regression.
+
+**Related:** compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.030.
+
 ### compiler.core.053 — CodeView type records repeat every structure a module reaches
 
 - Recorded: 2026-09-17 08:42
@@ -468,22 +533,6 @@ definition provider and does not consume resolved compiler symbols.
 - Clean and incremental workspace builds are covered by equivalent-result tests.
 
 **Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
-
-### compiler.core.003 — Code-generation invalidation is module-wide
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Intent.** Cache code generation at function granularity. A reusable artifact must be keyed by the function's semantic fingerprint plus the reachable ABI and inlinable-body dependencies that can affect its generated code.
-
-**Complete when.**
-
-- A body-only edit regenerates the changed function and any function whose generated code depends on it, while unrelated functions are reused.
-- Reuse works for JIT and native builds, including debug and unwind metadata.
-- A deterministic test compares clean and warm native images, manifests, and observable behavior.
-- Cache entries reject compiler, target, configuration, ABI, and relevant optimization changes.
-
-**Related:** compiler.core.001, compiler.core.002, compiler.core.004.
 
 ### compiler.core.007 — Workspace front ends and code generation run serially
 

@@ -13,6 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct MicroRelocation;
 class CompilerInstance;
+class Archive;
 class Linker;
 class ScopedTimedLog;
 class SymbolFunction;
@@ -30,6 +31,16 @@ struct NativeFunctionInfo
     uint32_t           textOffset = 0;
     bool               exported   = false;
     bool               compilerFn = false;
+    bool               cacheHit   = false;
+};
+
+struct NativeFunctionCacheRecord
+{
+    Utf8      key;
+    Utf8      fingerprint;
+    Utf8      symbolName;
+    ByteArray objectBytes;
+    bool      hit = false;
 };
 
 struct NativeStartupInfo
@@ -76,6 +87,8 @@ struct NativeObjDescription
 class NativeBackendBuilder
 {
 public:
+    static constexpr uint32_t K_FUNCTION_CACHE_VERSION = 1;
+
     struct NativeTestProgressEvent
     {
         Utf8     name;
@@ -98,6 +111,12 @@ public:
     const NativeRDataAllocationMapEntry* tryFindRDataEmittedAllocation(uint32_t emittedOffset) const noexcept;
     bool                                 tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
     Result                               appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
+    bool                                 tryReuseFunction(SymbolFunction& function);
+    Result                               finalizeFunctionCacheHit(bool& outHit, SymbolFunction& function, const Utf8& symbolName);
+    const NativeFunctionCacheRecord*     functionCacheRecord(const SymbolFunction& function) const;
+    bool                                 functionCacheEnabled() const { return functionCacheEnabled_; }
+    const fs::path&                      functionCacheArchivePath() const { return functionCacheArchivePath_; }
+    const fs::path&                      functionCacheIndexPath() const { return functionCacheIndexPath_; }
     DiagnosticId                         lastErrorId() const { return lastErrorId_; }
     bool                                 artifactLinked() const { return artifactLinked_; }
 
@@ -183,6 +202,7 @@ private:
     size_t      selectedNativeTestCount() const;
     void        parseNativeTestSummary(const std::string& output);
     Result      validateTarget();
+    void        prepareFunctionCache();
     Result      buildObjects();
     Result      runGeneratedArtifact();
     Result      runAfterLink();
@@ -194,6 +214,13 @@ private:
     DiagnosticId            lastErrorId_    = DiagnosticId::None;
     std::unique_ptr<Linker> deferredLinker_;
     LinkJob                 deferredToolRun_;
+    std::unique_ptr<Archive> existingFunctionCacheArchive_;
+    std::unordered_map<Utf8, std::pair<Utf8, Utf8>> existingFunctionCacheEntries_;
+    std::unordered_map<const SymbolFunction*, NativeFunctionCacheRecord> functionCacheRecords_;
+    mutable std::mutex                               functionCacheMutex_;
+    fs::path                                         functionCacheArchivePath_;
+    fs::path                                         functionCacheIndexPath_;
+    bool                                             functionCacheEnabled_ = false;
 };
 
 SWC_END_NAMESPACE();

@@ -210,6 +210,8 @@ public:
     bool                                  deferNativeLink() const { return deferNativeLink_; }
     void                                  setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> builder);
     std::unique_ptr<NativeBackendBuilder> takeDeferredBuilder();
+    void                                  setActiveNativeBuilder(NativeBackendBuilder* builder) { activeNativeBuilder_ = builder; }
+    NativeBackendBuilder*                 activeNativeBuilder() const { return activeNativeBuilder_; }
 
     void registerNativeCodeFunction(SymbolFunction* symbol);
     // Registers a '#test'/'#init'/'#premain'/'#drop'/'#main' body in the native artifact, in the
@@ -611,6 +613,7 @@ private:
     std::unique_ptr<DependencyPlan>                                  ownedDependencyPlan_;
     bool                                                             deferNativeLink_ = false;
     std::unique_ptr<NativeBackendBuilder>                            deferredBuilder_;
+    NativeBackendBuilder*                                            activeNativeBuilder_ = nullptr;
     Utf8                                                             lastArtifactLabel_;
     bool                                                             nativeArtifactBuilt_ = false;
     std::atomic_bool                                                  importedNativeExecuted_ = false;

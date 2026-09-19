@@ -44,7 +44,11 @@ void NativeValidate::validate() const
 
     for (const auto& info : builder_->functionInfos)
     {
-        SWC_ASSERT(info.machineCode != nullptr);
+        if (!info.machineCode)
+        {
+            SWC_ASSERT(info.cacheHit);
+            continue;
+        }
         validateRelocations(*info.machineCode);
     }
 }

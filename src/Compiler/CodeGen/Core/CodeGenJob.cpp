@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -192,9 +193,13 @@ JobResult CodeGenJob::execImpl()
 
         // Lowered microcode persisted on the symbol for later materialization.
         ///////////////////////////////////////////
-        const Result emitResult = symbolFunc_->emit(ctx());
-        if (emitResult != Result::Continue)
-            return abortCodeGen(ctx(), *symbolFunc_, emitResult);
+        NativeBackendBuilder* nativeBuilder = sema().compiler().activeNativeBuilder();
+        if (!nativeBuilder || !nativeBuilder->tryReuseFunction(*symbolFunc_))
+        {
+            const Result emitResult = symbolFunc_->emit(ctx());
+            if (emitResult != Result::Continue)
+                return abortCodeGen(ctx(), *symbolFunc_, emitResult);
+        }
     }
 
     SmallVector<SymbolFunction*> finalDeps;

@@ -155,7 +155,8 @@ void CommandLineParser::registerCommands()
         "Recompile every selected module even when all generated outputs are up to date, and rebuild the standard-library modules a script imports");
     add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--incremental", nullptr,
         &cmdLine_->incremental,
-        "Maximize reuse of compatible workspace artifacts: keep executables across shared-library changes, and relink non-debug executables from cached objects after static-library changes");
+        "Maximize reuse of compatible workspace artifacts: reuse eligible unchanged native functions after source edits, "
+        "keep executables across shared-library changes, and relink non-debug executables from cached objects after static-library changes");
     add(HelpOptionGroup::Input, "clean", "--cache", nullptr,
         &cmdLine_->cleanCache,
         "Remove the dependency copies the compiler keeps outside any workspace, one per build of a dependency a script imported");

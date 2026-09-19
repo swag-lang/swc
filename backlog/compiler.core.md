@@ -9,7 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
 - Recorded: 2026-08-09 11:30
-- Updated: 2026-09-19 10:23 — ship the first persistent COFF relink cache and narrow the next layer to function-level reuse
+- Updated: 2026-09-19 11:46 — reuse unchanged relocation-free leaf functions from a persistent COFF archive
 
 **Current boundary.** Workspace manifests already keep a completed module when its own inputs and
 the dependency API generations it consumed are unchanged. `--incremental` keeps an executable
@@ -21,12 +21,20 @@ the consumer's front end or code generation. Imported native code executed at co
 a strict invalidation boundary. Cache publication is atomic and best-effort, and a missing or
 modified object falls back to a normal compilation.
 
-**Evidence for the next layer.** The module object proves the invalidation boundary and removes the
-largest redundant work after a static-dependency edit, but a body edit in the executable still
-invalidates that whole object. `NativeObjFileWriter` can already serialize one function per object,
-and the integrated linker already folds identical archive functions and read-only data. The next
-useful boundary is therefore the typed function plus the constants and metadata its generated code
-owns, not another whole-module cache format.
+The next cache layer now fingerprints raw per-function microcode before optimization. For a
+non-debug incremental executable, an unchanged function with at least 64 micro-instructions and no
+code relocation reuses its COFF archive member, including unwind metadata, and skips the micro
+passes and encoder. The cache remains one archive plus a compact index rather than one persistent
+file per function. Entries carry the compiler build and backend configuration identity; malformed,
+missing, renamed, or fingerprint-mismatched entries fall back to ordinary emission. The workspace
+regression changes one large leaf while observing another reported as reused, then verifies that
+`--rebuild` bypasses the cache.
+
+**Evidence for the next layer.** The first function slice deliberately excludes calls, referenced
+constants, debug information, and small functions: those need a canonical dependency fingerprint
+or cost more to serialize than they save. `NativeObjFileWriter` already serializes one function per
+archive member, and the integrated linker resolves those members lazily, so broader coverage should
+extend the fingerprint and admission policy rather than create another storage format.
 
 Do not content-hash the source tree in a separate warm-build pass. Reuse the manifest's read
 boundaries for the cheap eligibility decision; when content fingerprints are later needed, compute
@@ -35,13 +43,13 @@ builds, and allow the write to be skipped below a measured code-generation cost 
 cache decision time, bytes read/written, and saved code-generation/link time so a hit that costs
 more than it saves is visible.
 
-**Next — function-level code generation.** Cache code generation at function granularity. Key each relocatable
-function object and its owned read-only data by a canonical typed-IR fingerprint plus the reachable
-ABI and inlinable-body fingerprints that can affect generated code. Stable symbol identities must
-replace arena addresses; debug, unwind, relocation, and generic-instantiation metadata belong to
-the entry. The linker assembles hits and newly generated misses in canonical order. Front-end state
-and binary module interfaces remain compiler.core.002 and compiler.core.001 respectively; this
-entry consumes their semantic fingerprints rather than inventing a second dependency graph.
+**Next — broaden function-level code generation.** Admit functions with relocations by fingerprinting
+their referenced symbol identities, constant payloads, reachable ABI, and inlinable bodies. Add
+debug records only after their source identity and line mapping are deterministic. Measure an
+adaptive size/cost threshold so small functions never pay more hashing and archive work than their
+micro passes cost. Front-end state and binary module interfaces remain compiler.core.002 and
+compiler.core.001 respectively; this entry consumes their semantic fingerprints rather than
+inventing a second dependency graph.
 
 **Performance gate.** Compare clean, no-op, private-body edit, static-dependency edit, and public-API
 edit workloads with compiler.core.004. A clean build may not regress outside the established noise
@@ -54,7 +62,8 @@ bounds hold in both DevMode and Release.
 - A static-dependency implementation edit relinks a consumer without re-running its front end or
   code generation. Done for non-debug executable build/run/smoke commands.
 - A body-only edit regenerates the changed function and any function whose generated code depends
-  on it, while unrelated functions are reused.
+  on it, while unrelated functions are reused. Done for sufficiently large relocation-free leaf
+  functions in non-debug executables.
 - Reuse works for native and JIT builds, including debug and unwind metadata.
 - Clean and warm builds produce byte-identical deterministic cache entries and observably identical
   programs, and reject compiler, target, configuration, ABI, API, and optimization changes.

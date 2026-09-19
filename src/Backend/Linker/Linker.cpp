@@ -33,23 +33,31 @@ namespace
 
     void publishIncrementalCache(LinkJob& job)
     {
-        if (job.incrementalObjects.empty())
+        if (job.incrementalObjects.empty() && job.incrementalCacheFiles.empty())
             return;
 
-        for (LinkJob::IncrementalObject& object : job.incrementalObjects)
-        {
-            std::error_code ec;
-            fs::create_directories(object.path.parent_path(), ec);
-            if (ec)
-                return;
+        const auto publish = [](std::vector<LinkJob::IncrementalObject>& objects) {
+            for (LinkJob::IncrementalObject& object : objects)
+            {
+                std::error_code ec;
+                fs::create_directories(object.path.parent_path(), ec);
+                if (ec)
+                    return false;
 
-            FileSystem::IoErrorInfo ioError;
-            if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError) != Result::Continue)
-                return;
-        }
+                FileSystem::IoErrorInfo ioError;
+                if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError) != Result::Continue)
+                    return false;
+            }
+            return true;
+        };
+
+        if (!publish(job.incrementalObjects) || !publish(job.incrementalCacheFiles))
+            return;
 
         job.incrementalCachePublished = true;
         for (LinkJob::IncrementalObject& object : job.incrementalObjects)
+            object.bytes.clear();
+        for (LinkJob::IncrementalObject& object : job.incrementalCacheFiles)
             object.bytes.clear();
     }
 

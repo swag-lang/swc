@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Linker/Archive.h"
+#include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/Linker.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
@@ -18,7 +21,9 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Main/Version.h"
 #include "Support/Math/Hash.h"
+#include "Support/Math/Sha256.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
@@ -60,6 +65,103 @@ Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& 
 
 namespace
 {
+    constexpr uint32_t K_FUNCTION_CACHE_MIN_INSTRUCTIONS = 64;
+
+    Utf8 digestToHex(const std::array<uint8_t, 32>& digest)
+    {
+        Utf8 result;
+        result.reserve(digest.size() * 2);
+        for (const uint8_t value : digest)
+            result += std::format("{:02x}", value);
+        return result;
+    }
+
+    Utf8 functionCacheKey(const NativeBackendBuilder& builder, const SymbolFunction& function)
+    {
+        // A declaration can move when an unrelated function above it changes. Keep the cache key
+        // tied to semantic identity rather than to its token offset; the current COFF symbol name
+        // is checked separately before a hit is accepted.
+        Utf8 identity = function.getFullScopedName(builder.ctx());
+        identity += "|";
+        identity += std::to_string(builder.ctx().typeMgr().get(function.typeRef()).runtimeHash(builder.ctx()));
+        return digestToHex(sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()}));
+    }
+
+    void appendBackendConfig(ByteArray& bytes, const Runtime::BuildCfgBackend& config)
+    {
+        bytes.pushBack(static_cast<std::byte>(config.optimLevel));
+        bytes.pushBack(static_cast<std::byte>(config.vectorize));
+        bytes.pushBack(static_cast<std::byte>(config.debugInfo));
+        bytes.pushBack(static_cast<std::byte>(config.enableExceptions));
+        bytes.pushBack(static_cast<std::byte>(config.fpMathFma));
+        bytes.pushBack(static_cast<std::byte>(config.fpMathNoNaN));
+        bytes.pushBack(static_cast<std::byte>(config.fpMathNoInf));
+        bytes.pushBack(static_cast<std::byte>(config.fpMathNoSignedZero));
+        bytes.pushBack(static_cast<std::byte>(config.fpMathUnsafe));
+        bytes.pushBack(static_cast<std::byte>(config.fpMathApproxFunc));
+        bytes.appendLe32(config.unrollMemLimit);
+        bytes.pushBack(static_cast<std::byte>(config.inlineMode));
+    }
+
+    Utf8 functionCacheFingerprint(const NativeBackendBuilder& builder, const SymbolFunction& function)
+    {
+        const MicroBuilder& microBuilder = function.microInstrBuilder();
+        if (microBuilder.instructions().count() < K_FUNCTION_CACHE_MIN_INSTRUCTIONS || !microBuilder.codeRelocations().empty())
+            return {};
+
+        ByteArray identity;
+        appendBackendConfig(identity, builder.compiler().buildCfg().backend);
+        identity.pushBack(static_cast<std::byte>(function.callConvKind()));
+        identity.appendLe32(function.attributes().effectiveSanityMask(builder.compiler().buildCfg().sanityGuards));
+        identity.appendLe32(function.debugStackBaseReg().packed);
+        identity.appendLe32(builder.ctx().typeMgr().get(function.typeRef()).runtimeHash(builder.ctx()));
+        identity.appendLe32(function.returnTypeRef().isValid() ? builder.ctx().typeMgr().get(function.returnTypeRef()).runtimeHash(builder.ctx()) : 0);
+
+        for (const MicroInstr& instruction : microBuilder.instructions().view())
+        {
+            if (instruction.op == MicroInstrOpcode::LoadRegPtrImm)
+                return {};
+
+            identity.pushBack(static_cast<std::byte>(instruction.op));
+            identity.pushBack(static_cast<std::byte>(instruction.numOperands));
+            const MicroInstrOperand* operands = instruction.ops(microBuilder.operands());
+            for (uint32_t i = 0; i < instruction.numOperands; ++i)
+            {
+                identity.appendLe64(operands[i].valueU64);
+                identity.appendLe32(operands[i].valueInt.bitWidth());
+                if (operands[i].valueInt.bitWidth() > 64)
+                {
+                    const Utf8 wideValue = operands[i].valueInt.toString();
+                    identity.appendLe32(static_cast<uint32_t>(wideValue.size()));
+                    identity.append(wideValue.view());
+                }
+            }
+        }
+
+        std::vector<std::pair<uint32_t, uint32_t>> forbiddenRegs;
+        for (const auto& [virtualReg, physicalRegs] : microBuilder.virtualRegForbiddenPhysRegs())
+            for (const MicroReg physicalReg : physicalRegs)
+                forbiddenRegs.emplace_back(virtualReg.packed, physicalReg.packed);
+        std::ranges::sort(forbiddenRegs);
+        identity.appendLe32(static_cast<uint32_t>(forbiddenRegs.size()));
+        for (const auto [virtualReg, physicalReg] : forbiddenRegs)
+        {
+            identity.appendLe32(virtualReg);
+            identity.appendLe32(physicalReg);
+        }
+
+        std::vector<uint32_t> preservedRegs;
+        preservedRegs.reserve(microBuilder.preservedVirtualCopyRegs().size());
+        for (const MicroReg reg : microBuilder.preservedVirtualCopyRegs())
+            preservedRegs.push_back(reg.packed);
+        std::ranges::sort(preservedRegs);
+        identity.appendLe32(static_cast<uint32_t>(preservedRegs.size()));
+        for (const uint32_t reg : preservedRegs)
+            identity.appendLe32(reg);
+
+        return digestToHex(sha256(identity.span()));
+    }
+
     Utf8 lowerPathExtension(const fs::path& path)
     {
         Utf8 result = path.extension().string();
@@ -516,7 +618,7 @@ namespace
         return info;
     }
 
-    void rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
+    Result rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
     {
         builder.functionInfos.clear();
         builder.functionBySymbol.clear();
@@ -526,11 +628,16 @@ namespace
         for (SymbolFunction* symbol : functions)
         {
             SWC_ASSERT(symbol != nullptr);
-            builder.functionInfos.push_back(makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(builder.functionInfos.size())));
+            NativeFunctionInfo info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(builder.functionInfos.size()));
+            SWC_RESULT(builder.finalizeFunctionCacheHit(info.cacheHit, *symbol, info.symbolName));
+            if (info.cacheHit)
+                info.machineCode = nullptr;
+            builder.functionInfos.push_back(std::move(info));
         }
 
         for (const auto& info : builder.functionInfos)
             builder.functionBySymbol.emplace(info.symbol, &info);
+        return Result::Continue;
     }
 
     bool discardIgnoredCallers(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
@@ -617,7 +724,8 @@ namespace
         for (size_t index = 0; index < functions.size(); ++index)
         {
             SymbolFunction* symbol = functions[index];
-            if (symbol->loweredCode().bytes.empty())
+            const NativeFunctionCacheRecord* cacheRecord = builder.functionCacheRecord(*symbol);
+            if (symbol->loweredCode().bytes.empty() && (!cacheRecord || !cacheRecord->hit))
             {
                 // A function that reported an error during codegen (e.g. the static null
                 // dereference analysis) legitimately produces no machine code. Don't
@@ -646,7 +754,157 @@ NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const boo
 
 // Defined here (not defaulted in the header) so the unique_ptr<Linker> member can be destroyed
 // with the complete Linker type, which is only visible in this translation unit.
-NativeBackendBuilder::~NativeBackendBuilder() = default;
+NativeBackendBuilder::~NativeBackendBuilder()
+{
+    if (compiler_ && compiler_->activeNativeBuilder() == this)
+        compiler_->setActiveNativeBuilder(nullptr);
+}
+
+void NativeBackendBuilder::prepareFunctionCache()
+{
+    functionCacheEnabled_ = false;
+    existingFunctionCacheArchive_.reset();
+    existingFunctionCacheEntries_.clear();
+    functionCacheRecords_.clear();
+    functionCacheArchivePath_.clear();
+    functionCacheIndexPath_.clear();
+
+    const CommandLine& commandLine = compiler_->cmdLine();
+    if (!commandLine.incremental || commandLine.rebuild || commandLine.command == CommandKind::Test ||
+        compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
+        compiler_->buildCfg().backend.debugInfo || compiler_->importedNativeExecuted())
+        return;
+
+    NativeArtifactPaths paths;
+    NativeArtifactBuilder(*this).queryPaths(paths);
+    functionCacheArchivePath_ = paths.buildDir / std::format("{}.incremental.lib", paths.name.view());
+    functionCacheIndexPath_   = paths.buildDir / std::format("{}.incremental.idx", paths.name.view());
+    functionCacheEnabled_     = true;
+
+    FileSystem::IoErrorInfo ioError;
+    std::string             indexContent;
+    if (FileSystem::readTextFile(functionCacheIndexPath_, indexContent, ioError) != Result::Continue)
+        return;
+
+    const std::string expectedHeader = std::format(
+        "version={}\ncompiler={}.{}.{}\n",
+        K_FUNCTION_CACHE_VERSION,
+        SWC_VERSION,
+        SWC_REVISION,
+        SWC_BUILD_NUM);
+    if (!indexContent.starts_with(expectedHeader))
+        return;
+
+    std::unordered_map<Utf8, std::pair<Utf8, Utf8>> entries;
+    size_t                                           cursor = expectedHeader.size();
+    while (cursor < indexContent.size())
+    {
+        size_t end = indexContent.find('\n', cursor);
+        if (end == std::string::npos)
+            end = indexContent.size();
+        std::string_view line(indexContent.data() + cursor, end - cursor);
+        if (!line.empty() && line.back() == '\r')
+            line.remove_suffix(1);
+        if (!line.empty())
+        {
+            const size_t firstTab  = line.find('\t');
+            const size_t secondTab = firstTab == std::string_view::npos ? firstTab : line.find('\t', firstTab + 1);
+            if (firstTab == std::string_view::npos || secondTab == std::string_view::npos || firstTab != 64 || secondTab - firstTab != 65 || secondTab + 1 == line.size())
+                return;
+            entries.emplace(
+                Utf8(line.substr(0, firstTab)),
+                std::pair{Utf8(line.substr(firstTab + 1, secondTab - firstTab - 1)), Utf8(line.substr(secondTab + 1))});
+        }
+        cursor = end + 1;
+    }
+
+    ByteArray archiveBytes;
+    if (FileSystem::readBinaryFile(functionCacheArchivePath_, archiveBytes, ioError) != Result::Continue)
+        return;
+
+    auto       archive = std::make_unique<Archive>();
+    Diagnostic archiveDiag;
+    if (!archive->load(archiveDiag, std::move(archiveBytes)))
+        return;
+    archive->setSourcePath(functionCacheArchivePath_);
+
+    existingFunctionCacheEntries_ = std::move(entries);
+    existingFunctionCacheArchive_ = std::move(archive);
+}
+
+bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
+{
+    if (!functionCacheEnabled_)
+        return false;
+
+    const Utf8 fingerprint = functionCacheFingerprint(*this, function);
+    if (fingerprint.empty())
+        return false;
+
+    NativeFunctionCacheRecord record;
+    record.key         = functionCacheKey(*this, function);
+    record.fingerprint = fingerprint;
+
+    const auto cached = existingFunctionCacheEntries_.find(record.key);
+    if (cached != existingFunctionCacheEntries_.end() && cached->second.first == fingerprint && existingFunctionCacheArchive_)
+    {
+        const Utf8&    symbolName   = cached->second.second;
+        const uint32_t memberOffset = existingFunctionCacheArchive_->memberOffsetForSymbol(symbolName);
+        if (memberOffset)
+        {
+            Diagnostic                       diag;
+            const std::span<const std::byte> memberBytes = existingFunctionCacheArchive_->memberData(diag, memberOffset);
+            if (!memberBytes.empty())
+            {
+                std::vector<CoffInputSymbol> symbols;
+                if (readCoffDefinedSymbols(symbols, diag, memberBytes) && std::ranges::any_of(symbols, [&](const CoffInputSymbol& symbol) { return symbol.name == symbolName; }))
+                {
+                    record.symbolName = symbolName;
+                    record.objectBytes.append(memberBytes);
+                    record.hit = true;
+                }
+            }
+        }
+    }
+
+    const bool hit = record.hit;
+    const std::scoped_lock lock(functionCacheMutex_);
+    functionCacheRecords_.insert_or_assign(&function, std::move(record));
+    return hit;
+}
+
+Result NativeBackendBuilder::finalizeFunctionCacheHit(bool& outHit, SymbolFunction& function, const Utf8& symbolName)
+{
+    outHit = false;
+    if (!functionCacheEnabled_)
+        return Result::Continue;
+
+    NativeFunctionCacheRecord* record = nullptr;
+    {
+        const std::scoped_lock lock(functionCacheMutex_);
+        const auto             it = functionCacheRecords_.find(&function);
+        if (it == functionCacheRecords_.end() || !it->second.hit)
+            return Result::Continue;
+        record = &it->second;
+    }
+
+    if (record->symbolName != symbolName)
+    {
+        record->hit = false;
+        record->objectBytes.clear();
+        return function.emit(ctx_);
+    }
+
+    function.microInstrBuilder(ctx_).releaseMemory();
+    outHit = true;
+    return Result::Continue;
+}
+
+const NativeFunctionCacheRecord* NativeBackendBuilder::functionCacheRecord(const SymbolFunction& function) const
+{
+    const auto it = functionCacheRecords_.find(&function);
+    return it == functionCacheRecords_.end() ? nullptr : &it->second;
+}
 
 TaskContext& NativeBackendBuilder::ctx()
 {
@@ -1016,13 +1274,17 @@ Result NativeBackendBuilder::runExistingArtifact()
 
 Result NativeBackendBuilder::prepare()
 {
+    SWC_ASSERT(compiler_ != nullptr);
+    compiler_->setActiveNativeBuilder(nullptr);
     runtimeDependencies.clear();
     runtimeDependencyInitOrder.clear();
     runtimeDependencyDropOrder.clear();
     functionInfos.clear();
     functionBySymbol.clear();
     generatedMachineCodes.clear();
-    SWC_ASSERT(compiler_ != nullptr);
+    prepareFunctionCache();
+    if (functionCacheEnabled_)
+        compiler_->setActiveNativeBuilder(this);
     testFunctions    = compiler_->nativeTestFunctions();
     initFunctions    = compiler_->nativeInitFunctions();
     preMainFunctions = compiler_->nativePreMainFunctions();
@@ -1123,9 +1385,18 @@ Result NativeBackendBuilder::prepare()
 
             // Code generation only needs symbols. Build artifact names and lookup tables
             // once the dependency set and executable reachability have stopped changing.
-            rebuildFunctionInfos(*this, functions);
+            SWC_RESULT(rebuildFunctionInfos(*this, functions));
             if (microStage)
-                microStage->setStat(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
+            {
+                std::vector<Utf8> stats;
+                stats.push_back(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
+                const size_t cacheHits = std::ranges::count_if(
+                    functionInfos,
+                    &NativeFunctionInfo::cacheHit);
+                if (cacheHits)
+                    stats.push_back(ScopedTimedLog::formatStatCount(ctx_, cacheHits, "reused function"));
+                microStage->setStat(ScopedTimedLog::joinStatItems(ctx_, stats));
+            }
             return Result::Continue;
         }
     }

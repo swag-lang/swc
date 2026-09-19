@@ -60,6 +60,7 @@ public:
     // the text offsets that lowering computed.
     Result partitionArchiveObjects() const;
     Result partitionIncrementalObject() const;
+    Result partitionIncrementalFunctionObjects() const;
 
 private:
     Result buildRuntimeHook(TaskContext& ctx) const;

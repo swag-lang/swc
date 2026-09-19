@@ -16,6 +16,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#include "Main/Version.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -948,7 +949,40 @@ Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
     std::set<Utf8>        libNames;
     std::vector<fs::path> dirs;
     collectLibrarySearch(libNames, dirs);
-    return loadArchivesFromSearch(outArchives, libNames, dirs);
+    SWC_RESULT(loadArchivesFromSearch(outArchives, libNames, dirs));
+    return appendIncrementalFunctionArchive(outArchives);
+}
+
+Result PELinker::appendIncrementalFunctionArchive(std::vector<Archive>& outArchives) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+
+    std::vector<LinkArchiveMember> members;
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        if (!info.cacheHit || !info.symbol)
+            continue;
+        const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
+        SWC_ASSERT(record && record->hit && !record->objectBytes.empty());
+        if (!record || !record->hit || record->objectBytes.empty())
+            continue;
+        members.push_back({.name = std::format("function_{:06}.obj", members.size()), .bytes = record->objectBytes});
+    }
+
+    if (members.empty())
+        return Result::Continue;
+
+    ByteArray  archiveBytes;
+    Diagnostic diag;
+    if (!buildCoffStaticArchive(archiveBytes, diag, members))
+        return builder_->reportError(diag);
+
+    Archive archive;
+    if (!archive.load(diag, std::move(archiveBytes)))
+        return builder_->reportError(diag);
+    archive.setSourcePath(builder_->functionCacheArchivePath());
+    outArchives.push_back(std::move(archive));
+    return Result::Continue;
 }
 
 Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& ioSymbols, std::vector<Archive>& archives) const
@@ -1282,6 +1316,7 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
     for (ArchiveLoadItem& item : archiveItems)
         if (item.loaded)
             archives.push_back(std::move(item.archive));
+    SWC_RESULT(appendIncrementalFunctionArchive(archives));
 
     collectDebugInfo(outJob);
     SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, symbols, archives));
@@ -1566,6 +1601,63 @@ Result PELinker::prepareStaticLibrarySideArchive(LinkJob& outJob) const
     return Result::Continue;
 }
 
+Result PELinker::prepareIncrementalFunctionCache(LinkJob& outJob) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+    if (!builder_->functionCacheEnabled())
+        return Result::Continue;
+
+    const NativeArtifactBuilder artifactBuilder(*builder_);
+    SWC_RESULT(artifactBuilder.partitionIncrementalFunctionObjects());
+    SWC_RESULT(builder_->buildObjectBytes());
+
+    std::unordered_map<const SymbolFunction*, const ByteArray*> generatedObjects;
+    generatedObjects.reserve(builder_->objectDescriptions.size());
+    for (const NativeObjDescription& description : builder_->objectDescriptions)
+    {
+        SWC_ASSERT(description.functions.size() == 1);
+        if (description.functions.size() == 1 && description.functions.front()->symbol)
+            generatedObjects.emplace(description.functions.front()->symbol, &description.objBytes);
+    }
+
+    std::vector<LinkArchiveMember> members;
+    Utf8 index = std::format("version={}\ncompiler={}.{}.{}\n", NativeBackendBuilder::K_FUNCTION_CACHE_VERSION, SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM);
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        if (!info.symbol)
+            continue;
+        const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
+        if (!record)
+            continue;
+
+        const ByteArray* objectBytes = nullptr;
+        if (record->hit)
+            objectBytes = &record->objectBytes;
+        else
+        {
+            const auto generated = generatedObjects.find(info.symbol);
+            if (generated != generatedObjects.end())
+                objectBytes = generated->second;
+        }
+        if (!objectBytes || objectBytes->empty())
+            continue;
+
+        members.push_back({.name = std::format("function_{:06}.obj", members.size()), .bytes = *objectBytes});
+        index += std::format("{}\t{}\t{}\n", record->key.view(), record->fingerprint.view(), info.symbolName.view());
+    }
+
+    ByteArray  archiveBytes;
+    Diagnostic diag;
+    if (!buildCoffStaticArchive(archiveBytes, diag, members))
+        return builder_->reportError(diag);
+
+    ByteArray indexBytes;
+    indexBytes.append(index.view());
+    outJob.incrementalCacheFiles.push_back({.path = builder_->functionCacheArchivePath(), .bytes = std::move(archiveBytes)});
+    outJob.incrementalCacheFiles.push_back({.path = builder_->functionCacheIndexPath(), .bytes = std::move(indexBytes)});
+    return Result::Continue;
+}
+
 Result PELinker::prepareIncrementalObjects(LinkJob& outJob) const
 {
     SWC_ASSERT(builder_ != nullptr);
@@ -1573,9 +1665,13 @@ Result PELinker::prepareIncrementalObjects(LinkJob& outJob) const
     if (!compiler.cmdLine().incremental ||
         compiler.cmdLine().command == CommandKind::Test ||
         compiler.buildCfg().backend.debugInfo ||
-        !compiler.hasImportedStaticLinkInputs() ||
         compiler.importedNativeExecuted())
         return Result::Continue;
+
+    // Function reuse is useful for every incremental executable. The coarser whole-module object
+    // below exists specifically to relink unchanged consumers after a static dependency changes.
+    if (!compiler.hasImportedStaticLinkInputs())
+        return prepareIncrementalFunctionCache(outJob);
 
     const NativeArtifactBuilder artifactBuilder(*builder_);
     SWC_RESULT(artifactBuilder.partitionIncrementalObject());
@@ -1590,11 +1686,27 @@ Result PELinker::prepareIncrementalObjects(LinkJob& outJob) const
         outJob.incrementalObjects.push_back(std::move(object));
     }
 
+    uint32_t cachedObjectIndex = 0;
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        if (!info.cacheHit || !info.symbol)
+            continue;
+        const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
+        SWC_ASSERT(record && record->hit);
+        if (!record || !record->hit)
+            continue;
+
+        LinkJob::IncrementalObject object;
+        object.path  = builder_->functionCacheArchivePath().parent_path() / std::format("incremental_function_{:06}.obj", cachedObjectIndex++);
+        object.bytes = record->objectBytes;
+        outJob.incrementalObjects.push_back(std::move(object));
+    }
+
     std::set<Utf8>        libraryNames;
     std::vector<fs::path> libraryDirs;
     collectLibrarySearch(libraryNames, libraryDirs);
     outJob.incrementalLibraries.assign(libraryNames.begin(), libraryNames.end());
-    return Result::Continue;
+    return prepareIncrementalFunctionCache(outJob);
 }
 
 Result PELinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, const std::span<const fs::path> objectPaths, const std::span<const Utf8> libraryNames)

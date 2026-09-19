@@ -30,6 +30,8 @@ private:
     Result prepareStaticLibraryLink(LinkJob& outJob) const;
     Result prepareStaticLibrarySideArchive(LinkJob& outJob) const;
     Result prepareIncrementalObjects(LinkJob& outJob) const;
+    Result prepareIncrementalFunctionCache(LinkJob& outJob) const;
+    Result appendIncrementalFunctionArchive(std::vector<Archive>& outArchives) const;
     Result collectArchiveMembers(std::vector<LinkArchiveMember>& outMembers) const;
     Result loadArchives(std::vector<Archive>& outArchives) const;
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;

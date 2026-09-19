@@ -1215,6 +1215,134 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
     return 0
 }
 
+private func incrementalFunctionCacheSource(seed: u64, marker: u32)->String
+{
+    return Format.toString(#raw """
+        #global private
+
+        #[Swag.NoInline]
+        func stable(value: u64)->u64
+        {
+            var result = value
+            result = (result << 7) ^ (result >> 3) ^ 0x9e3779b97f4a7c15
+            result = (result << 5) ^ (result >> 11) ^ 0xbf58476d1ce4e5b9
+            result = (result << 9) ^ (result >> 13) ^ 0x94d049bb133111eb
+            result = (result << 3) ^ (result >> 17) ^ 0x2545f4914f6cdd1d
+            result = (result << 11) ^ (result >> 5) ^ 0x369dea0f31a53f85
+            result = (result << 13) ^ (result >> 7) ^ 0xdb4f0b9175ae2165
+            result = (result << 17) ^ (result >> 9) ^ 0xbb67ae8584caa73b
+            result = (result << 19) ^ (result >> 11) ^ 0x3c6ef372fe94f82b
+            result = (result << 23) ^ (result >> 13) ^ 0xa54ff53a5f1d36f1
+            result = (result << 29) ^ (result >> 17) ^ 0x510e527fade682d1
+            result = (result << 31) ^ (result >> 19) ^ 0x1f83d9abfb41bd6b
+            result = (result << 37) ^ (result >> 23) ^ 0x5be0cd19137e2179
+            return result
+        }
+
+        #[Swag.NoInline]
+        func edited(value: u64)->u64
+        {
+            var result = value ^ %
+            result = (result << 7) ^ (result >> 3) ^ 0x243f6a8885a308d3
+            result = (result << 5) ^ (result >> 11) ^ 0x13198a2e03707344
+            result = (result << 9) ^ (result >> 13) ^ 0xa4093822299f31d0
+            result = (result << 3) ^ (result >> 17) ^ 0x082efa98ec4e6c89
+            result = (result << 11) ^ (result >> 5) ^ 0x452821e638d01377
+            result = (result << 13) ^ (result >> 7) ^ 0xbe5466cf34e90c6c
+            result = (result << 17) ^ (result >> 9) ^ 0xc0ac29b7c97c50dd
+            result = (result << 19) ^ (result >> 11) ^ 0x3f84d5b5b5470917
+            result = (result << 23) ^ (result >> 13) ^ 0x9216d5d98979fb1b
+            result = (result << 29) ^ (result >> 17) ^ 0xd1310ba698dfb5ac
+            result = (result << 31) ^ (result >> 19) ^ 0x2ffd72dbd01adfb7
+            result = (result << 37) ^ (result >> 23) ^ 0xb8e1afed6a267e96
+            return result
+        }
+
+        #main
+        {
+            if stable(1) != edited(2) do Swag.print("function-cache-value=%\n")
+        }
+        """, seed, marker)
+}
+
+// A source edit rebuilds the module, but an unchanged relocation-free leaf keeps its cached COFF
+// member and skips the expensive micro passes and encoder.
+private func verifyIncrementalFunctionCache(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+{
+    let scratch = Path.combine(workspace, ".tmp", "incremental-function-cache-probe")
+    if Directory.exists(scratch) do
+        try Directory.delete(scratch.toString(), recurse: true)
+    defer discard catch Directory.delete(scratch.toString(), recurse: true)
+
+    let modules         = Path.combine(scratch.toString(), "modules")
+    let moduleDirectory = Path.combine(modules.toString(), "function_cache")
+    let sourceDirectory = Path.combine(moduleDirectory.toString(), "src")
+    try Directory.create(scratch.toString())
+    try Directory.create(modules.toString())
+    try Directory.create(moduleDirectory.toString())
+    try Directory.create(sourceDirectory.toString())
+    try File.writeAllText(Path.combine(moduleDirectory.toString(), "module.swg").toString(), "#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")
+
+    let sourcePath = Path.combine(sourceDirectory.toString(), "main.swg")
+    try File.writeAllText(sourcePath.toString(), incrementalFunctionCacheSource(1, 1))
+
+    var command = workspaceModuleCommand("run", scratch.toString(), "function_cache", buildCfg)
+    command.add(["--incremental"])
+    options.appendExtra(&command)
+
+    let firstOutput = try context.captureCompiler(command)
+    Console.print(firstOutput.toString())
+    if not Utf8.contains(firstOutput.toString(), "function-cache-value=1")
+    {
+        Console.println("The initial incremental function-cache executable did not run")
+        return 1
+    }
+
+    let cacheDirectory = Path.combine(scratch.toString(), ".tmp", "function_cache", "executable", buildCfg, options.targetArch.toString())
+    let cacheArchive   = Path.combine(cacheDirectory.toString(), "function_cache.incremental.lib")
+    let cacheIndex     = Path.combine(cacheDirectory.toString(), "function_cache.incremental.idx")
+    if not File.exists(cacheArchive.toString()) or not File.exists(cacheIndex.toString())
+    {
+        Console.println("The initial incremental build did not publish its function cache")
+        return 1
+    }
+    let originalArchive = try File.readAllBytes(cacheArchive.toString())
+    let originalIndex   = try File.readAllBytes(cacheIndex.toString())
+
+    try File.writeAllText(sourcePath.toString(), incrementalFunctionCacheSource(2, 2))
+    let editedOutput = try context.captureCompiler(command)
+    Console.print(editedOutput.toString())
+    if not Utf8.contains(editedOutput.toString(), "function-cache-value=2") or not Utf8.contains(editedOutput.toString(), "reused function")
+    {
+        Console.println("A body edit did not reuse an unchanged function from the incremental cache")
+        return 1
+    }
+
+    try File.writeAllText(sourcePath.toString(), incrementalFunctionCacheSource(1, 1))
+    let restoredOutput = try context.captureCompiler(command)
+    Console.print(restoredOutput.toString())
+    let restoredArchive = try File.readAllBytes(cacheArchive.toString())
+    let restoredIndex   = try File.readAllBytes(cacheIndex.toString())
+    if not Utf8.contains(restoredOutput.toString(), "function-cache-value=1") or restoredArchive.toSlice() != originalArchive.toSlice() or restoredIndex.toSlice() != originalIndex.toSlice()
+    {
+        Console.println("Rebuilding identical functions did not reproduce the same incremental cache")
+        return 1
+    }
+
+    var rebuild = workspaceModuleCommand("run", scratch.toString(), "function_cache", buildCfg)
+    rebuild.add(["--rebuild"])
+    options.appendExtra(&rebuild)
+    let rebuiltOutput = try context.captureCompiler(rebuild)
+    Console.print(rebuiltOutput.toString())
+    if Utf8.contains(rebuiltOutput.toString(), "reused function")
+    {
+        Console.println("A rebuild reused the incremental function cache")
+        return 1
+    }
+
+    return 0
+}
+
 // WriteFile publishes fresh native bytes and their completion marker without redating the API.
 private func workspaceNativePublisher(sourceDirectory, destinationDirectory: string)->String
 {
@@ -1347,6 +1475,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let privateDependencyCode = try verifyPrivateDependencyInvalidation(context, options, workspace.toString(), buildCfg)
     if privateDependencyCode != 0 do
         return privateDependencyCode
+
+    let incrementalFunctionCacheCode = try verifyIncrementalFunctionCache(context, options, workspace.toString(), buildCfg)
+    if incrementalFunctionCacheCode != 0 do
+        return incrementalFunctionCacheCode
 
     // Documentation consumes local native artifacts for compile-time execution, but does not
     // produce those artifacts itself. Starting it from a clean workspace proves that its publish

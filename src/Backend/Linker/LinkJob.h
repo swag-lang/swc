@@ -47,6 +47,7 @@ struct LinkJob
     // Best-effort persistent inputs for a later incremental relink. They are published only after
     // the primary artifact succeeds, and never make an otherwise successful build fail.
     std::vector<IncrementalObject> incrementalObjects;
+    std::vector<IncrementalObject> incrementalCacheFiles;
     std::vector<Utf8>              incrementalLibraries;
     bool                           incrementalCachePublished = false;
 

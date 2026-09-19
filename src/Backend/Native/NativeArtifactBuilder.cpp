@@ -796,7 +796,7 @@ Result NativeArtifactBuilder::partitionObjects() const
 {
     builder_->objectDescriptions.clear();
 
-    const size_t functionCount = builder_->functionInfos.size();
+    const size_t functionCount = std::ranges::count_if(builder_->functionInfos, [](const NativeFunctionInfo& info) { return !info.cacheHit; });
     uint32_t     maxJobs       = builder_->ctx().cmdLine().numCores;
     if (!maxJobs)
         maxJobs = std::max<uint32_t>(1, builder_->ctx().global().jobMgr().numWorkers());
@@ -824,10 +824,13 @@ Result NativeArtifactBuilder::partitionObjects() const
     if (builder_->startup)
         builder_->objectDescriptions[0].startup = builder_->startup.get();
 
+    size_t functionIndex = 0;
     for (size_t i = 0; i < builder_->functionInfos.size(); ++i)
     {
         NativeFunctionInfo& info     = builder_->functionInfos[i];
-        const uint32_t      objIndex = static_cast<uint32_t>(i % numJobs);
+        if (info.cacheHit)
+            continue;
+        const uint32_t objIndex = static_cast<uint32_t>(functionIndex++ % numJobs);
         info.jobIndex                = objIndex;
         builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
@@ -897,8 +900,37 @@ Result NativeArtifactBuilder::partitionIncrementalObject() const
     description.functions.reserve(builder_->functionInfos.size());
     for (NativeFunctionInfo& info : builder_->functionInfos)
     {
+        if (info.cacheHit)
+            continue;
         info.jobIndex = 0;
         description.functions.push_back(&info);
+    }
+
+    return Result::Continue;
+}
+
+Result NativeArtifactBuilder::partitionIncrementalFunctionObjects() const
+{
+    builder_->objectDescriptions.clear();
+    for (NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        const NativeFunctionCacheRecord* record = info.symbol ? builder_->functionCacheRecord(*info.symbol) : nullptr;
+        if (!record || info.cacheHit)
+            continue;
+
+        NativeObjDescription description;
+        description.index = static_cast<uint32_t>(builder_->objectDescriptions.size());
+        description.functions.push_back(&info);
+        builder_->objectDescriptions.push_back(std::move(description));
+    }
+
+    NativeArtifactPaths paths;
+    queryPaths(paths, static_cast<uint32_t>(builder_->objectDescriptions.size()));
+    for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
+    {
+        builder_->objectDescriptions[i].index   = i;
+        builder_->objectDescriptions[i].objPath = paths.objectPaths[i];
+        builder_->objectDescriptions[i].functions.front()->jobIndex = i;
     }
 
     return Result::Continue;

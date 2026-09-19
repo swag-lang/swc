@@ -459,3 +459,21 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.whitey")
 }
+
+// Whitey's justified fluid measure keeps an ordinary blank visible after styled text and between
+// unstyled words at a fractional device scale.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(1160, 260, dpiScale: 1.5)
+    defer host.shutdown()
+
+    let source = "L'unité que cet étalon porte a été prise au pays lui-même. Le mètre est le **dix-millionième** d'un **quart de méridien**, l'arc du pôle à l'équateur. On l'a mesuré sur le terrain du nord au sud, de Dunkerque à Barcelone **par Paris**, le long de cette ligne que le premier chant avait chiffrée sous *Devin* et que la flèche de Roncevaux avait ensuite abandonnée comme axe. Le bec du coq ouvrait un quart dès le premier matin, sans qu'on pût savoir lequel, et la géodésie, la science qui mesure la Terre, n'en connaît qu'un. Congédié comme direction, le méridien de Paris revient comme étalon. Il ne tient plus la carte, il tient l'unité avec quoi on la mesure."
+    let view   = Markdown.View.createText(&host.root, source)
+    view.resize(1160, 260)
+    applyMarkdownViewerStyle(view, 5, 3)
+    view.applyLayout()
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "viewer.markdown.whitey.justified")
+}

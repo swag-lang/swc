@@ -745,7 +745,7 @@ impl InlineView
         let text    = atom.isSpace ? " " : atom.text.toString()
         let shaped  = Painter.shapeRun(text, font)
         let metrics = shaped.lineMetrics()
-        atom.position.width  = shaped.metrics.width
+        atom.position.width  = Painter.measureStringSnapped(&shaped, deviceScale: .deviceScale())
         atom.position.height = metrics.height
         atom.ascent          = metrics.ascent
         atom.descent         = metrics.descent
@@ -1056,7 +1056,7 @@ impl InlineView
             return 0
         if atom.isBreak or atom.isSpace or isAtomOpaque(atom) do
             return atom.position.width
-        return Painter.measureString(atom.text.toString()[0 until bytes], .font(atom)).width
+        return Painter.measureStringSnapped(atom.text.toString()[0 until bytes], .font(atom), deviceScale: .deviceScale())
     }
 
     // Returns the byte offset inside one atom nearest to `x`, measured from the atom's left edge.
@@ -1075,7 +1075,7 @@ impl InlineView
         while scan < source.count
         {
             let {?, eat} = Utf8.decodeRune(source[scan to])
-            let after    = Painter.measureString(source[0 until scan + eat], font).width
+            let after    = Painter.measureStringSnapped(source[0 until scan + eat], font, deviceScale: .deviceScale())
             if x < (before + after) * 0.5 do
                 return scan
             before = after

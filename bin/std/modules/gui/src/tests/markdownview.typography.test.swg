@@ -2,6 +2,28 @@
 
 using Core, Pixel
 
+// Inline layout uses the same resolved, device-snapped advances as painting. Keeping nominal
+// widths at a fractional scale lets wider painted glyphs consume the blank before a later word.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 240, dpiScale: 1.5)
+    defer host.shutdown()
+
+    var style = Markdown.Style.theme()
+    style.bodyFontSize = 19
+    let view   = Markdown.View.createText(&host.root, "abandonnée comme axe", style)
+    let inline = view.blocks[0].inline!
+    discard inline.layout(600)
+
+    let font   = view.documentFont(.Paragraph, style.bodyFontSize)
+    let shaped = Painter.shapeRun("abandonnée", font)
+    let width  = Painter.measureStringSnapped(&shaped, deviceScale: inline.deviceScale())
+    Swag.assert(Math.isEqualEpsilon(inline.atoms[0].position.width, width, 0.001))
+    Swag.assert(inline.atoms[1].isSpace and inline.atoms[2].text == "comme")
+    Swag.assert(Math.isEqualEpsilon(inline.atoms[2].position.x, inline.atoms[0].position.width + inline.atoms[1].position.width, 0.001))
+}
+
 // Fallback extents belong to the atom's line box, while a cached text batch retains the
 // primary font's baseline. The text and its selection must agree after either layout or paint.
 #test

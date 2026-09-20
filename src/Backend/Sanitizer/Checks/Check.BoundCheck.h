@@ -15,6 +15,7 @@ class BoundCheckCheck final : public SanitizerCheck
 {
 public:
     Runtime::SafetyWhat safety() const override { return Runtime::SafetyWhat::BoundCheck; }
+    uint8_t             interests() const override { return static_cast<uint8_t>(SanitizerCheckInterest::Dereference); }
     void                run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) override;
 };
 

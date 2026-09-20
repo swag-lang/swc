@@ -17,6 +17,7 @@ class UseAfterFreeCheck final : public SanitizerCheck
 {
 public:
     Runtime::SafetyWhat safety() const override { return Runtime::SafetyWhat::Lifecycle; }
+    uint8_t             interests() const override { return static_cast<uint8_t>(SanitizerCheckInterest::Call) | static_cast<uint8_t>(SanitizerCheckInterest::Dereference) | static_cast<uint8_t>(SanitizerCheckInterest::Return); }
     void                run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) override;
 };
 

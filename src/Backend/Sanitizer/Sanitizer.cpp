@@ -16,6 +16,44 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool isPlainLoadInstruction(const MicroInstrOpcode op)
+    {
+        switch (op)
+        {
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVolatileRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::LoadVecRegMem:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    uint8_t sanitizerCheckInterests(const MicroInstr& inst, const MicroInstrDef& def)
+    {
+        uint8_t result = 0;
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryRegReg)
+            result |= static_cast<uint8_t>(SanitizerCheckInterest::Binary);
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+            result |= static_cast<uint8_t>(SanitizerCheckInterest::Call);
+        if (inst.op == MicroInstrOpcode::Ret)
+            result |= static_cast<uint8_t>(SanitizerCheckInterest::Return);
+
+        uint8_t baseOperandIndex = 0;
+        if (MicroPassHelpers::dereferenceBaseOperandIndex(baseOperandIndex, inst.op, def))
+            result |= static_cast<uint8_t>(SanitizerCheckInterest::Dereference);
+
+        if (isPlainLoadInstruction(inst.op))
+            result |= static_cast<uint8_t>(SanitizerCheckInterest::PlainLoad);
+
+        return result;
+    }
+}
+
 Sanitizer::Sanitizer(MicroPassContext& context) :
     context_(context),
     stackBaseReg_(context.debugStackBaseVirtualReg)
@@ -168,6 +206,10 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     if (n == 0 || n > K_MAX_INSTRUCTIONS || checks.empty())
         return reported_;
 
+    SmallVector<EnabledCheck> enabledChecks;
+    for (SanitizerCheck* check : checks)
+        enabledChecks.push_back({.check = check, .interests = check->interests()});
+
     cfg_ = &cfg;
     reached_.assign(n, 0);
     inWorklist_.assign(n, 0);
@@ -270,13 +312,13 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     for (uint32_t i = 0; i < n; i++)
     {
         if (headStateIndex_[i] != K_NO_STATE && reached_[i])
-            walkChain(i, inState_[headStateIndex_[i]], checks, nullptr, checkSteps);
+            walkChain(i, std::move(inState_[headStateIndex_[i]]), enabledChecks.span(), nullptr, checkSteps);
     }
 
     return reported_;
 }
 
-void Sanitizer::walkChain(uint32_t head, SanitizerState cur, std::span<SanitizerCheck* const> checks, std::vector<uint32_t>* worklist, uint64_t& steps)
+void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<const EnabledCheck> checks, std::vector<uint32_t>* worklist, uint64_t& steps)
 {
     const MicroControlFlowGraph& cfg   = *cfg_;
     uint32_t                     index = head;
@@ -298,8 +340,13 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, std::span<Sanitizer
         }
         currentCallTarget_ = transferCallTarget_;
 
-        for (SanitizerCheck* check : checks)
-            check->run(*this, cur, inst, def, ops);
+        if (!checks.empty())
+        {
+            const uint8_t interests = sanitizerCheckInterests(inst, def);
+            for (const EnabledCheck& enabled : checks)
+                if (interests & enabled.interests)
+                    enabled.check->run(*this, cur, inst, def, ops);
+        }
 
         applyValueEffects(cur, inst, def, ops);
 
@@ -1538,17 +1585,8 @@ bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& in
     if (!ops)
         return false;
 
-    switch (inst.op)
-    {
-        case MicroInstrOpcode::LoadRegMem:
-        case MicroInstrOpcode::LoadVolatileRegMem:
-        case MicroInstrOpcode::LoadSignedExtRegMem:
-        case MicroInstrOpcode::LoadZeroExtRegMem:
-        case MicroInstrOpcode::LoadVecRegMem:
-            break;
-        default:
-            return false;
-    }
+    if (!isPlainLoadInstruction(inst.op))
+        return false;
 
     return resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, outSlot);
 }

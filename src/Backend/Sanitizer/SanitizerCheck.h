@@ -9,6 +9,15 @@ struct MicroInstr;
 struct MicroInstrDef;
 struct MicroInstrOperand;
 
+enum class SanitizerCheckInterest : uint8_t
+{
+    Binary      = 1 << 0,
+    Call        = 1 << 1,
+    Dereference = 1 << 2,
+    PlainLoad   = 1 << 3,
+    Return      = 1 << 4,
+};
+
 // A single sanitizer check.
 //
 // The engine (`Sanitizer`) runs the shared abstract-interpretation data-flow to a
@@ -24,6 +33,11 @@ public:
     // The runtime-safety guard this check belongs to; the check runs only when that
     // guard is enabled for the function (build-config default + `#[Swag.Safety]`).
     virtual Runtime::SafetyWhat safety() const = 0;
+
+    // Instruction families this check can inspect. The sanitizer uses this cheap mask
+    // before the virtual call so ordinary arithmetic and bookkeeping instructions do
+    // not enter every enabled check only to return immediately.
+    virtual uint8_t interests() const = 0;
 
     // Inspect one instruction against its converged incoming state.
     virtual void run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) = 0;

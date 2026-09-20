@@ -10,6 +10,7 @@ class DivByZeroCheck final : public SanitizerCheck
 {
 public:
     Runtime::SafetyWhat safety() const override { return Runtime::SafetyWhat::Math; }
+    uint8_t             interests() const override { return static_cast<uint8_t>(SanitizerCheckInterest::Binary); }
     void                run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) override;
 };
 

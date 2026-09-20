@@ -87,6 +87,12 @@ public:
     void reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, DiagnosticId id);
 
 private:
+    struct EnabledCheck
+    {
+        SanitizerCheck* check     = nullptr;
+        uint8_t         interests = 0;
+    };
+
     struct ReportNote
     {
         SourceCodeRef         source;
@@ -155,7 +161,7 @@ private:
     // states are only stored (and joined) at chain heads, everything in between is
     // recomputed on the fly. With a worklist it propagates the fixpoint; with checks
     // it applies them to each instruction's pre-state.
-    void walkChain(uint32_t head, SanitizerState cur, std::span<SanitizerCheck* const> checks, std::vector<uint32_t>* worklist, uint64_t& steps);
+    void walkChain(uint32_t head, SanitizerState cur, std::span<const EnabledCheck> checks, std::vector<uint32_t>* worklist, uint64_t& steps);
 
     // Instruction effects (the transfer function).
     void        applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;

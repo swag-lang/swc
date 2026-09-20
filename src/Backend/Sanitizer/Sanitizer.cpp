@@ -102,10 +102,9 @@ bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t
 
 void Sanitizer::computeSingleDefinitionRegs()
 {
-    singleDefinitionRegs_.clear();
+    definitionCounts_.clear();
 
-    std::unordered_map<uint32_t, uint32_t> counts;
-    const uint32_t                         n = cfg_->instructionCount();
+    const uint32_t n = cfg_->instructionCount();
     for (uint32_t i = 0; i < n; i++)
     {
         const MicroInstr&        inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
@@ -119,20 +118,19 @@ void Sanitizer::computeSingleDefinitionRegs()
         for (size_t r = 0; r < regCount; r++)
         {
             if (modes[r] == MicroInstrRegMode::Def || modes[r] == MicroInstrRegMode::UseDef)
-                ++counts[ops[r].reg.packed];
+            {
+                auto [it, inserted] = definitionCounts_.try_emplace(ops[r].reg.packed, 1);
+                if (!inserted && it->second < 2)
+                    ++it->second;
+            }
         }
-    }
-
-    for (const auto& [reg, count] : counts)
-    {
-        if (count == 1)
-            singleDefinitionRegs_.insert(reg);
     }
 }
 
 bool Sanitizer::hasSingleDefinition(const MicroReg reg) const
 {
-    return singleDefinitionRegs_.contains(reg.packed);
+    const auto it = definitionCounts_.find(reg.packed);
+    return it != definitionCounts_.end() && it->second == 1;
 }
 
 bool Sanitizer::frameObjectReachable(const SanitizerState& state, const int64_t slot) const

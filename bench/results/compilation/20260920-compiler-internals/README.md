@@ -46,3 +46,31 @@ Validation:
 - Full repository Release-compiler sequence: passed, including 1,500 JIT tests, 57 sanitizer tests,
   3,470 native tests, 2,385 standard-module tests, 549 application tests, 479 language-reference
   tests, scripts, and all example/application smokes.
+
+## Batch 2: single-definition register accounting
+
+Baseline: `efa40fe45`, build 1033. Candidate: the same compiler plus this batch, build 1034.
+
+The sanitizer formerly counted definitions in a temporary `unordered_map`, then copied every
+register with a count of one into an `unordered_set`. The accepted implementation keeps one
+member map with an eight-bit count saturated at two. It removes the second node allocation per
+single-definition register, the second hash lookup, and the final traversal of the first map.
+
+Nine alternating `core_rebuild` pairs produced B/A 1.014 wall, 1.003 CPU, 1.006 commit and 1.000
+working set. The CPU difference is below the measurement floor, so no percentage speedup is
+claimed. The batch is retained as a correctness-certified structural improvement: it performs one
+linear instruction scan and maintains one table instead of building two tables and finishing with
+a traversal of the first.
+
+Guardrails remained below the measurement floor. Five `core_touch` pairs produced B/A 1.000 wall,
+0.997 CPU, 0.988 commit and 0.984 working set. Five `hello_build` pairs produced 1.021 wall, 0.974
+CPU, 0.995 commit and 0.991 working set; wall and CPU disagree at a roughly 170 ms median.
+
+An earlier dense-index variant was not retained. It measured B/A 1.014 wall and 1.024 CPU, but its
+per-sanitizer direct arrays raised peak memory: commit B/A 0.985 and working set B/A 0.988. The
+accepted single-map form preserves the allocation and traversal simplification without that broad
+direct-index storage.
+
+Validation repeated after the final Release rebuild: 0 warnings and 0 errors; 57 focused sanitizer
+tests passed; the full repository sequence passed with the same compiler, module, application,
+reference, script and smoke boundaries listed for batch 1.

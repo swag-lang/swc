@@ -191,9 +191,9 @@ private:
 
     MicroPassContext&            context_;
     MicroReg                     stackBaseReg_;
-    std::unordered_set<uint32_t> singleDefinitionRegs_;
-    std::vector<LocalSlotExtent> localSlots_;
-    bool                         stackBaseStable_ = true;
+    std::unordered_map<uint32_t, uint8_t> definitionCounts_;
+    std::vector<LocalSlotExtent>           localSlots_;
+    bool                                   stackBaseStable_ = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.
     const Symbol*                transferCallTarget_ = nullptr;

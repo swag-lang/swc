@@ -601,8 +601,9 @@ could read.
 ## 4. Compilation speed
 
 ```
-You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then backlog/compiler.core.md compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.006 and compiler.core.007.
+You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
+then compiler.core.004 and compiler.core.030 in backlog/compiler.core.md and compiler.optimization.029
+and compiler.optimization.039 in backlog/compiler.optimization.md.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -626,15 +627,25 @@ instrument below exists. Those are the numbers every later round is measured aga
 
 GOAL
 
-Make swc the fastest thing that does this work - not just faster than C++ and Rust toolchains,
-which it already is, but fast enough that the edit-build loop stops being a loop. This campaign is
-only about compilation: documentation generation and source formatting are outside its scope.
+Make the compiler implementation itself faster. The result must perform the same compilation work
+in less wall time and process CPU: faster lexing and parsing, faster semantic analysis, less
+contention, fewer locks, better scaling with the compiler worker count, cheaper lowering and JIT
+preparation, faster backend optimization, register allocation and encoding, fewer redundant walks
+and lookups, or cheaper allocation and data structures on those paths.
+
+This campaign is not an incremental-build, cache, manifest, artifact-reuse, relink, module-format,
+documentation or formatting campaign. Do not claim a win by skipping compiler work, reusing a
+previous invocation's result, changing invalidation, avoiding linking, or moving time outside the
+measured command. The same source inputs must go through the same required compiler phases and
+produce equivalent output. A cache or pipeline change belongs to another campaign even if it
+improves one of the edit-loop numbers below.
 
 Targets, all on this machine, all re-measured before you start:
 
   - std/core rebuild (291 files, 50 690 lines): 2.1 s today with `swc.exe`. Target under 1.0 s.
-  - Warm no-op build of the same: target under 100 ms.
-  - Edit one file in core, rebuild: today this rebuilds all 291 files. Target under 300 ms.
+  - Warm no-op build of the same: guardrail under 100 ms; it is not an optimization target here.
+  - Edit one file in core, rebuild: use it to expose repeated compiler work, but do not solve it
+    with cache or invalidation changes in this campaign.
   - Hello world, source to linked executable: 89 ms today. Target under 50 ms.
 
 For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
@@ -659,6 +670,11 @@ Use external profilers for per-stage investigation. Do not add optional counters
 tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
 and peak-working-set measurements, while focused external traces answer transient questions.
 
+For parallelism work, record one-worker and capped multi-worker wall/CPU measurements on the same
+clean workload. Name the serial fraction or contended primitive before changing it, and require
+better scaling rather than merely shifting work between threads. Never exceed the repository's
+per-process worker cap or the measured machine-load admission rules.
+
 THE LOOP
 
   1. Profile the target workload. Name the stage that costs, with a number.
@@ -666,37 +682,45 @@ THE LOOP
   3. Implement the smallest version of it.
   4. Measure against the prediction. A fix that lands far off its prediction means the model was
      wrong - go back to step 1 rather than keeping an accidental win.
-  5. Rebuild `bin/swc.exe` in Release, then run the full Release sequence through that executable.
+  5. Confirm the result with order-alternated baseline/candidate runs. Require wall and process CPU
+     to agree; a wall-only result under changing machine load is not a compiler optimization.
+  6. Rebuild `bin/swc.exe` in Release, then run the full Release sequence through that executable.
      Do not add a DevMode build or `dm` test pass.
-  6. Record it in the campaign.
+  7. Record the changed internal stage, prediction, measurements, memory effect and validation.
+  8. Commit the verified optimization and fast-forward it into `main` before starting the next
+     batch. A rejected or inconclusive prototype is reverted and is never merged.
 
-THE FOUR STRUCTURAL LEVERS, IN ORDER
+OPTIMIZE THE COMPILER, IN THIS ORDER OF EVIDENCE
 
-They are not independent, and taking them out of order wastes the work:
+Choose the next item from the hottest measured internal compiler cost, not from this list's order:
 
-  1. The module boundary is re-parsed Swag source. core publishes 16 files and 12 328 lines per
-     configuration, and every dependent module lexes, parses and re-analyzes all of it. A binary
-     module interface, loaded lazily by name, is compiler.core.001 and it unlocks compiler.core.002, compiler.core.006 and compiler.core.008.
-  2. Incrementality stops at the module. Editing one line rebuilds 291 files. Per-file frontend
-     caching first, then per-function codegen caching - the second is where the win is and it is
-     unreachable without lever 1.
-  3. Every invocation re-analyzes the prelude: 8 files, 19 494 tokens, 237 functions before a
-     single line of user code. That is 62% of hello world. This is lever 1 applied to the prelude
-     - do it AFTER lever 1, or the compiler ends up with two module-loading mechanisms.
-  4. Modules build one at a time. The job system parallelizes hard WITHIN a module and the
-     workspace scheduler runs modules serially, on a 22-worker machine. The compile-speed branch
-     already prototypes the DAG scheduler. Finish it against the memory number, because N
-     concurrent modules multiply peak memory by N - coordinate with campaign 5.
+  1. Lexer and parser: byte/token scanning, source traversal, token storage, hashing, allocation,
+     repeated decoding and syntax-tree construction.
+  2. Semantic analysis: symbol and type lookup, overload/generic work, substitute chains, repeated
+     AST walks, compile-time dependency discovery and JIT preparation.
+  3. Scheduling and synchronization: job granularity, queues, wakeups, barriers, mutex/RW-lock
+     contention, false sharing and serial critical paths. Demonstrate scaling at several worker
+     counts and preserve deterministic compiler behavior.
+  4. Lowering and backend: `CodeGenJob`, Micro construction, SSA construction, pass-manager
+     convergence, repeated analyses, optimizer data structures, register allocation, instruction
+     selection, encoding and object construction.
+  5. Allocation and locality inside those phases: reuse capacity, shrink hot records, release
+     phase-local storage and replace pointer-heavy structures only when a profile attributes the
+     cost. Reject memory wins that cost CPU and CPU wins that materially regress peak memory.
+
+Optimize algorithms and implementation, not generated program quality. If a backend change alters
+emitted code, prove the code is equivalent and benchmark generated-code quality separately before
+accepting the compile-time gain.
 
 DO NOT STOP AT THE FIRST FAILURE
 
-These are large changes and the first attempt at a binary module interface will not be the one
-that ships. Land it in pieces that each keep the tree green. When a piece does not pay, revert it,
-record the measurement in backlog/repo.tooling.md, and take the next piece - the four levers
-above are months of work and the campaign is designed to survive individual failures.
+Compiler hot paths are mature, so many plausible changes will land below the noise floor. When a
+piece does not pay, revert it, record the measurement, and profile again. Keep batches small enough
+that their measured gain has one credible cause.
 
-The campaign ends when the four targets are met. It does not end because one lever turned out to
-be harder than it looked.
+The campaign ends when the compiler-speed targets are met and both guardrail workloads remain
+green. It does not end because one internal optimization avenue turned out to be harder than it
+looked.
 
 RULES
 

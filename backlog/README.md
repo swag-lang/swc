@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-20 10:24 |
+| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-20 10:36 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-20 08:01 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-19 11:34 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-19 09:43 |

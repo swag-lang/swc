@@ -683,12 +683,18 @@ THE LOOP
   4. Measure against the prediction. A fix that lands far off its prediction means the model was
      wrong - go back to step 1 rather than keeping an accidental win.
   5. Confirm the result with order-alternated baseline/candidate runs. Require wall and process CPU
-     to agree; a wall-only result under changing machine load is not a compiler optimization.
+     to agree before claiming a measured speedup; a wall-only result under changing machine load
+     does not support a performance percentage.
   6. Rebuild `bin/swc.exe` in Release, then run the full Release sequence through that executable.
      Do not add a DevMode build or `dm` test pass.
   7. Record the changed internal stage, prediction, measurements, memory effect and validation.
   8. Commit the verified optimization and fast-forward it into `main` before starting the next
-     batch. A rejected or inconclusive prototype is reverted and is never merged.
+     batch. "Verified" includes either a repeatable measured win, or a correctness-certified
+     structural improvement that demonstrably removes work, allocation, copying, contention, or a
+     worse complexity class without a measured regression. For the latter, record "below the
+     measurement floor" and make no percentage speedup claim. Revert only changes that are wrong,
+     regress a guardrail, fail their structural proof, or add complexity that the evidence does not
+     justify.
 
 OPTIMIZE THE COMPILER, IN THIS ORDER OF EVIDENCE
 
@@ -714,9 +720,12 @@ accepting the compile-time gain.
 
 DO NOT STOP AT THE FIRST FAILURE
 
-Compiler hot paths are mature, so many plausible changes will land below the noise floor. When a
-piece does not pay, revert it, record the measurement, and profile again. Keep batches small enough
-that their measured gain has one credible cause.
+Compiler hot paths are mature, so many valid improvements will land below the noise floor. That is
+not grounds to remove better code: retain a correctness-certified change when its mechanical proof
+shows less compiler work, allocation, copying or contention and the measurements show no regression.
+Label it honestly as below the measurement floor. Revert speculative rewrites, unjustified
+complexity, and regressions. Keep batches small enough that either the measured gain or the
+structural proof has one credible cause.
 
 The campaign ends when the compiler-speed targets are met and both guardrail workloads remain
 green. It does not end because one internal optimization avenue turned out to be harder than it

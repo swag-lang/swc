@@ -122,6 +122,19 @@ class EditLoopTests(unittest.TestCase):
             self.assertNotIn("--num-cores", workload["cmd"])
             self.assertTrue(os.path.isabs(workload["cwd"]))
 
+    def test_compiler_workloads_accept_an_explicit_worker_cap(self):
+        workloads = toolchains.make_compiler_workloads("swc.exe", 6)
+        for workload in workloads.values():
+            index = workload["cmd"].index("--num-cores")
+            self.assertEqual(workload["cmd"][index + 1], "6")
+
+    def test_workload_preparation_obeys_machine_admission(self):
+        admit = mock.Mock()
+        workloads = toolchains.make_compiler_workloads("swc.exe", 6, admit)
+        with mock.patch.object(toolchains.subprocess, "run"):
+            workloads["core_noop"]["prepare"]({})
+        admit.assert_called_once_with()
+
     def test_only_the_cold_rebuild_needs_no_preparation(self):
         workloads = toolchains.make_compiler_workloads("swc.exe")
         self.assertIsNone(workloads["core_rebuild"]["prepare"])

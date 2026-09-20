@@ -616,41 +616,44 @@ and a second build running on the same machine moves the number by more than any
 change. The levers below are also large, staged rewrites - a module interface format, a caching
 layer - which need somewhere they can be half-finished without blocking anyone.
 
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
-record every workload's time there once the instrument below exists. Those are the numbers every
-later round is measured against.
+RELEASE COMPILER ONLY
+
+Build, validate and measure only the Release compiler, `bin/swc.exe`. Do not build, invoke or run a
+campaign through `bin/swc.dm.exe`; DevMode compiler behavior and timing are outside this campaign.
+Before the first change, rebuild `swc.exe` from source, run the full Release test sequence at
+baseline with that executable, and record every compilation workload's time with it once the
+instrument below exists. Those are the numbers every later round is measured against.
 
 GOAL
 
 Make swc the fastest thing that does this work - not just faster than C++ and Rust toolchains,
-which it already is, but fast enough that the edit-build loop stops being a loop. All three
-commands count: build, doc, format.
+which it already is, but fast enough that the edit-build loop stops being a loop. This campaign is
+only about compilation: documentation generation and source formatting are outside its scope.
 
 Targets, all on this machine, all re-measured before you start:
 
-  - std/core rebuild (291 files, 50 690 lines): 2.1 s today, fast-debug. Target under 1.0 s.
+  - std/core rebuild (291 files, 50 690 lines): 2.1 s today with `swc.exe`. Target under 1.0 s.
   - Warm no-op build of the same: target under 100 ms.
   - Edit one file in core, rebuild: today this rebuilds all 291 files. Target under 300 ms.
   - Hello world, source to linked executable: 89 ms today. Target under 50 ms.
-  - swc tools/help.swgs (the whole documentation site) and swc tools/format.swgs (every Swag workspace):
-    unmeasured today. Measure them, then halve them.
 
 For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
 in 93-132 ms against clang-cl's 481-647 ms and rustc's 425-585 ms. This campaign is not about
 beating them. It is about the loop a person actually sits in.
 
-START BY BUILDING THE INSTRUMENT
+START BY VERIFYING THE INSTRUMENT
 
-Do this before any optimization; nothing below can be judged without it, and it is compiler.core.004 in
-backlog/compiler.core.md.
+Do this before any optimization; nothing below can be judged without it, and it is compiler.core.004
+in backlog/compiler.core.md.
 
-Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
-in bench/history.json - one four-line program. Across eleven campaigns it reads 92, 61, 74, 68, 74,
-64, 66, 85, 81, 95, 67 ms: noise around a flat line, on a workload too small to contain what costs.
+The campaign must measure a full core rebuild, a warm no-op, a one-file-touched rebuild and a hello
+world source-to-linked-executable build. Verify that all four workloads still run through
+`bin/swc.exe`, record wall time and peak working set, and preserve the same normalization in
+history.json before trusting any optimization result.
 
-Add real workloads to the campaign: a full core rebuild, a warm no-op, a one-file-touched rebuild,
-a full doc generation, a full format pass. Wall time and peak working set for each, recorded in
-history.json the same way and normalized the same way.
+Use `bench/compile.py --swc bin/swc.exe --swc-cores 6 --admit --only core_rebuild,core_noop,core_touch,hello_build`
+for fast iteration between campaigns. It does not record results; the full benchmark campaign owns
+the durable history.
 
 Use external profilers for per-stage investigation. Do not add optional counters, allocation
 tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
@@ -663,7 +666,8 @@ THE LOOP
   3. Implement the smallest version of it.
   4. Measure against the prediction. A fix that lands far off its prediction means the model was
      wrong - go back to step 1 rather than keeping an accidental win.
-  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
+  5. Rebuild `bin/swc.exe` in Release, then run the full Release sequence through that executable.
+     Do not add a DevMode build or `dm` test pass.
   6. Record it in the campaign.
 
 THE FOUR STRUCTURAL LEVERS, IN ORDER
@@ -684,9 +688,6 @@ They are not independent, and taking them out of order wastes the work:
      already prototypes the DAG scheduler. Finish it against the memory number, because N
      concurrent modules multiply peak memory by N - coordinate with campaign 5.
 
-Doc and format have had no attention at all and are probably cheaper wins than any of the four.
-Measure them before assuming otherwise.
-
 DO NOT STOP AT THE FIRST FAILURE
 
 These are large changes and the first attempt at a binary module interface will not be the one
@@ -694,7 +695,7 @@ that ships. Land it in pieces that each keep the tree green. When a piece does n
 record the measurement in backlog/repo.tooling.md, and take the next piece - the four levers
 above are months of work and the campaign is designed to survive individual failures.
 
-The campaign ends when the five targets are met. It does not end because one lever turned out to
+The campaign ends when the four targets are met. It does not end because one lever turned out to
 be harder than it looked.
 
 RULES
@@ -707,7 +708,7 @@ RULES
 
 REPORT
 
-The five targets as a table, current versus target, refreshed every round. Under it, what changed
+The four targets as a table, current versus target, refreshed every round. Under it, what changed
 and what it bought.
 ```
 

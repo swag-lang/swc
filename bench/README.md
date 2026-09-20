@@ -18,6 +18,7 @@ result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
 | `swc tools\bench.swgs --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
 | `py driver.py --tasks chacha --quick` | sweep one task while working on it; a partial sweep is **never** recorded |
 | `py compile.py --against bin\swc_baseline.exe` | A/B the edit-build loop between two compilers, order alternated; records nothing |
+| `py compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
 
 A full campaign takes roughly twenty minutes: a ninety-second warm-up, the NativeAOT
 publishes, and CPython on the two rescaled tasks. It will not start while something else

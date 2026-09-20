@@ -353,19 +353,20 @@ def _mirror_sources(src, dst):
                     f.write(data)
 
 
-def make_compiler_workloads(swc):
+def make_compiler_workloads(swc, cores=0, admit=None):
     """(id -> workload) for the edit-build loop.
 
     A workload is a timed command plus an untimed `prepare` that puts the tree in the
     state the command is meant to find: outputs removed before a cold build, a warm
     build before a no-op, one write time bumped before an incremental build, a private
     copy of the sources before a formatting pass. Compiler measurements always use
-    the compiler's own worker-count choice.
+    the compiler's own worker-count choice unless `cores` supplies an explicit cap.
     """
     root = worktree()
     std = os.path.join(root, "bin", "std")
+    compiler_args = ["--num-cores", str(cores)] if cores else []
     build_core = [swc, "build", "--workspace", std, "--workspace-module", "core",
-                  "--build-cfg", "devmode"]
+                  "--build-cfg", "devmode"] + compiler_args
     touched = os.path.join(root, TOUCHED_FILE)
     doc_out = os.path.join(OUT, "doc")
     format_out = os.path.join(OUT, "format")
@@ -374,6 +375,8 @@ def make_compiler_workloads(swc):
         # A no-op and a touched-file build are measured against a build this very
         # compiler produced: the manifest also records which compiler wrote it, so a
         # binary swapped in between would otherwise be measured on a full rebuild.
+        if admit:
+            admit()
         subprocess.run(build_core, cwd=root, env=env, capture_output=True)
 
     def touch(env):
@@ -405,11 +408,11 @@ def make_compiler_workloads(swc):
             "what": "std/core after one file was saved"},
         "doc_std": {
             "cmd": [swc, "doc", "--workspace", std, "--doc-output-dir", doc_out,
-                    "--rebuild"],
+                    "--rebuild"] + compiler_args,
             "cwd": root, "prepare": clear_doc,
             "what": "the documentation of the whole standard library"},
         "format_tree": {
-            "cmd": [swc, "format", "-d", format_out],
+            "cmd": [swc, "format", "-d", format_out] + compiler_args,
             "cwd": root, "prepare": mirror,
             "what": "every Swag source of the repository, formatted"},
     }

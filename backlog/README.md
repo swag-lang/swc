@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-20 09:36 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-20 08:01 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-19 11:34 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-19 09:43 |
@@ -46,7 +47,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-12 18:05 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-12 17:40 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-12 10:21 |
-| [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-12 10:04 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-12 10:02 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-12 07:12 |
 | [std.core.md](std.core.md) | `std/core` | 2026-09-12 06:43 |

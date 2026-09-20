@@ -280,6 +280,9 @@ def selected_phases(args):
 
 
 def main():
+    global RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS
+    global BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS
+
     args = parse_args()
     measure_build, measure_run = selected_phases(args)
 

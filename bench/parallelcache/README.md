@@ -1,7 +1,7 @@
 # Parallel-loop cache pressure
 
 ```powershell
-bin/swc.dm.exe run -f src/parallelcache.swg --module-file bench/parallelcache/module.swg -bc release --num-cores 6
+bin/swc.dm.exe run -f src/parallelcache.swg --module-file bench/parallelcache/module.swg -bc release
 ```
 
 The benchmark calls 512 distinct `parallel for` bodies, each with three cheap iterations. A
@@ -23,7 +23,7 @@ worker to four also checks that these earlier serial calls do not suppress later
 Build separately when preparing a timing run, then use the same `run` command above:
 
 ```powershell
-bin/swc.dm.exe build -f src/parallelcache.swg --module-file bench/parallelcache/module.swg -bc release --num-cores 6
+bin/swc.dm.exe build -f src/parallelcache.swg --module-file bench/parallelcache/module.swg -bc release
 ```
 
 Admit every build and run with the repository's machine-load check. Use a quiet machine for

@@ -1,4 +1,4 @@
-// bin/swc.dm.exe test -f src/resize.test.swg --module-file bench/resize/module.swg -bc release --no-test-jit --num-cores 6
+// bin/swc.dm.exe test -f src/resize.test.swg --module-file bench/resize/module.swg -bc release --no-test-jit
 #global if #command == Swag.CompilerCommand.Test
 
 using Core, Pixel

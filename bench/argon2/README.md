@@ -3,7 +3,7 @@
 Run from the repository root, after the machine-load admission check:
 
 ```powershell
-bin/swc.dm.exe test -f src/argon2.test.swg --module-file bench/argon2/module.swg -bc release --no-test-jit --num-cores 6
+bin/swc.dm.exe test -f src/argon2.test.swg --module-file bench/argon2/module.swg -bc release --no-test-jit
 ```
 
 The native test derives a 32-byte Argon2id tag with four lanes and three passes. It uses the

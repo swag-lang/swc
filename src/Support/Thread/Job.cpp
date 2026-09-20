@@ -20,6 +20,8 @@ const char* Job::kindName(const JobKind kind)
             return "CodeGen";
         case JobKind::JitPatch:
             return "JitPatch";
+        case JobKind::JitExec:
+            return "JitExec";
         case JobKind::CompilerMessage:
             return "CompilerMessage";
         case JobKind::NativeArtifact:

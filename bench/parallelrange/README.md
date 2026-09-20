@@ -1,7 +1,7 @@
 # Parallel-loop load balance
 
 ```powershell
-bin/swc.dm.exe run -f src/parallelrange.swg --module-file bench/parallelrange/module.swg -bc release --num-cores 6
+bin/swc.dm.exe run -f src/parallelrange.swg --module-file bench/parallelrange/module.swg -bc release
 ```
 
 This benchmark compares cheap loops, uniform CPU work, work concentrated in the first or last

@@ -618,9 +618,7 @@ def main():
     loop_table = (table(["charge", "brut (ms)", "corrig&eacute; (ms)", "m&eacute;moire (Mo)",
                          "indice", "&eacute;chantillons"], loop_rows, "wide")
                   if loop_rows else '<p class="cap">Aucune charge mesur&eacute;e.</p>')
-    loop_cores = (R.get("meta", {}).get("settings") or {}).get("swc_cores")
-    loop_cores = (", le compilateur born&eacute; &agrave; %d c&oelig;urs" % loop_cores
-                  if loop_cores else "")
+    loop_cores = ""
 
     me_hi, me_ticks = lin_axis([bmem[r] for r in aot])
     me_chart = chart(sorted(((r, bmem[r], fmt(bmem[r], 0)) for r in aot), key=lambda x: -x[1]),
@@ -631,9 +629,11 @@ def main():
                      0, rm_hi, rm_ticks, "Mo", "lin")
 
     hr = R["hello_run"]
-    st_lo, st_hi, st_ticks = log_axis([hr[r]["wall_ms"] for r in hr if r in META])
-    st_chart = chart(sorted(((r, hr[r]["wall_ms"], fmt(hr[r]["wall_ms"], 0))
-                             for r in hr if r in META), key=lambda x: x[1]),
+    startup = [(r, hr[r].get("first_stdout_ms") or hr[r].get("wall_ms"))
+               for r in hr if r in META]
+    startup = [(runtime, elapsed) for runtime, elapsed in startup if elapsed is not None]
+    st_lo, st_hi, st_ticks = log_axis([elapsed for _, elapsed in startup])
+    st_chart = chart(sorted(((runtime, elapsed, fmt(elapsed, 0)) for runtime, elapsed in startup), key=lambda x: x[1]),
                      st_lo, st_hi, st_ticks, "ms")
     sz_lo, sz_hi, sz_ticks = log_axis([exekb[r] for r in aot])
     sz_chart = chart(sorted(((r, exekb[r], fmt(exekb[r], 0)) for r in aot), key=lambda x: x[1]),

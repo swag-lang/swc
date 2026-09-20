@@ -93,17 +93,13 @@ class EditLoopTests(unittest.TestCase):
                       for path in mirrored.rglob("*") if path.is_file()}
             self.assertEqual(actual, expected)
 
-    def test_every_workload_is_defined_and_capped_when_asked(self):
-        workloads = toolchains.make_compiler_workloads("swc.exe", cores=6)
+    def test_every_workload_is_defined_and_uses_the_compiler_default(self):
+        workloads = toolchains.make_compiler_workloads("swc.exe")
         self.assertEqual(list(workloads), toolchains.COMPILER_WORKLOADS)
         for workload in workloads.values():
             self.assertEqual(workload["cmd"][0], "swc.exe")
-            self.assertIn("6", workload["cmd"][workload["cmd"].index("--num-cores") + 1])
-            self.assertTrue(os.path.isabs(workload["cwd"]))
-
-    def test_an_uncapped_workload_leaves_the_core_count_to_the_compiler(self):
-        for workload in toolchains.make_compiler_workloads("swc.exe").values():
             self.assertNotIn("--num-cores", workload["cmd"])
+            self.assertTrue(os.path.isabs(workload["cwd"]))
 
     def test_only_the_cold_rebuild_needs_no_preparation(self):
         workloads = toolchains.make_compiler_workloads("swc.exe")
@@ -138,6 +134,15 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(result["exit"], 0)
         self.assertGreaterEqual(result["peak_working_set_bytes"], 64 * 1024 * 1024)
         self.assertGreater(result["peak_job_bytes"], 0)
+
+    def test_first_stdout_is_timestamped_before_process_exit(self):
+        result = winproc.run([sys.executable, "-c",
+                              "import sys, time; print('ready', flush=True); time.sleep(0.2)"],
+                             first_stdout_match="ready")
+        self.assertEqual(result["exit"], 0)
+        self.assertEqual(result["stdout"].splitlines(), ["ready"])
+        self.assertIsNotNone(result["first_stdout_ms"])
+        self.assertLess(result["first_stdout_ms"], result["wall_ms"] - 100)
 
 
 class PinTests(unittest.TestCase):

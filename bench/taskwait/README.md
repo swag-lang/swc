@@ -1,7 +1,7 @@
 # Task join CPU usage
 
 ```powershell
-bin/swc.dm.exe run -f src/taskwait.swg --module-file bench/taskwait/module.swg -bc release --num-cores 6
+bin/swc.dm.exe run -f src/taskwait.swg --module-file bench/taskwait/module.swg -bc release
 ```
 
 This Windows benchmark measures elapsed time and CPU time of the joining thread with four

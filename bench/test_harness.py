@@ -44,7 +44,7 @@ class HarnessTests(unittest.TestCase):
         for call, cfg in zip(run.call_args_list, ("release", "devmode")):
             self.assertEqual(call.args[0], [
                 "swc.exe", "build", "--workspace", os.path.join("checkout", "bin", "std"),
-                "--workspace-module", "win32", "--build-cfg", cfg, "--num-cores", "6"])
+                "--workspace-module", "win32", "--build-cfg", cfg])
             self.assertEqual(call.kwargs, {"cwd": "checkout", "env": {"BENCH": "1"}})
 
     def test_installed_toolchains_are_found_without_path_or_overrides(self):

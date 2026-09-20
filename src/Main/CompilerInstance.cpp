@@ -413,7 +413,7 @@ const JITMemoryManager& CompilerInstance::jitMemMgr() const
 JITExecManager& CompilerInstance::jitExecMgr()
 {
     std::call_once(jitExecMgrOnce_, [this] {
-        jitExecMgr_ = std::make_unique<JITExecManager>();
+        jitExecMgr_ = std::make_unique<JITExecManager>(*this);
     });
     return *jitExecMgr_;
 }

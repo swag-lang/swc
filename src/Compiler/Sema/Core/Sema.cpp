@@ -1905,18 +1905,9 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         SWC_DEV_LOOP_TICK(loopGuard);
         jobMgr.waitAll(clientId);
 
-        // Main-thread work can unblock semantic jobs without any worker finishing: JIT
-        // execution, compiler messages, lazy bodies, and type-info publication
-        // all feed back into the same wait graph.
-        if (compiler.jitExecMgr().executePendingMainThread())
-        {
-            SWC_DEV_LOOP_RESET(loopGuard);
-            pausedLazyBodyWakes = 0;
-            pausedTypeInfoGenWakes = 0;
-            jobMgr.wakeAll(clientId);
-            continue;
-        }
-
+        // Compiler messages, lazy bodies, and type-info publication can unblock
+        // semantic jobs without another worker finishing. JIT calls run through a
+        // serialized worker-pool lane and publish progress with notifyAlive().
         const Result compilerMessageResult = compiler.executePendingCompilerMessages(ctx);
         if (compilerMessageResult == Result::Pause)
         {

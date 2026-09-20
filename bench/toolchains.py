@@ -353,20 +353,19 @@ def _mirror_sources(src, dst):
                     f.write(data)
 
 
-def make_compiler_workloads(swc, cores=0):
+def make_compiler_workloads(swc):
     """(id -> workload) for the edit-build loop.
 
     A workload is a timed command plus an untimed `prepare` that puts the tree in the
     state the command is meant to find: outputs removed before a cold build, a warm
     build before a no-op, one write time bumped before an incremental build, a private
-    copy of the sources before a formatting pass. `cores` caps the compiler's worker
-    pool; zero leaves the compiler to its own count.
+    copy of the sources before a formatting pass. Compiler measurements always use
+    the compiler's own worker-count choice.
     """
     root = worktree()
     std = os.path.join(root, "bin", "std")
-    jobs = ["--num-cores", str(cores)] if cores else []
     build_core = [swc, "build", "--workspace", std, "--workspace-module", "core",
-                  "--build-cfg", "devmode"] + jobs
+                  "--build-cfg", "devmode"]
     touched = os.path.join(root, TOUCHED_FILE)
     doc_out = os.path.join(OUT, "doc")
     format_out = os.path.join(OUT, "format")
@@ -406,11 +405,11 @@ def make_compiler_workloads(swc, cores=0):
             "what": "std/core after one file was saved"},
         "doc_std": {
             "cmd": [swc, "doc", "--workspace", std, "--doc-output-dir", doc_out,
-                    "--rebuild"] + jobs,
+                    "--rebuild"],
             "cwd": root, "prepare": clear_doc,
             "what": "the documentation of the whole standard library"},
         "format_tree": {
-            "cmd": [swc, "format", "-d", format_out] + jobs,
+            "cmd": [swc, "format", "-d", format_out],
             "cwd": root, "prepare": mirror,
             "what": "every Swag source of the repository, formatted"},
     }

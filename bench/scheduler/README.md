@@ -1,7 +1,7 @@
 # Scheduler cost against worker count
 
 ```powershell
-bin/swc.dm.exe run -f src/scheduler.swg --module-file bench/scheduler/module.swg -bc release --num-cores 6
+bin/swc.dm.exe run -f src/scheduler.swg --module-file bench/scheduler/module.swg -bc release
 ```
 
 This benchmark prices the process scheduler in `bin/runtime` rather than any one construction. It

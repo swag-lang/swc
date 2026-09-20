@@ -3,7 +3,7 @@
 Run from the repository root after the machine-load admission check:
 
 ```powershell
-bin/swc.dm.exe test -f src/chacha20.test.swg --module-file bench/chacha20/module.swg -bc release --no-test-jit --num-cores 6
+bin/swc.dm.exe test -f src/chacha20.test.swg --module-file bench/chacha20/module.swg -bc release --no-test-jit
 ```
 
 This native test compares one and four runtime workers while keeping the four-block SIMD kernel,

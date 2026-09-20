@@ -1,7 +1,7 @@
 # Planar YUV420 conversion
 
 ```powershell
-bin/swc.dm.exe run -f src/yuv420.swg --module-file bench/yuv420/module.swg -bc release --num-cores 6
+bin/swc.dm.exe run -f src/yuv420.swg --module-file bench/yuv420/module.swg -bc release
 ```
 
 The benchmark converts varying luma and chroma samples into a reused RGB image, with one worker

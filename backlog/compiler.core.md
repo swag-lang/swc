@@ -6,6 +6,67 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.055 — Start serialized JIT execution before the semantic barrier
+
+- Recorded: 2026-09-20 07:07
+- Updated: 2026-09-20 08:01 — enforce unrestricted compiler worker selection for every benchmark measurement
+- Evidence: JIT materialization is already parallel: `SymbolFunction::jitBatch` schedules one
+  `JITPatchJob` per function, and workers prepare, patch, and finalize executable memory. The
+  remaining call is queued by `JITExecManager::submit`, which parks its semantic job in
+  `SemaWaitMainThreadRunJit`. `Sema::waitDone` calls `JobManager::waitAll(clientId)` before it
+  drains that queue, so every ready or running job of the client has stopped before the main
+  thread begins JIT execution. The current implementation therefore serializes execution with
+  all other compilation, not only with other JIT calls.
+- Measurement: a temporary Release compiler that changed the manager's default strategy from
+  `MainThreadQueued` to `Immediate` exercised the upper bound: the requesting worker executed JIT
+  code while other workers continued. Thirty interleaved hello-world pairs showed no material
+  improvement (73.56 ms to its `hello, world` line and 80.41 ms to exit at baseline, versus
+  74.11 ms and 80.63 ms immediate). Twelve interleaved complete JIT-suite pairs moved by only
+  1.5% amid a strong common timing drift; both compiled 391 files and passed all 1,499 tests.
+  A synthetic pair of independent 250 ms `#run` blocks did expose the available overlap,
+  dropping from 590 ms to 331 ms.
+- Safety boundary: unrestricted worker execution is not valid. A second synthetic probe made
+  both blocks read, delay, and increment one compile-time global. Main-thread serialization
+  produced `2`; immediate execution deterministically lost an update and produced `1`.
+  `#run` order is documented as undefined, but serial execution in either order preserves both
+  updates; simultaneous execution introduces a new data race across arbitrary user and foreign
+  side effects. Per-thread runtime contexts and existing immediate paths make worker execution
+  technically possible, but do not make shared compile-time state concurrent.
+- Implementation: `JITExecManager` now queues one `JitExec` job on the existing compiler pool.
+  It drains requests serially, protects immediate callers with the same execution mutex, and
+  copies the owner `TaskContext` before execution so a parked semantic job is never mutated from
+  another worker. Each completion calls `notifyAlive`, which gives `Sema::waitDone` a persistent
+  progress signal rather than relying on a wake that can race job parking. The lane is a pool job,
+  so `--num-cores` remains the total execution budget. A JIT regression submits eight independent
+  shared-global increments with a deliberately widened read/write window and requires the
+  dependency-ordered final call to observe all eight.
+- Measurement update: the bench harness now streams stdout and timestamps a requested output
+  marker, rather than process exit or the compiler's progress banner. Benchmark measurements never
+  pass `--num-cores`: they leave worker selection to the compiler. On the post-change uncapped
+  release probe, the Swag `hello, world` marker appeared at 91.57 ms and process exit at 100.70 ms;
+  Lua's `hi` marker appeared at 12.73 ms and exit at 14.95 ms. This confirms that the safe lane
+  alone does not materially improve hello-world first program output, matching the immediate
+  upper bound. DevMode and Release each passed the complete 1,500-test JIT suite with the lane
+  enabled.
+- Measurement caveat: the benchmark section named “time to first output” currently records
+  `winproc.run(...).wall_ms`, after `WaitForSingleObject` has observed process exit; it never
+  timestamps output arrival. A streaming probe on the current checkout observed the program's
+  hello line at 65.50 ms and process exit at 72.16 ms (un-pinned diagnostic medians), while the
+  compiler's own progress output began around 9 ms. Future comparisons must identify the program
+  line rather than the compiler's earlier progress text.
+- Resolution of the preceding historical caveat: the harness now records the requested program
+  marker directly; the old `wall_ms` value is retained only as total process duration for older
+  results which predate marker timing.
+- Next: profile the delay before the first JIT request becomes eligible in hello world, then move
+  only independent prerequisite work ahead of that request. Compare a real JIT-heavy module and
+  whole-compilation time against the corrected marker measurement; retain or redesign the lane
+  based on a gain beyond the benchmark noise band.
+- Complete when: JIT calls can overlap eligible compiler work without overlapping one another,
+  compile-time shared-state and foreign-side-effect probes retain serial behavior, both compiler
+  executables pass repeated parallel JIT coverage, and the corrected benchmark demonstrates a
+  material gain without a total-time regression.
+- Related: compiler.core.004, compiler.core.006, compiler.core.016, compiler.core.030.
+
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
 - Recorded: 2026-08-09 11:30

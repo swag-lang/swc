@@ -1,7 +1,7 @@
 # CPU rasterization load balance
 
 ```powershell
-bin/swc.dm.exe run -f src/rasterbalance.swg --module-file bench/rasterbalance/module.swg -bc release --num-cores 6
+bin/swc.dm.exe run -f src/rasterbalance.swg --module-file bench/rasterbalance/module.swg -bc release
 ```
 
 The benchmark records a real `Pixel.Painter` stream and repeatedly draws it with `Pixel.RenderCpu`.

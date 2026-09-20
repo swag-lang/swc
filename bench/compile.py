@@ -1,6 +1,6 @@
 """Measure the edit-build loop on one compiler, or A/B two of them.
 
-    py -3 compile.py [--swc PATH] [--against PATH] [--reps N] [--cores N] [--only IDS]
+    py -3 compile.py [--swc PATH] [--against PATH] [--reps N] [--only IDS]
 
 This is not a campaign and records nothing. It answers the question a round of
 compile-speed work actually asks — did this change move this workload — in a few
@@ -49,8 +49,6 @@ def main():
     ap.add_argument("--swc", help="compiler under test (default: bin/swc.exe of this worktree)")
     ap.add_argument("--against", help="a second compiler to compare with, alternated round by round")
     ap.add_argument("--reps", type=int, default=5, help="rounds; every round measures every workload")
-    ap.add_argument("--cores", type=int, default=0,
-                    help="cap on the compiler's worker pool; 0 leaves the compiler to its own count")
     ap.add_argument("--only", default="",
                     help="comma-separated workload ids (%s)" % ", ".join(tc.COMPILER_WORKLOADS))
     args = ap.parse_args()
@@ -69,12 +67,12 @@ def main():
             raise SystemExit("compiler not found: %s" % path)
 
     env = tc.build_env(tc.discover())
-    plans = {tag: tc.make_compiler_workloads(path, args.cores) for tag, path in binaries}
+    plans = {tag: tc.make_compiler_workloads(path) for tag, path in binaries}
     samples = {tag: {wid: [] for wid in ids} for tag, _ in binaries}
 
     for tag, path in binaries:
         print("%s: %s" % (tag, path))
-    print("%d round(s), %s" % (args.reps, ("%d cores" % args.cores) if args.cores else "own core count"))
+    print("%d round(s), compiler-selected worker count" % args.reps)
     sys.stdout.flush()
 
     for rnd in range(args.reps):

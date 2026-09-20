@@ -3,7 +3,7 @@
 Run from the repository root after the machine-load admission check:
 
 ```powershell
-bin/swc.dm.exe run -f src/pixelfilters.swg --module-file bench/pixelfilters/module.swg -bc release --num-cores 6
+bin/swc.dm.exe run -f src/pixelfilters.swg --module-file bench/pixelfilters/module.swg -bc release
 ```
 
 The benchmark inverts patterned RGBA8 images with one runtime worker, then four. The pool can
@@ -19,7 +19,7 @@ To separate compilation from measurement, build once with an explicit ignored ou
 
 ```powershell
 $benchOutput = Join-Path $PWD '.tmp/parallel-cost-bench'
-bin/swc.dm.exe build -f src/pixelfilters.swg --module-file bench/pixelfilters/module.swg -bc release --out-dir $benchOutput --num-cores 6
+bin/swc.dm.exe build -f src/pixelfilters.swg --module-file bench/pixelfilters/module.swg -bc release --out-dir $benchOutput
 .tmp/parallel-cost-bench/pixelfilters.exe
 ```
 

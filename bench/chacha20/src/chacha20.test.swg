@@ -1,4 +1,4 @@
-// bin/swc.dm.exe test -f src/chacha20.test.swg --module-file bench/chacha20/module.swg -bc release --no-test-jit --num-cores 6
+// bin/swc.dm.exe test -f src/chacha20.test.swg --module-file bench/chacha20/module.swg -bc release --no-test-jit
 #global if #command == Swag.CompilerCommand.Test
 
 using Core

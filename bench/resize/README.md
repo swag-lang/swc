@@ -3,7 +3,7 @@
 Run the native Release-program benchmark with the checkout-local compiler:
 
 ```powershell
-bin/swc.dm.exe test -f src/resize.test.swg --module-file bench/resize/module.swg -bc release --no-test-jit --num-cores 6
+bin/swc.dm.exe test -f src/resize.test.swg --module-file bench/resize/module.swg -bc release --no-test-jit
 ```
 
 The benchmark resizes patterned RGBA8 images from `(2 * size + 1, 2 * size - 1)`

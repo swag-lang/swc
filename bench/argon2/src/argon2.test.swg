@@ -1,5 +1,5 @@
 // Focused native lane-scaling benchmark; the compression kernel is identical in both runs.
-// bin/swc.dm.exe test -f src/argon2.test.swg --module-file bench/argon2/module.swg -bc release --no-test-jit --num-cores 6
+// bin/swc.dm.exe test -f src/argon2.test.swg --module-file bench/argon2/module.swg -bc release --no-test-jit
 #global if #command == Swag.CompilerCommand.Test
 
 using Core

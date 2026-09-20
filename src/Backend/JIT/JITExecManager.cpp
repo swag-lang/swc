@@ -3,9 +3,37 @@
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Support/Report/Assert.h"
+#include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class JITExecManager::ExecJob final : public Job
+{
+public:
+    static constexpr auto K = JobKind::JitExec;
+
+    ExecJob(const TaskContext& ctx, JITExecManager& manager) :
+        Job(ctx, JobKind::JitExec),
+        manager_(&manager)
+    {
+    }
+
+    JobResult exec() override
+    {
+        manager_->executePendingWorker();
+        return JobResult::Done;
+    }
+
+private:
+    JITExecManager* manager_ = nullptr;
+};
+
+JITExecManager::JITExecManager(CompilerInstance& compiler) :
+    compiler_(&compiler)
+{
+}
 
 Result JITExecManager::executeItem(Item& item)
 {
@@ -13,7 +41,7 @@ Result JITExecManager::executeItem(Item& item)
     SWC_ASSERT(item.request.function != nullptr);
     SWC_ASSERT(item.request.function->jitEntryAddress() != nullptr);
 
-    TaskContext&          ctx = *item.ownerCtx;
+    TaskContext&          ctx = item.executionCtx;
     const SymbolFunction* fn  = item.request.function;
 
     const TaskScopedContext scopedContext(ctx);
@@ -61,12 +89,10 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
 
     if (request.runImmediate || strategy_ == Strategy::Immediate)
     {
-        Item immediateItem = {
-            .ownerCtx = &ctx,
-            .request  = request,
-            .status   = Status::Completed,
-            .result   = Result::Continue,
-        };
+        Item immediateItem(ctx, request);
+        // Immediate callers share the same execution lock as the background lane.
+        // This preserves the JIT runtime's single-threaded global-state contract.
+        const std::scoped_lock lock(executionMutex_);
         return executeItem(immediateItem);
     }
 
@@ -75,6 +101,11 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     const SourceCodeRef   codeRef  = request.codeRef;
     const ItemKey         key      = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
 
+    // Publish the sleeping state before exposing the item to the worker. The worker
+    // owns a copy of this context, so it cannot race the semantic job as it parks.
+    ctx.state().setSemaWaitMainThreadRunJit(function, nodeRef, codeRef);
+
+    bool enqueueWorker = false;
     {
         const std::scoped_lock lock(mutex_);
         // The key is the suspended sema location, not just the function. The same
@@ -83,11 +114,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
         auto& slot = items_[key];
         if (!slot)
         {
-            slot           = std::make_unique<Item>();
-            slot->ownerCtx = &ctx;
-            slot->request  = request;
-            slot->status   = Status::Pending;
-            slot->result   = Result::Continue;
+            slot = std::make_unique<Item>(ctx, request);
             slot->waitState.setNone();
         }
 
@@ -101,16 +128,78 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
         }
         else
         {
-            item.ownerCtx = &ctx;
-            item.request  = request;
-            item.status   = Status::Pending;
-            item.result   = Result::Continue;
+            item = Item(ctx, request);
             item.waitState.setNone();
+        }
+
+        if (!workerScheduled_)
+        {
+            workerScheduled_ = true;
+            enqueueWorker    = true;
         }
     }
 
-    ctx.state().setSemaWaitMainThreadRunJit(function, nodeRef, codeRef);
+    if (enqueueWorker)
+        this->enqueueWorker();
     return Result::Pause;
+}
+
+void JITExecManager::enqueueWorker()
+{
+    SWC_ASSERT(compiler_ != nullptr);
+    auto* job = compiler_->makeJob<ExecJob>(TaskContext(*compiler_), *this);
+    compiler_->global().jobMgr().enqueue(*job, JobPriority::High, compiler_->jobClientId());
+}
+
+void JITExecManager::executePendingWorker()
+{
+    SWC_DEV_LOOP_GUARD(loopGuard, 1000000, "JITExecManager::executePendingWorker");
+
+    while (true)
+    {
+        SWC_DEV_LOOP_TICK(loopGuard);
+        Item* itemToRun = nullptr;
+        {
+            const std::scoped_lock lock(mutex_);
+            for (auto& item : items_ | std::views::values)
+            {
+                if (!item || item->status != Status::Pending)
+                    continue;
+                item->status = Status::Running;
+                itemToRun    = item.get();
+                break;
+            }
+
+            if (!itemToRun)
+            {
+                workerScheduled_ = false;
+                return;
+            }
+        }
+
+        Result result;
+        {
+            const std::scoped_lock lock(executionMutex_);
+            result = executeItem(*itemToRun);
+        }
+
+        if (result == Result::Pause)
+        {
+            const std::scoped_lock lock(mutex_);
+            itemToRun->status = Status::Waiting;
+            continue;
+        }
+
+        {
+            const std::scoped_lock lock(mutex_);
+            itemToRun->result = result;
+            itemToRun->status = Status::Completed;
+        }
+
+        // waitDone consumes this persistent progress signal after the worker lane
+        // drains, so completion cannot be lost while the owner job is parking.
+        compiler_->notifyAlive();
+    }
 }
 
 JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
@@ -168,7 +257,11 @@ bool JITExecManager::executePendingMainThread()
 
         if (!itemToRun)
             break;
-        const Result result = executeItem(*itemToRun);
+        Result result;
+        {
+            const std::scoped_lock lock(executionMutex_);
+            result = executeItem(*itemToRun);
+        }
 
         {
             const std::scoped_lock lock(mutex_);
@@ -184,6 +277,9 @@ bool JITExecManager::executePendingMainThread()
             }
         }
 
+        if (result != Result::Pause)
+            compiler_->notifyAlive();
+
         processedAny = true;
     }
 
@@ -194,22 +290,27 @@ bool JITExecManager::completeWaitingOnIgnoredDependency()
 {
     bool completedAny = false;
 
-    const std::scoped_lock lock(mutex_);
-    for (const auto& item : items_ | std::views::values)
     {
-        if (!item || item->status != Status::Waiting)
-            continue;
-
-        const TaskState& waitState = item->waitState;
-        if ((waitState.symbol && waitState.symbol->isIgnored()) ||
-            (waitState.waiterSymbol && waitState.waiterSymbol->isIgnored()))
+        const std::scoped_lock lock(mutex_);
+        for (const auto& item : items_ | std::views::values)
         {
-            item->waitState.setNone();
-            item->result = Result::Error;
-            item->status = Status::Completed;
-            completedAny = true;
+            if (!item || item->status != Status::Waiting)
+                continue;
+
+            const TaskState& waitState = item->waitState;
+            if ((waitState.symbol && waitState.symbol->isIgnored()) ||
+                (waitState.waiterSymbol && waitState.waiterSymbol->isIgnored()))
+            {
+                item->waitState.setNone();
+                item->result = Result::Error;
+                item->status = Status::Completed;
+                completedAny = true;
+            }
         }
     }
+
+    if (completedAny)
+        compiler_->notifyAlive();
 
     return completedAny;
 }
@@ -217,18 +318,30 @@ bool JITExecManager::completeWaitingOnIgnoredDependency()
 bool JITExecManager::wakeWaiting()
 {
     bool woken = false;
+    bool enqueueWorker = false;
 
-    const std::scoped_lock lock(mutex_);
-    for (const auto& item : items_ | std::views::values)
     {
-        if (!item || item->status != Status::Waiting)
-            continue;
+        const std::scoped_lock lock(mutex_);
+        for (const auto& item : items_ | std::views::values)
+        {
+            if (!item || item->status != Status::Waiting)
+                continue;
 
-        // The scheduler only tells us that compiler progress happened. Requeue every
-        // waiting item and let executeItem re-check its exact dependency.
-        item->status = Status::Pending;
-        woken        = true;
+            // The scheduler only tells us that compiler progress happened. Requeue every
+            // waiting item and let executeItem re-check its exact dependency.
+            item->status = Status::Pending;
+            woken        = true;
+        }
+
+        if (woken && !workerScheduled_)
+        {
+            workerScheduled_ = true;
+            enqueueWorker    = true;
+        }
     }
+
+    if (enqueueWorker)
+        this->enqueueWorker();
 
     return woken;
 }

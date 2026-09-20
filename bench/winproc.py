@@ -15,6 +15,7 @@ import os
 import struct
 import subprocess
 import tempfile
+import threading
 import time
 
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -32,7 +33,9 @@ FILE_ATTRIBUTE_NORMAL = 0x80
 JobObjectExtendedLimitInformation = 9
 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
 ERROR_ACCESS_DENIED = 5
+ERROR_BROKEN_PIPE = 109
 ERROR_SHARING_VIOLATION = 32
+HANDLE_FLAG_INHERIT = 0x00000001
 RETRIES = 12
 RETRY_DELAY = 0.15
 
@@ -183,29 +186,49 @@ def _pin_mask():
 PIN_MASK = _pin_mask()
 
 
-def run(cmd, cwd=None, env=None, pin=False, priority=None):
+def run(cmd, cwd=None, env=None, pin=False, priority=None, capture_first_stdout=False,
+        first_stdout_match=None):
     """Run `cmd` (list) and return timings, peak memory and captured output.
 
     `pin` confines the process to the performance cores. Use it for anything whose
     duration is the result — never for a build, which is meant to use the whole machine.
+    With `capture_first_stdout`, `first_stdout_ms` is the first byte, or the first
+    occurrence of `first_stdout_match` when a marker is supplied.
     """
+    if first_stdout_match is not None:
+        capture_first_stdout = True
+        if isinstance(first_stdout_match, str):
+            first_stdout_match = first_stdout_match.encode("utf-8")
     sa = SECURITY_ATTRIBUTES(ctypes.sizeof(SECURITY_ATTRIBUTES), None, True)
-    fd_out, path_out = tempfile.mkstemp(suffix=".out")
-    fd_err, path_err = tempfile.mkstemp(suffix=".err")
-    os.close(fd_out)
-    os.close(fd_err)
-
-    h_out = k32.CreateFileW(path_out, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                            ctypes.byref(sa), CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, None)
-    h_err = k32.CreateFileW(path_err, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                            ctypes.byref(sa), CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, None)
+    path_out = path_err = None
+    h_out_read = h_err_read = None
+    if capture_first_stdout:
+        h_out_read, h_out = w.HANDLE(), w.HANDLE()
+        h_err_read, h_err = w.HANDLE(), w.HANDLE()
+        if not k32.CreatePipe(ctypes.byref(h_out_read), ctypes.byref(h_out), ctypes.byref(sa), 0):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if not k32.CreatePipe(ctypes.byref(h_err_read), ctypes.byref(h_err), ctypes.byref(sa), 0):
+            k32.CloseHandle(h_out_read)
+            k32.CloseHandle(h_out)
+            raise ctypes.WinError(ctypes.get_last_error())
+        k32.SetHandleInformation(h_out_read, HANDLE_FLAG_INHERIT, 0)
+        k32.SetHandleInformation(h_err_read, HANDLE_FLAG_INHERIT, 0)
+    else:
+        fd_out, path_out = tempfile.mkstemp(suffix=".out")
+        fd_err, path_err = tempfile.mkstemp(suffix=".err")
+        os.close(fd_out)
+        os.close(fd_err)
+        h_out = k32.CreateFileW(path_out, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                ctypes.byref(sa), CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, None)
+        h_err = k32.CreateFileW(path_err, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                ctypes.byref(sa), CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, None)
 
     si = STARTUPINFOW()
     si.cb = ctypes.sizeof(STARTUPINFOW)
     si.dwFlags = STARTF_USESTDHANDLES
     si.hStdInput = None
-    si.hStdOutput = w.HANDLE(h_out)
-    si.hStdError = w.HANDLE(h_err)
+    si.hStdOutput = h_out
+    si.hStdError = h_err
 
     pi = PROCESS_INFORMATION()
     h_job = k32.CreateJobObjectW(None, None)
@@ -249,7 +272,13 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None):
         if err not in (ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION) or attempt == RETRIES - 1:
             k32.CloseHandle(h_out)
             k32.CloseHandle(h_err)
+            if h_out_read:
+                k32.CloseHandle(h_out_read)
+                k32.CloseHandle(h_err_read)
             k32.CloseHandle(h_job)
+            if path_out:
+                os.unlink(path_out)
+                os.unlink(path_err)
             raise ctypes.WinError(err)
         time.sleep(RETRY_DELAY)
 
@@ -261,7 +290,53 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None):
         k32.SetProcessAffinityMask(pi.hProcess, ctypes.c_size_t(mask))
     if priority:
         k32.SetPriorityClass(pi.hProcess, priority)
+
+    stdout_parts, stderr_parts = [], []
+    first_stdout_tick = [None]
+    first_stdout_lock = threading.Lock()
+
+    def read_pipe(handle, parts, timestamp_first_stdout):
+        match_window = bytearray()
+        while True:
+            buffer = ctypes.create_string_buffer(4096)
+            read = w.DWORD()
+            if not k32.ReadFile(handle, buffer, len(buffer), ctypes.byref(read), None):
+                if ctypes.get_last_error() == ERROR_BROKEN_PIPE:
+                    return
+                return
+            if not read.value:
+                return
+            if timestamp_first_stdout:
+                with first_stdout_lock:
+                    if first_stdout_match:
+                        match_window.extend(buffer.raw[:read.value])
+                        found = first_stdout_match in match_window
+                        keep = max(len(first_stdout_match) - 1, 0)
+                        if len(match_window) > keep:
+                            del match_window[:len(match_window) - keep]
+                    else:
+                        found = True
+                    if found and first_stdout_tick[0] is None:
+                        tick = ctypes.c_longlong()
+                        k32.QueryPerformanceCounter(ctypes.byref(tick))
+                        first_stdout_tick[0] = tick.value
+            parts.append(buffer.raw[:read.value])
+
+    readers = []
+    if capture_first_stdout:
+        readers = [
+            threading.Thread(target=read_pipe, args=(h_out_read, stdout_parts, True)),
+            threading.Thread(target=read_pipe, args=(h_err_read, stderr_parts, False)),
+        ]
+        for reader in readers:
+            reader.start()
+
     k32.ResumeThread(pi.hThread)
+    if capture_first_stdout:
+        # The parent must not retain a writer, otherwise a reader cannot observe EOF.
+        k32.CloseHandle(h_out)
+        k32.CloseHandle(h_err)
+        h_out = h_err = None
     k32.WaitForSingleObject(pi.hProcess, INFINITE)
     k32.QueryPerformanceCounter(ctypes.byref(t1))
 
@@ -290,18 +365,29 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None):
     # the reliable way to reap them once the process we timed has exited.
     k32.TerminateJobObject(h_job, 0)
 
+    for reader in readers:
+        reader.join()
+    if h_out_read:
+        k32.CloseHandle(h_out_read)
+        k32.CloseHandle(h_err_read)
+
     k32.CloseHandle(pi.hThread)
     k32.CloseHandle(pi.hProcess)
     k32.CloseHandle(h_job)
-    k32.CloseHandle(h_out)
-    k32.CloseHandle(h_err)
+    if h_out:
+        k32.CloseHandle(h_out)
+        k32.CloseHandle(h_err)
 
-    with open(path_out, "rb") as f:
-        out = f.read().decode("utf-8", "replace")
-    with open(path_err, "rb") as f:
-        err_txt = f.read().decode("utf-8", "replace")
-    os.unlink(path_out)
-    os.unlink(path_err)
+    if capture_first_stdout:
+        out = b"".join(stdout_parts).decode("utf-8", "replace")
+        err_txt = b"".join(stderr_parts).decode("utf-8", "replace")
+    else:
+        with open(path_out, "rb") as f:
+            out = f.read().decode("utf-8", "replace")
+        with open(path_err, "rb") as f:
+            err_txt = f.read().decode("utf-8", "replace")
+        os.unlink(path_out)
+        os.unlink(path_err)
 
     if not memory_ok:
         raise ctypes.WinError(memory_error)
@@ -309,6 +395,8 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None):
     return {
         "exit": code.value,
         "wall_ms": (t1.value - t0.value) * 1000.0 / freq.value,
+        "first_stdout_ms": ((first_stdout_tick[0] - t0.value) * 1000.0 / freq.value
+                            if first_stdout_tick[0] is not None else None),
         "cpu_ms": _ft(kernel) + _ft(user),
         "peak_job_bytes": info.PeakJobMemoryUsed,
         "peak_proc_bytes": info.PeakProcessMemoryUsed,

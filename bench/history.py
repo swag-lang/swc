@@ -401,7 +401,7 @@ def condense(results, refs=None, baseline=None):
     entry["sample_spread_pct"] = statistics.median(spreads) if spreads else None
 
     hello = results.get("hello_run", {}).get("swc-jit-release", {})
-    entry["hello_jit_ms"] = hello.get("wall_ms")
+    entry["hello_jit_ms"] = hello.get("first_stdout_ms", hello.get("wall_ms"))
     hb = results.get("hello_build", {}).get("swag-release", {})
     entry["hello_build_ms"] = hb.get("wall_ms")
     entry["hello_build_peak_mb"] = (hb.get("peak_bytes") or 0) / 1048576.0 or None

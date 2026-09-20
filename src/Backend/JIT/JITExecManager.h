@@ -8,10 +8,13 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class CompilerInstance;
 
 class JITExecManager
 {
 public:
+    explicit JITExecManager(CompilerInstance& compiler);
+
     enum class Strategy : uint8_t
     {
         MainThreadQueued,
@@ -56,6 +59,8 @@ public:
 #endif
 
 private:
+    class ExecJob;
+
     enum class Status : uint8_t
     {
         Pending,
@@ -93,7 +98,17 @@ private:
 
     struct Item
     {
+        Item(TaskContext& ownerCtx, const Request& request) :
+            ownerCtx(&ownerCtx),
+            executionCtx(ownerCtx),
+            request(request)
+        {
+        }
+
         TaskContext* ownerCtx = nullptr;
+        // The semantic job can park while its JIT request executes. Its context is
+        // therefore not safe to mutate from the execution lane.
+        TaskContext  executionCtx;
         Request      request;
         TaskState    waitState;
         Status       status = Status::Pending;
@@ -101,10 +116,15 @@ private:
     };
 
     static Result executeItem(Item& item);
+    void          enqueueWorker();
+    void          executePendingWorker();
 
+    CompilerInstance*                                               compiler_ = nullptr;
     mutable std::mutex                                              mutex_;
+    std::mutex                                                      executionMutex_;
     std::unordered_map<ItemKey, std::unique_ptr<Item>, ItemKeyHash> items_;
     Strategy                                                        strategy_ = Strategy::MainThreadQueued;
+    bool                                                            workerScheduled_ = false;
 };
 
 SWC_END_NAMESPACE();

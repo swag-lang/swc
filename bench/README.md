@@ -72,8 +72,8 @@ under test on the repository's own sources — what the tools in `../tools` actu
 
 Each one is prepared outside the clock — outputs removed, a warm build made, a write time
 bumped, the sources mirrored — then timed once, like a build: minimum kept, every sample
-recorded, no pinning, because a build is meant to use the whole machine. `--swc-cores` caps
-the compiler's worker pool and is stored with the campaign, since the number depends on it.
+recorded, no pinning and no worker-count override, because a build is meant to use the whole
+machine and the compiler's default scheduling policy is part of the measured product.
 
 Memory has two separate meanings: `peak_bytes` is the peak committed memory of the process
 tree, including compiler helpers; `peak_working_set_bytes` is the timed process's peak resident

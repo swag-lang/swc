@@ -175,7 +175,7 @@ namespace
     {
         if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
-        if (sym.isGenericRoot() || sym.isGenericInstance() || sym.isEmpty())
+        if (sym.isEmpty())
             return false;
         if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
@@ -240,6 +240,11 @@ namespace
 
     bool canDelayFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
+        // Generic bodies already run on demand as part of instantiation. Giving their roots or
+        // instances a second lazy-body lifecycle can make an overload wait on its own instance.
+        if (sym.isGenericRoot() || sym.isGenericInstance())
+            return false;
+
         return canDelayGenericInstanceFunctionBody(sema, node, sym, declImpl) ||
                canDelayImportedFunctionBody(sema, node, sym, declImpl) ||
                canDelayRuntimeFunctionBody(sema, node, sym, declImpl);

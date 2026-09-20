@@ -274,12 +274,10 @@ def _headline(results, panel):
         return (tasks[task].get(rt, {}).get("build") or {}).get("wall_ms")
 
     present = [rt for rt in tasks[task_ids[0]] if all(ms(rt, t) for t in task_ids)]
-    if not present:
-        return {}
-    best = {t: min(ms(rt, t) for rt in present) for t in task_ids}
+    best = {t: min(ms(rt, t) for rt in present) for t in task_ids} if present else {}
     run_geo = {rt: geo([ms(rt, t) / best[t] for t in task_ids]) for rt in present}
-    build_geo = {rt: geo([wall(rt, t) for t in task_ids])
-                 for rt in present if all(wall(rt, t) for t in task_ids)}
+    built = [rt for rt in tasks[task_ids[0]] if all(wall(rt, t) for t in task_ids)]
+    build_geo = {rt: geo([wall(rt, t) for t in task_ids]) for rt in built}
     native = run_geo.get("swag-release")
     jit = run_geo.get("swc-jit-release")
     swag_build = build_geo.get("swag-release")

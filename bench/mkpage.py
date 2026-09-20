@@ -76,20 +76,26 @@ LOOP = [
 ]
 
 
-def latest_campaign():
-    """The most recent campaign of the current protocol.
+def latest_campaign(phase=None):
+    """The most recent campaign that contains ``phase`` of the current protocol.
 
     A campaign measured under an older protocol is not merely older, it measured
     something else; publishing one as if it were current is the failure this whole
-    file exists to prevent.
+    file exists to prevent. A complete campaign contains both phases, including the
+    historical campaigns that predate explicit phase metadata.
     """
     for path in sorted(glob.glob(os.path.join(BENCH, "results", "*.json")), reverse=True):
         with open(path, encoding="utf-8") as f:
             campaign = json.load(f)
-        if campaign.get("meta", {}).get("protocol") == history.PROTOCOL:
+        phases = (campaign.get("meta", {}).get("settings") or {}).get("phases")
+        if campaign.get("meta", {}).get("protocol") != history.PROTOCOL:
+            continue
+        measured = set(phases or ("build", "run"))
+        if (phase is None and {"build", "run"}.issubset(measured)) or phase in measured:
             return campaign
-    raise SystemExit("no campaign of protocol %d in bench/results — run a campaign first"
-                     % history.PROTOCOL)
+    what = "complete" if phase is None else phase
+    raise SystemExit("no %s campaign of protocol %d in bench/results — run a campaign first"
+                     % (what, history.PROTOCOL))
 
 
 def fmt(v, nd=2):
@@ -315,12 +321,18 @@ def history_section(entries):
             "rep&egrave;re de d&eacute;part.</p></div>")
 
     latest_context = entries[-1].get("context", {})
-    run_tasks = latest_context.get("run_task_factors", {})
-    build_tasks = latest_context.get("build_task_factors", {})
+    latest_run_context = next((entry.get("context", {}) for entry in reversed(entries)
+                               if entry.get("context", {}).get("run_factor") is not None),
+                              latest_context)
+    latest_build_context = next((entry.get("context", {}) for entry in reversed(entries)
+                                 if entry.get("context", {}).get("build_factor") is not None),
+                                latest_context)
+    run_tasks = latest_run_context.get("run_task_factors", {})
+    build_tasks = latest_build_context.get("build_task_factors", {})
     run_per_task = (latest_context.get("run_controls", 0) // len(run_tasks)) if run_tasks else 0
     build_per_task = ((latest_context.get("build_controls", 0) // len(build_tasks))
                       if build_tasks else 0)
-    baseline = latest_context.get("baseline_commit") or latest_context.get("baseline") or "?"
+    baseline = latest_run_context.get("baseline_commit") or latest_run_context.get("baseline") or "?"
 
     def null_band(family, task=None):
         out = []
@@ -338,7 +350,9 @@ def history_section(entries):
 
     run_band = null_band("run")
     build_band = null_band("build")
-    controls_run = ((entries[-1].get("null") or {}).get("run") or {}).get("controls", 0)
+    controls_run = next((((entry.get("null") or {}).get("run") or {}).get("controls", 0)
+                         for entry in reversed(entries)
+                         if ((entry.get("null") or {}).get("run") or {}).get("controls")), 0)
 
     parts.append("<h3>Les quatre chiffres de t&ecirc;te, campagne apr&egrave;s campagne</h3>")
     parts.append('<p class="cap">Les trois rapports affich&eacute;s en haut de page compar&eacute;s '
@@ -473,8 +487,8 @@ def history_section(entries):
                  "runtime avec lui-m&ecirc;me &agrave; l'int&eacute;rieur d'une campagne : il dit si la "
                  "machine &eacute;tait calme ce jour-l&agrave;, l&agrave; o&ugrave; la bande de "
                  "r&eacute;solution dit ce que le banc distingue d'une campagne &agrave; l'autre.</p>" %
-                 (latest_context.get("run_dispersion_pct") or 0.0,
-                  latest_context.get("build_dispersion_pct") or 0.0))
+                 (latest_run_context.get("run_dispersion_pct") or 0.0,
+                  latest_build_context.get("build_dispersion_pct") or 0.0))
     if dirty_seen:
         parts.append('<p class="cap">Un ast&eacute;risque marque une campagne mesur&eacute;e '
                      "sur un arbre modifi&eacute; : son commit seul ne la reproduit pas.</p>")
@@ -529,19 +543,22 @@ def write_repo_readme(block):
 
 # ----------------------------------------------------------------------- main
 def main():
-    R = latest_campaign()
+    R = latest_campaign("run")
+    B = latest_campaign("build")
     T = R["tasks"]
+    BT = B["tasks"]
     entries = history.rebuild()
 
     present = [r[0] for r in RUNTIMES if r[0] in T[TASK_IDS[0]]
                and (T[TASK_IDS[0]][r[0]].get("run") or {}).get("ms")]
-    aot = [r for r in present if (T[TASK_IDS[0]][r].get("build") or {}).get("wall_ms")]
+    aot = [r[0] for r in RUNTIMES if r[0] in BT[TASK_IDS[0]]
+           and (BT[TASK_IDS[0]][r[0]].get("build") or {}).get("wall_ms")]
 
     def ms(rt, task):
         return T[task][rt]["run"]["ms"]
 
     def build(rt, task, key):
-        return (T[task][rt].get("build") or {}).get(key)
+        return (BT[task][rt].get("build") or {}).get(key)
 
     best = {t: min(ms(r, t) for r in present) for t in TASK_IDS}
     ratio = {r: {t: ms(r, t) / best[t] for t in TASK_IDS} for r in present}
@@ -593,12 +610,12 @@ def main():
                      [[META[r][3], "%s <span class=\"mode\">%s</span>" % (META[r][1], META[r][2])]
                       + [fmt(build(r, t, "wall_ms"), 0) for t in TASK_IDS]
                       + ["<b>%s</b>" % fmt(bgeo[r], 0),
-                         fmt((R["hello_build"].get(r) or {}).get("wall_ms"), 0)]
+                         fmt((B["hello_build"].get(r) or {}).get("wall_ms"), 0)]
                       for r in border], "wide")
 
     # The edit-build loop of this campaign, from its condensed entry: that is where the
     # correction and the index live, and the raw file only holds what was measured.
-    current = next((e for e in entries if e["meta"].get("stamp") == R["meta"].get("stamp")),
+    current = next((e for e in entries if e["meta"].get("stamp") == B["meta"].get("stamp")),
                    entries[-1] if entries else {})
     loop = current.get("loop") or {}
     loop_rows = []
@@ -693,7 +710,7 @@ def main():
         "`rustc`, linker" % (fmt(bgeo["cpp-clang-cl"] / bgeo["swag-release"], 1),
                              fmt(bgeo["rust"] / bgeo["swag-release"], 1)),
         "included. A hello world compiles and links in %s ms."
-        % fmt((R["hello_build"].get("swag-release") or {}).get("wall_ms"), 0),
+        % fmt((B["hello_build"].get("swag-release") or {}).get("wall_ms"), 0),
         "",
         "The JIT lands **within %s percent of the native backend** here, which is what makes "
         "compile-time" % fmt(abs(jit_gap), 0),
@@ -714,7 +731,7 @@ def main():
         "> the method, the supported runtimes, and the rules that keep the numbers honest.",
         "",
     ]
-    if write_repo_readme("\n".join(readme)):
+    if R["meta"].get("stamp") == B["meta"].get("stamp") and write_repo_readme("\n".join(readme)):
         print("repository README refreshed from campaign %s" % m["stamp"])
 
     subs = {

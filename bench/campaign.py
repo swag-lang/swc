@@ -5,6 +5,7 @@ measured is the code currently in the tree rather than whatever binary happened 
 be lying around.
 
     py -3 campaign.py [--label TEXT] [--quick] [--no-build] [--report-only]
+                      [--build | --run]
 """
 import argparse
 import os
@@ -76,6 +77,11 @@ def main():
     ap.add_argument("--no-build", action="store_true", help="measure the binary already built")
     ap.add_argument("--report-only", action="store_true",
                     help="regenerate the page from the existing history, measure nothing")
+    phase = ap.add_mutually_exclusive_group()
+    phase.add_argument("--build", action="store_true",
+                       help="measure compilation only; update only compilation history and report data")
+    phase.add_argument("--run", action="store_true",
+                       help="measure execution only; update only execution history and report data")
     args = ap.parse_args()
 
     if args.report_only:
@@ -98,6 +104,10 @@ def main():
     extra = ["--label", args.label] if args.label else []
     if args.quick:
         extra.append("--quick")
+    if args.build:
+        extra.append("--build")
+    elif args.run:
+        extra.append("--run")
     run("driver.py", extra)
 
     if args.quick:

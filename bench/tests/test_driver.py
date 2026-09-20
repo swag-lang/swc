@@ -26,6 +26,27 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(run.call_args_list, [mock.call("driver.py", ["--quick"])])
         warn_if_dirty.assert_not_called()
 
+    def test_build_campaign_forwards_the_phase_and_rebuilds_the_report(self):
+        with (
+            mock.patch.object(sys, "argv", ["campaign.py", "--build"]),
+            mock.patch.object(campaign, "build"),
+            mock.patch.object(campaign, "run") as run,
+            mock.patch.object(campaign, "warn_if_dirty"),
+        ):
+            self.assertEqual(campaign.main(), 0)
+
+        self.assertEqual(run.call_args_list,
+                         [mock.call("driver.py", ["--build"]),
+                          mock.call("mkpage.py", [])])
+
+    def test_driver_phase_flags_are_exclusive_and_select_their_family(self):
+        build = driver.parse_args(["--build"])
+        run = driver.parse_args(["--run"])
+        self.assertEqual(driver.selected_phases(build), (True, False))
+        self.assertEqual(driver.selected_phases(run), (False, True))
+        with self.assertRaises(SystemExit):
+            driver.parse_args(["--build", "--run"])
+
 
 class SampleBudgetTests(unittest.TestCase):
     def test_a_fast_runtime_gets_the_ceiling_and_a_slow_one_the_floor(self):

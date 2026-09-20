@@ -12,6 +12,8 @@ result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
 | | |
 |---|---|
 | `swc tools\bench.swgs --quick` | one sample, no warm-up; proves the plumbing works and is **not** recorded |
+| `swc tools\bench.swgs --build` | measure compiler time only; execution is skipped, and only compilation series are added to the history and report |
+| `swc tools\bench.swgs --run` | measure program execution only; AOT programs are built outside the clock, and only execution series are added to the history and report |
 | `swc tools\bench.swgs --report-only` | rebuild the normalized history and page from raw campaigns, measure nothing |
 | `swc tools\bench.swgs --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
 | `py driver.py --tasks chacha --quick` | sweep one task while working on it; a partial sweep is **never** recorded |

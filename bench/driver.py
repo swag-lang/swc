@@ -250,7 +250,7 @@ def wait_for_quiet():
     return None
 
 
-def main():
+def parse_args(argv=None):
     global RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS
     global BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS
 
@@ -267,7 +267,21 @@ def main():
     ap.add_argument("--tasks", default="",
                     help="comma-separated subset of the tasks to sweep, for iterating on one of "
                          "them; a partial sweep is never recorded")
-    args = ap.parse_args()
+    phase = ap.add_mutually_exclusive_group()
+    phase.add_argument("--build", action="store_true",
+                       help="measure compilation only; update only compilation history and report data")
+    phase.add_argument("--run", action="store_true",
+                       help="measure execution only; build AOT programs outside the clock and update only execution data")
+    return ap.parse_args(argv)
+
+
+def selected_phases(args):
+    return not args.run, not args.build
+
+
+def main():
+    args = parse_args()
+    measure_build, measure_run = selected_phases(args)
 
     RUN_BUDGET_MS = args.budget
     BUILD_BUDGET_MS = args.build_budget
@@ -301,10 +315,10 @@ def main():
 
     env = tc.build_env(t)
     recipes = tc.make_recipes(t, env, swc)
-    launchers = tc.make_launchers(t, t["dotnet"])
-    runtimes = tc.make_runtimes(t, swc)
+    launchers = tc.make_launchers(t, t["dotnet"]) if measure_run else None
+    runtimes = tc.make_runtimes(t, swc) if measure_run else None
     hello_builds = tc.make_hello_builds(t, env, swc)
-    hello_runs = tc.make_hello_runs(t, swc)
+    hello_runs = tc.make_hello_runs(t, swc) if measure_run else None
 
     aot = [k for k in AOT_ORDER if k not in gone]
     jit = [k for k in JIT_ORDER if k not in gone]
@@ -314,6 +328,9 @@ def main():
     print("campaign            : %d ms of samples per runtime and task (%d..%d), "
           "%d ms per build" %
           (RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS, BUILD_BUDGET_MS))
+    if measure_build != measure_run:
+        print("measurement phase   : %s only (updates only that report series)" %
+              ("compilation" if measure_build else "execution"))
     print("timed runs pinned to : 0x%x (%d performance cores)" %
           (winproc.PIN_MASK, bin(winproc.PIN_MASK).count("1")))
 
@@ -378,81 +395,81 @@ def main():
     if results["calibration"]["start"] is None:
         return 1
 
-    # ------------------------------------------------------- fixed compiler cost
-    print("== fixed compiler cost (hello world -> exe) ==")
-    hello_plan = {}
-    for rep in range(BUILD_MAX_REPS):
-        for name in hello_builds:
-            if name in gone or rep >= hello_plan.get(name, BUILD_MAX_REPS):
-                continue
-            rec = hello_builds[name]()
-            r, err = build_once(rec, env)
-            acc = results["hello_build"].setdefault(name, {})
-            if err:
-                acc["error"] = err
-                hello_plan[name] = 0
+    if measure_build:
+        # --------------------------------------------------- fixed compiler cost
+        print("== fixed compiler cost (hello world -> exe) ==")
+        hello_plan = {}
+        for rep in range(BUILD_MAX_REPS):
+            for name in hello_builds:
+                if name in gone or rep >= hello_plan.get(name, BUILD_MAX_REPS):
+                    continue
+                rec = hello_builds[name]()
+                r, err = build_once(rec, env)
+                acc = results["hello_build"].setdefault(name, {})
+                if err:
+                    acc["error"] = err
+                    hello_plan[name] = 0
+                else:
+                    keep_build(acc, r, rec)
+                    hello_plan.setdefault(name, plan_builds(r["wall_ms"]))
+        for name, acc in results["hello_build"].items():
+            if acc.get("error"):
+                print("  %-20s ERROR %s" % (name, acc["error"][:150]))
             else:
-                keep_build(acc, r, rec)
-                hello_plan.setdefault(name, plan_builds(r["wall_ms"]))
-    for name, acc in results["hello_build"].items():
-        if acc.get("error"):
-            print("  %-20s ERROR %s" % (name, acc["error"][:150]))
-        else:
-            print("  %-20s build=%9.1f ms  mem=%7.1f MB" %
-                  (name, acc["wall_ms"], acc["peak_bytes"] / 1048576.0))
-    sys.stdout.flush()
+                print("  %-20s build=%9.1f ms  mem=%7.1f MB" %
+                      (name, acc["wall_ms"], acc["peak_bytes"] / 1048576.0))
+        sys.stdout.flush()
 
-    # ------------------------------------------------------- the edit-build loop
-    # Not pinned, like every build: a rebuild is meant to use the whole machine. The
-    # order is fixed on purpose — a no-op right after the full rebuild it warms — and
-    # nothing here competes with anything else, so there is no rotation to keep fair.
-    print("== the edit-build loop (compiler workloads) ==")
-    workloads = tc.make_compiler_workloads(swc)
-    results["loop"] = {}
-    loop_plan = {}
-    for rep in range(BUILD_MAX_REPS):
-        for name, workload in workloads.items():
-            if rep >= loop_plan.get(name, BUILD_MAX_REPS):
-                continue
-            r, err = workload_once(workload, env)
-            acc = results["loop"].setdefault(name, {})
-            if err:
-                acc["error"] = err
-                loop_plan[name] = 0
+        # --------------------------------------------------- the edit-build loop
+        # Not pinned, like every build: a rebuild is meant to use the whole machine.
+        print("== the edit-build loop (compiler workloads) ==")
+        workloads = tc.make_compiler_workloads(swc)
+        results["loop"] = {}
+        loop_plan = {}
+        for rep in range(BUILD_MAX_REPS):
+            for name, workload in workloads.items():
+                if rep >= loop_plan.get(name, BUILD_MAX_REPS):
+                    continue
+                r, err = workload_once(workload, env)
+                acc = results["loop"].setdefault(name, {})
+                if err:
+                    acc["error"] = err
+                    loop_plan[name] = 0
+                else:
+                    keep_workload(acc, r)
+                    loop_plan.setdefault(name, plan_builds(r["wall_ms"]))
+        for name, acc in results["loop"].items():
+            if acc.get("error"):
+                print("  %-20s ERROR %s" % (name, acc["error"][:150]))
             else:
-                keep_workload(acc, r)
-                loop_plan.setdefault(name, plan_builds(r["wall_ms"]))
-    for name, acc in results["loop"].items():
-        if acc.get("error"):
-            print("  %-20s ERROR %s" % (name, acc["error"][:150]))
-        else:
-            print("  %-20s wall=%9.1f ms (%dx, %+4.0f%%)  mem=%7.1f MB" %
-                  (name, acc["wall_ms"], len(acc["samples"]), spread_pct(acc["samples"]),
-                   acc["peak_bytes"] / 1048576.0))
-    sys.stdout.flush()
+                print("  %-20s wall=%9.1f ms (%dx, %+4.0f%%)  mem=%7.1f MB" %
+                      (name, acc["wall_ms"], len(acc["samples"]), spread_pct(acc["samples"]),
+                       acc["peak_bytes"] / 1048576.0))
+        sys.stdout.flush()
 
-    # ------------------------------------------------------ time to first output
-    print("== time to first program output (hello world) ==")
-    for rep in range(1 if args.quick else 12):
+    if measure_run:
+        # -------------------------------------------------- time to first output
+        print("== time to first program output (hello world) ==")
+        for rep in range(1 if args.quick else 12):
+            for name in jit:
+                output_marker = "hello, world\n" if name.startswith("swc-") else "hi"
+                r = winproc.run(hello_runs[name], cwd=tc.BENCH, env=env, pin=True,
+                                first_stdout_match=output_marker)
+                acc = results["hello_run"].setdefault(name, {})
+                if r["first_stdout_ms"] is None:
+                    acc["error"] = "process did not print its hello output"
+                    continue
+                acc["first_stdout_ms"] = (r["first_stdout_ms"] if acc.get("first_stdout_ms") is None
+                                          else min(acc["first_stdout_ms"], r["first_stdout_ms"]))
+                acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
         for name in jit:
-            output_marker = "hello, world\n" if name.startswith("swc-") else "hi"
-            r = winproc.run(hello_runs[name], cwd=tc.BENCH, env=env, pin=True,
-                            first_stdout_match=output_marker)
-            acc = results["hello_run"].setdefault(name, {})
-            if r["first_stdout_ms"] is None:
-                acc["error"] = "process did not print its hello output"
-                continue
-            acc["first_stdout_ms"] = (r["first_stdout_ms"] if acc.get("first_stdout_ms") is None
-                                      else min(acc["first_stdout_ms"], r["first_stdout_ms"]))
-            acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
-    for name in jit:
-        acc = results["hello_run"][name]
-        if acc.get("error"):
-            print("  %-20s ERROR %s" % (name, acc["error"]))
-        else:
-            print("  %-20s first=%7.1f ms  mem=%7.1f MB" %
-                  (name, acc["first_stdout_ms"], acc["peak_bytes"] / 1048576.0))
-    sys.stdout.flush()
+            acc = results["hello_run"][name]
+            if acc.get("error"):
+                print("  %-20s ERROR %s" % (name, acc["error"]))
+            else:
+                print("  %-20s first=%7.1f ms  mem=%7.1f MB" %
+                      (name, acc["first_stdout_ms"], acc["peak_bytes"] / 1048576.0))
+        sys.stdout.flush()
 
     # ------------------------------------------------------------------ the sweep
     for task in tasks:
@@ -468,66 +485,79 @@ def main():
         for name in aot:
             built[name] = recipes[name](task, "%s_%s" % (task, name.replace("-", "_")))
 
-        acc_build = {name: {} for name in aot}
-        build_plan = {}
-        for rep in range(BUILD_MAX_REPS):
-            # Rotated for the same reason the runs are: a build left permanently first
-            # in the round is permanently measured on a machine the others just left.
-            turn = rep % len(aot)
-            for name in aot[turn:] + aot[:turn]:
-                if rep >= build_plan.get(name, BUILD_MAX_REPS):
-                    continue
-                r, err = build_once(built[name], env)
+        acc_build = {}
+        if measure_build:
+            acc_build = {name: {} for name in aot}
+            build_plan = {}
+            for rep in range(BUILD_MAX_REPS):
+                # Rotated for the same reason the runs are: a build left permanently first
+                # in the round is permanently measured on a machine the others just left.
+                turn = rep % len(aot)
+                for name in aot[turn:] + aot[:turn]:
+                    if rep >= build_plan.get(name, BUILD_MAX_REPS):
+                        continue
+                    r, err = build_once(built[name], env)
+                    if err:
+                        errors[name] = err
+                        build_plan[name] = 0
+                    else:
+                        keep_build(acc_build[name], r, built[name])
+                        build_plan.setdefault(name, plan_builds(r["wall_ms"]))
+        elif measure_run:
+            print("  preparing AOT programs outside the clock...")
+            for name in aot:
+                _, err = build_once(built[name], env)
                 if err:
                     errors[name] = err
-                    build_plan[name] = 0
-                else:
-                    keep_build(acc_build[name], r, built[name])
-                    build_plan.setdefault(name, plan_builds(r["wall_ms"]))
 
-        cmds = {}
-        for name in aot:
-            if name not in errors:
-                cmds[name] = launchers[name](built[name]["exe"])
-        for name in jit:
-            cmds[name] = runtimes[name](task)
+        acc_run = {}
+        if measure_run:
+            cmds = {}
+            for name in aot:
+                if name not in errors:
+                    cmds[name] = launchers[name](built[name]["exe"])
+            for name in jit:
+                cmds[name] = runtimes[name](task)
 
-        # One pilot sample per runtime prices the task, then each runtime is given the
-        # number of samples its own duration affords inside the budget.
-        acc_run = {name: {} for name in cmds}
-        plan = {}
-        for name, cmd in cmds.items():
-            got, err, r = run_once(cmd, env)
-            if not got:
-                acc_run[name]["error"] = err
-                plan[name] = set()
-            else:
-                keep_run(acc_run[name], got, r)
-                plan[name] = schedule(plan_reps(r["wall_ms"]) - 1)
-
-        names = [n for n in cmds if not acc_run[n].get("error")]
-        for cycle in range(RUN_MAX_REPS):
-            due = [n for n in names if cycle in plan[n]]
-            if not due:
-                continue
-            # Rotate: no runtime keeps the head of the cycle, and the head of a cycle
-            # is the one that pays for whatever the previous cycle left behind.
-            turn = cycle % len(due)
-            for name in due[turn:] + due[:turn]:
-                got, err, r = run_once(cmds[name], env)
+            # One pilot sample per runtime prices the task, then each runtime is given the
+            # number of samples its own duration affords inside the budget.
+            acc_run = {name: {} for name in cmds}
+            plan = {}
+            for name, cmd in cmds.items():
+                got, err, r = run_once(cmd, env)
                 if not got:
                     acc_run[name]["error"] = err
+                    plan[name] = set()
                 else:
                     keep_run(acc_run[name], got, r)
+                    plan[name] = schedule(plan_reps(r["wall_ms"]) - 1)
+
+            names = [n for n in cmds if not acc_run[n].get("error")]
+            for cycle in range(RUN_MAX_REPS):
+                due = [n for n in names if cycle in plan[n]]
+                if not due:
+                    continue
+                # Rotate: no runtime keeps the head of the cycle, and the head of a cycle
+                # is the one that pays for whatever the previous cycle left behind.
+                turn = cycle % len(due)
+                for name in due[turn:] + due[:turn]:
+                    got, err, r = run_once(cmds[name], env)
+                    if not got:
+                        acc_run[name]["error"] = err
+                    else:
+                        keep_run(acc_run[name], got, r)
 
         results["tasks"][task] = {}
         for name in aot + jit:
             entry = {"kind": "aot" if name in aot else "jit"}
             if name in errors:
-                entry["build"] = {"error": errors[name]}
+                if measure_build:
+                    entry["build"] = {"error": errors[name]}
+                if measure_run:
+                    entry["run"] = {"error": errors[name]}
                 print("  %-20s BUILD ERROR %s" % (name, errors[name][:150]))
-            else:
-                if name in aot:
+            elif measure_run:
+                if measure_build and name in aot:
                     entry["build"] = acc_build[name]
                 entry["run"] = acc_run.get(name, {})
                 r = entry["run"]
@@ -544,6 +574,11 @@ def main():
                           % (name, r["ms"], len(r.get("samples") or []),
                              spread_pct(r.get("samples")), r["peak_bytes"] / 1048576.0,
                              r["check"]))
+            elif name in aot:
+                entry["build"] = acc_build[name]
+                r = entry["build"]
+                print("  %-20s build=%8.1f ms  bmem=%7.1f MB" %
+                      (name, r["wall_ms"], r["peak_bytes"] / 1048576.0))
             results["tasks"][task][name] = entry
         sys.stdout.flush()
 
@@ -591,6 +626,7 @@ def main():
     results["meta"] = history.describe(swc, args.label, {
         "pin_mask": "0x%x" % winproc.PIN_MASK,
         "pin_cores": bin(winproc.PIN_MASK).count("1"),
+        "phases": (["build"] if measure_build else []) + (["run"] if measure_run else []),
         "budget_ms": RUN_BUDGET_MS,
         "min_reps": RUN_MIN_REPS,
         "max_reps": RUN_MAX_REPS,
@@ -636,10 +672,12 @@ def main():
     entries = history.append(results)
     current = next(entry for entry in entries if entry["meta"]["stamp"] == stamp)
     context = current["context"]
-    print("context adjustment: execution=%+.1f %% from %d control measurements, "
-          "compilation=%+.1f %% from %d control measurements" %
-          ((context["run_factor"] - 1.0) * 100.0, context["run_controls"],
-           (context["build_factor"] - 1.0) * 100.0, context["build_controls"]))
+    if measure_run:
+        print("context adjustment: execution=%+.1f %% from %d control measurements" %
+              ((context["run_factor"] - 1.0) * 100.0, context["run_controls"]))
+    if measure_build:
+        print("context adjustment: compilation=%+.1f %% from %d control measurements" %
+              ((context["build_factor"] - 1.0) * 100.0, context["build_controls"]))
     print("history updated (%d campaigns)" % len(entries))
     return 0
 

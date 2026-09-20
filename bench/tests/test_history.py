@@ -135,6 +135,16 @@ def add_loop(result, wall_ms, hello_ms=None, error=None):
     return result
 
 
+def compile_only(result):
+    """Keep only the compilation family of a synthetic campaign."""
+    for entries in result["tasks"].values():
+        for entry in entries.values():
+            entry.pop("run", None)
+    result["hello_run"] = {}
+    result["meta"]["settings"] = {"phases": ["build"]}
+    return result
+
+
 class EditLoopTests(unittest.TestCase):
     def test_resident_memory_is_distinct_from_commit_and_absent_in_old_campaigns(self):
         old = add_loop(campaign("run-01", False), 2000.0)
@@ -184,6 +194,16 @@ class EditLoopTests(unittest.TestCase):
 
         self.assertIn("core_rebuild", loop)
         self.assertNotIn("doc_std", loop)
+
+    def test_compile_only_campaign_updates_build_history_without_execution_data(self):
+        baseline = campaign("run-01", False)
+        partial = compile_only(campaign("run-02", False, build_scale=0.8))
+
+        entries = history.build_entries([baseline, partial])
+
+        self.assertAlmostEqual(entries[1]["runtimes"]["swag-release"]["build_geo_adjusted_ms"], 50.0)
+        self.assertIsNone(entries[1]["runtimes"]["swag-release"]["run_geo_adjusted_ms"])
+        self.assertAlmostEqual(entries[0]["runtimes"]["swag-release"]["run_geo_adjusted_ms"], 100.0)
 
 
 class ResolutionTests(unittest.TestCase):

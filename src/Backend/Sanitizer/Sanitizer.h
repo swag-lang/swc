@@ -106,11 +106,9 @@ private:
         std::string_view what;
     };
 
-    // Registers the function defines exactly once. A copy can only name its source
-    // register later if that source can never have been rewritten in between, and one
-    // definition is what proves it - including inside a loop, where the single definition
-    // dominates every use of the value it produces on that turn.
-    void computeSingleDefinitionRegs();
+    // Compute properties that require a full instruction scan: registers defined exactly
+    // once, and whether the stack-base register is mutated in place.
+    void computeFunctionProperties();
     bool hasSingleDefinition(MicroReg reg) const;
 
     // A stack address consumed by anything other than an access it is the base of: the

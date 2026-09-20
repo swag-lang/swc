@@ -100,11 +100,13 @@ bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t
     return true;
 }
 
-void Sanitizer::computeSingleDefinitionRegs()
+void Sanitizer::computeFunctionProperties()
 {
     definitionCounts_.clear();
+    stackBaseStable_ = true;
 
-    const uint32_t n = cfg_->instructionCount();
+    const uint32_t n                = cfg_->instructionCount();
+    const bool     inspectStackBase = stackBaseReg_.isValid();
     for (uint32_t i = 0; i < n; i++)
     {
         const MicroInstr&        inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
@@ -112,6 +114,11 @@ void Sanitizer::computeSingleDefinitionRegs()
         const MicroInstrOperand* ops  = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
         if (!ops)
             continue;
+
+        if (inspectStackBase && stackBaseStable_ &&
+            (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryRegReg) &&
+            ops[0].reg == stackBaseReg_)
+            stackBaseStable_ = false;
 
         const auto modes    = def.resolvedRegModes(ops);
         const auto regCount = std::min(static_cast<size_t>(inst.numOperands), modes.size());
@@ -212,28 +219,11 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     reached_.assign(n, 0);
     inWorklist_.assign(n, 0);
 
-    computeSingleDefinitionRegs();
-
-    // Detect in-place mutations of the stack-base register (call-area frame shapes
-    // fold a local's offset into it): every frame offset the engine computes is then
-    // shifted by an unknown amount. Slot-relative facts stay self-consistent, but the
-    // bound check compares against absolute extents and must stand down.
-    if (stackBaseReg_.isValid())
-    {
-        for (uint32_t i = 0; i < n; i++)
-        {
-            const MicroInstr& scanInst = *context_.instructions->ptr(cfg.instructionRefs()[i]);
-            if (scanInst.op != MicroInstrOpcode::OpBinaryRegImm && scanInst.op != MicroInstrOpcode::OpBinaryRegReg)
-                continue;
-
-            const MicroInstrOperand* scanOps = scanInst.numOperands ? scanInst.ops(*context_.operands) : nullptr;
-            if (scanOps && scanOps[0].reg == stackBaseReg_)
-            {
-                stackBaseStable_ = false;
-                break;
-            }
-        }
-    }
+    // In-place mutations of the stack-base register (call-area frame shapes fold a
+    // local's offset into it) invalidate the absolute extents used by the bound check.
+    // Compute that property alongside the definition counts instead of scanning the
+    // complete instruction stream a second time.
+    computeFunctionProperties();
 
     // Resolve call targets up front: checks identify what a call invokes, and the
     // fixpoint needs to know which calls never return.

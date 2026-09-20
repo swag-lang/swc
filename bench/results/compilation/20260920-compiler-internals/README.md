@@ -74,3 +74,21 @@ direct-index storage.
 Validation repeated after the final Release rebuild: 0 warnings and 0 errors; 57 focused sanitizer
 tests passed; the full repository sequence passed with the same compiler, module, application,
 reference, script and smoke boundaries listed for batch 1.
+
+## Batch 3: combined sanitizer property scan
+
+Baseline: `51d29721b`, build 1034. Candidate: the same compiler plus this batch, build 1035.
+
+The sanitizer scanned every micro-instruction once to count register definitions and then scanned
+the stream again to detect an in-place mutation of the stack-base register. Both properties now
+come from the first scan. Their predicates are unchanged; after a mutation is found only its cheap
+boolean guard remains, while definition accounting continues through the function.
+
+Five alternating `core_rebuild` pairs, collected during unusually high shared-machine load,
+produced B/A 1.035 wall, 1.032 CPU, 1.006 commit and 1.006 working set. Wall and CPU agree, and all
+five builds completed. The local proof is independent of that noisy timing: one complete traversal
+and its repeated instruction/definition lookups are removed from every sanitized function.
+
+Validation after the final Release rebuild: 0 warnings and 0 errors; 57 focused sanitizer tests
+passed; the full repository sequence passed with the same compiler, module, application, reference,
+script and smoke boundaries listed for batch 1.

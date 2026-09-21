@@ -35,7 +35,7 @@ using Swag, Core
     Swag.assert(host.surface.rt.handle == tallerHandle)
 }
 
-// A synchronous paint publishes its frame before returning, whatever the renderer was doing.
+// Painting the final geometry consumes the pending dirty region before returning.
 //
 // The platform layer presents from inside the geometry transaction that changed the window, and
 // a frame abandoned there stays abandoned: the application loop that normally picks a pending
@@ -47,6 +47,6 @@ using Swag, Core
     defer host.shutdown()
 
     host.surface.invalidate()
-    host.surface.paintSync()
+    host.surface.paint()
     Swag.assert(not host.surface.isDirty, "a synchronous paint leaves nothing pending")
 }

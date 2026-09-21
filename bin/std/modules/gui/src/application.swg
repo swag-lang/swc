@@ -62,10 +62,8 @@ struct Application
         }
     }
 
-    rendererOgl:            Pixel.RenderOgl        // Default OpenGL renderer used when none is selected.
-    rendererThread:         Pixel.RenderThread     // Owns native rendering and bounds presentation to one frame.
-    nextPaintSurface:       u64                    // Round-robin starting point so animated surfaces cannot starve popups.
-    deterministicStreaming: bool                   // Headless hosts limit streaming turns by work alone.
+    rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer, owned by the window thread.
+    deterministicStreaming: bool     // Headless hosts limit streaming turns by work alone.
 
     public
     {
@@ -706,26 +704,14 @@ private impl Application
             }
         }
 
-        let count = .surfaces.count
-        if not count do
-            return
-        let first = .nextPaintSurface % count
-        for offset in count
-        {
-            if not .rendererThread.isReady() do
-                break
-            let index = (first + offset) % count
-            .surfaces[index].paint()
-            .nextPaintSurface = (index + 1) % count
-        }
+        for surface in .surfaces do
+            surface.paint()
     }
 
     // Processes one complete input, event, paint, and frame-callback cycle.
     public mtd runFrame()
     {
         .frameTrace.beginFrame()
-        .waitForPresentationOrInput()
-        .frameTrace.swapUs += .rendererThread.takePresentMicroseconds()
         .timing.update()
         Memory.releaseTemporaryAllocations()
 
@@ -912,7 +898,6 @@ impl Application
 
         if .theme != null do
             .theme.freeDefault()
-        .rendererThread.close()
     }
 
     // Turns the keyboard-focus ring on or off, and repaints what showed it.
@@ -1058,8 +1043,12 @@ impl Application
             .refreshSystemMotionPreference()
             if .renderer == null
             {
-                .rendererThread.start(&.rendererOgl)
-                .setRenderer(&.rendererThread)
+                // Keep WGL drawing and native geometry on the same thread. Resizing a drawable
+                // while a worker uses it makes the driver retire its buffers concurrently with
+                // USER32's window transaction. Synchronously waiting for that worker stalls even
+                // wglMakeCurrent and glFlush for seconds; moving only the swap off-thread is not
+                // an independent presentation path.
+                .setRenderer(&.rendererOgl)
             }
 
             if .theme == null do

@@ -33,80 +33,61 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
-### std.gui.056 — A geometry transaction cannot present inside one compositor frame
+### std.gui.056 — Reduce ordinary WGL resize latency with window-thread ownership preserved
 
 - Recorded: 2026-09-09 06:35
-- Updated: 2026-09-21 10:12 — closed the scheduling defects and measured the remaining cost onto the drawable resize
-- Evidence: the user reports that resizing, maximizing and full-screening a large Swag Scope
-  window is ugly and stalls, and that repeated fixes never changed it. The scheduling defects
-  behind part of it are now closed: the drag repaint was gated on a new `WM_SIZE` rather than on
-  pending dirty state, so a frame the busy renderer abandoned was never retried and
-  `WM_EXITSIZEMOVE` validated the window without painting; `WM_NCCALCSIZE` answered `0`, so
-  USER32 blitted the previous client pixels into the corner of the new rectangle; and full screen
-  published three geometry transactions in a row. Each `WM_SIZE` now records and presents from
-  inside the transaction — blocking for a discrete transition, paced by the pending presentation
-  during a drag.
-  What remains is not the frame. A native probe on a 1200x900 surface holding a 20 000-line lexed
-  document measures, over 80 iterations, min/median/p90 of **1.1 / 10.8 / 20.0 ms** for a complete
-  repaint at an unchanged size, and **15.6 / 28-47 / 46-79 ms** for the same repaint when the
-  window's size changed. Temporary instrumentation inside the surface attributes that difference
-  to the presentation alone: the record-and-submit half stays under the 40 ms print threshold on
-  an idle machine while the trailing `SwapBuffers` wait reaches 41-74 ms.
-- Current boundary: changing the size of the drawable costs 15-30 ms in the driver, every step,
-  on top of a repaint that is otherwise fast. A border drag therefore cannot present a correctly
-  sized frame within a compositor frame, and the desktop shows the previous one stretched for one
-  to three frames per size step whatever the application schedules. Recording is not the problem:
-  1.1 ms says the painter, the shadow and the document are all well inside the budget.
-- Rejected causes, each measured: the drop shadow (within 1 ms with and without it; restricting
-  its three whole-surface passes to the margin ring moved no percentile and was reverted), the
-  document, the swap interval (identical at 0 and at 1), the window's occlusion, and the
-  synchronous round trip every renderer call makes to the render worker — one costs 14
-  microseconds at the median and 27 at the ninetieth percentile, so the ten a frame makes are
-  noise. Dropping per-pixel alpha composition, which the window shadow depends on, buys 5 to 7 ms
-  of the minimum and none of the median: not a trade worth offering.
-- Next: the cost belongs to the WGL double-buffered window under DWM redirection, which
-  reallocates when the window is resized. Decide with platform.portability.066 whether a
-  presentation backend that resizes cheaply — a flip-model swapchain, or composition with the
-  drawable kept at a fixed size larger than the window — is the answer, and measure the same
-  probe against it.
-- Complete when: a resize step presents within one compositor frame, or the remaining cost is
-  attributed to a named stage with a decided owner.
+- Updated: 2026-09-21 19:04 — isolate ordinary presentation cost from the multi-second cross-thread drawable stalls
+- Evidence: an empty Swag Scope window around 2171x1682 physical pixels freezes during a
+  real right-border mouse drag on both displays. Instrumentation finds 0.9–3.3 second calls
+  in `wglMakeCurrent`, drawing, and `glFlush`, not only in `SwapBuffers`. Native stack samples
+  put the render worker in `NtGdiDdDDIDestroyAllocation2` inside the Intel OpenGL driver while
+  the window thread is processing its geometry transaction or waiting for the worker.
+  A paired physical-pointer probe changes only default rendering affinity: with rendering on
+  the window owner, three 500-movement runs across both displays keep the border within
+  0–4 pixels of the pointer, with no multi-second calls; measured `glFlush + SwapBuffers`
+  maxima are 71–93 ms. Restoring the worker brings back 2–3 second stalls on both displays.
+  The default GUI renderer therefore owns its context on the window thread again.
+- Current boundary: the multi-second regression is distinct from ordinary WGL resize cost.
+  Native presentation can still exceed one refresh, and a full-surface copy remains. Removing
+  only the wait before painting does not address synchronous worker calls made during painting.
+  The native regression checks context ownership before and after resized paints.
+- Measurement constraint: use a DPI-aware probe that actually presses, moves, and releases the
+  border. Cross-thread `SetWindowPos` probes also produce long stalls with the direct renderer;
+  those timings do not establish physical-drag latency. Earlier median-only worker round-trip
+  measurements did not cover drawable reallocation and cannot rule out this defect.
+- Next: measure input-to-present latency during physical drag and discrete maximize/full-screen
+  changes with the owner-thread renderer. Compare any cheaper native presentation backend
+  under platform.portability.066 against this baseline, preserving alpha and validating buffer
+  lifetime during concurrent geometry changes before moving rendering off the window owner.
+- Complete when: ordinary resize presentation has a measured latency budget and a validated
+  ownership contract on the chosen backend.
 - Related: std.gui.054, platform.portability.066
 
 ### std.gui.054 — Presenting a small update still copies the whole surface render target
 
 - Recorded: 2026-08-24 08:48
-- Updated: 2026-09-19 11:34 — move default native presentation off the UI thread and retain the input-latency investigation
+- Updated: 2026-09-21 19:04 — retain the full-surface copy investigation with owner-thread native rendering
 - Evidence: `Surface.paintWnd` calls `drawTexture(dstRect, dstRect, ...)` for the whole surface.
   On 2026-09-01 a 3894x2142 Swag Capture window with a moving 300-pixel box spent 3.1 ms of a
-  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. The explicit GPU
-  completion wait was removed from `RenderOgl.endImpl`, but `SwapBuffers` then still ran
-  synchronously inside `Application.runFrame`, on the input thread.
-  No `wglSwapIntervalEXT` policy is selected. A 2026-09-19 maximized manuscript repaint probe
-  spent 9.09 of 11.22 ms per frame in `end`; repeated runs of a candidate shader change spent
-  19.51 and 6.85 ms there. These totals include driver backpressure and earlier GPU work:
-  they do not establish a VSync cause, an input-latency measurement, or a comparative speedup.
-- Current boundary: the default native renderer now owns its OpenGL context on a dedicated
-  `Pixel.RenderThread`. Drawing/resource calls remain synchronous, but presentation returns to
-  the UI with at most one pending request. The GUI waits for completion or native input and
-  coalesces dirty state while busy; headless/custom renderers keep their existing path. A gated
-  backend regression proves that the caller continues while `end` is blocked, and native GPU,
-  error-transfer, shutdown, and 210 unchanged golden tests pass. A 300-frame maximized manuscript
-  repaint run measured 9.13 ms average, including 7.21 ms in worker presentation and 0.99 ms in
-  target submission. This is a repaint probe, not a paired scrolling or input-to-display result.
-- Rejected approach: bounding that copy alone relied on preserved back-buffer contents. The
-  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy was
-  requested, so the unexercised partial-copy machinery was removed.
-- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input; query
-  the effective swap interval and separate GPU execution from native-present wait. Compare
-  input latency against the synchronous baseline, including expensive resource changes that
-  still wait for the worker and any driver-owned frame queue. Also measure whether surfaces that
-  do not require compositing can render directly to the back buffer. Keep the render target where
-  effects need it; any different native
-  presentation backend must follow the target matrix in platform.portability.066.
+  3.4 ms frame presenting, despite only 0.2 of 8.34 megapixels being dirty. A 2026-09-19
+  maximized manuscript repaint probe spent 9.09 of 11.22 ms per frame in `end`. These totals
+  include driver backpressure and earlier GPU work; they are not input-to-display measurements.
+- Current boundary: the GUI's default OpenGL context and native window are owned by the same
+  thread. The previous worker adapter allowed drawable reallocation to overlap native sizing,
+  causing multi-second driver waits (std.gui.056), so its faster stationary repaint was not
+  evidence of a safe native presentation architecture. `Pixel.RenderThread` remains available
+  as an explicit adapter. The default WGL swap interval is one.
+- Rejected approach: bounding the copy alone relied on preserved back-buffer contents. The
+  measured WGL pixel format granted neither swap-copy nor swap-exchange, even when swap-copy
+  was requested, so the unexercised partial-copy machinery was removed.
+- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input,
+  separating GPU execution from native-present wait. Measure whether surfaces that do not need
+  compositing can render directly to the back buffer. Keep the render target where effects
+  need it. Any asynchronous replacement must establish drawable ownership and buffer lifetime
+  during physical resizing, not merely move blocking calls to a worker and wait for them.
 - Complete when: unnecessary surface copies and input-thread stalls have a measured policy,
   equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.
-- Related: std.gui.049, platform.portability.066
+- Related: std.gui.049, std.gui.056, platform.portability.066
 
 ### std.gui.003 — Construction-time text does not automatically retranslate
 

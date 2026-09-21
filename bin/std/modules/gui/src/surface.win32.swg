@@ -240,14 +240,9 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             discard BeginPaint(hWnd, &ps)
             surface.invalidatePhysicalRect({cast(f32) ps.rcPaint.left, cast(f32) ps.rcPaint.top, cast(f32) (ps.rcPaint.right - ps.rcPaint.left), cast(f32) (ps.rcPaint.bottom - ps.rcPaint.top)})
 
-            // EndPaint validates the region whether or not anything was drawn into it. Outside a
-            // gesture the application frame loop still holds the pending region and paints it on
-            // its next turn, but that loop is suspended for the whole of a border drag, so an
-            // abandoned frame there would stay on screen until the pointer moved again.
-            if surface.isSizing and surface.canPresentNow() do
-                surface.paintPaced()
-            else do
-                surface.paint()
+            // The application loop is suspended during a native border drag. Paint on this
+            // window-owning thread before EndPaint validates the native update region.
+            surface.paint()
 
             EndPaint(hWnd, &ps)
             return 0
@@ -265,7 +260,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             if surface.canPresentNow()
             {
                 surface.invalidate()
-                surface.paintSync()
+                surface.paint()
                 discard ValidateRect(hWnd, null)
             }
 
@@ -350,15 +345,11 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             surface.sendResizeEvent(cast(f32) LOWORD(lParam), cast(f32) HIWORD(lParam))
 
-            // Windows has already published this rectangle to the compositor, which has nothing
-            // but the previous frame to fill it with until this window presents one of its own.
-            // Recording it here is what gives the compositor something to show; waiting for the
-            // swap as well is not, because the swap of a window whose drawable just changed size
-            // costs more than a compositor frame on its own — blocking the transaction through it
-            // delays the next size without making this one arrive any sooner.
+            // Drawing and geometry share the window thread, so WGL does not retire drawable
+            // buffers on a worker while USER32 is still changing that same window.
             if surface.canPresentNow()
             {
-                surface.paintPaced()
+                surface.paint()
                 discard ValidateRect(hWnd, null)
             }
 
@@ -890,7 +881,7 @@ impl Surface
 
         with var placement: WINDOWPLACEMENT
         {
-            .showCmd          = SW_SHOWNORMAL
+            .showCmd = SW_SHOWNORMAL
             .rcNormalPosition = {cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.right(), cast(s32) clampPos.bottom()}
         }
 

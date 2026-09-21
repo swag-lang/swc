@@ -412,45 +412,10 @@ impl Surface
         .isSizing = sizing
     }
 
-    // Records one frame once the pending presentation has landed, and returns without waiting for
-    // its own.
-    //
-    // This is the cadence of a live border drag. The window manager owns that loop, so the frame
-    // has to be recorded from inside it or not at all, and a recording that gives up because the
-    // worker is busy is a frame nobody comes back for. Waiting for the previous presentation and
-    // no more bounds the loop to what the display can show while the drawing and the swap of this
-    // frame overlap the next size the pointer produces.
-    internal mtd paintPaced()
-    {
-        .app.rendererThread.wait()
-        .paintWnd(.wnd)
-    }
-
-    // Records and presents one frame before returning.
-    //
-    // A geometry transaction publishes its new window rectangle to the compositor before the
-    // application has drawn anything for it, and the compositor has nothing to show meanwhile but
-    // the previous frame, stretched and displaced to fill that rectangle. Presenting from inside
-    // the transaction is what removes those intermediate pictures from a maximize, a restore and
-    // a full-screen switch — one transition, one frame of stall, in exchange for never publishing
-    // a wrong one.
-    //
-    // It also pins the presented size to the recorded one, which an asynchronous present cannot:
-    // the drawable a held frame finally swaps into is the one the window has by then.
-    internal mtd paintSync()
-    {
-        .paintPaced()
-        .app.rendererThread.wait()
-    }
-
     // Paints an explicit root through the surface pipeline. Headless tests use their detached
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
-        // A frame still presenting owns the worker. Leave the dirty region and layout intact:
-        // input can keep changing them, and only their newest state will be recorded next time.
-        if not .app.rendererThread.isReady() do
-            return
         root.flushLayout()
         .createRT()
 

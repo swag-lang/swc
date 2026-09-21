@@ -33,6 +33,46 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.056 — A geometry transaction cannot present inside one compositor frame
+
+- Recorded: 2026-09-09 06:35
+- Updated: 2026-09-21 10:12 — closed the scheduling defects and measured the remaining cost onto the drawable resize
+- Evidence: the user reports that resizing, maximizing and full-screening a large Swag Scope
+  window is ugly and stalls, and that repeated fixes never changed it. The scheduling defects
+  behind part of it are now closed: the drag repaint was gated on a new `WM_SIZE` rather than on
+  pending dirty state, so a frame the busy renderer abandoned was never retried and
+  `WM_EXITSIZEMOVE` validated the window without painting; `WM_NCCALCSIZE` answered `0`, so
+  USER32 blitted the previous client pixels into the corner of the new rectangle; and full screen
+  published three geometry transactions in a row. Each `WM_SIZE` now records and presents from
+  inside the transaction — blocking for a discrete transition, paced by the pending presentation
+  during a drag.
+  What remains is not the frame. A native probe on a 1200x900 surface holding a 20 000-line lexed
+  document measures, over 80 iterations, min/median/p90 of **1.1 / 10.8 / 20.0 ms** for a complete
+  repaint at an unchanged size, and **15.6 / 28-47 / 46-79 ms** for the same repaint when the
+  window's size changed. Temporary instrumentation inside the surface attributes that difference
+  to the presentation alone: the record-and-submit half stays under the 40 ms print threshold on
+  an idle machine while the trailing `SwapBuffers` wait reaches 41-74 ms.
+- Current boundary: changing the size of the drawable costs 15-30 ms in the driver, every step,
+  on top of a repaint that is otherwise fast. A border drag therefore cannot present a correctly
+  sized frame within a compositor frame, and the desktop shows the previous one stretched for one
+  to three frames per size step whatever the application schedules. Recording is not the problem:
+  1.1 ms says the painter, the shadow and the document are all well inside the budget.
+- Rejected causes, each measured: the drop shadow (within 1 ms with and without it; restricting
+  its three whole-surface passes to the margin ring moved no percentile and was reverted), the
+  document, the swap interval (identical at 0 and at 1), the window's occlusion, and the
+  synchronous round trip every renderer call makes to the render worker — one costs 14
+  microseconds at the median and 27 at the ninetieth percentile, so the ten a frame makes are
+  noise. Dropping per-pixel alpha composition, which the window shadow depends on, buys 5 to 7 ms
+  of the minimum and none of the median: not a trade worth offering.
+- Next: the cost belongs to the WGL double-buffered window under DWM redirection, which
+  reallocates when the window is resized. Decide with platform.portability.066 whether a
+  presentation backend that resizes cheaply — a flip-model swapchain, or composition with the
+  drawable kept at a fixed size larger than the window — is the answer, and measure the same
+  probe against it.
+- Complete when: a resize step presents within one compositor frame, or the remaining cost is
+  attributed to a named stage with a decided owner.
+- Related: std.gui.054, platform.portability.066
+
 ### std.gui.054 — Presenting a small update still copies the whole surface render target
 
 - Recorded: 2026-08-24 08:48
@@ -133,27 +173,6 @@ construction so static labels do not depend on each application remembering a ma
   the offset of its face; that is the whole cost, and it is why the existing change is limited to the framed fields and
   popup-list rows. Pin the decision with a headless test that puts one field of each
   family side by side and asserts their capitals share a center.
-
-### std.gui.056 — Confirm large-surface input latency during a physical border drag
-
-- Recorded: 2026-09-09 06:35
-- Updated: 2026-09-09 07:13 — isolated GPU shadow overdraw and bounded it to the window perimeter
-- Evidence: the user reports that Swag Prism's native border stalls during mouse resizing,
-  particularly beyond a surface-size threshold. `WM_TIMER` calls `flushInteractiveResize` and
-  `paint` synchronously on the window thread. After bounding target growth to 256-pixel steps,
-  profiling separated layout (10–30 microseconds) and recording (2–4 ms) from GPU completion.
-  A native two-editor GUI fixture resized with `SetWindowPos` and interactive resize-timer
-  messages took 83–105 ms near 2050 squared pixels, including 64–84 ms for offscreen GPU drawing.
-  Scissoring the masked interior out of the shadow rings reduced those callback times to
-  17–33 ms and offscreen drawing to 9–23 ms under the same instrumented protocol. Exact image
-  comparisons preserve the previous shadow at four DPI scales and after partial repaints.
-  The subsequent pointer-injection probe did not move the border, so it provides no evidence
-  of physical drag input latency. Concurrent Prism changes also prevented its initial rebuild;
-  the final timing comparison used the isolated native GUI fixture.
-- Next: measure a successful physical border drag in the current Prism build on the affected
-  adapter without profiling fences. Record input latency and attribute any remaining stalls.
-- Complete when: the native border follows the pointer smoothly across the previous size
-  thresholds, or a repeatable remaining stall has been isolated and fixed.
 
 ### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
 

@@ -385,6 +385,48 @@ struct WINDOWPOS
     }
 }
 
+// Client-area calculation exchanged through `WM_NCCALCSIZE` when its `wParam` is `TRUE`.
+//
+// On entry `rgrc[0]` is the proposed window rectangle, `rgrc[1]` the previous window rectangle
+// and `rgrc[2]` the previous client rectangle. On return `rgrc[0]` is the new client rectangle;
+// with `WVR_VALIDRECTS`, `rgrc[1]` becomes the destination of the pixels the window manager may
+// keep and `rgrc[2]` their source, so two empty rectangles ask it to preserve nothing at all.
+struct NCCALCSIZE_PARAMS
+{
+    public
+    {
+        rgrc:  [3] RECT
+        lppos: *WINDOWPOS
+    }
+}
+
+const WVR_ALIGNTOP    = 0x0010
+const WVR_ALIGNLEFT   = 0x0020
+const WVR_ALIGNBOTTOM = 0x0040
+const WVR_ALIGNRIGHT  = 0x0080
+const WVR_HREDRAW     = 0x0100
+const WVR_VREDRAW     = 0x0200
+const WVR_REDRAW      = WVR_HREDRAW | WVR_VREDRAW
+const WVR_VALIDRECTS  = 0x0400
+
+// Show state and restored bounds of a top-level window, as one settable unit.
+//
+// `SetWindowPlacement` applies the show state and the restored rectangle together, so leaving a
+// maximized state and placing the window somewhere else is one geometry transaction instead of
+// the two a `ShowWindow` followed by a `SetWindowPos` would publish.
+struct WINDOWPLACEMENT
+{
+    public
+    {
+        length:           UINT
+        flags:            UINT
+        showCmd:          UINT
+        ptMinPosition:    POINT
+        ptMaxPosition:    POINT
+        rcNormalPosition: RECT
+    }
+}
+
 struct MINMAXINFO
 {
     public
@@ -1217,6 +1259,7 @@ internal namespace User32Priv
         func PostMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->BOOL
         func MoveWindow(hWnd: HWND, x, y, nWidth, nHeight: s32, bRepaint: BOOL)->BOOL
         func SetWindowPos(hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT)->BOOL
+        func SetWindowPlacement(hWnd: HWND, lpwndpl: const *WINDOWPLACEMENT)->BOOL
 
         func SetLayeredWindowAttributes(hwnd: HWND, crKey: COLORREF, bAlpha: BYTE, dwFlags: DWORD)->BOOL
 
@@ -1317,6 +1360,14 @@ internal namespace User32Priv
     func SetWindowPos(hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT) fail
     {
         if not User32Priv.SetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags) do
+            try failWinError(GetLastError())
+    }
+
+    // `lpwndpl.length` is filled here, so a caller only states the placement it wants.
+    func SetWindowPlacement(hWnd: HWND, lpwndpl: *WINDOWPLACEMENT) fail
+    {
+        lpwndpl.length = #sizeof(WINDOWPLACEMENT)
+        if not User32Priv.SetWindowPlacement(hWnd, lpwndpl) do
             try failWinError(GetLastError())
     }
 

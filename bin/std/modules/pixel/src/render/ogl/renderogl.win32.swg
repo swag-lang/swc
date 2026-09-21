@@ -86,4 +86,15 @@ internal impl NativeRenderOgl
     {
         expect SwapBuffers(cast(HDC) rc.hDC)
     }
+
+    // States the presentation cadence of the context that has just become current.
+    //
+    // One refresh per present is what the surface layer relies on to pace a border drag: it
+    // presents from inside the size transaction and lets the display, rather than a timer, decide
+    // how often that happens. Leaving the interval unstated inherits a driver or control-panel
+    // default that can be zero, which turns that pacing into a busy loop.
+    mtd applyPresentPolicy()
+    {
+        discard Ogl.wglSwapIntervalEXT(1)
+    }
 }

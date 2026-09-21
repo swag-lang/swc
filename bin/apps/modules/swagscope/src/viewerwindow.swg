@@ -683,10 +683,7 @@ impl ViewerWindow
             .fullScreenRestorePosition = srfn.isMaximized ? srfn.restoredPosition : srfn.position
             .fullScreenRestoreFlags    = srfn.flags
             .fullScreenWasMaximized    = srfn.isMaximized
-            if srfn.isMaximized do
-                srfn.showNormal()
-
-            .fullScreen = true
+            .fullScreen                = true
             srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
             .documentHost.padding = {}
             .documentPanel.backgroundStyle = .View
@@ -705,7 +702,14 @@ impl ViewerWindow
             .fullScreenTopVisible        = false
             .fullScreenBottomVisible     = false
             .applyLayout()
-            srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
+
+            // One geometry transaction, not a restore followed by a placement: the second
+            // publishes the restored bounds to the compositor before the full-screen ones.
+            let screen = Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds
+            if .fullScreenWasMaximized do
+                srfn.showNormalAt(screen)
+            else do
+                srfn.setPosition(screen)
         }
         else
         {
@@ -729,9 +733,13 @@ impl ViewerWindow
             .fullScreenTopVisible        = false
             .fullScreenBottomVisible     = false
             .applyLayout()
-            srfn.setPosition(.fullScreenRestorePosition)
+
+            // Going straight back to the maximized state keeps the window out of its restored
+            // bounds, which would otherwise be shown for one transaction on the way.
             if .fullScreenWasMaximized do
-                srfn.showMaximized()
+                srfn.showMaximized(.fullScreenRestorePosition)
+            else do
+                srfn.setPosition(.fullScreenRestorePosition)
         }
 
         srfn.invalidate()

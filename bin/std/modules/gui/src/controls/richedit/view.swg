@@ -191,9 +191,23 @@ impl IWnd for RichEditView
         let size       = edn.xGlyphSize()
         var clientRect = .clientRect()
         clientRect.width = edn.scrollWnd.paddedClientRect().width - edn.scrollWnd.paddingZ
-        let sizeChanged = .lastClientRect != clientRect
-        .lastClientRect = clientRect
-        if sizeChanged or edn.recomputeWrap do
+
+        // Only a wrapped document follows the viewport. Without wrapping no line's shape and no
+        // scroll extent depends on the client rectangle, so a resize costs the repaint and
+        // nothing else; forcing the extent pass there re-lexed and re-measured every line of the
+        // file on each frame of a border drag, which no large document can keep up with.
+        let sizing       = .surface?.isSizing orelse false
+        let widthChanged = .lastClientRect.width != clientRect.width
+        if widthChanged and edn.flags.has(.WordWrap) and not sizing do
+            edn.recomputeWrap = true
+
+        // The recorded rectangle is deliberately left behind for the duration of a border drag,
+        // so the comparison above still holds on the first frame after it. That frame is where a
+        // wrapped document reflows, once, instead of at every size the pointer passes through.
+        if not sizing do
+            .lastClientRect = clientRect
+
+        if edn.recomputeWrap do
             edn.recomputeScroll = true
 
         // Force visible caret
@@ -275,19 +289,24 @@ impl IWnd for RichEditView
             }
 
             // Lex the line
-            if not l.wordWrap and (l.dirtyStyle or sizeChanged or edn.recomputeWrap)
+            if not l.wordWrap and (l.dirtyStyle or edn.recomputeWrap)
             {
                 edn.unwrap(i)
 
-                if edn.lexer
+                // Lexing reads the text, not the viewport: a reflow must not redo it.
+                if l.dirtyStyle
                 {
-                    let prevLine = i ? edn.lines[i - 1] : null
-                    let nextLine = i != edn.lines.count - 1 ? edn.lines[i + 1] : null
-                    edn.lexer.compute(prevLine, l, nextLine)
+                    if edn.lexer
+                    {
+                        let prevLine = i ? edn.lines[i - 1] : null
+                        let nextLine = i != edn.lines.count - 1 ? edn.lines[i + 1] : null
+                        edn.lexer.compute(prevLine, l, nextLine)
+                    }
+
+                    l.dirtyStyle = false
                 }
 
                 edn.wrap(i)
-                l.dirtyStyle = false
             }
 
             if bvis or (edn.recomputeScroll and not edn.flags.has(.WordWrap))

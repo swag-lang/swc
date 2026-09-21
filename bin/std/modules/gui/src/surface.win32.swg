@@ -33,12 +33,6 @@ private const HTBOTTOMLEFT = 16
 // Defines htbottomright.
 private const HTBOTTOMRIGHT = 17
 
-// Window-local timer used to coalesce the size messages emitted by a native border drag.
-private const SurfaceResizeTimerId = 1'u64
-
-// Live resize is presented at display cadence instead of once per mouse message.
-private const SurfaceResizeInterval = 16'u32
-
 // WM_SIZE state emitted when a native window has no drawable client area.
 private const SizeMinimized = 1'u64
 
@@ -60,11 +54,6 @@ struct NativeSurface
         // without adopting the OS-suggested rectangle (which assumes an old-DPI size).
         inAppPlacement: bool
 
-        interactiveSizing: bool           // Whether the desktop currently owns a border-drag loop.
-        resizeTimerActive: bool           // Whether the live-resize pacing timer is installed.
-        resizePending:     bool           // Whether `pendingResizeSize` has not reached the tree.
-        pendingResizeSize: Math.Point     // Latest physical client size received during the drag.
-
         dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
         dropTargetActive: bool                  // Whether that target is registered with OLE.
     }
@@ -75,48 +64,12 @@ private const TrayIconID = 1
 
 private impl Surface
 {
-    // Starts the desktop-owned border-drag phase. A window timer remains responsive inside that
-    // nested loop and has lower priority than its stream of mouse messages, so it naturally
-    // coalesces obsolete intermediate sizes.
-    mtd beginInteractiveSizing()
-    {
-        .interactiveSizing = true
-        if not .resizeTimerActive do
-            .resizeTimerActive = SetTimer(.hWnd, SurfaceResizeTimerId, SurfaceResizeInterval, null) != 0
-    }
-
-    // Keeps only the newest physical client size until the next live-resize frame.
-    mtd queueInteractiveResize(width, height: f32)
-    {
-        .pendingResizeSize = {width, height}
-        .resizePending     = true
-    }
-
-    // Applies the newest queued size and reports whether the tree changed.
-    mtd flushInteractiveResize()->bool
-    {
-        if not .resizePending do
-            return false
-
-        .resizePending = false
-        .sendResizeEvent(.pendingResizeSize.x, .pendingResizeSize.y)
-        return true
-    }
-
-    // Publishes the exact final geometry before returning control to the application loop.
-    mtd endInteractiveSizing()
-    {
-        .interactiveSizing = false
-        if .resizeTimerActive
-        {
-            discard KillTimer(.hWnd, SurfaceResizeTimerId)
-            .resizeTimerActive = false
-        }
-
-        if .flushInteractiveResize() do
-            .paint()
-        discard ValidateRect(.hWnd, null)
-    }
+    // Reports whether a frame may be recorded and presented for this window right now.
+    //
+    // A window is sized before it is shown and again while it is being taken down, and neither
+    // of those transactions has a frame to publish: the first has no content yet, the second no
+    // rendering context left.
+    mtd const canPresentNow()->bool => not .isHidden and not .wnd.isPendingDestroy
 }
 
 private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
@@ -173,12 +126,6 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_NCDESTROY:
-            if surface.resizeTimerActive
-            {
-                discard KillTimer(hWnd, SurfaceResizeTimerId)
-                surface.resizeTimerActive = false
-            }
-
             SetWindowLongPtrW(hWnd, GWLP_USERDATA, 0)
             break
 
@@ -245,7 +192,20 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_NCCALCSIZE:
-            return 0
+
+            // The surface draws its own chrome, so the client area is the whole window rectangle:
+            // leaving the proposed rectangle untouched says exactly that.
+            if wParam == 0 do
+                return 0
+
+            // Answering with two empty valid rectangles asks the window manager to preserve none
+            // of the previous client pixels. Without it, it blits them into the corner of the new
+            // rectangle and the compositor shows that displaced copy of the last frame until the
+            // window presents its own — which is what a maximize looked like.
+            let ncParams = cast(*NCCALCSIZE_PARAMS) cast #bit (u64) lParam
+            ncParams.rgrc[1] = {}
+            ncParams.rgrc[2] = {}
+            return WVR_VALIDRECTS
 
         case WM_NCHITTEST:
             var pt = Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}
@@ -278,33 +238,34 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         case WM_PAINT:
             var ps: PAINTSTRUCT
             discard BeginPaint(hWnd, &ps)
+            surface.invalidatePhysicalRect({cast(f32) ps.rcPaint.left, cast(f32) ps.rcPaint.top, cast(f32) (ps.rcPaint.right - ps.rcPaint.left), cast(f32) (ps.rcPaint.bottom - ps.rcPaint.top)})
 
-            // During a border drag the timer owns presentation. Validating this native request
-            // keeps WM_PAINT from spinning between two timer ticks; the latest WM_SIZE remains
-            // queued and the timer paints it as one internally consistent frame.
-            if not surface.interactiveSizing or not surface.resizeTimerActive
-            {
-                if surface.interactiveSizing do
-                    discard surface.flushInteractiveResize()
-                surface.invalidatePhysicalRect({cast(f32) ps.rcPaint.left, cast(f32) ps.rcPaint.top, cast(f32) (ps.rcPaint.right - ps.rcPaint.left), cast(f32) (ps.rcPaint.bottom - ps.rcPaint.top)})
+            // EndPaint validates the region whether or not anything was drawn into it. Outside a
+            // gesture the application frame loop still holds the pending region and paints it on
+            // its next turn, but that loop is suspended for the whole of a border drag, so an
+            // abandoned frame there would stay on screen until the pointer moved again.
+            if surface.isSizing and surface.canPresentNow() do
+                surface.paintPaced()
+            else do
                 surface.paint()
-            }
 
             EndPaint(hWnd, &ps)
             return 0
 
         case WM_ENTERSIZEMOVE:
-            surface.beginInteractiveSizing()
+            surface.setSizing(true)
             return 0
 
         case WM_EXITSIZEMOVE:
-            surface.endInteractiveSizing()
-            return 0
+            surface.setSizing(false)
 
-        case WM_TIMER where wParam == SurfaceResizeTimerId and surface.interactiveSizing:
-            if surface.flushInteractiveResize()
+            // The gesture is over, so content that held a reflow back for its duration runs it
+            // now, and the exact final geometry reaches the screen before the application loop
+            // resumes.
+            if surface.canPresentNow()
             {
-                surface.paint()
+                surface.invalidate()
+                surface.paintSync()
                 discard ValidateRect(hWnd, null)
             }
 
@@ -387,19 +348,20 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             if wParam == SizeMinimized do
                 return 0
 
-            let width  = cast(f32) LOWORD(lParam)
-            let height = cast(f32) HIWORD(lParam)
-            if surface.interactiveSizing
+            surface.sendResizeEvent(cast(f32) LOWORD(lParam), cast(f32) HIWORD(lParam))
+
+            // Windows has already published this rectangle to the compositor, which has nothing
+            // but the previous frame to fill it with until this window presents one of its own.
+            // Recording it here is what gives the compositor something to show; waiting for the
+            // swap as well is not, because the swap of a window whose drawable just changed size
+            // costs more than a compositor frame on its own — blocking the transaction through it
+            // delays the next size without making this one arrive any sooner.
+            if surface.canPresentNow()
             {
-                surface.queueInteractiveResize(width, height)
-                if not surface.resizeTimerActive
-                {
-                    discard surface.flushInteractiveResize()
-                    surface.invalidate()
-                }
+                surface.paintPaced()
+                discard ValidateRect(hWnd, null)
             }
-            else do
-                surface.sendResizeEvent(width, height)
+
             return 0
 
         case WM_SYSCOMMAND:
@@ -711,21 +673,30 @@ impl Surface
         return true
     }
 
+    // Returns `pos` with its extent brought inside the surface size limits.
+    //
+    // The limits are logical and a placement rectangle is physical, so the comparison happens
+    // through the surface scale.
+    private mtd const clampToSizeLimits(pos: Math.Rectangle)->Math.Rectangle
+    {
+        var result = pos
+
+        if .minSize.x > 0 do
+            result.width = Math.max(result.width, .minSize.x * .dpiScale)
+        if .minSize.y > 0 do
+            result.height = Math.max(result.height, .minSize.y * .dpiScale)
+        if .maxSize.x > 0 do
+            result.width = Math.min(result.width, .maxSize.x * .dpiScale)
+        if .maxSize.y > 0 do
+            result.height = Math.min(result.height, .maxSize.y * .dpiScale)
+
+        return result
+    }
+
     // Sets the surface bounds in physical screen pixels, clamped to [[Gui.Surface.minSize]] and [[Gui.Surface.maxSize]].
     mtd setPosition(pos: Math.Rectangle)
     {
-        // Size limits are logical; the requested rectangle is physical.
-        var clampPos = pos
-
-        if .minSize.x > 0 do
-            clampPos.width = Math.max(clampPos.width, .minSize.x * .dpiScale)
-        if .minSize.y > 0 do
-            clampPos.height = Math.max(clampPos.height, .minSize.y * .dpiScale)
-        if .maxSize.x > 0 do
-            clampPos.width = Math.min(clampPos.width, .maxSize.x * .dpiScale)
-        if .maxSize.y > 0 do
-            clampPos.height = Math.min(clampPos.height, .maxSize.y * .dpiScale)
-
+        let clampPos = .clampToSizeLimits(pos)
         .position = clampPos
         if not .app.renderer.needsNativeWindow()
         {
@@ -863,14 +834,24 @@ impl Surface
         .wnd.view.sendStateEvent(.Hide)
     }
 
-    // Shows the surface maximized and preserves its previous bounds for restoration.
+    // Shows the surface maximized and preserves its current bounds for restoration.
     mtd showMaximized()
+    {
+        .showMaximized(.position)
+    }
+
+    // Shows the surface maximized, with `restoreTo` as the bounds a later restore returns to.
+    //
+    // A surface standing somewhere temporary cannot let its current rectangle become that: a
+    // window leaving full screen for the maximized state it came from would otherwise remember
+    // the whole monitor as the size to restore to.
+    mtd showMaximized(restoreTo: Math.Rectangle)
     {
         if .isMaximized do
             return
         .isMaximized      = true
         .isMinimized      = false
-        .restoredPosition = .position
+        .restoredPosition = restoreTo
         if not .app.renderer.needsNativeWindow()
         {
             .invalidate()
@@ -879,6 +860,41 @@ impl Surface
 
         .applyNativeDwmStyle()
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
+    }
+
+    // Leaves a maximized or minimized state and places the surface, in one native transaction.
+    //
+    // Restoring first and placing afterwards publishes two geometry transactions, and the
+    // compositor shows the window at its restored bounds in between. Entering full screen from a
+    // maximized window is the case that exists, and that intermediate picture is what it looked
+    // like. `pos` is in physical screen pixels and becomes the bounds a later restore uses.
+    mtd showNormalAt(pos: Math.Rectangle)
+    {
+        let clampPos = .clampToSizeLimits(pos)
+        .isMaximized = false
+        .isMinimized = false
+        .position    = clampPos
+
+        if not .app.renderer.needsNativeWindow()
+        {
+            .sendResizeEvent(clampPos.width, clampPos.height)
+            return
+        }
+
+        .applyNativeDwmStyle()
+
+        // The rectangle is physical for its target monitor already; flag the move so
+        // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
+        .inAppPlacement = true
+        defer .inAppPlacement = false
+
+        with var placement: WINDOWPLACEMENT
+        {
+            .showCmd          = SW_SHOWNORMAL
+            .rcNormalPosition = {cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.right(), cast(s32) clampPos.bottom()}
+        }
+
+        catch SetWindowPlacement(.hWnd, &placement)
     }
 
     // Restores a minimized or maximized surface to its normal bounds.

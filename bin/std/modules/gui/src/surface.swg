@@ -71,6 +71,15 @@ struct Surface
             isInitialized: bool            // Whether the surface has received its one-time initialization event.
             isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
             isMinimized:   bool            // Whether the surface is minimized.
+
+            // Whether the desktop owns a live border drag of this surface right now.
+            //
+            // The window manager runs that gesture in a loop of its own, so the application frame
+            // loop is suspended for as long as it lasts and every frame is presented from inside
+            // the platform layer. Content whose layout follows the viewport reads this to know
+            // that the size it is being asked for is one of many, and that a reflow it cannot run
+            // at pointer cadence belongs after the gesture rather than in it.
+            isSizing: bool
         }
     }
 
@@ -391,6 +400,47 @@ impl Surface
     internal mtd paint()
     {
         .paintWnd(.wnd)
+    }
+
+    // Records whether the desktop is running a live border drag of this surface.
+    //
+    // The platform layer owns this state: the gesture belongs to the window manager and the
+    // window tree only ever learns of it through the surface. A headless test stands in for that
+    // layer to exercise content that holds work back for the duration of a drag.
+    internal mtd setSizing(sizing: bool)
+    {
+        .isSizing = sizing
+    }
+
+    // Records one frame once the pending presentation has landed, and returns without waiting for
+    // its own.
+    //
+    // This is the cadence of a live border drag. The window manager owns that loop, so the frame
+    // has to be recorded from inside it or not at all, and a recording that gives up because the
+    // worker is busy is a frame nobody comes back for. Waiting for the previous presentation and
+    // no more bounds the loop to what the display can show while the drawing and the swap of this
+    // frame overlap the next size the pointer produces.
+    internal mtd paintPaced()
+    {
+        .app.rendererThread.wait()
+        .paintWnd(.wnd)
+    }
+
+    // Records and presents one frame before returning.
+    //
+    // A geometry transaction publishes its new window rectangle to the compositor before the
+    // application has drawn anything for it, and the compositor has nothing to show meanwhile but
+    // the previous frame, stretched and displaced to fill that rectangle. Presenting from inside
+    // the transaction is what removes those intermediate pictures from a maximize, a restore and
+    // a full-screen switch — one transition, one frame of stall, in exchange for never publishing
+    // a wrong one.
+    //
+    // It also pins the presented size to the recorded one, which an asynchronous present cannot:
+    // the drawable a held frame finally swaps into is the one the window has by then.
+    internal mtd paintSync()
+    {
+        .paintPaced()
+        .app.rendererThread.wait()
     }
 
     // Paints an explicit root through the surface pipeline. Headless tests use their detached

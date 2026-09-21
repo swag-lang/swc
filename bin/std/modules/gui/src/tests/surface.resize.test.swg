@@ -34,3 +34,19 @@ using Swag, Core
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.rt.handle == tallerHandle)
 }
+
+// A synchronous paint publishes its frame before returning, whatever the renderer was doing.
+//
+// The platform layer presents from inside the geometry transaction that changed the window, and
+// a frame abandoned there stays abandoned: the application loop that normally picks a pending
+// region up is suspended for the whole of a border drag.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(256, 128)
+    defer host.shutdown()
+
+    host.surface.invalidate()
+    host.surface.paintSync()
+    Swag.assert(not host.surface.isDirty, "a synchronous paint leaves nothing pending")
+}

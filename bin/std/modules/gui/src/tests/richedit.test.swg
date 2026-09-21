@@ -301,3 +301,78 @@ using Swag, Core
     let cursor = ed.cursorAt({20, 20})
     Swag.assert(cursor.lineIndex == 0 and cursor.charPosInLine == 0)
 }
+
+// Counts the lines a paint asks to be lexed.
+struct CountingLexer
+{
+    lexed: u32
+}
+
+impl IRichEditLexer for CountingLexer
+{
+    mtd impl setup(ed: *RichEditCtrl) {}
+    mtd impl setupTheme(ed: *RichEditCtrl) {}
+    mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool => false
+    mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?) { .lexed += 1 }
+}
+
+// A viewport change must not re-lex the document. Lexing reads the text, not the rectangle it is
+// shown in, and running it over every line of a large file on each frame of a border drag is what
+// made the window stop following the pointer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 260)
+    defer host.shutdown()
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 240})
+    var lexer: CountingLexer
+    ed.setLexer(&lexer)
+
+    var text: Core.String
+    for 200 do
+        text += "let value = 1\n"
+    ed.setText(text.toString())
+    host.root.applyLayout()
+    discard host.render(ed)
+    Swag.assert(lexer.lexed > 0, "the first paint lexes the document it was given")
+
+    lexer.lexed = 0
+    ed.setPosition({0, 0, 300, 240})
+    host.root.applyLayout()
+    discard host.render(ed)
+    Swag.assert(lexer.lexed == 0, "a resize must not lex a single line")
+}
+
+// A wrapped document reflows once, when the border drag ends, instead of at every size the
+// pointer passes through. Re-wrapping a whole file cannot run at pointer cadence, and the text is
+// clipped to the viewport for as long as the gesture lasts anyway.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 260)
+    defer host.shutdown()
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 240})
+    ed.setFlags(.WordWrap)
+
+    var text: Core.String
+    for 400 do
+        text += "word "
+    ed.setText(text.toString())
+    host.root.applyLayout()
+    discard host.render(ed)
+
+    let wrapped = ed.lines.count
+    Swag.assert(wrapped > 1)
+
+    host.surface.setSizing(true)
+    ed.setPosition({0, 0, 200, 240})
+    host.root.applyLayout()
+    discard host.render(ed)
+    Swag.assert(ed.lines.count == wrapped, "a live border drag must not reflow the document")
+
+    host.surface.setSizing(false)
+    discard host.render(ed)
+    Swag.assert(ed.lines.count > wrapped, "the narrower viewport must reflow once the drag ends")
+}

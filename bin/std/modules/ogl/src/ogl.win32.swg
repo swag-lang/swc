@@ -7,6 +7,21 @@ using Swag, Core, Win32, Gdi32
 alias HGLRC = const *void?
 alias getExtensionAddress = wglGetProcAddress
 
+// Sets how many display refreshes a `SwapBuffers` waits for, and reports whether it was accepted.
+//
+// `WGL_EXT_swap_control` is resolved against the context current on the calling thread, so this
+// answers `false` before there is one and on a driver that does not publish the extension. One
+// paces every present on the display, zero paces none of them. An application that never states
+// an interval inherits whatever the driver and its control panel decided, which is why the two
+// machines showing the same program never presented at the same cadence.
+public func wglSwapIntervalEXT(interval: s32)->bool
+{
+    let entry = cast((func(s32)->BOOL)?) getExtensionAddress(("wglSwapIntervalEXT").buffer)
+    if not entry do
+        return false
+    return entry(interval) != 0
+}
+
 #[Foreign("opengl32", callconv: Swag.CallConv.C)]
 {
     func wglGetProcAddress(arg1: LPCSTR)->const *void?

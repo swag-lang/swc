@@ -66,6 +66,7 @@ impl IRenderer for RenderOgl
         {
             .native.setCurrentContext(ogl[])
             .releaseFontTextures()
+            .releaseClipMasks()
         }
 
         .native.dropContext(ogl[])

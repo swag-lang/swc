@@ -28,6 +28,10 @@ private
     const AdvancedBlendingNvCoherent:  u8 = 2
     const AdvancedBlendingKhrBarrier:  u8 = 3
     const AdvancedBlendingNvBarrier:   u8 = 4
+
+    // Coverage masks kept alive at once. A mask costs a full render-target plane, and only the
+    // surface and the layers open over it are ever sampled together.
+    const MaxClipMasks = 4'u64
 }
 
 // Sets the glyph-coverage exponent used by the font shaders.
@@ -79,6 +83,7 @@ public struct ClipMask
     texture:     GLuint
     width:       s32
     height:      s32
+    lastUse:     u64     // Stamp of the last request that selected this mask, for reuse order.
 }
 
 // Executes [[Pixel.Painter]] command streams through OpenGL.
@@ -170,6 +175,7 @@ struct RenderOgl
         // by every fragment at its device position. The hardware stencil holds one bit per pixel,
         // and a region cut along a curve needs the fraction of each pixel its edge covers.
         clipMasks:             Array'ClipMask     // One mask per target size a region was drawn for.
+        clipMaskClock:         u64                // Counter stamping each mask request, for reuse order.
         clipMaskIndex:         s32 = -1           // Mask of the region in force, or none yet.
         clipMaskOn:            bool               // Whether fragments are cut by the region.
         clipMaskWriting:       bool               // Whether fragments are writing the region.
@@ -770,6 +776,7 @@ impl RenderOgl
     internal mtd initImpl()
     {
         glInitExtensions()
+        .applyPresentPolicy()
 
         if hasExtension("GL_KHR_blend_equation_advanced_coherent")
         {
@@ -1866,24 +1873,77 @@ impl RenderOgl
     //
     // A mask is one coverage channel per device pixel, drawn under the target's own projection,
     // so it has to be exactly the target's size; a window and the layers inside it each get one.
+    // Only a handful are alive at once — the surface and the layers open over it — while a border
+    // drag walks a whole path of target sizes, so the cache is bounded and gives its least
+    // recently used entry back rather than keeping a full-target texture for every size the
+    // window ever passed through. The mask in force is never the one reused: the region being
+    // drawn still samples it.
     private mtd clipMaskFor(width, height: s32)->s32
     {
-        for mask, index in .clipMasks where mask.width == width and mask.height == height do
+        .clipMaskClock += 1
+
+        for &mask, index in .clipMasks where mask.width == width and mask.height == height
+        {
+            mask.lastUse = .clipMaskClock
             return cast(s32) index
+        }
+
+        var reuse = -1's32
+        if .clipMasks.count >= MaxClipMasks
+        {
+            var oldest = Swag.U64.Max
+            for mask, index in .clipMasks where cast(s32) index != .clipMaskIndex and mask.lastUse < oldest
+            {
+                oldest = mask.lastUse
+                reuse  = cast(s32) index
+            }
+        }
 
         // The texture is created on the mask's own unit, so the paint texture bound on unit zero
         // stays what the next batch expects to sample.
         var mask: ClipMask
-        mask.width  = width
-        mask.height = height
+        mask.width   = width
+        mask.height  = height
+        mask.lastUse = .clipMaskClock
         glActiveTexture(GL_TEXTURE5)
         mask.texture = .createPlaneTexture(width, height)
         glActiveTexture(GL_TEXTURE0)
         glGenFramebuffers(1, &mask.framebuffer)
         glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mask.texture, 0)
+
+        if reuse >= 0
+        {
+            .releaseClipMask(&.clipMasks[cast(u64) reuse])
+            .clipMasks[cast(u64) reuse] = mask
+            return reuse
+        }
+
         .clipMasks.add(mask)
         return cast(s32) (.clipMasks.count - 1)
+    }
+
+    // Hands every coverage mask back to the graphics context.
+    //
+    // Their framebuffers are named by an extension entry point, so this belongs where the context
+    // is still current — beside the glyph atlases, on the way out of the last context — and not in
+    // the drop of a renderer that no longer has one.
+    internal mtd releaseClipMasks()
+    {
+        for &mask in .clipMasks do
+            .releaseClipMask(mask)
+        .clipMasks.clear()
+        .clipMaskIndex = -1
+    }
+
+    // Hands one mask's framebuffer and texture back to the graphics context.
+    private mtd releaseClipMask(mask: *ClipMask)
+    {
+        if mask.framebuffer do
+            glDeleteFramebuffers(1, &mask.framebuffer)
+        if mask.texture do
+            glDeleteTextures(1, &mask.texture)
+        mask[] = {}
     }
 
     // Binds the framebuffer of the target in force again, after a detour through a mask.

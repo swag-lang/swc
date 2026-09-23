@@ -66,6 +66,8 @@ namespace
     // A materialization that pays for its register even with a single reader:
     // nonzero scalar float literals become constant loads during legalization,
     // while vectors need lane moves, shuffles or packed operations to rebuild.
+    // The profitability filter answers this question only for a literal whose
+    // readers cannot take it from memory; one they can fold never reaches here.
     bool isCostlyMaterialization(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (!ops || !ops[0].reg.isVirtualFloat())
@@ -115,6 +117,32 @@ namespace
             default:
                 return false;
         }
+    }
+
+    // A scalar float literal. Legalization lowers one to a constant-pool read.
+    bool isScalarFloatLiteral(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (inst.op != MicroInstrOpcode::LoadRegImm || !ops || inst.numOperands < 3)
+            return false;
+        if (!ops[0].reg.isVirtualFloat())
+            return false;
+        return ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64;
+    }
+
+    // Whether an instruction reads `reg` in the operand position x86 arithmetic
+    // can take from memory: the source of a two-address operation, or the second
+    // source of the three-operand form. A constant read there costs nothing to
+    // leave in a loop, because the post-RA fold turns the pool read into the
+    // operation's own memory operand.
+    bool readsRegAsFoldableSource(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg reg)
+    {
+        if (!ops)
+            return false;
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
+            return ops[1].reg == reg && ops[0].reg != reg;
+        if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
+            return ops[2].reg == reg && ops[1].reg != reg;
+        return false;
     }
 
     // For every eligible memory-reading load and for every store opcode handled
@@ -766,7 +794,34 @@ namespace
                             continue;
                         const auto uc           = inLoopUse.find(ud->defs[0]);
                         const bool multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
-                        if (opcodeReadsMemory(inst->op) || multiplyUsed || isCostlyMaterialization(*inst, inst->ops(operands)))
+                        const MicroInstrOperand* instOps = inst->ops(operands);
+
+                        // A scalar float literal every in-loop reader can take
+                        // from memory stays where it is, however many readers
+                        // it has: each of them folds the pool read into its own
+                        // memory operand, so hoisting removes no instruction
+                        // and only holds a register across the whole loop.
+                        if (isScalarFloatLiteral(*inst, instOps))
+                        {
+                            bool everyUseFolds = true;
+                            for (const uint32_t body : bodyIndices)
+                            {
+                                const MicroInstr* reader = storage.ptr(instrRefs[body]);
+                                if (!reader || body == i)
+                                    continue;
+                                if (std::ranges::find(useDefs[body].uses, ud->defs[0]) == useDefs[body].uses.end())
+                                    continue;
+                                if (!readsRegAsFoldableSource(*reader, reader->ops(operands), ud->defs[0]))
+                                {
+                                    everyUseFolds = false;
+                                    break;
+                                }
+                            }
+                            if (everyUseFolds)
+                                continue;
+                        }
+
+                        if (opcodeReadsMemory(inst->op) || multiplyUsed || isCostlyMaterialization(*inst, instOps))
                         {
                             if (keep.insert(i).second)
                                 worklist.push_back(i);

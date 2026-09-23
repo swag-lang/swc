@@ -103,6 +103,47 @@ SWC_TEST_BEGIN(InstCombine_MemoryLoadFeedingFloatMove_LoadsIntoTheVectorRegister
 }
 SWC_TEST_END()
 
+// A scalar float literal on the left of a commutative operation moves to the
+// right, where the constant-pool read can become the operation's own memory
+// operand. A non-commutative operation keeps its operand order.
+SWC_TEST_BEGIN(InstCombine_FloatLiteralLhs_MovesToTheFoldableSide)
+{
+    constexpr MicroReg dst     = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg literal = MicroReg::virtualFloatReg(2);
+    constexpr MicroReg other   = MicroReg::virtualFloatReg(3);
+
+    for (const MicroOp op : {MicroOp::FloatMultiply, MicroOp::FloatSubtract})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(literal, ApInt(0x3FE0000000000000ULL, 64), MicroOpBits::B64);
+        builder.emitOpBinaryRegRegReg(dst, literal, other, op, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        const bool commutative = op == MicroOp::FloatMultiply;
+        bool       seen        = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegRegReg)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (!ops)
+                return Result::Error;
+            const MicroReg expectedRight = commutative ? literal : other;
+            const MicroReg expectedLeft  = commutative ? other : literal;
+            if (ops[1].reg != expectedLeft || ops[2].reg != expectedRight)
+                return Result::Error;
+            seen = true;
+        }
+        if (!seen)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar read from immutable constant storage consumes the address relocation
 // directly and advances both the host address and the native segment offset.
 SWC_TEST_BEGIN(InstCombine_ConstantAddressLoad_FoldsToRip)

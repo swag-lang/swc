@@ -203,7 +203,7 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 // Auto-inline cost model. Tokens are a cheap, stable proxy for body size. Leaf helpers use the
 // regular budget without introducing sema dependencies; calls add cost within the much larger
 // single-module-call-site budget, where eliminating the last call does not duplicate the body.
-constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 80;
+constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 128;
 constexpr uint32_t K_AUTO_INLINE_CALL_PENALTY    = 10;
 constexpr uint32_t K_AUTO_INLINE_LAST_CALL_COST  = 4096;
 

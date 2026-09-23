@@ -153,6 +153,24 @@ func singleCall(value: s32)->s32
     result += 1
     result += 1
     result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
+    result += 1
     return leaf(result)
 }
 
@@ -234,7 +252,7 @@ func useCandidates()
 )";
     // If call-graph names from separate Asts are merged, the first source's
     // singleCall -> leaf and useCandidates -> singleCall edges combine with this edge into a
-    // false cycle. Cross-Ast calls never auto-inline, so their recursion graphs stay separate.
+    // false cycle. Candidate discovery is local to each Ast, so their recursion graphs stay separate.
     static constexpr std::string_view OTHER_SOURCE    = R"(#global private
 
 func leaf() => useCandidates()
@@ -303,10 +321,23 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_AutoInlineExpandsSameModuleCrossFileBody)
 {
     static constexpr std::string_view PROVIDER = R"(#global public
-func increment(value: s32)->s32 => value + 1
+func mix(value: u64)->u64
+{
+    var result = value
+    result = (result + 1) * 3
+    result = (result + 2) * 5
+    result = (result + 3) * 7
+    result = (result + 4) * 11
+    result = (result + 5) * 13
+    result = (result + 6) * 17
+    result = (result + 7) * 19
+    result = (result + 8) * 23
+    result = (result + 9) * 29
+    return result
+}
 )";
     static constexpr std::string_view CALLER = R"(#global public
-func useIncrement(value: s32)->s32 => increment(value)
+func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
 )";
     const fs::path providerPath = Unittest::makeTestSourcePath("Compiler", "AutoInlineProvider");
     const fs::path callerPath   = Unittest::makeTestSourcePath("Compiler", "AutoInlineCaller");
@@ -331,6 +362,20 @@ func useIncrement(value: s32)->s32 => increment(value)
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
+    bool checkedProviderCost = false;
+    for (SourceFile* file : compiler.files())
+    {
+        if (!FileSystem::pathEquals(file->path(), providerPath))
+            continue;
+        const AstFunctionDecl* mix = findFunctionDecl(file->ast(), "mix");
+        if (!mix || mix->autoInlineCost <= 80 || mix->autoInlineCost > K_AUTO_INLINE_MAX_BODY_TOKENS || !mix->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+        checkedProviderCost = true;
+        break;
+    }
+    if (!checkedProviderCost)
+        return Result::Error;
+
     TaskContext compilerCtx(compiler);
     for (SourceFile* file : compiler.files())
     {
@@ -353,7 +398,7 @@ func useIncrement(value: s32)->s32 => increment(value)
             }
             return Ast::VisitResult::Continue;
         });
-        if (calls != 1 || expanded != 1)
+        if (calls != 2 || expanded != 2)
             return Result::Error;
         return Result::Continue;
     }

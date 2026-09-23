@@ -370,6 +370,7 @@ namespace
         // Collect these only after finding a natural loop worth analyzing.
         std::vector<MicroInstrUseDef>          useDefs(n);
         std::unordered_map<MicroReg, uint32_t> defCount;
+        std::unordered_map<MicroReg, uint32_t> defSlot;
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
@@ -378,7 +379,10 @@ namespace
             useDefs[i]                     = inst->collectUseDef(operands, context.encoder);
             const MicroInstrUseDef* useDef = &useDefs[i];
             for (const MicroReg def : useDef->defs)
+            {
                 ++defCount[def];
+                defSlot[def] = i;
+            }
         }
 
         auto&                                relocations   = context.builder->codeRelocations();
@@ -502,6 +506,94 @@ namespace
                     loopHasFrameStore = true;
                 else
                     loopHasPointerStore = true;
+            }
+
+            // Reassociate a three-register memory address at the loop level
+            // where exactly one component varies:
+            //
+            //     inner = &[fixed + induction]
+            //     value = [base + inner]
+            //   ->
+            //     rooted = &[base + fixed]   // current loop preheader
+            //     value  = [rooted + induction]
+            //
+            // x86 cannot encode the first form without the per-iteration LEA.
+            // Doing this here, rather than in the instruction combiner, is
+            // essential for nested loops: only this loop's definition set can
+            // distinguish an outer induction value from the inner induction.
+            for (const uint32_t i : bodyIndices)
+            {
+                const MicroInstrRef ref  = instrRefs[i];
+                const MicroInstr*   inst = storage.ptr(ref);
+                if (!inst || inst->op == MicroInstrOpcode::LoadAddrAmcRegMem)
+                    continue;
+
+                MicroPassHelpers::AmcLayout outerLayout;
+                if (!MicroPassHelpers::amcLayoutFor(outerLayout, inst->op))
+                    continue;
+                const MicroInstrOperand* instOps = inst->ops(operands);
+                if (!instOps || instOps[outerLayout.mulIdx].valueU64 != 1)
+                    continue;
+
+                const MicroReg nestedReg = instOps[outerLayout.indexIdx].reg;
+                const MicroReg outerBase = instOps[outerLayout.baseIdx].reg;
+                if (!nestedReg.isVirtualInt() || !outerBase.isVirtualInt() || defsInLoop.contains(outerBase))
+                    continue;
+
+                const auto countIt = defCount.find(nestedReg);
+                const auto slotIt  = defSlot.find(nestedReg);
+                if (countIt == defCount.end() || countIt->second != 1 || slotIt == defSlot.end() || slotIt->second >= i)
+                    continue;
+                const MicroInstr* nested = storage.ptr(instrRefs[slotIt->second]);
+                if (!nested || nested->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                    continue;
+                const MicroInstrOperand* nestedOps = nested->ops(operands);
+                if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
+                    nestedOps[4].opBits != MicroOpBits::B64 || nestedOps[5].valueU64 != 1)
+                    continue;
+
+                const MicroReg innerBase   = nestedOps[1].reg;
+                const MicroReg innerIndex  = nestedOps[2].reg;
+                const bool     baseVaries  = defsInLoop.contains(innerBase);
+                const bool     indexVaries = defsInLoop.contains(innerIndex);
+                if (baseVaries == indexVaries)
+                    continue;
+
+                const MicroReg induction = baseVaries ? innerBase : innerIndex;
+                const MicroReg fixed     = baseVaries ? innerIndex : innerBase;
+                if (!fixed.isVirtualInt() || defsInLoop.contains(fixed))
+                    continue;
+
+                const int64_t add = static_cast<int64_t>(instOps[outerLayout.addIdx].valueU64) + static_cast<int64_t>(nestedOps[6].valueU64);
+                if (add != static_cast<int64_t>(static_cast<int32_t>(add)))
+                    continue;
+
+                const uint32_t nextReg = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+                const MicroReg rooted  = MicroReg::virtualIntReg(nextReg);
+                const MicroInstrOpcode rewrittenOp = inst->op;
+                SmallVector<MicroInstrOperand, 8> rewritten;
+                for (uint32_t opIdx = 0; opIdx < inst->numOperands; ++opIdx)
+                    rewritten.push_back(instOps[opIdx]);
+                rewritten[outerLayout.baseIdx].reg     = rooted;
+                rewritten[outerLayout.indexIdx].reg    = induction;
+                rewritten[outerLayout.addIdx].valueU64 = 0;
+
+                MicroInstrOperand rootedOps[8] = {};
+                rootedOps[0].reg               = rooted;
+                rootedOps[1].reg               = outerBase;
+                rootedOps[2].reg               = fixed;
+                rootedOps[3].opBits            = MicroOpBits::B64;
+                rootedOps[4].opBits            = MicroOpBits::B64;
+                rootedOps[5].valueU64          = 1;
+                rootedOps[6].valueU64          = static_cast<uint64_t>(add);
+                storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::LoadAddrAmcRegMem, rootedOps);
+                storage.insertDerivedBefore(operands, ref, rewrittenOp, {rewritten.data(), rewritten.size()});
+                storage.erase(ref);
+
+                if (context.ssaState)
+                    context.ssaState->invalidate();
+                context.builder->invalidateControlFlowGraph();
+                return true;
             }
 
             // Webs: the unit LLVM's MachineLICM gets for free from SSA. The

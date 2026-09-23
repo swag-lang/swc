@@ -15,6 +15,40 @@ bounded sound windows.
 The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
+### std.video.005 — Reduce the measured serial cost of H.265 decoding
+
+- Recorded: 2026-08-25 08:38
+- Updated: 2026-09-23 19:25 — Record the bounded cross-file inlining contract now shipped.
+- Evidence: the 2026-08-26 one-lane comparison on a 3840x2076 Main10 passage recorded 92 ms
+  of processor time per picture against FFmpeg's 28.6 ms. Later stage experiments changed the
+  decoder and the compiler; those numbers and old frame-access counts are historical attribution,
+  not the current performance ratio. Main/Main10 conformance and container fixtures remain the
+  correctness boundary. Range-extension coverage belongs to std.video.009.
+- Current source: `filterLumaEdge` already sends horizontal luma to packed `filterLumaQuad`;
+  vertical luma and `filterChromaEdge` remain scalar. Interpolation and inverse transforms use
+  paired 128-bit arithmetic, scan inversion and significance tables are implemented, and SAO
+  reuses/swaps retained planes. The old instruction to vectorize all deblocking repeats shipped
+  work. The backend also has split allocation and same-module, non-generic cross-file automatic
+  inlining; generic cross-Ast materialization remains deliberately excluded.
+- Remaining leads: threshold/context derivation and frame traffic, vertical/chroma filtering,
+  locality from processing both edge directions in bounded bands, and avoiding a separate
+  prediction-buffer combine for uni-predicted blocks. Attribute and choose one after measuring;
+  wider SIMD capability is owned by cpu.simd.002.
+- Next: rebaseline a redistributable Main10 clip with one decode lane and identical FFmpeg input,
+  then profile remaining stages. Count frame accesses in the current generated kernels before
+  treating compiler.optimization.011's old allocator measurements as a binding cause.
+- Measurement contract: warm and decode forward without seeking back inside a measured window.
+  Use paired runs and prove which threads carry decoding; for small stage changes, use alternating
+  implementations within one process on the same blocks. Timing stages by disabling them changes
+  downstream work and cannot attribute their costs. A fixture needing an occasionally mounted
+  personal film is not a reproducible acceptance input.
+- Boundary: the same-module, non-generic cross-file path now waits for semantic completion and
+  preserves resolved bindings. Generic cross-Ast bodies still need their own publication and
+  rebinding proof before the earlier `aoc2019` experiment can be retried.
+- Complete when: serial decode costs at most four-thirds of FFmpeg on the same 3840x2076 Main10
+  fixture and machine, with exact conformance and reference planes and recorded measurement scope.
+- Related: std.video.001, std.video.009, compiler.optimization.011, cpu.simd.002
+
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Recorded: 2026-08-19 13:23
@@ -82,40 +116,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Complete when: redistributable conformance fixtures for the chosen profile match reference
   planes, malformed inputs remain bounded, and the documented limits name every unsupported tool.
 - Related: std.video.005
-
-### std.video.005 — Reduce the measured serial cost of H.265 decoding
-
-- Recorded: 2026-08-25 08:38
-- Updated: 2026-09-11 22:20 — Remove shipped SIMD and lookup work from the next step; require a current serial baseline.
-- Evidence: the 2026-08-26 one-lane comparison on a 3840x2076 Main10 passage recorded 92 ms
-  of processor time per picture against FFmpeg's 28.6 ms. Later stage experiments changed the
-  decoder and the compiler; those numbers and old frame-access counts are historical attribution,
-  not the current performance ratio. Main/Main10 conformance and container fixtures remain the
-  correctness boundary. Range-extension coverage belongs to std.video.009.
-- Current source: `filterLumaEdge` already sends horizontal luma to packed `filterLumaQuad`;
-  vertical luma and `filterChromaEdge` remain scalar. Interpolation and inverse transforms use
-  paired 128-bit arithmetic, scan inversion and significance tables are implemented, and SAO
-  reuses/swaps retained planes. The old instruction to vectorize all deblocking repeats shipped
-  work. The backend also has split allocation and a same-Ast last-call inlining bonus now.
-- Remaining leads: threshold/context derivation and frame traffic, vertical/chroma filtering,
-  locality from processing both edge directions in bounded bands, and avoiding a separate
-  prediction-buffer combine for uni-predicted blocks. Attribute and choose one after measuring;
-  wider SIMD capability is owned by cpu.simd.002.
-- Next: rebaseline a redistributable Main10 clip with one decode lane and identical FFmpeg input,
-  then profile remaining stages. Count frame accesses in the current generated kernels before
-  treating compiler.optimization.011's old allocator measurements as a binding cause.
-- Measurement contract: warm and decode forward without seeking back inside a measured window.
-  Use paired runs and prove which threads carry decoding; for small stage changes, use alternating
-  implementations within one process on the same blocks. Timing stages by disabling them changes
-  downstream work and cannot attribute their costs. A fixture needing an occasionally mounted
-  personal film is not a reproducible acceptance input.
-- Rejected implementation boundary: removing the cross-Ast inline gate once miscompiled the
-  `aoc2019` smoke, despite reducing kernel instruction counts. Publication and rebinding need
-  their own proof; compiler.optimization.033 owns that path. Do not restore the gate removal.
-- Complete when: serial decode costs at most four-thirds of FFmpeg on the same 3840x2076 Main10
-  fixture and machine, with exact conformance and reference planes and recorded measurement scope.
-- Related: std.video.001, std.video.009, compiler.optimization.011, compiler.optimization.033,
-  cpu.simd.002
 
 ### std.video.012 — 4:2:2 is the chroma format H.264 still refuses
 

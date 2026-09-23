@@ -58,6 +58,51 @@ SWC_TEST_BEGIN(MemToReg_PlainSlot_Promotes)
 }
 SWC_TEST_END()
 
+// Outgoing argument space moves SP around a call, but locals remain at stable
+// frame-base offsets. An escaped local stored in that outgoing area poisons
+// only its own object; an unrelated local still promotes.
+SWC_TEST_BEGIN(MemToReg_MovingStackPointerKeepsFramePromotion)
+{
+    SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable escaped(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable independent(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    for (SymbolVariable* local : {&escaped, &independent})
+    {
+        local->setTypeRef(ctx.typeMgr().typeU64());
+        local->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+        local->setCodeGenLocalSize(8);
+        function.addLocalVariable(ctx, local);
+    }
+    escaped.setOffset(0x10);
+    independent.setOffset(0x18);
+
+    const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame = MicroReg::virtualIntReg(1);
+    constexpr MicroReg addr  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+    builder.emitLoadMemImm(frame, 0x10, ApInt(1, 64), MicroOpBits::B64);
+    const MicroInstrRef escapedStore = builder.instructions().lastInstructionRef();
+    builder.emitLoadAddressRegMem(addr, frame, 0x10, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(sp, ApInt(0x28, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(sp, 0x20, addr, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(sp, ApInt(0x28, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegMem(value, frame, 0x10, MicroOpBits::B64);
+    builder.emitLoadMemImm(frame, 0x18, ApInt(2, 64), MicroOpBits::B64);
+    const MicroInstrRef independentStore = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegMem(value, frame, 0x18, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runMemToRegPass(builder, &function));
+    if (builder.instructions().ptr(escapedStore)->op != MicroInstrOpcode::LoadMemImm)
+        return Result::Error;
+    if (builder.instructions().ptr(independentStore)->op != MicroInstrOpcode::LoadRegImm)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MemToReg_MixedSlotsKeepDistinctFreshRegisters)
 {
     const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;

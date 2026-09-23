@@ -19,7 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-23 09:40 — Measured the opcode gate this entry proposed, and closed it.
+- Updated: 2026-09-23 10:15 — Found and removed the fixed per-run cost: the pass is 45% cheaper.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -52,9 +52,17 @@ block, and the hot path keeps the register.
   against 485 us for a 126-instruction branchy one. The pass has a large **fixed** cost per run —
   entering some thirty-seven transforms, each with its own scratch containers — that does not
   scale with the function. That, not the scanning, is what a pattern campaign multiplies.
-- Next: attack the fixed per-run cost rather than the per-function one. Profile a run on a small
-  function alone and find what 63 us is spent on; the shared walk of 0.1.1046 removed the
-  repeated instruction walks, so what remains is transform entry and per-transform scratch.
+- Where the fixed cost was (timed per transform, 0.1.1047): fourteen transforms opened by asking
+  for the next free virtual integer register index, which walks every instruction and collects
+  every register operand, and then used it only when the transform actually rewrote something;
+  the short-circuit coalescer opened with a use/def query per instruction and a pair of ordinal
+  lists per register, read only after three filters had matched. Collecting both on first request
+  took the pass from 16.7 s to 9.1 s of summed worker time over a bin/std release rebuild.
+- Next: the pass is now 9.1 s spread over some thirty-seven transforms, the largest being
+  `fuseMaterializedBoolBranches` at 11%, `convertEqualityChainsToBitTests` at 10% and
+  `coalesceShortCircuitResults` at 7%. `fuseMaterializedBoolBranches` calls
+  `areCpuFlagsDeadAfterInCfg` per candidate jump, which rebuilds the control-flow graph whenever
+  a previous transform invalidated it; that is the next shape worth timing.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.

@@ -38,6 +38,14 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   15, 44 and 97 ms of extra lowering at N = 8, 16, 32, 64, 128 and 256. `ThemeColors` carries 357
   fields of its own struct type, so its 769 ms is the expanded comparison count, not a defect in
   the pipeline. The cost is inherent to lowering the operator; the saving is in not lowering it.
+- Tried and measured as worth nothing (2026-09-23): `NativeBackendBuilder` seeds its lowering
+  loop with `compiler_->nativeCodeSegment()` - everything the module lowered - and applies the
+  executable reachability filter only to the final table, which its own comment explains by the
+  constant closure needing lowered code to read. Seeding that loop with
+  `collectExecutableFunctionRoots` instead leaves `tuned` at exactly 176 functions for a hello
+  world and only drops 12 entries from `forged`: by the time the native builder runs, the
+  functions have already been lowered by their own code-generation jobs. The lowering to avoid
+  happens earlier, so narrowing this seed changes the artifact without saving any compile time.
 - Why the closure is wide: these roots are collected for compile-time execution, where a `#run`
   may call through any function address the constant graph holds, so the walk cannot decide
   reachability statically. The lowered code is then reused by the native builder, which is how a

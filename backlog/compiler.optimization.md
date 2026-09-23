@@ -16,6 +16,62 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-09-23 13:07 — Took the structural half; the entry keeps the rebuild count.
+- Area: compiler/backend, compilation time
+- Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
+  `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
+  2026-09-16 (Release 0.1.687), one `swc build -w bin/std -m gui -bc release` builds SSA **78,072
+  times** over 9,521,265 instruction slots. **33,923** of those builds follow a pass mutation,
+  attributed as: copy elimination 13,827, instruction combine 9,717, value numbering 4,383,
+  constant folding 3,645, pre-RA peephole 1,990, branch simplification 355, strength reduction 7.
+  The remaining 44,149 are each loop entry's first build and are not avoidable this way.
+- What it is worth: a single-core profile of that build puts `MicroSsaState::build` at **5.65% of
+  the work**. Pass-mutation invalidations are 43.5% of the builds, so removing *every* one of them
+  bounds the gain at **about 2.5% of a gui release build**. The incremental use/def cache already
+  took the cheap part of a rebuild; what is left is dominance, phi placement and the rename walk.
+- The largest single redundancy: `MicroCopyEliminationPass::run` invalidates and rebuilds SSA in
+  the middle of itself, so that `eraseDeadCopies` can ask `isRegUsedAfter`. It did so **10,497**
+  times in that build - 13.4% of every SSA build in the module - after a rewrite that moved reads
+  between registers and changed no definition, no instruction and no edge. The pass knows exactly
+  which uses it redirected, so it can answer "does this copy's destination still have a reader"
+  from that record instead of rebuilding. Worth about 0.8% of the build on its own.
+- Constant folding, the case this entry used to name, is 11% of the invalidations. Its bounded
+  rewrite - an isolated virtual-integer `OpBinaryRegImm` folded into `LoadRegImm`, which keeps the
+  instruction reference, the definition and the CFG and only drops a read - is still the clearest
+  shape for a mutation contract, but it is not where the rebuilds are.
+- Experiment (2026-09-16): two local liveness replacements removed the internal rebuild: a
+  scan of reaching uses, then instruction-use counts adjusted for each redirected operand with
+  backward phi propagation. Both passed 825 C++ tests, including three new loop, dead-phi and
+  physical-source cases. The first also preserved all 16 final Micro functions in the Levenshtein
+  and ChaCha probes and passed the 29 optimizer-native cases. A broader native run found the
+  unchanged baseline failure subsequently fixed by `69f480e61`.
+- Measurement: three alternating, six-worker Release gui rebuild pairs, pinned to six P cores,
+  gave baseline/candidate total process CPU of 232.938/233.938 seconds for the count variant.
+  Median wall time was 18.571/18.046 seconds, with individual runs spanning 16.114-21.722 seconds;
+  that spread does not establish a gain. Both implementations were discarded from the branch.
+- 2026-09-23 (Release 0.1.1046): `MicroSsaState::build` is **7.05% of busy CPU** on a
+  six-worker `bin/std` release rebuild, 300,712 builds for 33,062 functions — nine per
+  function. Inside it: the rename walk 2.4%, phi placement 1.4%, the collection walk 1.6%,
+  dominators 0.4%. The passes that pay for a rebuild are constant folding 2.1%, copy
+  elimination 1.1%, instruction combine 1.0%, value numbering 1.0%, guarded-select diamonds
+  0.9%, branch simplification 0.7%. Constant folding now spends three times as long
+  rebuilding SSA as it spends folding.
+- Taken in 0.1.1049, and it did read above the floor: a rebuild no longer rediscovers the basic
+  blocks, the dominator tree and the frontiers. All three describe the control-flow graph alone,
+  and the graph now carries a build identity taken fresh whenever it is rebuilt, so the SSA state
+  keeps what it derived for as long as that identity holds - which is exactly as long as no pass
+  invalidated the graph. Only the phi lists, which belong to the definitions, are recomputed.
+  Single-core, alternated: gui 0.914 against the same rebuild before the morning's four batches.
+- What is left of this entry is its original subject: the *number* of rebuilds, still about nine
+  per function. Each one still pays for the collection walk, phi placement and the rename walk,
+  which together are the 7% this entry measures. The 2026-09-16 experiment on copy elimination's
+  internal rebuild remains discarded; revisit it only with the rename walk, not around it.
+- Complete when: a replacement preserves emitted code and focused SSA/native behavior and
+  resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
+- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
@@ -76,54 +132,6 @@ block, and the hot path keeps the register.
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
 
-### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-09-23 09:25 — The cost has grown by half; measure again before discarding it.
-- Area: compiler/backend, compilation time
-- Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
-  `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
-  2026-09-16 (Release 0.1.687), one `swc build -w bin/std -m gui -bc release` builds SSA **78,072
-  times** over 9,521,265 instruction slots. **33,923** of those builds follow a pass mutation,
-  attributed as: copy elimination 13,827, instruction combine 9,717, value numbering 4,383,
-  constant folding 3,645, pre-RA peephole 1,990, branch simplification 355, strength reduction 7.
-  The remaining 44,149 are each loop entry's first build and are not avoidable this way.
-- What it is worth: a single-core profile of that build puts `MicroSsaState::build` at **5.65% of
-  the work**. Pass-mutation invalidations are 43.5% of the builds, so removing *every* one of them
-  bounds the gain at **about 2.5% of a gui release build**. The incremental use/def cache already
-  took the cheap part of a rebuild; what is left is dominance, phi placement and the rename walk.
-- The largest single redundancy: `MicroCopyEliminationPass::run` invalidates and rebuilds SSA in
-  the middle of itself, so that `eraseDeadCopies` can ask `isRegUsedAfter`. It did so **10,497**
-  times in that build - 13.4% of every SSA build in the module - after a rewrite that moved reads
-  between registers and changed no definition, no instruction and no edge. The pass knows exactly
-  which uses it redirected, so it can answer "does this copy's destination still have a reader"
-  from that record instead of rebuilding. Worth about 0.8% of the build on its own.
-- Constant folding, the case this entry used to name, is 11% of the invalidations. Its bounded
-  rewrite - an isolated virtual-integer `OpBinaryRegImm` folded into `LoadRegImm`, which keeps the
-  instruction reference, the definition and the CFG and only drops a read - is still the clearest
-  shape for a mutation contract, but it is not where the rebuilds are.
-- Experiment (2026-09-16): two local liveness replacements removed the internal rebuild: a
-  scan of reaching uses, then instruction-use counts adjusted for each redirected operand with
-  backward phi propagation. Both passed 825 C++ tests, including three new loop, dead-phi and
-  physical-source cases. The first also preserved all 16 final Micro functions in the Levenshtein
-  and ChaCha probes and passed the 29 optimizer-native cases. A broader native run found the
-  unchanged baseline failure subsequently fixed by `69f480e61`.
-- Measurement: three alternating, six-worker Release gui rebuild pairs, pinned to six P cores,
-  gave baseline/candidate total process CPU of 232.938/233.938 seconds for the count variant.
-  Median wall time was 18.571/18.046 seconds, with individual runs spanning 16.114-21.722 seconds;
-  that spread does not establish a gain. Both implementations were discarded from the branch.
-- 2026-09-23 (Release 0.1.1046): `MicroSsaState::build` is **7.05% of busy CPU** on a
-  six-worker `bin/std` release rebuild, 300,712 builds for 33,062 functions — nine per
-  function. Inside it: the rename walk 2.4%, phi placement 1.4%, the collection walk 1.6%,
-  dominators 0.4%. The passes that pay for a rebuild are constant folding 2.1%, copy
-  elimination 1.1%, instruction combine 1.0%, value numbering 1.0%, guarded-select diamonds
-  0.9%, branch simplification 0.7%. Constant folding now spends three times as long
-  rebuilding SSA as it spends folding.
-- Next: revisit with the 2026-09-23 numbers rather than the below-floor 2026-09-16 verdict.
-  Avoid generalizing a mutation contract across passes on the strength of that old result.
-- Complete when: a replacement preserves emitted code and focused SSA/native behavior and
-  resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
-- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 ### compiler.optimization.044 — Packed unary operations cannot consume a 128-bit memory source
 
 - Recorded: 2026-09-18 19:48

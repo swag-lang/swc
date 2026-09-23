@@ -35,7 +35,8 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-23 11:10 |
+| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-23 13:07 |
+| [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-23 13:07 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-23 09:29 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-21 19:04 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-20 10:36 |
@@ -43,7 +44,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-09-18 14:05 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-16 07:54 |
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
-| [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-12 18:05 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-12 17:40 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-12 10:21 |

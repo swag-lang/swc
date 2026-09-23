@@ -339,20 +339,8 @@ namespace
 
         if (srcType.isNumericIntLike() && dstType.isFloat())
         {
-            MicroReg srcReg = outReg;
-            if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
-            {
-                srcReg                        = codeGen.nextVirtualIntRegister();
-                const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                if (!srcType.isBoolOrIntLikeUnsigned())
-                    builder.emitLoadSignedExtendRegReg(srcReg, outReg, widenedBits, srcBits);
-                else
-                    builder.emitLoadZeroExtendRegReg(srcReg, outReg, widenedBits, srcBits);
-            }
-
             const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
-            builder.emitClearReg(dstReg, dstBits);
-            builder.emitConvertIntToFloat(dstReg, srcReg, dstBits, srcBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstBits);
+            CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstReg, outReg, srcBits, dstBits, srcType.isBoolOrIntLikeUnsigned());
             outReg = dstReg;
             return;
         }

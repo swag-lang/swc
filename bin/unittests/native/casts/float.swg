@@ -103,3 +103,36 @@ func signed64ToF32(value: s64)->f32 { return cast(f32) value }
     Swag.assert(cast(s64) gFloatF32 == -12_884_901_888)
     Swag.assert(cast(s64) gFloatF64 == -12_884_901_888)
 }
+
+// The conversion instruction reads a dword source as signed, so a value that only
+// fits unsigned has to reach it widened. Each boundary is exact in both float types.
+#[Swag.NoInline]
+func s32ToF64(value: s32)->f64 { return cast(f64) value }
+
+#[Swag.NoInline]
+func u32ToF64(value: u32)->f64 { return cast(f64) value }
+
+#[Swag.NoInline]
+func s16ToF64(value: s16)->f64 { return cast(f64) value }
+
+#[Swag.NoInline]
+func u16ToF64(value: u16)->f64 { return cast(f64) value }
+
+#[Swag.NoInline]
+func s8ToF32(value: s8)->f32 { return cast(f32) value }
+
+#[Swag.NoInline]
+func u8ToF32(value: u8)->f32 { return cast(f32) value }
+
+#test
+{
+    Swag.assert(s32ToF64(-2_147_483_648) == -2_147_483_648.0)
+    Swag.assert(s32ToF64(2_147_483_647) == 2_147_483_647.0)
+    Swag.assert(s32ToF64(-1) == -1.0)
+    Swag.assert(u32ToF64(4_294_967_295) == 4_294_967_295.0)
+    Swag.assert(u32ToF64(2_147_483_648) == 2_147_483_648.0)
+    Swag.assert(s16ToF64(-32_768) == -32_768.0)
+    Swag.assert(u16ToF64(65_535) == 65_535.0)
+    Swag.assert(s8ToF32(-128) == -128.0)
+    Swag.assert(u8ToF32(255) == 255.0)
+}

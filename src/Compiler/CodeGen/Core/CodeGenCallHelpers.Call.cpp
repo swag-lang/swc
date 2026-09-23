@@ -380,20 +380,8 @@ namespace
                     builder.emitLoadRegMem(srcReg, argPayload.reg, 0, srcBits);
                 }
 
-                if (getNumBits(srcBits) < 32 || (dstBits == MicroOpBits::B64 && getNumBits(srcBits) == 32))
-                {
-                    const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
-                    const MicroOpBits widenedBits = dstBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                    if (srcType.isIntSigned())
-                        builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcBits);
-                    else
-                        builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, widenedBits, srcBits);
-                    srcReg = widenedReg;
-                }
-
                 const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
-                builder.emitClearReg(dstReg, dstBits);
-                builder.emitConvertIntToFloat(dstReg, srcReg, dstBits, srcBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstBits);
+                CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstReg, srcReg, srcBits, dstBits, !srcType.isIntSigned());
                 argPayload.reg     = dstReg;
                 argPayload.typeRef = normalizedTypeRef;
                 argPayload.setIsValue();

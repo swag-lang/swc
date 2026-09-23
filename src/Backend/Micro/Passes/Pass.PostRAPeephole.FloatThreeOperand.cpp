@@ -231,7 +231,8 @@ namespace PostRaPeephole
         if (!convert || convert->op != MicroInstrOpcode::OpBinaryRegReg || !convertOps ||
             convertOps[0].reg != clear[0].reg || !convertOps[1].reg.isInt() ||
             convertOps[2].opBits != clear[1].opBits ||
-            (convertOps[3].microOp != MicroOp::ConvertIntToFloat && convertOps[3].microOp != MicroOp::ConvertInt64ToFloat32))
+            (convertOps[3].microOp != MicroOp::ConvertIntToFloat && convertOps[3].microOp != MicroOp::ConvertInt64ToFloat32 &&
+             convertOps[3].microOp != MicroOp::ConvertInt32ToFloat64))
             return false;
 
         const MicroInstrRef retRef = ctx.nextRef(convertRef);

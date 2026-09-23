@@ -491,17 +491,8 @@ namespace
                 return Result::Continue;
             }
 
-            if (getNumBits(srcOpBits) < 32 || (dstOpBits == MicroOpBits::B64 && getNumBits(srcOpBits) == 32))
-            {
-                const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
-                const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
-                srcReg = widenedReg;
-            }
-
             dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
-            builder.emitClearReg(dstPayload.reg, dstOpBits);
-            builder.emitConvertIntToFloat(dstPayload.reg, srcReg, dstOpBits, srcOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstOpBits);
+            CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstPayload.reg, srcReg, srcOpBits, dstOpBits, /*unsignedSource=*/false);
             return Result::Continue;
         }
 
@@ -2016,17 +2007,8 @@ namespace
                 return Result::Continue;
             }
 
-            if (getNumBits(srcOpBits) < 32 || (dstOpBits == MicroOpBits::B64 && getNumBits(srcOpBits) == 32))
-            {
-                const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
-                const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
-                srcReg = widenedReg;
-            }
-
             dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
-            builder.emitClearReg(dstPayload.reg, dstOpBits);
-            builder.emitConvertIntToFloat(dstPayload.reg, srcReg, dstOpBits, srcOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstOpBits);
+            CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstPayload.reg, srcReg, srcOpBits, dstOpBits, /*unsignedSource=*/false);
             return Result::Continue;
         }
 

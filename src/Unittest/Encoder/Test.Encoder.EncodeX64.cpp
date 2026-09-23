@@ -441,6 +441,7 @@ namespace
         ENCODE_CASE("op_ternary_cmpxchg_desired_rax_conform", "?? 89 ?? F0 ?? 0F B1 ?? 24", b.emitCompareExchangeRegMemReg(RAX, R12, 0, RAX, MicroOpBits::B64););
         ENCODE_CASE("convert_i2f_b64", "F2 49 0F 2A D2", b.emitOpBinaryRegReg(XMM2, R10, MicroOp::ConvertIntToFloat, MicroOpBits::B64););
         ENCODE_CASE("convert_i64_f32", "F3 49 0F 2A D2", b.emitConvertIntToFloat(XMM2, R10, MicroOpBits::B32, MicroOpBits::B64););
+        ENCODE_CASE("convert_i32_f64", "F2 41 0F 2A D2", b.emitConvertIntToFloat(XMM2, R10, MicroOpBits::B64, MicroOpBits::B32););
         ENCODE_CASE("convert_f2i_b64", "F2 4C 0F 2C DB", b.emitOpBinaryRegReg(R11, XMM3, MicroOp::ConvertFloatToInt, MicroOpBits::B64););
         return Result::Continue;
     }

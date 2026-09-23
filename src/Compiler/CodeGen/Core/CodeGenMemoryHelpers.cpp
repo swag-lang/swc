@@ -651,6 +651,35 @@ void CodeGenMemoryHelpers::emitGlobalVariableAddress(CodeGen& codeGen, MicroReg 
     SWC_UNUSED(callSent);
 }
 
+// Lower a signed - or already narrowed unsigned - integer to a float, widening the
+// source only where the conversion instruction cannot read it as it stands.
+//
+// CVTSI2SS/CVTSI2SD read a dword or a qword and sign-extend the dword themselves, so
+// a 32-bit value goes in directly; only something narrower needs a widening move. An
+// unsigned dword is the exception: the dword form would read its top bit as a sign,
+// so it reaches a double as a zero-extended qword.
+void CodeGenMemoryHelpers::emitConvertIntToFloat(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, MicroOpBits srcOpBits, MicroOpBits dstOpBits, bool unsignedSource)
+{
+    MicroBuilder& builder = codeGen.builder();
+
+    MicroOpBits convertSrcBits = MicroOpBits::B32;
+    if (getNumBits(srcOpBits) == 64 || (unsignedSource && getNumBits(srcOpBits) == 32))
+        convertSrcBits = MicroOpBits::B64;
+
+    if (getNumBits(srcOpBits) < getNumBits(convertSrcBits))
+    {
+        const MicroReg widenedReg = codeGen.nextVirtualIntRegister();
+        if (unsignedSource)
+            builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, convertSrcBits, srcOpBits);
+        else
+            builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, convertSrcBits, srcOpBits);
+        srcReg = widenedReg;
+    }
+
+    builder.emitClearReg(dstReg, dstOpBits);
+    builder.emitConvertIntToFloat(dstReg, srcReg, dstOpBits, convertSrcBits);
+}
+
 void CodeGenMemoryHelpers::emitConvertFloatToInt(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType)
 {
     MicroBuilder&     builder = codeGen.builder();
@@ -787,20 +816,8 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
 
     if (srcIntLikeType && dstFloatType)
     {
-        if (getNumBits(srcOpBits) < 32 || (dstOpBits == MicroOpBits::B64 && getNumBits(srcOpBits) == 32))
-        {
-            const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
-            const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-            if (srcType.isIntSigned())
-                builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
-            else
-                builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
-            srcReg = widenedReg;
-        }
-
         const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
-        builder.emitClearReg(dstReg, dstOpBits);
-        builder.emitConvertIntToFloat(dstReg, srcReg, dstOpBits, srcOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : dstOpBits);
+        emitConvertIntToFloat(codeGen, dstReg, srcReg, srcOpBits, dstOpBits, !srcType.isIntSigned());
         return dstReg;
     }
 

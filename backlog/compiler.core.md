@@ -9,7 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.056 — Every compilation lowers the equality operator no program calls
 
 - Recorded: 2026-09-23 14:11
-- Updated: 2026-09-23 16:19 — Found where it is decided, and measured what removing it is worth.
+- Updated: 2026-09-23 16:54 — Named the silent fallback the lazy fix has to guard against.
 - Area: compiler/codegen, compile-time execution, compilation time
 - Evidence: instrumented `MachineCode::emit` (Release 0.1.1050, one worker). A four-line hello
   world lowers **319 functions**, and **31 of them are generated `opEquals`** costing 42.5 ms of
@@ -62,6 +62,14 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   function carrying `SymbolFunctionFlagsE::LazyBody` as preparable, so the body is completed and
   lowered all the same. Delaying the body postpones the cost; only not creating the operator
   removes it.
+- The trap that fix must not walk into: `==` on a struct does not resolve its operator during
+  semantic analysis at all. `CodeGen.Relational.cpp` asks `SymbolStruct::selfEqualsFunction` while
+  lowering the comparison, and **when that returns null it falls through to comparing bytes** - no
+  diagnostic, just a different answer. Generating the operator on demand therefore has to be
+  ordered so it is complete before any comparison is lowered, and the first commit of that work
+  should turn the silent fallback into a reported internal failure for a struct that
+  `shouldGenerateEqualityOperator` says needs one. Otherwise a mis-ordering ships as a wrong
+  comparison rather than a build error.
 - Next, and this is the shape of the fix: generate the operator when a comparison asks for it
   rather than when the struct completes. `ensureGeneratedEquality` already carries the publish and
   wait protocol the lifecycle generation uses, so the work is moving its call site from struct

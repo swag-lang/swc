@@ -36,7 +36,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAX_TRIPS       = 8;
+    // Sixteen, not eight: a block cipher writes its state back one word at a
+    // time, and ChaCha20's sixteen-word output loop is the shape that pays.
+    // Flattening it turns every `[base + i*4]` into a fixed displacement, so
+    // its address arithmetic falls from nine instructions per word to four.
+    // The total-instruction caps below are what bound the growth; core.dll
+    // gains 0.11%.
+    constexpr uint64_t K_MAX_TRIPS       = 16;
     constexpr uint32_t K_MAX_BODY_INSTR  = 96;
     constexpr uint32_t K_MAX_TOTAL_INSTR = 384;
     // A body with branches of its own does not simplify once laid flat: each

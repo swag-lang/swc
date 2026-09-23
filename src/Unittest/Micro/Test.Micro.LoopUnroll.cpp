@@ -37,6 +37,37 @@ namespace
     }
 }
 
+// Sixteen trips is the cipher-state shape the trip cap is set for; seventeen
+// is past it and stays a loop.
+SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
+{
+    for (const uint64_t bound : {uint64_t{16}, uint64_t{17}})
+    {
+        constexpr MicroReg  counter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  value   = MicroReg::virtualIntReg(2);
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef header = builder.createLabel();
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadRegReg(value, counter, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(bound, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+
+        const bool     flattened = bound == 16;
+        const uint32_t jumps     = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond);
+        if (jumps != (flattened ? 0u : 1u))
+            return Result::Error;
+        if (flattened && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 16)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_MultipleLoops_RebuildsIncomingJumpRanges)
 {
     MicroBuilder builder(ctx);

@@ -45,7 +45,15 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint32_t K_OPT_ITERATION_OFF = 1;
-    constexpr uint32_t K_OPT_ITERATION_ON  = 16;
+    // Twenty-four sweeps, not sixteen. The cascade a full unroll starts is the
+    // longest one the pre-RA loop has to follow: sixteen copies of a body whose
+    // counter is now a constant fold away one layer per sweep, and a sixteen-way
+    // bit count (core's expectedCountOnes16) ran out of budget at sixteen. It
+    // settles well inside twenty-four, and the loop still stops the moment a
+    // sweep changes nothing, so a function that already converged pays nothing.
+    // A genuinely oscillating rule is caught by --validate-micro, which reports
+    // a re-entered state rather than waiting for this cap.
+    constexpr uint32_t K_OPT_ITERATION_ON  = 24;
     constexpr uint32_t K_RA_ITERATION_ON   = 16;
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)

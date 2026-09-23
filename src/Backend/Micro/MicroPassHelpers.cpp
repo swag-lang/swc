@@ -216,9 +216,10 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const MicroInstr& inst : context.instructions->view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(*context.operands, refs, context.encoder);
             for (const auto& ref : refs)
             {

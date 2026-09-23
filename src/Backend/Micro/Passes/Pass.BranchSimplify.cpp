@@ -305,6 +305,34 @@ namespace
         return scan.indirectJump ? nullptr : &scan;
     }
 
+    // The next free virtual integer register index. Answering it walks every instruction and
+    // every register operand of the function, and a transform needs it only once it actually
+    // rewrites something - which is the rare case - so it is computed on the first request
+    // rather than on the way in. Nothing between a transform's entry and its first rewrite
+    // changes the answer, so the deferred walk sees the same instruction stream.
+    struct LazyVirtualIntRegs
+    {
+        const MicroPassContext& context;
+        uint32_t                next  = 0;
+        bool                    ready = false;
+
+        uint32_t& index()
+        {
+            if (!ready)
+            {
+                ready = true;
+                next  = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+            }
+
+            return next;
+        }
+
+        MicroReg take()
+        {
+            return MicroReg::virtualIntReg(index()++);
+        }
+    };
+
     bool isTargetInImmediateLabelRun(const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef jumpRef, const uint32_t targetLabelId)
     {
         if (jumpRef.get() >= layout.ordinalByRef.size())
@@ -1217,22 +1245,6 @@ namespace
         buildProgramLayout(layout, storage, operands);
         const size_t count = layout.order.size();
 
-        std::unordered_set<uint32_t> relocated;
-        if (context.builder)
-        {
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    relocated.insert(reloc.instructionRef.get());
-            }
-        }
-
-        struct RegSites
-        {
-            SmallVector<uint32_t, 4> uses;
-            SmallVector<uint32_t, 4> defs;
-        };
-        std::unordered_map<uint32_t, RegSites> sites;
         std::unordered_map<uint32_t, uint32_t> labelReferences;
         for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
         {
@@ -1244,19 +1256,67 @@ namespace
             uint32_t labelId = 0;
             if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
                 ++labelReferences[labelId];
-
-            const MicroInstrUseDef useDef = inst->collectUseDef(operands, nullptr);
-            for (const MicroReg reg : useDef.uses)
-            {
-                if (reg.isVirtualInt())
-                    sites[reg.index()].uses.push_back(ordinal);
-            }
-            for (const MicroReg reg : useDef.defs)
-            {
-                if (reg.isVirtualInt())
-                    sites[reg.index()].defs.push_back(ordinal);
-            }
         }
+
+        // Where every virtual integer register is read and written, and which instructions a
+        // relocation pins. Both are only consulted once a jump, its single-reference forward
+        // label and the join behind it have all matched, which is rare, and neither is read
+        // before the first rewrite - so both are collected the first time they are asked for
+        // rather than on the way in. Collecting the sites is the expensive half of this
+        // transform: a use/def query on every instruction, and a pair of lists per register.
+        struct RegSites
+        {
+            SmallVector<uint32_t, 4> uses;
+            SmallVector<uint32_t, 4> defs;
+        };
+
+        std::unordered_set<uint32_t> relocated;
+        bool                         relocatedCollected = false;
+        const auto                   isRelocated        = [&](const MicroInstrRef ref) {
+            if (!relocatedCollected)
+            {
+                relocatedCollected = true;
+                if (context.builder)
+                {
+                    for (const MicroRelocation& reloc : context.builder->codeRelocations())
+                    {
+                        if (reloc.instructionRef.isValid())
+                            relocated.insert(reloc.instructionRef.get());
+                    }
+                }
+            }
+
+            return relocated.contains(ref.get());
+        };
+
+        std::unordered_map<uint32_t, RegSites> sites;
+        bool                                   sitesCollected = false;
+        const auto                             regSites       = [&]() -> std::unordered_map<uint32_t, RegSites>& {
+            if (!sitesCollected)
+            {
+                sitesCollected = true;
+                for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
+                {
+                    const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
+                    if (!inst)
+                        continue;
+
+                    const MicroInstrUseDef useDef = inst->collectUseDef(operands, nullptr);
+                    for (const MicroReg reg : useDef.uses)
+                    {
+                        if (reg.isVirtualInt())
+                            sites[reg.index()].uses.push_back(ordinal);
+                    }
+                    for (const MicroReg reg : useDef.defs)
+                    {
+                        if (reg.isVirtualInt())
+                            sites[reg.index()].defs.push_back(ordinal);
+                    }
+                }
+            }
+
+            return sites;
+        };
 
         const auto allWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
             for (const uint32_t ordinal : list)
@@ -1288,7 +1348,7 @@ namespace
                 continue;
             const auto labelIt = layout.labelOrdinalById.find(labelId);
             if (labelIt == layout.labelOrdinalById.end() || labelIt->second <= p || labelReferences[labelId] != 1 ||
-                relocated.contains(layout.order[labelIt->second].get()))
+                isRelocated(layout.order[labelIt->second]))
                 continue;
             const uint32_t j = labelIt->second;
 
@@ -1351,8 +1411,9 @@ namespace
             // D is written in the operator's block or the rhs and read only in
             // the join; nothing touches E from there up to the copy; every
             // reader of either takes no more bits than the copy moves.
-            const RegSites& dSites = sites[d.index()];
-            const RegSites& eSites = sites[e.index()];
+            auto&           siteMap = regSites();
+            const RegSites& dSites  = siteMap[d.index()];
+            const RegSites& eSites  = siteMap[e.index()];
             if (!allWithin(dSites.defs, start, j) || !allWithin(dSites.uses, j + 1, cmpOrdinal + 1) ||
                 !noneWithin(eSites.uses, start, copyOrdinal) || !noneWithin(eSites.defs, start, copyOrdinal))
                 continue;
@@ -1398,10 +1459,10 @@ namespace
             }
             storage.erase(layout.order[copyOrdinal]);
 
-            RegSites merged = sites[d.index()];
-            for (const uint32_t ordinal : sites[e.index()].uses)
+            RegSites merged = siteMap[d.index()];
+            for (const uint32_t ordinal : siteMap[e.index()].uses)
                 merged.uses.push_back(ordinal);
-            for (const uint32_t ordinal : sites[e.index()].defs)
+            for (const uint32_t ordinal : siteMap[e.index()].defs)
             {
                 if (ordinal != copyOrdinal)
                     merged.defs.push_back(ordinal);
@@ -1413,8 +1474,8 @@ namespace
                     uses.push_back(ordinal);
             }
             merged.uses = uses;
-            sites.erase(e.index());
-            sites[d.index()] = merged;
+            siteMap.erase(e.index());
+            siteMap[d.index()] = merged;
             changed          = true;
         }
 
@@ -2008,7 +2069,7 @@ namespace
         };
 
         bool     changed                = false;
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         size_t   ordinal                = 0;
         while (ordinal < layout.order.size())
         {
@@ -2118,7 +2179,7 @@ namespace
             MicroReg            index    = value;
             if (lo)
             {
-                index = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                index = nextVirtualIntRegs.take();
                 MicroInstrOperand copyOps[3];
                 copyOps[0].reg    = index;
                 copyOps[1].reg    = value;
@@ -2132,7 +2193,7 @@ namespace
                 storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
             }
 
-            const MicroReg    inRange = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg    inRange = nextVirtualIntRegs.take();
             MicroInstrOperand cmpOps[3];
             cmpOps[0].reg = index;
             cmpOps[1].opBits = bits;
@@ -2143,7 +2204,7 @@ namespace
             setOps[1].cpuCond = MicroCond::BelowOrEqual;
             storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::SetCondReg, setOps);
 
-            const MicroReg    table = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg    table = nextVirtualIntRegs.take();
             MicroInstrOperand tableOps[3];
             tableOps[0].reg = table;
             tableOps[1].opBits = MicroOpBits::B64;
@@ -2472,7 +2533,7 @@ namespace
         };
 
         bool     changed                = false;
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (size_t at = 0; at + K_MAX_SHAPE - 1 <= count; ++at)
         {
             const MicroInstr* cmp    = instAt(at);
@@ -2590,8 +2651,8 @@ namespace
                 continue;
 
             const MicroInstrRef insertRef = layout.order[at + 1];
-            const MicroReg      high      = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-            const MicroReg      low       = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg      high      = nextVirtualIntRegs.take();
+            const MicroReg      low       = nextVirtualIntRegs.take();
 
             MicroInstrOperand highOps[2];
             highOps[0].reg     = high;
@@ -2682,7 +2743,7 @@ namespace
         };
 
         bool     changed                = false;
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (size_t start = 0; start < count; ++start)
         {
             const MicroInstr* first = instAt(start);
@@ -2960,9 +3021,9 @@ namespace
             // Emit before the chain, then drop the chain and its arms.
             const MicroInstrRef anchor    = layout.order[start];
             const MicroOpBits   indexBits = keyBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-            const MicroReg      index     = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-            const MicroReg      clamp     = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-            const MicroReg      bits      = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg      index     = nextVirtualIntRegs.take();
+            const MicroReg      clamp     = nextVirtualIntRegs.take();
+            const MicroReg      bits      = nextVirtualIntRegs.take();
             const auto          insert    = [&](MicroInstrOpcode op, std::span<const MicroInstrOperand> ops) {
                 storage.insertDerivedBefore(operands, anchor, op, ops);
             };
@@ -3021,7 +3082,7 @@ namespace
                 DataSegmentRef         segmentRef;
                 const std::string_view stored = context.taskContext->cstMgr().addPayloadBuffer(payload, &segmentRef);
 
-                const MicroReg    tableReg = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                const MicroReg    tableReg = nextVirtualIntRegs.take();
                 MicroInstrOperand addressOps[3];
                 addressOps[0].reg              = tableReg;
                 addressOps[1].opBits           = MicroOpBits::B64;
@@ -3288,10 +3349,10 @@ namespace
         if (checks.empty())
             return false;
 
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const RangeCheck& check : checks)
         {
-            const MicroReg offset = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg offset = nextVirtualIntRegs.take();
 
             MicroInstrOperand copyOps[3];
             copyOps[0].reg    = offset;
@@ -3796,7 +3857,7 @@ namespace
         }
 
         bool     changed                = false;
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const Candidate& candidate : candidates)
         {
             // The setcc, the optional self-widening and the merge only.
@@ -3807,7 +3868,7 @@ namespace
                 continue;
 
             const RangeMerge range{.leftCmpRef = candidate.leftCmpRef, .rightCmpRef = candidate.rightCmpRef, .rightSetRef = candidate.rightSetRef, .leftCond = candidate.leftCond};
-            if (candidate.op == MicroOp::And && tryFoldRangeMerge(storage, operands, range, nextVirtualIntRegIndex))
+            if (candidate.op == MicroOp::And && tryFoldRangeMerge(storage, operands, range, nextVirtualIntRegs.index()))
             {
                 storage.erase(candidate.jumpRef);
                 changed = true;
@@ -3938,12 +3999,12 @@ namespace
         }
 
         bool     changed                = false;
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const Candidate& candidate : candidates)
         {
             if (rhsMentions[candidate.rhs.index()] != candidate.mentions)
                 continue;
-            if (!tryFoldRangeMerge(storage, operands, candidate.range, nextVirtualIntRegIndex))
+            if (!tryFoldRangeMerge(storage, operands, candidate.range, nextVirtualIntRegs.index()))
                 continue;
 
             MicroInstrOperand* andOps = storage.ptr(candidate.andRef)->ops(operands);
@@ -4206,11 +4267,11 @@ namespace
         if (candidates.empty())
             return false;
 
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const Candidate& candidate : candidates)
         {
-            const MicroReg firstResult  = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-            const MicroReg secondResult = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg firstResult  = nextVirtualIntRegs.take();
+            const MicroReg secondResult = nextVirtualIntRegs.take();
             MicroInstrOperand firstSet[2] = {};
             firstSet[0].reg                = firstResult;
             firstSet[1].cpuCond            = candidate.firstTrue;
@@ -4662,7 +4723,7 @@ namespace
 
         // Copies keep their existing registers. Mixed plans still reserve names
         // from the original instruction stream, before any conversion mutates it.
-        uint32_t nextVirtualIntRegIndex = needsScratch ? MicroPassHelpers::computeNextVirtualIntRegIndex(context) : 0;
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
 
         for (const Conversion& conversion : conversions)
         {
@@ -4677,7 +4738,7 @@ namespace
 
             if (conversion.fromImm)
             {
-                srcReg = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+                srcReg = nextVirtualIntRegs.take();
 
                 MicroInstrOperand immOps[3];
                 immOps[0].reg    = srcReg;
@@ -6352,10 +6413,10 @@ namespace
         if (diamonds.empty())
             return false;
 
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const Diamond& diamond : diamonds)
         {
-            const MicroReg renamedResult = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg renamedResult = nextVirtualIntRegs.take();
 
             SmallVector<MicroInstrRegOperandRef> regOperands;
             for (const MicroInstrRef ref : diamond.jumpArm.refs)
@@ -6526,10 +6587,10 @@ namespace
         if (triangles.empty())
             return false;
 
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const Triangle& triangle : triangles)
         {
-            const MicroReg renamedResult = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+            const MicroReg renamedResult = nextVirtualIntRegs.take();
 
             SmallVector<MicroInstrRegOperandRef> regOperands;
             for (const MicroInstrRef ref : triangle.arm.refs)
@@ -6839,12 +6900,12 @@ namespace
             return false;
 
         bool     changed                = false;
-        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        LazyVirtualIntRegs nextVirtualIntRegs{context};
         for (const EarlyReturn& earlyReturn : candidates)
         {
-            const MicroReg armValue  = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-            const MicroReg tailValue = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-            if (!renameEarlyPath(earlyReturn.arm, storage, operands, context.encoder, conv.intReturn, armValue, nextVirtualIntRegIndex))
+            const MicroReg armValue  = nextVirtualIntRegs.take();
+            const MicroReg tailValue = nextVirtualIntRegs.take();
+            if (!renameEarlyPath(earlyReturn.arm, storage, operands, context.encoder, conv.intReturn, armValue, nextVirtualIntRegs.index()))
                 continue;
 
             MicroInstrOperand* tailValueOps = storage.ptr(earlyReturn.tail.valueRef)->ops(operands);

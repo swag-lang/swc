@@ -150,7 +150,7 @@ namespace
     void emitLoadIncomingArg(MicroBuilder& builder, const CallConv& callConv, std::span<const ABICall::ArgLayout> argLayouts, uint32_t slotIndex, MicroReg dstReg, const ABITypeNormalize::NormalizedType& normalizedType)
     {
         const MicroOpBits argBits = adapterArgBits(normalizedType);
-        if (callConv.canPassArgInRegister(slotIndex, normalizedType.isFloat, normalizedType.numBits))
+        if (callConv.canPassArgInRegister(slotIndex, normalizedType.isFloat))
         {
             if (normalizedType.isFloat)
             {

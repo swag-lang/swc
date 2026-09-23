@@ -99,13 +99,16 @@ uint32_t CallConv::numArgRegisterSlots() const
     return std::min(numIntArgRegs, numFloatArgRegs);
 }
 
-bool CallConv::canPassArgInRegister(uint32_t argIndex, bool isFloat, uint8_t numBits) const
+bool CallConv::canPassArgInRegister(uint32_t argIndex, bool isFloat) const
 {
     if (argIndex < numArgRegisterSlots())
         return true;
 
-    // Swag extends packed argument lanes through the remaining volatile xmm registers.
-    return numBits == 128 && isFloat && argIndex < floatArgRegs.size();
+    // Swag extends its float argument lanes through the remaining volatile xmm
+    // registers, packed and scalar alike: nothing outside a Swag call sees them,
+    // and a function of six doubles then takes every one in a register instead
+    // of writing the last two to the outgoing area for the callee to read back.
+    return isFloat && argIndex < floatArgRegs.size();
 }
 
 uint32_t CallConv::stackSlotSize() const

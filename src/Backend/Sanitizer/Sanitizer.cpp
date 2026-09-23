@@ -587,7 +587,7 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
         ++abiIndex;
 
     const ABITypeNormalize::NormalizedType paramType = ABITypeNormalize::normalize(ctx(), callConv, params[paramIndex]->typeRef(), ABITypeNormalize::Usage::Argument);
-    if (paramType.isFloat || abiIndex >= callConv.intArgRegs.size() || !callConv.canPassArgInRegister(static_cast<uint32_t>(abiIndex), false, paramType.numBits))
+    if (paramType.isFloat || abiIndex >= callConv.intArgRegs.size() || !callConv.canPassArgInRegister(static_cast<uint32_t>(abiIndex), false))
         return false;
 
     outReg = callConv.intArgRegs[abiIndex];

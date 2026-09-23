@@ -46,7 +46,7 @@ is the current scorecard.
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 
 - Recorded: 2026-09-08 07:59
-- Updated: 2026-09-23 17:13 — Measured the pass and its steps: 9.9% of a DevMode core rebuild, and no re-walking.
+- Updated: 2026-09-23 17:21 — Measured the pass, its steps and what a step costs; named the two places to look.
 - Area: compiler/backend, `Sanitizer`
 - Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
   populated over far more of a function than before, and the transfer function gained a scan of
@@ -79,9 +79,14 @@ is the current scorecard.
   instruction in total, with no function reaching the iteration cap. The analysis converges in
   essentially one pass; what costs is the transfer function applied at each of those visits, not
   how many visits there are.
-- Next: decide whether 9.9% of a DevMode module rebuild is the intended price. If it is not, the
-  work is in what one step does - the per-instruction transfer, its call-argument scan and the
-  state it copies - and not in the shape of the walk, which is already as tight as a fixpoint gets.
+- What one step does, from four merged profiles of the same rebuild (888 busy samples):
+  `Sanitizer::run` 7.9% of busy CPU, of which `walkChain` is 6.3%, and inside it
+  **`propagateConditionalBranch` 3.2%** and **`applyValueEffects` 2.4%** - the two halves of the
+  transfer function are the whole cost. Everything else is small: constructing the states 0.9%,
+  `computeFunctionProperties` 0.3%, copying a state 0.3%.
+- Next: decide whether 9.9% of a DevMode module rebuild is the intended price of the analysis.
+  If it is not, there are exactly two places to look, and narrowing along branch edges is the
+  larger of them. The walk itself, the state layout and the property scan are not worth touching.
 - Complete when: the sanity pass's share of compile time is recorded before and after, and either
   found acceptable or reduced.
 

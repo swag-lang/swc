@@ -9,6 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.056 — Every compilation lowers the equality operator no program calls
 
 - Recorded: 2026-09-23 14:11
+- Updated: 2026-09-23 16:19 — Found where it is decided, and measured what removing it is worth.
 - Area: compiler/codegen, compile-time execution, compilation time
 - Evidence: instrumented `MachineCode::emit` (Release 0.1.1050, one worker). A four-line hello
   world lowers **319 functions**, and **31 of them are generated `opEquals`** costing 42.5 ms of
@@ -46,6 +47,21 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   costs the same time: three alternated pairs of nine `--rebuild` samples each read 344, 344 and
   378 ms against 340, 330 and 348. It changes what the artifact holds without saving anything, so
   the lowering worth avoiding is not the one this seed controls.
+- Where it is decided, and what it is worth: `Sema.Struct.cpp` calls
+  `SemaSpecOp::ensureGeneratedEquality` as part of completing **every** struct, so a struct that
+  holds a string is given a member-wise operator whether or not anything ever compares it.
+  Removing that one call is the decisive experiment: a single-file program whose struct carries 64
+  string fields drops from 316 to 284 forged functions and its lowering from 342 to 280 ms, and
+  end to end, alternated, three pairs of seven `--rebuild` samples read 525 ms against 418 ms of
+  minimum - about **a fifth of the whole compilation**. A hello world with no struct of its own
+  still loses its 31 runtime operators, but there the end-to-end difference sits inside this
+  machine's noise (640 against 611 ms of minimum over four pairs); what is certain there is the
+  19.4% of lowering measured above.
+- Next, and this is the shape of the fix: generate the operator when a comparison asks for it
+  rather than when the struct completes. `ensureGeneratedEquality` already carries the publish and
+  wait protocol the lifecycle generation uses, so the work is moving its call site from struct
+  completion to operator resolution - and that is a sema ordering change in a parallel compiler,
+  so it needs the full repository campaign behind it, not a focused run.
 - Why the closure is wide: these roots are collected for compile-time execution, where a `#run`
   may call through any function address the constant graph holds, so the walk cannot decide
   reachability statically. The lowered code is then reused by the native builder, which is how a

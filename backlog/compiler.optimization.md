@@ -16,6 +16,31 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.046 — A local array copied whole stays in memory, and scalarizing the copy costs the vectorizer
+
+- Recorded: 2026-09-23 19:51
+- Area: compiler/backend, mem2reg, vectorization
+- Evidence: mem2reg promotes a local array's elements once its 16-byte zero fill is split into one
+  store per element (build 1069). A whole-object copy - `var state = initial` in
+  `bench/src/swag/chacha.swg` - is the other vector access such an array sees, and it keeps both
+  arrays in memory: the copy puts a B128 access on each element of both, and the width-disagreement
+  rule admits a disagreeing read but not a write.
+  Splitting that copy element by element was implemented and measured: ChaCha20's state does become
+  register-resident and its scalar quarter-round works in registers, but the release build goes from
+  **206 to 348 instructions** because scalarizing the vector traffic destroys the SLP vectorization
+  of the rounds. That is the same trade `keepAccessScalar` exists to prevent, and disabling that
+  guard outright was measured separately at **52 vector operations to 0 and chacha 2.1x slower**.
+  Two smaller obstacles were also identified and are real: the zero fill and the copy each
+  disqualify the other's uniformity test, and lowering reuses one vector temporary across all four
+  chunks of a copy, so a "no other use in the function" test never holds.
+- Next: decide the shape before touching this again. Promotion and vectorization want opposite
+  things here, so a split is only correct when the object is not a vectorization candidate -
+  which the fill-only rule already approximates by requiring no other B128 access on the window.
+  A cost model that compares the promoted scalar form against the vectorized one is the honest
+  version, and it does not exist.
+- Complete when: either a rule promotes a whole-copied local array without costing vectorization,
+  or this records that the two cannot be reconciled and the fill-only rule is the end of it.
+
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13

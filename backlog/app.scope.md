@@ -19,23 +19,6 @@ owned by a viewer lives in the corresponding domain:
 Reusable engine work remains in the backlog of the standard module that owns it. Entries here are
 ordered from the most recently updated down.
 
-### app.scope.005 — The pinned file panel no longer fits the content it arranges
-
-- Recorded: 2026-09-23 13:07
-- Area: app/scope, window layout
-- Evidence: `swc tools/apps.swgs dm test swagscope --test-file viewerwindow.test.swg` fails on the
-  golden that pins the file panel (`src/tests/viewerwindow.test.swg:822`) with
-  `content does not fit in StackLayoutCtrl '': needs 486x36, arranged 408x36`. It is the only
-  failure in 248 of the application's tests, and it stops the repository campaign before the
-  reference and smoke rungs run.
-- Not a compiler defect: the same test fails identically under 0.1.1045, the compiler as it stood
-  before the 2026-09-23 compile-time work, on the same sources. The application's
-  `src/viewerwindow.swg` was rewritten the same morning (`cd0f4f4bb`), which is where the
-  arrangement changed.
-- Next: decide whether the panel's minimum width should follow the new row content or the row
-  should elide, then re-record the golden.
-- Complete when: the application's test file passes and the campaign reaches its last two rungs.
-
 ### app.scope.004 — About icon golden differs on the unchanged baseline
 
 - Recorded: 2026-09-12 20:10

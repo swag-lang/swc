@@ -68,6 +68,41 @@ SWC_TEST_BEGIN(InstCombine_Identity_AddZero_Erased)
 }
 SWC_TEST_END()
 
+// A double read into a general register only to be moved into a vector register
+// is loaded straight into the vector register: the general register and the
+// cross-file move both go, and the load keeps its own instruction.
+SWC_TEST_BEGIN(InstCombine_MemoryLoadFeedingFloatMove_LoadsIntoTheVectorRegister)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg lane    = MicroReg::virtualFloatReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegMem(value, address, 8, MicroOpBits::B64);
+    builder.emitLoadRegReg(lane, value, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(lane, lane, MicroOp::FloatAdd, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadRegMem)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (!ops || ops[0].reg != lane || ops[1].reg != address || ops[3].valueU64 != 8)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar read from immutable constant storage consumes the address relocation
 // directly and advances both the host address and the native segment offset.
 SWC_TEST_BEGIN(InstCombine_ConstantAddressLoad_FoldsToRip)

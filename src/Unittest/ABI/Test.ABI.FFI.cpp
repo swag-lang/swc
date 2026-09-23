@@ -221,9 +221,9 @@ SWC_TEST_BEGIN(ABI_SwagSimdArgsUseExtendedRegistersThenWideStackSlots)
     const CallConv&                         swag       = CallConv::swag();
     const std::array<ABICall::ArgLayout, 8> argLayouts = {{{128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}, {128, true}}};
 
-    if (!swag.canPassArgInRegister(4, true, 128) || !swag.canPassArgInRegister(5, true, 128))
+    if (!swag.canPassArgInRegister(4, true) || !swag.canPassArgInRegister(5, true))
         return Result::Error;
-    if (swag.canPassArgInRegister(6, true, 128))
+    if (swag.canPassArgInRegister(6, true))
         return Result::Error;
     if (ABICall::callArgStackOffset(swag, argLayouts, 6) != swag.stackShadowSpace)
         return Result::Error;

@@ -388,7 +388,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     result.needsIndirectCopy = normalizedParam.needsIndirectCopy;
     result.numBits           = normalizedParam.numBits;
     result.opBits            = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
-    result.isRegisterArg     = callConv.canPassArgInRegister(result.slotIndex, result.isFloat, result.numBits);
+    result.isRegisterArg     = callConv.canPassArgInRegister(result.slotIndex, result.isFloat);
 
     SmallVector<ABICall::ArgLayout> argLayouts;
     argLayouts.reserve(symbolFunc.parameters().size() + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));

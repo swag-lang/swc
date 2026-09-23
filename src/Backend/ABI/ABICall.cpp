@@ -19,7 +19,7 @@ namespace
         for (size_t i = 0; i < numMaskableArgs; ++i)
         {
             const TA& arg = args[i];
-            if (conv.canPassArgInRegister(static_cast<uint32_t>(i), arg.isFloat, arg.numBits) && predicate(arg))
+            if (conv.canPassArgInRegister(static_cast<uint32_t>(i), arg.isFloat) && predicate(arg))
                 mask |= static_cast<uint8_t>(1u << i);
         }
 
@@ -47,7 +47,7 @@ namespace
         for (uint32_t i = conv.numArgRegisterSlots(); i < argLayouts.size(); ++i)
         {
             const ABICall::ArgLayout& arg = argLayouts[i];
-            if (arg.isFloat && arg.numBits == 128 && !conv.canPassArgInRegister(i, arg.isFloat, arg.numBits))
+            if (arg.isFloat && arg.numBits == 128 && !conv.canPassArgInRegister(i, arg.isFloat))
                 return true;
         }
 
@@ -67,7 +67,7 @@ namespace
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg = args[i];
-            if (conv.canPassArgInRegister(i, arg.isFloat, arg.numBits))
+            if (conv.canPassArgInRegister(i, arg.isFloat))
                 continue;
 
             const uint64_t    argAddr     = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
@@ -87,7 +87,7 @@ namespace
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg = args[i];
-            if (!conv.canPassArgInRegister(i, arg.isFloat, arg.numBits))
+            if (!conv.canPassArgInRegister(i, arg.isFloat))
                 continue;
 
             const uint64_t    argAddr = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
@@ -233,7 +233,7 @@ namespace
     {
         for (uint32_t i = 0; i < args.size(); ++i)
         {
-            if (!conv.canPassArgInRegister(i, args[i].isFloat, args[i].numBits))
+            if (!conv.canPassArgInRegister(i, args[i].isFloat))
                 continue;
             if (requiresRegisterArgHomeSlot(args[i]))
                 return true;
@@ -314,13 +314,13 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
 
     const uint32_t stackSlotSize = conv.stackSlotSize();
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
-    if (conv.canPassArgInRegister(argIndex, argLayouts[argIndex].isFloat, argLayouts[argIndex].numBits))
+    if (conv.canPassArgInRegister(argIndex, argLayouts[argIndex].isFloat))
         return static_cast<uint64_t>(argIndex) * stackSlotSize;
 
     uint64_t result = conv.stackShadowSpace;
     for (uint32_t i = numRegArgs; i < argIndex; ++i)
     {
-        if (conv.canPassArgInRegister(i, argLayouts[i].isFloat, argLayouts[i].numBits))
+        if (conv.canPassArgInRegister(i, argLayouts[i].isFloat))
             continue;
         const uint32_t argSize = std::max(stackSlotSize, static_cast<uint32_t>(argLayouts[i].numBits) / 8);
         result += argSize;
@@ -376,7 +376,7 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
     uint32_t       stackArgsSize = 0;
     for (uint32_t i = numRegArgs; i < argLayouts.size(); ++i)
     {
-        if (conv.canPassArgInRegister(i, argLayouts[i].isFloat, argLayouts[i].numBits))
+        if (conv.canPassArgInRegister(i, argLayouts[i].isFloat))
             continue;
         stackArgsSize += std::max(stackSlotSize, static_cast<uint32_t>(argLayouts[i].numBits) / 8);
     }
@@ -404,7 +404,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     bool           hasStackArgs = false;
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
-        if (!conv.canPassArgInRegister(i, args[i].isFloat, args[i].numBits))
+        if (!conv.canPassArgInRegister(i, args[i].isFloat))
         {
             hasStackArgs = true;
             break;
@@ -436,7 +436,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         {
             const PreparedArg& arg      = args[i];
             const MicroOpBits  argBits  = preparedArgBits(arg);
-            const bool         isRegArg = conv.canPassArgInRegister(i, arg.isFloat, arg.numBits);
+            const bool         isRegArg = conv.canPassArgInRegister(i, arg.isFloat);
 
             if (isRegArg)
             {
@@ -515,7 +515,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
             const PreparedArg& arg = args[i];
-            if (!conv.canPassArgInRegister(i, arg.isFloat, arg.numBits))
+            if (!conv.canPassArgInRegister(i, arg.isFloat))
                 continue;
 
             if (regArgsUseHomeSlot[i])
@@ -577,7 +577,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
         const PreparedArg& arg = args[i];
-        SWC_ASSERT(conv.canPassArgInRegister(i, arg.isFloat, arg.numBits));
+        SWC_ASSERT(conv.canPassArgInRegister(i, arg.isFloat));
         forbidFloatBitCarrierIntArgRegs(builder, conv, arg);
 
         if (arg.constrainToArgLane)

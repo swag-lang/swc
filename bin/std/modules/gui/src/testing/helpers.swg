@@ -21,6 +21,15 @@ func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
     Swag.assert(Math.abs(pt.y - y) < eps)
 }
 
+// True when this window has said its content may be cut: a label that ends an overflowing
+// line with an ellipsis is asking to be given less than its text.
+private func settlesForLess(wnd: *Wnd)->bool
+{
+    if wnd.itf is Label as label do
+        return label.flags.has(.Ellipsis)
+    return false
+}
+
 // Asserts that no window in the tree is smaller than the content it says it needs.
 //
 // Every window is asked through [[Gui.IWnd.measureContent]], whatever size its author
@@ -28,6 +37,11 @@ func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 // surely as the paragraph a layout pass measured. Run it once per shipped language to
 // prove a surface holds its own translations. The console line names the offender,
 // because a failed assertion on a rectangle does not say which text was cut.
+//
+// A window is excused when it, or one of its own children, ends in an ellipsis:
+// [[Gui.IWnd.measureContent]] answers the width the text would like, and
+// [[Gui.LabelFlags.Ellipsis]] is the author answering that this one settles for less. Without
+// that, a file name deliberately longer than the panel showing it reads as a layout fault.
 func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
 {
     if not root.isLocallyVisible() do
@@ -36,19 +50,32 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
     let content = root.itf.measureContent({root.position.width, root.position.height})
     if content.x > root.position.width + tolerance or content.y > root.position.height + tolerance
     {
-        Console.println("content does not fit in ",
-                        Swag.kindOf(root.itf).name,
-                        " '",
-                        root.name.raw,
-                        "': needs ",
-                        content.x,
-                        "x",
-                        content.y,
-                        ", arranged ",
-                        root.position.width,
-                        "x",
-                        root.position.height)
-        Swag.assert(false)
+        var excused = settlesForLess(root)
+        for child in root.children
+        {
+            if child.isLocallyVisible() and settlesForLess(child)
+            {
+                excused = true
+                break
+            }
+        }
+
+        if not excused
+        {
+            Console.println("content does not fit in ",
+                            Swag.kindOf(root.itf).name,
+                            " '",
+                            root.name.raw,
+                            "': needs ",
+                            content.x,
+                            "x",
+                            content.y,
+                            ", arranged ",
+                            root.position.width,
+                            "x",
+                            root.position.height)
+            Swag.assert(false)
+        }
     }
 
     for child in root.children do

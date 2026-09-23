@@ -172,6 +172,15 @@ private:
     MicroDenseRegIndex         trackedRegs_;
     std::vector<InstrInfo>     instrInfos_;
     std::vector<MicroInstrRef> instructionRefs_;
+    // The block graph, the dominator tree and the frontiers are a function of the control-flow
+    // graph alone, so a rebuild that follows a transform which only rewrote operands reuses
+    // them. The graph's own build identity is the contract: it changes exactly when a pass
+    // invalidated the graph, which is exactly when the blocks stop describing the function.
+    const MicroControlFlowGraph* blocksCfg_          = nullptr;
+    uint64_t                     blocksCfgBuildId_   = 0;
+    bool                         blocksHaveFrontier_ = false;
+    // Reused across builds: every entry is cleared before it is read.
+    std::vector<SmallVector4<uint32_t>> defBlocksByReg_;
     // Snapshot membership stays valid across erasures until the next build.
     std::vector<uint8_t>   liveInstructionSlots_;
     std::vector<uint32_t>  instructionToBlock_;

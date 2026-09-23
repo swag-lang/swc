@@ -33,6 +33,11 @@ public:
     static constexpr uint32_t K_NO_INDEX = std::numeric_limits<uint32_t>::max();
     uint32_t                  indexOf(MicroInstrRef ref) const;
 
+    // Identifies this graph's contents. Every build takes a fresh value, so a reader that
+    // derived something from the graph can tell whether that derivation still describes it -
+    // even if a graph is destroyed and another is allocated at the same address.
+    uint64_t buildId() const { return buildId_; }
+
 private:
     void clear();
     void addEdge(uint32_t source, uint32_t target);
@@ -40,6 +45,7 @@ private:
 
     std::vector<MicroInstrRef> instructionRefs_;
     mutable std::vector<uint32_t> indexBySlot_;
+    uint64_t                      buildId_ = 0;
     std::vector<uint32_t>      labelToInstructionIndex_;
     std::vector<EdgeList>      successors_;
     std::vector<EdgeList>      predecessors_;

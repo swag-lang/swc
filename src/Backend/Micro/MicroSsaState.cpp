@@ -133,10 +133,24 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         }
     }
 
-    buildBlocks(controlFlowGraph);
-    // Without a dominance frontier, phi placement has no possible destination.
-    // Avoid collecting per-register definition blocks and allocating worklists.
-    if (computeDominators(!controlFlowGraph.hasLoop()))
+    // Only the phi lists belong to this build; the rest of the block structure describes the
+    // control-flow graph, which has not moved when its build identity has not.
+    if (blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() && instructionToBlock_.size() == instructionRefs_.size())
+    {
+        for (BlockInfo& block : blocks_)
+            block.phis.clear();
+    }
+    else
+    {
+        buildBlocks(controlFlowGraph);
+        // Without a dominance frontier, phi placement has no possible destination.
+        // Avoid collecting per-register definition blocks and allocating worklists.
+        blocksHaveFrontier_ = computeDominators(!controlFlowGraph.hasLoop());
+        blocksCfg_          = &controlFlowGraph;
+        blocksCfgBuildId_   = controlFlowGraph.buildId();
+    }
+
+    if (blocksHaveFrontier_)
         placePhiNodes();
     renameIntoSsa();
 
@@ -184,7 +198,10 @@ void MicroSsaState::resetForBuild(MicroStorage& storage)
 
 void MicroSsaState::clear()
 {
-    storage_ = nullptr;
+    storage_            = nullptr;
+    blocksCfg_          = nullptr;
+    blocksCfgBuildId_   = 0;
+    blocksHaveFrontier_ = false;
     trackedRegs_.clear();
     instrInfos_.clear();
     instructionRefs_.clear();
@@ -584,7 +601,12 @@ void MicroSsaState::placePhiNodes()
     if (blocks_.size() < 2)
         return;
 
-    std::vector<SmallVector4<uint32_t>> defBlocksByReg(trackedRegs_.regs().size());
+    const size_t trackedRegCount = trackedRegs_.regs().size();
+    if (defBlocksByReg_.size() < trackedRegCount)
+        defBlocksByReg_.resize(trackedRegCount);
+    for (size_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
+        defBlocksByReg_[regIndex].clear();
+    auto& defBlocksByReg = defBlocksByReg_;
 
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {
@@ -610,7 +632,7 @@ void MicroSsaState::placePhiNodes()
     std::vector<uint32_t> workList;
     uint32_t              stamp = 1;
     const auto&           regs  = trackedRegs_.regs();
-    for (uint32_t regIndex = 0; regIndex < defBlocksByReg.size(); ++regIndex)
+    for (uint32_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
     {
         const auto& defBlocks = defBlocksByReg[regIndex];
         if (defBlocks.empty())

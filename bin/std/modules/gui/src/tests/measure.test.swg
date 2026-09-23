@@ -167,3 +167,25 @@ using Swag, Core, Pixel
     Swag.assert(oneLine >= 16)
     Swag.assert(manyLines > oneLine)
 }
+
+// A label allowed to end in an ellipsis has said it settles for less than its text, so the row
+// holding it may be narrower than what that row measures. Checking it anyway reports a deliberate
+// cut - a file name longer than the panel showing it - as a layout fault.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 120)
+    defer host.shutdown()
+
+    let row   = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 120, 32})
+    let label = Label.create(row, "a name far longer than the row that shows it", {0, 0, 0, 32}, null, .Ellipsis)
+    label.layoutSpec.policyX = .Expand
+    row.computeLayout()
+
+    // The overflow is real: the label asks for more than the row gives it.
+    let wanted = label.itf.measureContent({label.position.width, label.position.height})
+    Swag.assert(wanted.x > row.position.width)
+
+    // And it is not a fault, because that label ends in an ellipsis.
+    Testing.assertContentFits(&host.root)
+}

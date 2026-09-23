@@ -602,8 +602,14 @@ could read.
 
 ```
 You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then compiler.core.004 and compiler.core.030 in backlog/compiler.core.md and compiler.optimization.029
-and compiler.optimization.039 in backlog/compiler.optimization.md.
+then compiler.core.004, compiler.core.030 and compiler.core.056 in backlog/compiler.core.md and
+compiler.optimization.029, compiler.optimization.039 and compiler.optimization.045 in
+backlog/compiler.optimization.md. The last two carry the 2026-09-23 measurements and, as important,
+the approaches that were tried there and measured as worth nothing.
+
+The hello-world target below predates the runtime's growth: bin/runtime went from 5 260 to 8 629
+lines between August and September and a hello world pays for all of it, which is compiler.core.030
+rather than a compiler regression. Re-measure the four workloads before trusting any number here.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -640,13 +646,17 @@ measured command. The same source inputs must go through the same required compi
 produce equivalent output. A cache or pipeline change belongs to another campaign even if it
 improves one of the edit-loop numbers below.
 
-Targets, all on this machine, all re-measured before you start:
+Targets, all on this machine, all re-measured before you start. The readings below are from
+2026-09-23 with Release 0.1.1056, six workers, minimum of five runs on a quiet machine:
 
-  - std/core rebuild (291 files, 50 690 lines): 2.1 s today with `swc.exe`. Target under 1.0 s.
-  - Warm no-op build of the same: guardrail under 100 ms; it is not an optimization target here.
-  - Edit one file in core, rebuild: use it to expose repeated compiler work, but do not solve it
-    with cache or invalidation changes in this campaign.
-  - Hello world, source to linked executable: 89 ms today. Target under 50 ms.
+  - std/core rebuild (360 files): 2.63 s. Target under 1.0 s.
+  - Warm no-op build of the same: 50 ms. Guardrail under 100 ms; not an optimization target here.
+  - Edit one file in core, rebuild: 2.41 s. Use it to expose repeated compiler work, but do not
+    solve it with cache or invalidation changes in this campaign.
+  - Hello world, source to linked executable: 211 ms. Target under 50 ms.
+
+The hello-world reading is far above the 89 ms this prompt used to quote, and none of that is a
+compiler regression: see compiler.core.030. Re-measure all four before trusting any of them.
 
 For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
 in 93-132 ms against clang-cl's 481-647 ms and rustc's 425-585 ms. This campaign is not about

@@ -6,6 +6,87 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.056 — Every compilation lowers the equality operator no program calls
+
+- Recorded: 2026-09-23 14:11
+- Updated: 2026-09-23 16:54 — Named the silent fallback the lazy fix has to guard against.
+- Area: compiler/codegen, compile-time execution, compilation time
+- Evidence: instrumented `MachineCode::emit` (Release 0.1.1050, one worker). A four-line hello
+  world lowers **319 functions**, and **31 of them are generated `opEquals`** costing 42.5 ms of
+  the 218.7 ms the whole lowering takes - **19.4%**. `Context.opEquals` alone is 20.2 ms, 9% of
+  the compilation. On `bin/std`'s `gui` module the same probe counts **1 901 generated `opEquals`
+  for 4.57 s, 6.2%** of the module's lowering, `ThemeColors.opEquals` alone taking 769 ms.
+- Nothing calls them. A dependency probe on both of `CodeGenJob`'s dependency loops records only
+  `opEquals -> opEquals` edges: an equality function is requested by another equality function
+  and by nothing else. The executable's root set for that hello world is six functions and holds
+  none of them.
+- What decides it is the shape of the struct, not any use of it: a struct of plain fields gets no
+  `opEquals`, and a struct holding one `string`, never compared anywhere, gets one generated and
+  lowered (479 us for two fields). That is correct as generation - `==` on such a struct cannot
+  compare bytes - but it is paid by every compilation whether or not the operator is reachable.
+- Where they enter: every one of the 319 emissions comes from a `CodeGenJob`, and the roots that
+  neither dependency loop explains are the ones `SemaJIT` schedules from
+  `buildJitOrderWithNativeRoots`, whose constant roots come from `appendConstantFunctionJitRoots`
+  - the walk over the constant graph that treats every function address stored in constant data
+  as a root that must be lowered. `collectExecutableFunctionRoots` already avoids exactly this
+  for the native artifact, and says so: "this is particularly important for large implicit
+  operators that a type must declare for language correctness but that the program never calls".
+  The compile-time side has no such filter.
+- Ruled out: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` is not the
+  trigger. Replacing it with a plain variable leaves the hello world at 318 emissions and the
+  same 31 equality functions.
+- Not a quadratic: a generated struct of N nullable strings compared once costs about 2, 5, 8,
+  15, 44 and 97 ms of extra lowering at N = 8, 16, 32, 64, 128 and 256. `ThemeColors` carries 357
+  fields of its own struct type, so its 769 ms is the expanded comparison count, not a defect in
+  the pipeline. The cost is inherent to lowering the operator; the saving is in not lowering it.
+- Tried and measured as worth nothing (2026-09-23): `NativeBackendBuilder` seeds its lowering
+  loop with `compiler_->nativeCodeSegment()` - everything the module lowered - and applies the
+  executable reachability filter only to the final table, which its own comment explains by the
+  constant closure needing lowered code to read. Seeding that loop with
+  `collectExecutableFunctionRoots` instead drops 12 entries from the hello world's artifact and
+  costs the same time: three alternated pairs of nine `--rebuild` samples each read 344, 344 and
+  378 ms against 340, 330 and 348. It changes what the artifact holds without saving anything, so
+  the lowering worth avoiding is not the one this seed controls.
+- Where it is decided, and what it is worth: `Sema.Struct.cpp` calls
+  `SemaSpecOp::ensureGeneratedEquality` as part of completing **every** struct, so a struct that
+  holds a string is given a member-wise operator whether or not anything ever compares it.
+  Removing that one call is the decisive experiment: a single-file program whose struct carries 64
+  string fields drops from 316 to 284 forged functions and its lowering from 342 to 280 ms, and
+  end to end, alternated, three pairs of seven `--rebuild` samples read 525 ms against 418 ms of
+  minimum - about **a fifth of the whole compilation**. A hello world with no struct of its own
+  still loses its 31 runtime operators, but there the end-to-end difference sits inside this
+  machine's noise (640 against 611 ms of minimum over four pairs); what is certain there is the
+  19.4% of lowering measured above.
+- The lazy-body mechanism is not a way out either: `canDelayFunctionBody` already grants a
+  delayed body to generic, imported and runtime functions, but `NativeBackendBuilder` accepts a
+  function carrying `SymbolFunctionFlagsE::LazyBody` as preparable, so the body is completed and
+  lowered all the same. Delaying the body postpones the cost; only not creating the operator
+  removes it.
+- The trap that fix must not walk into: `==` on a struct does not resolve its operator during
+  semantic analysis at all. `CodeGen.Relational.cpp` asks `SymbolStruct::selfEqualsFunction` while
+  lowering the comparison, and **when that returns null it falls through to comparing bytes** - no
+  diagnostic, just a different answer. Generating the operator on demand therefore has to be
+  ordered so it is complete before any comparison is lowered, and the first commit of that work
+  should turn the silent fallback into a reported internal failure for a struct that
+  `shouldGenerateEqualityOperator` says needs one. Otherwise a mis-ordering ships as a wrong
+  comparison rather than a build error.
+- Next, and this is the shape of the fix: generate the operator when a comparison asks for it
+  rather than when the struct completes. `ensureGeneratedEquality` already carries the publish and
+  wait protocol the lifecycle generation uses, so the work is moving its call site from struct
+  completion to operator resolution - and that is a sema ordering change in a parallel compiler,
+  so it needs the full repository campaign behind it, not a focused run.
+- Why the closure is wide: these roots are collected for compile-time execution, where a `#run`
+  may call through any function address the constant graph holds, so the walk cannot decide
+  reachability statically. The lowered code is then reused by the native builder, which is how a
+  function the artifact would have excluded still costs a lowering.
+- Next: the tractable direction is not a narrower closure but a later one - lowering a
+  constant-held function on the first compile-time call through its pointer, behind the patching
+  the JIT already does in `patchConstantFunctionRelocationsRec`. The saving is bounded by the
+  numbers above and is paid by every module of every workspace.
+- Complete when: a program that compares no struct lowers no generated `opEquals`, and the `gui`
+  release rebuild loses the 4.57 s this entry measures.
+- Related: compiler.core.030, compiler.core.006.
+
 ### compiler.core.030 — Every executable lowers the runtime's functions again
 
 - Recorded: 2026-09-05 22:13

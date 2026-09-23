@@ -6,6 +6,42 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.056 — Every compilation lowers the equality operator no program calls
+
+- Recorded: 2026-09-23 14:11
+- Area: compiler/codegen, compile-time execution, compilation time
+- Evidence: instrumented `MachineCode::emit` (Release 0.1.1050, one worker). A four-line hello
+  world lowers **319 functions**, and **31 of them are generated `opEquals`** costing 42.5 ms of
+  the 218.7 ms the whole lowering takes - **19.4%**. `Context.opEquals` alone is 20.2 ms, 9% of
+  the compilation. On `bin/std`'s `gui` module the same probe counts **1 901 generated `opEquals`
+  for 4.57 s, 6.2%** of the module's lowering, `ThemeColors.opEquals` alone taking 769 ms.
+- Nothing calls them. A dependency probe on both of `CodeGenJob`'s dependency loops records only
+  `opEquals -> opEquals` edges: an equality function is requested by another equality function
+  and by nothing else. The executable's root set for that hello world is six functions and holds
+  none of them.
+- What decides it is the shape of the struct, not any use of it: a struct of plain fields gets no
+  `opEquals`, and a struct holding one `string`, never compared anywhere, gets one generated and
+  lowered (479 us for two fields). That is correct as generation - `==` on such a struct cannot
+  compare bytes - but it is paid by every compilation whether or not the operator is reachable.
+- Where they enter: every one of the 319 emissions comes from a `CodeGenJob`, and the roots that
+  neither dependency loop explains are the ones `SemaJIT` schedules from
+  `buildJitOrderWithNativeRoots`, whose constant roots come from `appendConstantFunctionJitRoots`
+  - the walk over the constant graph that treats every function address stored in constant data
+  as a root that must be lowered. `collectExecutableFunctionRoots` already avoids exactly this
+  for the native artifact, and says so: "this is particularly important for large implicit
+  operators that a type must declare for language correctness but that the program never calls".
+  The compile-time side has no such filter.
+- Ruled out: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` is not the
+  trigger. Replacing it with a plain variable leaves the hello world at 318 emissions and the
+  same 31 equality functions.
+- Next: find which constant holds the address of a generated `opEquals` - no slot of
+  `TypeInfoStruct` declares one in `bin/runtime/api.swg` - then decide whether a compile-time
+  root closure can apply the filter the executable root closure already applies. The saving is
+  bounded by the numbers above and is paid by every module of every workspace.
+- Complete when: a program that compares no struct lowers no generated `opEquals`, and the `gui`
+  release rebuild loses the 4.57 s this entry measures.
+- Related: compiler.core.030, compiler.core.006.
+
 ### compiler.core.030 — Every executable lowers the runtime's functions again
 
 - Recorded: 2026-09-05 22:13

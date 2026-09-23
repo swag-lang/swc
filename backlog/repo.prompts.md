@@ -602,8 +602,14 @@ could read.
 
 ```
 You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then compiler.core.004 and compiler.core.030 in backlog/compiler.core.md and compiler.optimization.029
-and compiler.optimization.039 in backlog/compiler.optimization.md.
+then compiler.core.004, compiler.core.030 and compiler.core.056 in backlog/compiler.core.md and
+compiler.optimization.029, compiler.optimization.039 and compiler.optimization.045 in
+backlog/compiler.optimization.md. The last two carry the 2026-09-23 measurements and, as important,
+the approaches that were tried there and measured as worth nothing.
+
+The hello-world target below predates the runtime's growth: bin/runtime went from 5 260 to 8 629
+lines between August and September and a hello world pays for all of it, which is compiler.core.030
+rather than a compiler regression. Re-measure the four workloads before trusting any number here.
 
 WORK IN A SEPARATE WORKTREE
 

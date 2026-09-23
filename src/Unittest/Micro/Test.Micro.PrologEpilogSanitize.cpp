@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -167,6 +168,68 @@ SWC_TEST_BEGIN(MicroPrologEpilog_FirstDefinitionsPreserveSaveOrderAcrossRegister
     }
     if (pushes != 3 || pops != 3 || floatSaves != 2 || floatRestores != 2 || frameSetups != 1)
         return Result::Error;
+}
+SWC_TEST_END()
+
+// A body whose whole stack shape is one subtract at entry and one add before
+// its return takes the callee-saved float area inside that allocation instead
+// of a second one, and needs no frame register: the saves then sit after the
+// single allocation, where UWOP_SAVE_XMM128 can describe them.
+SWC_TEST_BEGIN(MicroPrologEpilog_FoldsFloatSaveAreaIntoTheBodyAllocation)
+{
+    constexpr uint64_t K_BODY = 0x40;
+
+    const CallConv& conv = CallConv::get(CallConvKind::WindowsX64);
+    MicroBuilder    builder(ctx);
+
+    builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(K_BODY, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadRegMem(MicroReg::floatReg(6), conv.stackPointer, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(K_BODY, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    MicroPrologEpilogPass pass;
+    MicroPassManager      passManager;
+    passManager.addStartPass(pass);
+    MicroPassContext passContext;
+    passContext.callConvKind           = CallConvKind::WindowsX64;
+    passContext.preservePersistentRegs = true;
+    SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+    uint32_t subs       = 0;
+    uint32_t adds       = 0;
+    uint32_t pushes     = 0;
+    uint64_t allocation = 0;
+    uint64_t saveOffset = UINT64_MAX;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::Push || inst.op == MicroInstrOpcode::Pop)
+            ++pushes;
+        else if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == conv.stackPointer)
+        {
+            if (ops[2].microOp == MicroOp::Subtract)
+            {
+                ++subs;
+                allocation = ops[3].valueU64;
+            }
+            else if (ops[2].microOp == MicroOp::Add)
+            {
+                ++adds;
+            }
+        }
+        else if (inst.op == MicroInstrOpcode::LoadMemReg && ops[1].reg == MicroReg::floatReg(6) &&
+                 ops[2].opBits == MicroOpBits::B128)
+        {
+            saveOffset = ops[3].valueU64;
+        }
+    }
+
+    // One allocation, no frame register, and the save inside it above the body.
+    if (subs != 1 || adds != 1 || pushes != 0)
+        return Result::Error;
+    if (allocation != K_BODY + 16 || saveOffset != K_BODY)
+        return Result::Error;
+    return Result::Continue;
 }
 SWC_TEST_END()
 

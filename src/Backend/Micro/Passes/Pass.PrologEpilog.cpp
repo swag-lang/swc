@@ -264,6 +264,84 @@ namespace
         return false;
     }
 
+    // The run of stack-pointer adds that releases the frame in front of a
+    // return, walked backwards from it. Register allocation puts its own
+    // release beside the one lowering emitted, so this is a run and not a
+    // single instruction. Returns their total and, through `outFirst`, the
+    // earliest of them - which is where anything reading the frame still has
+    // to sit.
+    uint64_t sumEpilogueAdds(const MicroPassContext& context, MicroReg stackPointer, MicroInstrRef retRef, MicroInstrRef& outFirst)
+    {
+        auto&    instructions = *context.instructions;
+        uint64_t total        = 0;
+        outFirst              = MicroInstrRef::invalid();
+        for (MicroInstrRef cur = instructions.findPreviousInstructionRef(retRef); cur.isValid();
+             cur              = instructions.findPreviousInstructionRef(cur))
+        {
+            const MicroInstr* inst = instructions.ptr(cur);
+            if (!inst)
+                break;
+            if (inst->op == MicroInstrOpcode::Nop)
+                continue;
+            const MicroInstrOperand* ops = inst->ops(*context.operands);
+            if (!isStackPointerAdjust(*inst, ops, stackPointer, MicroOp::Add) || ops[3].hasWideImmediateValue())
+                break;
+            total += ops[3].valueU64;
+            outFirst = cur;
+        }
+
+        return total;
+    }
+
+    // The body's own allocation, when its whole stack shape is one subtract at
+    // entry and one run of adds before every return releasing exactly it.
+    // Returns zero for anything else, so the fold below can trust the shape it
+    // is about to rewrite.
+    uint64_t findBodyEntryAllocation(const MicroPassContext& context, const CallConv& conv)
+    {
+        const MicroReg stackPointer = conv.stackPointer;
+        if (!stackPointer.isValid())
+            return 0;
+
+        // Lowering and register allocation each contribute a subtract, so the
+        // entry allocation is a run too.
+        uint64_t   allocation = 0;
+        const auto view       = context.instructions->view();
+        for (auto it = view.begin(); it != view.end(); ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(*context.operands);
+            if (isStackPointerAdjust(*it, ops, stackPointer, MicroOp::Subtract))
+            {
+                if (ops[3].hasWideImmediateValue() || !ops[3].valueU64)
+                    return 0;
+                allocation += ops[3].valueU64;
+                continue;
+            }
+            if (isStackPointerAdjust(*it, ops, stackPointer, MicroOp::Add))
+                continue;
+            if (definesStackPointer(context, *it, stackPointer) || it->op == MicroInstrOpcode::Push ||
+                it->op == MicroInstrOpcode::Pop)
+                return 0;
+        }
+
+        if (!allocation)
+            return 0;
+
+        // Every return must release exactly that allocation, or the epilogue
+        // this fold rewrites is not the one it matched.
+        for (auto it = view.begin(); it != view.end(); ++it)
+        {
+            if (it->op != MicroInstrOpcode::Ret)
+                continue;
+            MicroInstrRef  first = MicroInstrRef::invalid();
+            const uint64_t total = sumEpilogueAdds(context, stackPointer, it.current, first);
+            if (!first.isValid() || total != allocation)
+                return 0;
+        }
+
+        return allocation;
+    }
+
     // Windows unwind data describes the prologue it can see: the nonvolatile pushes and the
     // one stack allocation that follows them. A body that moves the stack pointer afterwards
     // leaves that description short, and recovering the stack pointer from a frame register is
@@ -622,16 +700,20 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
     }
 
     // The frame register is only owed to the unwinder by a function whose stack pointer moves
-    // where the unwind codes cannot describe it. Two shapes qualify: a body that adjusts the
-    // stack pointer after the prologue, and a float save area, whose stores sit between this
-    // pass's allocation and the body's own and keep the sanitize pass from coalescing the two
-    // into the single allocation the unwind description can hold. Everything else is described
-    // in full by the pushes and one allocation, so the frame register buys nothing and costs a
-    // push, a move and a pop on every call.
+    // where the unwind codes cannot describe it: the description holds the nonvolatile pushes,
+    // ONE allocation, and the float saves that follow it. A body whose whole stack shape is one
+    // subtract at entry and one add before each return fits, because the saved-register area is
+    // folded into that subtract below instead of taking a second allocation of its own. Anything
+    // else - a body that keeps moving the stack pointer - still needs the frame register to cover
+    // the difference, and it costs a push, a move and a pop on every call.
     //
     // The request is cleared, not just ignored: the sanitize pass synthesizes a setup for any
     // function that still asks for one, so both passes have to read the same answer.
-    if (useFramePointer_ && !framePointerNamed && savedRegSlots_.empty() && !bodyMovesStackPointerAfterPrologue(context, conv))
+    const bool     bodyStackIsOneAllocation = !bodyMovesStackPointerAfterPrologue(context, conv);
+    const uint64_t bodyAllocation           = bodyStackIsOneAllocation ? findBodyEntryAllocation(context, conv) : 0;
+    const bool     canMerge                 = bodyStackIsOneAllocation && bodyAllocation != 0;
+
+    if (useFramePointer_ && !framePointerNamed && bodyStackIsOneAllocation && (savedRegSlots_.empty() || canMerge))
     {
         useFramePointer_          = false;
         context.forceFramePointer = false;
@@ -658,6 +740,22 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
     const uint64_t stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
     const uint64_t totalFrameSize = Math::alignUpU64(pushedRegsSize + frameOffset, stackAlignment);
     savedRegsStackSubSize_        = totalFrameSize > pushedRegsSize ? totalFrameSize - pushedRegsSize : 0;
+
+    // Fold that area into the body's allocation instead of emitting a second
+    // one. The slots go to the top of the merged frame, so every `[sp + k]` the
+    // body already computed still addresses the same byte, and the saves land
+    // after the one allocation at final-rsp-relative offsets - which is what
+    // UWOP_SAVE_XMM128 is defined against.
+    mergedIntoBodyAllocation_ = false;
+    bodyAllocationSize_       = 0;
+    if (savedRegsStackSubSize_ && canMerge &&
+        bodyAllocation <= std::numeric_limits<uint32_t>::max() - savedRegsStackSubSize_)
+    {
+        mergedIntoBodyAllocation_ = true;
+        bodyAllocationSize_       = bodyAllocation;
+        for (auto& slot : savedRegSlots_)
+            slot.offset += bodyAllocation;
+    }
 }
 
 void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, MicroInstrRef insertBeforeRef) const
@@ -696,8 +794,38 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     // recovers the stack pointer from the frame register, so the body's own
     // later allocations — its frame, its spill area, its call adjusts — never
     // need to appear in the unwind description at all.
-    if (savedRegsStackSubSize_)
+    // Merged: the body's own subtract at entry grows to cover the saved area,
+    // and the saves follow it. Otherwise the area takes its own allocation here.
+    MicroInstrRef saveInsertBeforeRef = insertBeforeRef;
+    if (mergedIntoBodyAllocation_)
+    {
+        // The entry allocation is a run of subtracts. The first one grows to
+        // carry the saved area, and the saves go after the last, where the
+        // stack pointer has reached its final value.
+        MicroInstr*        bodyAlloc = instructions.ptr(insertBeforeRef);
+        MicroInstrOperand* allocOps  = bodyAlloc ? bodyAlloc->ops(operands) : nullptr;
+        SWC_ASSERT(allocOps && allocOps[0].reg == conv.stackPointer && allocOps[2].microOp == MicroOp::Subtract);
+        allocOps[3].valueU64 += savedRegsStackSubSize_;
+
+        MicroInstrRef lastSub = insertBeforeRef;
+        for (MicroInstrRef cur = instructions.findNextInstructionRef(insertBeforeRef); cur.isValid();
+             cur              = instructions.findNextInstructionRef(cur))
+        {
+            const MicroInstr* inst = instructions.ptr(cur);
+            if (!inst)
+                break;
+            if (inst->op == MicroInstrOpcode::Nop)
+                continue;
+            if (!isStackPointerAdjust(*inst, inst->ops(operands), conv.stackPointer, MicroOp::Subtract))
+                break;
+            lastSub = cur;
+        }
+        saveInsertBeforeRef = instructions.findNextInstructionRef(lastSub);
+    }
+    else if (savedRegsStackSubSize_)
+    {
         insertStackAdjust(context, insertBeforeRef, conv.stackPointer, MicroOp::Subtract, savedRegsStackSubSize_);
+    }
 
     // Float persistent regs use explicit stack slots because there is no
     // push/pop form.
@@ -708,7 +836,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         storeOps[1].reg      = slot.reg;
         storeOps[2].opBits   = slot.slotBits;
         storeOps[3].valueU64 = slot.offset;
-        instructions.insertSyntheticBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, storeOps);
+        instructions.insertSyntheticBefore(operands, saveInsertBeforeRef, MicroInstrOpcode::LoadMemReg, storeOps);
     }
 }
 
@@ -724,6 +852,23 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     // allocation, then pop integer regs. At every return the body has undone
     // its own stack motion, so the stack pointer addresses the saved area
     // directly, at the same [sp+0..] offsets the prologue stored to.
+    // Merged: the reloads must read the slots before the body's add releases
+    // them, and that add grows to release the saved area too. The run of adds
+    // in front of a return is what the plan matched, so the first of them is
+    // where the reloads go.
+    MicroInstrRef reloadBeforeRef = insertBeforeRef;
+    if (mergedIntoBodyAllocation_)
+    {
+        MicroInstrRef  firstAdd = MicroInstrRef::invalid();
+        const uint64_t released = sumEpilogueAdds(context, conv.stackPointer, insertBeforeRef, firstAdd);
+        SWC_ASSERT(firstAdd.isValid() && released == bodyAllocationSize_);
+
+        MicroInstr*        addInst = instructions.ptr(firstAdd);
+        MicroInstrOperand* addOps  = addInst->ops(operands);
+        addOps[3].valueU64 += savedRegsStackSubSize_;
+        reloadBeforeRef = firstAdd;
+    }
+
     for (const SavedRegSlot& slot : savedRegSlots_)
     {
         MicroInstrOperand loadOps[4];
@@ -731,10 +876,10 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         loadOps[1].reg      = conv.stackPointer;
         loadOps[2].opBits   = slot.slotBits;
         loadOps[3].valueU64 = slot.offset;
-        instructions.insertSyntheticBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
+        instructions.insertSyntheticBefore(operands, reloadBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
     }
 
-    if (savedRegsStackSubSize_)
+    if (savedRegsStackSubSize_ && !mergedIntoBodyAllocation_)
         insertStackAdjust(context, insertBeforeRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
 
     for (const MicroReg pushedReg : std::ranges::reverse_view(pushedRegs_))

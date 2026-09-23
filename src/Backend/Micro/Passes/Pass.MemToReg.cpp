@@ -117,6 +117,32 @@ namespace
                op == MicroInstrOpcode::CmpMemImm;
     }
 
+    // Whether `reg`, read at `atRef`, holds an all-zero vector. The producer
+    // that matters is the clear the front end emits for a local's
+    // zero-initialization; a register redefined by anything else in between is
+    // not one.
+    bool isZeroedVectorRegister(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef atRef, MicroReg reg)
+    {
+        if (!reg.isValid())
+            return false;
+        for (MicroInstrRef cur = storage.findPreviousInstructionRef(atRef); cur.isValid(); cur = storage.findPreviousInstructionRef(cur))
+        {
+            const MicroInstr* inst = storage.ptr(cur);
+            if (!inst)
+                return false;
+            SmallVector<MicroInstrRegOperandRef> regRefs;
+            inst->collectRegOperands(operands, regRefs, nullptr);
+            bool defines = false;
+            for (const auto& rref : regRefs)
+                defines = defines || (rref.reg && rref.def && *rref.reg == reg);
+            if (!defines)
+                continue;
+            const MicroInstrOperand* ops = inst->ops(operands);
+            return inst->op == MicroInstrOpcode::ClearReg && ops && ops[0].reg == reg;
+        }
+        return false;
+    }
+
     bool isPromotableBits(MicroOpBits bits)
     {
         // 128 bits is the vector width, and a float register copy of it is full width too;
@@ -944,6 +970,101 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
         return false;
     };
+
+    // ---- Scalarize a vector zero-fill over narrowly-used slots. ----
+    //
+    // A local array is zero-initialized with 16-byte stores of a cleared vector
+    // register, whatever its element width. Every element then carries both
+    // that B128 write and its own narrow accesses, and a wider WRITE
+    // disqualifies the slot (see the width-disagreement rule below), so the
+    // whole array stays in memory and pays a load and a store per operation.
+    //
+    // The fill becomes one immediate store per element when the sixteen bytes
+    // it covers are otherwise used only as scalars of one width, each starting
+    // on its own element boundary - which is what says the object is an array
+    // of scalars and not a vector. Promotion then happens on the next sweep of
+    // the pre-RA loop, from a slot map with no width disagreement left.
+    //
+    // Only the zero fill is split. A whole-object copy is the other vector
+    // access such an array sees, and splitting it means rebuilding the loaded
+    // value element by element, which this does not attempt.
+    {
+        SmallVector<std::pair<MicroInstrRef, std::pair<uint64_t, uint64_t>>> fills;
+        for (const auto& [offset, slot] : slots)
+        {
+            for (const SlotAccess& acc : slot.accesses)
+            {
+                if (!acc.isWrite || acc.bits != MicroOpBits::B128)
+                    continue;
+                const MicroInstr* fill = storage.ptr(acc.ref);
+                if (!fill || (fill->op != MicroInstrOpcode::LoadMemReg && fill->op != MicroInstrOpcode::StoreVecMemReg))
+                    continue;
+                if (!isZeroedVectorRegister(storage, operands, acc.ref, fill->ops(operands)[1].reg))
+                    continue;
+
+                const uint64_t lo = offset;
+                const uint64_t hi = offset + getNumBytes(MicroOpBits::B128);
+                uint64_t       elementBytes = 0;
+                bool           uniform      = true;
+                for (const auto& [other, otherSlot] : slots)
+                {
+                    if (otherSlot.maxAccessEnd <= lo || other >= hi)
+                        continue;
+                    if (stackPointerSlots.contains(other))
+                        uniform = false;
+                    for (const SlotAccess& inner : otherSlot.accesses)
+                    {
+                        if (inner.ref == acc.ref)
+                            continue;
+                        const uint64_t width = getNumBytes(inner.bits);
+                        if (width != 4 && width != 8)
+                            uniform = false;
+                        else if (!elementBytes)
+                            elementBytes = width;
+                        else if (elementBytes != width)
+                            uniform = false;
+                        if (!uniform || other + width > hi || (other - lo) % width != 0)
+                        {
+                            uniform = false;
+                            break;
+                        }
+                    }
+                    if (!uniform)
+                        break;
+                }
+                if (!uniform || !elementBytes ||
+                    overlapsPoisonedVariable(lo, hi) || (unknownSpaceEscaped && !insideKnownVariable(lo, hi)))
+                    continue;
+
+                fills.emplace_back(acc.ref, std::make_pair(offset, elementBytes));
+            }
+        }
+
+        if (!fills.empty())
+        {
+            for (const auto& [fillRef, shape] : fills)
+            {
+                const auto [offset, elementBytes] = shape;
+                const MicroInstr* fill            = storage.ptr(fillRef);
+                const MicroReg    base            = fill->ops(operands)[0].reg;
+                const MicroOpBits bits            = elementBytes == 8 ? MicroOpBits::B64 : MicroOpBits::B32;
+                const uint64_t    count           = getNumBytes(MicroOpBits::B128) / elementBytes;
+                for (uint64_t i = 0; i < count; ++i)
+                {
+                    MicroInstrOperand storeOps[4] = {};
+                    storeOps[0].reg      = base;
+                    storeOps[1].opBits   = bits;
+                    storeOps[2].valueU64 = offset + i * elementBytes;
+                    storeOps[3].setImmediateValue(ApInt(uint64_t{0}, getNumBits(bits)));
+                    storage.insertSyntheticBefore(operands, fillRef, MicroInstrOpcode::LoadMemImm, storeOps);
+                }
+                storage.erase(fillRef);
+            }
+
+            context.passChanged = true;
+            return Result::Continue;
+        }
+    }
 
     for (auto& [offset, slot] : slots)
     {

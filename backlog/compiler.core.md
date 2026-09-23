@@ -57,6 +57,11 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   still loses its 31 runtime operators, but there the end-to-end difference sits inside this
   machine's noise (640 against 611 ms of minimum over four pairs); what is certain there is the
   19.4% of lowering measured above.
+- The lazy-body mechanism is not a way out either: `canDelayFunctionBody` already grants a
+  delayed body to generic, imported and runtime functions, but `NativeBackendBuilder` accepts a
+  function carrying `SymbolFunctionFlagsE::LazyBody` as preparable, so the body is completed and
+  lowered all the same. Delaying the body postpones the cost; only not creating the operator
+  removes it.
 - Next, and this is the shape of the fix: generate the operator when a comparison asks for it
   rather than when the struct completes. `ensureGeneratedEquality` already carries the publish and
   wait protocol the lifecycle generation uses, so the work is moving its call site from struct

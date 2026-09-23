@@ -391,6 +391,65 @@ namespace PostRaPeephole
         ctx.emitErase(copyRef);
         return true;
     }
+
+    // A constant re-materialized into a register that already holds it costs a
+    // whole instruction and buys nothing:
+    //
+    //     mov eax, 255 ; cmp rcx, 255 ; cmovg rdx, rax ; mov eax, 255 ; ...
+    //
+    // The register allocator rematerializes rather than keeping a constant
+    // live, which is the right call across a spill but not two instructions
+    // later. raytrace clamps three colour channels against 255 in a row and
+    // reloaded the bound before each one.
+    //
+    // The search stays inside the block and stops at anything that writes the
+    // register, so the earlier value is the one still there.
+    bool tryEraseRepeatedImmediate(Context& ctx, const MicroInstrRef defRef, const MicroInstr& defInst)
+    {
+        constexpr uint32_t K_MAX_WINDOW = 8;
+
+        if (ctx.isClaimed(defRef) || defInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* defOps = defInst.ops(*ctx.operands);
+        if (!defOps || defOps[2].hasWideImmediateValue())
+            return false;
+
+        const MicroReg    reg   = defOps[0].reg;
+        const MicroOpBits bits  = defOps[1].opBits;
+        const uint64_t    value = defOps[2].valueU64;
+        if (!reg.isAnyInt())
+            return false;
+
+        MicroInstrRef cursor = ctx.previousRef(defRef);
+        for (uint32_t step = 0; step < K_MAX_WINDOW && cursor.isValid(); ++step, cursor = ctx.previousRef(cursor))
+        {
+            const MicroInstr* previous = ctx.instruction(cursor);
+            if (!previous || ctx.isClaimed(cursor))
+                return false;
+
+            const MicroInstrOperand* previousOps = previous->ops(*ctx.operands);
+            if (previous->op == MicroInstrOpcode::LoadRegImm && previousOps && previousOps[0].reg == reg &&
+                previousOps[1].opBits == bits && !previousOps[2].hasWideImmediateValue() && previousOps[2].valueU64 == value)
+            {
+                if (!ctx.claimAll({defRef}))
+                    return false;
+                ctx.emitErase(defRef);
+                return true;
+            }
+
+            const MicroInstrDef& info = MicroInstr::info(previous->op);
+            if (previous->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+
+            const MicroInstrUseDef useDef = previous->collectUseDef(*ctx.operands, ctx.encoder);
+            if (regInList(useDef.defs.span(), reg))
+                return false;
+        }
+
+        return false;
+    }
 }
 
 SWC_END_NAMESPACE();

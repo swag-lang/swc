@@ -1837,6 +1837,36 @@ SWC_TEST_BEGIN(PostRAPeephole_ClearThenCopy_ClearsTheDestination)
 }
 SWC_TEST_END()
 
+// A constant reloaded into a register that still holds it is erased; a write to
+// that register in between keeps the second load.
+SWC_TEST_BEGIN(PostRAPeephole_RepeatedImmediate_KeepsOnlyTheFirst)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg rdx = MicroReg::intReg(3);
+
+    for (const bool clobbered : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(rax, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(rcx, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(rdx, rax, MicroCond::Greater, MicroOpBits::B64);
+        if (clobbered)
+            builder.emitLoadRegImm(rax, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(rax, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(rcx, rax, MicroCond::Greater, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder));
+
+        const uint32_t loads = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm);
+        if (loads != (clobbered ? 3u : 1u))
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

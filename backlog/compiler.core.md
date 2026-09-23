@@ -42,10 +42,10 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   loop with `compiler_->nativeCodeSegment()` - everything the module lowered - and applies the
   executable reachability filter only to the final table, which its own comment explains by the
   constant closure needing lowered code to read. Seeding that loop with
-  `collectExecutableFunctionRoots` instead leaves `tuned` at exactly 176 functions for a hello
-  world and only drops 12 entries from `forged`: by the time the native builder runs, the
-  functions have already been lowered by their own code-generation jobs. The lowering to avoid
-  happens earlier, so narrowing this seed changes the artifact without saving any compile time.
+  `collectExecutableFunctionRoots` instead drops 12 entries from the hello world's artifact and
+  costs the same time: three alternated pairs of nine `--rebuild` samples each read 344, 344 and
+  378 ms against 340, 330 and 348. It changes what the artifact holds without saving anything, so
+  the lowering worth avoiding is not the one this seed controls.
 - Why the closure is wide: these roots are collected for compile-time execution, where a `#run`
   may call through any function address the constant graph holds, so the walk cannot decide
   reachability statically. The lowered code is then reused by the native builder, which is how a

@@ -10,9 +10,30 @@ namespace
     constexpr uint32_t K_INVALID_INSTRUCTION_INDEX = std::numeric_limits<uint32_t>::max();
 }
 
+uint32_t MicroControlFlowGraph::indexOf(const MicroInstrRef ref) const
+{
+    if (ref.isInvalid() || instructionRefs_.empty())
+        return K_NO_INDEX;
+
+    if (indexBySlot_.empty())
+    {
+        uint32_t maxSlot = 0;
+        for (const MicroInstrRef instRef : instructionRefs_)
+            maxSlot = std::max(maxSlot, instRef.get());
+
+        indexBySlot_.assign(maxSlot + 1, K_NO_INDEX);
+        for (uint32_t index = 0; index < instructionRefs_.size(); ++index)
+            indexBySlot_[instructionRefs_[index].get()] = index;
+    }
+
+    const uint32_t slot = ref.get();
+    return slot < indexBySlot_.size() ? indexBySlot_[slot] : K_NO_INDEX;
+}
+
 void MicroControlFlowGraph::clear()
 {
     instructionRefs_.clear();
+    indexBySlot_.clear();
     // Rebuilds keep overflow storage for high-fanout branches and joins.
     for (auto& edges : successors_)
         edges.clear();

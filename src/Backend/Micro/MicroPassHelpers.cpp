@@ -216,9 +216,10 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const MicroInstr& inst : context.instructions->view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(*context.operands, refs, context.encoder);
             for (const auto& ref : refs)
             {
@@ -337,11 +338,10 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(MicroBuilder& builder, MicroIns
     const auto& cfg = builder.controlFlowGraph();
     if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
         return false;
-    const auto refs  = cfg.instructionRefs();
-    const auto found = std::ranges::find(refs, afterRef);
-    if (found == refs.end())
+    const uint32_t index = cfg.indexOf(afterRef);
+    if (index == MicroControlFlowGraph::K_NO_INDEX)
         return false;
-    return areCpuFlagsDeadAfterInCfg(cfg, builder.instructions(), builder.operands(), static_cast<uint32_t>(found - refs.begin()));
+    return areCpuFlagsDeadAfterInCfg(cfg, builder.instructions(), builder.operands(), index);
 }
 
 bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cfg, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t index)

@@ -26,12 +26,20 @@ public:
     // (e.g. LICM) use this to skip their dominator/loop analysis entirely.
     bool hasLoop() const { return hasLoop_; }
 
+    // Where one instruction sits in this graph. The refs are a dense list in program order, so
+    // finding a reference in it means walking the function; the callers that ask do so once per
+    // candidate they examine, which makes the search quadratic in the function. The table is
+    // built on the first request and lives exactly as long as the graph it describes.
+    static constexpr uint32_t K_NO_INDEX = std::numeric_limits<uint32_t>::max();
+    uint32_t                  indexOf(MicroInstrRef ref) const;
+
 private:
     void clear();
     void addEdge(uint32_t source, uint32_t target);
     void build(const MicroStorage& storage, const MicroOperandStorage& operands);
 
     std::vector<MicroInstrRef> instructionRefs_;
+    mutable std::vector<uint32_t> indexBySlot_;
     std::vector<uint32_t>      labelToInstructionIndex_;
     std::vector<EdgeList>      successors_;
     std::vector<EdgeList>      predecessors_;

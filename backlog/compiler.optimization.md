@@ -19,7 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-23 10:58 — Removed the fixed per-run cost and a quadratic flag-liveness lookup.
+- Updated: 2026-09-23 11:10 — Re-timed the transforms after the three batches; named the one lever left.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -62,10 +62,16 @@ block, and the hot path keeps the register.
   reference back to its graph index with a linear search of the graph's instruction list, and
   eleven sites ask it once per candidate they examine - quadratic in the function.
   `MicroControlFlowGraph::indexOf` now answers from a table built on first request.
-- Next: re-time the transforms. Before 0.1.1048 the pass was 9.1 s over some thirty-seven of them,
-  the largest being `fuseMaterializedBoolBranches` at 11%, `convertEqualityChainsToBitTests` at
-  10% and `coalesceShortCircuitResults` at 7%; the flag-liveness fix lands mostly on the first,
-  so the ranking needs reading again before choosing the next one.
+- Ranking at 0.1.1048, as a share of the pass: `fuseMaterializedBoolBranches` 10.6%, rebuilding
+  SSA through `MicroSsaState::ensureFor` 10.3%, `convertEqualityChainsToBitTests` 9.9%,
+  `convertGuardedSelectDiamonds` 8.9% (which rebuilds SSA of its own), `coalesceShortCircuitResults`
+  7.2%, and a tail of thirty-odd transforms under 4% each. No quadratic and no eager prologue is
+  left; what remains is the cost of asking thirty-seven questions about every function.
+- Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
+  rather than this entry's. For this entry, the remaining lever is structural — running the
+  pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
+  `lateBranchSimplifyPass_` already does for three transforms. That changes what the optimizer
+  produces, so it needs the benchmark, not just a compile-time measurement.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.

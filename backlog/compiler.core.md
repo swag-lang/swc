@@ -34,10 +34,18 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Ruled out: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` is not the
   trigger. Replacing it with a plain variable leaves the hello world at 318 emissions and the
   same 31 equality functions.
-- Next: find which constant holds the address of a generated `opEquals` - no slot of
-  `TypeInfoStruct` declares one in `bin/runtime/api.swg` - then decide whether a compile-time
-  root closure can apply the filter the executable root closure already applies. The saving is
-  bounded by the numbers above and is paid by every module of every workspace.
+- Not a quadratic: a generated struct of N nullable strings compared once costs about 2, 5, 8,
+  15, 44 and 97 ms of extra lowering at N = 8, 16, 32, 64, 128 and 256. `ThemeColors` carries 357
+  fields of its own struct type, so its 769 ms is the expanded comparison count, not a defect in
+  the pipeline. The cost is inherent to lowering the operator; the saving is in not lowering it.
+- Why the closure is wide: these roots are collected for compile-time execution, where a `#run`
+  may call through any function address the constant graph holds, so the walk cannot decide
+  reachability statically. The lowered code is then reused by the native builder, which is how a
+  function the artifact would have excluded still costs a lowering.
+- Next: the tractable direction is not a narrower closure but a later one - lowering a
+  constant-held function on the first compile-time call through its pointer, behind the patching
+  the JIT already does in `patchConstantFunctionRelocationsRec`. The saving is bounded by the
+  numbers above and is paid by every module of every workspace.
 - Complete when: a program that compares no struct lowers no generated `opEquals`, and the `gui`
   release rebuild loses the 4.57 s this entry measures.
 - Related: compiler.core.030, compiler.core.006.

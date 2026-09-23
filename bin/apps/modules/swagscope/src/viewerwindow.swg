@@ -219,14 +219,15 @@ struct ViewerWindow
     folderSameKind: bool
 
     // The play mode and what it needs: the slideshow pace, the timer counting it down, the view
-    // that reported a still picture for it to count, and the files the shuffle has already
-    // continued from in its folder, so that every file gets its turn before any comes again.
-    playMode:      Viewer.PlayMode
-    slideSeconds:  f32 = Viewer.SlideDefaultSeconds
-    slideTimer:    *Timer?
-    stillView:     *Wnd?
-    shuffleFolder: String
-    shufflePlayed: Array'String
+    // that reported a still picture for it to count, and the files already read in the current
+    // folder round. The same round state drives shuffle choice and the file-panel progress.
+    playMode:            Viewer.PlayMode
+    slideSeconds:        f32 = Viewer.SlideDefaultSeconds
+    slideTimer:          *Timer?
+    stillView:           *Wnd?
+    folderReadingMode:   Viewer.PlayMode
+    folderReadingFolder: String
+    folderReadingFiles: Array'String
 
     // Guards the one nested dispatch [[ViewerWindow.forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
@@ -572,6 +573,8 @@ impl IWnd for ViewerWindow
         {
             for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
                 (cast #assume(*ViewerErrorView) instance.view).refreshTheme()
+            if .panelVisible and not .currentFile.isEmpty() do
+                .refreshFileLists()
             .refreshArtwork()
             .refreshEmptyArtwork()
             .dropHighlight.refreshTheme()
@@ -1608,6 +1611,7 @@ impl ViewerWindow
         .pendingEmpty.clear()
         .reloading    = false
         .readingState = {}
+        .resetFolderReading()
         .stopSlide()
         .stillView = null
         if .fileWatchTimer
@@ -1657,6 +1661,7 @@ impl ViewerWindow
         .folderFiles.clear()
         .siblings.clear()
         .siblingsDirty = true
+        .resetFolderReading()
         .infoNameLabel.setText("")
         .infoNameLabel.toolTip = ""
         .infoStatsLabel.setText("")
@@ -2857,6 +2862,7 @@ impl ViewerWindow
         .recent          = #move classified.recent
         .siblingsDirty   = true
         .rebuildSiblings()
+        .trackFolderReading(.playMode)
         .instances.resize(.choices.count)
         .viewerCombo.clear()
         for choice in .choices
@@ -3007,10 +3013,12 @@ impl ViewerWindow
         .folderHistoryButton.enable(true)
     }
 
-    // Fills one list with file names, selecting the row that names the current file.
-    private mtd fillFileList(list: *ListCtrl, files: const [..] String)
+    // Fills one list with file names, selecting the row that names the current file, and returns
+    // that row index. A folder round keeps its already-read rows secondary until the next round.
+    private mtd fillFileList(list: *ListCtrl, files: const [..] String)->u32
     {
         let scrollPosition = list.scrollWnd.scrollPosition()
+        var currentIndex   = Swag.U32.Max
         list.clear()
         for one, index in files
         {
@@ -3023,13 +3031,19 @@ impl ViewerWindow
                 icon = .pluginIcon(plugin, themeRowIconSize(.themeMetrics()))
             }
 
-            discard list.createLine(Path.fileName(name) orelse name, icon)
-            if .currentFile == name do
+            let line = list.createLine(Path.fileName(name) orelse name, icon)
+            if list == .folderList and .isFolderReading() and .folderReadingFiles.contains(one[]) do
+                line.colorFg = .themeColors().label_TextLight
+            if .currentFile == name
+            {
+                currentIndex = cast(u32) index
                 list.selectLine(cast(u32) index)
+            }
         }
 
         list.computeLayout()
         list.scrollWnd.setScrollPos(scrollPosition)
+        return currentIndex
     }
 
     // Rebuilds both sections of the panel from what the window already knows.
@@ -3041,13 +3055,15 @@ impl ViewerWindow
         .refreshingLists = true
         defer .refreshingLists = false
 
-        .fillFileList(.recentList, .recent.toSlice())
-        .fillFileList(.folderList, .siblings.toSlice())
+        discard .fillFileList(.recentList, .recent.toSlice())
+        let currentIndex = .fillFileList(.folderList, .siblings.toSlice())
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
         .folderLabel.setText(.currentFile.isEmpty() ? appStrings().ui_Folder : (Path.fileName(Path.directoryName(.currentFile.toString())) orelse appStrings().ui_Folder))
         .filePanel.applyLayout()
+        if .isFolderReading() and currentIndex != Swag.U32.Max do
+            .folderList.ensureVisibleLine(currentIndex)
     }
 
     // Shows what a panel row offers for the file it names.
@@ -3266,6 +3282,34 @@ impl ViewerWindow
         return result
     }
 
+    private mtd const isFolderReading()->bool => .playMode == .Folder or .playMode == .Shuffle
+
+    // Returns the progress rendering and shuffle choice to their neutral state.
+    private mtd resetFolderReading()
+    {
+        .folderReadingMode = .Once
+        .folderReadingFolder.clear()
+        .folderReadingFiles.clear()
+    }
+
+    // Starts or advances one folder round, resetting it when its mode or folder changes.
+    private mtd trackFolderReading(mode: Viewer.PlayMode)
+    {
+        if (mode != .Folder and mode != .Shuffle) or .currentFile.isEmpty() do
+            return
+
+        let folder = Path.directoryName(.currentFile.toString()) orelse ""
+        if .folderReadingMode != mode or Utf8.compare(.folderReadingFolder.toSlice(), folder, .Latin1NoCase) != 0
+        {
+            .folderReadingMode   = mode
+            .folderReadingFolder = folder
+            .folderReadingFiles.clear()
+        }
+
+        if not .folderReadingFiles.contains(.currentFile) do
+            .folderReadingFiles.add(.currentFile)
+    }
+
     // Queues the file that follows the current one in `mode` among those its viewer opens, and
     // reports whether there was one to queue.
     //
@@ -3275,6 +3319,7 @@ impl ViewerWindow
     {
         if .currentFile.isEmpty() do
             return false
+        .trackFolderReading(mode)
         let files = .kindSiblings()
         if files.count <= 1 do
             return false
@@ -3293,7 +3338,10 @@ impl ViewerWindow
                 break
             }
 
-            next = files[(index + 1) % files.count]
+            let nextIndex = (index + 1) % files.count
+            if nextIndex == 0 do
+                .folderReadingFiles.clear()
+            next = files[nextIndex]
 
         case .Shuffle:
             next = .pickShuffled(files.toSlice())
@@ -3303,7 +3351,7 @@ impl ViewerWindow
         return true
     }
 
-    // Picks a file the shuffle has not yet continued from in this folder, starting a new round
+    // Picks a file the shuffle has not yet read in this folder, starting a new round
     // once every file has had its turn.
     //
     // The file that has just ended is the one that must not come straight back, so a new round
@@ -3311,23 +3359,15 @@ impl ViewerWindow
     // folder, not a property of it.
     mtd pickShuffled(files: const [..] String)->String
     {
-        let folder = Path.directoryName(.currentFile.toString()) orelse ""
-        if Utf8.compare(.shuffleFolder.toString(), folder, .Latin1NoCase) != 0
-        {
-            .shuffleFolder = folder
-            .shufflePlayed.clear()
-        }
-
-        if not .shufflePlayed.contains(.currentFile) do
-            .shufflePlayed.add(.currentFile)
+        .trackFolderReading(.Shuffle)
 
         var candidates: Array'u64
-        for one, index in files where not .shufflePlayed.contains(one[]) do
+        for one, index in files where not .folderReadingFiles.contains(one[]) do
             candidates.add(index)
         if candidates.isEmpty()
         {
-            .shufflePlayed.clear()
-            .shufflePlayed.add(.currentFile)
+            .folderReadingFiles.clear()
+            .folderReadingFiles.add(.currentFile)
             for one, index in files where one[] != .currentFile do
                 candidates.add(index)
         }
@@ -3395,7 +3435,11 @@ impl ViewerWindow
     {
         if .playMode == mode do
             return
+        .resetFolderReading()
         .playMode = mode
+        .trackFolderReading(mode)
+        if .panelVisible and not .currentFile.isEmpty() do
+            .refreshFileLists()
         .armSlide()
         catch .saveState()
     }

@@ -16,41 +16,45 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.044 — Packed unary operations cannot consume a 128-bit memory source
+### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
-- Recorded: 2026-09-18 19:48
-- Area: compiler/backend, instruction selection
-- Evidence: four adjacent `f32 -> s32` truncations now form `movups`, `cvttps2dq`, `movups`
-  (three body instructions plus return). LLVM reads the input directly in `cvttps2dq`, leaving
-  two body instructions. `VecUnaryRegMem` is intentionally widening-only today: its encoder
-  asserts one of the six widening operations, and `VecLoopPromote` records every such read as
-  eight bytes. Extending only the SLP rewrite would therefore lie to the encoder and memory
-  analysis about a 16-byte read.
-- Next: define the read width from the packed operation, admit full-width `VecSqrtF32` and
-  `VecTruncF32ToS32` memory forms through the encoder and dependent passes, then compare scalar
-  and packed outputs on finite values and overflow-checked casts.
-- Complete when: a full-width packed unary memory operation has correct alias, promotion and
-  encoding metadata, and the truncation fixture emits `cvttps2dq xmm, [mem]`.
-
-### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
-
-- Recorded: 2026-09-18 19:48
-- Area: compiler/backend, constant materialization
-- Evidence: four `Swag.abs(f32)` stores now form a scalar constant load, `pshufd`, packed load,
-  `andps`, packed store (five body instructions). LLVM uses a 16-byte repeated sign-mask constant
-  directly as the `andps` memory operand, for three body instructions. The scalar constant
-  allocation owns only four bytes, so reusing it as a packed memory operand is unsound; the SLP
-  pass correctly materializes a register splat instead.
-- Next: design an interned 128-bit repeated-constant allocation with an explicit relocation and
-  memory-operand legality contract; use it only where the packed operation can read all 16 bytes.
-- Complete when: the sign-mask fixture loads or consumes a verified 128-bit constant without a
-  scalar-to-vector shuffle, and relocation/JIT tests cover the allocation boundary.
-
+- Recorded: 2026-09-23 09:25
+- Area: compiler/backend, compilation time
+- Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
+  --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
+  branch simplification alone is 16.2 s of it, **24.8%**, across 72,546 runs of which 38.6%
+  rewrite something. The next pass is register allocation at 11.3%, then instruction combine
+  at 7.9%. A six-worker stack profile of the same build puts the pass at 12.9% of busy CPU,
+  spread over some twenty sub-transforms none of which reaches 1.5% — there is no hot spot,
+  only a battery of scans.
+- How it got there: the cold release rebuild of the big modules slowed by half in one week at
+  unchanged sources. Paired, order-alternated rebuilds give gui 12.3 s → 18.4 s and pixel
+  6.5 s → 11.1 s between 0.1.684 (2026-09-16) and 0.1.1035 (2026-09-21), while gui's sources
+  moved from 105,315 to 105,483 lines. Bisecting the same measurement puts 0.1.823
+  (2026-09-17 01:33) still at the old speed and 0.1.885 (2026-09-17 13:29) already at the new
+  one — the window that added some fifty narrowing, diamond and short-circuit patterns.
+- Taken in 0.1.1046: seven transforms opened on the same walk of the function and ten more
+  rebuilt the same jump-target counts and relocation set; one shared walk now serves a run and
+  is dropped when a transform rewrites the stream. Single-core, alternated: core 0.97, pixel
+  0.93, gui 0.95, video 0.92, seven of eight pairs favourable. `buildProgramLayout` fell from
+  1.67% to 0.73% of busy CPU.
+- What remains: the pass still runs about thirty-seven transforms, and each one scans the whole
+  function looking for a shape most functions do not hold. The cost is therefore the number of
+  patterns times the size of every function compiled, which is why a pattern campaign shows up
+  as a compile-time regression with no single culprit.
+- Next: give the shared walk a summary of which opcode families the function actually holds —
+  conditional jump, setcc, jump table, float compare — and let a transform whose anchor opcode is
+  absent return without scanning. Measure first what share of the 72,546 runs are on functions
+  holding no conditional jump at all; the transforms are cheap to gate but the cost is dominated
+  by large branchy functions, so that share decides whether the gate is worth its risk.
+- Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
+  drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
+- Related: compiler.optimization.029, compiler.optimization.039.
 
 ### compiler.optimization.029 — The pre-RA optimization loop rebuilds SSA after every mutating pass
 
 - Recorded: 2026-09-05 22:13
-- Updated: 2026-09-16 17:33 — Retained the below-floor SSA verdict and noted the separately fixed baseline failure.
+- Updated: 2026-09-23 09:25 — The cost has grown by half; measure again before discarding it.
 - Area: compiler/backend, compilation time
 - Evidence: `MicroPassManager::runPass` invalidates the shared SSA state whenever a pass sets
   `passChanged`, and `MicroSsaState::ensureFor` rebuilds it before the next query. Instrumented on
@@ -83,11 +87,49 @@ block, and the hot path keeps the register.
   gave baseline/candidate total process CPU of 232.938/233.938 seconds for the count variant.
   Median wall time was 18.571/18.046 seconds, with individual runs spanning 16.114-21.722 seconds;
   that spread does not establish a gain. Both implementations were discarded from the branch.
-- Next: revisit only with a cheaper representation or evidence that this cost has grown. Avoid
-  generalizing a mutation contract across passes on the strength of this below-floor result.
+- 2026-09-23 (Release 0.1.1046): `MicroSsaState::build` is **7.05% of busy CPU** on a
+  six-worker `bin/std` release rebuild, 300,712 builds for 33,062 functions — nine per
+  function. Inside it: the rename walk 2.4%, phi placement 1.4%, the collection walk 1.6%,
+  dominators 0.4%. The passes that pay for a rebuild are constant folding 2.1%, copy
+  elimination 1.1%, instruction combine 1.0%, value numbering 1.0%, guarded-select diamonds
+  0.9%, branch simplification 0.7%. Constant folding now spends three times as long
+  rebuilding SSA as it spends folding.
+- Next: revisit with the 2026-09-23 numbers rather than the below-floor 2026-09-16 verdict.
+  Avoid generalizing a mutation contract across passes on the strength of that old result.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+### compiler.optimization.044 — Packed unary operations cannot consume a 128-bit memory source
+
+- Recorded: 2026-09-18 19:48
+- Area: compiler/backend, instruction selection
+- Evidence: four adjacent `f32 -> s32` truncations now form `movups`, `cvttps2dq`, `movups`
+  (three body instructions plus return). LLVM reads the input directly in `cvttps2dq`, leaving
+  two body instructions. `VecUnaryRegMem` is intentionally widening-only today: its encoder
+  asserts one of the six widening operations, and `VecLoopPromote` records every such read as
+  eight bytes. Extending only the SLP rewrite would therefore lie to the encoder and memory
+  analysis about a 16-byte read.
+- Next: define the read width from the packed operation, admit full-width `VecSqrtF32` and
+  `VecTruncF32ToS32` memory forms through the encoder and dependent passes, then compare scalar
+  and packed outputs on finite values and overflow-checked casts.
+- Complete when: a full-width packed unary memory operation has correct alias, promotion and
+  encoding metadata, and the truncation fixture emits `cvttps2dq xmm, [mem]`.
+
+### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
+
+- Recorded: 2026-09-18 19:48
+- Area: compiler/backend, constant materialization
+- Evidence: four `Swag.abs(f32)` stores now form a scalar constant load, `pshufd`, packed load,
+  `andps`, packed store (five body instructions). LLVM uses a 16-byte repeated sign-mask constant
+  directly as the `andps` memory operand, for three body instructions. The scalar constant
+  allocation owns only four bytes, so reusing it as a packed memory operand is unsound; the SLP
+  pass correctly materializes a register splat instead.
+- Next: design an interned 128-bit repeated-constant allocation with an explicit relocation and
+  memory-operand legality contract; use it only where the packed operation can read all 16 bytes.
+- Complete when: the sign-mask fixture loads or consumes a verified 128-bit constant without a
+  scalar-to-vector shuffle, and relocation/JIT tests cover the allocation boundary.
+
+
 ### compiler.optimization.040 — Returning a fresh aggregate invokes its copy hook
 
 - Recorded: 2026-09-16 14:37

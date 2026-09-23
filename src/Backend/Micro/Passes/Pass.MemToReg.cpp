@@ -420,15 +420,16 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // base sits: once the peephole folds the code generator's base copy into
     // its users, `[sp + C]` and `lea r, [sp + C]` are `[fb + C - D]` for a base
     // `lea fb, [sp + D]`. Reading them as anything else hides both their
-    // writes and the escape of the addresses they make. That holds while the
-    // body never moves the stack pointer - stack-adjust normalization leaves
-    // one subtract at entry and one release in front of each return - so a
-    // function that moves it elsewhere and still names it is left alone.
-    const auto isFrameRegister     = [&](const MicroReg reg) { return reg == frameBase || reg == stackPointer; };
-    const auto frameRegisterOffset = [&](const MicroReg reg) -> uint64_t { return reg == stackPointer ? 0ull - frameBaseSpOffset : 0; };
+    // writes and the escape of the addresses they make. That only holds while
+    // the body never moves the stack pointer. A function with calls can reserve
+    // outgoing argument space around each call while continuing to address all
+    // locals through the stable frame base. In that case, ignore SP-relative
+    // memory altogether instead of abandoning promotion for the frame-base
+    // slots. A local address stored into the untracked outgoing area still
+    // appears as a tracked VALUE and the generic escape scan poisons its object.
+    bool stackPointerTracksFrame = true;
     {
         bool spMoved    = false;
-        bool spNamed    = false;
         bool inEntryRun = true;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
@@ -459,14 +460,18 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (rref.reg && *rref.reg == stackPointer)
                 {
-                    spNamed = true;
                     spMoved |= rref.def;
                 }
             }
         }
-        if (spMoved && spNamed)
-            return Result::Continue;
+        stackPointerTracksFrame = !spMoved;
     }
+    const auto isFrameRegister = [&](const MicroReg reg) {
+        return reg == frameBase || (stackPointerTracksFrame && reg == stackPointer);
+    };
+    const auto frameRegisterOffset = [&](const MicroReg reg) -> uint64_t {
+        return reg == stackPointer ? 0ull - frameBaseSpOffset : 0;
+    };
 
     // ---- Pass 1: collect address registers `lea ar, [fb + off]`. ----
     struct AddrRegInfo
@@ -909,7 +914,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         inst.collectRegOperands(operands, regRefs, context.encoder);
         for (const auto& rref : regRefs)
         {
-            if (!rref.reg || !(isTracked(*rref.reg) || *rref.reg == stackPointer))
+            if (!rref.reg || !(isTracked(*rref.reg) || (stackPointerTracksFrame && *rref.reg == stackPointer)))
                 continue;
             const bool isExplainedBase    = baseValid && *rref.reg == baseReg && isHandledScalarMemOp(inst.op);
             const bool isExplainedValue   = storesTrackedValue && *rref.reg == valueReg;

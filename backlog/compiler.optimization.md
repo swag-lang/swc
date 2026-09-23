@@ -521,28 +521,6 @@ block, and the hot path keeps the register.
 - Complete when: the remaining repeated pointer/element reads disappear with sound alias and
   control-flow proofs, or a focused experiment identifies the register-residency constraint.
 
-### compiler.optimization.033 — CSV aggregation retains a cross-file map-probe call
-
-- Recorded: 2026-09-07 09:33
-- Area: compiler/inlining, generated-code performance
-- Found while: the generated-code campaign, comparing current clang-cl, MSVC, and Swag release
-  output at `8d3f0498b` on 2026-09-07.
-- Evidence: both C++ compilers inline `mapProbe` into CSV aggregation. Swag calls it once for
-  each of 400,000 input rows. Its declaration is in `bench/src/swagnat/bytemap.swg`, while the
-  caller is in `csvagg.swg`; `shouldAutoInline` in `SemaInline.cpp` rejects a different source Ast before
-  considering the body budget. The delimiter scans already match C++ at five instructions and
-  one memory operation per character. The extra extension in the numeric scans preserves Swag's
-  byte-width subtraction and cannot be removed merely because C++ promotes that subtraction.
-- Constraint: cross-Ast inlining requires safe publication and rebinding of the callee body,
-  and an acyclic completion dependency. The generic cross-Ast attempt in std.video.005
-  miscompiled the `aoc2019` smoke; removing the source-Ast gate alone is not a safe fix.
-- Next: establish a same-module, non-generic cross-file eligibility and publication contract,
-  then compare the inlined map-probe loop and its caller's frame traffic. Keep benchmark sources
-  unchanged and exercise cross-file binding and the script smokes with parallel compilation.
-- Complete when: the call disappears with correct cross-file binding and better emitted code,
-  or a focused experiment identifies which remaining eligibility rule prevents the gain.
-- Related: std.video.005.
-
 ### compiler.optimization.005 — Complex loop-carried frame slots still lose registers
 
 - Recorded: 2026-08-07 08:30

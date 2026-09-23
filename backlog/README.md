@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.video.md](std.video.md) | `std/video` | 2026-09-23 19:25 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-23 17:21 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-23 16:57 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-23 16:54 |
@@ -45,7 +46,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.gui.html.md](std.gui.html.md) | The HTML engine behind `Gui.HtmlView` | 2026-09-15 09:12 |
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-12 18:05 |
-| [std.video.md](std.video.md) | `std/video` | 2026-09-12 17:40 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-12 10:21 |
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-12 10:02 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-12 07:12 |

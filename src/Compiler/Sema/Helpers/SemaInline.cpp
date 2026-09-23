@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -2509,10 +2510,9 @@ namespace
     // Auto mode candidate selection. Beyond canInlineCall's structural guards:
     //  - skip generics (cross-Ast generic inlining re-binds generic params in the caller, not
     //    handled here);
-    //  - only volunteer SAME-Ast callees: a cross-module callee's Ast is owned by another,
-    //    possibly concurrently running, compilation job, so reading its node/paged stores from
-    //    this thread is unsafe. Marked cross-module functions still inline through
-    //    tryInlineCall's explicit cross-Ast path;
+    //  - only volunteer same-module callees. A same-module body in another Ast is immutable after
+    //    parsing, and tryInlineCall waits for its sema job before cloning it. An imported callee
+    //    belongs to another module and remains an explicit-inline contract;
     //  - use the parser's cost/shape verdict to keep code growth in check and reject constructs
     //    whose lexical context the materializer cannot preserve.
     // An aggregate/by-value-struct type whose inline materialization is not yet reliable
@@ -2583,7 +2583,11 @@ namespace
         if (!resolveFunctionDecl(sema, fn, decl, declAst))
             return false;
         if (declAst != &sema.ast())
-            return false;
+        {
+            const SourceFile* sourceFile = sema.compiler().sourceViewFile(fn);
+            if (!sourceFile || sourceFile->moduleNamespace() != &sema.moduleNamespace())
+                return false;
+        }
         if (decl->nodeBodyRef.isInvalid())
             return false;
         const bool bodyHasCalls = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);

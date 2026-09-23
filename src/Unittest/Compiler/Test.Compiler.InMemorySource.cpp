@@ -300,6 +300,68 @@ func leaf() => useCandidates()
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AutoInlineExpandsSameModuleCrossFileBody)
+{
+    static constexpr std::string_view PROVIDER = R"(#global public
+func increment(value: s32)->s32 => value + 1
+)";
+    static constexpr std::string_view CALLER = R"(#global public
+func useIncrement(value: s32)->s32 => increment(value)
+)";
+    const fs::path providerPath = Unittest::makeTestSourcePath("Compiler", "AutoInlineProvider");
+    const fs::path callerPath   = Unittest::makeTestSourcePath("Compiler", "AutoInlineCaller");
+
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Sema;
+    cmdLine.name            = "compiler_auto_inline_same_module_cross_file";
+    cmdLine.moduleNamespace = "CompilerAutoInline";
+    cmdLine.silent          = true;
+    cmdLine.numCores        = 6;
+    cmdLine.buildCfg        = "release";
+    cmdLine.files.insert(providerPath);
+    cmdLine.files.insert(callerPath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, providerPath, PROVIDER);
+    Unittest::registerTestSource(compiler, callerPath, CALLER);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    TaskContext compilerCtx(compiler);
+    for (SourceFile* file : compiler.files())
+    {
+        if (!FileSystem::pathEquals(file->path(), callerPath))
+            continue;
+
+        Sema   sema(compilerCtx, file->nodePayloadContext(), false);
+        size_t calls    = 0;
+        size_t expanded = 0;
+        Ast::visit(file->ast(), file->ast().root(), [&](AstNodeRef ref, const AstNode& node) {
+            if (!node.is(AstNodeId::CallExpr))
+                return Ast::VisitResult::Continue;
+
+            ++calls;
+            if (sema.hasSubstitute(ref))
+            {
+                const AstNodeRef bodyRef = sema.viewZero(ref).nodeRef();
+                if (sema.inlinePayload(bodyRef))
+                    ++expanded;
+            }
+            return Ast::VisitResult::Continue;
+        });
+        if (calls != 1 || expanded != 1)
+            return Result::Error;
+        return Result::Continue;
+    }
+
+    return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ExplicitInlineExpandsCrossFileBody)
 {
     static constexpr std::string_view PROVIDER     = R"(#[Swag.Inline]

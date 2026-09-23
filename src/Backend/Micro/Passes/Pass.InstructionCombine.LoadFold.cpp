@@ -1385,6 +1385,82 @@ namespace InstructionCombine
 
         return foldAmcLoadIntoCompareAt(ctx, loadRef, vt, base, index, loadOps[5].valueU64, loadOps[6].valueU64, loadBits, loadBits, /*needsUnsignedConds=*/false);
     }
+
+    // A value loaded into a general register only to be moved into a vector
+    // register is loaded into the vector register instead:
+    //
+    //     LoadRegMem  vt,   [b+o]           LoadRegMem  fd, [b+o]
+    //     LoadRegReg  fd,   vt        ->
+    //
+    // This is the mirror of tryFoldLaneCopyIntoStore, which sends a lane to
+    // memory without the general register. A scalar float load zeroes the
+    // upper lanes exactly as MOVD/MOVQ from a general register does, so the
+    // vector register holds the same bits. Reading a global double went
+    // through `mov rax, [rip]` + `movq xmm0, rax` before this.
+    //
+    // The load keeps its own instruction - only its destination operand
+    // changes - so a relocation bound to it stays bound.
+    bool tryLoadDirectlyIntoFloat(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa || !ctx.builder)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+
+        // LoadRegMem: [dst, base, valBits, offset].
+        // LoadAmcRegMem: [dst, base, index, valBits, addrBits, scale, disp].
+        uint8_t valBitsIndex = 0;
+        switch (loadInst.op)
+        {
+            case MicroInstrOpcode::LoadRegMem:
+                valBitsIndex = 2;
+                break;
+            case MicroInstrOpcode::LoadAmcRegMem:
+                valBitsIndex = 3;
+                break;
+            default:
+                return false;
+        }
+
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroOpBits loadBits = loadOps[valBitsIndex].opBits;
+        if (!vt.isVirtualInt())
+            return false;
+        if (loadBits != MicroOpBits::B32 && loadBits != MicroOpBits::B64)
+            return false;
+        if (!valueHasSingleUse(*ctx.ssa, vt, loadRef))
+            return false;
+
+        // The move must sit right after the load: the vector register's
+        // definition then moves up by one instruction, over nothing.
+        const MicroInstrRef copyRef  = ctx.storage->findNextInstructionRef(loadRef);
+        const MicroInstr*   copyInst = copyRef.isValid() ? ctx.storage->ptr(copyRef) : nullptr;
+        if (!copyInst || copyInst->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+
+        const MicroInstrOperand* copyOps = copyInst->ops(*ctx.operands);
+        if (!copyOps || copyOps[1].reg != vt || copyOps[2].opBits != loadBits)
+            return false;
+
+        const MicroReg fd = copyOps[0].reg;
+        if (!fd.isVirtualFloat() || ctx.builder->shouldPreserveVirtualCopy(fd))
+            return false;
+
+        // The load is rewritten where it stands, so its relocation survives;
+        // the erased move must carry none of its own.
+        if (ctx.isRelocated(copyRef) || !ctx.claimAll({loadRef, copyRef}, /*allowRelocated=*/true))
+            return false;
+
+        MicroInstrOperand newOps[8] = {};
+        for (uint8_t idx = 0; idx < loadInst.numOperands; ++idx)
+            newOps[idx] = loadOps[idx];
+        newOps[0].reg = fd;
+        ctx.emitRewrite(loadRef, loadInst.op, std::span{newOps, loadInst.numOperands}, /*allocNewBlock=*/false);
+        ctx.emitErase(copyRef);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

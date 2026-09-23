@@ -231,7 +231,8 @@ namespace PostRaPeephole
         if (!convert || convert->op != MicroInstrOpcode::OpBinaryRegReg || !convertOps ||
             convertOps[0].reg != clear[0].reg || !convertOps[1].reg.isInt() ||
             convertOps[2].opBits != clear[1].opBits ||
-            (convertOps[3].microOp != MicroOp::ConvertIntToFloat && convertOps[3].microOp != MicroOp::ConvertInt64ToFloat32))
+            (convertOps[3].microOp != MicroOp::ConvertIntToFloat && convertOps[3].microOp != MicroOp::ConvertInt64ToFloat32 &&
+             convertOps[3].microOp != MicroOp::ConvertInt32ToFloat64))
             return false;
 
         const MicroInstrRef retRef = ctx.nextRef(convertRef);
@@ -786,7 +787,8 @@ namespace PostRaPeephole
             if (!candidate || candidate->op == MicroInstrOpcode::Label)
                 return false;
 
-            if (candidate->op == MicroInstrOpcode::OpBinaryRegRegReg && candidate->numOperands >= 5)
+            if ((candidate->op == MicroInstrOpcode::OpBinaryRegRegReg && candidate->numOperands >= 5) ||
+                (candidate->op == MicroInstrOpcode::OpBinaryRegReg && candidate->numOperands >= 4))
             {
                 const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
                 if (candidateOps && candidateOps[0].reg == src)
@@ -819,16 +821,37 @@ namespace PostRaPeephole
         if (!opInst || ctx.isClaimed(opRef))
             return false;
         const MicroInstrOperand* opOps = ctx.operandsFor(opRef);
-        if (!opOps || opOps[3].opBits != copyBits || !opOps[1].reg.isFloat() || !opOps[2].reg.isFloat())
+        if (!opOps)
             return false;
+
+        // The two-operand form names its destination as its own left source:
+        // `xmm1 *= xmm0` spelled out is `xmm1 = xmm1 * xmm0`. Widening it here
+        // is what lets the copy go, since the temporary is the destination.
+        MicroInstrOperand newOps[5] = {};
+        if (opInst->op == MicroInstrOpcode::OpBinaryRegReg)
+        {
+            if (opOps[2].opBits != copyBits || !foldableIntoThreeOperand(opOps[3].microOp, copyBits) ||
+                !opOps[0].reg.isFloat() || !opOps[1].reg.isFloat())
+                return false;
+            if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
+                return false;
+            newOps[1].reg    = opOps[0].reg;
+            newOps[2].reg    = opOps[1].reg;
+            newOps[3].opBits = opOps[2].opBits;
+            newOps[4]        = opOps[3];
+        }
+        else
+        {
+            if (opOps[3].opBits != copyBits || !opOps[1].reg.isFloat() || !opOps[2].reg.isFloat())
+                return false;
+            std::ranges::copy(std::span{opOps, 5}, newOps);
+        }
 
         if (!ctx.claimAll({opRef, copyRef}))
             return false;
 
-        MicroInstrOperand newOps[5] = {};
-        std::ranges::copy(std::span{opOps, 5}, newOps);
         newOps[0].reg = dst;
-        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5});
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5}, /*allocNewBlock=*/true);
         ctx.emitErase(copyRef);
         return true;
     }

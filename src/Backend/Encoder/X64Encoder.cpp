@@ -859,6 +859,7 @@ namespace
                 return 0x29;
             case MicroOp::ConvertIntToFloat:
             case MicroOp::ConvertInt64ToFloat32:
+            case MicroOp::ConvertInt32ToFloat64:
                 return 0x2A;
             case MicroOp::ConvertUIntToFloat64:
                 return 0x2B;
@@ -3300,6 +3301,14 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
             SWC_ASSERT(opBits == MicroOpBits::B32);
             emitCpuOp(store_, 0xF3);
             emitRex(store_, MicroOpBits::B64, regDst, regSrc);
+        }
+        else if (op == MicroOp::ConvertInt32ToFloat64)
+        {
+            // CVTSI2SD takes a dword source without REX.W and sign-extends it
+            // itself, so a 32-bit value needs no widening move in front.
+            SWC_ASSERT(opBits == MicroOpBits::B64);
+            emitCpuOp(store_, 0xF2);
+            emitRex(store_, MicroOpBits::B32, regDst, regSrc);
         }
         else
         {

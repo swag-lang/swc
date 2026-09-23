@@ -16,6 +16,7 @@ namespace CodeGenMemoryHelpers
 {
     void     emitGlobalVariableAddress(CodeGen& codeGen, MicroReg reg, const SymbolVariable& symVar);
     void     emitConvertFloatToInt(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);
+    void     emitConvertIntToFloat(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, MicroOpBits srcOpBits, MicroOpBits dstOpBits, bool unsignedSource);
     void     loadOperandToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits);
     MicroReg materializeScalarPayloadForStore(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef srcTypeRef, TypeRef targetTypeRef);
     void     storePayloadToAddress(CodeGen& codeGen, MicroReg dstReg, const CodeGenNodePayload& srcPayload, uint32_t copySize);

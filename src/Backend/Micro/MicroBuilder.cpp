@@ -833,7 +833,11 @@ void MicroBuilder::emitConvertIntToFloat(MicroReg regDst, MicroReg regSrc, Micro
     SWC_ASSERT(regDst.isAnyFloat() && regSrc.isAnyInt());
     SWC_ASSERT(dstBits == MicroOpBits::B32 || dstBits == MicroOpBits::B64);
     SWC_ASSERT(srcBits == MicroOpBits::B32 || srcBits == MicroOpBits::B64);
-    const MicroOp op = dstBits == MicroOpBits::B32 && srcBits == MicroOpBits::B64 ? MicroOp::ConvertInt64ToFloat32 : MicroOp::ConvertIntToFloat;
+    MicroOp op = MicroOp::ConvertIntToFloat;
+    if (dstBits == MicroOpBits::B32 && srcBits == MicroOpBits::B64)
+        op = MicroOp::ConvertInt64ToFloat32;
+    else if (dstBits == MicroOpBits::B64 && srcBits == MicroOpBits::B32)
+        op = MicroOp::ConvertInt32ToFloat64;
     emitOpBinaryRegReg(regDst, regSrc, op, dstBits);
 }
 

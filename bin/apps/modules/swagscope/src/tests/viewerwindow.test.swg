@@ -845,6 +845,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeQueuedViewerFile(&host, window)
     completeViewerStatistics(&host, window)
     window.toggleFilePanel()
+    window.setPlayMode(.Folder)
+    window.openFile(Path.combine(folder.toString(), "report-with-a-name-too-long-for-the-fixed-history-panel.txt").toString(), remember: false)
+    completeQueuedViewerFile(&host, window)
+    completeViewerStatistics(&host, window)
     window.applyLayout()
     host.settleAnimations(window, 4)
 
@@ -2213,6 +2217,57 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     return folder
 }
 
+// A folder round follows the current file in the panel, keeps it visible, and softens only the
+// files already read in that round. Leaving the folder modes restores ordinary row rendering.
+#test
+{
+    let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("scope_folder_progress_%", Guid64.random()).toString())
+    expect Directory.create(folder.toString())
+    defer discard catch Directory.delete(folder.toString(), recurse: true)
+
+    let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
+    let imageBytes  = imageSource.bytes()
+    for i in 24 do
+        discard expect File.writeAllBytes(Path.combine(folder.toString(), Format.toString("pic%.svg", i).toString()).toString(), imageBytes)
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(Path.combine(folder.toString(), "pic0.svg").toString())
+    completeQueuedViewerFile(&host, window)
+    window.openFile(window.folderFiles[20].toString(), remember: false)
+    completeQueuedViewerFile(&host, window)
+    window.setFilePanelVisible(true)
+    window.applyLayout()
+
+    let firstIndex = window.siblingIndex
+    window.folderList.scrollWnd.setScrollPos(0, 0)
+    Swag.assert(firstIndex > window.folderList.lastVisibleLineIndex())
+
+    window.setPlayMode(.Folder)
+    Swag.assert(window.folderList.isLineSelected(cast(u32) firstIndex))
+    Swag.assert(window.folderList.firstVisibleLineIndex() <= firstIndex and firstIndex <= window.folderList.lastVisibleLineIndex())
+    Swag.assert(window.folderList.lineAt(cast(u32) firstIndex)!.colorFg == window.themeColors().label_TextLight)
+    Swag.assert(window.folderList.lineAt(cast(u32) firstIndex - 1)!.colorFg.a == 0)
+
+    Swag.assert(window.continueFile(.Folder))
+    completeQueuedViewerFile(&host, window)
+    let secondIndex = window.siblingIndex
+    Swag.assert(secondIndex == firstIndex + 1 and window.folderList.isLineSelected(cast(u32) secondIndex))
+    Swag.assert(window.folderList.firstVisibleLineIndex() <= secondIndex and secondIndex <= window.folderList.lastVisibleLineIndex())
+    Swag.assert(window.folderList.lineAt(cast(u32) firstIndex)!.colorFg == window.themeColors().label_TextLight)
+    Swag.assert(window.folderList.lineAt(cast(u32) secondIndex + 1)!.colorFg.a == 0)
+
+    window.setPlayMode(.Once)
+    Swag.assert(window.folderReadingFiles.isEmpty())
+    for i in window.folderList.lineCount() do
+        Swag.assert(window.folderList.lineAt(i)!.colorFg.a == 0)
+}
+
 // A folder play mode walks the files the current viewer opens, in folder order and around again
 // past the last one, whatever the panel filter says; a file alone of its kind has no successor.
 // The file it brings up is not one the reader chose, so the history does not grow with it.
@@ -2232,6 +2287,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     window.openFile(Path.combine(folder.toString(), "pic1.svg").toString())
     completeQueuedViewerFile(&host, window)
     window.setFolderSameKind(false)
+    window.setPlayMode(.Folder)
     let recentCount = window.recent.count
 
     Swag.assert(window.continueFile(.Folder))
@@ -2243,6 +2299,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(window.continueFile(.Folder))
     completeQueuedViewerFile(&host, window)
     Swag.assert(Path.fileName(window.currentFile.toString()) == "pic1.svg")
+    Swag.assert(window.folderReadingFiles.count == 1 and window.folderReadingFiles[0] == window.currentFile)
     Swag.assert(window.recent.count == recentCount)
 
     // The one text file has nothing of its kind to go on with, in either folder mode.
@@ -2268,6 +2325,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     window.resize(960, 680)
     window.openFile(Path.combine(folder.toString(), "pic1.svg").toString())
     completeQueuedViewerFile(&host, window)
+    window.setPlayMode(.Shuffle)
 
     // Three continuations from the first picture reach the three others, whatever their order.
     var seen: Array'String
@@ -2284,7 +2342,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     // Every file has had its turn: a new round starts, and not with the one that just ended.
     let last = String.from(Path.fileName(window.currentFile.toString()) orelse "")
     Swag.assert(window.continueFile(.Shuffle))
-    Swag.assert(window.shufflePlayed.count == 1)
+    Swag.assert(window.folderReadingFiles.count == 1)
     Swag.assert(Path.fileName(window.pendingFile.toString()) != last.toString())
     completeQueuedViewerFile(&host, window)
 }

@@ -343,6 +343,113 @@ namespace PostRaPeephole
         ctx.emitRewrite(defRef, MicroInstrOpcode::ClearReg, std::span<const MicroInstrOperand>(clearOps, 2));
         return true;
     }
+
+    // A zero materialized in a scratch register and then copied is materialized
+    // where it is wanted:
+    //
+    //     xorpd xmm0, xmm0 ; movapd xmm12, xmm0    ->    xorpd xmm12, xmm12
+    //
+    // The clear stays where it stands, so nothing moves relative to the flags
+    // it writes on the integer side; only its destination changes and the copy
+    // goes. It is what a merge of two branches assigning zero leaves behind
+    // once register allocation has given the merged value its own register.
+    bool tryFoldClearIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+        const MicroReg    dst  = copyOps[0].reg;
+        const MicroReg    src  = copyOps[1].reg;
+        const MicroOpBits bits = copyOps[2].opBits;
+        if (dst == src || dst.isFloat() != src.isFloat() || ctx.isPrivateFrameBase(dst))
+            return false;
+
+        // The scratch register must not survive the copy: it stops being
+        // written once the clear names the destination instead.
+        if (!ctx.isRegDeadAfterCurrent(src))
+            return false;
+
+        const MicroInstrRef clearRef  = ctx.previousRef(copyRef);
+        const MicroInstr*   clearInst = clearRef.isValid() ? ctx.instruction(clearRef) : nullptr;
+        if (!clearInst || clearInst->op != MicroInstrOpcode::ClearReg || clearInst->numOperands < 2 || ctx.isClaimed(clearRef))
+            return false;
+
+        const MicroInstrOperand* clearOps = ctx.operandsFor(clearRef);
+        if (!clearOps || clearOps[0].reg != src || clearOps[1].opBits != bits)
+            return false;
+
+        if (!ctx.claimAll({clearRef, copyRef}))
+            return false;
+
+        MicroInstrOperand newOps[2];
+        newOps[0].reg    = dst;
+        newOps[1].opBits = bits;
+        ctx.emitRewrite(clearRef, MicroInstrOpcode::ClearReg, std::span<const MicroInstrOperand>(newOps, 2));
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
+    // A constant re-materialized into a register that already holds it costs a
+    // whole instruction and buys nothing:
+    //
+    //     mov eax, 255 ; cmp rcx, 255 ; cmovg rdx, rax ; mov eax, 255 ; ...
+    //
+    // The register allocator rematerializes rather than keeping a constant
+    // live, which is the right call across a spill but not two instructions
+    // later. raytrace clamps three colour channels against 255 in a row and
+    // reloaded the bound before each one.
+    //
+    // The search stays inside the block and stops at anything that writes the
+    // register, so the earlier value is the one still there.
+    bool tryEraseRepeatedImmediate(Context& ctx, const MicroInstrRef defRef, const MicroInstr& defInst)
+    {
+        constexpr uint32_t K_MAX_WINDOW = 8;
+
+        if (ctx.isClaimed(defRef) || defInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* defOps = defInst.ops(*ctx.operands);
+        if (!defOps || defOps[2].hasWideImmediateValue())
+            return false;
+
+        const MicroReg    reg   = defOps[0].reg;
+        const MicroOpBits bits  = defOps[1].opBits;
+        const uint64_t    value = defOps[2].valueU64;
+        if (!reg.isAnyInt())
+            return false;
+
+        MicroInstrRef cursor = ctx.previousRef(defRef);
+        for (uint32_t step = 0; step < K_MAX_WINDOW && cursor.isValid(); ++step, cursor = ctx.previousRef(cursor))
+        {
+            const MicroInstr* previous = ctx.instruction(cursor);
+            if (!previous || ctx.isClaimed(cursor))
+                return false;
+
+            const MicroInstrOperand* previousOps = previous->ops(*ctx.operands);
+            if (previous->op == MicroInstrOpcode::LoadRegImm && previousOps && previousOps[0].reg == reg &&
+                previousOps[1].opBits == bits && !previousOps[2].hasWideImmediateValue() && previousOps[2].valueU64 == value)
+            {
+                if (!ctx.claimAll({defRef}))
+                    return false;
+                ctx.emitErase(defRef);
+                return true;
+            }
+
+            const MicroInstrDef& info = MicroInstr::info(previous->op);
+            if (previous->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+
+            const MicroInstrUseDef useDef = previous->collectUseDef(*ctx.operands, ctx.encoder);
+            if (regInList(useDef.defs.span(), reg))
+                return false;
+        }
+
+        return false;
+    }
 }
 
 SWC_END_NAMESPACE();

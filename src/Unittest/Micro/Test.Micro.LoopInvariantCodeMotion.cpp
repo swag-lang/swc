@@ -442,16 +442,22 @@ SWC_TEST_BEGIN(LICM_KeepsIntegerClearWhenFlagsAreLiveAtEitherSite)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(LICM_HoistsScalarLiteralLoadsButKeepsZeroLocal)
+// A scalar float literal legalizes to a constant-pool read, and x86 arithmetic
+// takes that read as its own memory operand. So a literal every in-loop reader
+// consumes in a foldable position stays in the loop - hoisting it would remove
+// no instruction and hold a register across the whole body - while one read in
+// a position that cannot fold is hoisted as before.
+SWC_TEST_BEGIN(LICM_KeepsAFoldableScalarLiteralInTheLoop)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
-        for (const bool zero : {false, true})
+        for (const bool foldable : {true, false})
         {
             constexpr MicroReg  base    = MicroReg::virtualIntReg(1);
             constexpr MicroReg  count   = MicroReg::virtualIntReg(2);
             constexpr MicroReg  value   = MicroReg::virtualFloatReg(1);
             constexpr MicroReg  literal = MicroReg::virtualFloatReg(2);
+            constexpr MicroReg  scaled  = MicroReg::virtualFloatReg(3);
             const uint64_t      half    = bits == MicroOpBits::B32 ? 0x3F000000ULL : 0x3FE0000000000000ULL;
             MicroBuilder        builder(ctx);
             const MicroLabelRef loop = builder.createLabel();
@@ -459,9 +465,21 @@ SWC_TEST_BEGIN(LICM_HoistsScalarLiteralLoadsButKeepsZeroLocal)
             builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
             builder.placeLabel(loop);
             builder.emitLoadRegMem(value, base, 0, bits);
-            builder.emitLoadRegImm(literal, ApInt(zero ? 0 : half, 64), bits);
-            builder.emitOpBinaryRegReg(value, literal, MicroOp::FloatMultiply, bits);
-            builder.emitLoadMemReg(base, 0, value, bits);
+            builder.emitLoadRegImm(literal, ApInt(half, 64), bits);
+            if (foldable)
+            {
+                // `value *= literal`: the literal is the source a memory
+                // operand replaces.
+                builder.emitOpBinaryRegReg(value, literal, MicroOp::FloatMultiply, bits);
+                builder.emitLoadMemReg(base, 0, value, bits);
+            }
+            else
+            {
+                // `scaled = literal - value`: the literal is the left operand,
+                // which the memory form cannot hold.
+                builder.emitOpBinaryRegRegReg(scaled, literal, value, MicroOp::FloatSubtract, bits);
+                builder.emitLoadMemReg(base, 0, scaled, bits);
+            }
             builder.emitOpBinaryRegImm(base, ApInt(getNumBits(bits) / 8, 64), MicroOp::Add, MicroOpBits::B64);
             builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
             builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
@@ -478,7 +496,7 @@ SWC_TEST_BEGIN(LICM_HoistsScalarLiteralLoadsButKeepsZeroLocal)
                 if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg == literal)
                 {
                     found = true;
-                    if ((position < header) == zero)
+                    if ((position < header) == foldable)
                         return Result::Error;
                 }
                 ++position;

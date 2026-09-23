@@ -39,6 +39,17 @@ namespace InstructionCombine
                     return false;
             }
         }
+
+        // Whether `reg` reaches `atRef` from a scalar float literal, which
+        // legalization lowers to a constant-pool read.
+        bool isScalarFloatLiteralReg(const Context& ctx, const MicroReg reg, const MicroInstrRef atRef)
+        {
+            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+            if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegImm)
+                return false;
+            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+            return ops && ops[0].reg == reg && (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64);
+        }
     }
 
     bool tryFoldConstantLhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst)
@@ -114,6 +125,55 @@ namespace InstructionCombine
         newOps[2].microOp = microOp;
         newOps[3].setImmediateValue(ApInt(immOps[2].valueU64 & getBitsMask(opBits), getNumBits(opBits)));
         ctx.emitRewrite(binRef, MicroInstrOpcode::OpBinaryRegImm, newOps);
+        return true;
+    }
+
+    // The same idea for a three-operand float operation: a scalar literal on the
+    // left cannot become the memory operand, because x86 reads its second source
+    // from memory. Commuting puts the constant where the constant-pool fold can
+    // reach it, so `4.0 * c` stops holding a register of its own.
+    //
+    //     LoadRegImm k, 4.0                     LoadRegImm k, 4.0
+    //     OpBinaryRegRegReg d, k, c, fmul  ->   OpBinaryRegRegReg d, c, k, fmul
+    bool tryCommuteFloatConstantLhs(Context& ctx, const MicroInstrRef binRef, const MicroInstr& binInst)
+    {
+        if (ctx.isClaimed(binRef) || !ctx.ssa || binInst.numOperands < 5)
+            return false;
+
+        const MicroInstrOperand* binOps = binInst.ops(*ctx.operands);
+        if (!binOps)
+            return false;
+
+        const MicroOpBits bits = binOps[3].opBits;
+        if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            return false;
+
+        switch (binOps[4].microOp)
+        {
+            case MicroOp::FloatAdd:
+            case MicroOp::FloatMultiply:
+            case MicroOp::FloatAnd:
+            case MicroOp::FloatXor:
+                break;
+            default:
+                return false;
+        }
+
+        const MicroReg left  = binOps[1].reg;
+        const MicroReg right = binOps[2].reg;
+        if (!left.isVirtualFloat() || !right.isVirtualFloat() || left == right)
+            return false;
+        if (!isScalarFloatLiteralReg(ctx, left, binRef) || isScalarFloatLiteralReg(ctx, right, binRef))
+            return false;
+
+        if (!ctx.claimAll({binRef}))
+            return false;
+
+        MicroInstrOperand newOps[5];
+        std::ranges::copy(std::span{binOps, 5}, newOps);
+        newOps[1].reg = right;
+        newOps[2].reg = left;
+        ctx.emitRewrite(binRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5});
         return true;
     }
 }

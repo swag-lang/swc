@@ -84,6 +84,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldIndexedAddressIntoAccess);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFoldIndexedAddressIntoAccess);
+        r.add(MicroInstrOpcode::OpBinaryRegRegReg, tryCommuteFloatConstantLhs);
         r.add(MicroInstrOpcode::LoadRegMem, tryLoadDirectlyIntoFloat);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryLoadDirectlyIntoFloat);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoExtend);

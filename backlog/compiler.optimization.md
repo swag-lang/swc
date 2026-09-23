@@ -19,6 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
+- Updated: 2026-09-23 09:40 — Measured the opcode gate this entry proposed, and closed it.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -42,11 +43,18 @@ block, and the hot path keeps the register.
   function looking for a shape most functions do not hold. The cost is therefore the number of
   patterns times the size of every function compiled, which is why a pattern campaign shows up
   as a compile-time regression with no single culprit.
-- Next: give the shared walk a summary of which opcode families the function actually holds —
-  conditional jump, setcc, jump table, float compare — and let a transform whose anchor opcode is
-  absent return without scanning. Measure first what share of the 72,546 runs are on functions
-  holding no conditional jump at all; the transforms are cheap to gate but the cost is dominated
-  by large branchy functions, so that share decides whether the gate is worth its risk.
+- Measured, and the obvious gate is not worth it: instrumenting the pass over the same rebuild,
+  38 592 runs land on a function holding no conditional jump at all and cost 2.42 s of the pass's
+  33.1 s — **7.3%**, about 0.9% of the compilation. Gating them would also have to spare the
+  structural loop, which threads unconditional jump chains and erases unreachable code in exactly
+  those functions, so the reachable share is smaller still. Do not spend a gate on it.
+- What the same probe does say: a run on a 28-instruction branchless function still costs 63 us,
+  against 485 us for a 126-instruction branchy one. The pass has a large **fixed** cost per run —
+  entering some thirty-seven transforms, each with its own scratch containers — that does not
+  scale with the function. That, not the scanning, is what a pattern campaign multiplies.
+- Next: attack the fixed per-run cost rather than the per-function one. Profile a run on a small
+  function alone and find what 63 us is spent on; the shared walk of 0.1.1046 removed the
+  repeated instruction walks, so what remains is transform entry and per-transform scratch.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.

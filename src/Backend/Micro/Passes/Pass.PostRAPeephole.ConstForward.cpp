@@ -343,6 +343,54 @@ namespace PostRaPeephole
         ctx.emitRewrite(defRef, MicroInstrOpcode::ClearReg, std::span<const MicroInstrOperand>(clearOps, 2));
         return true;
     }
+
+    // A zero materialized in a scratch register and then copied is materialized
+    // where it is wanted:
+    //
+    //     xorpd xmm0, xmm0 ; movapd xmm12, xmm0    ->    xorpd xmm12, xmm12
+    //
+    // The clear stays where it stands, so nothing moves relative to the flags
+    // it writes on the integer side; only its destination changes and the copy
+    // goes. It is what a merge of two branches assigning zero leaves behind
+    // once register allocation has given the merged value its own register.
+    bool tryFoldClearIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+        const MicroReg    dst  = copyOps[0].reg;
+        const MicroReg    src  = copyOps[1].reg;
+        const MicroOpBits bits = copyOps[2].opBits;
+        if (dst == src || dst.isFloat() != src.isFloat() || ctx.isPrivateFrameBase(dst))
+            return false;
+
+        // The scratch register must not survive the copy: it stops being
+        // written once the clear names the destination instead.
+        if (!ctx.isRegDeadAfterCurrent(src))
+            return false;
+
+        const MicroInstrRef clearRef  = ctx.previousRef(copyRef);
+        const MicroInstr*   clearInst = clearRef.isValid() ? ctx.instruction(clearRef) : nullptr;
+        if (!clearInst || clearInst->op != MicroInstrOpcode::ClearReg || clearInst->numOperands < 2 || ctx.isClaimed(clearRef))
+            return false;
+
+        const MicroInstrOperand* clearOps = ctx.operandsFor(clearRef);
+        if (!clearOps || clearOps[0].reg != src || clearOps[1].opBits != bits)
+            return false;
+
+        if (!ctx.claimAll({clearRef, copyRef}))
+            return false;
+
+        MicroInstrOperand newOps[2];
+        newOps[0].reg    = dst;
+        newOps[1].opBits = bits;
+        ctx.emitRewrite(clearRef, MicroInstrOpcode::ClearReg, std::span<const MicroInstrOperand>(newOps, 2));
+        ctx.emitErase(copyRef);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

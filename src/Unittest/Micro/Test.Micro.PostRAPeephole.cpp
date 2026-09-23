@@ -1799,6 +1799,44 @@ SWC_TEST_BEGIN(PostRAPeephole_TwoOperandFloatResultCopy_TakesThreeOperands)
 }
 SWC_TEST_END()
 
+// A zero materialized in a scratch register and copied away is materialized in
+// the destination instead; a scratch register still read afterwards keeps both.
+SWC_TEST_BEGIN(PostRAPeephole_ClearThenCopy_ClearsTheDestination)
+{
+    constexpr MicroReg xmm0    = MicroReg::floatReg(0);
+    constexpr MicroReg scratch = MicroReg::floatReg(3);
+    constexpr MicroReg kept    = MicroReg::floatReg(4);
+
+    for (const bool scratchStaysLive : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitClearReg(scratch, MicroOpBits::B64);
+        builder.emitLoadRegReg(kept, scratch, MicroOpBits::B64);
+        if (scratchStaysLive)
+            builder.emitOpBinaryRegReg(xmm0, scratch, MicroOp::FloatAdd, MicroOpBits::B64);
+        else
+            builder.emitOpBinaryRegReg(xmm0, kept, MicroOp::FloatAdd, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder));
+
+        const uint32_t copies = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg);
+        if (copies != (scratchStaysLive ? 1u : 0u))
+            return Result::Error;
+
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::ClearReg)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (!ops || ops[0].reg != (scratchStaysLive ? scratch : kept))
+                return Result::Error;
+        }
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

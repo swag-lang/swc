@@ -1771,6 +1771,34 @@ SWC_TEST_END()
 
 // A scalar float copied only as the second operand of a three-operand
 // operation: the operation reads the source.
+// A two-operand float operation whose result is copied away is widened to the
+// three-operand form and computes into the destination: `xmm1 *= xmm2 ;
+// movsd xmm0, xmm1` becomes `vmulsd xmm0, xmm1, xmm2`.
+SWC_TEST_BEGIN(PostRAPeephole_TwoOperandFloatResultCopy_TakesThreeOperands)
+{
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+    MicroBuilder       builder(ctx);
+    X64Encoder         encoder(ctx);
+    builder.emitOpBinaryRegReg(xmm1, xmm2, MicroOp::FloatMultiply, MicroOpBits::B64);
+    builder.emitLoadRegReg(xmm0, xmm1, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops &&
+            ops[0].reg == xmm0 && ops[1].reg == xmm1 && ops[2].reg == xmm2)
+            return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

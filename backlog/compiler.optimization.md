@@ -19,7 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-23 10:15 — Found and removed the fixed per-run cost: the pass is 45% cheaper.
+- Updated: 2026-09-23 10:58 — Removed the fixed per-run cost and a quadratic flag-liveness lookup.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -58,11 +58,14 @@ block, and the hot path keeps the register.
   the short-circuit coalescer opened with a use/def query per instruction and a pair of ordinal
   lists per register, read only after three filters had matched. Collecting both on first request
   took the pass from 16.7 s to 9.1 s of summed worker time over a bin/std release rebuild.
-- Next: the pass is now 9.1 s spread over some thirty-seven transforms, the largest being
-  `fuseMaterializedBoolBranches` at 11%, `convertEqualityChainsToBitTests` at 10% and
-  `coalesceShortCircuitResults` at 7%. `fuseMaterializedBoolBranches` calls
-  `areCpuFlagsDeadAfterInCfg` per candidate jump, which rebuilds the control-flow graph whenever
-  a previous transform invalidated it; that is the next shape worth timing.
+- The same shape again, taken in 0.1.1048: `areCpuFlagsDeadAfterInCfg` mapped an instruction
+  reference back to its graph index with a linear search of the graph's instruction list, and
+  eleven sites ask it once per candidate they examine - quadratic in the function.
+  `MicroControlFlowGraph::indexOf` now answers from a table built on first request.
+- Next: re-time the transforms. Before 0.1.1048 the pass was 9.1 s over some thirty-seven of them,
+  the largest being `fuseMaterializedBoolBranches` at 11%, `convertEqualityChainsToBitTests` at
+  10% and `coalesceShortCircuitResults` at 7%; the flag-liveness fix lands mostly on the first,
+  so the ranking needs reading again before choosing the next one.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.

@@ -238,6 +238,73 @@ namespace
         }
     }
 
+    // Every branch-shape transform below opens on the same walk: the program order
+    // with its label ordinals, how many jumps name each label, and how many operands
+    // mention each virtual integer register. All of it is a pure function of the
+    // instruction stream, so one walk serves a whole pass run and is redone only
+    // after a transform has rewritten that stream.
+    struct BranchScan
+    {
+        ProgramLayout                          layout;
+        std::unordered_map<uint32_t, uint32_t> labelReferences;
+        std::unordered_map<uint32_t, uint32_t> mentions;
+        bool                                   indirectJump = false;
+    };
+
+    struct BranchScanCache
+    {
+        BranchScan scan;
+        bool       built = false;
+
+        void invalidate()
+        {
+            built = false;
+        }
+    };
+
+    // Null when the function jumps through a register or takes a label's address:
+    // none of the transforms that share this walk can reason about where such a jump
+    // lands, and each one used to give up on the same test.
+    BranchScan* ensureBranchScan(BranchScanCache& cache, MicroStorage& storage, MicroOperandStorage& operands)
+    {
+        BranchScan& scan = cache.scan;
+        if (!cache.built)
+        {
+            cache.built       = true;
+            scan.indirectJump = false;
+            scan.labelReferences.clear();
+            scan.mentions.clear();
+            buildProgramLayout(scan.layout, storage, operands);
+
+            SmallVector<MicroInstrRegOperandRef> regOperands;
+            for (const MicroInstrRef ref : scan.layout.order)
+            {
+                const MicroInstr* inst = storage.ptr(ref);
+                if (!inst)
+                    continue;
+                if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                {
+                    scan.indirectJump = true;
+                    break;
+                }
+
+                uint32_t labelId = 0;
+                if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                    ++scan.labelReferences[labelId];
+
+                regOperands.clear();
+                inst->collectRegOperands(operands, regOperands, nullptr);
+                for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                {
+                    if (regOperand.reg && regOperand.reg->isVirtualInt())
+                        ++scan.mentions[regOperand.reg->index()];
+                }
+            }
+        }
+
+        return scan.indirectJump ? nullptr : &scan;
+    }
+
     bool isTargetInImmediateLabelRun(const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef jumpRef, const uint32_t targetLabelId)
     {
         if (jumpRef.get() >= layout.ordinalByRef.size())
@@ -571,7 +638,8 @@ namespace
     // the first says nothing of the second.
     bool foldImpliedBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState)
     {
-        ProgramLayout layout;
+        // Reused buffer: buildProgramLayout resets every member it holds.
+        thread_local ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
         const uint32_t count = static_cast<uint32_t>(layout.order.size());
 
@@ -767,7 +835,8 @@ namespace
 
     bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {
-        ProgramLayout layout;
+        // Reused buffer: buildProgramLayout resets every member it holds.
+        thread_local ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
         const KnownValueContext context{&ssaState, &storage, &operands};
 
@@ -1143,7 +1212,8 @@ namespace
     // first so each result register takes over the next one's readers.
     bool coalesceShortCircuitResults(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
     {
-        ProgramLayout layout;
+        // Reused buffer: buildProgramLayout resets every member it holds.
+        thread_local ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
         const size_t count = layout.order.size();
 
@@ -1394,7 +1464,8 @@ namespace
         if (!builder)
             return false;
 
-        ProgramLayout layout;
+        // Reused buffer: buildProgramLayout resets every member it holds.
+        thread_local ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
 
         struct ConstantEdge
@@ -1513,26 +1584,16 @@ namespace
     //
     // A NaN fails both tests and the absolute one alike, and -0.0 passes all
     // three. The mask is 16 bytes, aligned: andps reads a whole m128.
-    bool foldAbsoluteRangeTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool foldAbsoluteRangeTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
         if (!context.builder || !context.taskContext || !context.taskContext->hasCompiler())
             return false;
 
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        for (const MicroInstrRef ref : layout.order)
-        {
-            const MicroInstr* inst = storage.ptr(ref);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
-        }
+        BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
+        if (!scanPtr)
+            return false;
+        const ProgramLayout& layout          = scanPtr->layout;
+        auto&                labelReferences = scanPtr->labelReferences;
 
         const auto at = [&](size_t ordinal, MicroInstrOpcode op) -> const MicroInstrOperand* {
             const MicroInstr* inst = ordinal < layout.order.size() ? storage.ptr(layout.order[ordinal]) : nullptr;
@@ -1671,23 +1732,13 @@ namespace
     // a cheap block, and the jump over it goes. A bounds-checked load is
     // clang's `xor eax, eax ; cmp ; jae ; mov`. It runs on the converged IR,
     // after the select conversions that take a diamond whole.
-    bool speculateCheapElseArms(MicroStorage& storage, MicroOperandStorage& operands)
+    bool speculateCheapElseArms(MicroStorage& storage, MicroOperandStorage& operands, BranchScanCache& scanCache)
     {
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        for (const MicroInstrRef ref : layout.order)
-        {
-            const MicroInstr* inst = storage.ptr(ref);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
-        }
+        BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
+        if (!scanPtr)
+            return false;
+        const ProgramLayout& layout          = scanPtr->layout;
+        auto&                labelReferences = scanPtr->labelReferences;
 
         bool changed = false;
         for (size_t ordinal = 0; ordinal + 5 < layout.order.size(); ++ordinal)
@@ -1786,7 +1837,8 @@ namespace
     {
         constexpr uint32_t K_MAX_CHAIN = 6;
 
-        ProgramLayout layout;
+        // Reused buffer: buildProgramLayout resets every member it holds.
+        thread_local ProgramLayout layout;
         buildProgramLayout(layout, storage, operands);
 
         // Labels placed past a join's test, by the join's jump.
@@ -1927,7 +1979,7 @@ namespace
     // is one bit test when the constants span less than a word, as LLVM's
     // SimplifyBranchOnICmpChain and switch bit-test lowering produce. The
     // dual `c != C1 and c != C2 ...` (setne, the same exits) is its complement.
-    bool convertEqualityChainsToBitTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertEqualityChainsToBitTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
         constexpr uint32_t K_MIN_CHAIN = 3;
         constexpr uint32_t K_MAX_CHAIN = 64;
@@ -1935,30 +1987,12 @@ namespace
         if (!context.builder)
             return false;
 
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        std::unordered_map<uint32_t, uint32_t> mentions;
-        SmallVector<MicroInstrRegOperandRef>   regOperands;
-        for (const MicroInstrRef ref : layout.order)
-        {
-            MicroInstr* inst = storage.ptr(ref);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
-            regOperands.clear();
-            inst->collectRegOperands(operands, regOperands, nullptr);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
-            {
-                if (regOperand.reg && regOperand.reg->isVirtualInt())
-                    ++mentions[regOperand.reg->index()];
-            }
-        }
+        BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
+        if (!scanPtr)
+            return false;
+        const ProgramLayout& layout          = scanPtr->layout;
+        auto&                labelReferences = scanPtr->labelReferences;
+        auto&                mentions        = scanPtr->mentions;
 
         std::unordered_set<uint32_t> relocated;
         for (const MicroRelocation& reloc : context.builder->codeRelocations())
@@ -2204,7 +2238,7 @@ namespace
         return inst && (inst->op == MicroInstrOpcode::CmpRegImm || inst->op == MicroInstrOpcode::CmpRegReg);
     }
 
-    bool convertOrChainsToBranchless(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertOrChainsToBranchless(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
         constexpr uint32_t K_MAX_LINKS = 4;
         constexpr uint32_t K_MAX_BODY  = 3;
@@ -2212,30 +2246,12 @@ namespace
         if (!context.builder)
             return false;
 
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        std::unordered_map<uint32_t, uint32_t> mentions;
-        SmallVector<MicroInstrRegOperandRef>   regOperands;
-        for (const MicroInstrRef ref : layout.order)
-        {
-            const MicroInstr* inst = storage.ptr(ref);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
-            regOperands.clear();
-            inst->collectRegOperands(operands, regOperands, nullptr);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
-            {
-                if (regOperand.reg && regOperand.reg->isVirtualInt())
-                    ++mentions[regOperand.reg->index()];
-            }
-        }
+        BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
+        if (!scanPtr)
+            return false;
+        const ProgramLayout& layout          = scanPtr->layout;
+        auto&                labelReferences = scanPtr->labelReferences;
+        auto&                mentions        = scanPtr->mentions;
 
         struct Link
         {
@@ -2307,6 +2323,7 @@ namespace
                 if (!links.empty())
                 {
                     std::unordered_map<uint32_t, uint32_t> inside;
+                    SmallVector<MicroInstrRegOperandRef>   regOperands;
                     for (size_t index = at; index <= link.merge; ++index)
                     {
                         regOperands.clear();
@@ -2429,35 +2446,17 @@ namespace
                leftOps[2].valueU64 == rightOps[2].valueU64;
     }
 
-    bool convertThreeWaySignDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertThreeWaySignDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
         if (!context.builder)
             return false;
 
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        std::unordered_map<uint32_t, uint32_t> mentions;
-        SmallVector<MicroInstrRegOperandRef>   regOperands;
-        for (const MicroInstrRef ref : layout.order)
-        {
-            const MicroInstr* inst = storage.ptr(ref);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
-            regOperands.clear();
-            inst->collectRegOperands(operands, regOperands, nullptr);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
-            {
-                if (regOperand.reg && regOperand.reg->isVirtualInt())
-                    ++mentions[regOperand.reg->index()];
-            }
-        }
+        BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
+        if (!scanPtr)
+            return false;
+        const ProgramLayout& layout          = scanPtr->layout;
+        auto&                labelReferences = scanPtr->labelReferences;
+        auto&                mentions        = scanPtr->mentions;
 
         std::unordered_set<uint32_t> relocated;
         for (const MicroRelocation& reloc : context.builder->codeRelocations())
@@ -2645,7 +2644,7 @@ namespace
     // holds the default, a hole or entry N, which also keeps the shift inside
     // the register. The cases may also join after their loads, the default
     // then being what D held before the chain.
-    bool convertSwitchesToPackedTables(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertSwitchesToPackedTables(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
         constexpr size_t   K_MIN_CASES    = 3;
         constexpr uint64_t K_MAX_ENTRIES  = 63;
@@ -2654,21 +2653,11 @@ namespace
         if (!context.builder)
             return false;
 
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        for (const MicroInstrRef ref : layout.order)
-        {
-            const MicroInstr* inst = storage.ptr(ref);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
-        }
+        BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
+        if (!scanPtr)
+            return false;
+        const ProgramLayout& layout          = scanPtr->layout;
+        auto&                labelReferences = scanPtr->labelReferences;
 
         std::unordered_set<uint32_t> relocated;
         for (const MicroRelocation& reloc : context.builder->codeRelocations())
@@ -4477,25 +4466,15 @@ namespace
     // ordered `x > y` test selects; minss is the mirror. Only the strict test
     // matches: `x >= y ? x : y` keeps x on equal values, where maxss would
     // hand back y, and 0.0 and -0.0 compare equal.
-    bool convertFloatSelectsToMinMax(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertFloatSelectsToMinMax(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
         constexpr uint32_t K_MAX_FLAG_WINDOW = 4;
 
-        ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
-
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        for (const MicroInstrRef ref : layout.order)
-        {
-            const MicroInstr* inst = storage.ptr(ref);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
-        }
+        BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
+        if (!scanPtr)
+            return false;
+        const ProgramLayout& layout          = scanPtr->layout;
+        auto&                labelReferences = scanPtr->labelReferences;
 
         const auto floatCopy = [&](const MicroInstr* inst, MicroOpBits bits, MicroReg& outDst, MicroReg& outSrc) {
             if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
@@ -5139,6 +5118,39 @@ namespace
         return true;
     }
 
+    // The diamond transforms below all read the same two facts about the function:
+    // how many jumps name each label, and which instructions a relocation pins. Both
+    // are a pure function of the instruction stream and the relocation list, so one
+    // scan serves every transform of a run and is redone only once a transform has
+    // rewritten either.
+    struct DiamondScanCache
+    {
+        DiamondScan scan;
+        bool        built  = false;
+        bool        usable = false;
+
+        void invalidate()
+        {
+            built = false;
+        }
+    };
+
+    DiamondScan* ensureDiamondScan(DiamondScanCache& cache, MicroStorage& storage, MicroOperandStorage& operands, const MicroPassContext& context)
+    {
+        if (!cache.built)
+        {
+            cache.scan.labelReferences.clear();
+            cache.scan.relocated.clear();
+            cache.usable = prepareDiamondScan(cache.scan, storage, operands, context);
+            cache.built  = true;
+        }
+
+        // Every transform that reads SSA installs its own state; none inherits the
+        // one a previous transform left behind, whose storage is already gone.
+        cache.scan.ssa = nullptr;
+        return cache.usable ? &cache.scan : nullptr;
+    }
+
     // The compared value is already available in a register before the
     // branch, so an arm that reloads the exact same cell can reuse it. This
     // exposes an ordinary two-copy diamond to the generic if-converter:
@@ -5156,11 +5168,12 @@ namespace
     // The source load must immediately feed the comparison, and no write or
     // call may occur before the reload. Keeping these constraints local makes
     // the memory equivalence independent of alias analysis.
-    bool forwardComparedLoadIntoDiamondArm(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool forwardComparedLoadIntoDiamondArm(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -5276,11 +5289,12 @@ namespace
     //   .Lreverse:                         cmovbe result, reverse
     //     result = [right] - [left]
     //   .Ljoin:
-    bool convertComparedLoadsSubtractDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertComparedLoadsSubtractDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         const auto sameAddress = [](const MicroInstrOperand* loadOps, const MicroInstrOperand* memoryOps) {
             return loadOps[1].reg == memoryOps[1].reg && loadOps[2].reg == memoryOps[2].reg &&
@@ -5484,11 +5498,12 @@ namespace
     // those values in zero-extended registers and select the difference from
     // the subtraction flags instead of retaining the load-bearing diamond.
     bool convertComparedMemoryNarrowSaturatingSubtract(MicroStorage& storage, MicroOperandStorage& operands,
-                                                       MicroPassContext& context, MicroSsaState& localSsaState)
+                                                       MicroPassContext& context, MicroSsaState& localSsaState, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -5652,11 +5667,12 @@ namespace
     // same cells. Reuse the compared values, compute both non-wrapping choices
     // in 32 bits, and select from the flags of left minus right.
     bool convertRepeatedLoadNarrowAbsoluteDifference(MicroStorage& storage, MicroOperandStorage& operands,
-                                                     MicroPassContext& context, MicroSsaState& localSsaState)
+                                                     MicroPassContext& context, MicroSsaState& localSsaState, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -5865,11 +5881,12 @@ namespace
     // This is the common `cell == 0 ? fallback : cell` shape. General diamond
     // conversion deliberately cannot speculate loads, while this one is safe
     // because the preceding memory compare performed the same access.
-    bool convertComparedLoadDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertComparedLoadDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -5990,11 +6007,12 @@ namespace
 
     // Select one of two adjacent cells through an index, so exactly the chosen
     // address is read without retaining the diamond's two loads and jumps.
-    bool convertAdjacentLoadDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertAdjacentLoadDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -6174,11 +6192,12 @@ namespace
     // result on that path. Both arms use the generic diamond safety checks;
     // additionally neither may observe entry flags or overwrite an operand of
     // either comparison, since both comparisons move below the arms.
-    bool convertGuardedSelectDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    bool convertGuardedSelectDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         scan.ssa = MicroSsaState::ensureFor(context, localSsaState);
         if (!scan.ssa || !scan.ssa->isValid())
@@ -6300,11 +6319,12 @@ namespace
         return false;
     }
 
-    bool convertDiamondsToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    bool convertDiamondsToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         std::vector<Diamond> diamonds;
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
@@ -6470,11 +6490,12 @@ namespace
         return MicroPassHelpers::areCpuFlagsDeadAfter(*scan.storage, *scan.operands, triangle.joinLabelRef, scan.builder);
     }
 
-    bool convertTrianglesToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState)
+    bool convertTrianglesToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, MicroSsaState& localSsaState, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         std::vector<Triangle> triangles;
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
@@ -6788,11 +6809,12 @@ namespace
         return true;
     }
 
-    bool convertEarlyReturnsToSelects(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertEarlyReturnsToSelects(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, DiamondScanCache& scanCache)
     {
-        DiamondScan scan;
-        if (!prepareDiamondScan(scan, storage, operands, context))
+        DiamondScan* scanPtr = ensureDiamondScan(scanCache, storage, operands, context);
+        if (!scanPtr)
             return false;
+        DiamondScan& scan = *scanPtr;
 
         const CallConv& conv = CallConv::get(context.callConvKind);
         if (!conv.intReturn.isValid())
@@ -6982,9 +7004,18 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     if (late_)
     {
-        bool lateChanged = speculateCheapElseArms(storage, operands);
-        lateChanged |= threadShortCircuitReturnValues(storage, operands, context.builder);
-        lateChanged |= foldAbsoluteRangeTests(storage, operands, context);
+        thread_local BranchScanCache scanCache;
+        scanCache.invalidate();
+
+        bool lateChanged = speculateCheapElseArms(storage, operands, scanCache);
+        if (lateChanged)
+            scanCache.invalidate();
+        if (threadShortCircuitReturnValues(storage, operands, context.builder))
+        {
+            lateChanged = true;
+            scanCache.invalidate();
+        }
+        lateChanged |= foldAbsoluteRangeTests(storage, operands, context, scanCache);
         if (lateChanged)
         {
             context.passChanged = true;
@@ -7004,11 +7035,28 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         computeKnownValues(knownValues, knownFlags, *ssaState, storage, operands);
 
     bool changed = false;
+
+    // One walk of the instruction stream serves every transform below that opens on
+    // the program order and its label and register counts. It only describes the
+    // stream as it stands, so a transform that rewrites it drops the walk, and the
+    // next reader pays for a new one; a run where nothing fires pays for exactly one.
+    thread_local BranchScanCache scanCache;
+    scanCache.invalidate();
+    const auto      rewrote = [&](const bool transformChanged) {
+        if (transformChanged)
+        {
+            changed = true;
+            scanCache.invalidate();
+        }
+
+        return transformChanged;
+    };
+
     if (ssaState && ssaState->isValid())
-        changed |= foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags);
+        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags));
     // The SSA snapshot describes the code before any fold above.
     if (!changed && ssaState && ssaState->isValid())
-        changed |= foldImpliedBranches(storage, operands, *ssaState);
+        rewrote(foldImpliedBranches(storage, operands, *ssaState));
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
@@ -7024,33 +7072,32 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         roundChanged |= eraseUnreferencedLabels(storage, operands, context);
         if (!roundChanged)
             break;
-        changed = true;
+        rewrote(true);
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
-    changed |= convertEqualityChainsToBitTests(storage, operands, context);
-    changed |= convertSwitchesToPackedTables(storage, operands, context);
-    changed |= foldRangeChecks(storage, operands, context);
+    rewrote(convertEqualityChainsToBitTests(storage, operands, context, scanCache));
+    rewrote(convertSwitchesToPackedTables(storage, operands, context, scanCache));
+    rewrote(foldRangeChecks(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     // A whole `or` chain goes at once, before the two-link form takes its tail.
-    changed |= convertOrChainsToBranchless(storage, operands, context);
-    changed |= convertThreeWaySignDiamonds(storage, operands, context);
-    changed |= forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context);
-    changed |= convertShortCircuitBooleans(storage, operands, context);
+    rewrote(convertOrChainsToBranchless(storage, operands, context, scanCache));
+    rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache));
+    rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context));
+    rewrote(convertShortCircuitBooleans(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
-    changed |= foldRangeAnds(storage, operands, context);
+    rewrote(foldRangeAnds(storage, operands, context));
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
 
-    changed |= convertFloatSelectsToMinMax(storage, operands, context);
-    if (convertBranchesToConditionalMoves(storage, operands, context))
+    rewrote(convertFloatSelectsToMinMax(storage, operands, context, scanCache));
+    if (rewrote(convertBranchesToConditionalMoves(storage, operands, context)))
     {
-        changed = true;
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
@@ -7061,7 +7108,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         structuralChanged = false;
 
         {
-            ProgramLayout layout;
+            // Reused buffer: buildProgramLayout resets every member it holds.
+            thread_local ProgramLayout layout;
             buildProgramLayout(layout, storage, operands);
             structuralChanged |= redirectJumpChains(storage, operands, layout);
             const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
@@ -7087,19 +7135,17 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             }
         }
 
-        changed |= structuralChanged;
+        rewrote(structuralChanged);
     }
 
-    if (factorByteMultiplyDiamond(storage, operands, context))
+    if (rewrote(factorByteMultiplyDiamond(storage, operands, context)))
     {
-        changed = true;
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
 
-    if (convertBooleanGuardPairs(storage, operands, context))
+    if (rewrote(convertBooleanGuardPairs(storage, operands, context)))
     {
-        changed = true;
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
@@ -7114,86 +7160,99 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             context.ssaState->invalidate();
         localSsaState.invalidate();
     }
-    if (convertComparedLoadDiamond(storage, operands, context))
+
+    thread_local DiamondScanCache diamondCache;
+    diamondCache.invalidate();
+    if (convertComparedLoadDiamond(storage, operands, context, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertAdjacentLoadDiamond(storage, operands, context))
+    if (convertAdjacentLoadDiamond(storage, operands, context, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (forwardComparedLoadIntoDiamondArm(storage, operands, context))
+    if (forwardComparedLoadIntoDiamondArm(storage, operands, context, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertComparedMemoryNarrowSaturatingSubtract(storage, operands, context, localSsaState))
+    if (convertComparedMemoryNarrowSaturatingSubtract(storage, operands, context, localSsaState, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertRepeatedLoadNarrowAbsoluteDifference(storage, operands, context, localSsaState))
+    if (convertRepeatedLoadNarrowAbsoluteDifference(storage, operands, context, localSsaState, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertComparedLoadsSubtractDiamond(storage, operands, context))
+    if (convertComparedLoadsSubtractDiamond(storage, operands, context, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    if (convertGuardedSelectDiamonds(storage, operands, context, localSsaState))
+    if (convertGuardedSelectDiamonds(storage, operands, context, localSsaState, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
-    else if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState))
+    else if (convertDiamondsToConditionalMoves(storage, operands, context, localSsaState, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
 
-    if (!changed && convertTrianglesToConditionalMoves(storage, operands, context, localSsaState))
+    if (!changed && convertTrianglesToConditionalMoves(storage, operands, context, localSsaState, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
 
-    if (convertEarlyReturnsToSelects(storage, operands, context))
+    if (convertEarlyReturnsToSelects(storage, operands, context, diamondCache))
     {
         changed = true;
+        diamondCache.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }

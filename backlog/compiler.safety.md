@@ -43,6 +43,42 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
+
+- Recorded: 2026-09-08 07:59
+- Updated: 2026-09-23 17:05 — Measured the pass alone: 9.9% of a DevMode core rebuild, 7.2% in the chain walk.
+- Area: compiler/backend, `Sanitizer`
+- Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
+  populated over far more of a function than before, and the transfer function gained a scan of
+  the convention's argument registers at every call. One cold `std` build with each compiler gave
+  1 min 23 s against 2 min 21 s, but the per-module split of that same pair is incoherent — `core`
+  20.6 s against 4.6 s, `pixel` 7.3 s against 56.6 s — so the run measured machine noise, not the
+  pass. No conclusion may be drawn from it in either direction.
+- The 2026-09-13 changes `ab595100b` and `55a30fbbf` precompute sanity and runtime-safety
+  override masks in `AttributeList`, removing repeated attribute scans. They do not establish the
+  cost of the lifecycle state propagation or its call-argument scan in `Sanitizer`. Their
+  [validation report](../bench/results/compilation/20260913-sema-codegen/README.md) explicitly
+  defers comparative timing; passing the safety and sanity suites is functional evidence only.
+- **Measured, 2026-09-23** (Release 0.1.1056 with a PDB, six workers, a user-mode sampling
+  profiler, three merged runs of `swc build -w bin/std -m core -bc devmode --rebuild` on a quiet
+  machine, 677 busy samples): `MicroSanityPass::run` is **9.9% of the busy CPU** of that rebuild,
+  essentially all of it `Sanitizer::run` at 9.45%, of which `Sanitizer::walkChain` alone is
+  **7.2%**. The same pass over a `release` rebuild of the whole of `bin/std` is 3.5%, and the
+  per-pass timers put it at 7.3% of the micro pipeline's own CPU there, changing nothing on any
+  function. So the pass costs about three times more in the configuration people compile in all
+  day than in the one the earlier note looked at, and the chain walk is where it goes.
+- What that buys the reader: the 2026-09-08 whole-build pair was noise, as that note says; this is
+  the pass's own share, and it is large enough to be worth a design question rather than a
+  micro-optimization. The engine deliberately stores state only at chain heads and recomputes
+  straight-line chains on the fly, because storing per instruction "made big loopy functions take
+  minutes" - `walkChain` is that recomputation, so making it cheaper means changing what is
+  remembered, not tightening a loop.
+- Next: decide whether 9.9% of a DevMode module rebuild is the intended price of the analysis. If
+  it is not, the measurement to take first is how many times the same chain is re-walked per
+  function, because that is what the head-only state trades away.
+- Complete when: the sanity pass's share of compile time is recorded before and after, and either
+  found acceptable or reduced.
+
 ### compiler.safety.024 — A mutable cast can write through an any that borrows a literal
 
 - Recorded: 2026-09-16 07:54
@@ -144,27 +180,6 @@ is the current scorecard.
   bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
   survives at the interop and bit-punning boundary, which is where the marker belongs and where it
   joins compiler.safety.007. Also compiler.safety.014.
-
-### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
-
-- Recorded: 2026-09-08 07:59
-- Updated: 2026-09-14 06:26 — Distinguish shipped attribute-mask reductions from the unmeasured lifecycle analysis cost.
-- Area: compiler/backend, `Sanitizer`
-- Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
-  populated over far more of a function than before, and the transfer function gained a scan of
-  the convention's argument registers at every call. One cold `std` build with each compiler gave
-  1 min 23 s against 2 min 21 s, but the per-module split of that same pair is incoherent — `core`
-  20.6 s against 4.6 s, `pixel` 7.3 s against 56.6 s — so the run measured machine noise, not the
-  pass. No conclusion may be drawn from it in either direction.
-- The 2026-09-13 changes `ab595100b` and `55a30fbbf` precompute sanity and runtime-safety
-  override masks in `AttributeList`, removing repeated attribute scans. They do not establish the
-  cost of the lifecycle state propagation or its call-argument scan in `Sanitizer`. Their
-  [validation report](../bench/results/compilation/20260913-sema-codegen/README.md) explicitly
-  defers comparative timing; passing the safety and sanity suites is functional evidence only.
-- Next: measure the pass alone rather than a whole build: `--stats` build-phase profiling on one
-  module, DevMode compiler, three runs each, with the machine otherwise idle.
-- Complete when: the sanity pass's share of compile time is recorded before and after, and either
-  found acceptable or reduced.
 
 ### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
 

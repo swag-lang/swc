@@ -563,6 +563,48 @@ SWC_TEST_BEGIN(MicroDomTree_MatchesPathsThroughDiamondAndLoop)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LICM_ReassociatesThreeRegisterAddressInCurrentLoopPreheader)
+{
+    constexpr MicroReg outerBase = MicroReg::virtualIntReg(1);
+    constexpr MicroReg fixed     = MicroReg::virtualIntReg(2);
+    constexpr MicroReg induction = MicroReg::virtualIntReg(3);
+    constexpr MicroReg nested    = MicroReg::virtualIntReg(4);
+    constexpr MicroReg value     = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef loop = builder.createLabel();
+    builder.emitLoadRegReg(outerBase, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitLoadRegReg(fixed, MicroReg::intReg(3), MicroOpBits::B64);
+    builder.emitLoadRegImm(induction, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.placeLabel(loop);
+    builder.emitLoadAddressAmcRegMem(nested, MicroOpBits::B64, fixed, induction, 1, 0, MicroOpBits::B64);
+    builder.emitLoadAmcRegMem(value, MicroOpBits::B64, outerBase, nested, 1, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(induction, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(induction, ApInt(uint64_t{8}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+    builder.emitRet();
+
+    SWC_RESULT(runLicmPass(builder));
+
+    const uint32_t labelPosition = firstPositionOf(builder, MicroInstrOpcode::Label);
+    uint32_t       position      = 0;
+    MicroReg       rooted        = MicroReg::invalid();
+    bool           rewroteLoad   = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadAddrAmcRegMem && position < labelPosition && ops && ops[1].reg == outerBase && ops[2].reg == fixed)
+            rooted = ops[0].reg;
+        if (inst.op == MicroInstrOpcode::LoadAmcRegMem && ops && rooted.isValid() && ops[1].reg == rooted && ops[2].reg == induction)
+            rewroteLoad = true;
+        ++position;
+    }
+    if (!rooted.isValid() || !rewroteLoad)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NaturalLoop_CollectBody_CountsMembersOnceAcrossTailsAndRebuilds)
 {
     MicroBuilder        builder(ctx);

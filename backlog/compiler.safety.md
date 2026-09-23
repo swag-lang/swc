@@ -46,7 +46,7 @@ is the current scorecard.
 ### compiler.safety.019 — The sanity pass's own cost is unmeasured after the lifecycle widening
 
 - Recorded: 2026-09-08 07:59
-- Updated: 2026-09-23 17:05 — Measured the pass alone: 9.9% of a DevMode core rebuild, 7.2% in the chain walk.
+- Updated: 2026-09-23 17:13 — Measured the pass and its steps: 9.9% of a DevMode core rebuild, and no re-walking.
 - Area: compiler/backend, `Sanitizer`
 - Evidence: the lifecycle facts now survive calls, which keeps the engine's state maps
   populated over far more of a function than before, and the transfer function gained a scan of
@@ -73,9 +73,15 @@ is the current scorecard.
   straight-line chains on the fly, because storing per instruction "made big loopy functions take
   minutes" - `walkChain` is that recomputation, so making it cheaper means changing what is
   remembered, not tightening a loop.
-- Next: decide whether 9.9% of a DevMode module rebuild is the intended price of the analysis. If
-  it is not, the measurement to take first is how many times the same chain is re-walked per
-  function, because that is what the head-only state trades away.
+- The chain is not re-walked, so the head-only state is not what costs. Counting the engine's own
+  steps over the same rebuild: 5 878 functions, 647 935 instructions, 64 575 chain heads, and
+  **1.19 fixpoint steps and 0.99 check steps per instruction** - about 2.2 visits of each
+  instruction in total, with no function reaching the iteration cap. The analysis converges in
+  essentially one pass; what costs is the transfer function applied at each of those visits, not
+  how many visits there are.
+- Next: decide whether 9.9% of a DevMode module rebuild is the intended price. If it is not, the
+  work is in what one step does - the per-instruction transfer, its call-argument scan and the
+  state it copies - and not in the shape of the walk, which is already as tight as a fixpoint gets.
 - Complete when: the sanity pass's share of compile time is recorded before and after, and either
   found acceptable or reduced.
 

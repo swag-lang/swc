@@ -63,6 +63,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | Register allocation buffers | Retain nine fully overwritten analysis vectors on the per-worker pass object across functions: loop depth, loop labels, benefit scores and reservation counts. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating core pairs gave B/A wall 1.027 and CPU 1.021, with peak working set ratio 1.010. This is a small favorable signal near the measurement floor, not a firm percentage claim. |
 | Native read-only zero data | Detect a zero-filled allocation without relocations in its source span, then emit `.rbss` directly without copying bytes into a discarded `.rdata` section. | Release build and 3,478 native tests passed. The first seven-pair core comparison was disrupted by an 11.5-second candidate run; a quieter five-pair repeat gave B/A wall 1.042 and CPU 1.050, with peak working set 1.010. |
 | Dead code elimination scratch | Keep the used-value bitmap and worklist on the per-worker pass object; overwrite both on each run. | Release build, 3,478 native and 1,500 JIT tests passed. The first seven pairs were disrupted by 4–5-second candidate outliers. A quiet five-pair core repeat gave B/A wall 1.012, CPU 0.991 and peak working set 1.004: below the measurement floor. |
+| SSA reaching-value capacity | Keep each register's reaching-value buffer when a function has no tracked registers or fewer registers than its predecessor; clear only active buffers before renaming. | Release build, 3,478 native and 1,500 JIT tests passed. Seven core pairs gave B/A wall 0.999, CPU 0.989 and peak working set 1.011: no measured speedup or memory regression. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
 the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
@@ -129,6 +130,12 @@ floor; the retained benefit is avoiding two vector allocations per pass run.
 Integrated build 1105 includes the concurrent instruction-combine change. Its
 incremental Release build, 3,478 native tests and 1,500 JIT tests passed. The
 DCE timing comparison above was made on isolated build 1104.
+
+Build 1106 retained SSA reaching-value capacities across small and empty
+functions. Seven alternating pairs against build 1105 gave core B/A 0.999 wall
+and 0.989 CPU, and 1.011 for peak working set. Hello wall was neutral. The
+change removes repeated inner-vector destruction and reconstruction; its
+end-to-end timing remains below the measurement floor.
 
 ## Final validation
 

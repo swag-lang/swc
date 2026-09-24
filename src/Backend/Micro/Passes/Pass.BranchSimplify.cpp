@@ -6999,22 +6999,15 @@ namespace
         stack.push_back(0);
         reachable[0] = 1;
 
-        const auto instructionRefs = cfg.instructionRefs();
-        for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs.size(); ++instructionIndex)
+        for (const uint32_t labelIndex : cfg.addressTakenLabelIndices())
         {
-            const MicroInstr* inst = storage.ptr(instructionRefs[instructionIndex]);
-            if (!inst || inst->op != MicroInstrOpcode::LoadLabelAddress)
-                continue;
-
-            const MicroInstrOperand* ops = inst->ops(operands);
-            if (!ops)
-                continue;
-            const uint32_t labelIndex = cfg.indexOfLabel(ops[1].valueU64);
-            if (labelIndex == MicroControlFlowGraph::K_NO_INDEX || reachable[labelIndex])
+            if (reachable[labelIndex])
                 continue;
             reachable[labelIndex] = 1;
             stack.push_back(labelIndex);
         }
+
+        const auto instructionRefs = cfg.instructionRefs();
 
         while (!stack.empty())
         {

@@ -40,6 +40,7 @@ void MicroControlFlowGraph::clear()
     for (auto& edges : predecessors_)
         edges.clear();
     std::ranges::fill(labelToInstructionIndex_, K_INVALID_INSTRUCTION_INDEX);
+    addressTakenLabelIndices_.clear();
     hasUnsupportedControlFlowForCfgLiveness_ = false;
     supportsDeadCodeLiveness_                = true;
     hasLoop_                                 = false;
@@ -101,6 +102,17 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         {
             supportsDeadCodeLiveness_ = false;
             continue;
+        }
+
+        if (inst->op == MicroInstrOpcode::LoadLabelAddress && inst->numOperands >= 2)
+        {
+            const MicroInstrOperand* labelOps = inst->ops(operands);
+            if (labelOps && labelOps[1].valueU64 < labelToInstructionIndex_.size())
+            {
+                const uint32_t labelIndex = labelToInstructionIndex_[labelOps[1].valueU64];
+                if (labelIndex != K_INVALID_INSTRUCTION_INDEX)
+                    addressTakenLabelIndices_.push_back(labelIndex);
+            }
         }
 
         auto&      successors     = successors_[instructionIndex];

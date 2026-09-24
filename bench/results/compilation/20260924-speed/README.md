@@ -276,3 +276,7 @@ Release `tools/unittests.swgs cpp` is a no-op by design: the linked C++ unit
 tests exist only in DevMode. Earlier notes that the Release `cpp` selector
 "passed" mean that selector exited successfully, not that C++ tests ran. The
 reported native and JIT counts are executed tests.
+
+The independent in-place rotation folding update was merged as build 1120.
+Its incremental Release build, 3,478 native and 1,500 JIT tests passed. The
+dominator-buffer timing above is from isolated build 1119, before this merge.

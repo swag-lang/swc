@@ -302,3 +302,7 @@ was 583.6 versus 583.8 MiB for core and 57.5 MiB for both hello binaries
 outliers in the reference. The favorable first series did not reproduce, so
 no end-to-end speedup is claimed. The allocation reduction is retained below
 the measurement floor.
+
+The independent indexed/unary memory-operand folding updates were integrated
+as build 1123. Its incremental Release build, 3,478 native and 1,500 JIT
+tests passed. The isolated build-1121 SSA timing above predates this merge.

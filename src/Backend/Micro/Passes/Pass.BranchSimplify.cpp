@@ -234,6 +234,27 @@ namespace
         }
     }
 
+    struct ProgramLayoutCache
+    {
+        ProgramLayout layout;
+        bool          built = false;
+
+        void invalidate()
+        {
+            built = false;
+        }
+
+        const ProgramLayout& get(const MicroStorage& storage, const MicroOperandStorage& operands)
+        {
+            if (!built)
+            {
+                buildProgramLayout(layout, storage, operands);
+                built = true;
+            }
+            return layout;
+        }
+    };
+
     // Every branch-shape transform below opens on the same walk: the program order
     // with its label ordinals, how many jumps name each label, and how many operands
     // mention each virtual integer register. All of it is a pure function of the
@@ -1263,11 +1284,10 @@ namespace
     // is left as the bare test threadShortCircuitExits decides, and a chain of
     // any length settles without a copy per exit. Joins are visited last to
     // first so each result register takes over the next one's readers.
-    bool coalesceShortCircuitResults(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool coalesceShortCircuitResults(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                     ProgramLayoutCache& layoutCache)
     {
-        // Reused buffer: buildProgramLayout resets every member it holds.
-        thread_local ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
+        const ProgramLayout& layout = layoutCache.get(storage, operands);
         const size_t count = layout.order.size();
 
         std::unordered_map<uint32_t, uint32_t> labelReferences;
@@ -1919,13 +1939,12 @@ namespace
         return changed;
     }
 
-    bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
+    bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder,
+                                 ProgramLayoutCache& layoutCache)
     {
         constexpr uint32_t K_MAX_CHAIN = 6;
 
-        // Reused buffer: buildProgramLayout resets every member it holds.
-        thread_local ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
+        const ProgramLayout& layout = layoutCache.get(storage, operands);
 
         // Labels placed past a join's test, by the join's jump.
         std::unordered_map<uint32_t, uint32_t> fallThroughLabels;
@@ -4319,20 +4338,12 @@ namespace
     // particular). The sweep collects the targets of every label-consuming
     // jump form and stands down entirely next to computed jumps or
     // instruction-anchored relocations, whose targets it cannot see.
-    bool eraseUnreferencedLabels(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool eraseUnreferencedLabels(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                 RelocationRefCache& relocationCache)
     {
         std::unordered_set<uint64_t> referencedLabels;
-        std::unordered_set<uint32_t> relocInstrRefs;
+        const auto&                  relocInstrRefs = relocationCache.get(context);
         SmallVector<MicroInstrRef>   labelRefs;
-
-        if (context.builder)
-        {
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    relocInstrRefs.insert(reloc.instructionRef.get());
-            }
-        }
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -7123,12 +7134,17 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // fuse, and the fused test to the next threading: a chain settles in
     // one run instead of one link per optimization sweep.
     constexpr uint32_t K_MAX_THREAD_ROUNDS = 4096;
+    thread_local ProgramLayoutCache shortCircuitLayout;
     for (uint32_t round = 0; round < K_MAX_THREAD_ROUNDS; ++round)
     {
+        shortCircuitLayout.invalidate();
         bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
-        roundChanged |= coalesceShortCircuitResults(storage, operands, context);
-        roundChanged |= threadShortCircuitExits(storage, operands, context.builder);
-        roundChanged |= eraseUnreferencedLabels(storage, operands, context);
+        const bool coalesced = coalesceShortCircuitResults(storage, operands, context, shortCircuitLayout);
+        roundChanged |= coalesced;
+        if (coalesced)
+            shortCircuitLayout.invalidate();
+        roundChanged |= threadShortCircuitExits(storage, operands, context.builder, shortCircuitLayout);
+        roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
         if (!roundChanged)
             break;
         rewrote(true);

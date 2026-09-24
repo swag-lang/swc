@@ -19,7 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-24 21:57 — Shared the relocation index across four branch transforms.
+- Updated: 2026-09-24 22:56 — Reused the relocation index in the early unused-label sweep.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -77,6 +77,37 @@ block, and the hot path keeps the register.
   stayed below 100 ms. Rebuild times drifted from 1.8 to 3.4 s during the run, so this is a
   correctness-certified structural saving, below the measurement floor rather than a claimed
   percentage speedup. Peak working-set ratios were 0.992, 1.000 and 0.983 for those three builds.
+- Taken in 0.1.1138: `coalesceShortCircuitResults` and `threadShortCircuitExits` each rebuilt the
+  program layout in every short-circuit round. They now use the same layout when coalescing makes
+  no change, and rebuild it when coalescing rewrites the stream. This removes one full instruction
+  walk from each unchanged round, with no change to either transformation. The prior profile put
+  all `buildProgramLayout` calls at 0.73% of busy CPU, so this is expected below the whole-build
+  timing floor. The focused `short_circuit_booleans` and `short_circuit_past_join` native Release
+  tests passed; the rotating `std/core` TweakFile file ran four passing tests. On the rebased master,
+  five order-alternated pairs gave candidate/baseline core-touch ratios of 1.013 wall and 0.989
+  CPU. Hello-build ratios of 1.126 wall and 1.150 CPU reversed in a second seven-pair run with
+  A/B roles swapped: 0.995 wall and 0.857 CPU. The series therefore supports no percentage claim.
+  Peak working-set ratios were 1.014 for core touch and 1.034 for hello build in the five-pair run.
+- Ruled out on 2026-09-24: recording whether each function has `SetCondReg` in the shared branch
+  scan and using it to skip the equality-chain, branchless-or and three-way-sign transforms when
+  none exists. This requires one extra opcode comparison per instruction in every branch scan.
+  The three focused native Release tests and a rotating JIT test passed, but five alternated pairs
+  measured candidate/baseline at 1.090 wall and 1.030 CPU for core rebuild, and 1.144 wall and
+  1.190 CPU for hello build. Peak working-set ratios were 1.010 and 0.993. An earlier sweep was
+  discarded when unrelated machine load stretched one rebuild to 29.5 s. The completed sweep still
+  shows the always-paid scan cost outweighing the scans avoided here; the gate was reverted.
+- Taken in 0.1.1140: the early unused-label sweep reused the pass's relocation-reference index
+  instead of walking the same relocation list and allocating another hash set. A run without
+  rewrites now builds this index once for the early sweep and the later equality-chain, packed-switch,
+  three-way-sign and repeated-memory-compare transforms. The index is invalidated after a rewrite.
+  The focused native Release branch-simplification and packed-switch files passed, as did four
+  tests in the rotating JIT `defer.catch` file. Three order-alternated pairs against the same
+  master source gave candidate/baseline core-rebuild ratios of 0.985 wall, 0.944 CPU and 1.005
+  peak working set. Hello-build ratios of 1.198 wall and 1.244 CPU reversed in a seven-pair run
+  with A/B roles swapped: baseline/candidate 0.999 wall and 1.036 CPU. Other attempted pairs
+  were discarded when shared-machine load stretched individual builds to 26-35 seconds. The
+  saving is therefore below the measurement floor, with no percentage speedup claim or stable
+  memory regression.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

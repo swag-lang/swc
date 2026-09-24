@@ -382,7 +382,10 @@ def make_compiler_workloads(swc, cores=0, admit=None):
         # binary swapped in between would otherwise be measured on a full rebuild.
         if admit:
             admit()
-        subprocess.run(build_core, cwd=root, env=env, capture_output=True)
+        result = subprocess.run(build_core, cwd=root, env=env, capture_output=True, text=True)
+        if result.returncode:
+            raise RuntimeError("warm core build failed (exit %d):\n%s" %
+                               (result.returncode, (result.stdout + result.stderr)[-1200:]))
 
     def touch(env):
         warm(env)

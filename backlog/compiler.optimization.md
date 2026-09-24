@@ -19,7 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-24 22:26 — Reused the short-circuit layout when coalescing left it unchanged.
+- Updated: 2026-09-24 22:38 — Ruled out a per-instruction opcode gate for three cold patterns.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -88,6 +88,14 @@ block, and the hot path keeps the register.
   CPU. Hello-build ratios of 1.126 wall and 1.150 CPU reversed in a second seven-pair run with
   A/B roles swapped: 0.995 wall and 0.857 CPU. The series therefore supports no percentage claim.
   Peak working-set ratios were 1.014 for core touch and 1.034 for hello build in the five-pair run.
+- Ruled out on 2026-09-24: recording whether each function has `SetCondReg` in the shared branch
+  scan and using it to skip the equality-chain, branchless-or and three-way-sign transforms when
+  none exists. This requires one extra opcode comparison per instruction in every branch scan.
+  The three focused native Release tests and a rotating JIT test passed, but five alternated pairs
+  measured candidate/baseline at 1.090 wall and 1.030 CPU for core rebuild, and 1.144 wall and
+  1.190 CPU for hello build. Peak working-set ratios were 1.010 and 0.993. An earlier sweep was
+  discarded when unrelated machine load stretched one rebuild to 29.5 s. The completed sweep still
+  shows the always-paid scan cost outweighing the scans avoided here; the gate was reverted.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

@@ -16,6 +16,23 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.050 — Calibrate repeated-immediate search beyond eight instructions
+
+- Recorded: 2026-09-24 11:14
+- Area: compiler/backend, post-RA peephole
+- Evidence: `tryEraseRepeatedImmediate` removes a second immediate load when the same physical
+  register still holds that value, and stops on writes, calls, branches, and labels. The unrelated
+  `PostRAPeephole_RepeatedImmediate_KeepsOnlyTheFirst` test checks both a preserved register and
+  one clobbered between loads, so the eligibility rule is general. The search nevertheless stops
+  after eight earlier instructions; its motivating comment cites three raytrace colour clamps,
+  and no test or static cost comparison explains that boundary. A longer straight-line block can
+  retain the same register value but miss the fold solely because of the window.
+- Next: compare generated code and peephole scan work on unrelated blocks with repeated constants
+  separated by seven to twelve non-clobbering instructions. Either justify the bound with a
+  compile-cost model or extend the scan to the first actual register definition or block boundary.
+- Complete when the scan limit has non-benchmark profitability evidence and tests on both sides
+  of the selected boundary.
+
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
 
 - Recorded: 2026-09-24 10:33

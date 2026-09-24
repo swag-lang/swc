@@ -869,18 +869,7 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
     if (!hasControlFlow_ || !instructionCount_)
         return;
 
-    std::unordered_map<uint64_t, uint32_t> labelIndexByRef;
-    uint32_t                               idx = 0;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
-    {
-        if (it->op != MicroInstrOpcode::Label)
-            continue;
-        const MicroInstrOperand* ops = it->ops(*operands_);
-        if (ops)
-            labelIndexByRef[ops[0].valueU64] = idx;
-    }
-
-    idx = 0;
+    uint32_t idx = 0;
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
     {
         if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
@@ -892,8 +881,8 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         if (!ops)
             continue;
 
-        const auto targetIt = labelIndexByRef.find(ops[2].valueU64);
-        if (targetIt == labelIndexByRef.end() || targetIt->second <= idx)
+        const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
+        if (targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx <= idx)
             continue;
 
         // Only a region that falls into the join right after its call is a
@@ -902,7 +891,6 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         // then-block of an if/else ends with its own jump instead, and a
         // region with an interior label has other ways in — either could be
         // hot, so neither is marked.
-        const uint32_t targetIdx     = targetIt->second;
         bool           regionIsGuard = targetIdx > idx + 1;
         uint32_t       inner         = idx + 1;
         for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
@@ -941,11 +929,10 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         if (!ops)
             continue;
 
-        const auto targetIt = labelIndexByRef.find(ops[2].valueU64);
-        if (targetIt == labelIndexByRef.end() || targetIt->second <= idx)
+        const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
+        if (targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx <= idx)
             continue;
 
-        const uint32_t targetIdx     = targetIt->second;
         bool           regionIsGuard = targetIdx > idx + 2;
         uint32_t       inner         = idx + 1;
         for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
@@ -1094,16 +1081,12 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
     std::vector<uint8_t> isLabelAt(instructionCount_, 0);
     std::vector<uint8_t> jumpsToOwnNextLabel(instructionCount_, 0);
     {
-        std::unordered_map<uint64_t, uint32_t> labelIndexByRef;
-        uint32_t                               idx = 0;
+        uint32_t idx = 0;
         for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
         {
             if (it->op != MicroInstrOpcode::Label)
                 continue;
-            isLabelAt[idx]               = 1;
-            const MicroInstrOperand* ops = it->ops(*operands_);
-            if (ops)
-                labelIndexByRef[ops[0].valueU64] = idx;
+            isLabelAt[idx] = 1;
         }
 
         // A jump whose target is the very next label lands after anything
@@ -1131,8 +1114,8 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
                 jumpsToOwnNextLabel[idx] = 1;
                 continue;
             }
-            const auto targetIt = labelIndexByRef.find(ops[2].valueU64);
-            if (targetIt == labelIndexByRef.end() || targetIt->second == idx + 1)
+            const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
+            if (targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx == idx + 1)
                 jumpsToOwnNextLabel[idx] = 1;
         }
     }

@@ -30,6 +30,13 @@ uint32_t MicroControlFlowGraph::indexOf(const MicroInstrRef ref) const
     return slot < indexBySlot_.size() ? indexBySlot_[slot] : K_NO_INDEX;
 }
 
+uint32_t MicroControlFlowGraph::indexOfLabel(const uint64_t labelRef) const
+{
+    if (labelRef >= labelToInstructionIndex_.size())
+        return K_NO_INDEX;
+    return labelToInstructionIndex_[labelRef];
+}
+
 void MicroControlFlowGraph::clear()
 {
     instructionRefs_.clear();

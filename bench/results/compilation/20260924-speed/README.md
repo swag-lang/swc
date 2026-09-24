@@ -64,6 +64,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | Native read-only zero data | Detect a zero-filled allocation without relocations in its source span, then emit `.rbss` directly without copying bytes into a discarded `.rdata` section. | Release build and 3,478 native tests passed. The first seven-pair core comparison was disrupted by an 11.5-second candidate run; a quieter five-pair repeat gave B/A wall 1.042 and CPU 1.050, with peak working set 1.010. |
 | Dead code elimination scratch | Keep the used-value bitmap and worklist on the per-worker pass object; overwrite both on each run. | Release build, 3,478 native and 1,500 JIT tests passed. The first seven pairs were disrupted by 4–5-second candidate outliers. A quiet five-pair core repeat gave B/A wall 1.012, CPU 0.991 and peak working set 1.004: below the measurement floor. |
 | SSA reaching-value capacity | Keep each register's reaching-value buffer when a function has no tracked registers or fewer registers than its predecessor; clear only active buffers before renaming. | Release build, 3,478 native and 1,500 JIT tests passed. Seven core pairs gave B/A wall 0.999, CPU 0.989 and peak working set 1.011: no measured speedup or memory regression. |
+| SSA restore allocation | Let the inline restore vector grow from actual saved definitions instead of reserving from the block's instruction count. | Release build, 3,478 native and 1,500 JIT tests passed. The first seven pairs included a 6.5-second candidate core outlier; a five-pair core repeat gave B/A wall 1.050, CPU 1.032 and peak working set 1.007. No stable aggregate percentage is claimed. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
 the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
@@ -136,6 +137,15 @@ functions. Seven alternating pairs against build 1105 gave core B/A 0.999 wall
 and 0.989 CPU, and 1.011 for peak working set. Hello wall was neutral. The
 change removes repeated inner-vector destruction and reconstruction; its
 end-to-end timing remains below the measurement floor.
+
+Build 1107 removed the eager reserve for each SSA rename block's restore list.
+The first seven-pair comparison had a 6.5-second candidate core outlier and
+gave B/A 1.000 wall and 0.962 CPU. A subsequent five-pair core repeat gave
+B/A 1.050 wall, 1.032 CPU and 1.007 peak working set, though one candidate
+run was again disrupted. The local vector already stores eight restore points
+inline, so allocations now follow actual definitions rather than the block's
+instruction count. The two series support retaining this simpler path without
+claiming a stable end-to-end percentage.
 
 ## Final validation
 

@@ -710,9 +710,6 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
     // Every block contains instructions. If this block consumes the rest of
     // the rename walk, no later block can observe its scope restores.
     const bool needsRestore = block.instructionEnd - block.instructionBegin != instructionRefs_.size() - state.position;
-    if (needsRestore)
-        restores.reserve(std::min<size_t>(state.currentValues.size(), block.phis.size() + (block.instructionEnd - block.instructionBegin)));
-
     for (const uint32_t phiIndex : block.phis)
     {
         PhiInfo& phi      = phiInfos_[phiIndex];

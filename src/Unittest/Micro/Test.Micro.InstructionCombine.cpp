@@ -1205,6 +1205,46 @@ SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_InsideLoop)
 }
 SWC_TEST_END()
 
+// An indexed load/update/store may carry a width-preserving copy before the
+// operation, including a 64-bit copy of a narrower integer load.
+SWC_TEST_BEGIN(InstCombine_IndexedRotateWithCopy_UsesMemoryOperand)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg loaded = MicroReg::virtualIntReg(3);
+    constexpr MicroReg copied = MicroReg::virtualIntReg(4);
+    for (const MicroOp op : {MicroOp::RotateLeft, MicroOp::RotateRight})
+    {
+        for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+        {
+            for (const uint64_t count : {1ULL, 5ULL})
+            {
+                for (const bool viaCopy : {false, true})
+                {
+                    MicroBuilder builder(ctx);
+                    builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+                    builder.emitLoadRegReg(index, MicroReg::intReg(3), MicroOpBits::B64);
+                    builder.emitLoadAmcRegMem(loaded, bits, base, index, 4, 16, MicroOpBits::B64);
+                    const MicroReg value = viaCopy ? copied : loaded;
+                    if (viaCopy)
+                        builder.emitLoadRegReg(copied, loaded, MicroOpBits::B64);
+                    builder.emitOpBinaryRegImm(value, ApInt(count, 64), op, bits);
+                    builder.emitLoadAmcMemReg(base, index, 4, 16, MicroOpBits::B64, value, bits);
+                    builder.emitRet();
+
+                    SWC_RESULT(runInstCombinePass(builder));
+                    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemImm) != 1 ||
+                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 0 ||
+                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcMemReg) != 0)
+                        return Result::Error;
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The same round trip on a frame slot stays scalar: inside a loop that slot
 // is slot promotion's and the vectorizer's to take.
 SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_LeavesLoopFrameSlot)

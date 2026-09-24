@@ -826,7 +826,7 @@ namespace InstructionCombine
     }
     // A global address used only by one memory operation can be
     // carried by that operation's RIP-relative displacement.
-    bool tryFoldGlobalImmediateMemoryOp(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    bool tryFoldGlobalMemoryOp(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
         if (ctx.isClaimed(ref) || !ctx.ssa || !ctx.builder)
             return false;
@@ -865,9 +865,11 @@ namespace InstructionCombine
                                useOps[4].valueU64 == 0 && useOps[1].reg.isAnyInt() &&
                                (regOp == MicroOp::Add || regOp == MicroOp::Subtract ||
                                 regOp == MicroOp::And || regOp == MicroOp::Or || regOp == MicroOp::Xor);
+        const bool regCompare = useInst->op == MicroInstrOpcode::CmpMemReg &&
+                                useOps[3].valueU64 == 0 && useOps[1].reg.isAnyInt();
         if (useInst->op == MicroInstrOpcode::OpBinaryMemReg && !regUpdate)
             return false;
-        const MicroOpBits valueBits = regUpdate ? useOps[2].opBits : useOps[1].opBits;
+        const MicroOpBits valueBits = regUpdate || regCompare ? useOps[2].opBits : useOps[1].opBits;
         if (valueBits != MicroOpBits::B8 && valueBits != MicroOpBits::B16 &&
             valueBits != MicroOpBits::B32 && valueBits != MicroOpBits::B64)
             return false;
@@ -904,7 +906,7 @@ namespace InstructionCombine
                                       !useOps[3].hasWideImmediateValue() && fitsMemoryImmediate(useOps[3].valueU64);
         // A B64 store with a larger immediate expands into two memory writes;
         // one RIP displacement cannot represent both of their destinations.
-        if (!regUpdate && !immediateUpdate && !immediateStore && !immediateCompare)
+        if (!regUpdate && !regCompare && !immediateUpdate && !immediateStore && !immediateCompare)
             return false;
 
         if (!ctx.claimAll({ref, useRef}, true))

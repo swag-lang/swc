@@ -2969,7 +2969,14 @@ void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg r
 
     emitRex(store_, opBits, reg, memReg);
     emitSpecCpuOp(store_, MicroOp::Compare, opBits);
-    emitModRm(store_, memOffset, reg, memReg);
+    if (memReg.isInstructionPointer())
+    {
+        SWC_ASSERT(memOffset == 0);
+        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
+        store_.pushU32(0);
+    }
+    else
+        emitModRm(store_, memOffset, reg, memReg);
 }
 
 void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)

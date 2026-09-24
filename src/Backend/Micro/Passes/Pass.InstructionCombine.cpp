@@ -73,7 +73,7 @@ namespace
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoFullUnary);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoFullUnary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoFullUnary);
-        r.add(MicroInstrOpcode::LoadRegPtrReloc, tryFoldGlobalImmediateMemoryOp);
+        r.add(MicroInstrOpcode::LoadRegPtrReloc, tryFoldGlobalMemoryOp);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildScalarFromStores);

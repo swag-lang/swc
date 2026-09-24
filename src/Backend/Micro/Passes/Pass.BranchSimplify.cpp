@@ -4338,20 +4338,12 @@ namespace
     // particular). The sweep collects the targets of every label-consuming
     // jump form and stands down entirely next to computed jumps or
     // instruction-anchored relocations, whose targets it cannot see.
-    bool eraseUnreferencedLabels(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool eraseUnreferencedLabels(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                 RelocationRefCache& relocationCache)
     {
         std::unordered_set<uint64_t> referencedLabels;
-        std::unordered_set<uint32_t> relocInstrRefs;
+        const auto&                  relocInstrRefs = relocationCache.get(context);
         SmallVector<MicroInstrRef>   labelRefs;
-
-        if (context.builder)
-        {
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    relocInstrRefs.insert(reloc.instructionRef.get());
-            }
-        }
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -7152,7 +7144,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         if (coalesced)
             shortCircuitLayout.invalidate();
         roundChanged |= threadShortCircuitExits(storage, operands, context.builder, shortCircuitLayout);
-        roundChanged |= eraseUnreferencedLabels(storage, operands, context);
+        roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
         if (!roundChanged)
             break;
         rewrote(true);

@@ -94,6 +94,14 @@ build wall was neutral (paired ratio 1.003); its CPU samples were too coarse and
 variable to establish a change. The core signal is near the measurement floor,
 so the retained conclusion is the removal of repeated vector allocations.
 
+An attempted worker-local `InstructionCombine` context was rejected. Retaining
+its action queue and hash tables had no repeatable core speed benefit in seven
+pairs and raised peak working set. Releasing the action queue after each run
+still regressed core rebuild in five alternating pairs: baseline/candidate
+ratios were 0.959 wall and 0.955 CPU, while the peak working-set ratio was
+0.984. The context reset and retained hash-table buckets cost more than this
+allocation reuse saved, so the source was restored to build 1099.
+
 ## Final validation
 
 The Release solution rebuild from source succeeded at build 1093 with MSBuild `/m:6`

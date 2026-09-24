@@ -16,6 +16,25 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.052 — Check final code before adding a late indexed-select rule
+
+- Recorded: 2026-09-24 12:30
+- Area: compiler/backend, indexed memory selection
+- Evidence: in `wordfreq.less`, the first post-RA sweep showed a five-instruction
+  `copy; compare indexed memory; branch; reload; copy` minimum. A candidate post-RA
+  rule turned it into `load; compare; cmov`, passed 1,075 C++ unit tests and the
+  independently drawn native `flow/switch_complete.swg` (two tests), and kept
+  `CHECK=130489`. A comparison of the **final** dumps showed that the existing
+  optimizer already emits the same three-instruction minimum: `less` has 46 final
+  micro instructions in both builds. The candidate was reverted; the first sweep
+  was the wrong baseline for a multi-sweep pass.
+- Next: only consider another post-RA indexed-select rule after locating a
+  non-benchmark function whose final dump still has the redundant branch and
+  reload. Compare final dumps after every optimization sweep, not adjacent stage
+  snapshots from different sweeps.
+- Complete when that search either identifies a genuine missed final-code shape
+  with static benefit or rules out this additional post-RA rule.
+
 ### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
 
 - Recorded: 2026-08-06 20:18

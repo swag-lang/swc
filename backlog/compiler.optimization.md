@@ -19,6 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
 
 - Recorded: 2026-09-24 10:33
+- Updated: 2026-09-24 11:33 — The constant-table case now crosses sixteen trips within the size budget; the ordinary-loop cap remains to calibrate.
 - Area: compiler/backend, loop unrolling
 - Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
   16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
@@ -27,12 +28,16 @@ block, and the hot path keeps the register.
   indices and branches; it benefits from constant-index folding. Conversely,
   `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
   flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
-- Next: compare static dynamic instruction counts and expanded code size for non-benchmark
-  counted loops around that boundary, with and without indexed constant accesses. Replace the
-  hard trip boundary only if a general work-saved versus code-growth rule improves those cases
-  without expanding loops whose bodies retain their per-trip work.
-- Complete when the cap or its replacement has profitability evidence beyond ChaCha and a test
-  for both admitted and rejected shapes.
+- Evidence after the change: an unrelated 17-element constant-table sum uses 122 executed micro
+  instructions and 17 indexed memory reads with the old cap, versus 36 executed instructions and
+  no indexed reads when unrolled. Static function size grows from 11 to 36 micro instructions;
+  both versions produce `CHECK=272`. A synthetic 17-trip table loop now
+  flattens, while the otherwise identical plain loop still keeps its latch.
+- Next: compare non-table loops around the remaining sixteen-trip boundary. Replace that cap
+  only when a general work-saved versus code-growth rule improves them without expanding loops
+  whose bodies retain their per-trip work.
+- Complete when the ordinary-loop cap has profitability evidence beyond ChaCha and a test for
+  both admitted and rejected shapes.
 
 ### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
 

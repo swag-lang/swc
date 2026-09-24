@@ -203,14 +203,13 @@ void MicroSsaState::clear()
     blocksCfgBuildId_   = 0;
     blocksHaveFrontier_ = false;
     trackedRegs_.clear();
-    instrInfos_.clear();
+    // Slot numbers and their use/def caches belong to one function. Keep the
+    // per-slot buffers, but force a fresh use/def collection for the next one.
+    for (InstrInfo& info : instrInfos_)
+        info.useDefCached = false;
     instructionRefs_.clear();
     liveInstructionSlots_.clear();
     instructionToBlock_.clear();
-    blocks_.clear();
-    valueInfos_.clear();
-    phiInfos_.clear();
-    reachingValuesByReg_.clear();
     useVisitStamps_.clear();
     useVisitStack_.clear();
     trackedDefCount_ = 0;
@@ -627,11 +626,14 @@ void MicroSsaState::placePhiNodes()
         }
     }
 
-    std::vector<uint32_t> inWorkStamp(blocks_.size(), 0);
-    std::vector<uint32_t> hasPhiStamp(blocks_.size(), 0);
-    std::vector<uint32_t> workList;
-    uint32_t              stamp = 1;
-    const auto&           regs  = trackedRegs_.regs();
+    auto& inWorkStamp = phiInWorkStamps_;
+    auto& hasPhiStamp = phiHasPhiStamps_;
+    auto& workList    = phiWorkList_;
+    inWorkStamp.assign(blocks_.size(), 0);
+    hasPhiStamp.assign(blocks_.size(), 0);
+    workList.clear();
+    uint32_t    stamp = 1;
+    const auto& regs  = trackedRegs_.regs();
     for (uint32_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
     {
         const auto& defBlocks = defBlocksByReg[regIndex];
@@ -684,7 +686,8 @@ void MicroSsaState::renameIntoSsa()
     valueInfoCount_ = 0;
     valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfoCount_);
 
-    RenameState  state;
+    RenameState& state = renameState_;
+    state.position     = 0;
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);
     reachingValuesByReg_.resize(trackedRegCount);

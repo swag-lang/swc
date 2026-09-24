@@ -633,11 +633,11 @@ SWC_TEST_BEGIN(SlpVectorize_RejectedBlockKeepsFollowingBlockVectorizable)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(SlpVectorize_IndexedMemoryAccessBlocksStorePacking)
+SWC_TEST_BEGIN(SlpVectorize_UnmodeledMemoryAccessBlocksStorePacking)
 {
-    // The indexed access may name the second lane. Packing all four stores
-    // before it would change which value it reads or modifies.
-    for (uint32_t variant = 0; variant < 6; ++variant)
+    // An access between the first and second scalar stores may name the second
+    // lane. Packing all four stores before it would change the observed value.
+    for (uint32_t variant = 0; variant < 9; ++variant)
     {
         MicroBuilder   builder(ctx);
         X64Encoder     encoder(ctx);
@@ -661,6 +661,8 @@ SWC_TEST_BEGIN(SlpVectorize_IndexedMemoryAccessBlocksStorePacking)
                 builder.emitOpBinaryRegAmcMem(value, sp, index, 4, 0x60, MicroOp::Xor, MicroOpBits::B32);
             if (lane == 0 && variant == 5)
                 builder.emitCompareExchangeRegMemReg(value, sp, 0x64, source, MicroOpBits::B32);
+            if (lane == 0 && variant == 6)
+                builder.emitLoadVolatileRegMem(value, sp, 0x64, MicroOpBits::B32);
         }
         builder.emitLoadMemReg(sp, 0xA0, value, MicroOpBits::B32);
         builder.emitRet();
@@ -696,6 +698,26 @@ SWC_TEST_BEGIN(SlpVectorize_IndexedMemoryAccessBlocksStorePacking)
                 ops[6].valueU64 = 0x60;
                 ops[7].microOp  = MicroOp::BitwiseNot;
                 builder.instructions().insertDerivedBefore(builder.operands(), secondLoadRef, MicroInstrOpcode::OpUnaryAmcMem, ops);
+            }
+        }
+
+        if (variant == 7 || variant == 8)
+        {
+            MicroInstrOperand ops[4] = {};
+            ops[0].reg               = sp;
+            if (variant == 7)
+            {
+                ops[1].reg      = value;
+                ops[2].opBits   = MicroOpBits::B32;
+                ops[3].valueU64 = 0x64;
+                builder.instructions().insertDerivedBefore(builder.operands(), secondLoadRef, MicroInstrOpcode::TestMemReg, ops);
+            }
+            else
+            {
+                ops[1].opBits   = MicroOpBits::B32;
+                ops[2].valueU64 = 0x64;
+                ops[3].valueU64 = 1;
+                builder.instructions().insertDerivedBefore(builder.operands(), secondLoadRef, MicroInstrOpcode::TestMemImm, ops);
             }
         }
 

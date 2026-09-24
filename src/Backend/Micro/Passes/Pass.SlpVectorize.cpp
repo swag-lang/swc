@@ -1502,6 +1502,9 @@ namespace
             case MicroInstrOpcode::LoadSignedExtAmcRegMem:
             case MicroInstrOpcode::LoadZeroExtAmcRegMem:
             case MicroInstrOpcode::OpBinaryRegAmcMem:
+            case MicroInstrOpcode::LoadVolatileRegMem:
+            case MicroInstrOpcode::TestMemReg:
+            case MicroInstrOpcode::TestMemImm:
             case MicroInstrOpcode::CmpAmcImm:
             case MicroInstrOpcode::CmpAmcReg:
             case MicroInstrOpcode::VecUnaryRegMem:

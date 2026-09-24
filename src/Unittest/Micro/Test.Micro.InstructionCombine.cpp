@@ -4438,6 +4438,43 @@ SWC_TEST_BEGIN(InstCombine_GlobalNonUnitUpdate_KeepsUnencodableB64Immediate)
 }
 SWC_TEST_END()
 
+// Fixed-count shifts and rotations have RIP-relative memory forms, including
+// the count-one encoding with no immediate byte after its displacement.
+SWC_TEST_BEGIN(InstCombine_GlobalShiftRotateUpdate_UsesRipMemoryOperand)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    for (const DataSegmentKind segment : {DataSegmentKind::GlobalZero, DataSegmentKind::GlobalInit})
+    {
+        for (const MicroOp op : {MicroOp::ShiftLeft, MicroOp::ShiftRight,
+                                 MicroOp::ShiftArithmeticLeft, MicroOp::ShiftArithmeticRight,
+                                 MicroOp::RotateLeft, MicroOp::RotateRight})
+        {
+            for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+            {
+                for (const uint64_t count : {1ULL, 3ULL})
+                {
+                    MicroBuilder builder(ctx);
+                    builder.emitLoadRegDataSegmentReloc(address, segment, 8);
+                    builder.emitOpBinaryMemImm(address, 0, ApInt(count, 64), op, bits);
+                    builder.emitRet();
+                    SWC_RESULT(runInstCombinePass(builder));
+                    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) != 0 ||
+                        builder.codeRelocations().size() != 1)
+                        return Result::Error;
+                    const MicroRelocation& relocation = builder.codeRelocations().front();
+                    const MicroInstr*      update     = builder.instructions().ptr(relocation.instructionRef);
+                    if (!update || update->op != MicroInstrOpcode::OpBinaryMemImm ||
+                        !update->ops(builder.operands())[0].reg.isInstructionPointer() ||
+                        relocation.form != MicroRelocation::Form::Relative32)
+                        return Result::Error;
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // An address still read after the update cannot be removed.
 SWC_TEST_BEGIN(InstCombine_GlobalUnitUpdate_KeepsSharedAddress)
 {

@@ -627,11 +627,14 @@ void MicroSsaState::placePhiNodes()
         }
     }
 
-    std::vector<uint32_t> inWorkStamp(blocks_.size(), 0);
-    std::vector<uint32_t> hasPhiStamp(blocks_.size(), 0);
-    std::vector<uint32_t> workList;
-    uint32_t              stamp = 1;
-    const auto&           regs  = trackedRegs_.regs();
+    auto& inWorkStamp = phiInWorkStamps_;
+    auto& hasPhiStamp = phiHasPhiStamps_;
+    auto& workList    = phiWorkList_;
+    inWorkStamp.assign(blocks_.size(), 0);
+    hasPhiStamp.assign(blocks_.size(), 0);
+    workList.clear();
+    uint32_t    stamp = 1;
+    const auto& regs  = trackedRegs_.regs();
     for (uint32_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
     {
         const auto& defBlocks = defBlocksByReg[regIndex];
@@ -684,7 +687,8 @@ void MicroSsaState::renameIntoSsa()
     valueInfoCount_ = 0;
     valueInfos_.reserve(static_cast<size_t>(trackedDefCount_) + phiInfoCount_);
 
-    RenameState  state;
+    RenameState& state = renameState_;
+    state.position     = 0;
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);
     reachingValuesByReg_.resize(trackedRegCount);

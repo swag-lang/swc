@@ -512,6 +512,7 @@ namespace
             // where exactly one component varies:
             //
             //     inner = &[fixed + induction]
+            //       or: inner = fixed; inner += induction
             //     value = [base + inner]
             //   ->
             //     rooted = &[base + fixed]   // current loop preheader
@@ -542,18 +543,42 @@ namespace
 
                 const auto countIt = defCount.find(nestedReg);
                 const auto slotIt  = defSlot.find(nestedReg);
-                if (countIt == defCount.end() || countIt->second != 1 || slotIt == defSlot.end() || slotIt->second >= i)
+                if (countIt == defCount.end() || slotIt == defSlot.end() || slotIt->second >= i)
                     continue;
                 const MicroInstr* nested = storage.ptr(instrRefs[slotIt->second]);
-                if (!nested || nested->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                if (!nested)
                     continue;
                 const MicroInstrOperand* nestedOps = nested->ops(operands);
-                if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
-                    nestedOps[4].opBits != MicroOpBits::B64 || nestedOps[5].valueU64 != 1)
+                MicroReg innerBase  = MicroReg::invalid();
+                MicroReg innerIndex = MicroReg::invalid();
+                int64_t  innerAdd   = 0;
+                if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && countIt->second == 1)
+                {
+                    if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
+                        nestedOps[4].opBits != MicroOpBits::B64 || nestedOps[5].valueU64 != 1)
+                        continue;
+                    innerBase  = nestedOps[1].reg;
+                    innerIndex = nestedOps[2].reg;
+                    innerAdd   = static_cast<int64_t>(nestedOps[6].valueU64);
+                }
+                else if (nested->op == MicroInstrOpcode::OpBinaryRegReg && countIt->second == 2 && slotIt->second > 0 &&
+                         slotIt->second + 1 == i &&
+                         inBody[slotIt->second - 1] && nestedOps && nestedOps[0].reg == nestedReg &&
+                         nestedOps[1].reg != nestedReg && nestedOps[2].opBits == MicroOpBits::B64 &&
+                         nestedOps[3].microOp == MicroOp::Add &&
+                         MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instrRefs[slotIt->second], context.builder))
+                {
+                    const MicroInstr* copy = storage.ptr(instrRefs[slotIt->second - 1]);
+                    const MicroInstrOperand* copyOps = copy ? copy->ops(operands) : nullptr;
+                    if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
+                        copyOps[0].reg != nestedReg || copyOps[1].reg == nestedReg || copyOps[2].opBits != MicroOpBits::B64)
+                        continue;
+                    innerBase  = copyOps[1].reg;
+                    innerIndex = nestedOps[1].reg;
+                }
+                else
                     continue;
 
-                const MicroReg innerBase   = nestedOps[1].reg;
-                const MicroReg innerIndex  = nestedOps[2].reg;
                 const bool     baseVaries  = defsInLoop.contains(innerBase);
                 const bool     indexVaries = defsInLoop.contains(innerIndex);
                 if (baseVaries == indexVaries)
@@ -564,7 +589,7 @@ namespace
                 if (!fixed.isVirtualInt() || defsInLoop.contains(fixed))
                     continue;
 
-                const int64_t add = static_cast<int64_t>(instOps[outerLayout.addIdx].valueU64) + static_cast<int64_t>(nestedOps[6].valueU64);
+                const int64_t add = static_cast<int64_t>(instOps[outerLayout.addIdx].valueU64) + innerAdd;
                 if (add != static_cast<int64_t>(static_cast<int32_t>(add)))
                     continue;
 

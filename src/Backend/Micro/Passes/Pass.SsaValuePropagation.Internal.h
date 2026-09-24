@@ -4,6 +4,33 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct MicroSsaKnownValue
+{
+    uint64_t    value  = 0;
+    MicroOpBits opBits = MicroOpBits::B64;
+};
+
+struct MicroSsaCanonicalValue
+{
+    MicroReg reg     = MicroReg::invalid();
+    uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+
+    bool valid() const
+    {
+        return reg.isValid() && valueId != MicroSsaState::K_INVALID_VALUE;
+    }
+};
+
+// These passes run sequentially and overwrite every SSA-sized entry before reading it.
+// Keeping their storage on the worker avoids allocating it for each pass and function.
+struct MicroSsaValueScratch
+{
+    std::vector<MicroSsaKnownValue>     knownValues;
+    std::vector<MicroSsaCanonicalValue> canonicalValues;
+    std::vector<uint8_t>                flags;
+    std::vector<MicroInstrRef>          toErase;
+};
+
 template<typename T_VALUE, typename T_TRAITS, typename T_CONTEXT>
 using SsaTryInferInstructionFn = bool (*)(T_VALUE& outValue, const T_CONTEXT& context, uint32_t valueId, const MicroSsaState::ValueInfo& valueInfo, const std::vector<T_VALUE>& values, const std::vector<uint8_t>& flags);
 

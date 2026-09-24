@@ -37,11 +37,7 @@ namespace
     // definition says nothing about the bits above it, which a wider reader would observe.
     // Every producer records the width it actually wrote and every consumer refuses to read
     // wider than that.
-    struct KnownValue
-    {
-        uint64_t    value  = 0;
-        MicroOpBits opBits = MicroOpBits::B64;
-    };
+    using KnownValue = MicroSsaKnownValue;
 
     KnownValue makeKnownValue(uint64_t value, MicroOpBits opBits)
     {
@@ -7090,8 +7086,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     MicroSsaState        localSsaState;
     const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
 
-    std::vector<KnownValue> knownValues;
-    std::vector<uint8_t>    knownFlags;
+    SWC_ASSERT(context.ssaValueScratch != nullptr);
+    MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
+    auto&                 knownValues = scratch.knownValues;
+    auto&                 knownFlags  = scratch.flags;
     if (ssaState && ssaState->isValid())
         computeKnownValues(knownValues, knownFlags, *ssaState, storage, operands);
 

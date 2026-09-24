@@ -9,6 +9,7 @@ class MicroStorage;
 class MicroOperandStorage;
 class MicroBuilder;
 class MicroSsaState;
+struct MicroSsaValueScratch;
 class TaskContext;
 class Encoder;
 class SymbolFunction;
@@ -60,6 +61,9 @@ struct MicroPassContext
     // Shared SSA analysis for pre-RA optimization passes.
     // Built lazily by MicroSsaState::ensureFor and invalidated when a pass mutates the IR.
     MicroSsaState* ssaState = nullptr;
+
+    // Temporary SSA value propagation storage owned by the worker running this pipeline.
+    MicroSsaValueScratch* ssaValueScratch = nullptr;
 
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit = 0;

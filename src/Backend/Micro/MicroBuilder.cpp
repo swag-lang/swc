@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPrinter.h"
+#include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -954,6 +955,8 @@ void MicroBuilder::emitOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, const
 
 Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
 {
+    thread_local MicroSsaValueScratch tlSsaValueScratch;
+    context.ssaValueScratch         = &tlSsaValueScratch;
     context.encoder                 = encoder;
     context.taskContext             = ctx_;
     context.builder                 = this;

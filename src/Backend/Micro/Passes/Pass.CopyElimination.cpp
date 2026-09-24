@@ -30,16 +30,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct CanonicalValue
-    {
-        MicroReg reg     = MicroReg::invalid();
-        uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
-
-        bool valid() const
-        {
-            return reg.isValid() && valueId != MicroSsaState::K_INVALID_VALUE;
-        }
-    };
+    using CanonicalValue = MicroSsaCanonicalValue;
 
     struct CanonicalValueTraits
     {
@@ -327,8 +318,10 @@ Result MicroCopyEliminationPass::run(MicroPassContext& context)
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
-    std::vector<CanonicalValue> canonicalValues;
-    std::vector<uint8_t>        canonicalFlags;
+    SWC_ASSERT(context.ssaValueScratch != nullptr);
+    MicroSsaValueScratch& scratch         = *context.ssaValueScratch;
+    auto&                 canonicalValues = scratch.canonicalValues;
+    auto&                 canonicalFlags  = scratch.flags;
     computeCanonicalValues(canonicalValues, canonicalFlags, *ssaState, storage, operands);
 
     const bool rewroteUses = rewriteCanonicalUses(context.builder, *ssaState, canonicalValues, canonicalFlags, storage, operands);

@@ -42,11 +42,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct KnownValue
-    {
-        uint64_t    value  = 0;
-        MicroOpBits opBits = MicroOpBits::B64;
-    };
+    using KnownValue = MicroSsaKnownValue;
 
     bool isFloatArithmeticOp(const MicroOp op)
     {
@@ -870,8 +866,10 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
-    std::vector<KnownValue> knownValues;
-    std::vector<uint8_t>    knownFlags;
+    SWC_ASSERT(context.ssaValueScratch != nullptr);
+    MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
+    auto&                 knownValues = scratch.knownValues;
+    auto&                 knownFlags  = scratch.flags;
     computeKnownValues(knownValues, knownFlags, *ssaState, storage, operands);
 
     ConstantMemoryContext memoryContext;
@@ -892,7 +890,8 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     floatContext.knownFlags   = &knownFlags;
     floatContext.noSignedZero = context.builder && context.builder->backendBuildCfg().fpMathNoSignedZero;
 
-    std::vector<MicroInstrRef> toErase;
+    auto& toErase = scratch.toErase;
+    toErase.clear();
     const auto                 view  = storage.view();
     const auto                 endIt = view.end();
     for (auto it = view.begin(); it != endIt; ++it)

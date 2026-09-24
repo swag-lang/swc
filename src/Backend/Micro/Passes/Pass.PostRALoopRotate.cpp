@@ -55,8 +55,8 @@ namespace
         return true;
     }
 
-    // Only a compare qualifies as a duplicable test: anything else that sets
-    // flags also produces a value, and copying it would copy that definition.
+    // Compare and test instructions define only flags. Copying an arithmetic
+    // instruction would also copy its value definition.
     bool isDuplicableTest(const MicroInstr& inst)
     {
         switch (inst.op)
@@ -67,6 +67,10 @@ namespace
             case MicroInstrOpcode::CmpMemReg:
             case MicroInstrOpcode::CmpAmcImm:
             case MicroInstrOpcode::CmpAmcReg:
+            case MicroInstrOpcode::TestRegReg:
+            case MicroInstrOpcode::TestRegImm:
+            case MicroInstrOpcode::TestMemReg:
+            case MicroInstrOpcode::TestMemImm:
                 return true;
             default:
                 return false;

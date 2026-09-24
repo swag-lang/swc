@@ -16,6 +16,22 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
+
+- Recorded: 2026-09-24 09:47
+- Area: compiler/backend, loop-invariant code motion
+- Evidence: `Pass.LoopInvariantCodeMotion.cpp` keeps a relocated `LoadRegPtrImm` inside a loop while
+  it may hoist relocated memory reads. The rule uses opcode and relocation properties, not a
+  benchmark name. `LICM_RetargetsDuplicateRelocationsAndKeepsUnhoistedOnes` checks both shapes
+  on an unrelated synthetic loop. The recorded cost argument for keeping the address
+  materialization inside cites only SHA-256 (+2 instructions and one stack slot when hoisted),
+  so the profitability decision lacks a static comparison on other code.
+- Next: compare loop instructions and spill traffic for the current policy and a guarded hoist on
+  non-benchmark functions that repeatedly access relocated tables, plus functions without such
+  accesses. Keep the current rule if hoisting merely lengthens live ranges; otherwise derive a
+  register-pressure condition from those cases and add focused correctness coverage.
+- Complete when the policy has static profitability evidence outside `bench/`.
+
 ### compiler.optimization.047 — Calibrate span-scoped register grants on non-benchmark code
 
 - Recorded: 2026-09-24 09:13

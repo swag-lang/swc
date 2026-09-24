@@ -107,6 +107,49 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_CommutesCopiedSumWithLaterCompare)
+{
+    constexpr MicroReg sum     = MicroReg::intReg(0);
+    constexpr MicroReg result  = MicroReg::intReg(1);
+    constexpr MicroReg other   = MicroReg::intReg(2);
+    constexpr MicroReg scratch = MicroReg::intReg(8);
+    const MicroReg     rsp     = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    for (const bool extraOldRead : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegReg(sum, result, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegReg(result, sum, MicroOpBits::B64);
+        builder.emitLoadRegMem(other, rsp, 16, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(other, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegReg(other, sum, MicroOpBits::B64);
+        builder.emitSetCondReg(scratch, MicroCond::Below);
+        if (extraOldRead)
+            builder.emitLoadMemReg(rsp, 24, sum, MicroOpBits::B64);
+        builder.emitLoadRegImm(sum, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 32, result, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 40, scratch, MicroOpBits::B8);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        bool binaryUsesResult = false;
+        bool compareUsesResult = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops && ops[3].microOp == MicroOp::Add)
+                binaryUsesResult = ops[0].reg == result && ops[1].reg == sum;
+            if (inst.op == MicroInstrOpcode::CmpRegReg && ops)
+                compareUsesResult = ops[1].reg == result;
+        }
+        if (binaryUsesResult != !extraOldRead || compareUsesResult != !extraOldRead)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_NarrowCompareSkipsDeadSignExtend)
 {
     constexpr MicroReg source  = MicroReg::intReg(0);

@@ -6991,36 +6991,29 @@ namespace
         if (!cfg.instructionCount() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
             return false;
 
-        std::vector<uint8_t>  reachable(cfg.instructionCount(), 0);
-        std::vector<uint32_t> stack;
+        // Repeated structural rounds and later functions reuse these capacities.
+        thread_local std::vector<uint8_t> reachable;
+        thread_local std::vector<uint32_t> stack;
+        reachable.assign(cfg.instructionCount(), 0);
+        stack.clear();
         stack.push_back(0);
         reachable[0] = 1;
 
-        std::unordered_map<uint64_t, uint32_t> labelInstructionIndices;
-        SmallVector<uint64_t>                  addressTakenLabels;
-        const auto                             instructionRefs = cfg.instructionRefs();
+        const auto instructionRefs = cfg.instructionRefs();
         for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs.size(); ++instructionIndex)
         {
             const MicroInstr* inst = storage.ptr(instructionRefs[instructionIndex]);
-            if (!inst)
+            if (!inst || inst->op != MicroInstrOpcode::LoadLabelAddress)
                 continue;
 
             const MicroInstrOperand* ops = inst->ops(operands);
             if (!ops)
                 continue;
-            if (inst->op == MicroInstrOpcode::Label && inst->numOperands >= 1)
-                labelInstructionIndices[ops[0].valueU64] = instructionIndex;
-            else if (inst->op == MicroInstrOpcode::LoadLabelAddress && inst->numOperands >= 2)
-                addressTakenLabels.push_back(ops[1].valueU64);
-        }
-
-        for (const uint64_t labelId : addressTakenLabels)
-        {
-            const auto it = labelInstructionIndices.find(labelId);
-            if (it == labelInstructionIndices.end() || reachable[it->second])
+            const uint32_t labelIndex = cfg.indexOfLabel(ops[1].valueU64);
+            if (labelIndex == MicroControlFlowGraph::K_NO_INDEX || reachable[labelIndex])
                 continue;
-            reachable[it->second] = 1;
-            stack.push_back(it->second);
+            reachable[labelIndex] = 1;
+            stack.push_back(labelIndex);
         }
 
         while (!stack.empty())

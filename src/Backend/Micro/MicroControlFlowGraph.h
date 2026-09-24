@@ -32,6 +32,10 @@ public:
     // built on the first request and lives exactly as long as the graph it describes.
     static constexpr uint32_t K_NO_INDEX = std::numeric_limits<uint32_t>::max();
     uint32_t                  indexOf(MicroInstrRef ref) const;
+    uint32_t                  indexOfLabel(uint64_t labelId) const
+    {
+        return labelId < labelToInstructionIndex_.size() ? labelToInstructionIndex_[labelId] : K_NO_INDEX;
+    }
 
     // Identifies this graph's contents. Every build takes a fresh value, so a reader that
     // derived something from the graph can tell whether that derivation still describes it -

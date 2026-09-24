@@ -114,7 +114,8 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
     // Instruction-local use/def queries are already fully populated above.
     if (trackedRegs_.regs().empty())
     {
-        reachingValuesByReg_.clear();
+        // No register can query the previous function's values. Keep the
+        // per-register capacities for the next function that needs SSA.
         valid_ = true;
         return;
     }
@@ -690,9 +691,10 @@ void MicroSsaState::renameIntoSsa()
     state.position     = 0;
     const size_t trackedRegCount = trackedRegs_.regs().size();
     state.currentValues.assign(trackedRegCount, K_INVALID_VALUE);
-    reachingValuesByReg_.resize(trackedRegCount);
-    for (auto& values : reachingValuesByReg_)
-        values.clear();
+    if (reachingValuesByReg_.size() < trackedRegCount)
+        reachingValuesByReg_.resize(trackedRegCount);
+    for (size_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
+        reachingValuesByReg_[regIndex].clear();
 
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {

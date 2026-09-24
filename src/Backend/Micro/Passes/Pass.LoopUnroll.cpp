@@ -36,12 +36,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Sixteen, not eight: a block cipher writes its state back one word at a
-    // time, and ChaCha20's sixteen-word output loop is the shape that pays.
-    // Flattening it turns every `[base + i*4]` into a fixed displacement, so
-    // its address arithmetic falls from nine instructions per word to four.
-    // The total-instruction caps below are what bound the growth; core.dll
-    // gains 0.11%.
+    // Ordinary loops stop at sixteen trips. A loop indexing immutable
+    // constant storage can go further when the body-size budget admits it:
+    // every fixed index exposes a constant lookup to later passes. The total
+    // instruction caps bound growth in both cases.
     constexpr uint64_t K_MAX_TRIPS       = 16;
     constexpr uint32_t K_MAX_BODY_INSTR  = 96;
     constexpr uint32_t K_MAX_TOTAL_INSTR = 384;
@@ -223,13 +221,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (!haveInit || initValue >= bound || (bound - initValue) % step != 0)
                 continue;
             const uint64_t trips = (bound - initValue) / step;
-            if (trips < 2 || trips > K_MAX_TRIPS)
+            if (trips < 2)
                 continue;
 
             const uint32_t bodyBegin = h + 1;
             const uint32_t bodyEnd   = jccOrdinal - 2;
             const uint32_t bodyCount = bodyEnd - bodyBegin;
-            if (!bodyCount || bodyCount > K_MAX_BODY_INSTR || bodyCount * trips > K_MAX_TOTAL_INSTR)
+            if (!bodyCount || bodyCount > K_MAX_BODY_INSTR || trips > K_MAX_TOTAL_INSTR / bodyCount)
                 continue;
 
             // Body scan: collect internal labels, verify every branch is either
@@ -318,6 +316,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // each copy. This can repay the branch duplication within the overall
             // code-size cap; ordinary branched loops keep the smaller budget.
             const bool foldsTableIndices = indexedConstantLoads != 0;
+            if (trips > K_MAX_TRIPS && !foldsTableIndices)
+                continue;
             if (!internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES && !foldsTableIndices)
                 continue;
 

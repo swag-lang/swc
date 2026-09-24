@@ -323,3 +323,19 @@ allocation is retained below the measurement floor, without a speedup claim.
 The independent x64 encoder, emission and address-mode updates were integrated
 as build 1125. Its incremental Release build, 3,478 native and 1,500 JIT
 tests passed. The isolated build-1124 timing above predates this merge.
+
+Build 1125 then passed a clean Release source rebuild and the full Release
+`tools/tests.swgs` milestone: 1,500 JIT, 3,478 native, 2,390 standard-module,
+550 application and 479 language-reference tests, plus the safety, script,
+example and application-smoke boundaries. The safety suite's seven expected
+dynamic nonpasses remained unchanged. This milestone predates the next
+physical-liveness scratch experiment.
+
+A subsequent experiment shared one thread-local physical-liveness result
+between post-RA dead-code elimination, peephole and loop hoisting. Its
+isolated build 1126 and the 3,478 native/1,500 JIT suites passed. Five
+core/hello pairs against build 1125 gave core reference/candidate 1.004 wall
+and 1.023 CPU, but hello 0.956 wall and 0.828 CPU. A seven-pair hello repeat
+gave 0.963 wall and 1.000 CPU. The repeated roughly 4% hello wall regression
+is not justified by the removed allocations, so the source was restored to
+build 1125.

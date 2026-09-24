@@ -3193,7 +3193,8 @@ namespace PostRaPeephole
                 // A truncated LEA result depends only on the corresponding low
                 // input bits, even though its addressing mode uses 64-bit registers.
                 const MicroOpBits readBits = address ? ops[indexedAddress ? 3 : 2].opBits : ops[widthOperand].opBits;
-                if ((floatCopy || ops[0].reg.isInt()) && (getNumBits(readBits) <= getNumBits(copyOps[2].opBits) || getNumBits(readBits) <= getNumBits(effectiveCopyBits())))
+                if ((floatCopy || ops[0].reg.isInt() || (memory && ops[0].reg.isInstructionPointer())) &&
+                    (getNumBits(readBits) <= getNumBits(copyOps[2].opBits) || getNumBits(readBits) <= getNumBits(effectiveCopyBits())))
                 {
                     MicroInstrOperand rewritten[Action::K_MAX_OPS];
                     std::ranges::copy(std::span{ops, next->numOperands}, rewritten);

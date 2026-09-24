@@ -1383,7 +1383,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
             return true;
 
-        if (!ops[0].reg.isAnyInt() || !ops[1].reg.isAnyInt() || !supportsOpBinaryMemReg(op))
+        if ((!ops[0].reg.isAnyInt() && !ops[0].reg.isInstructionPointer()) ||
+            !ops[1].reg.isAnyInt() || !supportsOpBinaryMemReg(op))
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteMemRegToRegReg;
             return true;
@@ -3569,6 +3570,17 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     SWC_ASSERT(!reg.isFloat());
     SWC_ASSERT(!(op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned || op == MicroOp::MultiplyHighSigned || op == MicroOp::MultiplyHighUnsigned));
 
+    const auto emitMemoryOperand = [&](const uint8_t regField) {
+        if (memReg.isInstructionPointer())
+        {
+            SWC_ASSERT(memOffset == 0);
+            emitModRm(store_, ModRmMode::Memory, regField, MODRM_RM_RIP);
+            store_.pushU32(0);
+        }
+        else
+            emitModRm(store_, memOffset, regField, memReg);
+    };
+
     ///////////////////////////////////////////
 
     if (op == MicroOp::RotateLeft ||
@@ -3582,15 +3594,15 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitSpecCpuOp(store_, 0xD3, opBits);
         if (op == MicroOp::RotateLeft)
-            emitModRm(store_, memOffset, MODRM_REG_0, memReg);
+            emitMemoryOperand(MODRM_REG_0);
         else if (op == MicroOp::RotateRight)
-            emitModRm(store_, memOffset, MODRM_REG_1, memReg);
+            emitMemoryOperand(MODRM_REG_1);
         else if (op == MicroOp::ShiftArithmeticLeft || op == MicroOp::ShiftLeft)
-            emitModRm(store_, memOffset, MODRM_REG_4, memReg);
+            emitMemoryOperand(MODRM_REG_4);
         else if (op == MicroOp::ShiftArithmeticRight)
-            emitModRm(store_, memOffset, MODRM_REG_7, memReg);
+            emitMemoryOperand(MODRM_REG_7);
         else if (op == MicroOp::ShiftRight)
-            emitModRm(store_, memOffset, MODRM_REG_5, memReg);
+            emitMemoryOperand(MODRM_REG_5);
     }
 
     ///////////////////////////////////////////
@@ -3599,7 +3611,7 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     {
         emitRex(store_, opBits, reg, memReg);
         emitSpecCpuOp(store_, op, opBits);
-        emitModRm(store_, memOffset, reg, memReg);
+        emitMemoryOperand(encodeReg(reg));
     }
 }
 

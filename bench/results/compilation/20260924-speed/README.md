@@ -3,8 +3,10 @@
 This campaign ran in the detached `swc-speed` worktree with the Release compiler and
 at most six Swag workers. The compiler was rebuilt from source and the full Release
 test sequence passed before optimization. Every later batch used a focused compiler
-test boundary. Build 1093 passed a second full Release rebuild and test sequence
-after integration with concurrently merged backend changes.
+test boundary. Build 1093 passed a second full Release rebuild and test sequence.
+Integrated build 1095 passed the full Release sequence again after further backend
+merges. Build 1096 passed an incremental Release build and 3,478 focused native tests.
+Build 1097 passed an incremental Release build, 3,478 native tests and 1,500 JIT tests.
 
 ## Baseline and targets
 
@@ -71,10 +73,13 @@ changes the benchmark inputs.
 
 ## Final validation
 
-The Release solution rebuild from source succeeded with MSBuild `/m:6` and
-`SwcCompileJobs=6`. `bin/swc.exe --num-cores 6 tools/tests.swgs --num-cores 6`
-exited zero. Its compiler suites passed 1,500 JIT and 3,478 native tests. The
+The Release solution rebuild from source succeeded at build 1093 with MSBuild `/m:6`
+and `SwcCompileJobs=6`. The full Release sequence also exited zero at integrated
+build 1095. Its compiler suites passed 1,500 JIT and 3,478 native tests. The
 safety suite passed 138 tests; seven dynamic cases remained the same expected
 non-passing cases seen at baseline. The standard workspace passed 2,390 tests,
 applications passed 550, and the language reference passed 479. Script runs and
-the 32 example and four application smokes also completed.
+the 32 example and four application smokes also completed. Build 1096 then passed
+3,478 native tests after the loop-unroll merge. Build 1097 incorporates the later
+loop-rotation merge and passed an incremental Release build, 3,478 native tests and
+1,500 JIT tests. The full Release sequence was not repeated for that final merge.

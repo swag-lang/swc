@@ -70,6 +70,9 @@ namespace
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoWiden);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoWiden);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoWiden);
+        r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoFullUnary);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoFullUnary);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoFullUnary);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildScalarFromStores);

@@ -4359,6 +4359,61 @@ SWC_TEST_BEGIN(InstCombine_CompareOfZeroExtendedLoad_ReadsDefinedRegister)
 }
 SWC_TEST_END()
 
+// A full-width packed unary operation can read its sole source directly from
+// memory. Both scalar-address and indexed loads use the same fold.
+SWC_TEST_BEGIN(InstCombine_FullWidthVecUnary_FoldsItsLoad)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg loaded = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg result = MicroReg::virtualFloatReg(2);
+
+    for (const MicroOp op : {MicroOp::VecSqrtF32, MicroOp::VecTruncF32ToS32})
+    {
+        for (const bool indexed : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            if (indexed)
+                builder.emitLoadAmcRegMem(loaded, MicroOpBits::B128, base, index, 2, 16, MicroOpBits::B64);
+            else
+                builder.emitLoadVecRegMem(loaded, base, 16, MicroOpBits::B128);
+            builder.emitVecUnaryRegReg(result, loaded, op, MicroOpBits::B128);
+            builder.emitStoreVecMemReg(base, 64, result, MicroOpBits::B128);
+            builder.emitRet();
+
+            SWC_RESULT(runInstCombinePass(builder));
+            const MicroInstrOpcode expected = indexed ? MicroInstrOpcode::VecUnaryAmcRegMem : MicroInstrOpcode::VecUnaryRegMem;
+            if (Backend::Unittest::countOpcode(builder, expected) != 1 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecUnaryRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, indexed ? MicroInstrOpcode::LoadAmcRegMem : MicroInstrOpcode::LoadVecRegMem) != 0)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A second reader needs the loaded value, so the load must remain.
+SWC_TEST_BEGIN(InstCombine_FullWidthVecUnary_KeepsSharedLoad)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg loaded = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg result = MicroReg::virtualFloatReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadVecRegMem(loaded, base, 16, MicroOpBits::B128);
+    builder.emitVecUnaryRegReg(result, loaded, MicroOp::VecSqrtF32, MicroOpBits::B128);
+    builder.emitStoreVecMemReg(base, 64, loaded, MicroOpBits::B128);
+    builder.emitStoreVecMemReg(base, 80, result, MicroOpBits::B128);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecUnaryRegMem) == 0 &&
+                   Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) == 1
+               ? Result::Continue
+               : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -28,6 +28,40 @@ namespace InstructionCombine
         }
     }
 
+    // The low byte of a copied value is unchanged. When an indexed compare
+    // is its only reader, use the still-current source byte directly.
+    bool tryBypassByteCopyInIndexedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || !ctx.ssa)
+            return false;
+        const auto* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || cmp[4].opBits != MicroOpBits::B8 || !cmp[2].reg.isVirtualInt() ||
+            cmp[2].reg == cmp[0].reg || cmp[2].reg == cmp[1].reg)
+            return false;
+        const MicroReg copied = cmp[2].reg;
+        const auto def = ctx.ssa->reachingDef(copied, cmpRef);
+        if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegReg ||
+            ctx.isClaimed(def.instRef) || ctx.isRelocated(def.instRef))
+            return false;
+        const auto* copy = def.inst->ops(*ctx.operands);
+        if (!copy || copy[0].reg != copied || copy[2].opBits != MicroOpBits::B8 || !copy[1].reg.isVirtualInt() ||
+            copy[1].reg == cmp[0].reg || copy[1].reg == cmp[1].reg ||
+            !valueHasSingleUse(*ctx.ssa, copied, def.instRef))
+            return false;
+        const auto sourceAtCopy = ctx.ssa->reachingDef(copy[1].reg, def.instRef);
+        const auto sourceAtCmp = ctx.ssa->reachingDef(copy[1].reg, cmpRef);
+        if (!sourceAtCopy.valid() || !sourceAtCmp.valid() || sourceAtCopy.valueId != sourceAtCmp.valueId ||
+            !ctx.claimAll({cmpRef, def.instRef}))
+            return false;
+        MicroInstrOperand rewritten[7] = {};
+        for (uint32_t i = 0; i < 7; ++i)
+            rewritten[i] = cmp[i];
+        rewritten[2].reg = copy[1].reg;
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpAmcReg, rewritten, /*allocNewBlock=*/true);
+        ctx.emitErase(def.instRef);
+        return true;
+    }
+
     // A signed comparison with zero only asks for the loaded value's sign
     // bit. Read that bit directly instead of materializing flags and setcc:
     //

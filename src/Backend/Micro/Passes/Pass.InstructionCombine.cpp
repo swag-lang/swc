@@ -134,6 +134,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowCompareOfZeroExtension);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryDelayCopiedAddressIncrement);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseCompareOperandForSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldThreeWaySelects);

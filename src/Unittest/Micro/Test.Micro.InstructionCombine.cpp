@@ -4628,6 +4628,58 @@ SWC_TEST_BEGIN(InstCombine_GlobalImmediateStore_KeepsSharedAddress)
 }
 SWC_TEST_END()
 
+// A constant adjustment of an indexed memory update belongs in the memory
+// displacement when the original index still has the value the lea read.
+SWC_TEST_BEGIN(InstCombine_FoldsLeaOffsetIntoIndexedMemoryUpdate)
+{
+    constexpr MicroReg base     = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg adjusted = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value    = MicroReg::virtualIntReg(4);
+    for (const bool redefineIndex : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(value, MicroReg::intReg(3), MicroOpBits::B32);
+        builder.emitLoadAddressRegMem(adjusted, index, 3, MicroOpBits::B64);
+        if (redefineIndex)
+            builder.emitLoadRegReg(index, MicroReg::intReg(4), MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroInstrOperand updateOps[8] = {};
+        updateOps[0].reg               = base;
+        updateOps[1].reg               = adjusted;
+        updateOps[2].reg               = value;
+        updateOps[3].opBits            = MicroOpBits::B64;
+        updateOps[4].opBits            = MicroOpBits::B32;
+        updateOps[5].valueU64          = 4;
+        updateOps[6].valueU64          = 8;
+        updateOps[7].microOp           = MicroOp::Xor;
+        builder.instructions().insertDerivedBefore(builder.operands(), builder.instructions().lastInstructionRef(), MicroInstrOpcode::OpBinaryAmcMemReg, updateOps);
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        const MicroInstr* update = nullptr;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::OpBinaryAmcMemReg)
+            {
+                update = &inst;
+                break;
+            }
+        }
+        if (!update)
+            return Result::Error;
+        const MicroInstrOperand* ops = update->ops(builder.operands());
+        if (!ops || ops[0].reg != base || ops[2].reg != value || ops[7].microOp != MicroOp::Xor ||
+            ops[1].reg != (redefineIndex ? adjusted : index) || ops[6].valueU64 != (redefineIndex ? 8 : 20))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A full-width packed unary operation can read its sole source directly from
 // memory. Both scalar-address and indexed loads use the same fold.
 SWC_TEST_BEGIN(InstCombine_FullWidthVecUnary_FoldsItsLoad)

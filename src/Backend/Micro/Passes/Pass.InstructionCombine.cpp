@@ -118,6 +118,7 @@ namespace
         r.add(MicroInstrOpcode::CmpAmcImm, tryFoldIndexedSignBit);
         r.add(MicroInstrOpcode::CmpAmcReg, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::OpBinaryRegAmcMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::OpBinaryAmcMemReg, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLeaConstIntoMemBase);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldLeaConstIntoMemBase);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);

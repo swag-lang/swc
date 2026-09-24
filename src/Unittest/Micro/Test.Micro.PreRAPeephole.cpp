@@ -662,6 +662,78 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcAddressIntoStore)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcAddressIntoMemoryUpdate)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg idx  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg src  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg addr = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+    builder.emitLoadRegMem(idx, base, 0, MicroOpBits::B64);
+    builder.emitLoadRegMem(src, base, 8, MicroOpBits::B32);
+    builder.emitLoadAddressAmcRegMem(addr, MicroOpBits::B64, base, idx, 4, 8, MicroOpBits::B64);
+    builder.emitOpBinaryMemReg(addr, 12, src, MicroOp::Xor, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runPreRaPeepholePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 0)
+        return Result::Error;
+    const MicroInstr* update = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemReg);
+    if (!update)
+        return Result::Error;
+    const MicroInstrOperand* ops = update->ops(builder.operands());
+    if (!ops || ops[0].reg != base || ops[1].reg != idx || ops[2].reg != src || ops[3].opBits != MicroOpBits::B64 ||
+        ops[4].opBits != MicroOpBits::B32 || ops[5].valueU64 != 4 || ops[6].valueU64 != 20 || ops[7].microOp != MicroOp::Xor)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PreRAPeephole_KeepsTruncatedAmcAddressBeforeMemoryUpdate)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg idx  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg src  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg addr = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadAddressAmcRegMem(addr, MicroOpBits::B32, base, idx, 4, 8, MicroOpBits::B64);
+    builder.emitOpBinaryMemReg(addr, 12, src, MicroOp::Xor, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runPreRaPeepholePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PreRAPeephole_KeepsIndexedExchangeRegisterEffect)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg idx  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg src  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg addr = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadAddressAmcRegMem(addr, MicroOpBits::B64, base, idx, 4, 8, MicroOpBits::B64);
+    builder.emitOpBinaryMemReg(addr, 12, src, MicroOp::Exchange, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runPreRaPeepholePass(builder));
+
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

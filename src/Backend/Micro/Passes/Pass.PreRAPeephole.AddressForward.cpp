@@ -428,6 +428,33 @@ namespace PreRaPeephole
                     }
                     return false;
 
+                case MicroInstrOpcode::OpBinaryMemReg:
+                    if (ops[0].reg == addrReg)
+                    {
+                        if (!isEncodableAmcScale(scale))
+                            return false;
+                        // Both memory forms encode these updates with one
+                        // register source. Exchange also writes that register,
+                        // which the indexed form does not model as a def.
+                        const MicroOp op = ops[3].microOp;
+                        if (op != MicroOp::Add && op != MicroOp::Subtract && op != MicroOp::And &&
+                            op != MicroOp::Or && op != MicroOp::Xor)
+                            return false;
+                        out.newOp           = MicroInstrOpcode::OpBinaryAmcMemReg;
+                        out.numOps          = 8;
+                        out.allocOps        = true;
+                        out.ops[0].reg      = baseReg;
+                        out.ops[1].reg      = indexReg;
+                        out.ops[2].reg      = ops[1].reg;
+                        out.ops[3].opBits   = addrBits;
+                        out.ops[4].opBits   = ops[2].opBits;
+                        out.ops[5].valueU64 = scale;
+                        out.ops[6].valueU64 = add + ops[4].valueU64;
+                        out.ops[7].microOp  = ops[3].microOp;
+                        return true;
+                    }
+                    return false;
+
                 case MicroInstrOpcode::LoadAddrRegMem:
                     if (ops[1].reg == addrReg)
                     {

@@ -2471,16 +2471,18 @@ namespace PostRaPeephole
             return false;
         const auto* ops = inst.ops(*ctx.operands);
         if (!ops || ops[2].microOp != MicroOp::And || !ops[0].reg.isInt() ||
-            (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
-            ops[3].hasWideImmediateValue() || ops[3].valueU64 > 0x7F ||
+            (ops[1].opBits != MicroOpBits::B8 && ops[1].opBits != MicroOpBits::B16 &&
+             ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+            ops[3].hasWideImmediateValue() ||
             ctx.isPrivateFrameBase(ops[0].reg) || !ctx.isRegDeadAfterCurrent(ops[0].reg))
             return false;
 
-        // With bit 7 clear, both widths produce SF=0 and the same ZF/PF;
-        // AND and TEST also clear CF/OF. No result value survives the mask.
+        // AND and TEST set the same flags, and no result value survives the mask.
+        // A small mask with bit 7 clear can still use the shorter byte TEST.
         MicroInstrOperand test[3] = {};
         test[0]                   = ops[0];
-        test[1].opBits            = MicroOpBits::B8;
+        test[1].opBits            = (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64) &&
+                                    ops[3].valueU64 <= 0x7F ? MicroOpBits::B8 : ops[1].opBits;
         test[2]                   = ops[3];
         MicroInstr probe          = inst;
         probe.op                  = MicroInstrOpcode::TestRegImm;

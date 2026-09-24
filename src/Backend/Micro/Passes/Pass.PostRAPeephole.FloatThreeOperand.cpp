@@ -117,8 +117,9 @@ namespace PostRaPeephole
         if (ctx.isClaimed(ref) || !ctx.encoder)
             return false;
         const auto* load = inst.ops(*ctx.operands);
-        if (!load || !load[0].reg.isInt() || !load[1].reg.isInt() ||
-            load[1].reg.isInstructionPointer() || ctx.isPrivateFrameBase(load[0].reg))
+        if (!load || !load[0].reg.isInt() ||
+            (!load[1].reg.isInt() && !load[1].reg.isInstructionPointer()) ||
+            ctx.isPrivateFrameBase(load[0].reg))
             return false;
         const MicroInstrRef testRef = ctx.nextRef(ref);
         const MicroInstr*   test    = ctx.instruction(testRef);

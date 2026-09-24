@@ -128,6 +128,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::CmpAmcReg, tryFoldConstAmcCompare);
         r.add(MicroInstrOpcode::CmpAmcReg, tryBypassByteCopyInIndexedCompare);
+        r.add(MicroInstrOpcode::CmpAmcReg, trySelectComparedIndexedLoad);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowCompareOfZeroExtension);

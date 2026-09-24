@@ -16,6 +16,43 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-24 11:56 — Correct the current trip limit after the later unroller changes.
+- Area: compiler/backend
+- Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
+- Observation in August 2026: the dominant cost was the key-stream application — sixteen words
+  XOR-ed one at a time, a loop the unroller then refused because `K_MAX_TRIPS` was 8. Raising
+  it to 16 unrolled the
+  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
+  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
+  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
+  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
+  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
+  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
+  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
+  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
+  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
+  legalization rewrote every memory-destination form back into registers because it read a
+  virtual register as "not an integer". The folds now leave a frame slot or a global alone
+  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
+  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
+- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
+  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
+  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
+  instructions against 28.
+- Current boundary: `1238a3c2e` subsequently gave independent temporaries in cloned straight-line
+  bodies fresh names, with coverage in `native/optimizer/unroll_renames_temporaries.swg`.
+  `K_MAX_TRIPS` is now 16 for ordinary loops, and loops indexing immutable constant tables can
+  exceed it within the existing code-size budget. The August/September counts above predate
+  these changes; carried values are deliberately not renamed.
+- Next: compare current ChaCha key-stream code against the earlier eight-trip limit using static
+  per-loop instructions, memory operations, and spills. Use paired timing only if a tradeoff
+  remains after inspecting the generated code.
+- Complete when: the current unroll limit has profitability evidence for this loop, including
+  the effects of temporary renaming and later instruction folds.
+
 ### compiler.optimization.051 — Calibrate the loop-rotation header budget
 
 - Recorded: 2026-09-24 11:53
@@ -397,39 +434,6 @@ block, and the hot path keeps the register.
 - Complete when: a proven stable, side-effect-free by-value aggregate parameter costs no copy
   after inlining, written or indirectly mutable storage still preserves value semantics, and the value-returning shape of a block transform is as cheap as the in-place
   one on the video corpus.
-
-### compiler.optimization.002 — Unrolling the key-stream loop still has to prove it pays
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-14 06:25 — Require a fresh unroll-limit measurement after temporary renaming.
-- Area: compiler/backend
-- Found while: chasing the second half of the ChaCha20 gap after the round loop stopped spilling
-- Observation: the dominant cost is the key-stream application — sixteen words XOR-ed one at a
-  time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. Raising it to 16 unrolled the
-  loop and bought nothing (2026-08-22, static census, release: chacha main 627 -> 763
-  instructions, sha256 725 -> 878, every other task unchanged), because the per-element body
-  carried three instructions a constant cannot remove. Those are gone (2026-09-03): the
-  zero-extension after a 32-bit load and the `& M32` after a 64-bit add of two zero-extended
-  words fold in `Pass.InstructionCombine.ZeroExtend.cpp` (a 32-bit write clears the upper half
-  of its register, a contract `MicroInstr.h` now states), and the `load; op; store` round trip
-  folds into `xor [r9], r11`. That fold always existed on paper; two defects kept it out of
-  every loop. Every single-consumer fold counted the dead header phi of a loop-defined value
-  as a second reader (`valueHasSingleUse` now looks through phis nothing reads), and
-  legalization rewrote every memory-destination form back into registers because it read a
-  virtual register as "not an integer". The folds now leave a frame slot or a global alone
-  inside a loop, where slot promotion, the vectorizer and the instruction-pointer-relative
-  access own it (the round loop of chacha lost its SLP packing otherwise, 229 -> 483).
-- Evidence: release, static census of the bench mains, 2026-09-03: chacha 229 -> 223, sha256
-  394 -> 369 (25 zero-extensions -> 2), csvagg 699 -> 695, wordfreq 322 -> 318, dijkstra
-  276 -> 275, raytrace 115 -> 114, leven unchanged. The key-stream body alone is 24
-  instructions against 28.
-- Current boundary: `1238a3c2e` subsequently gave independent temporaries in cloned straight-line
-  bodies fresh names, with coverage in `native/optimizer/unroll_renames_temporaries.swg`.
-  `K_MAX_TRIPS` remains 8. The August/September counts above predate this change and do not
-  decide whether increasing the limit now pays; carried values are deliberately not renamed.
-- Next: re-measure chacha with the current temporary renaming and `K_MAX_TRIPS = 16` on a quiet
-  machine, and only then ask whether the SLP pass sees the sixteen `[frame + K]` loads it now has.
-- Complete when: a dynamic measurement on a quiet machine decides the unroll limit either way.
 
 ### compiler.optimization.008 — The hand-written sign-bit clamps of the H.264 decoder may be retired
 

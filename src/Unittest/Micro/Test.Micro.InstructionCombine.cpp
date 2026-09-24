@@ -4368,7 +4368,8 @@ SWC_TEST_BEGIN(InstCombine_FullWidthVecUnary_FoldsItsLoad)
     constexpr MicroReg loaded = MicroReg::virtualFloatReg(1);
     constexpr MicroReg result = MicroReg::virtualFloatReg(2);
 
-    for (const MicroOp op : {MicroOp::VecSqrtF32, MicroOp::VecTruncF32ToS32})
+    for (const MicroOp op : {MicroOp::VecAbsS8, MicroOp::VecAbsS16, MicroOp::VecAbsS32,
+                             MicroOp::VecSqrtF32, MicroOp::VecSqrtF64, MicroOp::VecTruncF32ToS32})
     {
         for (const bool indexed : {false, true})
         {

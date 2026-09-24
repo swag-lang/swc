@@ -2520,14 +2520,15 @@ void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t 
     emitModRm(store_, memOffset, regDst, memReg);
 }
 
-// A packed unary operation reads eight bytes for widening, sixteen for sqrt
-// and truncation. The VEX B bit covers the base register; vvvv is unused.
+// A packed unary operation reads eight bytes for widening, sixteen for the
+// full-width operations. The VEX B bit covers the base register; vvvv is unused.
 void X64Encoder::encodeVecUnaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());
     SWC_ASSERT(op == MicroOp::VecWidenLoU8 || op == MicroOp::VecWidenLoU16 || op == MicroOp::VecWidenLoU32 ||
                op == MicroOp::VecWidenLoS8 || op == MicroOp::VecWidenLoS16 || op == MicroOp::VecWidenLoS32 ||
-               op == MicroOp::VecSqrtF32 || op == MicroOp::VecTruncF32ToS32);
+               op == MicroOp::VecAbsS8 || op == MicroOp::VecAbsS16 || op == MicroOp::VecAbsS32 ||
+               op == MicroOp::VecSqrtF32 || op == MicroOp::VecSqrtF64 || op == MicroOp::VecTruncF32ToS32);
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
     const VecOpEncoding enc = vecOpEncoding(op);
@@ -2545,7 +2546,8 @@ void X64Encoder::encodeVecUnaryAmcRegMem(MicroReg regDst, MicroReg regBase, Micr
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !regBase.isFloat() && !regMul.isFloat() && !regBase.isNoBase());
     SWC_ASSERT(op == MicroOp::VecWidenLoU8 || op == MicroOp::VecWidenLoU16 || op == MicroOp::VecWidenLoU32 ||
                op == MicroOp::VecWidenLoS8 || op == MicroOp::VecWidenLoS16 || op == MicroOp::VecWidenLoS32 ||
-               op == MicroOp::VecSqrtF32 || op == MicroOp::VecTruncF32ToS32);
+               op == MicroOp::VecAbsS8 || op == MicroOp::VecAbsS16 || op == MicroOp::VecAbsS32 ||
+               op == MicroOp::VecSqrtF32 || op == MicroOp::VecSqrtF64 || op == MicroOp::VecTruncF32ToS32);
     SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
     SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
 

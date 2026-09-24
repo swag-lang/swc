@@ -7,7 +7,7 @@
 #include "Support/Core/SmallVector.h"
 
 // A vector load whose every reader widens half of it, or whose sole reader
-// applies a full-width sqrt or truncation, can be folded into the reader.
+// applies a full-width packed unary operation, can be folded into the reader.
 //
 //     LoadVecRegMem      vt,  [b+o]           (or the 128-bit LoadRegMem,
 //     VecUnaryRegReg     lo,  vt, widenLo           or the indexed LoadAmcRegMem)
@@ -56,7 +56,18 @@ namespace InstructionCombine
 
         bool isFullWidthUnary(const MicroOp op)
         {
-            return op == MicroOp::VecSqrtF32 || op == MicroOp::VecTruncF32ToS32;
+            switch (op)
+            {
+                case MicroOp::VecAbsS8:
+                case MicroOp::VecAbsS16:
+                case MicroOp::VecAbsS32:
+                case MicroOp::VecSqrtF32:
+                case MicroOp::VecSqrtF64:
+                case MicroOp::VecTruncF32ToS32:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         // The unsigned widening an interleave of the high half with zero

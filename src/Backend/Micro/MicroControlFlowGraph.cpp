@@ -75,7 +75,6 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     instructionRefs_.reserve(instructionCount);
     successors_.resize(instructionCount);
     predecessors_.resize(instructionCount);
-    labelToInstructionIndex_.reserve(instructionCount / 4 + 1);
 
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
@@ -95,6 +94,9 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             else
             {
                 const uint32_t labelIndex = static_cast<uint32_t>(labelOps[0].valueU64);
+                // Functions without labels never need this table.
+                if (labelToInstructionIndex_.capacity() == 0)
+                    labelToInstructionIndex_.reserve(instructionCount / 4 + 1);
                 if (labelIndex >= labelToInstructionIndex_.size())
                     labelToInstructionIndex_.resize(labelIndex + 1, K_INVALID_INSTRUCTION_INDEX);
                 labelToInstructionIndex_[labelIndex] = instructionIndex;

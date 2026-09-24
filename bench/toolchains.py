@@ -154,14 +154,19 @@ def systems_recipe(t, language, source, name, helpers=()):
     return {"cmd": cmd, "exe": exe, "clean": [wd], "mkdir": [wd], "cwd": wd}
 
 
-def make_recipes(t, env, swc):
+def swc_worker_args(cores):
+    return ["--num-cores", str(cores)] if cores else []
+
+
+def make_recipes(t, env, swc, cores=0):
     """(id -> callable(task, name) -> recipe) for everything that builds an executable."""
     cl = resolve(env, "cl")
 
     def swag(cfg):
         def make(task, name):
             wd = os.path.join(OUT, "swag_" + name)
-            cmd = [swc, "build", "--build-cfg", cfg, "-n", name, "-od", wd, "-wd", wd]
+            cmd = [swc, "build", *swc_worker_args(cores), "--build-cfg", cfg,
+                   "-n", name, "-od", wd, "-wd", wd]
             for dependency in swag_dependency_api_files(cfg):
                 cmd += ["--import-api-file", dependency]
             for f in swag_files(task, "swagnat"):
@@ -236,11 +241,11 @@ def make_launchers(t, dotnet_dll_runner):
         "csharp-jit": lambda e: [dotnet_dll_runner, e]}
 
 
-def make_runtimes(t, swc):
+def make_runtimes(t, swc, cores=0):
     """id -> callable(task) -> command line, for everything that compiles at launch."""
     def jit(cfg):
         def make(task):
-            cmd = [swc, "sema", "--build-cfg", cfg]
+            cmd = [swc, "sema", *swc_worker_args(cores), "--build-cfg", cfg]
             for dependency in swag_dependency_api_files(cfg):
                 cmd += ["--import-api-file", dependency]
             for f in swag_files(task, "swag"):
@@ -258,7 +263,7 @@ def make_runtimes(t, swc):
     }
 
 
-def make_hello_builds(t, env, swc):
+def make_hello_builds(t, env, swc, cores=0):
     cl = resolve(env, "cl")
     hello = os.path.join(SRC, "hello")
     return {
@@ -266,7 +271,7 @@ def make_hello_builds(t, env, swc):
             t, language, os.path.join(hello, "hello." + extension), "hello_" + language))
            for language, extension in [("zig", "zig"), ("d-ldc", "d"), ("odin", "odin")]},
         "swag-release": lambda: {
-            "cmd": [swc, "build", "--build-cfg", "release", "-n", "hello_swag",
+            "cmd": [swc, "build", *swc_worker_args(cores), "--build-cfg", "release", "-n", "hello_swag",
                     "-od", os.path.join(OUT, "hellowd"), "-wd", os.path.join(OUT, "hellowd"),
                     "-f", os.path.join(hello, "hello.swg")],
             "exe": os.path.join(OUT, "hellowd", "hello_swag.exe"),
@@ -305,12 +310,12 @@ def make_hello_builds(t, env, swc):
     }
 
 
-def make_hello_runs(t, swc):
+def make_hello_runs(t, swc, cores=0):
     hello = os.path.join(SRC, "hello")
     return {
-        "swc-jit-release":    [swc, "sema", "--build-cfg", "release", "-f",
+        "swc-jit-release":    [swc, "sema", *swc_worker_args(cores), "--build-cfg", "release", "-f",
                                os.path.join(hello, "run.swg")],
-        "swc-jit-fast-debug": [swc, "sema", "--build-cfg", "devmode", "-f",
+        "swc-jit-fast-debug": [swc, "sema", *swc_worker_args(cores), "--build-cfg", "devmode", "-f",
                                os.path.join(hello, "run.swg")],
         "node20":             [t["node"], os.path.join(hello, "hello.js")],
         "luajit2.1":          [t["luajit"], os.path.join(hello, "hello.lua")],

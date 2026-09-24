@@ -14,6 +14,15 @@ import winproc
 
 
 class CampaignTests(unittest.TestCase):
+    def test_campaign_forwards_the_compiler_worker_cap(self):
+        with (
+            mock.patch.object(sys, "argv", ["campaign.py", "--quick", "--no-build", "--swc-cores", "6"]),
+            mock.patch.object(campaign, "run") as run,
+        ):
+            self.assertEqual(campaign.main(), 0)
+
+        run.assert_called_once_with("driver.py", ["--swc-cores", "6", "--quick"])
+
     def test_quick_campaign_does_not_rebuild_the_published_report(self):
         with (
             mock.patch.object(sys, "argv", ["campaign.py", "--quick"]),
@@ -82,6 +91,23 @@ class ScheduleTests(unittest.TestCase):
 
 
 class EditLoopTests(unittest.TestCase):
+    def test_worker_cap_reaches_every_swag_recipe(self):
+        tools = {"clang_cl": "clang-cl", "node": "node", "luajit": "luajit",
+                 "lua": "lua", "py": "py", "rustc": "rustc", "swiftc": "swiftc",
+                 "dotnet": "dotnet"}
+        with (
+            mock.patch.object(toolchains, "resolve", return_value="cl"),
+            mock.patch.object(toolchains, "swag_dependency_api_files", return_value=["kernel32.swg"]),
+        ):
+            commands = [
+                toolchains.make_recipes(tools, {}, "swc.exe", 6)["swag-release"]("csvagg", "test")["cmd"],
+                toolchains.make_runtimes(tools, "swc.exe", 6)["swc-jit-release"]("csvagg"),
+                toolchains.make_hello_builds(tools, {}, "swc.exe", 6)["swag-release"]()["cmd"],
+                toolchains.make_hello_runs(tools, "swc.exe", 6)["swc-jit-release"],
+            ]
+        for command in commands:
+            self.assertEqual(command[:4], ["swc.exe", command[1], "--num-cores", "6"])
+
     def test_format_mirror_preserves_configuration_and_maintenance_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "repo"

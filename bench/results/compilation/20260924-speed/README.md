@@ -126,6 +126,10 @@ series on a quieter machine gave baseline/candidate ratios 1.012 wall and
 0.991 CPU, with peak working set 1.004. This is neutral within the measurement
 floor; the retained benefit is avoiding two vector allocations per pass run.
 
+Integrated build 1105 includes the concurrent instruction-combine change. Its
+incremental Release build, 3,478 native tests and 1,500 JIT tests passed. The
+DCE timing comparison above was made on isolated build 1104.
+
 ## Final validation
 
 The Release solution rebuild from source succeeded at build 1093 with MSBuild `/m:6`

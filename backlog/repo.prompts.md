@@ -316,16 +316,19 @@ when every end condition above is true.
 You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
 points to first, then backlog/compiler.core.md, backlog/compiler.optimization.md, and bench/README.md.
 
-WORK IN A SEPARATE WORKTREE
+WORK IN A SEPARATE WORKTREE; MERGE EACH VALIDATED BATCH
 
-Do not run this campaign in the main checkout. Create an isolated worktree and do everything there:
+Do not run this campaign in the main checkout. Create an isolated worktree on a branch:
 
-  git worktree add --detach ../swc-perf HEAD
+  git worktree add -b generated-code-performance ../swc-perf HEAD
 
 This is not hygiene, it is measurement validity. A shared tree picks up foreign uncommitted edits
 from other sessions, and MSBuild's incremental build then links that in-flight code into the
 swc.exe you are timing - so a number moves and it is not yours. It also lets you abandon a whole
-round with one checkout instead of unpicking it, which you will do often here.
+round with one checkout instead of unpicking it, which you will do often here. Keep each successful
+optimization in a reviewable commit and merge every validated batch into local master. Integrate
+concurrent master changes before merging; resolve conflicts and rerun the affected checks. Do not
+leave validated batches accumulating only in the worktree.
 
 START OPTIMIZING IN THE FIRST HALF HOUR
 
@@ -406,10 +409,15 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      seconds - one build, one count. Iterate here, not on the clock. Compare per loop and never on
      a total: an outer loop's span contains its inner loops, so a saving inside one shows up as a
      loss outside it.
-  5. Validate correctness once the counts say the change is real, not before. swc tools/tests.swgs
-     dm, then swc tools/tests.swgs dm --all-cfg. Running these before there is a change to validate
-     is the most reliable way this campaign wastes a session. A checksum mismatch in bench means
-     you measured nothing.
+  5. Validate correctness once the counts say the change is real, not before. Run the focused test
+     that exercises the changed behavior, then draw one additional test at random from a different
+     area. Use a different additional test for each batch: draw without replacement until the pool
+     is exhausted, then reshuffle. Record the draw and both results. Select the smallest relevant
+     compiler configuration using validate-swag-changes. Run a broad regression campaign roughly
+     every five validated batches, and sooner when a shared boundary or a failure calls for it;
+     include the appropriate DevMode, configuration, Release, and script coverage there. Do not
+     run the full suite after every small optimization. A checksum mismatch in bench means you
+     measured nothing.
   6. Judge the change against clang-cl and MSVC's output, not against the clock. The clock on this
      machine drifts more than most single changes are worth (two campaigns of the SAME binary
      measured a geometric mean of 1.41x and 1.54x, and drift inside one sweep reached +37%), and
@@ -419,17 +427,18 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      What "provably" means here is the per-loop count, which is deterministic: instructions and
      memory operations per iteration of each hot loop, before and after, next to the same loop in
      clang's assembly. A change is only reverted when the emitted code is not better - not when the
-     benchmark fails to see that it is.
-     One consequence worth planning around: a change can be a necessary step whose own measurement
-     is flat, or even briefly negative, because it enables the next one. Say so, keep it, and name
-     the follow-up.
-  7. Reach for the clock only once the emitted code says the change is real and you want its size:
-     cd bench && py driver.py --tasks <task> --quick. Partial sweeps are never recorded; they are
-     for your inner loop only.
-  8. Record a full campaign only when you have a result worth keeping:
-     swc tools\bench.swgs --label "what changed". That takes ~25 minutes; do not spend one per
-     experiment, and record the baseline it is compared against in the same session - a baseline
-     measured hours earlier is a different machine.
+     benchmark fails to see that it is. Static proof plus correctness validation is sufficient to
+     keep and merge a batch; no elapsed-time measurement is required. Small individual gains may
+     become visible only after several batches. Name any enabling step and its follow-up.
+  7. Use a quick timing sweep only when a tradeoff remains unresolved after static analysis:
+     cd bench && py driver.py --tasks <task> --quick --swc-cores 6. Treat timings under changing
+     machine load as exploratory. Partial sweeps are never recorded.
+  8. Record a full benchmark campaign periodically across accumulated batches, not after each one:
+     swc tools\bench.swgs --label "what changed". When comparing elapsed time, record its baseline
+     in the same session. A full benchmark is not a prerequisite for merging a statically proven
+     improvement.
+  9. Commit and merge the validated batch into local master, then bring the worktree branch up to
+     date before starting the next batch. Preserve unrelated changes on master.
 
 DO NOT STOP AT THE FIRST FAILURE
 
@@ -449,10 +458,10 @@ lost 2%, or one task resisted.
 
 RULES
 
-  - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
-    believed, and the Release sequence before anything is recorded. A pass that miscompiles under
-    the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
-    catches it; keep that coverage when extending scalar float folds.
+  - Correctness first, always. Each batch needs its focused test and a rotating random test from
+    another area before merge. Run the broader regression campaign periodically, and before
+    trusting a full benchmark record. A pass that miscompiles under the JIT but passes unit tests
+    is a known failure mode; include swc tools/scripts.swgs dm when the change can affect it.
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
     takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
@@ -460,14 +469,18 @@ RULES
     a reason to give up the optimization. Only a change that is BOTH slower to compile AND not
     better in the generated code gets reverted.
   - Never change what a bench task computes. That silently resets the history.
-  - A/B two swc.exe binaries by CPU time, alternating order, sampling before the process exits.
+  - When timing is needed, A/B two swc.exe binaries by CPU time, alternating order and sampling
+    before the process exits. Do not reject a statically proven improvement because noisy elapsed
+    times fail to resolve a small gain.
   - Leads you cannot chase now go in backlog/compiler.optimization.md with evidence and a concrete `Next:`
     step. If the evidence establishes implementation work, update that entry in place.
 
 REPORT
 
-After each round, one table: what you tried, what it measured, kept or reverted, and why. At the
-end of the campaign, the new ratio table next to the one above.
+After each round, one table: what you tried, before/after per-loop instruction and memory counts,
+the focused and rotating test results, the merged commit, and why it was kept or reverted. Include
+timings only when useful and credible. At the end of the campaign, give the new ratio table next to
+the one above when a full campaign has been run.
 ```
 
 ---

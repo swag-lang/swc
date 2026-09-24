@@ -2755,6 +2755,130 @@ SWC_TEST_END()
 
 namespace
 {
+    void emitIndexedRightCompare(MicroBuilder& builder, MicroCond cond, bool interveningStore)
+    {
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg index = MicroReg::virtualIntReg(2);
+        constexpr MicroReg left  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg right = MicroReg::virtualIntReg(4);
+        constexpr MicroReg flag  = MicroReg::virtualIntReg(5);
+        constexpr MicroReg source = MicroReg::virtualIntReg(6);
+
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(source, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(left, source, MicroOpBits::B8);
+        builder.emitLoadAmcRegMem(right, MicroOpBits::B8, base, index, 1, 2, MicroOpBits::B64);
+        if (interveningStore)
+            builder.emitLoadMemImm(base, 2, ApInt(7, 8), MicroOpBits::B8);
+        builder.emitCmpRegReg(left, right, MicroOpBits::B8);
+        builder.emitSetCondReg(flag, cond);
+        builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_RightIndexedEqualityLoad_FoldsIntoMemoryCompare)
+{
+    MicroBuilder builder(ctx);
+    emitIndexedRightCompare(builder, MicroCond::Equal, false);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_RightIndexedOrderedLoad_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitIndexedRightCompare(builder, MicroCond::Less, false);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_RightIndexedLoadAcrossStore_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitIndexedRightCompare(builder, MicroCond::Equal, true);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    void emitIndexedByteCompareWithCopy(MicroBuilder& builder, bool redefineSource, bool copyIsBase = false)
+    {
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg index  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg source = MicroReg::virtualIntReg(3);
+        constexpr MicroReg copied = MicroReg::virtualIntReg(4);
+        constexpr MicroReg flag   = MicroReg::virtualIntReg(5);
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(source, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(copied, source, MicroOpBits::B8);
+        if (redefineSource)
+            builder.emitLoadRegReg(source, MicroReg::intReg(4), MicroOpBits::B64);
+        builder.emitSetCondReg(flag, MicroCond::Equal);
+        const MicroInstrRef setRef = builder.instructions().lastInstructionRef();
+        MicroInstrOperand ops[7] = {};
+        ops[0].reg = copyIsBase ? copied : base;
+        ops[1].reg = index;
+        ops[2].reg = copied;
+        ops[3].opBits = MicroOpBits::B64;
+        ops[4].opBits = MicroOpBits::B8;
+        ops[5].valueU64 = 1;
+        ops[6].valueU64 = 0;
+        builder.instructions().insertDerivedBefore(builder.operands(), setRef, MicroInstrOpcode::CmpAmcReg, ops);
+        builder.emitLoadMemReg(base, 16, flag, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_IndexedByteCompareBypassesLiveCopy)
+{
+    MicroBuilder builder(ctx);
+    emitIndexedByteCompareWithCopy(builder, false);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 3)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_IndexedByteCompareKeepsCopyAcrossRedefinition)
+{
+    MicroBuilder builder(ctx);
+    emitIndexedByteCompareWithCopy(builder, true);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 5)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_IndexedByteCompareKeepsAddressCopy)
+{
+    MicroBuilder builder(ctx);
+    emitIndexedByteCompareWithCopy(builder, false, true);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
     // (x >> 24) | ((x >> 8) & 0xFF00) | ((x << 8) & middle) | (x << 24)
     void emitDwordSwap(MicroBuilder& builder, uint64_t middleMask)
     {

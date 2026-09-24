@@ -876,6 +876,12 @@ namespace InstructionCombine
             }
         }
 
+        bool condSurvivesCompareOperandSwap(MicroCond cond)
+        {
+            return cond == MicroCond::Equal || cond == MicroCond::NotEqual ||
+                   cond == MicroCond::Zero || cond == MicroCond::NotZero;
+        }
+
         // Every reader of the flags a compare at cmpRef defines must satisfy
         // `condOk`. Mirrors ConstProp's consumer scan: a terminator or label
         // ends flag liveness in this IR, and an unknown flags reader blocks.
@@ -1384,6 +1390,69 @@ namespace InstructionCombine
             return false;
 
         return foldAmcLoadIntoCompareAt(ctx, loadRef, vt, base, index, loadOps[5].valueU64, loadOps[6].valueU64, loadBits, loadBits, /*needsUnsignedConds=*/false);
+    }
+
+    // Equality observes only the zero flag, which does not change when the
+    // compare's operands trade places. A single-use right-hand indexed load
+    // can therefore become cmp [base + index*scale + disp], left.
+    bool tryFoldRightAmcLoadIntoEqualityCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+        const auto* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps || loadOps[4].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg vt = loadOps[0].reg;
+        const MicroReg base = loadOps[1].reg;
+        const MicroReg index = loadOps[2].reg;
+        const MicroOpBits bits = loadOps[3].opBits;
+        if (!vt.isVirtualInt() || !base.isAnyInt() || !index.isAnyInt() ||
+            vt == base || vt == index || !valueHasSingleUse(*ctx.ssa, vt, loadRef))
+            return false;
+
+        MicroStorage::Iterator walker;
+        if (!findAnchorPosition(walker, *ctx.storage, loadRef))
+            return false;
+        ++walker;
+        const auto endIt = ctx.storage->view().end();
+        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
+        {
+            const MicroInstr& w = *walker;
+            if (isControlOrCall(w) || writesMemory(w))
+                return false;
+            const auto* useDef = ctx.ssa->instrUseDef(walker.current);
+            if (!useDef || microRegSpanContains(useDef->defs, base) || microRegSpanContains(useDef->defs, index))
+                return false;
+            if (!microRegSpanContains(useDef->uses, vt) && !microRegSpanContains(useDef->defs, vt))
+                continue;
+
+            const auto* cmpOps = w.ops(*ctx.operands);
+            if (w.op != MicroInstrOpcode::CmpRegReg || !cmpOps || cmpOps[1].reg != vt ||
+                !cmpOps[0].reg.isAnyInt() || cmpOps[0].reg == vt ||
+                cmpOps[0].reg == base || cmpOps[0].reg == index || cmpOps[2].opBits != bits ||
+                !allCmpFlagConsumersSatisfy(ctx, walker.current, condSurvivesCompareOperandSwap))
+                return false;
+
+            const MicroInstrRef cmpRef = walker.current;
+            if (cellReadAgainInStraightLine(ctx, loadRef, cmpRef, base, index,
+                                            loadOps[5].valueU64, loadOps[6].valueU64, bits) ||
+                !ctx.claimAll({loadRef, cmpRef}))
+                return false;
+
+            MicroInstrOperand cmp[7] = {};
+            cmp[0].reg = base;
+            cmp[1].reg = index;
+            cmp[2].reg = cmpOps[0].reg;
+            cmp[3].opBits = MicroOpBits::B64;
+            cmp[4].opBits = bits;
+            cmp[5].valueU64 = loadOps[5].valueU64;
+            cmp[6].valueU64 = loadOps[6].valueU64;
+            ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpAmcReg, cmp, /*allocNewBlock=*/true);
+            ctx.emitErase(loadRef);
+            return true;
+        }
+        return false;
     }
 
     // A value loaded into a general register only to be moved into a vector

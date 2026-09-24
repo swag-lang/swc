@@ -191,6 +191,15 @@ private:
     std::vector<uint8_t>   liveInstructionSlots_;
     std::vector<uint32_t>  instructionToBlock_;
     std::vector<BlockInfo> blocks_;
+    // Block discovery and dominator construction are sequential. Keep their
+    // temporary capacities across SSA rebuilds and functions on this worker.
+    std::vector<uint8_t>  blockMarks_;
+    std::vector<uint32_t> domIdomValues_;
+    std::vector<uint32_t> domRpoPosition_;
+    std::vector<uint32_t> domRpoStamp_;
+    std::vector<uint32_t> domDfsStack_;
+    std::vector<uint32_t> domDfsIter_;
+    std::vector<uint32_t> domPostOrder_;
     std::vector<ValueInfo> valueInfos_;
     std::vector<PhiInfo>   phiInfos_;
     // Changes to each register's value along the dominator-tree rename walk.

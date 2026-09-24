@@ -340,7 +340,8 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
         return;
     }
 
-    std::vector<uint8_t> leaders(instructionRefs_.size(), 0);
+    auto& leaders = blockMarks_;
+    leaders.assign(instructionRefs_.size(), 0);
     leaders[0] = 1;
 
     for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
@@ -419,7 +420,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     }
 
     // buildBlocks reset active blocks to invalid dominators and empty trees.
-    std::vector idomValues(blocks_.size(), K_INVALID_BLOCK);
+    auto& idomValues = domIdomValues_;
+    idomValues.assign(blocks_.size(), K_INVALID_BLOCK);
 
     if (blocks_.empty())
         return false;
@@ -427,7 +429,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     // Seed roots: entry block plus any predecessor-less block (covers unreachable
     // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
     // from any seed.
-    std::vector<uint8_t>     visited(blocks_.size(), 0);
+    auto&                     visited = blockMarks_;
+    visited.assign(blocks_.size(), 0);
     SmallVector<uint32_t, 8> roots;
     roots.push_back(0);
     for (uint32_t blockIndex = 1; blockIndex < blocks_.size(); ++blockIndex)
@@ -436,12 +439,17 @@ bool MicroSsaState::computeDominators(const bool acyclic)
             roots.push_back(blockIndex);
     }
 
-    std::vector<uint32_t> dfsStack;
-    std::vector<uint32_t> dfsIter;
-    std::vector<uint32_t> postOrder;
-    std::vector           rpoPosition(blocks_.size(), K_INVALID);
-    std::vector<uint32_t> rpoStamp(blocks_.size(), 0);
+    auto&                 dfsStack = domDfsStack_;
+    auto&                 dfsIter = domDfsIter_;
+    auto&                 postOrder = domPostOrder_;
+    auto&                 rpoPosition = domRpoPosition_;
+    auto&                 rpoStamp = domRpoStamp_;
     uint32_t              currentRpoStamp = 1;
+    dfsStack.clear();
+    dfsIter.clear();
+    postOrder.clear();
+    rpoPosition.assign(blocks_.size(), K_INVALID);
+    rpoStamp.assign(blocks_.size(), 0);
     dfsStack.reserve(blocks_.size());
     dfsIter.reserve(blocks_.size());
     postOrder.reserve(blocks_.size());

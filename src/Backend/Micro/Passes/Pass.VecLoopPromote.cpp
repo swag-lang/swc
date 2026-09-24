@@ -186,9 +186,22 @@ namespace
                 vecLoad = ops[2].opBits == MicroOpBits::B128;
                 break;
             case MicroInstrOpcode::VecUnaryRegMem:
-                // Widening reads eight bytes; packed float unary operations read sixteen.
+                // Widening reads eight bytes; other packed unary operations read sixteen.
                 baseReg = ops[1].reg;
-                size    = ops[4].microOp == MicroOp::VecSqrtF32 || ops[4].microOp == MicroOp::VecTruncF32ToS32 ? 16 : 8;
+                size    = 16;
+                switch (ops[4].microOp)
+                {
+                    case MicroOp::VecWidenLoU8:
+                    case MicroOp::VecWidenLoU16:
+                    case MicroOp::VecWidenLoU32:
+                    case MicroOp::VecWidenLoS8:
+                    case MicroOp::VecWidenLoS16:
+                    case MicroOp::VecWidenLoS32:
+                        size = 8;
+                        break;
+                    default:
+                        break;
+                }
                 offset  = ops[3].valueU64;
                 isRead  = true;
                 break;

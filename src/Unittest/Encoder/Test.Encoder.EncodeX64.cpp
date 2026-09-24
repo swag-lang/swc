@@ -220,6 +220,11 @@ namespace
         ENCODE_CASE("vec_trunc_mem_xmm2", "C4 C1 7A 5B 55 7F", b.emitVecUnaryRegMem(XMM2, R13, 0x7F, MicroOp::VecTruncF32ToS32, MicroOpBits::B128););
         ENCODE_CASE("vec_sqrt_amc_xmm2", "C4 81 78 51 54 4C 7F", b.emitVecUnaryAmcRegMem(XMM2, R12, R9, 2, 0x7F, MicroOpBits::B64, MicroOp::VecSqrtF32, MicroOpBits::B128););
         ENCODE_CASE("vec_trunc_amc_xmm2", "C4 81 7A 5B 54 4C 7F", b.emitVecUnaryAmcRegMem(XMM2, R12, R9, 2, 0x7F, MicroOpBits::B64, MicroOp::VecTruncF32ToS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_abss8_mem_xmm2", "C4 C2 79 1C 55 7F", b.emitVecUnaryRegMem(XMM2, R13, 0x7F, MicroOp::VecAbsS8, MicroOpBits::B128););
+        ENCODE_CASE("vec_abss16_mem_xmm2", "C4 C2 79 1D 55 7F", b.emitVecUnaryRegMem(XMM2, R13, 0x7F, MicroOp::VecAbsS16, MicroOpBits::B128););
+        ENCODE_CASE("vec_abss32_mem_xmm2", "C4 C2 79 1E 55 7F", b.emitVecUnaryRegMem(XMM2, R13, 0x7F, MicroOp::VecAbsS32, MicroOpBits::B128););
+        ENCODE_CASE("vec_sqrtf64_mem_xmm2", "C4 C1 79 51 55 7F", b.emitVecUnaryRegMem(XMM2, R13, 0x7F, MicroOp::VecSqrtF64, MicroOpBits::B128););
+        ENCODE_CASE("vec_abss32_amc_xmm2", "C4 82 79 1E 54 4C 7F", b.emitVecUnaryAmcRegMem(XMM2, R12, R9, 2, 0x7F, MicroOpBits::B64, MicroOp::VecAbsS32, MicroOpBits::B128););
         ENCODE_CASE("load_amc_mem_reg", "47 89 94 C5 00 01 00 00", b.emitLoadAmcMemReg(R13, R8, 8, 0x100, MicroOpBits::B64, R10, MicroOpBits::B32););
         ENCODE_CASE("load_amc_mem_reg_xmm3", "66 4B 0F 7E 5C 0C 40", b.emitLoadAmcMemReg(R12, R9, 1, 0x40, MicroOpBits::B64, XMM3, MicroOpBits::B64););
         ENCODE_CASE("load_amc_mem_imm", "43 C7 44 85 24 34 12 00 00", b.emitLoadAmcMemImm(R13, R8, 4, 0x24, MicroOpBits::B64, ApInt(0x1234, 64), MicroOpBits::B32););

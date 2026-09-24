@@ -286,22 +286,6 @@ block, and the hot path keeps the register.
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
 
-### compiler.optimization.044 — Packed unary operations cannot consume a 128-bit memory source
-
-- Recorded: 2026-09-18 19:48
-- Area: compiler/backend, instruction selection
-- Evidence: four adjacent `f32 -> s32` truncations now form `movups`, `cvttps2dq`, `movups`
-  (three body instructions plus return). LLVM reads the input directly in `cvttps2dq`, leaving
-  two body instructions. `VecUnaryRegMem` is intentionally widening-only today: its encoder
-  asserts one of the six widening operations, and `VecLoopPromote` records every such read as
-  eight bytes. Extending only the SLP rewrite would therefore lie to the encoder and memory
-  analysis about a 16-byte read.
-- Next: define the read width from the packed operation, admit full-width `VecSqrtF32` and
-  `VecTruncF32ToS32` memory forms through the encoder and dependent passes, then compare scalar
-  and packed outputs on finite values and overflow-checked casts.
-- Complete when: a full-width packed unary memory operation has correct alias, promotion and
-  encoding metadata, and the truncation fixture emits `cvttps2dq xmm, [mem]`.
-
 ### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
 
 - Recorded: 2026-09-18 19:48

@@ -217,3 +217,8 @@ The subsequent merge with the independent native address-mode changes uses
 cache identity 1113. Its incremental Release build and the focused C++
 compiler, 3,478 native and 1,500 JIT test suites passed. The liveness timing
 above belongs to the isolated build 1111 and does not include that merge.
+
+One more independent global-arithmetic batch was merged with cache identity
+1114. The incremental Release build and focused C++ compiler, 3,478 native and
+1,500 JIT suites passed. No end-to-end timing claim is assigned to this
+integrated binary.

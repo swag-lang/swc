@@ -40,7 +40,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-24 23:39 — Compared the final compiler against the start-of-evening build.
+- Updated: 2026-09-24 23:42 — Completed the final warm-build guardrail check.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -149,6 +149,11 @@ block, and the hot path keeps the register.
   Several other compiler changes landed between those versions, and the shared machine drifted
   during the campaign. This end-to-end comparison neither proves a speedup nor attributes the
   small slowdown to one batch. The remaining distance to the subsecond core target is large.
+- A separate final three-run check of build 1140 gave a warm no-op median of 78.1 ms
+  (all three runs below the 100 ms guardrail) and a touched-file median of 3,241.7 ms.
+  In the paired comparison above, the final compiler's core-rebuild median was 4,890.1 ms
+  and hello-build median was 244.0 ms. These are noisy three-run observations, not the
+  five-run quiet-machine baseline required for a stable target claim.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

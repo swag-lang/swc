@@ -149,6 +149,54 @@ namespace InstructionCombine
         return true;
     }
 
+    // A compare followed by a branch may already have read the exact indexed
+    // cell loaded on the fallthrough path. Load it into a fresh value before
+    // the compare and let register allocation coalesce the fallthrough copy.
+    bool tryReuseComparedIndexedLoad(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpAmcReg)
+            return false;
+        const MicroInstrOperand* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || cmp[3].opBits != MicroOpBits::B64 ||
+            (cmp[4].opBits != MicroOpBits::B32 && cmp[4].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef jumpRef = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstrRef loadRef = ctx.storage->findNextInstructionRef(jumpRef);
+        const MicroInstr* jump = ctx.storage->ptr(jumpRef);
+        const MicroInstr* load = ctx.storage->ptr(loadRef);
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond ||
+            !load || load->op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+        const MicroInstrOperand* jumpOps = jump->ops(*ctx.operands);
+        const MicroInstrOperand* loadOps = load->ops(*ctx.operands);
+        if (!jumpOps || !loadOps || jumpOps[0].cpuCond == MicroCond::Unconditional ||
+            loadOps[1].reg != cmp[0].reg || loadOps[2].reg != cmp[1].reg ||
+            loadOps[3].opBits != cmp[4].opBits || loadOps[4].opBits != cmp[3].opBits ||
+            loadOps[5].valueU64 != cmp[5].valueU64 || loadOps[6].valueU64 != cmp[6].valueU64 ||
+            !loadOps[0].reg.isVirtualInt() || !cmp[2].reg.isVirtualInt() ||
+            !ctx.claimAll({cmpRef, jumpRef, loadRef}))
+            return false;
+
+        ctx.ensureVirtualIndices();
+        const MicroReg saved = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
+        MicroInstrOperand earlyLoad[7] = {};
+        std::copy_n(loadOps, 7, earlyLoad);
+        earlyLoad[0].reg = saved;
+        MicroInstrOperand compare[3] = {};
+        compare[0].reg = saved;
+        compare[1].reg = cmp[2].reg;
+        compare[2].opBits = cmp[4].opBits;
+        MicroInstrOperand copy[3] = {};
+        copy[0].reg = loadOps[0].reg;
+        copy[1].reg = saved;
+        copy[2].opBits = cmp[4].opBits;
+        ctx.emitInsertBefore(cmpRef, MicroInstrOpcode::LoadAmcRegMem, earlyLoad);
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegReg, compare);
+        ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadRegReg, copy);
+        return true;
+    }
+
     // A signed comparison with zero only asks for the loaded value's sign
     // bit. Read that bit directly instead of materializing flags and setcc:
     //

@@ -246,8 +246,8 @@ zero while its source bytes are still available. The collector skips copying
 those bytes into the already zero-initialized merged buffer, and the COFF
 writer reuses that classification when selecting `.rbss`; relocations still
 force initialized `.rdata`. This removes a copy for each zero allocation and
-moves the byte scan from the writer to the collector. The prediction was less native
-object-construction CPU and no meaningful peak-memory change. The incremental
+moves the byte scan from the writer to the collector. The prediction was less
+native object-construction CPU and no meaningful peak-memory change. The incremental
 Release build, 3,478 native and 1,500 JIT tests passed. A five-pair
 core/hello comparison against build 1117 gave core reference/candidate ratios
 0.975 wall and 0.937 CPU; a second five-pair core comparison gave 1.013 wall
@@ -258,3 +258,21 @@ repeatable end-to-end gain or regression. Core peak working set was 584.0 vs
 578.8 MiB in the first series and 588.9 vs 580.6 MiB in the second (candidate
 vs reference maxima). The simpler zero-allocation path is retained below the
 measurement floor; no percentage speedup is claimed.
+
+Build 1119 retains the dominator walk's child-cursor and postorder capacities
+on each compiler worker. Its DFS stack is reused for reverse postorder after
+the DFS empties it, eliminating three vector allocations per dominator-tree
+construction. The prediction was lower backend CPU without a material memory
+increase. The incremental Release build, 3,478 native and 1,500 JIT tests
+passed. Five alternating core/hello pairs against build 1118 gave core
+reference/candidate ratios 0.959 wall, 0.947 CPU, 1.004 peak working set; a
+five-pair core repeat gave 1.127 wall, 1.080 CPU, 0.984 peak working set.
+There was a 39.5 s core outlier in the candidate in the first series and a
+36.5 s outlier in the reference in the second, each using over 130 s process
+CPU. The series disagree and cannot support a speedup or regression claim;
+the removed allocations are retained below the measurement floor.
+
+Release `tools/unittests.swgs cpp` is a no-op by design: the linked C++ unit
+tests exist only in DevMode. Earlier notes that the Release `cpp` selector
+"passed" mean that selector exited successfully, not that C++ tests ran. The
+reported native and JIT counts are executed tests.

@@ -641,6 +641,8 @@ namespace
     {
         std::vector<uint8_t>  marks;
         std::vector<uint32_t> stack;
+        std::vector<uint32_t> childCursor;
+        std::vector<uint32_t> postorder;
     };
 
     GraphWalkScratch& graphWalkScratch()
@@ -827,12 +829,14 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     std::vector<uint32_t> idom(n, MicroDomTree::K_INVALID_NODE);
     std::vector<uint32_t> rpoPosition(n, MicroDomTree::K_INVALID_NODE);
 
-    std::vector<uint32_t> postorder;
-    postorder.reserve(n);
     auto&                 scratch = graphWalkScratch();
+    auto&                 postorder = scratch.postorder;
+    postorder.clear();
+    postorder.reserve(n);
     auto&                 visited = scratch.marks;
     visited.assign(n, 0);
-    std::vector<uint32_t> childCursor(n, 0);
+    auto&                 childCursor = scratch.childCursor;
+    childCursor.assign(n, 0);
     auto&                 stack = scratch.stack;
     stack.clear();
     stack.push_back(entry);
@@ -858,7 +862,8 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     }
 
     const uint32_t        count = static_cast<uint32_t>(postorder.size());
-    std::vector<uint32_t> rpo;
+    auto&                 rpo = stack;
+    rpo.clear();
     rpo.reserve(count);
     for (uint32_t i = count; i-- > 0;)
     {

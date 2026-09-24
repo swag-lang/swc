@@ -212,3 +212,8 @@ times drifted during both series; no stable timing change is claimed. The
 structural allocation reduction is retained. Visual Studio's CPU collector
 was also attempted, but its service was not registered (0x80040154), so this
 host still has no fresh CPU trace.
+
+The subsequent merge with the independent native address-mode changes uses
+cache identity 1113. Its incremental Release build and the focused C++
+compiler, 3,478 native and 1,500 JIT test suites passed. The liveness timing
+above belongs to the isolated build 1111 and does not include that merge.

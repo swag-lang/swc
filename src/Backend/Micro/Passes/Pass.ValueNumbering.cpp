@@ -443,6 +443,26 @@ namespace
         MicroOpBits      srcBits = MicroOpBits::B64;
     };
 
+    struct NumberingScratch
+    {
+        std::unordered_map<MicroInstrRef, const MicroRelocation*>     relocationByInstruction;
+        std::unordered_set<MicroReg>                                   frameDerivedRegs;
+        std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
+        std::vector<PlannedRewrite>                                   rewrites;
+        ValueAliases                                                  valueAliases;
+        std::vector<uint32_t>                                         epochAt;
+
+        void reset(const uint32_t instructionCount)
+        {
+            relocationByInstruction.clear();
+            frameDerivedRegs.clear();
+            table.clear();
+            rewrites.clear();
+            valueAliases.clear();
+            epochAt.assign(instructionCount, 0);
+        }
+    };
+
     // What a relocation points at, as key words. Two relocation-bearing loads
     // are the same value exactly when these agree; anything the emitter uses to
     // resolve the target has to appear here or two different addresses could
@@ -499,25 +519,24 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
     const auto instrRefs = cfg.instructionRefs();
 
-    // Relocation-bearing loads are keyed by what they point at, so the pass
-    // needs to reach a relocation from its instruction.
-    std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstruction;
-    bool                                                      relocationsReady = false;
-
-    std::unordered_set<MicroReg> frameDerivedRegs;
-    bool                         frameDerivedRegsReady = false;
-
-    std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
-    std::vector<PlannedRewrite>                                  rewrites;
-    ValueAliases                                                 valueAliases;
-    uint32_t                                                     memoryEpoch = 0;
-    uint32_t                                                     lastEpoch   = 0;
+    // Each compiler worker keeps the bucket and vector capacity between
+    // functions. Resetting the contents keeps all keys local to this run.
+    thread_local NumberingScratch scratch;
+    scratch.reset(n);
+    auto& relocationByInstruction = scratch.relocationByInstruction;
+    auto& frameDerivedRegs        = scratch.frameDerivedRegs;
+    auto& table                   = scratch.table;
+    auto& rewrites                = scratch.rewrites;
+    auto& valueAliases            = scratch.valueAliases;
+    auto& epochAt                 = scratch.epochAt;
+    bool  relocationsReady        = false;
+    bool  frameDerivedRegsReady   = false;
+    uint32_t memoryEpoch          = 0;
+    uint32_t lastEpoch            = 0;
 
     // The epoch in force at each instruction. Epochs are never reused: a label
     // that resumes its single predecessor's epoch shares it only with the
     // straight lines that predecessor itself is reached through.
-    std::vector<uint32_t> epochAt(n, 0);
-
     for (uint32_t i = 0; i < n; ++i)
     {
         const MicroInstrRef instRef = instrRefs[i];

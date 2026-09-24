@@ -2935,11 +2935,18 @@ void X64Encoder::encodeCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits o
 
 void X64Encoder::encodeTestMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
-    SWC_ASSERT(memReg.isInt() && reg.isInt());
+    SWC_ASSERT((memReg.isInt() || memReg.isInstructionPointer()) && reg.isInt());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     emitRex(store_, opBits, reg, memReg);
     emitSpecCpuOp(store_, MicroOp::Test, opBits);
-    emitModRm(store_, memOffset, reg, memReg);
+    if (memReg.isInstructionPointer())
+    {
+        SWC_ASSERT(memOffset == 0);
+        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
+        store_.pushU32(0);
+    }
+    else
+        emitModRm(store_, memOffset, reg, memReg);
 }
 
 void X64Encoder::encodeTestMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)

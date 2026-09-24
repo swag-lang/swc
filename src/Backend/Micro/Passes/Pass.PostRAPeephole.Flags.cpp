@@ -2470,11 +2470,33 @@ namespace PostRaPeephole
         if (ctx.isClaimed(ref))
             return false;
         const auto* ops = inst.ops(*ctx.operands);
-        if (!ops || ops[2].microOp != MicroOp::And || !ops[0].reg.isInt() ||
+        if (!ops || (inst.op != MicroInstrOpcode::OpBinaryRegImm && inst.op != MicroInstrOpcode::OpBinaryRegReg) ||
+            !ops[0].reg.isInt() ||
+            ctx.isPrivateFrameBase(ops[0].reg) || !ctx.isRegDeadAfterCurrent(ops[0].reg))
+            return false;
+
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+        {
+            if (ops[3].microOp != MicroOp::And || !ops[1].reg.isInt() ||
+                ops[1].reg == ops[0].reg || ctx.isPrivateFrameBase(ops[1].reg) ||
+                (ops[2].opBits != MicroOpBits::B8 && ops[2].opBits != MicroOpBits::B16 &&
+                 ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+                return false;
+            MicroInstrOperand test[3] = {ops[0], ops[1], ops[2]};
+            MicroInstr probe          = inst;
+            probe.op                  = MicroInstrOpcode::TestRegReg;
+            probe.numOperands         = 3;
+            MicroConformanceIssue issue;
+            if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, probe, test)) || !ctx.claimAll({ref}))
+                return false;
+            ctx.emitRewrite(ref, probe.op, test);
+            return true;
+        }
+
+        if (ops[2].microOp != MicroOp::And ||
             (ops[1].opBits != MicroOpBits::B8 && ops[1].opBits != MicroOpBits::B16 &&
              ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
-            ops[3].hasWideImmediateValue() ||
-            ctx.isPrivateFrameBase(ops[0].reg) || !ctx.isRegDeadAfterCurrent(ops[0].reg))
+            ops[3].hasWideImmediateValue())
             return false;
 
         // AND and TEST set the same flags, and no result value survives the mask.

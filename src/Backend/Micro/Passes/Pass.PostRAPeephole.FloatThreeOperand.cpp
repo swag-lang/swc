@@ -123,16 +123,36 @@ namespace PostRaPeephole
             return false;
         const MicroInstrRef testRef = ctx.nextRef(ref);
         const MicroInstr*   test    = ctx.instruction(testRef);
-        if (!test || test->op != MicroInstrOpcode::TestRegImm)
+        if (!test || (test->op != MicroInstrOpcode::TestRegImm && test->op != MicroInstrOpcode::TestRegReg))
             return false;
         const auto* testOps = test->ops(*ctx.operands);
-        if (!testOps || testOps[0].reg != load[0].reg || getNumBits(testOps[1].opBits) > getNumBits(load[2].opBits) ||
+        const bool regTest = test->op == MicroInstrOpcode::TestRegReg;
+        if (!testOps)
+            return false;
+        const MicroOpBits testBits = regTest ? testOps[2].opBits : testOps[1].opBits;
+        if (testOps[0].reg != load[0].reg ||
+            (regTest && (!testOps[1].reg.isInt() || testOps[1].reg == load[0].reg)) ||
+            getNumBits(testBits) > getNumBits(load[2].opBits) ||
             !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 1))
             return false;
 
-        MicroInstrOperand rewritten[4] = {load[1], testOps[1], load[3], testOps[2]};
+        MicroInstrOperand rewritten[4] = {};
+        if (regTest)
+        {
+            rewritten[0] = load[1];
+            rewritten[1] = testOps[1];
+            rewritten[2] = testOps[2];
+            rewritten[3] = load[3];
+        }
+        else
+        {
+            rewritten[0] = load[1];
+            rewritten[1] = testOps[1];
+            rewritten[2] = load[3];
+            rewritten[3] = testOps[2];
+        }
         MicroInstr        probe        = *test;
-        probe.op                       = MicroInstrOpcode::TestMemImm;
+        probe.op                       = regTest ? MicroInstrOpcode::TestMemReg : MicroInstrOpcode::TestMemImm;
         probe.numOperands              = 4;
         MicroConformanceIssue issue;
         if (ctx.encoder->queryConformanceIssue(issue, probe, rewritten) || !ctx.claimAll({ref, testRef}))

@@ -19,6 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.054 — Prove contiguous indexed updates before packing them
 
 - Recorded: 2026-09-24 23:10
+- Updated: 2026-09-24 23:42 — Confirmed the SLP memory-effect guard leaves ChaCha's 48/48 output loop unchanged.
 - Area: compiler/backend, SLP vectorization and indexed memory
 - Evidence: after folding ChaCha's output address into each XOR, its unrolled
   16-word update has 48 micro instructions and 48 explicit memory operations.
@@ -39,7 +40,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-24 22:56 — Reused the relocation index in the early unused-label sweep.
+- Updated: 2026-09-24 23:39 — Compared the final compiler against the start-of-evening build.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -128,6 +129,26 @@ block, and the hot path keeps the register.
   were discarded when shared-machine load stretched individual builds to 26-35 seconds. The
   saving is therefore below the measurement floor, with no percentage speedup claim or stable
   memory regression.
+- Ruled out on 2026-09-24: returning an unusable diamond scan when its existing label-reference
+  map is empty. This skips the diamond transform family for functions with no direct jumps,
+  without adding an opcode check to the instruction walk. Two focused native Release tests and
+  the rotating JIT `move_value_expression` file (15 tests) passed. Five alternated pairs gave
+  candidate/baseline ratios of 1.058 wall and 1.044 CPU for core rebuild, and 1.041 wall and
+  1.038 CPU for hello build; peak working-set ratios were 0.998 and 1.014. A reverse series
+  became unusable when unrelated load stretched a baseline rebuild to 42.8 seconds. With no
+  observed gain and a possible guardrail regression, the gate was reverted.
+- Final validation on 2026-09-24: the Release campaign passed 1,500 JIT tests and 3,478 native
+  tests, then stopped in `std/gui` on the pre-existing semantic error described in
+  `compiler.core.058`. The pre-campaign compiler build 1131 reproduces that error on unchanged
+  GUI sources. A final five-run four-workload timing attempt was stopped after three runs:
+  unrelated machine load moved a core rebuild from 4.8 to 7.3 seconds and a touched-file
+  build from 3.0 to 9.2 seconds. These samples support no final percentage speedup claim.
+- A final three-pair, order-alternated comparison of build 1131 with build 1140 on the same
+  checkout measured final/initial ratios of 1.035 wall, 1.051 CPU and 1.010 peak working set
+  for core rebuild; hello build measured 1.005 wall, 1.000 CPU and 1.011 peak working set.
+  Several other compiler changes landed between those versions, and the shared machine drifted
+  during the campaign. This end-to-end comparison neither proves a speedup nor attributes the
+  small slowdown to one batch. The remaining distance to the subsecond core target is large.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

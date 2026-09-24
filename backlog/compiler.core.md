@@ -6,6 +6,25 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.058 — GUI client-rectangle calls are rejected as dynamic type tests
+
+- Recorded: 2026-09-24 23:36
+- Area: compiler/semantic analysis, `std/gui` Release validation.
+- Evidence: `swc build --workspace bin/std --workspace-module gui --build-cfg release --rebuild`
+  rejects `bin/std/modules/gui/src/controls/property/properties.input.swg:174`, the ordinary
+  `hit.label.clientRect().contains(pt)` call, with “a dynamic type test needs 'is'”. The final
+  compiler build 1140 and the pre-campaign build 1131 reproduce the same error on the same
+  sources; no `bin/std` files changed during the compiler-speed campaign. Binding `label` and
+  the rectangle separately, calling through `label.wnd`, and temporarily removing the
+  preceding null guard all left the error on `clientRect()`; these probes were reverted.
+  The Release campaign passed 3,478 native tests before stopping when `std/gui` compiled.
+- Next: reduce the call to a standalone source and inspect the AST and semantic view passed
+  to `SemaCheck::typePattern`. Determine why a method call is seen as a `#try` cast, then
+  correct the root cause and add a regression at the semantic boundary. Re-run `std/gui`
+  and the broader Release campaign afterward.
+- Complete when: the GUI module builds in Release without changing the meaning of its
+  client-area check, and the focused semantic regression passes.
+
 ### compiler.core.057 — A parallel core rebuild intermittently loses a bound generic call
 
 - Recorded: 2026-09-24 14:07

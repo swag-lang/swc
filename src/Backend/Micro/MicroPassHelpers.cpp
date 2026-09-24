@@ -687,8 +687,12 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     // its first visit; propagation reads only live-in, so no seed is needed.
     out.liveOut.resize(instCount);
 
-    std::vector<uint8_t>  inWorklist(instCount, 1);
-    std::vector<uint32_t> worklist;
+    // The fixed-point queue is temporary to this analysis, but most worker
+    // threads run it for many functions. Keep its capacity between calls.
+    thread_local std::vector<uint8_t>  inWorklist;
+    thread_local std::vector<uint32_t> worklist;
+    inWorklist.assign(instCount, 1);
+    worklist.clear();
     worklist.reserve(instCount);
     for (uint32_t i = 0; i < instCount; ++i)
         worklist.push_back(i);

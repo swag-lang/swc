@@ -194,3 +194,31 @@ alternating core rebuild pairs gave baseline/candidate ratios 0.964 wall and
 ratio was 0.999, though the candidate's highest sample was 600.9 MiB versus
 585.1 MiB for the baseline. Hello build wall was neutral. The source was
 restored to build 1110: retaining this hash table did not justify its cost.
+
+Build 1111 reused the physical-register liveness analysis's worklist and
+membership vector per worker. The two buffers are fully reset before each
+fixed-point solve; the change removes two allocations per analysis invocation.
+Its incremental Release build and the focused C++ compiler, 3,478 native and
+1,500 JIT test suites passed. The first alternating core/hello series was
+interrupted by an internal error in the unchanged build 1110 reference
+compiler: `Core.HashTable.find` lost the bound function symbol for
+`.tryFind(key)` during code generation. That reference executable had passed
+thirteen core rebuilds in the same series; ten immediate isolated repetitions
+also passed. This is tracked as compiler.core.057, separately from the
+post-register-allocation scratch change. A subsequent five-pair core-only
+comparison gave baseline/candidate ratios 0.961 wall, 0.995 CPU and 0.993
+peak working set. Wall and CPU disagree on a material regression, and sample
+times drifted during both series; no stable timing change is claimed. The
+structural allocation reduction is retained. Visual Studio's CPU collector
+was also attempted, but its service was not registered (0x80040154), so this
+host still has no fresh CPU trace.
+
+The subsequent merge with the independent native address-mode changes uses
+cache identity 1113. Its incremental Release build and the focused C++
+compiler, 3,478 native and 1,500 JIT test suites passed. The liveness timing
+above belongs to the isolated build 1111 and does not include that merge.
+
+One more independent global-arithmetic batch was merged with cache identity
+1114. The incremental Release build and focused C++ compiler, 3,478 native and
+1,500 JIT suites passed. No end-to-end timing claim is assigned to this
+integrated binary.

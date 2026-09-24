@@ -59,6 +59,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | Value numbering | Retain hash-table buckets and vector capacities per compiler worker while clearing keys at each function. | 3,477 native and 1,500 JIT tests passed. Seven-pair core B/A wall 0.979, CPU 1.000; no claimed speedup or material memory change. |
 | Sanitizer propagation | Share one refined state across successors when they receive identical facts; move an owned state into the first reached block. | Native and safety suites passed. Both one- and six-worker A/B runs contained large, inconsistent outliers in both binaries. The retained change removes state-map copies; no percentage is claimed. |
 | Branch reachability | Reuse reachability vectors, use the CFG label table instead of building a hash map, and record address-taken label targets during CFG construction instead of scanning the function again. | 3,478 native tests passed after each refinement. The five-pair direct comparison of the vector and label-lookup batch gave core B/A wall 1.046 and CPU 1.062; a later comparison including an independent LICM merge was neutral. The removed scan and hash table are structural savings; there is no isolated speedup claim for the final refinement. |
+| Register allocation label lookup | Reuse the CFG's label-to-instruction table for guarded-call and loop-region analysis instead of constructing two hash tables and scanning labels again. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating pairs gave core B/A wall 0.988 and CPU 0.987, below the measurement floor. No speedup or regression is claimed. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
 the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
@@ -70,6 +71,17 @@ agree before treating a result as a measured win.
 The optimization target remains open. The structural changes perform the same
 required compiler phases; none changes cache invalidation, skips linking, or
 changes the benchmark inputs.
+
+## Afternoon continuation
+
+Build 1098 reused the CFG label table in register allocation. Seven alternating
+pairs compared it with preserved build 1097 on the same source inputs. Core rebuild
+median wall time was 1,838.5 ms for 1098 versus 1,844.9 ms for 1097; median process
+CPU was 8,328.1 versus 8,250.0 ms. Hello build median wall time was 115.1 versus
+112.5 ms. The first core pair was 4,883 versus 2,803 ms while both compilers warmed,
+so neither a speedup nor a regression is established. Peak working set was also
+indistinguishable in paired results. The removed allocations and scans justify
+retaining this small structural change.
 
 ## Final validation
 

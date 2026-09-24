@@ -695,7 +695,11 @@ THE LOOP
   5. Confirm the result with order-alternated baseline/candidate runs. Require wall and process CPU
      to agree before claiming a measured speedup; a wall-only result under changing machine load
      does not support a performance percentage.
-  6. Rebuild `bin/swc.exe` in Release, then run the full Release sequence through that executable.
+  6. Build `bin/swc.exe` in Release and run the smallest focused tests and concrete consumers that
+     exercise the changed behavior, following validate-swag-changes. Do this for every batch. Do not
+     rerun the full repository sequence for each batch: it consumes the iteration time needed to find
+     the next improvement. Rebuild Release from source and run the full Release sequence at spaced
+     milestones, after a high-risk cross-cutting change, and once more before the final report.
      Do not add a DevMode build or `dm` test pass.
   7. Record the changed internal stage, prediction, measurements, memory effect and validation.
   8. Commit the verified optimization and fast-forward it into `main` before starting the next
@@ -743,7 +747,8 @@ looked.
 
 RULES
 
-  - Never trade correctness for speed. The full sequence is green or the change does not exist.
+  - Never trade correctness for speed. Every retained batch passes its focused boundaries; the full
+    Release sequence must be green at campaign milestones and before the final report.
   - Never trade generated-code quality for compile speed without measuring both. Run bench.
   - Never trade memory for speed without measuring both - campaign 5 owns that number and a
     regression there is a regression here.

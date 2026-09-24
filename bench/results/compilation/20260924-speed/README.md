@@ -8,6 +8,7 @@ Integrated build 1095 passed the full Release sequence again after further backe
 merges. Build 1096 passed an incremental Release build and 3,478 focused native tests.
 Build 1097 passed an incremental Release build, 3,478 native tests and 1,500 JIT tests.
 Build 1108 passed a later full Release rebuild and test milestone.
+Builds 1125 and 1127 passed two further full Release milestones.
 
 ## Baseline and targets
 
@@ -25,23 +26,24 @@ files in `std/core`; `hello_build` includes linking.
 
 ## Final four-workload comparison
 
-Five alternating rounds compared integrated build 1093 (A) with the preserved
-build 1078 (B), using the current source inputs for both. These results include
-independent generated-code changes merged to `master` during the campaign and
-therefore cannot attribute an end-to-end difference to the retained speed batches.
+Five alternating rounds compared final isolated build 1127 (A) with the
+preserved build 1078 (B), using the same current source inputs and six workers.
 
-| Workload | A wall median | B wall median | A CPU median | B CPU median | A/B peak working set |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Core rebuild | 3,633.9 ms | 3,531.6 ms | 15,734.4 ms | 15,515.6 ms | 578.1 / 545.4 MiB |
-| Core warm no-op | 53.4 ms | 55.5 ms | 31.2 ms | 31.2 ms | 10.2 / 10.3 MiB |
-| Core one-file touch | 2,397.1 ms | 2,557.5 ms | 10,687.5 ms | 11,359.4 ms | 565.0 / 527.1 MiB |
-| Hello source to executable | 182.1 ms | 153.7 ms | 593.8 ms | 578.1 ms | 56.5 / 52.9 MiB |
+| Workload | A wall median | B wall median | A CPU median | B CPU median | Peak working set A / B | Target |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Core rebuild | 2,284.7 ms | 2,805.0 ms | 10,671.9 ms | 13,265.6 ms | 585.8 / 560.9 MiB | <1,000 ms |
+| Core warm no-op | 39.1 ms | 49.1 ms | 31.2 ms | 31.2 ms | 10.2 / 10.2 MiB | <100 ms |
+| Core one-file touch | 1,871.7 ms | 1,957.6 ms | 8,812.5 ms | 9,437.5 ms | 548.7 / 535.0 MiB | exploratory |
+| Hello source to executable | 143.6 ms | 128.0 ms | 515.6 ms | 437.5 ms | 57.6 / 55.9 MiB | <50 ms |
 
-The core rebuild series includes a 25.3-second A run and a 29.3-second B run;
-the warm no-op B also had a 771 ms outlier. The direct comparison is too noisy
-to claim a compiler-speed improvement. It also observes more peak working set
-for A in the compile workloads. That memory difference requires further attribution
-across the intermediate compilers before assigning it to a retained batch.
+Paired B/A ratios were 1.238 wall and 1.213 CPU for core, 1.059 for both
+wall and CPU after touching a file, and 0.964 wall and 0.955 CPU for hello.
+The fifth round slowed both binaries, particularly the touched-file build.
+Core and touch improved overall, while hello regressed and the final compiler
+used more peak working set on every compilation workload. These differences
+include independently merged generated-code changes, so none is assigned as a
+percentage gain to the speed-only batches. The core and hello targets remain
+unmet; the warm no-op guardrail passes.
 
 A second five-pair comparison used preserved build 1083, after the SSA batches,
 against build 1078. Peak working set was 575.6 versus 560.4 MiB for core and
@@ -68,7 +70,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | SSA restore allocation | Let the inline restore vector grow from actual saved definitions instead of reserving from the block's instruction count. | Release build, 3,478 native and 1,500 JIT tests passed. The first seven pairs included a 6.5-second candidate core outlier; a five-pair core repeat gave B/A wall 1.050, CPU 1.032 and peak working set 1.007. No stable aggregate percentage is claimed. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
-the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
+the candidate. Some runs expanded from about 3 seconds to 20–43 seconds on
 `core_rebuild`, and `hello_build` sometimes rose from about 0.2 to 2 seconds in
 both versions. These outliers preclude an aggregate percentage claim. They also
 make a ratio of separate medians misleading; paired wall and process CPU must
@@ -148,7 +150,7 @@ inline, so allocations now follow actual definitions rather than the block's
 instruction count. The two series support retaining this simpler path without
 claiming a stable end-to-end percentage.
 
-## Final validation
+## Release validation milestones
 
 The Release solution rebuild from source succeeded at build 1093 with MSBuild `/m:6`
 and `SwcCompileJobs=6`. The full Release sequence also exited zero at integrated
@@ -159,7 +161,7 @@ applications passed 550, and the language reference passed 479. Script runs and
 the 32 example and four application smokes also completed. Build 1096 then passed
 3,478 native tests after the loop-unroll merge. Build 1097 incorporates the later
 loop-rotation merge and passed an incremental Release build, 3,478 native tests and
-1,500 JIT tests. The full Release sequence was not repeated for that final merge.
+1,500 JIT tests. The next full Release milestone was build 1108.
 
 The afternoon milestone rebuilt integrated build 1108 from source in Release
 (MSBuild `/t:Rebuild /m:6`, `SwcCompileJobs=6`) without warnings or errors.
@@ -339,3 +341,12 @@ and 1.023 CPU, but hello 0.956 wall and 0.828 CPU. A seven-pair hello repeat
 gave 0.963 wall and 1.000 CPU. The repeated roughly 4% hello wall regression
 is not justified by the removed allocations, so the source was restored to
 build 1125.
+
+The final isolated compiler for this campaign is build 1127, including the
+independent RIP-memory folding changes merged through that identity. A clean
+Release source rebuild and the complete Release `tools/tests.swgs` sequence
+passed: 1,500 JIT, 3,478 native, 2,390 standard-module, 550 application and
+479 language-reference tests, plus safety, scripts, 32 example modules and
+four application smokes. The seven expected dynamic safety nonpasses remained
+unchanged. Later generated-code commits on `master` are separate from this
+validated and measured compiler snapshot.

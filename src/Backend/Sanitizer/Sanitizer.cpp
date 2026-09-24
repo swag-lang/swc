@@ -355,7 +355,7 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
         if (def.flags.has(MicroInstrFlagsE::ConditionalJump) && succs.size() == 2 && ops)
         {
             if (worklist)
-                propagateConditionalBranch(cur, ops, succs, *worklist);
+                propagateConditionalBranch(std::move(cur), ops, succs, *worklist);
             return;
         }
 
@@ -368,18 +368,19 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
                 continue;
             }
             if (worklist)
-                propagate(cur, s, *worklist);
+                propagate(std::move(cur), s, *worklist);
             return;
         }
 
         if (!worklist || succs.empty())
             return;
 
-        SanitizerState edge = cur;
+        SanitizerState edge = std::move(cur);
         dropZeros(edge);
         edge.flagsSubject = MicroReg::invalid();
-        for (const uint32_t s : succs)
-            propagate(edge, s, *worklist);
+        for (size_t i = 0; i + 1 < succs.size(); ++i)
+            propagate(edge, succs[i], *worklist);
+        propagate(std::move(edge), succs.back(), *worklist);
         return;
     }
 }
@@ -611,6 +612,27 @@ void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vecto
     }
 
     if (changed && !inWorklist_[index])
+    {
+        inWorklist_[index] = 1;
+        worklist.push_back(index);
+        std::ranges::push_heap(worklist, std::greater());
+    }
+}
+
+void Sanitizer::propagate(SanitizerState&& edge, uint32_t index, std::vector<uint32_t>& worklist)
+{
+    const uint32_t stateIndex = headStateIndex_[index];
+    SWC_ASSERT(stateIndex != K_NO_STATE);
+
+    if (reached_[index])
+    {
+        propagate(static_cast<const SanitizerState&>(edge), index, worklist);
+        return;
+    }
+
+    reached_[index]      = 1;
+    inState_[stateIndex] = std::move(edge);
+    if (!inWorklist_[index])
     {
         inWorklist_[index] = 1;
         worklist.push_back(index);
@@ -1454,7 +1476,7 @@ bool Sanitizer::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
 
 // Conditional branch: narrow the tested slot on each edge, prune infeasible edges,
 // and fall back to dropping provable zeros when it cannot be modelled.
-void Sanitizer::propagateConditionalBranch(const SanitizerState& state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist)
+void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist)
 {
     const SanitizerRegInfo* subject = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
 
@@ -1474,9 +1496,8 @@ void Sanitizer::propagateConditionalBranch(const SanitizerState& state, const Mi
         {
             // successors = [taken (cond true), fallthrough (cond false)].
             const bool     condIsTrue = condTrueIfSubjectZero == provenZero;
-            SanitizerState edge       = state;
-            edge.flagsSubject         = MicroReg::invalid();
-            propagate(edge, succs[condIsTrue ? 0 : 1], worklist);
+            state.flagsSubject = MicroReg::invalid();
+            propagate(std::move(state), succs[condIsTrue ? 0 : 1], worklist);
             return;
         }
     }
@@ -1504,12 +1525,11 @@ void Sanitizer::propagateConditionalBranch(const SanitizerState& state, const Mi
     // zero across it took the index `table[0]` is written with along with it - which is
     // what made the first element of a local table, and only the first, unnameable.
     const bool dropAcrossEdge = state.flagsSubject.isValid() && !getReg(state, state.flagsSubject).isConstant();
-    SanitizerState edge = state;
     if (dropAcrossEdge)
-        dropZeros(edge);
-    edge.flagsSubject = MicroReg::invalid();
-    for (const uint32_t s : succs)
-        propagate(edge, s, worklist);
+        dropZeros(state);
+    state.flagsSubject = MicroReg::invalid();
+    propagate(state, succs[0], worklist);
+    propagate(std::move(state), succs[1], worklist);
 }
 
 bool Sanitizer::resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotZeroIfSubjectZero)
@@ -1547,7 +1567,7 @@ void Sanitizer::queueRefined(const SanitizerState& state, uint32_t index, int64_
     if (current.kind == SanitizerValueKind::Unknown)
         edge.stack[slot] = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
     edge.flagsSubject = MicroReg::invalid();
-    propagate(edge, index, worklist);
+    propagate(std::move(edge), index, worklist);
 }
 
 void Sanitizer::dropZeros(SanitizerState& state)

@@ -153,6 +153,7 @@ private:
 
     // Join + propagation.
     void        propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist);
+    void        propagate(SanitizerState&& edge, uint32_t index, std::vector<uint32_t>& worklist);
     static bool joinInto(SanitizerState& into, const SanitizerState& from);
 
     // Walks the straight-line chain starting at 'head' with a single mutable state:
@@ -167,7 +168,7 @@ private:
     static bool condIsZeroTest(MicroCond cond, bool& outTrueIfZero);
 
     // Conditional branch handling: guard narrowing + feasibility pruning.
-    void        propagateConditionalBranch(const SanitizerState& state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist);
+    void        propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist);
     static bool resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotZeroIfSubjectZero);
     void        queueRefined(const SanitizerState& state, uint32_t index, int64_t slot, bool slotIsZero, std::vector<uint32_t>& worklist);
     static void dropZeros(SanitizerState& state);

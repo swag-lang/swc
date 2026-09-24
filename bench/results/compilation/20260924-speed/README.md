@@ -280,3 +280,29 @@ reported native and JIT counts are executed tests.
 The independent in-place rotation folding update was merged as build 1120.
 Its incremental Release build, 3,478 native and 1,500 JIT tests passed. The
 dominator-buffer timing above is from isolated build 1119, before this merge.
+
+Twelve direct build-1120 core rebuilds using the same executable took 3.4-3.9 s
+for the first eleven runs, then 10.9 s and 48.4 s process CPU on the twelfth.
+The compiler's own module summary put 9.3 s in `core`, while `win32` and
+`xinput` remained below 0.3 s each. This confirms that large core outliers
+also occur without switching compiler binaries; the available Release summary
+does not split the core module into finer stages.
+
+Build 1121 retains seven SSA block-discovery and dominator-workspace vector
+capacities across builds and functions on each compiler worker. The block
+leader bitmap becomes the visited bitmap only after block discovery has
+finished. Every buffer is overwritten before use. The prediction was fewer
+allocator calls per SSA rebuild and no material peak-memory increase. The
+incremental Release build, 3,478 native and 1,500 JIT tests passed. A first
+five-pair comparison against build 1120 gave core reference/candidate 1.180
+wall and CPU and hello 1.276 wall, 1.186 CPU. A seven-pair repeat gave core
+1.001 wall and 0.986 CPU, hello 1.031 wall and 0.868 CPU; peak working set
+was 583.6 versus 583.8 MiB for core and 57.5 MiB for both hello binaries
+(candidate versus reference maxima). Both series contained 40-second core
+outliers in the reference. The favorable first series did not reproduce, so
+no end-to-end speedup is claimed. The allocation reduction is retained below
+the measurement floor.
+
+The independent indexed/unary memory-operand folding updates were integrated
+as build 1123. Its incremental Release build, 3,478 native and 1,500 JIT
+tests passed. The isolated build-1121 SSA timing above predates this merge.

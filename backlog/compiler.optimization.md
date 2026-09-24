@@ -16,6 +16,23 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.047 — Calibrate span-scoped register grants on non-benchmark code
+
+- Recorded: 2026-09-24 09:13
+- Area: compiler/backend, register allocation
+- Evidence: `Pass.RegisterAllocation.cpp` grants a register named elsewhere when a candidate's
+  benefit density reaches half the best density in that function. The decision uses general
+  properties — loop benefit, live span, pool headroom, call crossings, and concrete claims — but
+  the factor of two was selected from `bench/` results for sha256, leven, wordfreq, and csvagg.
+  A review on 2026-09-24 found no benchmark-specific predicate, yet no recorded static census of
+  spill traffic or rejected grants in unrelated standard-module code supports that factor.
+- Next: compare divisor values 1, 2, and 4 on representative non-benchmark functions with
+  different register pressure. Count granted ranges and memory operations in the affected loops
+  before relying on timing; retain the factor or replace it with a pressure cost rule from that
+  evidence.
+- Complete when the current gate or its replacement has static evidence outside `bench/` and
+  focused correctness coverage for both accepted and rejected grants.
+
 ### compiler.optimization.046 — A local array copied whole stays in memory, and scalarizing the copy costs the vectorizer
 
 - Recorded: 2026-09-23 19:51

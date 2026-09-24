@@ -2971,25 +2971,36 @@ void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApIn
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     const uint64_t valueU64 = immediateToU64(value);
 
+    const auto emitMemoryOperand = [&] {
+        if (memReg.isInstructionPointer())
+        {
+            SWC_ASSERT(memOffset == 0);
+            emitModRm(store_, ModRmMode::Memory, MODRM_REG_7, MODRM_RM_RIP);
+            store_.pushU32(0);
+        }
+        else
+            emitModRm(store_, memOffset, MODRM_REG_7, memReg);
+    };
+
     if (opBits == MicroOpBits::B8)
     {
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x80);
-        emitModRm(store_, memOffset, MODRM_REG_7, memReg);
+        emitMemoryOperand();
         emitValue(store_, valueU64, MicroOpBits::B8);
     }
     else if (canEncode8(valueU64, opBits))
     {
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x83);
-        emitModRm(store_, memOffset, MODRM_REG_7, memReg);
+        emitMemoryOperand();
         emitValue(store_, valueU64, MicroOpBits::B8);
     }
     else if (canEncodeOpImmediate(valueU64, opBits))
     {
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x81);
-        emitModRm(store_, memOffset, MODRM_REG_7, memReg);
+        emitMemoryOperand();
         emitValue(store_, valueU64, opBits == MicroOpBits::B16 ? opBits : MicroOpBits::B32);
     }
     else

@@ -900,9 +900,11 @@ namespace InstructionCombine
         const bool immediateStore = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
                                     !useOps[3].hasWideImmediateValue() &&
                                     (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));
+        const bool immediateCompare = useInst->op == MicroInstrOpcode::CmpMemImm && useOps[2].valueU64 == 0 &&
+                                      !useOps[3].hasWideImmediateValue() && fitsMemoryImmediate(useOps[3].valueU64);
         // A B64 store with a larger immediate expands into two memory writes;
         // one RIP displacement cannot represent both of their destinations.
-        if (!regUpdate && !immediateUpdate && !immediateStore)
+        if (!regUpdate && !immediateUpdate && !immediateStore && !immediateCompare)
             return false;
 
         if (!ctx.claimAll({ref, useRef}, true))

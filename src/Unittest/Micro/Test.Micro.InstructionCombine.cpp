@@ -1132,6 +1132,43 @@ SWC_TEST_BEGIN(InstCombine_MaskedShift_Kept)
 }
 SWC_TEST_END()
 
+// Rotations and arithmetic-left shifts can update any addressed cell directly.
+SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_RotateAndShiftLeft)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg loaded = MicroReg::virtualIntReg(2);
+    constexpr MicroReg copied = MicroReg::virtualIntReg(3);
+    for (const MicroOp op : {MicroOp::RotateLeft, MicroOp::RotateRight, MicroOp::ShiftArithmeticLeft})
+    {
+        for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+        {
+            for (const uint64_t count : {1ULL, 5ULL})
+            {
+                for (const bool viaCopy : {false, true})
+                {
+                    MicroBuilder builder(ctx);
+                    builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+                    builder.emitLoadRegMem(loaded, base, 0, bits);
+                    const MicroReg value = viaCopy ? copied : loaded;
+                    if (viaCopy)
+                        builder.emitLoadRegReg(copied, loaded, bits);
+                    builder.emitOpBinaryRegImm(value, ApInt(count, 64), op, bits);
+                    builder.emitLoadMemReg(base, 0, value, bits);
+                    builder.emitRet();
+
+                    SWC_RESULT(runInstCombinePass(builder));
+                    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 1 ||
+                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0 ||
+                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0)
+                        return Result::Error;
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A load/modify/store round trip inside a loop body: the temporary flows into
 // a phi at the header that nothing reads, which must not count as a second
 // consumer.

@@ -115,8 +115,10 @@ namespace InstructionCombine
         ++walker;
 
         const auto endIt = ctx.storage->view().end();
-        MiddleInfo mid;
-        bool       foundMid = false;
+        MiddleInfo  mid;
+        MicroReg    valueReg = vt;
+        MicroInstrRef copyRef = MicroInstrRef::invalid();
+        bool        foundMid = false;
 
         for (uint32_t step = 0; step < K_MAX_FOLD_WINDOW && walker != endIt; ++step, ++walker)
         {
@@ -127,7 +129,7 @@ namespace InstructionCombine
             if (foundMid)
             {
                 const MicroInstrOperand* sOps = w.ops(*ctx.operands);
-                if (!storeMatches(w, sOps, base, vt, loadBits, loadOff))
+                if (!storeMatches(w, sOps, base, valueReg, loadBits, loadOff))
                     return false;
 
                 TripleInfo               tri;
@@ -135,21 +137,27 @@ namespace InstructionCombine
                 if (!extractMiddleOperands(tri, *mid.inst, opOps))
                     return false;
 
-                if (tri.opBits != loadBits || !isMemFoldableOp(tri.microOp))
+                if (tri.opBits != loadBits || !isMemFoldableOp(tri.microOp) ||
+                    (tri.middleIsRegImm && opOps[3].hasWideImmediateValue()))
                     return false;
-                if (tri.middleIsRegReg && (tri.rhsReg == base || tri.rhsReg == vt))
+                if (tri.middleIsRegReg && (tri.rhsReg == base || tri.rhsReg == valueReg || tri.rhsReg == vt))
                     return false;
 
                 if (!valueHasSingleUse(*ctx.ssa, vt, loadRef))
                     return false;
-                if (!valueHasSingleUse(*ctx.ssa, vt, mid.ref))
+                if (copyRef.isValid() && !valueHasSingleUse(*ctx.ssa, valueReg, copyRef))
+                    return false;
+                if (!valueHasSingleUse(*ctx.ssa, valueReg, mid.ref))
                     return false;
 
                 const MicroInstrRef storeRef = walker.current;
-                if (!ctx.claimAll({loadRef, mid.ref, storeRef}))
+                if (copyRef.isValid() ? !ctx.claimAll({loadRef, copyRef, mid.ref, storeRef}) :
+                                        !ctx.claimAll({loadRef, mid.ref, storeRef}))
                     return false;
 
                 emitFoldedTriple(ctx, loadRef, mid.ref, storeRef, base, loadOff, tri);
+                if (copyRef.isValid())
+                    ctx.emitErase(copyRef);
                 return true;
             }
 
@@ -157,12 +165,25 @@ namespace InstructionCombine
                 return false;
 
             const auto* useDef   = ctx.ssa->instrUseDef(walker.current);
-            const bool  defsVt   = useDef && microRegSpanContains(useDef->defs, vt);
+            const bool  defsVt   = useDef && microRegSpanContains(useDef->defs, valueReg);
             const bool  defsBase = useDef && microRegSpanContains(useDef->defs, base);
-            const bool  usesVt   = useDef && microRegSpanContains(useDef->uses, vt);
+            const bool  usesVt   = useDef && microRegSpanContains(useDef->uses, valueReg);
 
             if (defsBase)
                 return false;
+
+            if (!copyRef.isValid() && w.op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* copyOps = w.ops(*ctx.operands);
+                if (copyOps && copyOps[1].reg == vt && copyOps[0].reg.isVirtualInt() &&
+                    copyOps[0].reg != vt && copyOps[0].reg != base && copyOps[2].opBits == loadBits &&
+                    valueHasSingleUse(*ctx.ssa, vt, loadRef))
+                {
+                    copyRef  = walker.current;
+                    valueReg = copyOps[0].reg;
+                    continue;
+                }
+            }
 
             if (usesVt || defsVt)
             {
@@ -170,7 +191,7 @@ namespace InstructionCombine
                     w.op == MicroInstrOpcode::OpBinaryRegReg)
                 {
                     const MicroInstrOperand* wOps = w.ops(*ctx.operands);
-                    if (wOps && wOps[0].reg == vt)
+                    if (wOps && wOps[0].reg == valueReg)
                     {
                         mid.ref  = walker.current;
                         mid.inst = &w;

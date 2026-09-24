@@ -96,8 +96,11 @@ namespace InstructionCombine
             case MicroOp::Or:
             case MicroOp::Xor:
             case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
             case MicroOp::ShiftRight:
             case MicroOp::ShiftArithmeticRight:
+            case MicroOp::RotateLeft:
+            case MicroOp::RotateRight:
                 return true;
             default:
                 return false;

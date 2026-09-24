@@ -2164,7 +2164,9 @@ namespace
         switch (op)
         {
             case MicroOp::Add: group = MODRM_REG_0; break;
+            case MicroOp::RotateLeft: group = MODRM_REG_0; break;
             case MicroOp::Or: group = MODRM_REG_1; break;
+            case MicroOp::RotateRight: group = MODRM_REG_1; break;
             case MicroOp::And:
             case MicroOp::ShiftLeft:
             case MicroOp::ShiftArithmeticLeft: group = MODRM_REG_4; break;

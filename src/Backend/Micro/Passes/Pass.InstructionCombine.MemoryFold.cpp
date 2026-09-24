@@ -6,10 +6,10 @@
 // Load / modify / store triple folding.
 //
 //     LoadRegMem   vt, [b+o]
-//     OpBinaryRegImm/OpBinaryRegReg vt, ...
+//     OpBinaryRegImm/OpBinaryRegReg/OpUnaryReg vt, ...
 //     LoadMemReg   [b+o], vt
 //   ->
-//     OpBinaryMemImm / OpBinaryMemReg [b+o], ...
+//     OpBinaryMemImm / OpBinaryMemReg / OpUnaryMem [b+o], ...
 
 SWC_BEGIN_NAMESPACE();
 
@@ -29,6 +29,7 @@ namespace InstructionCombine
         {
             bool        middleIsRegImm = false;
             bool        middleIsRegReg = false;
+            bool        middleIsUnary  = false;
             MicroOp     microOp        = MicroOp::Add;
             MicroOpBits opBits         = MicroOpBits::Zero;
             uint64_t    opImm          = 0;
@@ -42,11 +43,12 @@ namespace InstructionCombine
 
             out.middleIsRegImm = mid.op == MicroInstrOpcode::OpBinaryRegImm;
             out.middleIsRegReg = mid.op == MicroInstrOpcode::OpBinaryRegReg;
-            if (!out.middleIsRegImm && !out.middleIsRegReg)
+            out.middleIsUnary  = mid.op == MicroInstrOpcode::OpUnaryReg;
+            if (!out.middleIsRegImm && !out.middleIsRegReg && !out.middleIsUnary)
                 return false;
 
-            out.opBits  = out.middleIsRegImm ? opOps[1].opBits : opOps[2].opBits;
-            out.microOp = out.middleIsRegImm ? opOps[2].microOp : opOps[3].microOp;
+            out.opBits  = out.middleIsRegReg ? opOps[2].opBits : opOps[1].opBits;
+            out.microOp = out.middleIsRegReg ? opOps[3].microOp : opOps[2].microOp;
             out.opImm   = out.middleIsRegImm ? opOps[3].valueU64 : 0;
             out.rhsReg  = out.middleIsRegReg ? opOps[1].reg : MicroReg::invalid();
             return true;
@@ -65,7 +67,16 @@ namespace InstructionCombine
         void emitFoldedTriple(Context& ctx, MicroInstrRef loadRef, MicroInstrRef midRef, MicroInstrRef storeRef, MicroReg base, uint64_t loadOff, const TripleInfo& tri)
         {
             MicroInstrOperand newOps[5];
-            if (tri.middleIsRegReg)
+            if (tri.middleIsUnary)
+            {
+                // OpUnaryMem: [memReg, opBits, microOp, memOffset].
+                newOps[0].reg      = base;
+                newOps[1].opBits   = tri.opBits;
+                newOps[2].microOp  = tri.microOp;
+                newOps[3].valueU64 = loadOff;
+                ctx.emitRewrite(midRef, MicroInstrOpcode::OpUnaryMem, newOps, /*allocNewBlock=*/true);
+            }
+            else if (tri.middleIsRegReg)
             {
                 // OpBinaryMemReg: [memReg, reg, opBits, microOp, memOffset].
                 newOps[0].reg      = base;
@@ -137,7 +148,9 @@ namespace InstructionCombine
                 if (!extractMiddleOperands(tri, *mid.inst, opOps))
                     return false;
 
-                if (tri.opBits != loadBits || !isMemFoldableOp(tri.microOp) ||
+                if (tri.opBits != loadBits ||
+                    (tri.middleIsUnary ? (tri.microOp != MicroOp::BitwiseNot && tri.microOp != MicroOp::Negate) :
+                                         !isMemFoldableOp(tri.microOp)) ||
                     (tri.middleIsRegImm && opOps[3].hasWideImmediateValue()))
                     return false;
                 if (tri.middleIsRegReg && (tri.rhsReg == base || tri.rhsReg == valueReg || tri.rhsReg == vt))
@@ -187,7 +200,8 @@ namespace InstructionCombine
 
             if (usesVt || defsVt)
             {
-                if (w.op == MicroInstrOpcode::OpBinaryRegImm ||
+                if (w.op == MicroInstrOpcode::OpUnaryReg ||
+                    w.op == MicroInstrOpcode::OpBinaryRegImm ||
                     w.op == MicroInstrOpcode::OpBinaryRegReg)
                 {
                     const MicroInstrOperand* wOps = w.ops(*ctx.operands);
@@ -225,16 +239,35 @@ namespace InstructionCombine
             !valueHasSingleUse(*ctx.ssa, value, loadRef))
             return false;
 
-        const MicroInstrRef opRef = ctx.storage->findNextInstructionRef(loadRef);
+        MicroReg      opValue    = value;
+        MicroInstrRef preCopyRef = MicroInstrRef::invalid();
+        MicroInstrRef opRef      = ctx.storage->findNextInstructionRef(loadRef);
+        const MicroInstr* firstAfterLoad = ctx.storage->ptr(opRef);
+        if (firstAfterLoad && firstAfterLoad->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const MicroInstrOperand* copyOps = firstAfterLoad->ops(*ctx.operands);
+            if (!copyOps || copyOps[1].reg != value || !copyOps[0].reg.isVirtualInt() ||
+                copyOps[0].reg == value || copyOps[0].reg == base || copyOps[0].reg == index ||
+                getNumBytes(copyOps[2].opBits) < getNumBytes(loadOps[3].opBits) ||
+                copyOps[2].opBits > MicroOpBits::B64)
+                return false;
+            opValue    = copyOps[0].reg;
+            preCopyRef = opRef;
+            opRef      = ctx.storage->findNextInstructionRef(preCopyRef);
+        }
         const MicroInstr*   op    = ctx.storage->ptr(opRef);
         if (!op || (op->op != MicroInstrOpcode::OpBinaryRegReg && op->op != MicroInstrOpcode::OpBinaryRegImm && op->op != MicroInstrOpcode::OpUnaryReg))
             return false;
         const MicroInstrOperand* opOps = op->ops(*ctx.operands);
-        if (!opOps || opOps[0].reg != value || !valueHasSingleUse(*ctx.ssa, value, opRef))
+        if (!opOps || opOps[0].reg != opValue ||
+            (preCopyRef.isValid() && !valueHasSingleUse(*ctx.ssa, opValue, preCopyRef)) ||
+            !valueHasSingleUse(*ctx.ssa, opValue, opRef))
             return false;
 
         const bool  immediateUpdate   = op->op == MicroInstrOpcode::OpBinaryRegImm;
         const bool  directUnaryUpdate = op->op == MicroInstrOpcode::OpUnaryReg;
+        if (preCopyRef.isValid() && !immediateUpdate && !directUnaryUpdate)
+            return false;
         bool        unaryUpdate       = false;
         MicroOpBits immediateFoldBits = loadOps[3].opBits;
         uint64_t    immediateFoldValue = 0;
@@ -244,7 +277,8 @@ namespace InstructionCombine
             if ((opOps[2].microOp != MicroOp::Add && opOps[2].microOp != MicroOp::Subtract &&
                  opOps[2].microOp != MicroOp::And && opOps[2].microOp != MicroOp::Or && opOps[2].microOp != MicroOp::Xor &&
                  opOps[2].microOp != MicroOp::ShiftLeft && opOps[2].microOp != MicroOp::ShiftArithmeticLeft &&
-                 opOps[2].microOp != MicroOp::ShiftRight && opOps[2].microOp != MicroOp::ShiftArithmeticRight) ||
+                 opOps[2].microOp != MicroOp::ShiftRight && opOps[2].microOp != MicroOp::ShiftArithmeticRight &&
+                 opOps[2].microOp != MicroOp::RotateLeft && opOps[2].microOp != MicroOp::RotateRight) ||
                 opOps[3].hasWideImmediateValue())
                 return false;
 
@@ -281,7 +315,8 @@ namespace InstructionCombine
             }
 
             const bool shiftUpdate = opOps[2].microOp == MicroOp::ShiftLeft || opOps[2].microOp == MicroOp::ShiftArithmeticLeft ||
-                                     opOps[2].microOp == MicroOp::ShiftRight || opOps[2].microOp == MicroOp::ShiftArithmeticRight;
+                                     opOps[2].microOp == MicroOp::ShiftRight || opOps[2].microOp == MicroOp::ShiftArithmeticRight ||
+                                     opOps[2].microOp == MicroOp::RotateLeft || opOps[2].microOp == MicroOp::RotateRight;
             const bool immediateFits = shiftUpdate ? immediateFoldValue <= 0x7F :
                                        immediateFoldBits == MicroOpBits::B8 ? immediateFoldValue <= 0xFF :
                                        immediateFoldBits == MicroOpBits::B16 ? immediateFoldValue <= 0xFFFF :
@@ -310,7 +345,7 @@ namespace InstructionCombine
             return false;
         }
 
-        MicroReg      storedValue = value;
+        MicroReg      storedValue = opValue;
         MicroInstrRef copyRef     = MicroInstrRef::invalid();
         MicroInstrRef storeRef    = ctx.storage->findNextInstructionRef(opRef);
         const MicroInstr* maybeCopy = ctx.storage->ptr(storeRef);
@@ -318,7 +353,7 @@ namespace InstructionCombine
         {
             const MicroInstrOperand* copyOps = maybeCopy->ops(*ctx.operands);
             const MicroOpBits        opBits  = immediateUpdate || directUnaryUpdate ? opOps[1].opBits : opOps[2].opBits;
-            if (!copyOps || copyOps[1].reg != value || copyOps[2].opBits != opBits || !copyOps[0].reg.isVirtualInt() ||
+            if (!copyOps || copyOps[1].reg != opValue || copyOps[2].opBits != opBits || !copyOps[0].reg.isVirtualInt() ||
                 copyOps[0].reg == base || copyOps[0].reg == index || !valueHasSingleUse(*ctx.ssa, copyOps[0].reg, storeRef))
                 return false;
             storedValue = copyOps[0].reg;
@@ -338,7 +373,11 @@ namespace InstructionCombine
         const bool registerMultiply = !immediateUpdate && !directUnaryUpdate && opOps[3].microOp == MicroOp::MultiplySigned;
         if (registerMultiply && (copyRef.isValid() || loadOps[3].opBits == MicroOpBits::B8 || ctx.ssa->isRegUsedAfter(opOps[1].reg, opRef)))
             return false;
-        if (copyRef.isValid() ? !ctx.claimAll({loadRef, opRef, copyRef, storeRef}) : !ctx.claimAll({loadRef, opRef, storeRef}))
+        const bool claimed = preCopyRef.isValid() && copyRef.isValid() ? ctx.claimAll({loadRef, preCopyRef, opRef, copyRef, storeRef}) :
+                             preCopyRef.isValid() ? ctx.claimAll({loadRef, preCopyRef, opRef, storeRef}) :
+                             copyRef.isValid() ? ctx.claimAll({loadRef, opRef, copyRef, storeRef}) :
+                                                 ctx.claimAll({loadRef, opRef, storeRef});
+        if (!claimed)
             return false;
 
         if (registerMultiply)
@@ -395,6 +434,8 @@ namespace InstructionCombine
             ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryAmcMemReg, update, /*allocNewBlock=*/true);
         }
         ctx.emitErase(loadRef);
+        if (preCopyRef.isValid())
+            ctx.emitErase(preCopyRef);
         if (copyRef.isValid())
             ctx.emitErase(copyRef);
         ctx.emitErase(storeRef);

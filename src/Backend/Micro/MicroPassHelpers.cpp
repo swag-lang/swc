@@ -635,6 +635,21 @@ uint32_t MicroPassHelpers::findSingleCfgEntry(const MicroControlFlowGraph& cfg)
     return entry;
 }
 
+namespace
+{
+    struct GraphWalkScratch
+    {
+        std::vector<uint8_t>  marks;
+        std::vector<uint32_t> stack;
+    };
+
+    GraphWalkScratch& graphWalkScratch()
+    {
+        thread_local GraphWalkScratch scratch;
+        return scratch;
+    }
+}
+
 void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context)
 {
     out.valid = false;
@@ -687,10 +702,10 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     // its first visit; propagation reads only live-in, so no seed is needed.
     out.liveOut.resize(instCount);
 
-    // The fixed-point queue is temporary to this analysis, but most worker
-    // threads run it for many functions. Keep its capacity between calls.
-    thread_local std::vector<uint8_t>  inWorklist;
-    thread_local std::vector<uint32_t> worklist;
+    // Graph walks run sequentially on a worker and reuse the same buffers.
+    auto& scratch    = graphWalkScratch();
+    auto& inWorklist = scratch.marks;
+    auto& worklist   = scratch.stack;
     inWorklist.assign(instCount, 1);
     worklist.clear();
     worklist.reserve(instCount);
@@ -749,7 +764,8 @@ void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg
 
     // Backward reachability from every tail, stopping at the header: that is exactly the set of
     // instructions the loop can execute.
-    std::vector<uint32_t> stack;
+    auto& stack = graphWalkScratch().stack;
+    stack.clear();
     for (const uint32_t tail : tails)
     {
         if (tail < n && !inBody[tail])
@@ -813,9 +829,12 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
 
     std::vector<uint32_t> postorder;
     postorder.reserve(n);
-    std::vector<uint8_t>  visited(n, 0);
+    auto&                 scratch = graphWalkScratch();
+    auto&                 visited = scratch.marks;
+    visited.assign(n, 0);
     std::vector<uint32_t> childCursor(n, 0);
-    std::vector<uint32_t> stack;
+    auto&                 stack = scratch.stack;
+    stack.clear();
     stack.push_back(entry);
     visited[entry] = 1;
     while (!stack.empty())

@@ -222,3 +222,16 @@ One more independent global-arithmetic batch was merged with cache identity
 1114. The incremental Release build and focused C++ compiler, 3,478 native and
 1,500 JIT suites passed. No end-to-end timing claim is assigned to this
 integrated binary.
+
+Build 1115 shared the worker's graph-walk stack and byte marks between
+physical liveness, natural-loop body collection and dominator traversal.
+Each algorithm resets the buffers before reading them; no algorithm calls
+another while those buffers are live. Its incremental Release build and
+focused C++ compiler, 3,478 native and 1,500 JIT suites passed. Core A/B
+series were unusable: separate concurrent builds coincided with 42.1 s and
+38.2 s core outliers in the candidate and reference respectively, against
+ordinary 2-4 s runs. A later direct pair took 3.31 s candidate and 3.39 s
+reference. Three hello pairs gave reference/candidate wall 1.035 and CPU
+0.769; CPU samples are coarse at this workload length. No repeatable speedup
+or regression is established. The source retains the smaller shared scratch
+and removes three temporary allocations across these sequential analyses.

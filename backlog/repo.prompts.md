@@ -404,7 +404,10 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      rebuilt per function; and a jump's target is the LAST number on its line, because the operand
      text also carries the width (`b32`), and 32 is a live reference often enough to matter.
   3. Implement the smallest change that addresses that mechanism, in src/Backend/Micro/Passes
-     or the encoder.
+     or the encoder. Formulate its eligibility from general properties of the code, such as
+     data flow, aliasing, loop structure, and estimated work saved. Do not encode benchmark
+     names, their exact constants, or thresholds chosen solely to fit one example. Check at
+     least one unrelated input that has the same structure and one that must remain unchanged.
   4. Re-dump and re-count the same loops. This is the inner loop of the campaign and it costs
      seconds - one build, one count. Iterate here, not on the clock. Compare per loop and never on
      a total: an outer loop's span contains its inner loops, so a saving inside one shows up as a
@@ -440,6 +443,12 @@ Pick the task with the worst ratio that you have not already exhausted, then:
   9. Commit and merge the validated batch into local master, then bring the worktree branch up to
      date before starting the next batch. Preserve unrelated changes on master.
 
+Between some batches, audit an existing micro pass or backend decision, even if the current task
+does not use it. Inspect its guards and thresholds, identify the general property that justifies
+them, and compare an unrelated input with the same property against one that lacks it. Rework a
+decision that only fits the benchmark examples as its own validated batch. Record the audit and
+resume the next optimization; do not turn every batch into a full backend review.
+
 DO NOT STOP AT THE FIRST FAILURE
 
 Most of these experiments will fail. That is the normal shape of this work, and three of the
@@ -469,6 +478,9 @@ RULES
     a reason to give up the optimization. Only a change that is BOTH slower to compile AND not
     better in the generated code gets reverted.
   - Never change what a bench task computes. That silently resets the history.
+  - Bench tasks expose missed general optimizations; they are not special cases to recognize.
+    Keep a change only when its rule can benefit ordinary user code with the same proven
+    structure, and explain that rule independently of any benchmark.
   - When timing is needed, A/B two swc.exe binaries by CPU time, alternating order and sampling
     before the process exits. Do not reject a statically proven improvement because noisy elapsed
     times fail to resolve a small gain.

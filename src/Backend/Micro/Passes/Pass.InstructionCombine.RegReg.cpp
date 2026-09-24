@@ -2434,6 +2434,190 @@ namespace InstructionCombine
         return true;
     }
 
+    namespace
+    {
+        struct PackedByteLoad
+        {
+            MicroInstrRef ref = MicroInstrRef::invalid();
+            MicroReg      base = MicroReg::invalid();
+            MicroReg      index = MicroReg::invalid();
+            uint32_t      baseValue = 0;
+            uint32_t      indexValue = 0;
+            uint64_t      scale = 0;
+            uint64_t      offset = 0;
+        };
+
+        // Strip address copies and constant additions, retaining a register
+        // whose SSA value can still address the fused load at the OR.
+        bool normalizeByteIndex(const Context& ctx, MicroReg reg, MicroInstrRef at, MicroInstrRef root,
+                                uint64_t& offset, MicroReg& outReg, uint32_t& outValue)
+        {
+            for (uint32_t depth = 0; depth < 5; ++depth)
+            {
+                const auto def = ctx.ssa->reachingDef(reg, at);
+                if (!def.valid() || (def.inst && (ctx.isClaimed(def.instRef) || ctx.isRelocated(def.instRef))))
+                    return false;
+                const auto atRoot = ctx.ssa->reachingDef(reg, root);
+                const auto* ops = def.inst ? def.inst->ops(*ctx.operands) : nullptr;
+                if (!def.isPhi && ops && ops[0].reg == reg &&
+                    def.inst->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
+                    ops[1].reg.isVirtualInt())
+                {
+                    reg = ops[1].reg;
+                    at = def.instRef;
+                }
+                else if (!def.isPhi && ops && ops[0].reg == reg &&
+                         def.inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64)
+                {
+                    offset += ops[3].valueU64;
+                    reg = ops[1].reg;
+                    at = def.instRef;
+                }
+                else if (!def.isPhi && ops && ops[0].reg == reg &&
+                         def.inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[1].opBits == MicroOpBits::B64 &&
+                         ops[2].microOp == MicroOp::Add && !ops[3].hasWideImmediateValue())
+                {
+                    offset += ops[3].valueU64;
+                    at = def.instRef;
+                }
+                else
+                {
+                    if (!atRoot.valid() || atRoot.valueId != def.valueId)
+                        return false;
+                    outReg = reg;
+                    outValue = def.valueId;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool tracePackedByte(const Context& ctx, MicroReg reg, MicroInstrRef at, uint32_t shift, uint32_t depth,
+                             std::array<PackedByteLoad, 4>& loads, uint32_t& found)
+        {
+            if (depth >= 12 || shift > 24)
+                return false;
+            const auto def = ctx.ssa->reachingDef(reg, at);
+            if (!def.valid() || def.isPhi || !def.inst || ctx.isClaimed(def.instRef) || ctx.isRelocated(def.instRef))
+                return false;
+            const auto* ops = def.inst->ops(*ctx.operands);
+            if (!ops || ops[0].reg != reg)
+                return false;
+
+            if (def.inst->op == MicroInstrOpcode::LoadRegReg)
+                return (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64) &&
+                       tracePackedByte(ctx, ops[1].reg, def.instRef, shift, depth + 1, loads, found);
+            if (def.inst->op == MicroInstrOpcode::OpBinaryRegImm)
+            {
+                if ((ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
+                    ops[2].microOp != MicroOp::ShiftLeft || ops[3].hasWideImmediateValue() ||
+                    ops[3].valueU64 > 24 - shift)
+                    return false;
+                return tracePackedByte(ctx, reg, def.instRef, shift + static_cast<uint32_t>(ops[3].valueU64), depth + 1, loads, found);
+            }
+            if (def.inst->op == MicroInstrOpcode::OpBinaryRegReg)
+            {
+                if ((ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+                    ops[3].microOp != MicroOp::Or || !ops[1].reg.isVirtualInt())
+                    return false;
+                return tracePackedByte(ctx, reg, def.instRef, shift, depth + 1, loads, found) &&
+                       tracePackedByte(ctx, ops[1].reg, def.instRef, shift, depth + 1, loads, found);
+            }
+            if (def.inst->op != MicroInstrOpcode::LoadZeroExtAmcRegMem || shift % 8 ||
+                (ops[3].opBits != MicroOpBits::B32 && ops[3].opBits != MicroOpBits::B64) ||
+                ops[4].opBits != MicroOpBits::B8 || !ops[1].reg.isVirtualInt() || !ops[2].reg.isVirtualInt())
+                return false;
+
+            const uint32_t lane = shift / 8;
+            if ((found & (1u << lane)) || ops[5].valueU64 != 1)
+                return false;
+            const auto baseDef = ctx.ssa->reachingDef(ops[1].reg, def.instRef);
+            const auto rootBaseDef = ctx.ssa->reachingDef(ops[1].reg, at);
+            if (!baseDef.valid() || !rootBaseDef.valid() || baseDef.valueId != rootBaseDef.valueId)
+                return false;
+            auto& load = loads[lane];
+            load.ref = def.instRef;
+            load.base = ops[1].reg;
+            load.baseValue = baseDef.valueId;
+            load.scale = ops[5].valueU64;
+            load.offset = ops[6].valueU64;
+            // The caller makes the final availability check at its root.
+            load.index = ops[2].reg;
+            found |= 1u << lane;
+            return true;
+        }
+    }
+
+    // Four independent byte loads assembled in network order can be read as
+    // one unaligned dword and swapped. Every byte must have the same address
+    // origin, with consecutive displacements and no intervening memory write.
+    bool tryPackAdjacentByteLoads(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+        const auto* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[3].microOp != MicroOp::Or ||
+            (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+            !ops[0].reg.isVirtualInt() || !ops[1].reg.isVirtualInt())
+            return false;
+
+        std::array<PackedByteLoad, 4> loads;
+        uint32_t found = 0;
+        if (!tracePackedByte(ctx, ops[0].reg, ref, 0, 0, loads, found) ||
+            !tracePackedByte(ctx, ops[1].reg, ref, 0, 0, loads, found) || found != 0xF)
+            return false;
+
+        for (auto& load : loads)
+        {
+            const auto baseAtRoot = ctx.ssa->reachingDef(load.base, ref);
+            if (!baseAtRoot.valid() || baseAtRoot.valueId != load.baseValue ||
+                !normalizeByteIndex(ctx, load.index, load.ref, ref, load.offset, load.index, load.indexValue))
+                return false;
+        }
+        const auto& first = loads[3]; // The most significant result byte has the lowest address.
+        for (uint32_t i = 0; i < 4; ++i)
+        {
+            const auto& load = loads[3 - i];
+            if (load.baseValue != first.baseValue || load.indexValue != first.indexValue ||
+                load.scale != first.scale || load.offset != first.offset + i)
+                return false;
+        }
+        // Four references must occur on one straight line. Moving the read to
+        // the root then preserves every byte observed by the original loads.
+        uint32_t seen = 0;
+        MicroInstrRef scan = ctx.storage->findPreviousInstructionRef(ref);
+        for (uint32_t step = 0; scan.isValid() && step < 64 && seen != 0xF;
+             ++step, scan = ctx.storage->findPreviousInstructionRef(scan))
+        {
+            const auto* between = ctx.storage->ptr(scan);
+            if (!between || ctx.isClaimed(scan) || isControlOrCall(*between) || writesMemory(*between) ||
+                between->op == MicroInstrOpcode::LoadVolatileRegMem)
+                return false;
+            for (uint32_t i = 0; i < 4; ++i)
+                if (scan == loads[i].ref)
+                    seen |= 1u << i;
+        }
+        if (seen != 0xF || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.claimAll({ref}))
+            return false;
+
+        MicroInstrOperand wideLoad[7] = {};
+        wideLoad[0].reg = ops[0].reg;
+        wideLoad[1].reg = first.base;
+        wideLoad[2].reg = first.index;
+        wideLoad[3].opBits = MicroOpBits::B32;
+        wideLoad[4].opBits = MicroOpBits::B64;
+        wideLoad[5].valueU64 = first.scale;
+        wideLoad[6].valueU64 = first.offset;
+        ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadAmcRegMem, wideLoad);
+        MicroInstrOperand swap[3] = {};
+        swap[0].reg = ops[0].reg;
+        swap[1].opBits = MicroOpBits::B32;
+        swap[2].microOp = MicroOp::ByteSwap;
+        ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, swap);
+        return true;
+    }
+
     // A square lowers to a copy of x and a product with x, which keeps x
     // alive across the product and stops copy elimination from merging the
     // two registers. When nothing else reads x, the product can run on x

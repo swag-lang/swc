@@ -2663,6 +2663,72 @@ SWC_TEST_BEGIN(InstCombine_LeftCompareLoad_FoldsIntoMemoryCompare)
 }
 SWC_TEST_END()
 
+namespace
+{
+    void emitNetworkOrderBytes(MicroBuilder& builder, bool interveningStore, bool nonAdjacent)
+    {
+        constexpr MicroReg base = MicroReg::virtualIntReg(1);
+        constexpr MicroReg index = MicroReg::virtualIntReg(2);
+        constexpr MicroReg word = MicroReg::virtualIntReg(3);
+        constexpr MicroReg next = MicroReg::virtualIntReg(4);
+
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
+        const auto byteLoad = [&](MicroReg dst, MicroReg atIndex, uint64_t displacement) {
+            builder.emitLoadAmcRegMem(dst, MicroOpBits::B64, base, atIndex, 1, displacement, MicroOpBits::B8);
+            builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        };
+
+        byteLoad(word, index, 0);
+        builder.emitOpBinaryRegImm(word, ApInt(24, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+        if (interveningStore)
+            builder.emitLoadMemImm(base, 0, ApInt(0x12, 8), MicroOpBits::B8);
+        byteLoad(next, index, 1);
+        builder.emitOpBinaryRegImm(next, ApInt(16, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(word, next, MicroOp::Or, MicroOpBits::B64);
+        byteLoad(next, index, nonAdjacent ? 4 : 2);
+        builder.emitOpBinaryRegImm(next, ApInt(8, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(word, next, MicroOp::Or, MicroOpBits::B64);
+        byteLoad(next, index, 3);
+        builder.emitOpBinaryRegReg(word, next, MicroOp::Or, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, word, MicroOpBits::B64);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_AdjacentByteLoads_BecomeDwordSwap)
+{
+    MicroBuilder builder(ctx);
+    emitNetworkOrderBytes(builder, false, false);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (countUnaryMicroOp(builder, MicroOp::ByteSwap) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ByteLoadsWithInterveningStore_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitNetworkOrderBytes(builder, true, false);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (countUnaryMicroOp(builder, MicroOp::ByteSwap) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_NonAdjacentByteLoads_Kept)
+{
+    MicroBuilder builder(ctx);
+    emitNetworkOrderBytes(builder, false, true);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (countUnaryMicroOp(builder, MicroOp::ByteSwap) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Folding the right operand would reverse the compare: it stays a register.
 SWC_TEST_BEGIN(InstCombine_RightCompareLoad_Kept)
 {

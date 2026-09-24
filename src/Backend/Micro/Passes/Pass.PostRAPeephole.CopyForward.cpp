@@ -425,15 +425,75 @@ namespace PostRaPeephole
                 return false;
         }
         const MicroInstrUseDef useDef = binary->collectUseDef(*ctx.operands, ctx.encoder);
-        if (useDef.defs.size() != 1 || useDef.defs[0] != copy[1].reg || !ctx.isRegDeadAfterCurrent(copy[1].reg))
+        if (useDef.defs.size() != 1 || useDef.defs[0] != copy[1].reg)
             return false;
         MicroInstrOperand     swapped[4] = {ops[1], ops[0], ops[2], ops[3]};
         MicroConformanceIssue issue;
-        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *binary, swapped)) || !ctx.claimAll({binaryRef, ref}))
+        if (ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *binary, swapped))
             return false;
-        ctx.emitRewrite(binaryRef, binary->op, swapped);
-        ctx.emitErase(ref);
-        return true;
+        if (ctx.isRegDeadAfterCurrent(copy[1].reg))
+        {
+            if (!ctx.claimAll({binaryRef, ref}))
+                return false;
+            ctx.emitRewrite(binaryRef, binary->op, swapped);
+            ctx.emitErase(ref);
+            return true;
+        }
+
+        // The old result may have one nearby comparison before it is
+        // overwritten. Redirect that read to the copy destination as well.
+        // Claim through the overwrite so another rule cannot add a read of
+        // the old register after the comparison in this sweep.
+        constexpr uint32_t               maxWindow = 12;
+        std::array<MicroInstrRef, maxWindow + 2> window;
+        window[0] = binaryRef;
+        window[1] = ref;
+        MicroInstrRef       compareRef;
+        MicroInstrOperand   compareOps[Action::K_MAX_OPS] = {};
+        MicroInstrRef       cursor = ctx.nextRef(ref);
+        for (uint32_t step = 0; step < maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        {
+            const MicroInstr* current = ctx.instruction(cursor);
+            if (!current || ctx.isClaimed(cursor))
+                return false;
+            const MicroInstrDef& info = MicroInstr::info(current->op);
+            if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            window[step + 2] = cursor;
+            const MicroInstrUseDef currentUseDef = current->collectUseDef(*ctx.operands, ctx.encoder);
+            const bool readsOld = regInList(currentUseDef.uses.span(), copy[1].reg);
+            const bool writesOld = regInList(currentUseDef.defs.span(), copy[1].reg);
+            if (readsOld)
+            {
+                if (compareRef.isValid() || (current->op != MicroInstrOpcode::CmpRegReg && current->op != MicroInstrOpcode::CmpRegImm) ||
+                    current->numOperands > Action::K_MAX_OPS)
+                    return false;
+                const auto* currentOps = current->ops(*ctx.operands);
+                if (!currentOps)
+                    return false;
+                std::copy_n(currentOps, current->numOperands, compareOps);
+                for (uint32_t operand = 0; operand < info.regModes.size(); ++operand)
+                    if (info.regModes[operand] != MicroInstrRegMode::None && compareOps[operand].reg == copy[1].reg)
+                        compareOps[operand].reg = copy[0].reg;
+                if (ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *current, compareOps))
+                    return false;
+                compareRef = cursor;
+            }
+            if (!compareRef.isValid() && regInList(currentUseDef.defs.span(), copy[0].reg))
+                return false;
+            if (writesOld)
+            {
+                if (readsOld || !compareRef.isValid() || !ctx.claimAll(std::span{window.data(), step + 3}))
+                    return false;
+                const MicroInstr* compare = ctx.instruction(compareRef);
+                ctx.emitRewrite(binaryRef, binary->op, swapped);
+                ctx.emitErase(ref);
+                ctx.emitRewrite(compareRef, compare->op, std::span{compareOps, compare->numOperands});
+                return true;
+            }
+        }
+        return false;
     }
 
     // A count-only copy needs at most six bits. Clearing its upper half is

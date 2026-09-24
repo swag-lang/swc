@@ -372,15 +372,14 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
             return;
         }
 
+        if (!worklist || succs.empty())
+            return;
+
+        SanitizerState edge = cur;
+        dropZeros(edge);
+        edge.flagsSubject = MicroReg::invalid();
         for (const uint32_t s : succs)
-        {
-            if (!worklist)
-                continue;
-            SanitizerState edge = cur;
-            dropZeros(edge);
-            edge.flagsSubject = MicroReg::invalid();
             propagate(edge, s, *worklist);
-        }
         return;
     }
 }
@@ -1505,14 +1504,12 @@ void Sanitizer::propagateConditionalBranch(const SanitizerState& state, const Mi
     // zero across it took the index `table[0]` is written with along with it - which is
     // what made the first element of a local table, and only the first, unnameable.
     const bool dropAcrossEdge = state.flagsSubject.isValid() && !getReg(state, state.flagsSubject).isConstant();
+    SanitizerState edge = state;
+    if (dropAcrossEdge)
+        dropZeros(edge);
+    edge.flagsSubject = MicroReg::invalid();
     for (const uint32_t s : succs)
-    {
-        SanitizerState edge = state;
-        if (dropAcrossEdge)
-            dropZeros(edge);
-        edge.flagsSubject = MicroReg::invalid();
         propagate(edge, s, worklist);
-    }
 }
 
 bool Sanitizer::resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotZeroIfSubjectZero)

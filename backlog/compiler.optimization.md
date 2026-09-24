@@ -16,6 +16,23 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.051 — Calibrate the loop-rotation header budget
+
+- Recorded: 2026-09-24 11:53
+- Area: compiler/backend, post-RA loop rotation
+- Evidence: `PostRALoopRotate` duplicates a flag-only test and the allocator's flag-neutral
+  connectors at the back edge, replacing one unconditional jump per iteration. The unrelated
+  `PostRALoopRotate_IndependentHeadersRotate` test rotates headers with one incoming back edge;
+  `PostRALoopRotate_SecondIncomingJumpBlocks` keeps a header with another incoming edge. These
+  safety guards use general control flow, and the pass now covers register and memory `test`
+  instructions as well as compares. Its eight-instruction header limit is a static growth budget,
+  but no cost comparison explains why a safe nine-instruction header should keep its per-iteration
+  jump while an eight-instruction header is duplicated.
+- Next: compare code size and executed jumps for unrelated loops with short and long connector
+  runs, then derive a header budget from code growth and work saved instead of the fixed cutoff.
+- Complete when the cutoff or its replacement has non-benchmark profitability evidence and tests
+  around the chosen boundary.
+
 ### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
 
 - Recorded: 2026-09-24 10:33

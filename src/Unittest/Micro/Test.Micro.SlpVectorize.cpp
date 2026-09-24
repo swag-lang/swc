@@ -633,6 +633,81 @@ SWC_TEST_BEGIN(SlpVectorize_RejectedBlockKeepsFollowingBlockVectorizable)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SlpVectorize_IndexedMemoryAccessBlocksStorePacking)
+{
+    // The indexed access may name the second lane. Packing all four stores
+    // before it would change which value it reads or modifies.
+    for (uint32_t variant = 0; variant < 6; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        MicroSsaState  ssa;
+        const MicroReg sp    = encoder.stackPointerReg();
+        const MicroReg index = MicroReg::virtualIntReg(100);
+        const MicroReg value = MicroReg::virtualIntReg(101);
+        builder.emitLoadRegImm(index, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(value, ApInt(5, 32), MicroOpBits::B32);
+
+        MicroInstrRef secondLoadRef = MicroInstrRef::invalid();
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg source = MicroReg::virtualIntReg(lane + 1);
+            builder.emitLoadRegMem(source, sp, 0x40 + lane * 4, MicroOpBits::B32);
+            if (lane == 1)
+                secondLoadRef = builder.instructions().lastInstructionRef();
+            builder.emitOpBinaryRegImm(source, ApInt(1, 8), MicroOp::ShiftLeft, MicroOpBits::B32);
+            builder.emitLoadMemReg(sp, 0x60 + lane * 4, source, MicroOpBits::B32);
+            if (lane == 0 && variant == 1)
+                builder.emitOpBinaryRegAmcMem(value, sp, index, 4, 0x60, MicroOp::Xor, MicroOpBits::B32);
+            if (lane == 0 && variant == 5)
+                builder.emitCompareExchangeRegMemReg(value, sp, 0x64, source, MicroOpBits::B32);
+        }
+        builder.emitLoadMemReg(sp, 0xA0, value, MicroOpBits::B32);
+        builder.emitRet();
+
+        if (variant >= 2 && variant <= 4)
+        {
+            MicroInstrOperand ops[8] = {};
+            ops[0].reg               = sp;
+            ops[1].reg               = index;
+            ops[3].opBits            = MicroOpBits::B64;
+            if (variant == 2)
+            {
+                ops[2].reg      = value;
+                ops[4].opBits   = MicroOpBits::B32;
+                ops[5].valueU64 = 4;
+                ops[6].valueU64 = 0x60;
+                ops[7].microOp  = MicroOp::Xor;
+                builder.instructions().insertDerivedBefore(builder.operands(), secondLoadRef, MicroInstrOpcode::OpBinaryAmcMemReg, ops);
+            }
+            else if (variant == 3)
+            {
+                ops[2].opBits   = MicroOpBits::B32;
+                ops[4].valueU64 = 4;
+                ops[5].valueU64 = 0x60;
+                ops[6].valueU64 = 1;
+                ops[7].microOp  = MicroOp::Add;
+                builder.instructions().insertDerivedBefore(builder.operands(), secondLoadRef, MicroInstrOpcode::OpBinaryAmcMemImm, ops);
+            }
+            else
+            {
+                ops[4].opBits   = MicroOpBits::B32;
+                ops[5].valueU64 = 4;
+                ops[6].valueU64 = 0x60;
+                ops[7].microOp  = MicroOp::BitwiseNot;
+                builder.instructions().insertDerivedBefore(builder.operands(), secondLoadRef, MicroInstrOpcode::OpUnaryAmcMem, ops);
+            }
+        }
+
+        SWC_RESULT(runSlpPass(builder, ssa, encoder));
+        const uint32_t packedStores = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg);
+        if (packedStores != (variant == 0 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(SlpVectorize_MultipleBlocks_PreservesSnapshotAndFreshRegisters)
 {
     MicroBuilder   builder(ctx);

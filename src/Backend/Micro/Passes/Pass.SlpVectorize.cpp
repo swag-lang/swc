@@ -1490,9 +1490,18 @@ namespace
                 setDefsOpaque(fn, scan, inst);
                 return;
 
+            case MicroInstrOpcode::OpUnaryAmcMem:
+            case MicroInstrOpcode::OpBinaryAmcMemReg:
+            case MicroInstrOpcode::OpBinaryAmcMemImm:
+                scan.hasUnresolvedMemRead  = true;
+                scan.hasUnresolvedMemWrite = true;
+                setDefsOpaque(fn, scan, inst);
+                return;
+
             case MicroInstrOpcode::LoadAmcRegMem:
             case MicroInstrOpcode::LoadSignedExtAmcRegMem:
             case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+            case MicroInstrOpcode::OpBinaryRegAmcMem:
             case MicroInstrOpcode::CmpAmcImm:
             case MicroInstrOpcode::CmpAmcReg:
             case MicroInstrOpcode::VecUnaryRegMem:
@@ -1502,6 +1511,9 @@ namespace
                 return;
 
             default:
+                // Unknown memory writers cannot be moved across a packed store.
+                if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::WritesMemory))
+                    scan.hasUnresolvedMemWrite = true;
                 setDefsOpaque(fn, scan, inst);
         }
     }

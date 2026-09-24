@@ -16,6 +16,26 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.054 — Prove contiguous indexed updates before packing them
+
+- Recorded: 2026-09-24 23:10
+- Area: compiler/backend, SLP vectorization and indexed memory
+- Evidence: after folding ChaCha's output address into each XOR, its unrolled
+  16-word update has 48 micro instructions and 48 explicit memory operations.
+  Clang-cl and MSVC also use scalar indexed read-modify-write operations there.
+  `Pass.SlpVectorize.cpp` seeds groups only from plain aligned 32-bit stores at
+  known root offsets. Indexed read-modify-write operations lack a fixed offset;
+  treating them as invisible to the block scan could move packed stores across
+  an alias, so the current pass rejects such blocks.
+- Next: seek an unrelated four-lane loop with one stable base and index and
+  constant offsets, then prototype a proof that the four indexed updates are
+  adjacent, do not alias intervening accesses, and retain their source values.
+  Compare per-loop instruction and memory counts against scalar code from both
+  C++ compilers before adding a vector rewrite. Include an aliasing counterexample
+  and a case where packing costs more than the scalar memory instructions.
+- Complete when: either a profitable general rule and its alias tests are in
+  place, or measurements show that scalar indexed updates are the better form.
+
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25

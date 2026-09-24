@@ -62,6 +62,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | Register allocation label lookup | Reuse the CFG's label-to-instruction table for guarded-call and loop-region analysis instead of constructing two hash tables and scanning labels again. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating pairs gave core B/A wall 0.988 and CPU 0.987, below the measurement floor. No speedup or regression is claimed. |
 | Register allocation buffers | Retain nine fully overwritten analysis vectors on the per-worker pass object across functions: loop depth, loop labels, benefit scores and reservation counts. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating core pairs gave B/A wall 1.027 and CPU 1.021, with peak working set ratio 1.010. This is a small favorable signal near the measurement floor, not a firm percentage claim. |
 | Native read-only zero data | Detect a zero-filled allocation without relocations in its source span, then emit `.rbss` directly without copying bytes into a discarded `.rdata` section. | Release build and 3,478 native tests passed. The first seven-pair core comparison was disrupted by an 11.5-second candidate run; a quieter five-pair repeat gave B/A wall 1.042 and CPU 1.050, with peak working set 1.010. |
+| Dead code elimination scratch | Keep the used-value bitmap and worklist on the per-worker pass object; overwrite both on each run. | Release build, 3,478 native and 1,500 JIT tests passed. The first seven pairs were disrupted by 4–5-second candidate outliers. A quiet five-pair core repeat gave B/A wall 1.012, CPU 0.991 and peak working set 1.004: below the measurement floor. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
 the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
@@ -117,6 +118,13 @@ The subsequent integration with an independent instruction-combine batch used
 cache identity 1103. Its incremental Release build passed, followed by 3,478
 native and 1,500 JIT tests. The timing above belongs to the isolated build
 1102, so it does not attribute the independent batch's effect to this change.
+
+Build 1104 reused the dead-code pass's two temporary vectors. Seven alternating
+core and hello pairs encountered candidate core runs above 4 and 5 seconds
+while the surrounding runs were near 2–3 seconds. A subsequent five-pair core
+series on a quieter machine gave baseline/candidate ratios 1.012 wall and
+0.991 CPU, with peak working set 1.004. This is neutral within the measurement
+floor; the retained benefit is avoiding two vector allocations per pass run.
 
 ## Final validation
 

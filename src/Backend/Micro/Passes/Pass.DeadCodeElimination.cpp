@@ -291,12 +291,12 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     if (ssaState->values().empty())
         return Result::Continue;
 
-    MicroOperandStorage&  operands = *context.operands;
-    std::vector<uint8_t>  usedValues;
-    std::vector<uint32_t> worklist;
-    bool                  changed               = false;
-    bool                  directUseCursorsReady = false;
-    FloatDefCounts        floatDefs;
+    MicroOperandStorage& operands              = *context.operands;
+    auto&                usedValues            = usedValues_;
+    auto&                worklist              = worklist_;
+    bool                 changed               = false;
+    bool                 directUseCursorsReady = false;
+    FloatDefCounts       floatDefs;
     floatDefs.storage  = &storage;
     floatDefs.operands = &operands;
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroPass.h"
 #include "Support/Core/Result.h"
+#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -12,6 +13,12 @@ class MicroDeadCodeEliminationPass final : public MicroPass
 public:
     std::string_view name() const override { return "dce"; }
     Result           run(MicroPassContext& context) override;
+
+private:
+    // The pass lives on a compiler worker across functions. Both buffers are
+    // overwritten by collectUsedValues before each use.
+    std::vector<uint8_t>  usedValues_;
+    std::vector<uint32_t> worklist_;
 };
 
 SWC_END_NAMESPACE();

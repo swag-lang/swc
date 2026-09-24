@@ -258,6 +258,35 @@ namespace
         }
     };
 
+    struct RelocationRefCache
+    {
+        std::unordered_set<uint32_t> refs;
+        bool                         built = false;
+
+        void invalidate()
+        {
+            built = false;
+        }
+
+        const std::unordered_set<uint32_t>& get(const MicroPassContext& context)
+        {
+            if (!built)
+            {
+                refs.clear();
+                if (context.builder)
+                {
+                    for (const MicroRelocation& reloc : context.builder->codeRelocations())
+                    {
+                        if (reloc.instructionRef.isValid())
+                            refs.insert(reloc.instructionRef.get());
+                    }
+                }
+                built = true;
+            }
+            return refs;
+        }
+    };
+
     // Null when the function jumps through a register or takes a label's address:
     // none of the transforms that share this walk can reason about where such a jump
     // lands, and each one used to give up on the same test.
@@ -2036,7 +2065,8 @@ namespace
     // is one bit test when the constants span less than a word, as LLVM's
     // SimplifyBranchOnICmpChain and switch bit-test lowering produce. The
     // dual `c != C1 and c != C2 ...` (setne, the same exits) is its complement.
-    bool convertEqualityChainsToBitTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
+    bool convertEqualityChainsToBitTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                         BranchScanCache& scanCache, RelocationRefCache& relocationCache)
     {
         constexpr uint32_t K_MIN_CHAIN = 3;
         constexpr uint32_t K_MAX_CHAIN = 64;
@@ -2051,12 +2081,7 @@ namespace
         auto&                labelReferences = scanPtr->labelReferences;
         auto&                mentions        = scanPtr->mentions;
 
-        std::unordered_set<uint32_t> relocated;
-        for (const MicroRelocation& reloc : context.builder->codeRelocations())
-        {
-            if (reloc.instructionRef.isValid())
-                relocated.insert(reloc.instructionRef.get());
-        }
+        const auto& relocated = relocationCache.get(context);
 
         struct Link
         {
@@ -2148,8 +2173,10 @@ namespace
                     closed = true;
                 break;
             }
-            if (!closed || links.size() < K_MIN_CHAIN || labelReferences[endId] != links.size() - 1 ||
-                relocated.contains(layout.order[body.back() + 1].get()))
+            if (!closed || links.size() < K_MIN_CHAIN || labelReferences[endId] != links.size() - 1)
+                continue;
+
+            if (relocated.contains(layout.order[body.back() + 1].get()))
                 continue;
 
             uint64_t lo = UINT64_MAX;
@@ -2503,7 +2530,8 @@ namespace
                leftOps[2].valueU64 == rightOps[2].valueU64;
     }
 
-    bool convertThreeWaySignDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
+    bool convertThreeWaySignDiamonds(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                     BranchScanCache& scanCache, RelocationRefCache& relocationCache)
     {
         if (!context.builder)
             return false;
@@ -2515,12 +2543,7 @@ namespace
         auto&                labelReferences = scanPtr->labelReferences;
         auto&                mentions        = scanPtr->mentions;
 
-        std::unordered_set<uint32_t> relocated;
-        for (const MicroRelocation& reloc : context.builder->codeRelocations())
-        {
-            if (reloc.instructionRef.isValid())
-                relocated.insert(reloc.instructionRef.get());
-        }
+        const auto& relocated = relocationCache.get(context);
 
         constexpr size_t K_MAX_SHAPE = 11;
         const size_t     count       = layout.order.size();
@@ -2701,7 +2724,8 @@ namespace
     // holds the default, a hole or entry N, which also keeps the shift inside
     // the register. The cases may also join after their loads, the default
     // then being what D held before the chain.
-    bool convertSwitchesToPackedTables(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
+    bool convertSwitchesToPackedTables(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                       BranchScanCache& scanCache, RelocationRefCache& relocationCache)
     {
         constexpr size_t   K_MIN_CASES    = 3;
         constexpr uint64_t K_MAX_ENTRIES  = 63;
@@ -2716,12 +2740,7 @@ namespace
         const ProgramLayout& layout          = scanPtr->layout;
         auto&                labelReferences = scanPtr->labelReferences;
 
-        std::unordered_set<uint32_t> relocated;
-        for (const MicroRelocation& reloc : context.builder->codeRelocations())
-        {
-            if (reloc.instructionRef.isValid())
-                relocated.insert(reloc.instructionRef.get());
-        }
+        const auto& relocated = relocationCache.get(context);
 
         const size_t count  = layout.order.size();
         const auto   instAt = [&](size_t index) -> const MicroInstr* {
@@ -3489,17 +3508,10 @@ namespace
     //
     // The first comparison already performs the load on every path. No write
     // or call may separate it from the repeated comparison.
-    bool forwardRepeatedMemoryCompareInShortCircuit(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool forwardRepeatedMemoryCompareInShortCircuit(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                                    RelocationRefCache& relocationCache)
     {
-        std::unordered_set<uint32_t> relocated;
-        if (context.builder)
-        {
-            for (const MicroRelocation& reloc : context.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    relocated.insert(reloc.instructionRef.get());
-            }
-        }
+        const auto& relocated = relocationCache.get(context);
 
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -7087,11 +7099,13 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // next reader pays for a new one; a run where nothing fires pays for exactly one.
     thread_local BranchScanCache scanCache;
     scanCache.invalidate();
+    RelocationRefCache relocationCache;
     const auto      rewrote = [&](const bool transformChanged) {
         if (transformChanged)
         {
             changed = true;
             scanCache.invalidate();
+            relocationCache.invalidate();
         }
 
         return transformChanged;
@@ -7123,15 +7137,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     }
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
-    rewrote(convertEqualityChainsToBitTests(storage, operands, context, scanCache));
-    rewrote(convertSwitchesToPackedTables(storage, operands, context, scanCache));
+    rewrote(convertEqualityChainsToBitTests(storage, operands, context, scanCache, relocationCache));
+    rewrote(convertSwitchesToPackedTables(storage, operands, context, scanCache, relocationCache));
     rewrote(foldRangeChecks(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     // A whole `or` chain goes at once, before the two-link form takes its tail.
     rewrote(convertOrChainsToBranchless(storage, operands, context, scanCache));
-    rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache));
-    rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context));
+    rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache, relocationCache));
+    rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context, relocationCache));
     rewrote(convertShortCircuitBooleans(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

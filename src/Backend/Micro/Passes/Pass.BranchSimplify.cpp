@@ -2052,11 +2052,7 @@ namespace
         auto&                mentions        = scanPtr->mentions;
 
         std::unordered_set<uint32_t> relocated;
-        for (const MicroRelocation& reloc : context.builder->codeRelocations())
-        {
-            if (reloc.instructionRef.isValid())
-                relocated.insert(reloc.instructionRef.get());
-        }
+        bool                         relocatedReady = false;
 
         struct Link
         {
@@ -2148,8 +2144,20 @@ namespace
                     closed = true;
                 break;
             }
-            if (!closed || links.size() < K_MIN_CHAIN || labelReferences[endId] != links.size() - 1 ||
-                relocated.contains(layout.order[body.back() + 1].get()))
+            if (!closed || links.size() < K_MIN_CHAIN || labelReferences[endId] != links.size() - 1)
+                continue;
+
+            if (!relocatedReady)
+            {
+                relocatedReady = true;
+                for (const MicroRelocation& reloc : context.builder->codeRelocations())
+                {
+                    if (reloc.instructionRef.isValid())
+                        relocated.insert(reloc.instructionRef.get());
+                }
+            }
+
+            if (relocated.contains(layout.order[body.back() + 1].get()))
                 continue;
 
             uint64_t lo = UINT64_MAX;

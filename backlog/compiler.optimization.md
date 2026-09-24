@@ -19,7 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-24 21:57 — Shared the relocation index across four branch transforms.
+- Updated: 2026-09-24 22:26 — Reused the short-circuit layout when coalescing left it unchanged.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -77,6 +77,17 @@ block, and the hot path keeps the register.
   stayed below 100 ms. Rebuild times drifted from 1.8 to 3.4 s during the run, so this is a
   correctness-certified structural saving, below the measurement floor rather than a claimed
   percentage speedup. Peak working-set ratios were 0.992, 1.000 and 0.983 for those three builds.
+- Taken in 0.1.1138: `coalesceShortCircuitResults` and `threadShortCircuitExits` each rebuilt the
+  program layout in every short-circuit round. They now use the same layout when coalescing makes
+  no change, and rebuild it when coalescing rewrites the stream. This removes one full instruction
+  walk from each unchanged round, with no change to either transformation. The prior profile put
+  all `buildProgramLayout` calls at 0.73% of busy CPU, so this is expected below the whole-build
+  timing floor. The focused `short_circuit_booleans` and `short_circuit_past_join` native Release
+  tests passed; the rotating `std/core` TweakFile file ran four passing tests. On the rebased master,
+  five order-alternated pairs gave candidate/baseline core-touch ratios of 1.013 wall and 0.989
+  CPU. Hello-build ratios of 1.126 wall and 1.150 CPU reversed in a second seven-pair run with
+  A/B roles swapped: 0.995 wall and 0.857 CPU. The series therefore supports no percentage claim.
+  Peak working-set ratios were 1.014 for core touch and 1.034 for hello build in the five-pair run.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

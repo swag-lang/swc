@@ -6,7 +6,8 @@
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Support/Core/SmallVector.h"
 
-// A vector load whose every reader widens half of it.
+// A vector load whose every reader widens half of it, or whose sole reader
+// applies a full-width sqrt or truncation, can be folded into the reader.
 //
 //     LoadVecRegMem      vt,  [b+o]           (or the 128-bit LoadRegMem,
 //     VecUnaryRegReg     lo,  vt, widenLo           or the indexed LoadAmcRegMem)
@@ -51,6 +52,11 @@ namespace InstructionCombine
                 default:
                     return false;
             }
+        }
+
+        bool isFullWidthUnary(const MicroOp op)
+        {
+            return op == MicroOp::VecSqrtF32 || op == MicroOp::VecTruncF32ToS32;
         }
 
         // The unsigned widening an interleave of the high half with zero
@@ -271,11 +277,11 @@ namespace InstructionCombine
         {
             MicroInstrRef ref;
             MicroReg      dst;
-            MicroOp       widen = MicroOp::VecWidenLoU8;
+            MicroOp       op    = MicroOp::VecWidenLoU8;
             uint64_t      extra = 0; // eight for the high half
         };
 
-        void emitWiden(Context& ctx, const Fold& fold, const LoadAddress& address)
+        void emitUnary(Context& ctx, const Fold& fold, const LoadAddress& address)
         {
             if (address.indexed)
             {
@@ -287,7 +293,7 @@ namespace InstructionCombine
                 ops[4].opBits            = address.addrBits;
                 ops[5].valueU64          = address.mul;
                 ops[6].valueU64          = address.offset + fold.extra;
-                ops[7].microOp           = fold.widen;
+                ops[7].microOp           = fold.op;
                 ctx.emitRewrite(fold.ref, MicroInstrOpcode::VecUnaryAmcRegMem, std::span<const MicroInstrOperand>(ops, 8), true);
                 return;
             }
@@ -297,7 +303,7 @@ namespace InstructionCombine
             ops[1].reg               = address.base;
             ops[2].opBits            = MicroOpBits::B128;
             ops[3].valueU64          = address.offset + fold.extra;
-            ops[4].microOp           = fold.widen;
+            ops[4].microOp           = fold.op;
             ctx.emitRewrite(fold.ref, MicroInstrOpcode::VecUnaryRegMem, std::span<const MicroInstrOperand>(ops, 5), true);
         }
     }
@@ -355,14 +361,14 @@ namespace InstructionCombine
                 if (useOps[1].reg != vt || useOps[2].opBits != MicroOpBits::B128 || !isLowWiden(useOps[3].microOp))
                     return false;
                 fold.dst   = useOps[0].reg;
-                fold.widen = useOps[3].microOp;
+                fold.op    = useOps[3].microOp;
             }
             else if (useInst->op == MicroInstrOpcode::OpBinaryRegRegReg)
             {
                 // ops: [0] dst, [1] src1, [2] src2, [3] opBits, [4] microOp
                 if (useOps[1].reg != vt || useOps[2].reg == vt || useOps[3].opBits != MicroOpBits::B128)
                     return false;
-                if (!widenOfUnpackHi(useOps[4].microOp, fold.widen) || !isZeroVectorAt(ctx, useOps[2].reg, use.instRef))
+                if (!widenOfUnpackHi(useOps[4].microOp, fold.op) || !isZeroVectorAt(ctx, useOps[2].reg, use.instRef))
                     return false;
                 fold.dst   = useOps[0].reg;
                 fold.extra = 8;
@@ -390,7 +396,44 @@ namespace InstructionCombine
         }
 
         for (const Fold& fold : folds)
-            emitWiden(ctx, fold, address);
+            emitUnary(ctx, fold, address);
+        ctx.emitErase(loadRef);
+        return true;
+    }
+
+    bool tryFoldVecLoadIntoFullUnary(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || ctx.isRelocated(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        LoadAddress             address;
+        if (!loadOps || !readLoadAddress(address, loadInst, loadOps))
+            return false;
+
+        const MicroReg loaded = loadOps[0].reg;
+        if (!loaded.isVirtualFloat() || isFrameDerivedAddress(ctx, address.base, loadRef) || isRelocatedAddress(ctx, address.base, loadRef))
+            return false;
+
+        uint32_t valueId = 0;
+        if (!ctx.ssa->defValue(loaded, loadRef, valueId))
+            return false;
+        const MicroInstrRef useRef = singleDirectInstructionUse(*ctx.ssa, valueId);
+        if (!useRef.isValid() || ctx.isClaimed(useRef) || ctx.isRelocated(useRef))
+            return false;
+
+        const MicroInstr*        useInst = ctx.storage->ptr(useRef);
+        const MicroInstrOperand* useOps  = useInst ? useInst->ops(*ctx.operands) : nullptr;
+        if (!useOps || useInst->op != MicroInstrOpcode::VecUnaryRegReg || useOps[1].reg != loaded ||
+            useOps[2].opBits != MicroOpBits::B128 || !isFullWidthUnary(useOps[3].microOp) || !useOps[0].reg.isVirtualFloat())
+            return false;
+
+        const bool baseFromOutside = isOutsideOrigin(ctx, address.base, loadRef, 0) &&
+                                     (!address.indexed || isOutsideOrigin(ctx, address.index, loadRef, 0));
+        if (!readMovesToReader(ctx, loadRef, useRef, address, baseFromOutside) || !ctx.claimAll({loadRef, useRef}))
+            return false;
+
+        emitUnary(ctx, Fold{useRef, useOps[0].reg, useOps[3].microOp, 0}, address);
         ctx.emitErase(loadRef);
         return true;
     }

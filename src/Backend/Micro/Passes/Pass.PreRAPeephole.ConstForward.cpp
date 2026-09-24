@@ -327,7 +327,23 @@ namespace PreRaPeephole
 
         ConsumerRewrite rewrite;
         if (!buildRewrite(rewrite, *consumer, ctx.operandsFor(consumerRef), producer))
-            return false;
+        {
+            // Unrolling commonly leaves a constant, the copy of an index,
+            // and the addition of that constant in this order. The copy does
+            // not change the constant, so forward it across that one copy.
+            const MicroInstrOperand* copyOps = ctx.operandsFor(consumerRef);
+            if (consumer->op != MicroInstrOpcode::LoadRegReg || !copyOps || copyOps[0].reg == producer.reg)
+                return false;
+            const MicroInstrRef nextRef = ctx.nextRef(consumerRef);
+            const MicroInstr*   next    = ctx.instruction(nextRef);
+            const auto*         nextOps = next ? ctx.operandsFor(nextRef) : nullptr;
+            if (!next || ctx.isClaimed(nextRef) || !nextOps || next->op != MicroInstrOpcode::OpBinaryRegReg ||
+                nextOps[0].reg != copyOps[0].reg || nextOps[1].reg != producer.reg || nextOps[3].microOp != MicroOp::Add ||
+                !buildRewrite(rewrite, *next, nextOps, producer) || !ctx.claimAll({consumerRef, nextRef}))
+                return false;
+            ctx.emitRewrite(nextRef, rewrite.newOp, std::span(rewrite.ops, rewrite.numOps));
+            return true;
+        }
 
         if (!ctx.claimAll({consumerRef}))
             return false;

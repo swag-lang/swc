@@ -368,6 +368,41 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsExtendOfImmediate)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PreRAPeephole_ForwardsConstantAcrossAddressCopy)
+{
+    constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg amount = MicroReg::virtualIntReg(3);
+
+    for (const bool pointerConstant : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        if (pointerConstant)
+            builder.emitLoadRegPtrImm(amount, 24);
+        else
+            builder.emitLoadRegImm(amount, ApInt(24, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, base, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(index, amount, MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPreRaPeepholePass(builder));
+        const MicroInstr* folded = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegImm);
+        const auto*       ops    = folded ? folded->ops(builder.operands()) : nullptr;
+        if (!ops || ops[0].reg != index || ops[2].microOp != MicroOp::Add || ops[3].valueU64 != 24 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+            return Result::Error;
+    }
+
+    MicroBuilder overwritten(ctx);
+    overwritten.emitLoadRegPtrImm(amount, 24);
+    overwritten.emitLoadRegReg(amount, base, MicroOpBits::B64);
+    overwritten.emitOpBinaryRegReg(index, amount, MicroOp::Add, MicroOpBits::B64);
+    overwritten.emitRet();
+    SWC_RESULT(runPreRaPeepholePass(overwritten));
+    return Backend::Unittest::countOpcode(overwritten, MicroInstrOpcode::OpBinaryRegReg) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PreRAPeephole_FoldsPointerImmediateIntoAddress)
 {
     constexpr MicroReg ptr = MicroReg::virtualIntReg(1);

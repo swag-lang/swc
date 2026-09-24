@@ -909,6 +909,75 @@ namespace InstructionCombine
         ctx.emitErase(ref);
         return true;
     }
+
+    // A global load, unary update, and store may each already use a RIP
+    // displacement. Their equal relocations prove that one memory operation
+    // reads and writes the same global bytes.
+    bool tryFoldGlobalUnaryMemoryOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa || !ctx.builder)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps || !loadOps[0].reg.isVirtualInt() || !loadOps[1].reg.isInstructionPointer() || loadOps[3].valueU64 != 0)
+            return false;
+
+        MicroStorage::Iterator midIt{ctx.storage, loadRef};
+        ++midIt;
+        if (midIt == ctx.storage->view().end() || midIt->op != MicroInstrOpcode::OpUnaryReg)
+            return false;
+        const MicroInstrOperand* midOps = midIt->ops(*ctx.operands);
+        if (!midOps || midOps[0].reg != loadOps[0].reg || midOps[1].opBits != loadOps[2].opBits ||
+            (midOps[2].microOp != MicroOp::BitwiseNot && midOps[2].microOp != MicroOp::Negate))
+            return false;
+
+        MicroStorage::Iterator storeIt = midIt;
+        ++storeIt;
+        if (storeIt == ctx.storage->view().end() || storeIt->op != MicroInstrOpcode::LoadMemReg)
+            return false;
+        const MicroInstrOperand* storeOps = storeIt->ops(*ctx.operands);
+        if (!storeOps || !storeOps[0].reg.isInstructionPointer() || storeOps[1].reg != loadOps[0].reg ||
+            storeOps[2].opBits != loadOps[2].opBits || storeOps[3].valueU64 != 0)
+            return false;
+
+        MicroRelocation* loadReloc  = nullptr;
+        MicroRelocation* storeReloc = nullptr;
+        for (MicroRelocation& reloc : ctx.builder->codeRelocations())
+        {
+            if (reloc.instructionRef == loadRef)
+            {
+                if (loadReloc)
+                    return false;
+                loadReloc = &reloc;
+            }
+            else if (reloc.instructionRef == storeIt.current)
+            {
+                if (storeReloc)
+                    return false;
+                storeReloc = &reloc;
+            }
+        }
+        if (!loadReloc || !storeReloc ||
+            (loadReloc->kind != MicroRelocation::Kind::GlobalZeroAddress && loadReloc->kind != MicroRelocation::Kind::GlobalInitAddress) ||
+            loadReloc->form != MicroRelocation::Form::Relative32 || storeReloc->form != MicroRelocation::Form::Relative32 ||
+            !loadReloc->hasSameTarget(*storeReloc) ||
+            !valueHasSingleUse(*ctx.ssa, loadOps[0].reg, loadRef) ||
+            !valueHasSingleUse(*ctx.ssa, loadOps[0].reg, midIt.current) ||
+            !ctx.claimAll({loadRef, midIt.current, storeIt.current}, true))
+            return false;
+
+        MicroInstrOperand newOps[4] = {};
+        newOps[0].reg               = MicroReg::instructionPointer();
+        newOps[1].opBits            = midOps[1].opBits;
+        newOps[2].microOp           = midOps[2].microOp;
+        newOps[3].valueU64          = 0;
+        storeReloc->instructionRef = midIt.current;
+        loadReloc->instructionRef  = MicroInstrRef::invalid();
+        ctx.emitRewrite(midIt.current, MicroInstrOpcode::OpUnaryMem, newOps, /*allocNewBlock=*/true);
+        ctx.emitErase(loadRef);
+        ctx.emitErase(storeIt.current);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

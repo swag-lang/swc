@@ -3004,12 +3004,23 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
+    const auto emitMemoryOperand = [&](const uint8_t regField) {
+        if (memReg.isInstructionPointer())
+        {
+            SWC_ASSERT(memOffset == 0);
+            emitModRm(store_, ModRmMode::Memory, regField, MODRM_RM_RIP);
+            store_.pushU32(0);
+        }
+        else
+            emitModRm(store_, memOffset, regField, memReg);
+    };
+
     ///////////////////////////////////////////
     if (op == MicroOp::BitwiseNot)
     {
         emitRex(store_, opBits);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
-        emitModRm(store_, memOffset, MODRM_REG_2, memReg);
+        emitMemoryOperand(MODRM_REG_2);
     }
 
     ///////////////////////////////////////////
@@ -3018,7 +3029,7 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     {
         emitRex(store_, opBits);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
-        emitModRm(store_, memOffset, MODRM_REG_3, memReg);
+        emitMemoryOperand(MODRM_REG_3);
     }
 
     ///////////////////////////////////////////

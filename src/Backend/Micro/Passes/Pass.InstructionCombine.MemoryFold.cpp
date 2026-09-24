@@ -6,10 +6,10 @@
 // Load / modify / store triple folding.
 //
 //     LoadRegMem   vt, [b+o]
-//     OpBinaryRegImm/OpBinaryRegReg vt, ...
+//     OpBinaryRegImm/OpBinaryRegReg/OpUnaryReg vt, ...
 //     LoadMemReg   [b+o], vt
 //   ->
-//     OpBinaryMemImm / OpBinaryMemReg [b+o], ...
+//     OpBinaryMemImm / OpBinaryMemReg / OpUnaryMem [b+o], ...
 
 SWC_BEGIN_NAMESPACE();
 
@@ -29,6 +29,7 @@ namespace InstructionCombine
         {
             bool        middleIsRegImm = false;
             bool        middleIsRegReg = false;
+            bool        middleIsUnary  = false;
             MicroOp     microOp        = MicroOp::Add;
             MicroOpBits opBits         = MicroOpBits::Zero;
             uint64_t    opImm          = 0;
@@ -42,11 +43,12 @@ namespace InstructionCombine
 
             out.middleIsRegImm = mid.op == MicroInstrOpcode::OpBinaryRegImm;
             out.middleIsRegReg = mid.op == MicroInstrOpcode::OpBinaryRegReg;
-            if (!out.middleIsRegImm && !out.middleIsRegReg)
+            out.middleIsUnary  = mid.op == MicroInstrOpcode::OpUnaryReg;
+            if (!out.middleIsRegImm && !out.middleIsRegReg && !out.middleIsUnary)
                 return false;
 
-            out.opBits  = out.middleIsRegImm ? opOps[1].opBits : opOps[2].opBits;
-            out.microOp = out.middleIsRegImm ? opOps[2].microOp : opOps[3].microOp;
+            out.opBits  = out.middleIsRegReg ? opOps[2].opBits : opOps[1].opBits;
+            out.microOp = out.middleIsRegReg ? opOps[3].microOp : opOps[2].microOp;
             out.opImm   = out.middleIsRegImm ? opOps[3].valueU64 : 0;
             out.rhsReg  = out.middleIsRegReg ? opOps[1].reg : MicroReg::invalid();
             return true;
@@ -65,7 +67,16 @@ namespace InstructionCombine
         void emitFoldedTriple(Context& ctx, MicroInstrRef loadRef, MicroInstrRef midRef, MicroInstrRef storeRef, MicroReg base, uint64_t loadOff, const TripleInfo& tri)
         {
             MicroInstrOperand newOps[5];
-            if (tri.middleIsRegReg)
+            if (tri.middleIsUnary)
+            {
+                // OpUnaryMem: [memReg, opBits, microOp, memOffset].
+                newOps[0].reg      = base;
+                newOps[1].opBits   = tri.opBits;
+                newOps[2].microOp  = tri.microOp;
+                newOps[3].valueU64 = loadOff;
+                ctx.emitRewrite(midRef, MicroInstrOpcode::OpUnaryMem, newOps, /*allocNewBlock=*/true);
+            }
+            else if (tri.middleIsRegReg)
             {
                 // OpBinaryMemReg: [memReg, reg, opBits, microOp, memOffset].
                 newOps[0].reg      = base;
@@ -137,7 +148,9 @@ namespace InstructionCombine
                 if (!extractMiddleOperands(tri, *mid.inst, opOps))
                     return false;
 
-                if (tri.opBits != loadBits || !isMemFoldableOp(tri.microOp) ||
+                if (tri.opBits != loadBits ||
+                    (tri.middleIsUnary ? (tri.microOp != MicroOp::BitwiseNot && tri.microOp != MicroOp::Negate) :
+                                         !isMemFoldableOp(tri.microOp)) ||
                     (tri.middleIsRegImm && opOps[3].hasWideImmediateValue()))
                     return false;
                 if (tri.middleIsRegReg && (tri.rhsReg == base || tri.rhsReg == valueReg || tri.rhsReg == vt))
@@ -187,7 +200,8 @@ namespace InstructionCombine
 
             if (usesVt || defsVt)
             {
-                if (w.op == MicroInstrOpcode::OpBinaryRegImm ||
+                if (w.op == MicroInstrOpcode::OpUnaryReg ||
+                    w.op == MicroInstrOpcode::OpBinaryRegImm ||
                     w.op == MicroInstrOpcode::OpBinaryRegReg)
                 {
                     const MicroInstrOperand* wOps = w.ops(*ctx.operands);

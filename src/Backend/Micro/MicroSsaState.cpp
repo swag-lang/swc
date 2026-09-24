@@ -203,14 +203,13 @@ void MicroSsaState::clear()
     blocksCfgBuildId_   = 0;
     blocksHaveFrontier_ = false;
     trackedRegs_.clear();
-    instrInfos_.clear();
+    // Slot numbers and their use/def caches belong to one function. Keep the
+    // per-slot buffers, but force a fresh use/def collection for the next one.
+    for (InstrInfo& info : instrInfos_)
+        info.useDefCached = false;
     instructionRefs_.clear();
     liveInstructionSlots_.clear();
     instructionToBlock_.clear();
-    blocks_.clear();
-    valueInfos_.clear();
-    phiInfos_.clear();
-    reachingValuesByReg_.clear();
     useVisitStamps_.clear();
     useVisitStack_.clear();
     trackedDefCount_ = 0;

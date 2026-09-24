@@ -7,6 +7,7 @@ test boundary. Build 1093 passed a second full Release rebuild and test sequence
 Integrated build 1095 passed the full Release sequence again after further backend
 merges. Build 1096 passed an incremental Release build and 3,478 focused native tests.
 Build 1097 passed an incremental Release build, 3,478 native tests and 1,500 JIT tests.
+Build 1108 passed a later full Release rebuild and test milestone.
 
 ## Baseline and targets
 
@@ -159,3 +160,11 @@ the 32 example and four application smokes also completed. Build 1096 then passe
 3,478 native tests after the loop-unroll merge. Build 1097 incorporates the later
 loop-rotation merge and passed an incremental Release build, 3,478 native tests and
 1,500 JIT tests. The full Release sequence was not repeated for that final merge.
+
+The afternoon milestone rebuilt integrated build 1108 from source in Release
+(MSBuild `/t:Rebuild /m:6`, `SwcCompileJobs=6`) without warnings or errors.
+`bin/swc.exe --num-cores 6 tools/tests.swgs --num-cores 6` exited zero:
+1,500 JIT, 3,478 native, 138 safety passes with the same seven expected
+non-passing dynamic cases, 2,390 standard-module, 550 application and 479
+reference tests. Script runs, 32 example builds and four application smokes
+also completed.

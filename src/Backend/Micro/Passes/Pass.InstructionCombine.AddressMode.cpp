@@ -824,6 +824,72 @@ namespace InstructionCombine
         ctx.emitErase(copy.instRef);
         return true;
     }
+    // A global address used only by one immediate memory operation can be
+    // carried by that operation's RIP-relative displacement.
+    bool tryFoldGlobalImmediateMemoryOp(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa || !ctx.builder)
+            return false;
+
+        const MicroInstrOperand* loadOps = inst.ops(*ctx.operands);
+        if (!loadOps || !loadOps[0].reg.isVirtualInt() || loadOps[1].opBits != MicroOpBits::B64)
+            return false;
+
+        MicroRelocation* relocation = nullptr;
+        for (MicroRelocation& candidate : ctx.builder->codeRelocations())
+        {
+            if (candidate.instructionRef != ref)
+                continue;
+            if (relocation)
+                return false;
+            relocation = &candidate;
+        }
+        if (!relocation || (relocation->kind != MicroRelocation::Kind::GlobalZeroAddress &&
+                            relocation->kind != MicroRelocation::Kind::GlobalInitAddress))
+            return false;
+
+        uint32_t valueId = 0;
+        if (!ctx.ssa->defValue(loadOps[0].reg, ref, valueId))
+            return false;
+        const MicroInstrRef useRef = singleDirectInstructionUse(*ctx.ssa, valueId);
+        if (!useRef.isValid() || ctx.isClaimed(useRef) || ctx.isRelocated(useRef))
+            return false;
+
+        const MicroInstr*        useInst = ctx.storage->ptr(useRef);
+        const MicroInstrOperand* useOps  = useInst ? useInst->ops(*ctx.operands) : nullptr;
+        if (!useOps || useOps[0].reg != loadOps[0].reg ||
+            (useOps[1].opBits != MicroOpBits::B8 && useOps[1].opBits != MicroOpBits::B16 &&
+             useOps[1].opBits != MicroOpBits::B32 && useOps[1].opBits != MicroOpBits::B64))
+            return false;
+
+        const bool unitUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&
+                                useOps[3].valueU64 == 0 && !useOps[4].hasWideImmediateValue() &&
+                                useOps[4].valueU64 == 1 &&
+                                (useOps[2].microOp == MicroOp::Add || useOps[2].microOp == MicroOp::Subtract);
+        const bool immediateStore = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
+                                    !useOps[3].hasWideImmediateValue() &&
+                                    (useOps[1].opBits != MicroOpBits::B64 ||
+                                     useOps[3].valueU64 <= 0x7FFFFFFF ||
+                                     useOps[3].valueU64 >= 0xFFFFFFFF80000000);
+        // A B64 store with a larger immediate expands into two memory writes;
+        // one RIP displacement cannot represent both of their destinations.
+        if (!unitUpdate && !immediateStore)
+            return false;
+
+        if (!ctx.claimAll({ref, useRef}, true))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        const uint8_t numOps = unitUpdate ? 5 : 4;
+        for (uint8_t i = 0; i < numOps; ++i)
+            newOps[i] = useOps[i];
+        newOps[0].reg = MicroReg::instructionPointer();
+        relocation->instructionRef = useRef;
+        relocation->form           = MicroRelocation::Form::Relative32;
+        ctx.emitRewrite(useRef, useInst->op, std::span{newOps, numOps});
+        ctx.emitErase(ref);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

@@ -145,7 +145,9 @@ namespace
             // relocation supplying the displacement.
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::OpBinaryRegMem:
+            case MicroInstrOpcode::OpBinaryMemImm:
                 return reg.isAnyInt() || reg.isInstructionPointer();
 
             default:
@@ -502,12 +504,15 @@ namespace
             // so it is only legal on the RIP form.
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::OpBinaryRegMem:
+            case MicroInstrOpcode::OpBinaryMemImm:
             {
                 if (relocation.form != MicroRelocation::Form::Relative32)
                     return reportError(context, phase, std::format("relocation #{} on a memory access is not instruction-pointer relative", relocationIndex));
 
-                const uint8_t            baseIdx = inst.op == MicroInstrOpcode::LoadMemReg ? 0 : 1;
+                const uint8_t            baseIdx = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm ||
+                                                  inst.op == MicroInstrOpcode::OpBinaryMemImm ? 0 : 1;
                 const MicroInstrOperand* memOps  = context.operands->ptr(inst.opsRef);
                 if (!memOps || inst.numOperands < 2 || !memOps[baseIdx].reg.isInstructionPointer())
                     return reportError(context, phase, std::format("relocation #{} names a memory access whose base is not the instruction pointer", relocationIndex));

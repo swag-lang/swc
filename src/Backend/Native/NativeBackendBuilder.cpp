@@ -1080,10 +1080,14 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
 
             if (relocation.form == MicroRelocation::Form::Relative32)
             {
-                // Same shape as the constant case: REL32 resolves to
-                // target + addend - (field + 4), and the displacement is the
-                // last four bytes of the access.
-                SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
+                // COFF REL32 measures from the end of the displacement. A
+                // memory-immediate operation can have up to four bytes after it,
+                // so include those bytes in the in-place addend instead of its relocation
+                // type. The JIT uses relativeEndOffset directly.
+                SWC_ASSERT(relocation.relativeEndOffset >= relocation.codeOffset + sizeof(uint32_t));
+                const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
+                SWC_ASSERT(trailingBytes <= 4);
+                record.addend -= trailingBytes;
                 record.type = IMAGE_REL_AMD64_REL32;
                 writeU32(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
                 break;

@@ -206,6 +206,7 @@ namespace InstructionCombine
     bool tryBuildScalarFromStores(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldLoadIntoRegCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryRecognizeByteSwap(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryPackAdjacentByteLoads(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldComplementOfDecrement(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool isValueZeroExtended32(const Context& ctx, uint32_t valueId);
     bool tryNarrowMaskedArithmetic(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

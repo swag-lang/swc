@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
+#include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -466,12 +467,14 @@ SWC_TEST_BEGIN(ConstantFolding_LazyAddressesKeepFilteredRelocationOrder)
 
         // Duplicate and absent relocations deliberately exercise the collector;
         // they do not satisfy the full pipeline's one-relocation invariant.
-        MicroPassContext passContext;
-        passContext.taskContext  = &ctx;
-        passContext.builder      = &builder;
-        passContext.instructions = &builder.instructions();
-        passContext.operands     = &builder.operands();
-        passContext.callConvKind = CallConvKind::Swag;
+        MicroSsaValueScratch scratch;
+        MicroPassContext    passContext;
+        passContext.taskContext    = &ctx;
+        passContext.builder        = &builder;
+        passContext.instructions   = &builder.instructions();
+        passContext.operands       = &builder.operands();
+        passContext.callConvKind   = CallConvKind::Swag;
+        passContext.ssaValueScratch = &scratch;
         MicroConstantFoldingPass pass;
         SWC_RESULT(pass.run(passContext));
         const auto* copyInst = builder.instructions().ptr(copy);

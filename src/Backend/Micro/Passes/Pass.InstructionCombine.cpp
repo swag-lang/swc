@@ -54,6 +54,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldCaseRangePair);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryThreeOperandShift);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryRecognizeByteSwap);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryPackAdjacentByteLoads);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldPureResultCopy);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldComplementPlusOne);
         r.add(MicroInstrOpcode::OpUnaryReg, tryFoldComplementOfDecrement);

@@ -402,7 +402,16 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             const uint32_t opStart = encoder.size();
             encoder.encodeOpBinaryMemImm(ops[0].reg, ops[3].valueU64, ops[4].immediateValue(getNumBits(ops[1].opBits)), ops[2].microOp, ops[1].opBits);
             if (ops[0].reg.isInstructionPointer())
-                bindRel32RelocationOffset(context, instructionRef, opStart, encoder.size(), 1);
+            {
+                const uint64_t    value = ops[4].valueU64;
+                const MicroOpBits bits  = ops[1].opBits;
+                const bool       fits8 = value <= 0x7F ||
+                                         (bits == MicroOpBits::B16 && value >= 0xFF80) ||
+                                         (bits == MicroOpBits::B32 && value >= 0xFFFFFF80) ||
+                                         (bits == MicroOpBits::B64 && value >= 0xFFFFFFFFFFFFFF80);
+                const uint32_t trailingBytes = bits == MicroOpBits::B8 || fits8 ? 1 : getNumBytes(std::min(bits, MicroOpBits::B32));
+                bindRel32RelocationOffset(context, instructionRef, opStart, encoder.size(), trailingBytes);
+            }
             break;
         }
         case MicroInstrOpcode::OpBinaryRegMem:

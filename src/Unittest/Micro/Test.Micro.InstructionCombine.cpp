@@ -2729,6 +2729,69 @@ SWC_TEST_BEGIN(InstCombine_NonAdjacentByteLoads_Kept)
 }
 SWC_TEST_END()
 
+namespace
+{
+    void emitComparedIndexedSelect(MicroBuilder& builder, MicroOpBits bits, bool differentCell)
+    {
+        constexpr MicroReg base     = MicroReg::virtualIntReg(1);
+        constexpr MicroReg index    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg fallback = MicroReg::virtualIntReg(3);
+        constexpr MicroReg result   = MicroReg::virtualIntReg(4);
+        constexpr MicroReg temp     = MicroReg::virtualIntReg(5);
+        const auto         done     = builder.createLabel();
+
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(fallback, MicroReg::intReg(3), bits);
+        builder.emitLoadRegReg(result, fallback, bits);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, done);
+        const MicroInstrRef jumpRef = builder.instructions().lastInstructionRef();
+        MicroInstrOperand   compareOps[7] = {};
+        compareOps[0].reg          = base;
+        compareOps[1].reg          = index;
+        compareOps[2].reg          = fallback;
+        compareOps[3].opBits       = MicroOpBits::B64;
+        compareOps[4].opBits       = bits;
+        compareOps[5].valueU64     = 8;
+        compareOps[6].valueU64     = 0;
+        builder.instructions().insertDerivedBefore(builder.operands(), jumpRef, MicroInstrOpcode::CmpAmcReg, compareOps);
+        builder.emitLoadAmcRegMem(temp, bits, base, index, 8, differentCell ? 8 : 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(result, temp, bits);
+        builder.placeLabel(done);
+        builder.emitLoadMemReg(base, 16, result, bits);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_ComparedIndexedSelect_UsesOneLoadAndCmov)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        emitComparedIndexedSelect(builder, bits, false);
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != 0 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ComparedIndexedSelectDifferentCell_KeepsBranch)
+{
+    MicroBuilder builder(ctx);
+    emitComparedIndexedSelect(builder, MicroOpBits::B64, true);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Folding the right operand would reverse the compare: it stays a register.
 SWC_TEST_BEGIN(InstCombine_RightCompareLoad_Kept)
 {

@@ -62,6 +62,93 @@ namespace InstructionCombine
         return true;
     }
 
+    // A comparison has already read the indexed cell, so loading that same
+    // cell on only one branch does not need another memory access:
+    //
+    //     result = fallback             result = [base + index]
+    //     cmp [base + index], fallback  cmp result, fallback
+    //     jCC .join                  -> cmovCC result, fallback
+    //     temp = [base + index]
+    //     result = temp
+    //   .join:
+    //
+    // The unconditional load is safe because the original compare reads the
+    // cell on both paths. This also leaves the conditional move available to
+    // the normal register allocator instead of carrying a load-bearing arm.
+    bool trySelectComparedIndexedLoad(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpAmcReg)
+            return false;
+        const MicroInstrOperand* cmp = cmpInst.ops(*ctx.operands);
+        if (!cmp || cmp[3].opBits != MicroOpBits::B64 ||
+            (cmp[4].opBits != MicroOpBits::B32 && cmp[4].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef initRef  = ctx.storage->findPreviousInstructionRef(cmpRef);
+        const MicroInstrRef jumpRef  = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstrRef loadRef  = ctx.storage->findNextInstructionRef(jumpRef);
+        const MicroInstrRef copyRef  = ctx.storage->findNextInstructionRef(loadRef);
+        const MicroInstrRef labelRef = ctx.storage->findNextInstructionRef(copyRef);
+        const MicroInstr* init  = ctx.storage->ptr(initRef);
+        const MicroInstr* jump  = ctx.storage->ptr(jumpRef);
+        const MicroInstr* load  = ctx.storage->ptr(loadRef);
+        const MicroInstr* copy  = ctx.storage->ptr(copyRef);
+        const MicroInstr* label = ctx.storage->ptr(labelRef);
+        if (!init || init->op != MicroInstrOpcode::LoadRegReg ||
+            !jump || jump->op != MicroInstrOpcode::JumpCond ||
+            !load || load->op != MicroInstrOpcode::LoadAmcRegMem ||
+            !copy || copy->op != MicroInstrOpcode::LoadRegReg ||
+            !label || label->op != MicroInstrOpcode::Label)
+            return false;
+        const MicroInstrOperand* initOps  = init->ops(*ctx.operands);
+        const MicroInstrOperand* jumpOps  = jump->ops(*ctx.operands);
+        const MicroInstrOperand* loadOps  = load->ops(*ctx.operands);
+        const MicroInstrOperand* copyOps  = copy->ops(*ctx.operands);
+        const MicroInstrOperand* labelOps = label->ops(*ctx.operands);
+        if (!initOps || !jumpOps || !loadOps || !copyOps || !labelOps ||
+            jumpOps[0].cpuCond == MicroCond::Unconditional || jumpOps[2].valueU64 != labelOps[0].valueU64 ||
+            initOps[2].opBits != cmp[4].opBits || copyOps[2].opBits != cmp[4].opBits ||
+            loadOps[3].opBits != cmp[4].opBits || loadOps[4].opBits != cmp[3].opBits ||
+            loadOps[1].reg != cmp[0].reg || loadOps[2].reg != cmp[1].reg ||
+            loadOps[5].valueU64 != cmp[5].valueU64 || loadOps[6].valueU64 != cmp[6].valueU64 ||
+            initOps[1].reg != cmp[2].reg || copyOps[0].reg != initOps[0].reg || copyOps[1].reg != loadOps[0].reg)
+            return false;
+        const MicroReg result   = initOps[0].reg;
+        const MicroReg fallback = cmp[2].reg;
+        const MicroReg temp     = loadOps[0].reg;
+        if (!result.isVirtualInt() || !fallback.isVirtualInt() || !temp.isVirtualInt() ||
+            result == fallback || result == cmp[0].reg || result == cmp[1].reg ||
+            temp == result || temp == fallback || temp == cmp[0].reg || temp == cmp[1].reg)
+            return false;
+        if (!sameValueAt(ctx, cmp[0].reg, cmpRef, loadRef) ||
+            !sameValueAt(ctx, cmp[1].reg, cmpRef, loadRef) ||
+            !sameValueAt(ctx, fallback, initRef, cmpRef))
+            return false;
+        uint32_t tempValue = 0;
+        if (!ctx.ssa->defValue(temp, loadRef, tempValue) || singleDirectInstructionUse(*ctx.ssa, tempValue) != copyRef ||
+            !ctx.claimAll({initRef, cmpRef, jumpRef, loadRef, copyRef}))
+            return false;
+
+        MicroInstrOperand selectedLoad[7] = {};
+        std::copy_n(loadOps, 7, selectedLoad);
+        selectedLoad[0].reg = result;
+        MicroInstrOperand selectedCompare[3] = {};
+        selectedCompare[0].reg    = result;
+        selectedCompare[1].reg    = fallback;
+        selectedCompare[2].opBits = cmp[4].opBits;
+        MicroInstrOperand selectedMove[4] = {};
+        selectedMove[0].reg     = result;
+        selectedMove[1].reg     = fallback;
+        selectedMove[2].cpuCond = jumpOps[0].cpuCond;
+        selectedMove[3].opBits  = cmp[4].opBits;
+        ctx.emitRewrite(initRef, MicroInstrOpcode::LoadAmcRegMem, selectedLoad, true);
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegReg, selectedCompare);
+        ctx.emitRewrite(jumpRef, MicroInstrOpcode::LoadCondRegReg, selectedMove, true);
+        ctx.emitErase(loadRef);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // A signed comparison with zero only asks for the loaded value's sign
     // bit. Read that bit directly instead of materializing flags and setcc:
     //

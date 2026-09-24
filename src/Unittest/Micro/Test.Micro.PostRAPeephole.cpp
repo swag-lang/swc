@@ -1867,6 +1867,43 @@ SWC_TEST_BEGIN(PostRAPeephole_RepeatedImmediate_KeepsOnlyTheFirst)
 }
 SWC_TEST_END()
 
+// A live register keeps its immediate value across an arbitrarily long
+// straight-line sequence of stores to unrelated addresses.
+SWC_TEST_BEGIN(PostRAPeephole_RepeatedImmediate_AcrossLongBlock)
+{
+    constexpr MicroReg rax  = MicroReg::intReg(0);
+    constexpr MicroReg rcx  = MicroReg::intReg(1);
+    constexpr MicroReg rdx  = MicroReg::intReg(3);
+    constexpr MicroReg base = MicroReg::intReg(6);
+
+    for (const bool clobbered : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(rax, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(rcx, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(rdx, rax, MicroCond::Greater, MicroOpBits::B64);
+        for (uint32_t i = 0; i < 10; ++i)
+        {
+            builder.emitLoadMemReg(base, 8 * (i + 1), rcx, MicroOpBits::B64);
+            if (clobbered && i == 4)
+                builder.emitLoadRegImm(rax, ApInt(7, 64), MicroOpBits::B64);
+        }
+        builder.emitLoadRegImm(rax, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(rcx, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(rdx, rax, MicroCond::Greater, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 88, rdx, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder));
+
+        const uint32_t loads = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm);
+        if (loads != (clobbered ? 3u : 1u))
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FloatCopyForwardsIntoThreeOperandOp)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

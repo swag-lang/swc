@@ -406,8 +406,6 @@ namespace PostRaPeephole
     // register, so the earlier value is the one still there.
     bool tryEraseRepeatedImmediate(Context& ctx, const MicroInstrRef defRef, const MicroInstr& defInst)
     {
-        constexpr uint32_t K_MAX_WINDOW = 8;
-
         if (ctx.isClaimed(defRef) || defInst.numOperands < 3)
             return false;
 
@@ -422,7 +420,7 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrRef cursor = ctx.previousRef(defRef);
-        for (uint32_t step = 0; step < K_MAX_WINDOW && cursor.isValid(); ++step, cursor = ctx.previousRef(cursor))
+        for (; cursor.isValid(); cursor = ctx.previousRef(cursor))
         {
             const MicroInstr* previous = ctx.instruction(cursor);
             if (!previous || ctx.isClaimed(cursor))

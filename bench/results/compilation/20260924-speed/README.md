@@ -306,3 +306,16 @@ the measurement floor.
 The independent indexed/unary memory-operand folding updates were integrated
 as build 1123. Its incremental Release build, 3,478 native and 1,500 JIT
 tests passed. The isolated build-1121 SSA timing above predates this merge.
+
+Build 1124 defers allocation of the CFG label-to-instruction table until the
+first valid label appears. Functions with no labels no longer reserve that
+vector, while labeled functions retain the previous reserve estimate. The
+prediction was one fewer allocation per unlabeled function, with negligible
+peak-memory effect. The incremental Release build, 3,478 native and 1,500 JIT
+tests passed. Five core/hello pairs against build 1123 gave core
+reference/candidate ratios 0.934 wall and 0.921 CPU and hello 1.072 wall and
+1.333 CPU; the series included a 39.9 s candidate core and a 3.0 s reference
+hello outlier. A five-pair core repeat gave 0.972 wall and 1.056 CPU with
+peak working set ratio 1.018; it included a 38.8 s reference core and an
+8.3 s candidate core. Wall and CPU disagree across series. The removed
+allocation is retained below the measurement floor, without a speedup claim.

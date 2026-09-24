@@ -146,6 +146,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseRedundantCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyBefore32BitWrite);
+        r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryDropSignExtendBeforeNarrowCompare);
         r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryFoldConditionalCascadeResultCopy);
         return r;
     }

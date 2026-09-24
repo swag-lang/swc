@@ -101,6 +101,58 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A 32-bit comparison observes the same low bits before and after a
+    // 32-to-64-bit sign extension. Read the original register when the wider
+    // value has no later consumer.
+    bool tryDropSignExtendBeforeNarrowCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const MicroInstrOperand* extend = inst.ops(*ctx.operands);
+        if (!extend || inst.op != MicroInstrOpcode::LoadSignedExtRegReg ||
+            extend[2].opBits != MicroOpBits::B64 || extend[3].opBits != MicroOpBits::B32 ||
+            !extend[0].reg.isInt() || !extend[1].reg.isInt())
+            return false;
+
+        const MicroInstrRef cmpRef = ctx.nextRef(ref);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        const auto*         cmpOps = cmp ? cmp->ops(*ctx.operands) : nullptr;
+        if (!cmpOps || cmp->op != MicroInstrOpcode::CmpRegImm || cmpOps[0].reg != extend[0].reg ||
+            cmpOps[1].opBits != MicroOpBits::B32)
+            return false;
+
+        bool deadAfterCompare = ctx.isRegDeadAfter(extend[0].reg, ctx.instructionIndex + 1);
+        if (!deadAfterCompare)
+        {
+            // A large function may not have usable whole-function liveness.
+            // Prove the two immediate branch paths locally when each path
+            // overwrites the wider value before reading it.
+            const MicroInstrRef branchRef = ctx.nextRef(cmpRef);
+            const MicroInstr*   branch    = ctx.instruction(branchRef);
+            const auto*         branchOps = branch ? branch->ops(*ctx.operands) : nullptr;
+            if (branchOps && branch->op == MicroInstrOpcode::JumpCond && branch->numOperands >= 3 &&
+                branchOps[0].cpuCond != MicroCond::Unconditional &&
+                regIsDeadAfter(ctx, branchRef, extend[0].reg))
+            {
+                for (auto it = ctx.storage->view().begin(); it != ctx.storage->view().end(); ++it)
+                {
+                    const MicroInstrOperand* labelOps = it->ops(*ctx.operands);
+                    if (it->op == MicroInstrOpcode::Label && labelOps && labelOps[0].valueU64 == branchOps[2].valueU64)
+                    {
+                        deadAfterCompare = regIsDeadAfter(ctx, it.current, extend[0].reg);
+                        break;
+                    }
+                }
+            }
+        }
+        if (!deadAfterCompare || !ctx.claimAll({ref, cmpRef}))
+            return false;
+
+        MicroInstrOperand narrowed[3] = {cmpOps[0], cmpOps[1], cmpOps[2]};
+        narrowed[0].reg               = extend[1].reg;
+        ctx.emitErase(ref);
+        ctx.emitRewrite(cmpRef, cmp->op, narrowed);
+        return true;
+    }
+
     // A float clear is kept as a rule: it zeroes the lanes a partial write
     // such as cvtsi2ss leaves alone. When the next instruction replaces the
     // whole register instead - another clear, a scalar load from memory, a

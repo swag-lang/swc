@@ -824,7 +824,7 @@ namespace InstructionCombine
         ctx.emitErase(copy.instRef);
         return true;
     }
-    // A global address used only by one immediate memory operation can be
+    // A global address used only by one memory operation can be
     // carried by that operation's RIP-relative displacement.
     bool tryFoldGlobalImmediateMemoryOp(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
@@ -857,13 +857,23 @@ namespace InstructionCombine
 
         const MicroInstr*        useInst = ctx.storage->ptr(useRef);
         const MicroInstrOperand* useOps  = useInst ? useInst->ops(*ctx.operands) : nullptr;
-        if (!useOps || useOps[0].reg != loadOps[0].reg ||
-            (useOps[1].opBits != MicroOpBits::B8 && useOps[1].opBits != MicroOpBits::B16 &&
-             useOps[1].opBits != MicroOpBits::B32 && useOps[1].opBits != MicroOpBits::B64))
+        if (!useOps || useOps[0].reg != loadOps[0].reg)
+            return false;
+
+        const MicroOp regOp = useInst->op == MicroInstrOpcode::OpBinaryMemReg ? useOps[3].microOp : MicroOp::Compare;
+        const bool regUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemReg &&
+                               useOps[4].valueU64 == 0 && useOps[1].reg.isAnyInt() &&
+                               (regOp == MicroOp::Add || regOp == MicroOp::Subtract ||
+                                regOp == MicroOp::And || regOp == MicroOp::Or || regOp == MicroOp::Xor);
+        if (useInst->op == MicroInstrOpcode::OpBinaryMemReg && !regUpdate)
+            return false;
+        const MicroOpBits valueBits = regUpdate ? useOps[2].opBits : useOps[1].opBits;
+        if (valueBits != MicroOpBits::B8 && valueBits != MicroOpBits::B16 &&
+            valueBits != MicroOpBits::B32 && valueBits != MicroOpBits::B64)
             return false;
 
         const auto fitsMemoryImmediate = [&](const uint64_t value) {
-            switch (useOps[1].opBits)
+            switch (valueBits)
             {
                 case MicroOpBits::B8:
                     return value <= 0xFF;
@@ -892,14 +902,14 @@ namespace InstructionCombine
                                     (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));
         // A B64 store with a larger immediate expands into two memory writes;
         // one RIP displacement cannot represent both of their destinations.
-        if (!immediateUpdate && !immediateStore)
+        if (!regUpdate && !immediateUpdate && !immediateStore)
             return false;
 
         if (!ctx.claimAll({ref, useRef}, true))
             return false;
 
         MicroInstrOperand newOps[5] = {};
-        const uint8_t numOps = immediateUpdate ? 5 : 4;
+        const uint8_t numOps = regUpdate || immediateUpdate ? 5 : 4;
         for (uint8_t i = 0; i < numOps; ++i)
             newOps[i] = useOps[i];
         newOps[0].reg = MicroReg::instructionPointer();

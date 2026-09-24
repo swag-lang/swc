@@ -113,6 +113,11 @@ working-set ratio was 1.010 in its favor. The direct removal of a discarded
 byte copy is retained; the clean repeat is encouraging but the two series do
 not establish a stable aggregate percentage.
 
+The subsequent integration with an independent instruction-combine batch used
+cache identity 1103. Its incremental Release build passed, followed by 3,478
+native and 1,500 JIT tests. The timing above belongs to the isolated build
+1102, so it does not attribute the independent batch's effect to this change.
+
 ## Final validation
 
 The Release solution rebuild from source succeeded at build 1093 with MSBuild `/m:6`

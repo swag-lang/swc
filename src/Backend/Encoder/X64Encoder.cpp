@@ -2944,13 +2944,20 @@ void X64Encoder::encodeTestMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
 
 void X64Encoder::encodeTestMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
-    SWC_ASSERT(memReg.isInt());
+    SWC_ASSERT(memReg.isInt() || memReg.isInstructionPointer());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     const uint64_t valueU64 = immediateToU64(value);
     SWC_INTERNAL_CHECK(canEncodeOpImmediate(valueU64, opBits));
     emitRex(store_, opBits, MicroReg{}, memReg);
     emitSpecCpuOp(store_, 0xF7, opBits);
-    emitModRm(store_, memOffset, MODRM_REG_0, memReg);
+    if (memReg.isInstructionPointer())
+    {
+        SWC_ASSERT(memOffset == 0);
+        emitModRm(store_, ModRmMode::Memory, MODRM_REG_0, MODRM_RM_RIP);
+        store_.pushU32(0);
+    }
+    else
+        emitModRm(store_, memOffset, MODRM_REG_0, memReg);
     emitValue(store_, valueU64, std::min(opBits, MicroOpBits::B32));
 }
 

@@ -350,3 +350,8 @@ passed: 1,500 JIT, 3,478 native, 2,390 standard-module, 550 application and
 four application smokes. The seven expected dynamic safety nonpasses remained
 unchanged. Later generated-code commits on `master` are separate from this
 validated and measured compiler snapshot.
+
+After the report was drafted, the independent RIP-memory changes through
+build 1130 were integrated in the speed worktree. An incremental Release
+build, 3,478 native and 1,500 JIT tests passed. The complete Release
+sequence and four-workload table above remain the build-1127 results.

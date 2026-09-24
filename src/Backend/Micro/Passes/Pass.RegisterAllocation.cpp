@@ -608,8 +608,9 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     if (!hasControlFlow_ || instructionCount_ == 0)
         return;
 
-    std::vector delta(static_cast<size_t>(instructionCount_) + 1, 0);
-    bool        anyBackEdge = false;
+    auto& delta = loopDepthDelta_;
+    delta.assign(static_cast<size_t>(instructionCount_) + 1, 0);
+    bool anyBackEdge = false;
     for (uint32_t s = 0; s < instructionCount_; ++s)
     {
         for (const uint32_t p : predecessors_[s])
@@ -1065,7 +1066,7 @@ bool MicroRegisterAllocationPass::isReservedByGlobalFor(const MicroReg virtKey, 
     return false;
 }
 
-void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& outRegions) const
+void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& outRegions)
 {
     // A loop region is [header, tail]: a label with a back-edge predecessor,
     // up to the furthest such predecessor. The load that seeds a range-scoped
@@ -1078,8 +1079,10 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
     if (!hasControlFlow_ || !instructionCount_)
         return;
 
-    std::vector<uint8_t> isLabelAt(instructionCount_, 0);
-    std::vector<uint8_t> jumpsToOwnNextLabel(instructionCount_, 0);
+    auto& isLabelAt = loopRegionIsLabelAt_;
+    auto& jumpsToOwnNextLabel = loopRegionJumpsToOwnNextLabel_;
+    isLabelAt.assign(instructionCount_, 0);
+    jumpsToOwnNextLabel.assign(instructionCount_, 0);
     {
         uint32_t idx = 0;
         for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
@@ -1578,9 +1581,9 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
     computeConcreteClaimPositions();
 
-    std::vector<uint64_t> benefits;
+    auto& benefits = globalBenefits_;
     computeGlobalBenefits(benefits);
-    std::vector<uint64_t> accessBenefits;
+    auto& accessBenefits = globalAccessBenefits_;
     computeGlobalAccessBenefits(accessBenefits);
 
     // Fixed-point scale for the density ranking below, so the comparison
@@ -1675,10 +1678,14 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     constexpr uint32_t K_MIN_FREE_PERSISTENT_FLOAT = 1;
 
     const bool            hasCalls = functionHasCalls();
-    std::vector<uint32_t> reservedInt(instructionCount_, 0);
-    std::vector<uint32_t> reservedFloat(instructionCount_, 0);
-    std::vector<uint32_t> reservedIntPersistent(instructionCount_, 0);
-    std::vector<uint32_t> reservedFloatPersistent(instructionCount_, 0);
+    auto& reservedInt = reservedInt_;
+    auto& reservedFloat = reservedFloat_;
+    auto& reservedIntPersistent = reservedIntPersistent_;
+    auto& reservedFloatPersistent = reservedFloatPersistent_;
+    reservedInt.assign(instructionCount_, 0);
+    reservedFloat.assign(instructionCount_, 0);
+    reservedIntPersistent.assign(instructionCount_, 0);
+    reservedFloatPersistent.assign(instructionCount_, 0);
 
     const size_t totalInt         = freeIntPersistent_.size() + freeIntTransient_.size();
     const size_t totalFloat       = freeFloatPersistent_.size() + freeFloatTransient_.size();

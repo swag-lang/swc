@@ -284,7 +284,7 @@ private:
     bool              hasConcreteTouchInRange(MicroReg physReg, uint32_t lo, uint32_t hi) const;
     bool              isStraightLineRange(uint32_t lo, uint32_t hi) const;
     bool              tryBorrowReservedRegister(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, int64_t stackDepth, std::vector<PendingInsert>& pending, MicroReg& outPhys);
-    void              collectLoopRegions(SmallVector<LoopRegion>& outRegions) const;
+    void              collectLoopRegions(SmallVector<LoopRegion>& outRegions);
     const LoopRegion* findSealedLoopRegion(uint32_t headerIndex) const;
     bool              isExpectedResident(uint32_t denseIndex) const;
     void              markResidencyConsumed(uint32_t denseIndex, MicroReg physReg);
@@ -443,6 +443,18 @@ private:
     // Snapshot of what each relocation-bearing address load points at, taken
     // before allocation so a rematerialized copy can be given its own.
     std::unordered_map<MicroInstrRef, MicroRelocation> relocationByDefInstruction_;
+
+    // The pass object lives on a compiler worker across functions. Retain capacity for
+    // arrays that are fully overwritten before each use instead of allocating them again.
+    std::vector<int32_t>  loopDepthDelta_;
+    std::vector<uint8_t>  loopRegionIsLabelAt_;
+    std::vector<uint8_t>  loopRegionJumpsToOwnNextLabel_;
+    std::vector<uint64_t> globalBenefits_;
+    std::vector<uint64_t> globalAccessBenefits_;
+    std::vector<uint32_t> reservedInt_;
+    std::vector<uint32_t> reservedFloat_;
+    std::vector<uint32_t> reservedIntPersistent_;
+    std::vector<uint32_t> reservedFloatPersistent_;
 };
 
 SWC_END_NAMESPACE();

@@ -67,6 +67,7 @@ struct NativeRDataAllocationMapEntry
     uint32_t size          = 0;
     uint32_t align         = 1;
     uint32_t emittedOffset = 0;
+    bool     zeroFilled    = false;
 };
 
 struct NativeObjDescription

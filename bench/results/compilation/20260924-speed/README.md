@@ -240,3 +240,21 @@ The independent global bitwise and fixed-shift address-mode updates were
 integrated as build 1117. Its incremental Release build and focused C++
 compiler, 3,478 native and 1,500 JIT suites passed. Those updates are not
 included in the isolated build 1115 timing observations.
+
+Build 1118 records whether each reachable native constant allocation is all
+zero while its source bytes are still available. The collector skips copying
+those bytes into the already zero-initialized merged buffer, and the COFF
+writer reuses that classification when selecting `.rbss`; relocations still
+force initialized `.rdata`. This removes a copy for each zero allocation and
+moves the byte scan from the writer to the collector. The prediction was less native
+object-construction CPU and no meaningful peak-memory change. The incremental
+Release build, 3,478 native and 1,500 JIT tests passed. A five-pair
+core/hello comparison against build 1117 gave core reference/candidate ratios
+0.975 wall and 0.937 CPU; a second five-pair core comparison gave 1.013 wall
+and 1.078 CPU. The first candidate core invocation in each comparison was a
+28-32 s, 109-120 s CPU outlier, whereas ordinary invocations of both binaries
+were about 3-4 s and 13-16 s CPU. With opposing paired series there is no
+repeatable end-to-end gain or regression. Core peak working set was 584.0 vs
+578.8 MiB in the first series and 588.9 vs 580.6 MiB in the second (candidate
+vs reference maxima). The simpler zero-allocation path is retained below the
+measurement floor; no percentage speedup is claimed.

@@ -192,7 +192,7 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
     const auto  first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
     const std::span<const std::byte> allocationBytes{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
     const bool hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
-    if (!hasRelocations && std::ranges::all_of(allocationBytes, [](const std::byte value) { return value == std::byte{}; }))
+    if (!hasRelocations && allocation.zeroFilled)
     {
         // Keep all-zero allocations as uninitialized data without copying bytes
         // into a section that would immediately discard them again.

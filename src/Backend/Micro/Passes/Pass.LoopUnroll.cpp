@@ -45,10 +45,9 @@ namespace
     constexpr uint64_t K_MAX_TRIPS       = 16;
     constexpr uint32_t K_MAX_BODY_INSTR  = 96;
     constexpr uint32_t K_MAX_TOTAL_INSTR = 384;
-    // A body with branches of its own does not simplify once laid flat: each
-    // copy keeps its tests and jumps, and what the branches compute stays in
-    // separate blocks that value numbering does not merge. Such a body is
-    // unrolled only while the whole stays small.
+    // A body with branches usually keeps its tests and jumps after unrolling.
+    // The exception below is a short loop over constant tables: each fixed
+    // index lets later passes fold a table lookup despite those branches.
     constexpr uint32_t K_MAX_TOTAL_INSTR_WITH_BRANCHES = 96;
 
     struct LabelInfo
@@ -238,6 +237,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // latch touches the counter.
             std::unordered_set<uint64_t> internalLabels;
             bool                         ok = true;
+            SmallVector<MicroReg, 4>     constantTableBases;
+            SmallVector<MicroReg, 4>     indexValues;
+            indexValues.push_back(counter);
+            uint32_t                    indexedConstantLoads = 0;
             for (uint32_t o = bodyBegin; o < bodyEnd && ok; ++o)
             {
                 const MicroInstr*        inst = storage.ptr(order[o]);
@@ -247,6 +250,22 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     ok = false;
                     break;
                 }
+                if (ops && inst->op == MicroInstrOpcode::LoadRegPtrReloc)
+                {
+                    const auto relocIt = relocsBySlot.find(order[o].get());
+                    if (relocIt != relocsBySlot.end() && std::ranges::any_of(relocIt->second, [](const MicroRelocation& reloc) {
+                            return reloc.kind == MicroRelocation::Kind::ConstantAddress;
+                        }))
+                        constantTableBases.push_back(ops[0].reg);
+                }
+                if (ops && (inst->op == MicroInstrOpcode::LoadSignedExtRegReg ||
+                            inst->op == MicroInstrOpcode::LoadZeroExtRegReg || inst->op == MicroInstrOpcode::LoadRegReg) &&
+                    std::ranges::find(indexValues, ops[1].reg) != indexValues.end())
+                    indexValues.push_back(ops[0].reg);
+                if (ops && inst->op == MicroInstrOpcode::LoadAmcRegMem &&
+                    std::ranges::find(constantTableBases, ops[1].reg) != constantTableBases.end() &&
+                    std::ranges::find(indexValues, ops[2].reg) != indexValues.end())
+                    ++indexedConstantLoads;
 
                 switch (inst->op)
                 {
@@ -295,7 +314,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (!ok)
                 continue;
 
-            if (!internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES)
+            // A counted index into immutable storage becomes a constant offset in
+            // each copy. This can repay the branch duplication within the overall
+            // code-size cap; ordinary branched loops keep the smaller budget.
+            const bool foldsTableIndices = indexedConstantLoads != 0;
+            if (!internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES && !foldsTableIndices)
                 continue;
 
             // No jump from outside the body may land on an internal label.

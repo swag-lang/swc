@@ -16,6 +16,76 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
+
+- Recorded: 2026-09-23 09:25
+- Updated: 2026-09-24 21:57 — Shared the relocation index across four branch transforms.
+- Area: compiler/backend, compilation time
+- Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
+  --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
+  branch simplification alone is 16.2 s of it, **24.8%**, across 72,546 runs of which 38.6%
+  rewrite something. The next pass is register allocation at 11.3%, then instruction combine
+  at 7.9%. A six-worker stack profile of the same build puts the pass at 12.9% of busy CPU,
+  spread over some twenty sub-transforms none of which reaches 1.5% — there is no hot spot,
+  only a battery of scans.
+- How it got there: the cold release rebuild of the big modules slowed by half in one week at
+  unchanged sources. Paired, order-alternated rebuilds give gui 12.3 s → 18.4 s and pixel
+  6.5 s → 11.1 s between 0.1.684 (2026-09-16) and 0.1.1035 (2026-09-21), while gui's sources
+  moved from 105,315 to 105,483 lines. Bisecting the same measurement puts 0.1.823
+  (2026-09-17 01:33) still at the old speed and 0.1.885 (2026-09-17 13:29) already at the new
+  one — the window that added some fifty narrowing, diamond and short-circuit patterns.
+- Taken in 0.1.1046: seven transforms opened on the same walk of the function and ten more
+  rebuilt the same jump-target counts and relocation set; one shared walk now serves a run and
+  is dropped when a transform rewrites the stream. Single-core, alternated: core 0.97, pixel
+  0.93, gui 0.95, video 0.92, seven of eight pairs favourable. `buildProgramLayout` fell from
+  1.67% to 0.73% of busy CPU.
+- What remains: the pass still runs about thirty-seven transforms, and each one scans the whole
+  function looking for a shape most functions do not hold. The cost is therefore the number of
+  patterns times the size of every function compiled, which is why a pattern campaign shows up
+  as a compile-time regression with no single culprit.
+- Measured, and the obvious gate is not worth it: instrumenting the pass over the same rebuild,
+  38 592 runs land on a function holding no conditional jump at all and cost 2.42 s of the pass's
+  33.1 s — **7.3%**, about 0.9% of the compilation. Gating them would also have to spare the
+  structural loop, which threads unconditional jump chains and erases unreachable code in exactly
+  those functions, so the reachable share is smaller still. Do not spend a gate on it.
+- What the same probe does say: a run on a 28-instruction branchless function still costs 63 us,
+  against 485 us for a 126-instruction branchy one. The pass has a large **fixed** cost per run —
+  entering some thirty-seven transforms, each with its own scratch containers — that does not
+  scale with the function. That, not the scanning, is what a pattern campaign multiplies.
+- Where the fixed cost was (timed per transform, 0.1.1047): fourteen transforms opened by asking
+  for the next free virtual integer register index, which walks every instruction and collects
+  every register operand, and then used it only when the transform actually rewrote something;
+  the short-circuit coalescer opened with a use/def query per instruction and a pair of ordinal
+  lists per register, read only after three filters had matched. Collecting both on first request
+  took the pass from 16.7 s to 9.1 s of summed worker time over a bin/std release rebuild.
+- The same shape again, taken in 0.1.1048: `areCpuFlagsDeadAfterInCfg` mapped an instruction
+  reference back to its graph index with a linear search of the graph's instruction list, and
+  eleven sites ask it once per candidate they examine - quadratic in the function.
+  `MicroControlFlowGraph::indexOf` now answers from a table built on first request.
+- Ranking at 0.1.1048, as a share of the pass: `fuseMaterializedBoolBranches` 10.6%, rebuilding
+  SSA through `MicroSsaState::ensureFor` 10.3%, `convertEqualityChainsToBitTests` 9.9%,
+  `convertGuardedSelectDiamonds` 8.9% (which rebuilds SSA of its own), `coalesceShortCircuitResults`
+  7.2%, and a tail of thirty-odd transforms under 4% each. The measured quadratic and virtual-register
+  prologues were removed; what remains is the cost of asking thirty-seven questions about every function.
+- Taken in 0.1.1136: equality-chain bit tests, packed switches, three-way signs and repeated memory
+  compares had each built a hash set from the same relocation list. They now share one index while
+  the instruction stream is unchanged and rebuild it after a rewrite. A run without rewrites makes
+  one relocation walk instead of four; the transforms consult the same instruction references as
+  before. Four focused native Release tests and one rotating JIT test passed. Five order-alternated
+  pairs against the same master source gave candidate/baseline wall and CPU ratios of 0.836/0.763
+  for core rebuild, 0.968/0.969 for core touch and 0.860/0.955 for hello build; the no-op guardrail
+  stayed below 100 ms. Rebuild times drifted from 1.8 to 3.4 s during the run, so this is a
+  correctness-certified structural saving, below the measurement floor rather than a claimed
+  percentage speedup. Peak working-set ratios were 0.992, 1.000 and 0.983 for those three builds.
+- Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
+  rather than this entry's. For this entry, the remaining lever is structural — running the
+  pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
+  `lateBranchSimplifyPass_` already does for three transforms. That changes what the optimizer
+  produces, so it needs the benchmark, not just a compile-time measurement.
+- Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
+  drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
+- Related: compiler.optimization.029, compiler.optimization.039.
+
 ### compiler.optimization.053 — Recheck scalar global loop updates with RIP memory operands
 
 - Recorded: 2026-09-24 16:49
@@ -247,66 +317,6 @@ block, and the hot path keeps the register.
 - Complete when: a replacement preserves emitted code and focused SSA/native behavior and
   resolves a repeatable compilation-time gain against the roughly 3% measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
-### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
-
-- Recorded: 2026-09-23 09:25
-- Updated: 2026-09-23 11:10 — Re-timed the transforms after the three batches; named the one lever left.
-- Area: compiler/backend, compilation time
-- Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
-  --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
-  branch simplification alone is 16.2 s of it, **24.8%**, across 72,546 runs of which 38.6%
-  rewrite something. The next pass is register allocation at 11.3%, then instruction combine
-  at 7.9%. A six-worker stack profile of the same build puts the pass at 12.9% of busy CPU,
-  spread over some twenty sub-transforms none of which reaches 1.5% — there is no hot spot,
-  only a battery of scans.
-- How it got there: the cold release rebuild of the big modules slowed by half in one week at
-  unchanged sources. Paired, order-alternated rebuilds give gui 12.3 s → 18.4 s and pixel
-  6.5 s → 11.1 s between 0.1.684 (2026-09-16) and 0.1.1035 (2026-09-21), while gui's sources
-  moved from 105,315 to 105,483 lines. Bisecting the same measurement puts 0.1.823
-  (2026-09-17 01:33) still at the old speed and 0.1.885 (2026-09-17 13:29) already at the new
-  one — the window that added some fifty narrowing, diamond and short-circuit patterns.
-- Taken in 0.1.1046: seven transforms opened on the same walk of the function and ten more
-  rebuilt the same jump-target counts and relocation set; one shared walk now serves a run and
-  is dropped when a transform rewrites the stream. Single-core, alternated: core 0.97, pixel
-  0.93, gui 0.95, video 0.92, seven of eight pairs favourable. `buildProgramLayout` fell from
-  1.67% to 0.73% of busy CPU.
-- What remains: the pass still runs about thirty-seven transforms, and each one scans the whole
-  function looking for a shape most functions do not hold. The cost is therefore the number of
-  patterns times the size of every function compiled, which is why a pattern campaign shows up
-  as a compile-time regression with no single culprit.
-- Measured, and the obvious gate is not worth it: instrumenting the pass over the same rebuild,
-  38 592 runs land on a function holding no conditional jump at all and cost 2.42 s of the pass's
-  33.1 s — **7.3%**, about 0.9% of the compilation. Gating them would also have to spare the
-  structural loop, which threads unconditional jump chains and erases unreachable code in exactly
-  those functions, so the reachable share is smaller still. Do not spend a gate on it.
-- What the same probe does say: a run on a 28-instruction branchless function still costs 63 us,
-  against 485 us for a 126-instruction branchy one. The pass has a large **fixed** cost per run —
-  entering some thirty-seven transforms, each with its own scratch containers — that does not
-  scale with the function. That, not the scanning, is what a pattern campaign multiplies.
-- Where the fixed cost was (timed per transform, 0.1.1047): fourteen transforms opened by asking
-  for the next free virtual integer register index, which walks every instruction and collects
-  every register operand, and then used it only when the transform actually rewrote something;
-  the short-circuit coalescer opened with a use/def query per instruction and a pair of ordinal
-  lists per register, read only after three filters had matched. Collecting both on first request
-  took the pass from 16.7 s to 9.1 s of summed worker time over a bin/std release rebuild.
-- The same shape again, taken in 0.1.1048: `areCpuFlagsDeadAfterInCfg` mapped an instruction
-  reference back to its graph index with a linear search of the graph's instruction list, and
-  eleven sites ask it once per candidate they examine - quadratic in the function.
-  `MicroControlFlowGraph::indexOf` now answers from a table built on first request.
-- Ranking at 0.1.1048, as a share of the pass: `fuseMaterializedBoolBranches` 10.6%, rebuilding
-  SSA through `MicroSsaState::ensureFor` 10.3%, `convertEqualityChainsToBitTests` 9.9%,
-  `convertGuardedSelectDiamonds` 8.9% (which rebuilds SSA of its own), `coalesceShortCircuitResults`
-  7.2%, and a tail of thirty-odd transforms under 4% each. No quadratic and no eager prologue is
-  left; what remains is the cost of asking thirty-seven questions about every function.
-- Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
-  rather than this entry's. For this entry, the remaining lever is structural — running the
-  pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
-  `lateBranchSimplifyPass_` already does for three transforms. That changes what the optimizer
-  produces, so it needs the benchmark, not just a compile-time measurement.
-- Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
-  drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
-- Related: compiler.optimization.029, compiler.optimization.039.
-
 ### compiler.optimization.043 — Repeated scalar float constants require a vector constant representation
 
 - Recorded: 2026-09-18 19:48

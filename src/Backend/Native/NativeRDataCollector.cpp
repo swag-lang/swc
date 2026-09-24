@@ -157,7 +157,11 @@ Result NativeRDataCollector::emitReachableAllocations()
 
             const auto* sourceBytes = segment.ptr<std::byte>(allocation.offset);
             SWC_ASSERT(sourceBytes != nullptr);
-            std::memcpy(builder_->mergedRData.bytes.data() + insertOffset, sourceBytes, allocation.size);
+            const bool zeroFilled = std::ranges::all_of(std::span<const std::byte>{sourceBytes, allocation.size}, [](const std::byte value) { return value == std::byte{}; });
+            // resize already zeroed the destination. Keep the result for the
+            // object writer instead of scanning the copied bytes a second time.
+            if (!zeroFilled)
+                std::memcpy(builder_->mergedRData.bytes.data() + insertOffset, sourceBytes, allocation.size);
 
             NativeRDataAllocationMapEntry mapEntry;
             mapEntry.shardIndex    = shardIndex;
@@ -165,6 +169,7 @@ Result NativeRDataCollector::emitReachableAllocations()
             mapEntry.size          = allocation.size;
             mapEntry.align         = std::max(allocation.align, 1u);
             mapEntry.emittedOffset = emittedOffset;
+            mapEntry.zeroFilled    = zeroFilled;
             mappings.push_back(mapEntry);
             builder_->rdataAllocations.push_back(mapEntry);
         }

@@ -7,6 +7,9 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -64,6 +67,38 @@ SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
         if (flattened && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 16)
             return Result::Error;
     }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LoopUnroll_SeventeenConstantTableTrips_FlattenWithinSizeBudget)
+{
+    std::array<std::byte, 17> source{};
+    std::array                dims{source.size()};
+    const TypeRef             arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef         cstRef    = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, std::span{source.data(), source.size()}));
+    const ConstantValue&      constant  = ctx.cstMgr().get(cstRef);
+    const uint64_t            address   = reinterpret_cast<uint64_t>(constant.getArray().data());
+
+    constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+    const auto         header = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadRegPtrReloc(base, address, cstRef);
+    builder.emitLoadAmcRegMem(value, MicroOpBits::B8, base, counter, 1, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegImm(counter, ApInt(17, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+    builder.emitRet();
+
+    SWC_RESULT(runLoopUnrollPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 17 ||
+        builder.codeRelocations().size() != 17)
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

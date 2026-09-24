@@ -877,10 +877,16 @@ namespace InstructionCombine
                     return false;
             }
         };
+        const MicroOp updateOp = useInst->op == MicroInstrOpcode::OpBinaryMemImm ? useOps[2].microOp : MicroOp::Compare;
+        const bool isShiftOrRotate = updateOp == MicroOp::ShiftLeft || updateOp == MicroOp::ShiftRight ||
+                                     updateOp == MicroOp::ShiftArithmeticLeft || updateOp == MicroOp::ShiftArithmeticRight ||
+                                     updateOp == MicroOp::RotateLeft || updateOp == MicroOp::RotateRight;
+        const bool isArithmeticOrBitwise = updateOp == MicroOp::Add || updateOp == MicroOp::Subtract ||
+                                           updateOp == MicroOp::And || updateOp == MicroOp::Or || updateOp == MicroOp::Xor;
         const bool immediateUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&
                                      useOps[3].valueU64 == 0 && !useOps[4].hasWideImmediateValue() &&
-                                     fitsMemoryImmediate(useOps[4].valueU64) &&
-                                     (useOps[2].microOp == MicroOp::Add || useOps[2].microOp == MicroOp::Subtract);
+                                     ((isShiftOrRotate && useOps[4].valueU64 <= 0x7F) ||
+                                      (isArithmeticOrBitwise && fitsMemoryImmediate(useOps[4].valueU64)));
         const bool immediateStore = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
                                     !useOps[3].hasWideImmediateValue() &&
                                     (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));

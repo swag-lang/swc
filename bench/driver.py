@@ -101,11 +101,11 @@ def prepare(recipe):
         os.makedirs(p, exist_ok=True)
 
 
-def prepare_swag_dependencies(swc, env):
+def prepare_swag_dependencies(swc, env, cores=0):
     """Publish dependencies once, outside every timed compiler sample."""
     std = os.path.join(tc.worktree(), "bin", "std")
     for cfg in ("release", "devmode"):
-        cmd = [swc, "build", "--workspace", std, "--workspace-module", "win32",
+        cmd = [swc, "build", *tc.swc_worker_args(cores), "--workspace", std, "--workspace-module", "win32",
                "--build-cfg", cfg]
         r = winproc.run(cmd, cwd=tc.worktree(), env=env)
         if r["exit"] != 0:
@@ -256,6 +256,8 @@ def parse_args(argv=None):
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--swc", help="compiler under test (default: bin/swc.exe of the main worktree)")
+    ap.add_argument("--swc-cores", type=int, default=0,
+                    help="cap Swag compiler workers; 0 uses the compiler default")
     ap.add_argument("--budget", type=int, default=RUN_BUDGET_MS,
                     help="measured milliseconds each runtime gets per task")
     ap.add_argument("--build-budget", type=int, default=BUILD_BUDGET_MS,
@@ -284,6 +286,8 @@ def main():
     global BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS
 
     args = parse_args()
+    if args.swc_cores < 0:
+        raise SystemExit("--swc-cores needs a nonnegative value")
     measure_build, measure_run = selected_phases(args)
 
     RUN_BUDGET_MS = args.budget
@@ -317,11 +321,11 @@ def main():
         return 1
 
     env = tc.build_env(t)
-    recipes = tc.make_recipes(t, env, swc)
+    recipes = tc.make_recipes(t, env, swc, args.swc_cores)
     launchers = tc.make_launchers(t, t["dotnet"]) if measure_run else None
-    runtimes = tc.make_runtimes(t, swc) if measure_run else None
-    hello_builds = tc.make_hello_builds(t, env, swc)
-    hello_runs = tc.make_hello_runs(t, swc) if measure_run else None
+    runtimes = tc.make_runtimes(t, swc, args.swc_cores) if measure_run else None
+    hello_builds = tc.make_hello_builds(t, env, swc, args.swc_cores)
+    hello_runs = tc.make_hello_runs(t, swc, args.swc_cores) if measure_run else None
 
     aot = [k for k in AOT_ORDER if k not in gone]
     jit = [k for k in JIT_ORDER if k not in gone]
@@ -338,7 +342,7 @@ def main():
           (winproc.PIN_MASK, bin(winproc.PIN_MASK).count("1")))
 
     print("preparing Swag dependencies...")
-    dependency_error = prepare_swag_dependencies(swc, env)
+    dependency_error = prepare_swag_dependencies(swc, env, args.swc_cores)
     if dependency_error:
         print("dependency preparation failed: %s" % dependency_error)
         return 1
@@ -426,7 +430,7 @@ def main():
         # --------------------------------------------------- the edit-build loop
         # Not pinned, like every build: a rebuild is meant to use the whole machine.
         print("== the edit-build loop (compiler workloads) ==")
-        workloads = tc.make_compiler_workloads(swc)
+        workloads = tc.make_compiler_workloads(swc, args.swc_cores)
         results["loop"] = {}
         loop_plan = {}
         for rep in range(BUILD_MAX_REPS):

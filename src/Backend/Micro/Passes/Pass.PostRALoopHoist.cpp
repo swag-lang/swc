@@ -350,6 +350,16 @@ namespace
         MicroOpBits   bits   = MicroOpBits::Zero;
     };
 
+    struct SunkStore
+    {
+        MicroInstrRef storeRef;
+        MicroInstrRef writeBackBefore;
+        MicroReg      source;
+        MicroReg      base;
+        uint64_t      offset = 0;
+        MicroOpBits   bits   = MicroOpBits::Zero;
+    };
+
     // A redundant reload whose destination is reused right afterwards for
     // something else: rather than leaving a register copy behind, point its
     // readers at the register the slot was hoisted into and report that the
@@ -504,7 +514,8 @@ namespace
                              const FrameReachability&     reach,
                              const bool                   restrictToUnreachable,
                              const MicroPassContext&      context,
-                             std::vector<Carried>&        out)
+                             std::vector<Carried>&        out,
+                             std::vector<SunkStore>&      sunkStores)
     {
         const auto     instrRefs = cfg.instructionRefs();
         const uint32_t n         = cfg.instructionCount();
@@ -646,6 +657,85 @@ namespace
         for (auto& [key, use] : slots)
         {
             const uint64_t offset = use.offset;
+            if (use.accesses == 1 && use.loadIndex == std::numeric_limits<uint32_t>::max() &&
+                use.storeIndex != std::numeric_limits<uint32_t>::max())
+            {
+                const MicroInstr*        storeInst = storage.ptr(instrRefs[use.storeIndex]);
+                const MicroInstrOperand* storeOps  = storeInst ? storeInst->ops(operands) : nullptr;
+                if (!storeOps || use.storeIndex == 0)
+                    continue;
+                if (std::ranges::any_of(sunkStores, [&](const SunkStore& sunk) { return sunk.storeRef == instrRefs[use.storeIndex]; }))
+                    continue;
+
+                const MicroReg    source = storeOps[1].reg;
+                const MicroOpBits bits   = storeOps[2].opBits;
+                if (!source.isInt() || bits != MicroOpBits::B64 || source == use.base)
+                    continue;
+
+                const FrameRef slotRef{use.base, offset, offset + getNumBytes(bits)};
+                bool           blocked = false;
+                for (const FrameRef& range : blockedRanges)
+                    blocked = blocked || overlaps(slotRef, range);
+                if (blocked || !slotIsUnreachable(reach, context, slotRef, conv))
+                    continue;
+
+                // A different frame access, including a partially overlapping one, must
+                // not observe the old home while its write is delayed.
+                for (uint32_t k = 0; k < n && !blocked; ++k)
+                {
+                    if (!inBody[k] || k == use.storeIndex)
+                        continue;
+                    const MicroInstr* other = storage.ptr(instrRefs[k]);
+                    const MicroInstrOperand* otherOps = other ? other->ops(operands) : nullptr;
+                    FrameRef otherRef;
+                    if (other && (isFrameLoad(otherRef, *other, otherOps, conv, reach.localBaseReg) ||
+                                  frameWriteRange(otherRef, *other, otherOps, conv, reach.localBaseReg)))
+                        blocked = overlaps(slotRef, otherRef);
+                }
+                if (blocked)
+                    continue;
+
+                // The update and the store are adjacent. The source register has no
+                // other definition in the body, so an early exit still sees its
+                // previous value and an exit after the update sees the new one.
+                const MicroInstr* update = storage.ptr(instrRefs[use.storeIndex - 1]);
+                const MicroInstrOperand* updateOps = update ? update->ops(operands) : nullptr;
+                if (!inBody[use.storeIndex - 1] || !update || update->op != MicroInstrOpcode::OpBinaryRegImm ||
+                    !updateOps || updateOps[0].reg != source || updateOps[1].opBits != bits ||
+                    updateOps[2].microOp != MicroOp::Add)
+                    continue;
+                bool otherDefinition = false;
+                for (uint32_t k = 0; k < n && !otherDefinition; ++k)
+                {
+                    if (!inBody[k] || k == use.storeIndex - 1)
+                        continue;
+                    for (const MicroReg def : liveness.useDefs[k].defs)
+                        otherDefinition = otherDefinition || def == source;
+                }
+                if (otherDefinition)
+                    continue;
+
+                // The loop may exit before its first update. Its preheader must
+                // initialize both the frame home and the source to one value.
+                const MicroInstr* initialStore = storage.ptr(instrRefs[preheaderIndex]);
+                const MicroInstrOperand* initialOps = initialStore ? initialStore->ops(operands) : nullptr;
+                if (!initialStore || initialStore->op != MicroInstrOpcode::LoadMemReg || !initialOps ||
+                    initialOps[0].reg != use.base || initialOps[3].valueU64 != offset || initialOps[2].opBits != bits)
+                    continue;
+                if (initialOps[1].reg != source)
+                {
+                    if (!preheaderIndex)
+                        continue;
+                    const MicroInstr* copy = storage.ptr(instrRefs[preheaderIndex - 1]);
+                    const MicroInstrOperand* copyOps = copy ? copy->ops(operands) : nullptr;
+                    if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
+                        copyOps[0].reg != source || copyOps[1].reg != initialOps[1].reg || copyOps[2].opBits != bits)
+                        continue;
+                }
+
+                sunkStores.push_back({instrRefs[use.storeIndex], writeBackBefore, source, use.base, offset, bits});
+                continue;
+            }
             if (use.accesses != 2)
                 continue;
 
@@ -807,6 +897,7 @@ namespace
         std::vector<MicroInstrRef>   erasures;
         std::vector<Rewrite>         rewrites;
         std::vector<Carried>         carried;
+        std::vector<SunkStore>       sunkStores;
         std::unordered_set<uint32_t> claimed;
 
         for (const NaturalLoop* loop : loops)
@@ -1028,10 +1119,10 @@ namespace
             // accumulator round-trips through the frame on every iteration; this
             // keeps it in its register for the whole loop and writes it back once
             // on the way out.
-            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, reach, restrictToUnreachable, context, carried);
+            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, reach, restrictToUnreachable, context, carried, sunkStores);
         }
 
-        if (hoists.empty() && carried.empty())
+        if (hoists.empty() && carried.empty() && sunkStores.empty())
             return false;
 
         for (const MicroInstrRef ref : erasures)
@@ -1080,6 +1171,17 @@ namespace
 
             storage.erase(promo.loadRef);
             storage.erase(promo.storeRef);
+        }
+
+        for (const SunkStore& store : sunkStores)
+        {
+            MicroInstrOperand ops[4] = {};
+            ops[0].reg               = store.base;
+            ops[1].reg               = store.source;
+            ops[2].opBits            = store.bits;
+            ops[3].valueU64          = store.offset;
+            storage.insertDerivedBefore(operands, store.writeBackBefore, MicroInstrOpcode::LoadMemReg, std::span(ops, 4));
+            storage.erase(store.storeRef);
         }
 
         for (const Hoist& hoist : hoists)

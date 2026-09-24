@@ -74,6 +74,110 @@ SWC_TEST_BEGIN(PostRALoopHoist_InvariantReload_MovesToPreheader)
 }
 SWC_TEST_END()
 
+// The register already holds the initial frame value and remains current on
+// every exit. Only the final value needs to reach its frame home.
+SWC_TEST_BEGIN(PostRALoopHoist_LoopStore_WritesBackAtExit)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  sp    = conv.stackPointer;
+    const MicroReg  value = conv.intTransientRegs[3];
+    const MicroReg  init  = conv.intTransientRegs[4];
+    MicroBuilder    builder(ctx);
+
+    const MicroLabelRef top  = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitLoadRegImm(init, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(value, init, MicroOpBits::B64);
+    builder.emitLoadMemReg(sp, 0x40, init, MicroOpBits::B64);
+    builder.placeLabel(top);
+    builder.emitCmpRegImm(value, ApInt(10, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(sp, 0x40, value, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+    builder.placeLabel(done);
+    builder.emitLoadRegMem(init, sp, 0x40, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaLoopHoistPass(builder));
+
+    uint32_t position   = 0;
+    uint32_t labelCount = 0;
+    uint32_t storeCount = 0;
+    uint32_t exitStore  = std::numeric_limits<uint32_t>::max();
+    uint32_t exitLoad   = std::numeric_limits<uint32_t>::max();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::Label)
+            ++labelCount;
+        if (inst.op == MicroInstrOpcode::LoadMemReg)
+        {
+            ++storeCount;
+            if (labelCount == 2)
+                exitStore = position;
+        }
+        if (inst.op == MicroInstrOpcode::LoadRegMem && labelCount == 2)
+            exitLoad = position;
+        ++position;
+    }
+
+    if (storeCount != 2 || exitStore == std::numeric_limits<uint32_t>::max() || exitStore + 1 != exitLoad)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A zero-trip loop must keep the preheader's value. A later register rewrite
+// must not replace the value that the loop stored on its last iteration.
+SWC_TEST_BEGIN(PostRALoopHoist_LoopStore_UnsafeSourcesStayInLoop)
+{
+    for (const bool mismatchedInitial : {false, true})
+    {
+        const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+        const MicroReg  sp    = conv.stackPointer;
+        const MicroReg  value = conv.intTransientRegs[3];
+        const MicroReg  init  = conv.intTransientRegs[4];
+        MicroBuilder    builder(ctx);
+
+        const MicroLabelRef top  = builder.createLabel();
+        const MicroLabelRef done = builder.createLabel();
+        builder.emitLoadRegImm(init, ApInt(0, 64), MicroOpBits::B64);
+        if (mismatchedInitial)
+            builder.emitLoadRegImm(value, ApInt(10, 64), MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(value, init, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x40, init, MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitCmpRegImm(value, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+        builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 0x40, value, MicroOpBits::B64);
+        if (!mismatchedInitial)
+            builder.emitLoadRegImm(value, ApInt(20, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+        builder.placeLabel(done);
+        builder.emitLoadRegMem(init, sp, 0x40, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopHoistPass(builder));
+
+        uint32_t labelCount = 0;
+        uint32_t storesInLoop = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::Label)
+                ++labelCount;
+            if (inst.op == MicroInstrOpcode::LoadMemReg && labelCount == 1)
+                ++storesInLoop;
+        }
+        if (storesInLoop != 1)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A write to the same slot inside the body makes the reload variant: it reads
 // something different on the next iteration and must not move.
 SWC_TEST_BEGIN(PostRALoopHoist_SlotWrittenInBody_Blocks)

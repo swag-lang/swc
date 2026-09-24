@@ -75,6 +75,8 @@ def main():
     ap.add_argument("--quick", action="store_true",
                     help="1 sample, no warm-up; smoke test, not recorded")
     ap.add_argument("--no-build", action="store_true", help="measure the binary already built")
+    ap.add_argument("--swc-cores", type=int, default=0,
+                    help="cap Swag compiler workers; 0 uses the compiler default")
     ap.add_argument("--report-only", action="store_true",
                     help="regenerate the page from the existing history, measure nothing")
     phase = ap.add_mutually_exclusive_group()
@@ -83,6 +85,8 @@ def main():
     phase.add_argument("--run", action="store_true",
                        help="measure execution only; update only execution history and report data")
     args = ap.parse_args()
+    if args.swc_cores < 0:
+        raise SystemExit("--swc-cores needs a nonnegative value")
 
     if args.report_only:
         step(1, 1, "Report")
@@ -102,6 +106,8 @@ def main():
     if not args.quick:
         warn_if_dirty()
     extra = ["--label", args.label] if args.label else []
+    if args.swc_cores:
+        extra += ["--swc-cores", str(args.swc_cores)]
     if args.quick:
         extra.append("--quick")
     if args.build:

@@ -61,6 +61,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | Branch reachability | Reuse reachability vectors, use the CFG label table instead of building a hash map, and record address-taken label targets during CFG construction instead of scanning the function again. | 3,478 native tests passed after each refinement. The five-pair direct comparison of the vector and label-lookup batch gave core B/A wall 1.046 and CPU 1.062; a later comparison including an independent LICM merge was neutral. The removed scan and hash table are structural savings; there is no isolated speedup claim for the final refinement. |
 | Register allocation label lookup | Reuse the CFG's label-to-instruction table for guarded-call and loop-region analysis instead of constructing two hash tables and scanning labels again. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating pairs gave core B/A wall 0.988 and CPU 0.987, below the measurement floor. No speedup or regression is claimed. |
 | Register allocation buffers | Retain nine fully overwritten analysis vectors on the per-worker pass object across functions: loop depth, loop labels, benefit scores and reservation counts. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating core pairs gave B/A wall 1.027 and CPU 1.021, with peak working set ratio 1.010. This is a small favorable signal near the measurement floor, not a firm percentage claim. |
+| Native read-only zero data | Detect a zero-filled allocation without relocations in its source span, then emit `.rbss` directly without copying bytes into a discarded `.rdata` section. | Release build and 3,478 native tests passed. The first seven-pair core comparison was disrupted by an 11.5-second candidate run; a quieter five-pair repeat gave B/A wall 1.042 and CPU 1.050, with peak working set 1.010. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
 the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
@@ -101,6 +102,21 @@ still regressed core rebuild in five alternating pairs: baseline/candidate
 ratios were 0.959 wall and 0.955 CPU, while the peak working-set ratio was
 0.984. The context reset and retained hash-table buckets cost more than this
 allocation reuse saved, so the source was restored to build 1099.
+
+Build 1102 moved the `.rbss` decision ahead of the section copy. The first
+seven-pair comparison was not suitable for a percentage claim: a candidate
+core run took 11.5 seconds and 40.7 CPU seconds while the surrounding runs
+were near 3 seconds and 15 CPU seconds. A quieter five-pair core-only repeat
+favored build 1102 over preserved build 1099 by 1.042 wall and 1.050 CPU in
+paired baseline/candidate ratios. Four of five wall pairs favored 1102. Peak
+working-set ratio was 1.010 in its favor. The direct removal of a discarded
+byte copy is retained; the clean repeat is encouraging but the two series do
+not establish a stable aggregate percentage.
+
+The subsequent integration with an independent instruction-combine batch used
+cache identity 1103. Its incremental Release build passed, followed by 3,478
+native and 1,500 JIT tests. The timing above belongs to the isolated build
+1102, so it does not attribute the independent batch's effect to this change.
 
 ## Final validation
 

@@ -186,14 +186,26 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
     const NativeRDataAllocationMapEntry& allocation = mappings[description.rdataAllocationIndex];
     SWC_ASSERT(allocation.emittedOffset + allocation.size <= builder_->mergedRData.bytes.size());
 
-    section.data.name            = ".rdata";
-    section.data.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
-    section.data.bytes.append(std::span{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size});
-
     // The collector emits allocations in offset order and sorts each allocation's relocations.
     // Visit only this allocation's range instead of scanning the entire module for every object.
     const auto& relocations = builder_->mergedRData.relocations;
     const auto  first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
+    const std::span<const std::byte> allocationBytes{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
+    const bool hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
+    if (!hasRelocations && std::ranges::all_of(allocationBytes, [](const std::byte value) { return value == std::byte{}; }))
+    {
+        // Keep all-zero allocations as uninitialized data without copying bytes
+        // into a section that would immediately discard them again.
+        section.data.name            = ".rbss";
+        section.data.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
+        section.data.bss             = true;
+        section.data.bssSize         = allocation.size;
+        return Result::Continue;
+    }
+
+    section.data.name            = ".rdata";
+    section.data.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
+    section.data.bytes.append(allocationBytes);
     Utf8        rdataBaseName;
     for (auto it = first; it != relocations.end(); ++it)
     {
@@ -219,16 +231,6 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
         }
 
         section.data.relocations.push_back(std::move(relocation));
-    }
-
-    if (section.data.relocations.empty() && section.data.bytes.allZero())
-    {
-        section.data.name            = ".rbss";
-        section.data.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
-        section.data.bytes.clear();
-        section.data.bss     = true;
-        section.data.bssSize = allocation.size;
-        return Result::Continue;
     }
 
     return applySectionRelocations(section);

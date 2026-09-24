@@ -443,6 +443,12 @@ Pick the task with the worst ratio that you have not already exhausted, then:
   9. Commit and merge the validated batch into local master, then bring the worktree branch up to
      date before starting the next batch. Preserve unrelated changes on master.
 
+Between some batches, audit an existing micro pass or backend decision, even if the current task
+does not use it. Inspect its guards and thresholds, identify the general property that justifies
+them, and compare an unrelated input with the same property against one that lacks it. Rework a
+decision that only fits the benchmark examples as its own validated batch. Record the audit and
+resume the next optimization; do not turn every batch into a full backend review.
+
 DO NOT STOP AT THE FIRST FAILURE
 
 Most of these experiments will fail. That is the normal shape of this work, and three of the

@@ -93,6 +93,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoSignExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoZeroExtend);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoCompare);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldRightAmcLoadIntoEqualityCompare);
         r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldZeroExtAmcLoadIntoCompare);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadSignedExtAmcRegMem, tryFoldConstIndexAmc);
@@ -126,6 +127,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryDropDeadCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::CmpAmcReg, tryFoldConstAmcCompare);
+        r.add(MicroInstrOpcode::CmpAmcReg, tryBypassByteCopyInIndexedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRangeProvedCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowByteRangeCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryNarrowCompareOfZeroExtension);

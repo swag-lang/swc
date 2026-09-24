@@ -168,3 +168,20 @@ The afternoon milestone rebuilt integrated build 1108 from source in Release
 non-passing dynamic cases, 2,390 standard-module, 550 application and 479
 reference tests. Script runs, 32 example builds and four application smokes
 also completed.
+
+The independent vector-backend merge advanced the cache identity to build
+1109. Its incremental Release build passed, followed by 3,478 native and
+1,500 JIT tests. The earlier full-sequence result belongs to build 1108.
+
+Build 1110 replaced SSA's per-function sweep over every retained instruction
+slot with a cache epoch. The epoch changes before each new function, so the
+existing use/def cache remains valid only within that function; wraparound
+explicitly resets the epochs. This removes a walk proportional to the largest
+function previously compiled on that worker. Its Release build, 3,478 native
+and 1,500 JIT tests passed. The first seven-pair core rebuild comparison was
+disrupted by a concurrent C++ build and gave baseline/candidate ratios 0.978
+wall and 0.970 CPU. A quieter five-pair repeat gave 1.011 wall and 0.979 CPU,
+with peak working set ratio 1.005. Wall and CPU do not agree on a gain; the
+change is retained for its simpler per-function cost, with no percentage
+speedup claim. WPR CPU sampling was attempted, but system profiling privileges
+were unavailable on this host (0xc5585011); no fresh trace was recorded.

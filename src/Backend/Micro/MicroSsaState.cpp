@@ -74,7 +74,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         // refresh the cache. See InstrInfo for why this key is sound.
         const MicroInstrOperand* ops         = inst->ops(operands);
         const uint8_t            numOperands = inst->numOperands;
-        bool                     reuseUseDef = info.useDefCached && info.cachedOp == inst->op && info.cachedNumOperands == numOperands && info.cachedOperandWords.size() == numOperands;
+        bool                     reuseUseDef = info.useDefCacheEpoch == useDefCacheEpoch_ && info.cachedOp == inst->op && info.cachedNumOperands == numOperands && info.cachedOperandWords.size() == numOperands;
         if (reuseUseDef)
         {
             for (uint8_t i = 0; i < numOperands; ++i)
@@ -93,7 +93,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
             info.cachedOp          = inst->op;
             info.cachedNumOperands = numOperands;
-            info.useDefCached      = true;
+            info.useDefCacheEpoch  = useDefCacheEpoch_;
             info.cachedOperandWords.clear();
             for (uint8_t i = 0; i < numOperands; ++i)
                 info.cachedOperandWords.push_back(ops[i].valueU64);
@@ -204,10 +204,15 @@ void MicroSsaState::clear()
     blocksCfgBuildId_   = 0;
     blocksHaveFrontier_ = false;
     trackedRegs_.clear();
-    // Slot numbers and their use/def caches belong to one function. Keep the
-    // per-slot buffers, but force a fresh use/def collection for the next one.
-    for (InstrInfo& info : instrInfos_)
-        info.useDefCached = false;
+    // Slot numbers belong to one function. Invalidate cached use/def by epoch
+    // rather than walking every retained slot before each small function.
+    ++useDefCacheEpoch_;
+    if (!useDefCacheEpoch_)
+    {
+        for (InstrInfo& info : instrInfos_)
+            info.useDefCacheEpoch = 0;
+        useDefCacheEpoch_ = 1;
+    }
     instructionRefs_.clear();
     liveInstructionSlots_.clear();
     instructionToBlock_.clear();

@@ -3968,12 +3968,12 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     SWC_ASSERT(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned || op == MicroOp::MultiplyWideSigned));
 
-    // Global counters can update their segment slot directly. The following
-    // immediate byte comes after the RIP displacement in these two forms.
+    // A global add/subtract can update its segment slot directly. The
+    // immediate follows the RIP displacement in each encoded form.
     const auto emitAddSubMemoryOperand = [&](const uint8_t regField) {
         if (memReg.isInstructionPointer())
         {
-            SWC_ASSERT(memOffset == 0 && value == 1 && (op == MicroOp::Add || op == MicroOp::Subtract));
+            SWC_ASSERT(memOffset == 0 && (op == MicroOp::Add || op == MicroOp::Subtract));
             emitModRm(store_, ModRmMode::Memory, regField, MODRM_RM_RIP);
             store_.pushU32(0);
         }

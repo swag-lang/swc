@@ -4395,6 +4395,49 @@ SWC_TEST_BEGIN(InstCombine_GlobalUnitUpdate_UsesRipMemoryOperand)
 }
 SWC_TEST_END()
 
+// All encodable add/subtract immediates can update a global directly.
+SWC_TEST_BEGIN(InstCombine_GlobalNonUnitUpdate_UsesRipMemoryOperand)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    for (const DataSegmentKind segment : {DataSegmentKind::GlobalZero, DataSegmentKind::GlobalInit})
+    {
+        for (const MicroOp op : {MicroOp::Add, MicroOp::Subtract})
+        {
+            for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegDataSegmentReloc(address, segment, 8);
+                builder.emitOpBinaryMemImm(address, 0, ApInt(5, 64), op, bits);
+                builder.emitRet();
+                SWC_RESULT(runInstCombinePass(builder));
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) != 0 ||
+                    builder.codeRelocations().size() != 1)
+                    return Result::Error;
+                const MicroRelocation& relocation = builder.codeRelocations().front();
+                const MicroInstr*      update     = builder.instructions().ptr(relocation.instructionRef);
+                if (!update || update->op != MicroInstrOpcode::OpBinaryMemImm ||
+                    !update->ops(builder.operands())[0].reg.isInstructionPointer() ||
+                    relocation.form != MicroRelocation::Form::Relative32)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_GlobalNonUnitUpdate_KeepsUnencodableB64Immediate)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegDataSegmentReloc(address, DataSegmentKind::GlobalZero, 8);
+    builder.emitOpBinaryMemImm(address, 0, ApInt(0x00000000FFFFFFFF, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runInstCombinePass(builder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // An address still read after the update cannot be removed.
 SWC_TEST_BEGIN(InstCombine_GlobalUnitUpdate_KeepsSharedAddress)
 {

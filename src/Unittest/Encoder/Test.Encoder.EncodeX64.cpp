@@ -229,6 +229,11 @@ namespace
         ENCODE_CASE("sub_rip_imm1_b32", "83 2D 00 00 00 00 01", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B32); emitRipConstantRelocation(b););
         ENCODE_CASE("add_rip_imm1_b8", "80 05 00 00 00 00 01", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(1, 64), MicroOp::Add, MicroOpBits::B8); emitRipConstantRelocation(b););
         ENCODE_CASE("sub_rip_imm1_b16", "66 83 2D 00 00 00 00 01", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B16); emitRipConstantRelocation(b););
+        ENCODE_CASE("add_rip_imm_a5_b8", "80 05 00 00 00 00 A5", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(0xA5, 64), MicroOp::Add, MicroOpBits::B8); emitRipConstantRelocation(b););
+        ENCODE_CASE("sub_rip_imm_1234_b16", "66 81 2D 00 00 00 00 34 12", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(0x1234, 64), MicroOp::Subtract, MicroOpBits::B16); emitRipConstantRelocation(b););
+        ENCODE_CASE("add_rip_imm_12345678_b32", "81 05 00 00 00 00 78 56 34 12", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(0x12345678, 64), MicroOp::Add, MicroOpBits::B32); emitRipConstantRelocation(b););
+        ENCODE_CASE("sub_rip_imm_12345678_b64", "48 81 2D 00 00 00 00 78 56 34 12", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(0x12345678, 64), MicroOp::Subtract, MicroOpBits::B64); emitRipConstantRelocation(b););
+        ENCODE_CASE("add_rip_imm_neg128_b64", "48 83 05 00 00 00 00 80", b.emitOpBinaryMemImm(MicroReg::instructionPointer(), 0, ApInt(0xFFFFFFFFFFFFFF80, 64), MicroOp::Add, MicroOpBits::B64); emitRipConstantRelocation(b););
         ENCODE_CASE("load_amc_mem_reg", "47 89 94 C5 00 01 00 00", b.emitLoadAmcMemReg(R13, R8, 8, 0x100, MicroOpBits::B64, R10, MicroOpBits::B32););
         ENCODE_CASE("load_amc_mem_reg_xmm3", "66 4B 0F 7E 5C 0C 40", b.emitLoadAmcMemReg(R12, R9, 1, 0x40, MicroOpBits::B64, XMM3, MicroOpBits::B64););
         ENCODE_CASE("load_amc_mem_imm", "43 C7 44 85 24 34 12 00 00", b.emitLoadAmcMemImm(R13, R8, 4, 0x24, MicroOpBits::B64, ApInt(0x1234, 64), MicroOpBits::B32););

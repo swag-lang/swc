@@ -176,6 +176,7 @@ namespace InstructionCombine
     bool tryBypassByteCopyInIndexedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool trySelectComparedIndexedLoad(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryReuseComparedIndexedLoad(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
+    bool tryDelayCopiedAddressIncrement(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldConstIndexAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLeaConstIntoAmcIndex(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldShiftAddIntoScaledAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

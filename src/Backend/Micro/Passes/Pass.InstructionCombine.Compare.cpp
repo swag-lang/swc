@@ -197,6 +197,80 @@ namespace InstructionCombine
         return true;
     }
 
+    // Delay a loop index's address-style increment until its old value is no
+    // longer needed. The temporary must feed only the copy and its following
+    // comparison; both then read the updated index instead.
+    bool tryDelayCopiedAddressIncrement(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.ssa || copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrOperand* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 ||
+            !copy[0].reg.isVirtualInt() || !copy[1].reg.isVirtualInt() || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroInstrRef cmpRef = ctx.storage->findNextInstructionRef(copyRef);
+        const MicroInstrRef jumpRef = ctx.storage->findNextInstructionRef(cmpRef);
+        const MicroInstr* cmpInst = ctx.storage->ptr(cmpRef);
+        const MicroInstr* jumpInst = ctx.storage->ptr(jumpRef);
+        if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegReg ||
+            !jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
+            return false;
+        const MicroInstrOperand* cmp = cmpInst->ops(*ctx.operands);
+        if (!cmp || cmp[2].opBits != MicroOpBits::B64 ||
+            (cmp[0].reg != copy[1].reg && cmp[1].reg != copy[1].reg))
+            return false;
+        const MicroReg other = cmp[0].reg == copy[1].reg ? cmp[1].reg : cmp[0].reg;
+        if (other == copy[0].reg || other == copy[1].reg)
+            return false;
+
+        const auto address = ctx.ssa->reachingDef(copy[1].reg, copyRef);
+        if (!address.valid() || address.isPhi || !address.inst ||
+            address.inst->op != MicroInstrOpcode::LoadAddrRegMem || ctx.isClaimed(address.instRef))
+            return false;
+        const MicroInstrOperand* lea = address.inst->ops(*ctx.operands);
+        if (!lea || lea[0].reg != copy[1].reg || lea[1].reg != copy[0].reg ||
+            lea[2].opBits != MicroOpBits::B64 || lea[3].hasWideImmediateValue() ||
+            !lea[3].valueU64 ||
+            static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(lea[3].valueU64))) != lea[3].valueU64)
+            return false;
+        const auto beforeAddress = ctx.ssa->reachingDef(copy[0].reg, address.instRef);
+        const auto beforeCopy = ctx.ssa->reachingDef(copy[0].reg, copyRef);
+        if (!beforeAddress.valid() || !beforeCopy.valid() || beforeAddress.valueId != beforeCopy.valueId)
+            return false;
+        const auto* value = ctx.ssa->valueInfo(address.valueId);
+        if (!value || ctx.ssa->transitiveInstructionUseCount(address.valueId, 3) != 2)
+            return false;
+        bool usedByCopy = false;
+        bool usedByCompare = false;
+        for (const auto& use : value->uses)
+        {
+            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+                continue;
+            if (use.instRef != copyRef && use.instRef != cmpRef)
+                return false;
+            usedByCopy |= use.instRef == copyRef;
+            usedByCompare |= use.instRef == cmpRef;
+        }
+        if (!usedByCopy || !usedByCompare || !ctx.claimAll({address.instRef, copyRef, cmpRef}))
+            return false;
+
+        MicroInstrOperand increment[4] = {};
+        increment[0].reg      = copy[0].reg;
+        increment[1].opBits   = MicroOpBits::B64;
+        increment[2].microOp  = MicroOp::Add;
+        increment[3].valueU64 = lea[3].valueU64;
+        MicroInstrOperand compare[3] = {};
+        std::copy_n(cmp, 3, compare);
+        if (compare[0].reg == copy[1].reg)
+            compare[0].reg = copy[0].reg;
+        else
+            compare[1].reg = copy[0].reg;
+        ctx.emitErase(address.instRef);
+        ctx.emitRewrite(copyRef, MicroInstrOpcode::OpBinaryRegImm, increment, true);
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegReg, compare);
+        return true;
+    }
+
     // A signed comparison with zero only asks for the loaded value's sign
     // bit. Read that bit directly instead of materializing flags and setcc:
     //

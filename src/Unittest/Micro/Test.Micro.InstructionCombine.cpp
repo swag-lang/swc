@@ -2852,6 +2852,58 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadDifferentCell_KeepsCompare)
 }
 SWC_TEST_END()
 
+namespace
+{
+    void emitDelayedIndexUpdate(MicroBuilder& builder, bool compareOnRight, bool extraTempUse)
+    {
+        constexpr MicroReg index = MicroReg::virtualIntReg(1);
+        constexpr MicroReg limit = MicroReg::virtualIntReg(2);
+        constexpr MicroReg next  = MicroReg::virtualIntReg(3);
+        const auto done = builder.createLabel();
+
+        builder.emitLoadRegReg(index, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadRegReg(limit, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(next, index, 1, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(3), 0, index, MicroOpBits::B64);
+        if (extraTempUse)
+            builder.emitLoadMemReg(MicroReg::intReg(3), 8, next, MicroOpBits::B64);
+        builder.emitLoadRegReg(index, next, MicroOpBits::B64);
+        builder.emitCmpRegReg(compareOnRight ? limit : next, compareOnRight ? next : limit, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, done);
+        builder.emitLoadMemReg(MicroReg::intReg(3), 16, index, MicroOpBits::B64);
+        builder.placeLabel(done);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_DelayedIndexUpdate_RemovesEarlyAddress)
+{
+    for (const bool compareOnRight : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        emitDelayedIndexUpdate(builder, compareOnRight, false);
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 0 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_DelayedIndexUpdateWithExtraUse_KeepsAddress)
+{
+    MicroBuilder builder(ctx);
+    emitDelayedIndexUpdate(builder, false, true);
+    SWC_RESULT(runInstCombinePass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Folding the right operand would reverse the compare: it stays a register.
 SWC_TEST_BEGIN(InstCombine_RightCompareLoad_Kept)
 {

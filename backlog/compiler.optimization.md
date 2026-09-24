@@ -19,7 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-24 22:56 — Reused the relocation index in the early unused-label sweep.
+- Updated: 2026-09-24 23:09 — Rejected an empty-jump gate for the diamond transforms.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -108,6 +108,14 @@ block, and the hot path keeps the register.
   were discarded when shared-machine load stretched individual builds to 26-35 seconds. The
   saving is therefore below the measurement floor, with no percentage speedup claim or stable
   memory regression.
+- Ruled out on 2026-09-24: returning an unusable diamond scan when its existing label-reference
+  map is empty. This skips the diamond transform family for functions with no direct jumps,
+  without adding an opcode check to the instruction walk. Two focused native Release tests and
+  the rotating JIT `move_value_expression` file (15 tests) passed. Five alternated pairs gave
+  candidate/baseline ratios of 1.058 wall and 1.044 CPU for core rebuild, and 1.041 wall and
+  1.038 CPU for hello build; peak working-set ratios were 0.998 and 1.014. A reverse series
+  became unusable when unrelated load stretched a baseline rebuild to 42.8 seconds. With no
+  observed gain and a possible guardrail regression, the gate was reverted.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

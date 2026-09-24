@@ -185,3 +185,12 @@ with peak working set ratio 1.005. Wall and CPU do not agree on a gain; the
 change is retained for its simpler per-function cost, with no percentage
 speedup claim. WPR CPU sampling was attempted, but system profiling privileges
 were unavailable on this host (0xc5585011); no fresh trace was recorded.
+
+A subsequent experiment retained constant folding's relocation-address hash
+table in the shared worker scratch instead of constructing it per pass run.
+The isolated build 1111 passed 3,478 native and 1,500 JIT tests, but seven
+alternating core rebuild pairs gave baseline/candidate ratios 0.964 wall and
+0.955 CPU: both indicate a roughly 4% regression. The paired peak working-set
+ratio was 0.999, though the candidate's highest sample was 600.9 MiB versus
+585.1 MiB for the baseline. Hello build wall was neutral. The source was
+restored to build 1110: retaining this hash table did not justify its cost.

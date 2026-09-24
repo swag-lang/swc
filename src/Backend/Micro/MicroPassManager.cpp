@@ -388,12 +388,17 @@ namespace
         }
 #endif
 
-        MicroSsaState ssaState;
-        const bool    useSharedSsa = settings.buildSsa && context.builder && context.instructions && context.operands;
+        const bool useSharedSsa = settings.buildSsa && context.builder && context.instructions && context.operands;
         // Pre-RA optimization passes can share one lazily-built SSA state across
         // a sweep; runPass invalidates it as soon as any transform mutates IR.
         if (useSharedSsa)
+        {
+            // Retain the large analysis buffers across functions on this worker.
+            // clear() drops all function-specific state before a new pipeline reads it.
+            thread_local MicroSsaState ssaState;
+            ssaState.clear();
             context.ssaState = &ssaState;
+        }
 
         bool   reachedFixedPoint = false;
         size_t passesToRun       = passes.size();

@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/DataSegment.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -4356,6 +4357,59 @@ SWC_TEST_BEGIN(InstCombine_CompareOfZeroExtendedLoad_ReadsDefinedRegister)
             return Result::Continue;
     }
     return Result::Error;
+}
+SWC_TEST_END()
+
+// A unit update of a global cell can carry its relocation on the memory
+// operation itself, without materializing the cell's address first.
+SWC_TEST_BEGIN(InstCombine_GlobalUnitUpdate_UsesRipMemoryOperand)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    for (const DataSegmentKind segment : {DataSegmentKind::GlobalZero, DataSegmentKind::GlobalInit})
+    {
+        for (const MicroOp op : {MicroOp::Add, MicroOp::Subtract})
+        {
+            for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegDataSegmentReloc(address, segment, 8);
+                builder.emitOpBinaryMemImm(address, 0, ApInt(1, 64), op, bits);
+                builder.emitRet();
+
+                SWC_RESULT(runInstCombinePass(builder));
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) != 0 ||
+                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 1 ||
+                    builder.codeRelocations().size() != 1)
+                    return Result::Error;
+
+                const MicroRelocation& relocation = builder.codeRelocations().front();
+                const MicroInstr*      update     = builder.instructions().ptr(relocation.instructionRef);
+                if (!update || update->op != MicroInstrOpcode::OpBinaryMemImm ||
+                    !update->ops(builder.operands())[0].reg.isInstructionPointer() ||
+                    relocation.form != MicroRelocation::Form::Relative32)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// An address still read after the update cannot be removed.
+SWC_TEST_BEGIN(InstCombine_GlobalUnitUpdate_KeepsSharedAddress)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result  = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegDataSegmentReloc(address, DataSegmentKind::GlobalZero, 8);
+    builder.emitOpBinaryMemImm(address, 0, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadRegMem(result, address, 0, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) == 1
+               ? Result::Continue
+               : Result::Error;
 }
 SWC_TEST_END()
 

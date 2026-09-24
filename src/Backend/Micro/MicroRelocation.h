@@ -23,7 +23,7 @@ struct MicroRelocation
     // How the patch is written into the code stream. Absolute64 stores the
     // target address itself, in a trailing eight-byte immediate. Relative32
     // stores the signed distance from the end of the instruction to the target,
-    // in a trailing four-byte displacement - which is what x64 RIP-relative
+    // in a four-byte displacement - which is what x64 RIP-relative
     // addressing reads, and what lets a constant be reached without first
     // materializing its address in a register.
     enum class Form : uint8_t

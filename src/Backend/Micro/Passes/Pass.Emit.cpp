@@ -49,17 +49,17 @@ void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, M
     boundRelocations_.insert(found->second);
 }
 
-void MicroEmitPass::bindRel32RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
+void MicroEmitPass::bindRel32RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset, uint32_t trailingBytes) const
 {
     const auto found = relocationByInstructionRef_.find(instructionRef);
     SWC_ASSERT(found != relocationByInstructionRef_.end());
     if (found == relocationByInstructionRef_.end())
         return;
 
-    SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint32_t));
+    SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint32_t) + trailingBytes);
     MicroRelocation& reloc = context.builder->codeRelocations()[found->second];
     SWC_ASSERT(reloc.form == MicroRelocation::Form::Relative32);
-    reloc.codeOffset = codeEndOffset - sizeof(uint32_t);
+    reloc.codeOffset = codeEndOffset - trailingBytes - sizeof(uint32_t);
 
     // A RIP-relative displacement is measured from the end of the instruction,
     // so whoever patches it needs to know where that is. Nothing else in the
@@ -392,8 +392,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             encoder.encodeOpBinaryRegImm(ops[0].reg, ops[3].immediateValue(getNumBits(ops[1].opBits)), ops[2].microOp, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpBinaryMemImm:
+        {
+            const uint32_t opStart = encoder.size();
             encoder.encodeOpBinaryMemImm(ops[0].reg, ops[3].valueU64, ops[4].immediateValue(getNumBits(ops[1].opBits)), ops[2].microOp, ops[1].opBits);
+            if (ops[0].reg.isInstructionPointer())
+                bindRel32RelocationOffset(context, instructionRef, opStart, encoder.size(), 1);
             break;
+        }
         case MicroInstrOpcode::OpBinaryRegMem:
         {
             const uint32_t opStart = encoder.size();

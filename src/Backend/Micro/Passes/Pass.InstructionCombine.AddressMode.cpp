@@ -824,6 +824,57 @@ namespace InstructionCombine
         ctx.emitErase(copy.instRef);
         return true;
     }
+    // An address used only for a unit update of its global cell is unnecessary:
+    // ADD/SUB [rip+rel32], 1 reads and writes the same cell in one instruction.
+    bool tryFoldGlobalUnitUpdate(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa || !ctx.builder)
+            return false;
+
+        const MicroInstrOperand* loadOps = inst.ops(*ctx.operands);
+        if (!loadOps || !loadOps[0].reg.isVirtualInt() || loadOps[1].opBits != MicroOpBits::B64)
+            return false;
+
+        MicroRelocation* relocation = nullptr;
+        for (MicroRelocation& candidate : ctx.builder->codeRelocations())
+        {
+            if (candidate.instructionRef != ref)
+                continue;
+            if (relocation)
+                return false;
+            relocation = &candidate;
+        }
+        if (!relocation || (relocation->kind != MicroRelocation::Kind::GlobalZeroAddress &&
+                            relocation->kind != MicroRelocation::Kind::GlobalInitAddress))
+            return false;
+
+        uint32_t valueId = 0;
+        if (!ctx.ssa->defValue(loadOps[0].reg, ref, valueId))
+            return false;
+        const MicroInstrRef useRef = singleDirectInstructionUse(*ctx.ssa, valueId);
+        if (!useRef.isValid() || ctx.isClaimed(useRef) || ctx.isRelocated(useRef))
+            return false;
+
+        const MicroInstr*        useInst = ctx.storage->ptr(useRef);
+        const MicroInstrOperand* useOps  = useInst ? useInst->ops(*ctx.operands) : nullptr;
+        if (!useOps || useInst->op != MicroInstrOpcode::OpBinaryMemImm || useOps[0].reg != loadOps[0].reg ||
+            useOps[3].valueU64 != 0 || useOps[4].hasWideImmediateValue() || useOps[4].valueU64 != 1 ||
+            (useOps[1].opBits != MicroOpBits::B8 && useOps[1].opBits != MicroOpBits::B16 &&
+             useOps[1].opBits != MicroOpBits::B32 && useOps[1].opBits != MicroOpBits::B64) ||
+            (useOps[2].microOp != MicroOp::Add && useOps[2].microOp != MicroOp::Subtract))
+            return false;
+
+        if (!ctx.claimAll({ref, useRef}, true))
+            return false;
+
+        MicroInstrOperand newOps[5] = {useOps[0], useOps[1], useOps[2], useOps[3], useOps[4]};
+        newOps[0].reg               = MicroReg::instructionPointer();
+        relocation->instructionRef = useRef;
+        relocation->form           = MicroRelocation::Form::Relative32;
+        ctx.emitRewrite(useRef, MicroInstrOpcode::OpBinaryMemImm, std::span{newOps, 5});
+        ctx.emitErase(ref);
+        return true;
+    }
 }
 
 SWC_END_NAMESPACE();

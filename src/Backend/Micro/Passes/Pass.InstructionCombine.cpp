@@ -73,6 +73,7 @@ namespace
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoFullUnary);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoFullUnary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoFullUnary);
+        r.add(MicroInstrOpcode::LoadRegPtrReloc, tryFoldGlobalUnitUpdate);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildScalarFromStores);
@@ -163,11 +164,12 @@ namespace
 
     void runPerInstructionPatterns(Context& ctx)
     {
-        // An instruction that carries a relocation is opaque to the combiner:
+        // An instruction that carries a relocation is normally opaque to the combiner:
         // rewriting it to another opcode would leave the relocation pointing
         // at an encoding whose displacement the emitter no longer binds, and
         // the patch would then overwrite the first bytes of the function.
-        // Skipping the anchor here handles rules rewriting their own anchor;
+        // The global-unit-update rule explicitly transfers its relocation to
+        // the consumer. Skipping other anchors here handles rules rewriting their own anchor;
         // claimAll's relocated check handles rules that consume neighboring
         // instructions (a fused load-op-store must not swallow a RIP access).
         const PatternRegistry& reg   = registry();
@@ -175,7 +177,7 @@ namespace
         const auto             endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            if (!ctx.relocated.empty() && ctx.isRelocated(it.current))
+            if (!ctx.relocated.empty() && ctx.isRelocated(it.current) && it->op != MicroInstrOpcode::LoadRegPtrReloc)
                 continue;
             for (const PatternFn fn : reg.patternsFor(it->op))
             {

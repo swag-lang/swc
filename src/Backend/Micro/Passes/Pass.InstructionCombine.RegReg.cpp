@@ -2575,6 +2575,8 @@ namespace InstructionCombine
                 return false;
         }
         const auto& first = loads[3]; // The most significant result byte has the lowest address.
+        if (first.offset > 0x7FFFFFFF && first.offset < 0xFFFFFFFF80000000)
+            return false;
         for (uint32_t i = 0; i < 4; ++i)
         {
             const auto& load = loads[3 - i];

@@ -235,3 +235,8 @@ reference. Three hello pairs gave reference/candidate wall 1.035 and CPU
 0.769; CPU samples are coarse at this workload length. No repeatable speedup
 or regression is established. The source retains the smaller shared scratch
 and removes three temporary allocations across these sequential analyses.
+
+The independent global bitwise and fixed-shift address-mode updates were
+integrated as build 1117. Its incremental Release build and focused C++
+compiler, 3,478 native and 1,500 JIT suites passed. Those updates are not
+included in the isolated build 1115 timing observations.

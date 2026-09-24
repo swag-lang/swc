@@ -9,6 +9,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.058 — GUI client-rectangle calls are rejected as dynamic type tests
 
 - Recorded: 2026-09-24 23:36
+- Updated: 2026-09-24 23:54 — Confirmed the rejection with the final merged compiler.
 - Area: compiler/semantic analysis, `std/gui` Release validation.
 - Evidence: `swc build --workspace bin/std --workspace-module gui --build-cfg release --rebuild`
   rejects `bin/std/modules/gui/src/controls/property/properties.input.swg:174`, the ordinary
@@ -17,6 +18,11 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   sources; no `bin/std` files changed during the compiler-speed campaign. Binding `label` and
   the rectangle separately, calling through `label.wnd`, and temporarily removing the
   preceding null guard all left the error on `clientRect()`; these probes were reverted.
+  Replacing the ternary that obtains `hit`, writing its null test explicitly, and constructing
+  the rectangle from `Wnd.position` also left the diagnostic on the next expression; those
+  probes were reverted too. A one-worker Release rebuild reproduces the same error, so the
+  six-worker schedule is not required. The merged Release build 1141 reproduces the same
+  diagnostic in the `master` checkout.
   The Release campaign passed 3,478 native tests before stopping when `std/gui` compiled.
 - Next: reduce the call to a standalone source and inspect the AST and semantic view passed
   to `SemaCheck::typePattern`. Determine why a method call is seen as a `#try` cast, then

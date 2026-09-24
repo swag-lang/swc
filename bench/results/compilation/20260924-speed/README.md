@@ -319,3 +319,7 @@ hello outlier. A five-pair core repeat gave 0.972 wall and 1.056 CPU with
 peak working set ratio 1.018; it included a 38.8 s reference core and an
 8.3 s candidate core. Wall and CPU disagree across series. The removed
 allocation is retained below the measurement floor, without a speedup claim.
+
+The independent x64 encoder, emission and address-mode updates were integrated
+as build 1125. Its incremental Release build, 3,478 native and 1,500 JIT
+tests passed. The isolated build-1124 timing above predates this merge.

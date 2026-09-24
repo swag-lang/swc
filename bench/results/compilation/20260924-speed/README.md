@@ -60,6 +60,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | Sanitizer propagation | Share one refined state across successors when they receive identical facts; move an owned state into the first reached block. | Native and safety suites passed. Both one- and six-worker A/B runs contained large, inconsistent outliers in both binaries. The retained change removes state-map copies; no percentage is claimed. |
 | Branch reachability | Reuse reachability vectors, use the CFG label table instead of building a hash map, and record address-taken label targets during CFG construction instead of scanning the function again. | 3,478 native tests passed after each refinement. The five-pair direct comparison of the vector and label-lookup batch gave core B/A wall 1.046 and CPU 1.062; a later comparison including an independent LICM merge was neutral. The removed scan and hash table are structural savings; there is no isolated speedup claim for the final refinement. |
 | Register allocation label lookup | Reuse the CFG's label-to-instruction table for guarded-call and loop-region analysis instead of constructing two hash tables and scanning labels again. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating pairs gave core B/A wall 0.988 and CPU 0.987, below the measurement floor. No speedup or regression is claimed. |
+| Register allocation buffers | Retain nine fully overwritten analysis vectors on the per-worker pass object across functions: loop depth, loop labels, benefit scores and reservation counts. | Release build, 3,478 native and 1,500 JIT tests passed. Seven alternating core pairs gave B/A wall 1.027 and CPU 1.021, with peak working set ratio 1.010. This is a small favorable signal near the measurement floor, not a firm percentage claim. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
 the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
@@ -82,6 +83,16 @@ CPU was 8,328.1 versus 8,250.0 ms. Hello build median wall time was 115.1 versus
 so neither a speedup nor a regression is established. Peak working set was also
 indistinguishable in paired results. The removed allocations and scans justify
 retaining this small structural change.
+
+Build 1099 retained capacity for nine register-allocation analysis vectors. Seven
+alternating pairs against preserved build 1098 gave core rebuild median wall
+1,806.0 versus 1,844.1 ms and process CPU 8,218.8 versus 8,093.8 ms; paired
+ratios, which account for the alternating order, favored 1099 by 1.027 wall and
+1.021 CPU. Six of seven core wall pairs favored 1099. The paired peak working-set
+ratio was 1.010 in favor of 1099, so no memory regression was observed. Hello
+build wall was neutral (paired ratio 1.003); its CPU samples were too coarse and
+variable to establish a change. The core signal is near the measurement floor,
+so the retained conclusion is the removal of repeated vector allocations.
 
 ## Final validation
 

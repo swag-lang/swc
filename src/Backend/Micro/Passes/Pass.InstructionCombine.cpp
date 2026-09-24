@@ -178,7 +178,11 @@ namespace
         for (auto it = view.begin(); it != endIt; ++it)
         {
             if (!ctx.relocated.empty() && ctx.isRelocated(it.current) && it->op != MicroInstrOpcode::LoadRegPtrReloc)
+            {
+                if (it->op == MicroInstrOpcode::LoadRegMem)
+                    tryFoldGlobalUnaryMemoryOp(ctx, it.current, *it);
                 continue;
+            }
             for (const PatternFn fn : reg.patternsFor(it->op))
             {
                 if (fn(ctx, it.current, *it))

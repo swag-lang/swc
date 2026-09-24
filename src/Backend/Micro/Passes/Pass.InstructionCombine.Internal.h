@@ -160,6 +160,7 @@ namespace InstructionCombine
     bool tryFuseInPlaceUpdate(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
     bool tryReadCopyInSelfOperation(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldGlobalUnaryMemoryOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryMemoryFoldAmcTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryReuseAmcLoadForClearLowestBit(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFactorReloadedProduct(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

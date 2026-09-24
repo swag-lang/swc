@@ -16,6 +16,24 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.049 — Derive the small-loop trip limit from code benefit
+
+- Recorded: 2026-09-24 10:33
+- Area: compiler/backend, loop unrolling
+- Evidence: `Pass.LoopUnroll.cpp` caps full unrolling at 16 trips. Its comment names ChaCha's
+  16-word output loop as the reason, while separate 96-instruction body, 384-instruction total,
+  branch, and constant-table guards already describe general costs and benefits. The unrelated
+  `unroll_constant_tables.swg` uses a five-trip weighted integer loop with immutable table
+  indices and branches; it benefits from constant-index folding. Conversely,
+  `LoopUnroll_SixteenTrips_Flattens` shows that an otherwise identical, one-instruction body
+  flattens at 16 trips and remains a loop at 17, solely because of that historical cap.
+- Next: compare static dynamic instruction counts and expanded code size for non-benchmark
+  counted loops around that boundary, with and without indexed constant accesses. Replace the
+  hard trip boundary only if a general work-saved versus code-growth rule improves those cases
+  without expanding loops whose bodies retain their per-trip work.
+- Complete when the cap or its replacement has profitability evidence beyond ChaCha and a test
+  for both admitted and rejected shapes.
+
 ### compiler.optimization.048 — Check LICM's relocated address policy outside benchmarks
 
 - Recorded: 2026-09-24 09:47

@@ -16,6 +16,27 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.053 — Recheck scalar global loop updates with RIP memory operands
+
+- Recorded: 2026-09-24 16:49
+- Area: compiler/backend, loop memory folding
+- Evidence: an independent four-element `u32` loop computes `Total += values[i]`
+  and `dst[] += values[i]`; both results are 10. The final Release micro code for
+  the global update contains a RIP load, an indexed-memory add into a register,
+  and a RIP store per iteration. The pointer update contains an indexed load and
+  an `add [rcx], r9`. `keepAccessScalar` retains some global accesses in loops to
+  protect vectorization. Direct RIP memory arithmetic is now available, so the
+  global scalar loop may have a remaining `load; add; store` fold opportunity.
+  Entries .002 and .046 document vectorization losses from broad changes to this
+  guard; this one loop does not justify changing the policy.
+- Next: compare final code, vector operations, memory operations, and register
+  pressure for unrelated scalar-global loops with and without a guarded RIP
+  read-modify-write fold. Include a vectorization candidate and a frame slot.
+  Admit only a general condition that improves scalar loops while preserving
+  vectorization.
+- Complete when static evidence explains which loop shapes should use direct
+  memory arithmetic and which must retain the existing guard.
+
 ### compiler.optimization.052 — Check final code before adding a late indexed-select rule
 
 - Recorded: 2026-09-24 12:30

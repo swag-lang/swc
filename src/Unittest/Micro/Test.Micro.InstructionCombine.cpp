@@ -4413,6 +4413,64 @@ SWC_TEST_BEGIN(InstCombine_GlobalUnitUpdate_KeepsSharedAddress)
 }
 SWC_TEST_END()
 
+// A single immediate store to a global cell does not need an address register.
+SWC_TEST_BEGIN(InstCombine_GlobalImmediateStore_UsesRipMemoryOperand)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    for (const DataSegmentKind segment : {DataSegmentKind::GlobalZero, DataSegmentKind::GlobalInit})
+    {
+        for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegDataSegmentReloc(address, segment, 8);
+            builder.emitLoadMemImm(address, 0, ApInt(5, 64), bits);
+            builder.emitRet();
+
+            SWC_RESULT(runInstCombinePass(builder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemImm) != 1 ||
+                builder.codeRelocations().size() != 1)
+                return Result::Error;
+
+            const MicroRelocation& relocation = builder.codeRelocations().front();
+            const MicroInstr*      store      = builder.instructions().ptr(relocation.instructionRef);
+            if (!store || store->op != MicroInstrOpcode::LoadMemImm ||
+                !store->ops(builder.operands())[0].reg.isInstructionPointer() ||
+                relocation.form != MicroRelocation::Form::Relative32)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A wide 64-bit immediate splits into two stores and cannot share one RIP displacement.
+SWC_TEST_BEGIN(InstCombine_GlobalImmediateStore_KeepsWideImmediateAddress)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegDataSegmentReloc(address, DataSegmentKind::GlobalZero, 8);
+    builder.emitLoadMemImm(address, 0, ApInt(0x00000000FFFFFFFF, 64), MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runInstCombinePass(builder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_GlobalImmediateStore_KeepsSharedAddress)
+{
+    constexpr MicroReg address = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result  = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegDataSegmentReloc(address, DataSegmentKind::GlobalZero, 8);
+    builder.emitLoadMemImm(address, 0, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(result, address, 0, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runInstCombinePass(builder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // A full-width packed unary operation can read its sole source directly from
 // memory. Both scalar-address and indexed loads use the same fold.
 SWC_TEST_BEGIN(InstCombine_FullWidthVecUnary_FoldsItsLoad)

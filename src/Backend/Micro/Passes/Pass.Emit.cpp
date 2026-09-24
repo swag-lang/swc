@@ -332,8 +332,14 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             break;
         }
         case MicroInstrOpcode::LoadMemImm:
+        {
+            const uint32_t loadMemImmStart = encoder.size();
             encoder.encodeLoadMemImm(ops[0].reg, ops[2].valueU64, ops[3].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
+            if (ops[0].reg.isInstructionPointer())
+                bindRel32RelocationOffset(context, instructionRef, loadMemImmStart, encoder.size(),
+                                          getNumBytes(std::min(ops[1].opBits, MicroOpBits::B32)));
             break;
+        }
         case MicroInstrOpcode::TestRegReg:
             encoder.encodeTestRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;

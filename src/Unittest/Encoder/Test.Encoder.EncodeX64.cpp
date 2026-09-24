@@ -249,6 +249,10 @@ namespace
         ENCODE_CASE("load_mem_imm_r13_b16", "66 41 C7 45 7F 34 12", b.emitLoadMemImm(R13, 0x7F, ApInt(0x1234, 64), MicroOpBits::B16););
         ENCODE_CASE("load_mem_imm_rsp_b32", "C7 44 24 40 78 56 34 12", b.emitLoadMemImm(RSP, 0x40, ApInt(0x12345678, 64), MicroOpBits::B32););
         ENCODE_CASE("load_mem_imm_rbp_b64", "48 C7 45 20 80 FF FF FF", b.emitLoadMemImm(RBP, 0x20, ApInt(0xFFFFFFFFFFFFFF80, 64), MicroOpBits::B64););
+        ENCODE_CASE("load_mem_imm_rip_b8", "C6 05 00 00 00 00 7F", b.emitLoadMemImm(MicroReg::instructionPointer(), 0, ApInt(0x7F, 64), MicroOpBits::B8); emitRipConstantRelocation(b););
+        ENCODE_CASE("load_mem_imm_rip_b16", "66 C7 05 00 00 00 00 34 12", b.emitLoadMemImm(MicroReg::instructionPointer(), 0, ApInt(0x1234, 64), MicroOpBits::B16); emitRipConstantRelocation(b););
+        ENCODE_CASE("load_mem_imm_rip_b32", "C7 05 00 00 00 00 78 56 34 12", b.emitLoadMemImm(MicroReg::instructionPointer(), 0, ApInt(0x12345678, 64), MicroOpBits::B32); emitRipConstantRelocation(b););
+        ENCODE_CASE("load_mem_imm_rip_b64", "48 C7 05 00 00 00 00 80 FF FF FF", b.emitLoadMemImm(MicroReg::instructionPointer(), 0, ApInt(0xFFFFFFFFFFFFFF80, 64), MicroOpBits::B64); emitRipConstantRelocation(b););
         return Result::Continue;
     }
 

@@ -2683,7 +2683,14 @@ void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApI
 
     emitRex(store_, opBits, MicroReg{}, memReg);
     emitSpecB8(store_, 0xC7, opBits);
-    emitModRm(store_, memOffset, MODRM_REG_0, memReg);
+    if (memReg.isInstructionPointer())
+    {
+        SWC_ASSERT(memOffset == 0);
+        emitModRm(store_, ModRmMode::Memory, MODRM_REG_0, MODRM_RM_RIP);
+        store_.pushU32(0);
+    }
+    else
+        emitModRm(store_, memOffset, MODRM_REG_0, memReg);
     emitValue(store_, valueU64, std::min(opBits, MicroOpBits::B32));
 }
 

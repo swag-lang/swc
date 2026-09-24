@@ -194,7 +194,7 @@ namespace InstructionCombine
     bool tryFoldLeaConstIntoMemBase(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldRelocatedAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryFoldGlobalUnitUpdate(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldGlobalImmediateMemoryOp(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowBooleanDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

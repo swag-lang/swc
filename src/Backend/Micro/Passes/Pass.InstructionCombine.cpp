@@ -73,7 +73,7 @@ namespace
         r.add(MicroInstrOpcode::LoadVecRegMem, tryFoldVecLoadIntoFullUnary);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldVecLoadIntoFullUnary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldVecLoadIntoFullUnary);
-        r.add(MicroInstrOpcode::LoadRegPtrReloc, tryFoldGlobalUnitUpdate);
+        r.add(MicroInstrOpcode::LoadRegPtrReloc, tryFoldGlobalImmediateMemoryOp);
         r.add(MicroInstrOpcode::LoadVecRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildVectorFromStores);
         r.add(MicroInstrOpcode::LoadRegMem, tryBuildScalarFromStores);
@@ -168,7 +168,7 @@ namespace
         // rewriting it to another opcode would leave the relocation pointing
         // at an encoding whose displacement the emitter no longer binds, and
         // the patch would then overwrite the first bytes of the function.
-        // The global-unit-update rule explicitly transfers its relocation to
+        // The global immediate-memory rule explicitly transfers its relocation to
         // the consumer. Skipping other anchors here handles rules rewriting their own anchor;
         // claimAll's relocated check handles rules that consume neighboring
         // instructions (a fused load-op-store must not swallow a RIP access).

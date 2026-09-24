@@ -4395,13 +4395,13 @@ SWC_TEST_BEGIN(InstCombine_GlobalUnitUpdate_UsesRipMemoryOperand)
 }
 SWC_TEST_END()
 
-// All encodable add/subtract immediates can update a global directly.
-SWC_TEST_BEGIN(InstCombine_GlobalNonUnitUpdate_UsesRipMemoryOperand)
+// All encodable arithmetic and bitwise immediates can update a global directly.
+SWC_TEST_BEGIN(InstCombine_GlobalImmediateUpdate_UsesRipMemoryOperand)
 {
     constexpr MicroReg address = MicroReg::virtualIntReg(1);
     for (const DataSegmentKind segment : {DataSegmentKind::GlobalZero, DataSegmentKind::GlobalInit})
     {
-        for (const MicroOp op : {MicroOp::Add, MicroOp::Subtract})
+        for (const MicroOp op : {MicroOp::Add, MicroOp::Subtract, MicroOp::And, MicroOp::Or, MicroOp::Xor})
         {
             for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
             {

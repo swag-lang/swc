@@ -880,7 +880,9 @@ namespace InstructionCombine
         const bool immediateUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&
                                      useOps[3].valueU64 == 0 && !useOps[4].hasWideImmediateValue() &&
                                      fitsMemoryImmediate(useOps[4].valueU64) &&
-                                     (useOps[2].microOp == MicroOp::Add || useOps[2].microOp == MicroOp::Subtract);
+                                     (useOps[2].microOp == MicroOp::Add || useOps[2].microOp == MicroOp::Subtract ||
+                                      useOps[2].microOp == MicroOp::And || useOps[2].microOp == MicroOp::Or ||
+                                      useOps[2].microOp == MicroOp::Xor);
         const bool immediateStore = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
                                     !useOps[3].hasWideImmediateValue() &&
                                     (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));

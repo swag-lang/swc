@@ -36,6 +36,8 @@
 // Loads through the frame are left alone: a local's slot belongs to mem2reg,
 // and numbering its reloads first only leaves copy chains behind once the
 // slot is promoted.
+// RIP-relative loads use the relocation target in place of a register base;
+// identical targets share a read only within the same memory epoch.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -153,7 +155,8 @@ namespace
 
     // Key words that open a memory key, one per address family, chosen outside
     // the opcode range so a load never collides with a compute.
-    constexpr uint64_t K_MEMORY_KEY_BASE = 0x1000;
+    constexpr uint64_t K_MEMORY_KEY_BASE      = 0x1000;
+    constexpr uint64_t K_RELOCATED_MEMORY_KEY = 0x2000;
 
     bool numberingShapeFor(const MicroInstrOpcode op, NumberingShape& outShape)
     {
@@ -475,6 +478,7 @@ namespace
         key.push_back(reloc.constantRef.get());
         key.push_back(reloc.constantShard);
         key.push_back(reloc.constantOffset);
+        key.push_back(reloc.constantCopySize);
     }
 
     uint64_t hashKey(const SmallVector<uint64_t, 8>& key)
@@ -586,10 +590,6 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         if (shape.hasImmediate && ops[shape.immediateSlot].valueInt.bitWidth() > 64)
             continue;
 
-        // Every memory key needs its base's SSA value. Physical bases cannot
-        // participate, so they need neither relocation nor frame preparation.
-        if (shape.readsMemory && !isNumberableReg(ops[shape.useSlots[0]].reg))
-            continue;
         if (shape.addrBitsSlot != K_NO_SLOT && ops[shape.addrBitsSlot].opBits != MicroOpBits::B64)
             continue;
 
@@ -605,20 +605,28 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             relocationsReady = true;
         }
 
-        // A load through the frame is mem2reg's, and a RIP-relative one reads
-        // an address the relocation binds rather than the base register.
+        // A RIP-relative load names its cell through the relocation, rather
+        // than through an SSA base. Keep other physical bases opaque.
+        const auto relocIt = relocationByInstruction.find(instRef);
+        const MicroRelocation* const loadReloc = shape.readsMemory && relocIt != relocationByInstruction.end() ? relocIt->second : nullptr;
+        const bool ripLoad = loadReloc && inst->op == MicroInstrOpcode::LoadRegMem &&
+                             ops[1].reg.isInstructionPointer() && loadReloc->form == MicroRelocation::Form::Relative32;
+        if (shape.readsMemory && loadReloc && !ripLoad)
+            continue;
+        if (shape.readsMemory && !ripLoad && !isNumberableReg(ops[shape.useSlots[0]].reg))
+            continue;
+
+        // A load through the frame is mem2reg's.
         if (shape.readsMemory)
         {
-            if (relocationByInstruction.contains(instRef))
-                continue;
-            if (!frameDerivedRegsReady)
+            if (!ripLoad && !frameDerivedRegsReady)
             {
                 // Rewrites are queued, so even a late first load sees the same
                 // whole-function closure, including definitions after the load.
                 collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
                 frameDerivedRegsReady = true;
             }
-            if (frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))
+            if (!ripLoad && frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))
                 continue;
         }
         const MicroOpBits movBits = ops[shape.movBitsSlot].opBits;
@@ -642,6 +650,8 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         }
         for (const uint8_t slot : shape.useSlots)
         {
+            if (ripLoad && slot == shape.useSlots[0])
+                continue;
             const MicroReg useReg = ops[slot].reg;
             if (!isNumberableReg(useReg))
             {
@@ -663,6 +673,11 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             key.push_back(ops[slot].valueU64);
         if (shape.readsMemory)
             key.push_back(static_cast<uint64_t>(srcBits));
+        if (ripLoad)
+        {
+            key.push_back(K_RELOCATED_MEMORY_KEY);
+            appendRelocationIdentity(key, *loadReloc);
+        }
         if (shape.hasImmediate)
             key.push_back(ops[shape.immediateSlot].valueU64);
         if (shape.keyedByRelocationToo)
@@ -768,7 +783,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         // A rewritten instruction no longer carries the address the relocation
         // was going to patch. Leaving the relocation attached would have the
         // emitter bind it to whatever the copy encodes.
-        if (inst->op == MicroInstrOpcode::LoadRegPtrReloc)
+        if (relocationByInstruction.contains(rewrite.instRef))
             context.builder->invalidateRelocationForInstruction(rewrite.instRef);
 
         inst->op      = rewrite.op;

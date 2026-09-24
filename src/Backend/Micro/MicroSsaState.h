@@ -114,7 +114,7 @@ private:
         // is deliberately preserved.
         MicroInstrOpcode       cachedOp          = MicroInstrOpcode::OpBinaryRegImm;
         uint8_t                cachedNumOperands = 0;
-        bool                   useDefCached      = false;
+        uint32_t               useDefCacheEpoch  = 0;
         SmallVector4<uint64_t> cachedOperandWords;
     };
 
@@ -171,6 +171,7 @@ private:
     MicroStorage*              storage_ = nullptr;
     MicroDenseRegIndex         trackedRegs_;
     std::vector<InstrInfo>     instrInfos_;
+    uint32_t                   useDefCacheEpoch_ = 1;
     std::vector<MicroInstrRef> instructionRefs_;
     // The block graph, the dominator tree and the frontiers are a function of the control-flow
     // graph alone, so a rebuild that follows a transform which only rewrote operands reuses

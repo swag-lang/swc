@@ -7,6 +7,7 @@ test boundary. Build 1093 passed a second full Release rebuild and test sequence
 Integrated build 1095 passed the full Release sequence again after further backend
 merges. Build 1096 passed an incremental Release build and 3,478 focused native tests.
 Build 1097 passed an incremental Release build, 3,478 native tests and 1,500 JIT tests.
+Build 1108 passed a later full Release rebuild and test milestone.
 
 ## Baseline and targets
 
@@ -64,6 +65,7 @@ aggregate difference cannot be assigned to one batch from these measurements.
 | Native read-only zero data | Detect a zero-filled allocation without relocations in its source span, then emit `.rbss` directly without copying bytes into a discarded `.rdata` section. | Release build and 3,478 native tests passed. The first seven-pair core comparison was disrupted by an 11.5-second candidate run; a quieter five-pair repeat gave B/A wall 1.042 and CPU 1.050, with peak working set 1.010. |
 | Dead code elimination scratch | Keep the used-value bitmap and worklist on the per-worker pass object; overwrite both on each run. | Release build, 3,478 native and 1,500 JIT tests passed. The first seven pairs were disrupted by 4–5-second candidate outliers. A quiet five-pair core repeat gave B/A wall 1.012, CPU 0.991 and peak working set 1.004: below the measurement floor. |
 | SSA reaching-value capacity | Keep each register's reaching-value buffer when a function has no tracked registers or fewer registers than its predecessor; clear only active buffers before renaming. | Release build, 3,478 native and 1,500 JIT tests passed. Seven core pairs gave B/A wall 0.999, CPU 0.989 and peak working set 1.011: no measured speedup or memory regression. |
+| SSA restore allocation | Let the inline restore vector grow from actual saved definitions instead of reserving from the block's instruction count. | Release build, 3,478 native and 1,500 JIT tests passed. The first seven pairs included a 6.5-second candidate core outlier; a five-pair core repeat gave B/A wall 1.050, CPU 1.032 and peak working set 1.007. No stable aggregate percentage is claimed. |
 
 All A/B runs alternated candidate A and preserved compiler B. `B/A > 1` favors
 the candidate. Some runs expanded from about 3 seconds to 20–29 seconds on
@@ -137,6 +139,15 @@ and 0.989 CPU, and 1.011 for peak working set. Hello wall was neutral. The
 change removes repeated inner-vector destruction and reconstruction; its
 end-to-end timing remains below the measurement floor.
 
+Build 1107 removed the eager reserve for each SSA rename block's restore list.
+The first seven-pair comparison had a 6.5-second candidate core outlier and
+gave B/A 1.000 wall and 0.962 CPU. A subsequent five-pair core repeat gave
+B/A 1.050 wall, 1.032 CPU and 1.007 peak working set, though one candidate
+run was again disrupted. The local vector already stores eight restore points
+inline, so allocations now follow actual definitions rather than the block's
+instruction count. The two series support retaining this simpler path without
+claiming a stable end-to-end percentage.
+
 ## Final validation
 
 The Release solution rebuild from source succeeded at build 1093 with MSBuild `/m:6`
@@ -149,3 +160,28 @@ the 32 example and four application smokes also completed. Build 1096 then passe
 3,478 native tests after the loop-unroll merge. Build 1097 incorporates the later
 loop-rotation merge and passed an incremental Release build, 3,478 native tests and
 1,500 JIT tests. The full Release sequence was not repeated for that final merge.
+
+The afternoon milestone rebuilt integrated build 1108 from source in Release
+(MSBuild `/t:Rebuild /m:6`, `SwcCompileJobs=6`) without warnings or errors.
+`bin/swc.exe --num-cores 6 tools/tests.swgs --num-cores 6` exited zero:
+1,500 JIT, 3,478 native, 138 safety passes with the same seven expected
+non-passing dynamic cases, 2,390 standard-module, 550 application and 479
+reference tests. Script runs, 32 example builds and four application smokes
+also completed.
+
+The independent vector-backend merge advanced the cache identity to build
+1109. Its incremental Release build passed, followed by 3,478 native and
+1,500 JIT tests. The earlier full-sequence result belongs to build 1108.
+
+Build 1110 replaced SSA's per-function sweep over every retained instruction
+slot with a cache epoch. The epoch changes before each new function, so the
+existing use/def cache remains valid only within that function; wraparound
+explicitly resets the epochs. This removes a walk proportional to the largest
+function previously compiled on that worker. Its Release build, 3,478 native
+and 1,500 JIT tests passed. The first seven-pair core rebuild comparison was
+disrupted by a concurrent C++ build and gave baseline/candidate ratios 0.978
+wall and 0.970 CPU. A quieter five-pair repeat gave 1.011 wall and 0.979 CPU,
+with peak working set ratio 1.005. Wall and CPU do not agree on a gain; the
+change is retained for its simpler per-function cost, with no percentage
+speedup claim. WPR CPU sampling was attempted, but system profiling privileges
+were unavailable on this host (0xc5585011); no fresh trace was recorded.

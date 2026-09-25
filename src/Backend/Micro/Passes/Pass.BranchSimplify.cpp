@@ -1167,9 +1167,15 @@ namespace
             uint32_t secondUses = 0;
             for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
             {
-                const MicroInstrUseDef useDef = it->collectUseDef(operands, nullptr);
-                for (const MicroReg use : useDef.uses)
+                const MicroInstrOperand* instOps = it->ops(operands);
+                if (!instOps)
+                    continue;
+                const auto modes = MicroInstr::info(it->op).resolvedRegModes(instOps);
+                for (size_t i = 0; i < modes.size(); ++i)
                 {
+                    if (modes[i] != MicroInstrRegMode::Use && modes[i] != MicroInstrRegMode::UseDef)
+                        continue;
+                    const MicroReg use = instOps[i].reg;
                     if (use == firstReg && (++firstUses > 1 || it.current != firstReader))
                         return false;
                     if (use == secondReg && (++secondUses > 1 || it.current != secondReader))

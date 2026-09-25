@@ -965,9 +965,11 @@ namespace InstructionCombine
     //     %x = zext %c ; %k = %k >> %x    ->    %k = %k >> %c
     bool tryBypassShiftCountExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
         const MicroInstrOperand* ops        = inst.ops(*ctx.operands);
         const uint32_t           countIndex = inst.op == MicroInstrOpcode::OpBinaryRegRegReg ? 2 : 1;
-        if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[countIndex].reg.isVirtualInt() ||
+        if (!ops || !ops[countIndex].reg.isVirtualInt() ||
             (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
             return false;
         switch (ops[countIndex + 2].microOp)
@@ -1007,8 +1009,10 @@ namespace InstructionCombine
     // extended value are a range, which folds to a single one first.
     bool tryNarrowCompareOfZeroExtension(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[0].reg.isVirtualInt() || ops[2].hasWideImmediateValue() ||
+        if (!ops || !ops[0].reg.isVirtualInt() || ops[2].hasWideImmediateValue() ||
             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
             return false;
 

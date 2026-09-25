@@ -451,9 +451,11 @@ namespace InstructionCombine
         // Bypass a source mask only when it preserves all those low count bits.
         bool tryBypassShiftCountMaskImpl(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
         {
+            if (ctx.isClaimed(ref) || !ctx.ssa)
+                return false;
             const auto*    ops        = inst.ops(*ctx.operands);
             const uint32_t countIndex = inst.op == MicroInstrOpcode::OpBinaryRegRegReg ? 2 : 1;
-            if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[0].reg.isVirtualInt() || !ops[countIndex].reg.isVirtualInt() ||
+            if (!ops || !ops[0].reg.isVirtualInt() || !ops[countIndex].reg.isVirtualInt() ||
                 (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
                 return false;
             switch (ops[countIndex + 2].microOp)

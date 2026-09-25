@@ -691,8 +691,10 @@ namespace InstructionCombine
     // Rebuild only the final result after checking both source snapshots.
     bool tryFoldComplementedSum(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
         const auto* ops = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !ctx.ssa || !ops || !ops[0].reg.isVirtualInt() || ops[2].microOp != MicroOp::BitwiseNot ||
+        if (!ops || !ops[0].reg.isVirtualInt() || ops[2].microOp != MicroOp::BitwiseNot ||
             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
             return false;

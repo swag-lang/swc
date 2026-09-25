@@ -202,7 +202,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
     SWC_ASSERT(instructions_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
 
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end();)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt;)
     {
         const MicroInstrRef instructionRef = it.current;
         MicroInstr&         inst           = *it;
@@ -754,7 +754,7 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
 
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
     uint32_t       idx       = 0;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         if (!isFlushBoundary(idx, *it))
             continue;
@@ -871,7 +871,7 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         return;
 
     uint32_t idx = 0;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
             continue;
@@ -919,7 +919,7 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
     // that jump and its target starts with the panic label, ends with the
     // panic call, and falls into the join — same signature, different entry.
     idx = 0;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         if (!MicroInstrInfo::isUnconditionalJumpInstruction(*it, it->ops(*operands_)))
             continue;
@@ -1085,7 +1085,7 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
     jumpsToOwnNextLabel.assign(instructionCount_, 0);
     {
         uint32_t idx = 0;
-        for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+        for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
             if (it->op != MicroInstrOpcode::Label)
                 continue;
@@ -1096,7 +1096,7 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         // inserted before that label, so such a predecessor cannot be the
         // entry that runs the fill.
         idx = 0;
-        for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+        for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
             if (!MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::JumpInstruction))
                 continue;
@@ -2257,7 +2257,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // value, on every spill and every reload. An instruction carrying a 128-bit
     // operand marks everything it names as wide; anything else is a scalar.
     uint32_t wideScanIndex = 0;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && wideScanIndex < instructionCount_; ++it, ++wideScanIndex)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && wideScanIndex < instructionCount_; ++it, ++wideScanIndex)
     {
         const MicroInstrOperand* ops = it->ops(*operands_);
 
@@ -3145,7 +3145,7 @@ bool MicroRegisterAllocationPass::isStraightLineRange(const uint32_t lo, const u
     }
 
     uint32_t idx = 0;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         if (idx > hi)
             break;
@@ -3874,7 +3874,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     activeLoopResidency_.clear();
     if (keepAcrossBoundaries_ && context_->isFirstAllocationSweep)
         collectLoopRegions(sealedLoopRegions_);
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it)
     {
         if (stamp == std::numeric_limits<uint32_t>::max())
         {
@@ -4400,7 +4400,7 @@ void MicroRegisterAllocationPass::insertSpillFrame() const
     instructions_->insertSyntheticBefore(*operands_, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
 
     SmallVector<MicroInstrRef> retRefs;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end(); ++it)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt; ++it)
     {
         if (it->op == MicroInstrOpcode::Ret)
             retRefs.push_back(it.current);

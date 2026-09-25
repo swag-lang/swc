@@ -1834,7 +1834,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // virtual access must resolve to a register node.
     {
         uint32_t idx = 0;
-        for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+        for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
             SmallVector<MicroInstrRegOperandRef> regRefs;
             it->collectRegOperands(*operands_, regRefs, context_->encoder);
@@ -1890,7 +1890,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
 
     size_t   nextConnector = 0;
     uint32_t idx           = 0;
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         const MicroInstrRef instructionRef = it.current;
 
@@ -2085,7 +2085,7 @@ bool MicroRegisterAllocationPass::functionMayNeedLegalizeScratch() const
     if (!context_ || !context_->encoder)
         return true;
 
-    for (auto it = instructions_->view().begin(); it != instructions_->view().end(); ++it)
+    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt; ++it)
     {
         if (context_->encoder->mayNeedLegalizeScratchRegister(*it, it->ops(*operands_)))
             return true;

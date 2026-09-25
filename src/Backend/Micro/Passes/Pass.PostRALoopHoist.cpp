@@ -227,8 +227,6 @@ namespace
             }
         }
 
-        bool anyBaseNamed = false;
-        MicroInstrRegOperandRefs refs;
         for (const MicroInstr& inst : storage.view())
         {
             const MicroInstrOperand* ops  = inst.ops(operands);
@@ -257,27 +255,27 @@ namespace
                 }
             }
 
-            refs.clear();
-            inst.collectRegOperands(operands, refs, encoder);
-            for (const MicroInstrRegOperandRef& ref : refs)
+            if (!ops)
+                continue;
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!ref.reg || !isTrackedBase(*ref.reg))
+                if (modes[i] == MicroInstrRegMode::None || !isTrackedBase(ops[i].reg))
                     continue;
                 if (inst.op == MicroInstrOpcode::Push || inst.op == MicroInstrOpcode::Pop)
                     continue;
-                if (ref.def)
+                if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
                     continue;
                 // The prologue copy that defines the local base is the one
                 // legitimate value use of the stack pointer.
                 if (inst.op == MicroInstrOpcode::LoadRegReg && ops &&
                     (isFrameBaseRegister(ops[0].reg, conv) || (out.localBaseReg.isValid() && ops[0].reg == out.localBaseReg)))
                     continue;
-                if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-                    ops && ref.reg == &const_cast<MicroInstrOperand*>(ops)[info.memBaseOperandIndex].reg)
+                if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && i == info.memBaseOperandIndex)
                     continue;
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
                     continue; // classified above, per object
-                if (isFrameBaseRegister(*ref.reg, conv))
+                if (isFrameBaseRegister(ops[i].reg, conv))
                     out.spSpaceEscapes = true;
                 else
                     out.localSpaceEscapes = true;

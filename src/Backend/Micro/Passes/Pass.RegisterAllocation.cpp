@@ -1505,8 +1505,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
     auto& benefits = globalBenefits_;
     computeGlobalBenefits(benefits);
-    auto& accessBenefits = globalAccessBenefits_;
-    computeGlobalAccessBenefits(accessBenefits);
 
     // Fixed-point scale for the density ranking below, so the comparison
     // stays in integers.
@@ -1555,12 +1553,17 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             .hi            = std::min(virtualSpanHi_[denseIndex], lastIndex),
             .density       = density,
             .rawBenefit    = benefits[denseIndex],
-            .accessBenefit = accessBenefits[denseIndex],
+            .accessBenefit = 0,
         });
     }
 
     if (candidates.empty())
         return;
+
+    auto& accessBenefits = globalAccessBenefits_;
+    computeGlobalAccessBenefits(accessBenefits);
+    for (GlobalCandidate& candidate : candidates)
+        candidate.accessBenefit = accessBenefits[candidate.denseIndex];
 
     // Supply and budget are two different things. Widening which registers may be granted (below)
     // is worth it for the values that dominate a hot loop; handing one to every candidate that

@@ -1949,7 +1949,7 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     // Single-definition map for address rooting, and global positions.
     std::vector<BlockInstr> blockInstrs;
     uint32_t                position = 0;
-    for (auto it = fn.storage->view().begin(); it != fn.storage->view().end(); ++it, ++position)
+    for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
     {
         if (fn.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
             fn.firstCallPos = position;
@@ -1979,7 +1979,7 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
         blockInstrs.clear();
     };
 
-    for (auto it = fn.storage->view().begin(); it != fn.storage->view().end(); ++it, ++position)
+    for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
     {
         MicroInstr&          inst = *it;
         const MicroInstrDef& info = MicroInstr::info(inst.op);

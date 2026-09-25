@@ -54,6 +54,37 @@ namespace
         return ops && operandIndex < inst.numOperands;
     }
 
+    struct RegTouch
+    {
+        bool use = false;
+        bool def = false;
+    };
+
+    RegTouch regTouch(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, const Encoder* encoder)
+    {
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, encoder);
+            return {microRegSpanContains(useDef.uses, reg), microRegSpanContains(useDef.defs, reg)};
+        }
+
+        RegTouch touch;
+        if (const MicroInstrOperand* ops = inst.ops(*context.operands))
+        {
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if (modes[i] == MicroInstrRegMode::None || ops[i].reg != reg)
+                    continue;
+                touch.use |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
+                touch.def |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+            }
+        }
+        return touch;
+    }
+
     // Scans forward from instRef looking for a use/def of reg.
     // Returns true on use (live), false on def (killed), false if reg invalid,
     // or fallbackResult if instRef is not found / a local dataflow barrier is hit
@@ -78,31 +109,11 @@ namespace
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return fallbackResult;
 
-            if (context.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
-            {
-                const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
-                if (microRegSpanContains(useDef.uses, reg))
-                    return true;
-                if (microRegSpanContains(useDef.defs, reg))
-                    return false;
-                continue;
-            }
-
-            if (const MicroInstrOperand* ops = scanInst.ops(*context.operands))
-            {
-                const auto modes = info.resolvedRegModes(ops);
-                bool       defined = false;
-                for (size_t i = 0; i < modes.size(); ++i)
-                {
-                    if (ops[i].reg != reg)
-                        continue;
-                    if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
-                        return true;
-                    defined |= modes[i] == MicroInstrRegMode::Def;
-                }
-                if (defined)
-                    return false;
-            }
+            const RegTouch touch = regTouch(context, scanInst, reg, context.encoder);
+            if (touch.use)
+                return true;
+            if (touch.def)
+                return false;
         }
 
         return false;
@@ -144,15 +155,14 @@ namespace
             // a loop's multiply or divide otherwise kept a dead value cycling.
             if (instructionRefs[index] == instRef)
             {
-                const MicroInstrUseDef explicitUseDef = instruction->collectUseDef(*context.operands, nullptr);
-                if (!microRegSpanContains(explicitUseDef.uses, reg))
+                if (!regTouch(context, *instruction, reg, nullptr).use)
                     continue;
             }
 
-            const MicroInstrUseDef useDef = instruction->collectUseDef(*context.operands, context.encoder);
-            if (microRegSpanContains(useDef.uses, reg))
+            const RegTouch touch = regTouch(context, *instruction, reg, context.encoder);
+            if (touch.use)
                 return true;
-            if (microRegSpanContains(useDef.defs, reg))
+            if (touch.def)
                 continue;
 
             for (const uint32_t successor : cfg.successors(index))

@@ -236,16 +236,26 @@ namespace
 
     struct ProgramLayoutCache
     {
-        ProgramLayout layout;
-        bool          built = false;
+        ProgramLayout        layout;
+        const ProgramLayout* borrowed = nullptr;
+        bool                 built    = false;
 
         void invalidate()
         {
-            built = false;
+            borrowed = nullptr;
+            built    = false;
+        }
+
+        void borrow(const ProgramLayout& source)
+        {
+            borrowed = &source;
+            built    = false;
         }
 
         const ProgramLayout& get(const MicroStorage& storage, const MicroOperandStorage& operands)
         {
+            if (borrowed)
+                return *borrowed;
             if (!built)
             {
                 buildProgramLayout(layout, storage, operands);
@@ -7298,7 +7308,11 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     for (uint32_t round = 0; round < K_MAX_THREAD_ROUNDS; ++round)
     {
         shortCircuitLayout.invalidate();
+        if (round == 0 && scanCache.layoutBuilt)
+            shortCircuitLayout.borrow(scanCache.scan.layout);
         bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
+        if (roundChanged)
+            shortCircuitLayout.invalidate();
         const bool coalesced = coalesceShortCircuitResults(storage, operands, context, shortCircuitLayout, relocationCache);
         roundChanged |= coalesced;
         if (coalesced)

@@ -18,7 +18,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr)
+    Result runPostRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr, MicroReg localStackBase = MicroReg::invalid())
     {
         MicroPostRaPeepholePass pass;
         MicroPassManager        passManager;
@@ -26,6 +26,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
+        passContext.debugStackBasePhysReg = localStackBase;
         return builder.runPasses(passManager, encoder, passContext);
     }
 
@@ -130,6 +131,45 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsDeadScalarIncrement)
             return Result::Error;
         if (variant == 0 && (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0 ||
                              Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ErasesPrivateFrameReloadAfterBranch)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg localBase = MicroReg::intReg(3);
+    constexpr MicroReg otherBase = MicroReg::intReg(7);
+    constexpr MicroReg index = MicroReg::intReg(6);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const MicroReg base = variant == 1 ? otherBase : localBase;
+        const auto skip = builder.createLabel();
+        builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+        builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
+        const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
+        MicroInstrOperand indexedCompare[7];
+        indexedCompare[0].reg = value;
+        indexedCompare[1].reg = index;
+        indexedCompare[2].opBits = MicroOpBits::B8;
+        indexedCompare[3].opBits = MicroOpBits::B64;
+        indexedCompare[4].valueU64 = 1;
+        indexedCompare[5].valueU64 = 0;
+        indexedCompare[6].setImmediateValue(ApInt(0, 8));
+        builder.instructions().insertDerivedBefore(builder.operands(), oldCompare, MicroInstrOpcode::CmpAmcImm, indexedCompare);
+        builder.instructions().erase(oldCompare);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skip);
+        builder.emitLoadRegMem(value, base, variant == 2 ? 16 : 8, MicroOpBits::B64);
+        builder.emitLoadMemImm(value, 0, ApInt(1, 8), MicroOpBits::B8);
+        builder.placeLabel(skip);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, localBase));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (variant == 0 ? 1u : 2u))
             return Result::Error;
     }
     return Result::Continue;

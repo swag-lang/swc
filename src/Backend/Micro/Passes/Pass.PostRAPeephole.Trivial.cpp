@@ -110,6 +110,44 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A conditional memory test does not change either the pointer just
+    // loaded from a private frame slot or that slot's contents. On the branch
+    // fallthrough, loading the same pointer into the same register again is
+    // redundant even when the taken edge leaves the block.
+    bool tryErasePrivateFrameReloadAfterBranch(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        const MicroInstrOperand* load = loadInst.ops(*ctx.operands);
+        if (!load || !load[0].reg.isInt() || !ctx.isPrivateFrameBase(load[1].reg) ||
+            load[0].reg == load[1].reg || load[2].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroInstrRef compareRef = ctx.nextRef(loadRef);
+        const MicroInstr* compareInst = ctx.instruction(compareRef);
+        const MicroInstrOperand* compare = compareInst && compareInst->op == MicroInstrOpcode::CmpAmcImm ?
+            compareInst->ops(*ctx.operands) : nullptr;
+        if (!compare || compare[0].reg != load[0].reg)
+            return false;
+
+        const MicroInstrRef jumpRef = ctx.nextRef(compareRef);
+        const MicroInstr* jumpInst = ctx.instruction(jumpRef);
+        const MicroInstrOperand* jump = jumpInst && jumpInst->op == MicroInstrOpcode::JumpCond ?
+            jumpInst->ops(*ctx.operands) : nullptr;
+        if (!jump || jump[0].cpuCond == MicroCond::Unconditional)
+            return false;
+
+        const MicroInstrRef reloadRef = ctx.nextRef(jumpRef);
+        const MicroInstr* reloadInst = ctx.instruction(reloadRef);
+        const MicroInstrOperand* reload = reloadInst && reloadInst->op == MicroInstrOpcode::LoadRegMem ?
+            reloadInst->ops(*ctx.operands) : nullptr;
+        if (!reload || reload[0].reg != load[0].reg || reload[1].reg != load[1].reg ||
+            reload[2].opBits != load[2].opBits || reload[3].valueU64 != load[3].valueU64 ||
+            !ctx.claimAll({loadRef, compareRef, jumpRef, reloadRef}))
+            return false;
+
+        ctx.emitErase(reloadRef);
+        return true;
+    }
+
     // A conditional jump over an unconditional one:
     //
     //     jbe .L ; jmp .M ; .L:    ->    ja .M ; .L:

@@ -914,6 +914,21 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
     if (cap == 1 && uses.front().kind == UseSite::Kind::Instruction)
         return 1;
 
+    uint32_t directUses = 0;
+    bool     hasPhiUse  = false;
+    for (const UseSite& use : uses)
+    {
+        if (use.kind == UseSite::Kind::Instruction)
+        {
+            if (++directUses >= cap)
+                return cap;
+        }
+        else
+            hasPhiUse = true;
+    }
+    if (!hasPhiUse)
+        return directUses;
+
     if (useVisitStamps_.size() < valueInfoCount_)
         useVisitStamps_.resize(valueInfoCount_, 0);
     if (useVisitStamp_ == std::numeric_limits<uint32_t>::max())
@@ -969,7 +984,7 @@ bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
     const auto& uses = valueInfos_[valueId].uses;
     if (uses.empty())
         return false;
-    if (uses.front().kind == UseSite::Kind::Instruction)
+    if (std::ranges::any_of(uses, [](const UseSite& use) { return use.kind == UseSite::Kind::Instruction; }))
         return true;
 
     if (useVisitStamps_.size() < valueInfoCount_)

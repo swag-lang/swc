@@ -2520,15 +2520,17 @@ namespace
                 if (!links.empty())
                 {
                     std::unordered_map<uint32_t, uint32_t> inside;
-                    MicroInstrRegOperandRefs   regOperands;
                     for (size_t index = at; index <= link.merge; ++index)
                     {
-                        regOperands.clear();
-                        instAt(index)->collectRegOperands(operands, regOperands, nullptr);
-                        for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                        const MicroInstr* instruction = instAt(index);
+                        const MicroInstrOperand* instructionOps = instruction->ops(operands);
+                        if (!instructionOps)
+                            continue;
+                        const auto modes = MicroInstr::info(instruction->op).resolvedRegModes(instructionOps);
+                        for (size_t operand = 0; operand < modes.size(); ++operand)
                         {
-                            if (regOperand.reg && regOperand.reg->isVirtualInt())
-                                ++inside[regOperand.reg->index()];
+                            if (modes[operand] != MicroInstrRegMode::None && instructionOps[operand].reg.isVirtualInt())
+                                ++inside[instructionOps[operand].reg.index()];
                         }
                     }
 

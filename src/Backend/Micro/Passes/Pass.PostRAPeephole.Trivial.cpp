@@ -59,8 +59,6 @@ namespace PostRaPeephole
     // included.
     bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (inst.op != MicroInstrOpcode::JumpCond)
-            return false;
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
         if (!ops || ops[0].cpuCond == MicroCond::Unconditional)
             return false;
@@ -95,8 +93,6 @@ namespace PostRaPeephole
     // any 32-bit write - it changes nothing.
     bool tryEraseZeroExtendedSelfCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (inst.op != MicroInstrOpcode::LoadRegReg)
-            return false;
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
         if (!ops || ops[0].reg != ops[1].reg || !ops[0].reg.isInt() ||
             ops[2].opBits != MicroOpBits::B32)
@@ -112,8 +108,6 @@ namespace PostRaPeephole
     // value has no later consumer.
     bool tryDropSignExtendBeforeNarrowCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (inst.op != MicroInstrOpcode::LoadSignedExtRegReg)
-            return false;
         const MicroInstrOperand* extend = inst.ops(*ctx.operands);
         if (!extend ||
             extend[2].opBits != MicroOpBits::B64 || extend[3].opBits != MicroOpBits::B32 ||

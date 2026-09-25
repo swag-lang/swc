@@ -217,8 +217,6 @@ namespace PostRaPeephole
         // Frame homes are private to the current function. A later exact store
         // therefore kills this one when no instruction in between can observe
         // memory and no control-flow edge can enter the scanned sequence.
-        if (storeInst.op != MicroInstrOpcode::LoadMemReg)
-            return false;
         const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
         if (!storeOps)
             return false;
@@ -268,7 +266,7 @@ namespace PostRaPeephole
         // The stored physical register still contains the same value when it
         // has not been redefined. Conditional jumps are safe here: the reload
         // only belongs to their fallthrough path, while labels stop the scan.
-        if (storeInst.op != MicroInstrOpcode::LoadMemReg || ctx.isClaimed(storeRef))
+        if (ctx.isClaimed(storeRef))
             return false;
         const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
         if (!storeOps)
@@ -340,7 +338,7 @@ namespace PostRaPeephole
         // equal-width reload. Unlike the dead-reload rule above, intervening
         // memory reads are harmless; writes can alias the frame slot and stop
         // the scan conservatively.
-        if (storeInst.op != MicroInstrOpcode::LoadMemReg || ctx.isClaimed(storeRef))
+        if (ctx.isClaimed(storeRef))
             return false;
         const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
         if (!storeOps)

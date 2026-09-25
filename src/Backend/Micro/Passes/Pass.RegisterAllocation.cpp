@@ -206,6 +206,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
     SWC_ASSERT(instructions_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
 
+    SmallVector<MicroInstrRegOperandRef> refs;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt;)
     {
         const MicroInstrRef instructionRef = it.current;
@@ -250,7 +251,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
 
             if (containsKey(useDef.uses, dstReg))
             {
-                SmallVector<MicroInstrRegOperandRef> refs;
+                refs.clear();
                 scanIt->collectRegOperands(*operands_, refs, context_->encoder);
                 for (const MicroInstrRegOperandRef& ref : refs)
                 {

@@ -391,10 +391,10 @@ namespace
 
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(*context.operands);
+            const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::Nop || inst.op == MicroInstrOpcode::Label)
                 continue;
+            const MicroInstrOperand* ops = inst.ops(*context.operands);
 
             uint64_t immediate = 0;
             if (inEntryRun)
@@ -546,10 +546,10 @@ namespace
         SmallVector<MicroInstrRegOperandRef> regOperands;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(*context.operands);
+            const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::Nop || inst.op == MicroInstrOpcode::Label)
                 continue;
+            const MicroInstrOperand* ops = inst.ops(*context.operands);
 
             uint64_t immediate = 0;
             if (inEntryRun)

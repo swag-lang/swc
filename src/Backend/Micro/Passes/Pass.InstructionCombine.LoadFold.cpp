@@ -215,7 +215,7 @@ namespace InstructionCombine
             return false;
         const bool               isLoad = inst.op == MicroInstrOpcode::LoadRegMem;
         const MicroInstrOperand* ops    = inst.ops(*ctx.operands);
-        if (!ops || (!isLoad && inst.op != MicroInstrOpcode::OpBinaryRegMem))
+        if (!ops)
             return false;
 
         const MicroReg    dst      = ops[0].reg;

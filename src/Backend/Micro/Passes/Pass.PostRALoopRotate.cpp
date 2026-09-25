@@ -240,6 +240,92 @@ namespace
         }
         return false;
     }
+
+    // A two-way count comparison can place its advancing step before the
+    // header. Mismatches then branch backward to the step and fall through
+    // the next comparison, instead of paying an unconditional back edge on
+    // every advance. The one-time entry jumps over that step.
+    bool placeMismatchStepBeforeHeader(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
+    {
+        MicroStorage& storage = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        for (uint32_t header = 0; header + 9 < order.size(); ++header)
+        {
+            const MicroInstr* headerInst = storage.ptr(order[header]);
+            const MicroInstrOperand* headerOps = headerInst ? headerInst->ops(operands) : nullptr;
+            if (!headerInst || headerInst->op != MicroInstrOpcode::Label || !headerOps)
+                continue;
+
+            for (uint32_t loads = 1; loads <= 2; ++loads)
+            {
+                const uint32_t compare = header + 1 + loads;
+                if (compare + 6 >= order.size())
+                    break;
+                bool indexedLoads = true;
+                for (uint32_t i = header + 1; i < compare; ++i)
+                    indexedLoads &= storage.ptr(order[i])->op == MicroInstrOpcode::LoadAmcRegMem;
+                if (!indexedLoads)
+                    continue;
+
+                const MicroInstr* cmp = storage.ptr(order[compare]);
+                const MicroInstr* equal = storage.ptr(order[compare + 1]);
+                const MicroInstr* lessOrEqual = storage.ptr(order[compare + 2]);
+                const MicroInstr* stepLabel = storage.ptr(order[compare + 3]);
+                const MicroInstr* update = storage.ptr(order[compare + 4]);
+                const MicroInstr* back = storage.ptr(order[compare + 5]);
+                const MicroInstr* tieLabel = storage.ptr(order[compare + 6]);
+                if (!cmp || !equal || !lessOrEqual || !stepLabel || !update || !back || !tieLabel ||
+                    (cmp->op != MicroInstrOpcode::CmpAmcReg && cmp->op != MicroInstrOpcode::CmpRegReg) ||
+                    equal->op != MicroInstrOpcode::JumpCond || lessOrEqual->op != MicroInstrOpcode::JumpCond ||
+                    stepLabel->op != MicroInstrOpcode::Label || update->op != MicroInstrOpcode::OpBinaryRegImm ||
+                    back->op != MicroInstrOpcode::JumpCond || tieLabel->op != MicroInstrOpcode::Label ||
+                    equal->numOperands < 3 || lessOrEqual->numOperands < 3 ||
+                    update->numOperands < 4 || back->numOperands < 3)
+                    continue;
+
+                const MicroInstrOperand* equalOps = equal->ops(operands);
+                const MicroInstrOperand* lessOps = lessOrEqual->ops(operands);
+                const MicroInstrOperand* stepOps = stepLabel->ops(operands);
+                const MicroInstrOperand* updateOps = update->ops(operands);
+                const MicroInstrOperand* backOps = back->ops(operands);
+                const MicroInstrOperand* tieOps = tieLabel->ops(operands);
+                if (!equalOps || !lessOps || !stepOps || !updateOps || !backOps || !tieOps ||
+                    equalOps[0].cpuCond != MicroCond::Equal || lessOps[0].cpuCond != MicroCond::BelowOrEqual ||
+                    equalOps[2].valueU64 != tieOps[0].valueU64 ||
+                    backOps[0].cpuCond != MicroCond::Unconditional || backOps[2].valueU64 != headerOps[0].valueU64 ||
+                    (updateOps[2].microOp != MicroOp::Add && updateOps[2].microOp != MicroOp::Subtract) ||
+                    updateOps[1].opBits != MicroOpBits::B64 || updateOps[3].valueU64 != 1)
+                    continue;
+
+                const uint64_t mismatchLabelId = context.builder->createLabel().get();
+                MicroInstrOperand entryJump[3] = {backOps[0], backOps[1], backOps[2]};
+                MicroInstrOperand mismatchLabelOps[1];
+                mismatchLabelOps[0].valueU64 = mismatchLabelId;
+                MicroInstrOperand exitJump[3] = {lessOps[0], lessOps[1], lessOps[2]};
+                MicroInstrOperand stepLabelOps[1] = {stepOps[0]};
+                MicroInstrOperand updateCopy[4] = {updateOps[0], updateOps[1], updateOps[2], updateOps[3]};
+
+                storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::JumpCond, entryJump);
+                storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::Label, mismatchLabelOps);
+                storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::JumpCond, exitJump);
+                storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::Label, stepLabelOps);
+                storage.insertDerivedBefore(operands, order[header], MicroInstrOpcode::OpBinaryRegImm, updateCopy);
+
+                MicroInstr* rewrittenEqual = storage.ptr(order[compare + 1]);
+                MicroInstrOperand* rewrittenOps = rewrittenEqual->ops(operands);
+                rewrittenOps[0].cpuCond = MicroCond::NotEqual;
+                rewrittenOps[2].valueU64 = mismatchLabelId;
+                storage.erase(order[compare + 2]);
+                storage.erase(order[compare + 3]);
+                storage.erase(order[compare + 4]);
+                storage.erase(order[compare + 5]);
+                context.builder->invalidateControlFlowGraph();
+                context.passChanged = true;
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
@@ -276,6 +362,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     }
 
     if (placeShortLoopStep(context, order))
+        return Result::Continue;
+    if (placeMismatchStepBeforeHeader(context, order))
         return Result::Continue;
 
     // Every rotation needs an incoming jump to its header.

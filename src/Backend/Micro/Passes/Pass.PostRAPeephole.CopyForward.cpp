@@ -254,8 +254,10 @@ namespace PostRaPeephole
     // rewrites that could introduce a new read of either register.
     bool tryCoalesceLocalCopyChain(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref) || !ctx.encoder)
+            return false;
         const auto* copy = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !copy || !ctx.encoder || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
             copy[0].reg == copy[1].reg || copy[2].opBits != MicroOpBits::B64 ||
             ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
             return false;
@@ -353,8 +355,10 @@ namespace PostRaPeephole
     // must prove that the old address result in s has no remaining reader.
     bool tryFoldCommutativeAddressCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref))
+            return false;
         const auto* copy = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
             copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
             (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
             return false;
@@ -400,8 +404,10 @@ namespace PostRaPeephole
     // directly. The old destination must be dead, including along CFG successors.
     bool tryCommuteBinaryResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref))
+            return false;
         const auto* copy = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+        if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
             copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
             (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64))
             return false;
@@ -500,8 +506,10 @@ namespace PostRaPeephole
     // harmless once the count dies or is replaced by the shift's full result.
     bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref))
+            return false;
         const auto* copy = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !copy || copy[2].opBits != MicroOpBits::B64 ||
+        if (!copy || copy[2].opBits != MicroOpBits::B64 ||
             !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
             return false;
         const MicroInstrRef shiftRef = ctx.nextRef(ref);
@@ -540,8 +548,10 @@ namespace PostRaPeephole
     // full 32-bit write, no instruction may observe the original high bits.
     bool tryNarrowCopyBefore32BitWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref) || !ctx.encoder)
+            return false;
         const auto* copy = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !ctx.encoder || !copy || copy[2].opBits != MicroOpBits::B64 ||
+        if (!copy || copy[2].opBits != MicroOpBits::B64 ||
             !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
             return false;
         constexpr uint32_t                       maxWindow = 8;
@@ -612,8 +622,10 @@ namespace PostRaPeephole
     // The IR width contract already guarantees that the source's upper half is zero.
     bool tryNarrowCopyOf32BitResult(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref))
+            return false;
         const auto* copy = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !copy || copy[2].opBits != MicroOpBits::B64 ||
+        if (!copy || copy[2].opBits != MicroOpBits::B64 ||
             !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
             return false;
         const MicroInstrRef producerRef = ctx.previousRef(ref);

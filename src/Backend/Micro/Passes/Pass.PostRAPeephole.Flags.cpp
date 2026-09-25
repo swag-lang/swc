@@ -1248,8 +1248,10 @@ namespace PostRaPeephole
     // CF while destroying a source only when that physical value is dead.
     bool tryFoldZeroComparisonMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic())
+            return false;
         const auto* ops = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic() || !ops ||
+        if (!ops ||
             ops[2].microOp != MicroOp::Negate || !ops[0].reg.isInt() || ctx.isPrivateFrameBase(ops[0].reg) ||
             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64))
             return false;
@@ -1790,8 +1792,10 @@ namespace PostRaPeephole
     // either absolute-value result, including its wrapped negative form.
     bool tryReuseNegationForSignSelect(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (ctx.isClaimed(ref))
+            return false;
         const auto* select = inst.ops(*ctx.operands);
-        if (ctx.isClaimed(ref) || !select || !select[0].reg.isInt() || !select[1].reg.isInt() ||
+        if (!select || !select[0].reg.isInt() || !select[1].reg.isInt() ||
             select[0].reg == select[1].reg || ctx.isPrivateFrameBase(select[0].reg) ||
             (select[3].opBits != MicroOpBits::B32 && select[3].opBits != MicroOpBits::B64))
             return false;

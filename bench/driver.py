@@ -563,7 +563,7 @@ def main():
                     entry["build"] = {"error": errors[name]}
                 if measure_run:
                     entry["run"] = {"error": errors[name]}
-                print("  %-20s BUILD ERROR %s" % (name, errors[name][:150]))
+                print("  %-20s %s ERROR %s" % (name, "BUILD" if measure_build else "RUN", errors[name][:150]))
             elif measure_run:
                 if measure_build and name in aot:
                     entry["build"] = acc_build[name]
@@ -571,7 +571,7 @@ def main():
                 r = entry["run"]
                 if r.get("error"):
                     print("  %-20s RUN ERROR %s" % (name, r["error"][:150]))
-                elif name in aot:
+                elif name in aot and measure_build:
                     print("  %-20s run=%10.2f ms (%2dx, %+4.0f%%)  build=%8.1f ms  "
                           "bmem=%7.1f MB  check=%d"
                           % (name, r["ms"], len(r.get("samples") or []),

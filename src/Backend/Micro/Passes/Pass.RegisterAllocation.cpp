@@ -83,6 +83,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr std::array<uint64_t, 10> K_LOOP_DEPTH_WEIGHTS = {
+        1ull, 10ull, 100ull, 1'000ull, 10'000ull, 100'000ull, 1'000'000ull, 10'000'000ull, 100'000'000ull, 1'000'000'000ull,
+    };
+
     void appendUniqueDenseIndex(SmallVector<uint32_t, 4>& indices, const uint32_t value)
     {
         for (const auto existing : indices)
@@ -741,9 +745,6 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
     // usual static estimate of trip count. A linear weight would rank a value
     // spanning many outer boundaries above one crossing a few innermost ones,
     // inverting the real cost.
-    constexpr uint64_t K_DEPTH_WEIGHT     = 10;
-    constexpr uint32_t K_MAX_WEIGHT_DEPTH = 9;
-
     outBenefit.assign(denseVirtualRegs_.regs().size(), 0);
 
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
@@ -770,9 +771,7 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
         if (!depth && functionHasLoop_)
             continue;
 
-        uint64_t weight = 1;
-        for (uint32_t level = 0; level < std::min(depth, K_MAX_WEIGHT_DEPTH); ++level)
-            weight *= K_DEPTH_WEIGHT;
+        const uint64_t weight = K_LOOP_DEPTH_WEIGHTS[std::min(depth, 9u)];
 
         const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, idx, wordCount);
         for (size_t wordIndex = 0; wordIndex < liveRow.size(); ++wordIndex)
@@ -798,17 +797,12 @@ void MicroRegisterAllocationPass::computeGlobalAccessBenefits(std::vector<uint64
     // loop depth at which they execute. Boundary count alone cannot distinguish
     // a loop cursor used on every iteration from a hoisted address that merely
     // remains live across the same boundaries.
-    constexpr uint64_t K_DEPTH_WEIGHT     = 10;
-    constexpr uint32_t K_MAX_WEIGHT_DEPTH = 9;
-
     outBenefit.assign(denseVirtualRegs_.regs().size(), 0);
 
     for (uint32_t idx = 0; idx < instructionUseDefs_.size(); ++idx)
     {
         const uint32_t depth  = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
-        uint64_t       weight = 1;
-        for (uint32_t level = 0; level < std::min(depth, K_MAX_WEIGHT_DEPTH); ++level)
-            weight *= K_DEPTH_WEIGHT;
+        const uint64_t weight = K_LOOP_DEPTH_WEIGHTS[std::min(depth, 9u)];
 
         const auto addAccess = [&](const MicroReg reg) {
             if (!reg.isVirtual())

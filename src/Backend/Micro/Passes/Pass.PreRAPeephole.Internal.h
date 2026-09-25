@@ -31,7 +31,7 @@ namespace PreRaPeephole
         Encoder*      encoder = nullptr;
         // Instructions carrying a relocation: rewriting or consuming one
         // would leave the relocation unbound, so claimAll refuses them.
-        std::unordered_set<uint32_t> relocated;
+        MicroPeephole::LazyU32Set relocated;
 
         bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
         bool claimAll(std::initializer_list<MicroInstrRef> refs);

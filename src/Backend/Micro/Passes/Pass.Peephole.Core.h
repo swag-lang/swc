@@ -4,6 +4,8 @@
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
+#include <optional>
+#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -15,6 +17,34 @@ class MicroOperandStorage;
 // only the mechanics live here.
 namespace MicroPeephole
 {
+    // Most pass runs claim no instructions or carry no relocations. Defer the
+    // hash table until the first entry, since even an empty MSVC set allocates.
+    class LazyU32Set
+    {
+    public:
+        bool empty() const { return !values_ || values_->empty(); }
+        bool contains(uint32_t value) const { return values_ && values_->contains(value); }
+
+        void reserve(size_t count)
+        {
+            if (!count)
+                return;
+            if (!values_)
+                values_.emplace();
+            values_->reserve(count);
+        }
+
+        void insert(uint32_t value)
+        {
+            if (!values_)
+                values_.emplace();
+            values_->insert(value);
+        }
+
+    private:
+        std::optional<std::unordered_set<uint32_t>> values_;
+    };
+
     // Collected rewrites and the instructions already spoken for. A pass derives its Context
     // from this and adds whatever else its patterns read.
     template<typename ACTION>
@@ -22,7 +52,7 @@ namespace MicroPeephole
     {
         MicroStorage*                storage  = nullptr;
         MicroOperandStorage*         operands = nullptr;
-        std::unordered_set<uint32_t> claimed;
+        LazyU32Set                  claimed;
         SmallVector<ACTION>          actions;
 
         bool isClaimed(MicroInstrRef ref) const { return claimed.contains(ref.get()); }

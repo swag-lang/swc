@@ -46,10 +46,10 @@ namespace InstructionCombine
         // drops the relocation binding - the patch then lands wherever
         // codeOffset zero points - so claimAll refuses them unless a rule
         // that explicitly manages the relocation opts in.
-        std::unordered_set<uint32_t> relocated;
+        MicroPeephole::LazyU32Set relocated;
         // Registers a byte copy of a setcc result writes: the boolean merges
         // branch simplification reads as bytes, which keep their width.
-        std::unordered_set<uint32_t> booleanMerges;
+        MicroPeephole::LazyU32Set booleanMerges;
 
         bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
 

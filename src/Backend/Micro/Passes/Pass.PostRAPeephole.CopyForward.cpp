@@ -693,7 +693,7 @@ namespace PostRaPeephole
     //     rotate16     R, 5
     bool tryHoistNarrowZeroExtendAcrossUnary(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
     {
-        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+        if (ctx.isClaimed(extendRef) || !ctx.encoder)
             return false;
         const auto* extend = extendInst.ops(*ctx.operands);
         if (!extend || extend[0].reg != extend[1].reg || !extend[0].reg.isInt() ||
@@ -759,7 +759,7 @@ namespace PostRaPeephole
     // redundant even though the subtraction itself remains byte/word sized.
     bool tryRetargetNarrowZeroSelect(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
     {
-        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+        if (ctx.isClaimed(extendRef) || !ctx.encoder)
             return false;
         const auto* extend = extendInst.ops(*ctx.operands);
         if (!extend || extend[2].opBits != MicroOpBits::B64 ||
@@ -841,7 +841,7 @@ namespace PostRaPeephole
     // subtractions preserve clear upper bits, so no final extension is needed.
     bool tryRetargetNarrowAbsoluteDifference(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
     {
-        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+        if (ctx.isClaimed(extendRef) || !ctx.encoder)
             return false;
         const auto* extend = extendInst.ops(*ctx.operands);
         if (!extend || extend[2].opBits != MicroOpBits::B64 ||
@@ -931,7 +931,7 @@ namespace PostRaPeephole
     // registers instead of copying each selected value through a temporary.
     bool tryRetargetNarrowSelectCascade(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
     {
-        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+        if (ctx.isClaimed(extendRef) || !ctx.encoder)
             return false;
         const auto* extend = extendInst.ops(*ctx.operands);
         if (!extend || extend[2].opBits != MicroOpBits::B64 ||
@@ -1061,7 +1061,7 @@ namespace PostRaPeephole
     // results through separately allocated temporaries.
     bool tryWidenNarrowSelectGraph(Context& ctx, const MicroInstrRef extendRef, const MicroInstr& extendInst)
     {
-        if (ctx.isClaimed(extendRef) || !ctx.encoder || extendInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+        if (ctx.isClaimed(extendRef) || !ctx.encoder)
             return false;
         const auto* extend = extendInst.ops(*ctx.operands);
         if (!extend || extend[2].opBits != MicroOpBits::B64 ||
@@ -1376,7 +1376,7 @@ namespace PostRaPeephole
     //     M -= A; A = sx(M)              A += B; A += 1; A >>= 1, b64
     bool tryFoldSignedCeilAverage(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef))
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
@@ -1489,7 +1489,7 @@ namespace PostRaPeephole
     //     M += A; A = sx(M)              A += B; A >>= 1, b64
     bool tryFoldSignedFloorAverage(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef))
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || (copy[2].opBits != MicroOpBits::B32 && copy[2].opBits != MicroOpBits::B64) ||
@@ -1748,7 +1748,7 @@ namespace PostRaPeephole
     // sweep; post-RA sees the final reader set and can update the whole window.
     bool tryRetargetSelectedValueCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
@@ -2208,7 +2208,7 @@ namespace PostRaPeephole
     // provides that register.
     bool tryFactorCommonConditionalShift(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
@@ -2537,7 +2537,7 @@ namespace PostRaPeephole
     // count; widening the input preserves their low-width result.
     bool tryFactorNarrowConditionalShift(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg)
@@ -2687,7 +2687,7 @@ namespace PostRaPeephole
     // already leaves the typed byte result in the ABI accumulator.
     bool tryFoldByteMultiplySelectCopies(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg)
@@ -2759,7 +2759,7 @@ namespace PostRaPeephole
     // `(a & b) + ((a ^ b) >> 1)` is shorter as a widened add and shift.
     bool tryFoldIndexedByteAverage(Context& ctx, const MicroInstrRef firstLoadRef, const MicroInstr& firstLoadInst)
     {
-        if (ctx.isClaimed(firstLoadRef) || !ctx.encoder || firstLoadInst.op != MicroInstrOpcode::LoadAmcRegMem)
+        if (ctx.isClaimed(firstLoadRef) || !ctx.encoder)
             return false;
         const auto* firstLoad = firstLoadInst.ops(*ctx.operands);
         if (!firstLoad || firstLoad[3].opBits != MicroOpBits::B8 || firstLoad[4].opBits != MicroOpBits::B64)
@@ -2891,7 +2891,7 @@ namespace PostRaPeephole
     // byte result is widened for the final saturating select.
     bool tryFoldIndexedByteSaturatingAdd(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || copy[2].opBits != MicroOpBits::B64 || copy[0].reg == copy[1].reg)
@@ -2972,7 +2972,7 @@ namespace PostRaPeephole
     // because the rewrite respectively overwrites B and preserves A.
     bool tryFactorCommonConditionalBinary(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
@@ -3081,7 +3081,7 @@ namespace PostRaPeephole
     // then form the final sum directly in the original result register.
     bool tryFoldSelectedIntegerAdd(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
@@ -3292,8 +3292,6 @@ namespace PostRaPeephole
         // Liveness here is a linear forward scan, sound only on the pristine
         // post-RA IR. Restrict to the first sweep of the optimization loop.
         if (!ctx.allowForwarding)
-            return false;
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg)
             return false;
         if (ctx.isClaimed(copyRef))
             return false;

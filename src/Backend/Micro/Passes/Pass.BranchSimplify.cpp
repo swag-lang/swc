@@ -904,7 +904,7 @@ namespace
         return changed;
     }
 
-    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const ProgramLayout& layout)
+    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const ProgramLayout& layout, bool& hasConditionalJump)
     {
         const KnownValueContext context{&ssaState, &storage, &operands};
 
@@ -927,6 +927,7 @@ namespace
             const MicroInstrOperand* ops = inst.op == MicroInstrOpcode::JumpCond || mayDefineFlags ? inst.ops(operands) : nullptr;
             if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
+                hasConditionalJump = true;
                 bool branchTaken = false;
                 if (tryEvaluateKnownBranch(branchTaken, context, knownValues, knownFlags, currentFlagDef, ops[0].cpuCond))
                 {
@@ -7215,13 +7216,14 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     };
 
     thread_local ProgramLayout knownBranchLayout;
+    bool                       hasConditionalJump = false;
     if (ssaState && ssaState->isValid())
     {
         buildProgramLayout(knownBranchLayout, storage, operands);
-        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, knownBranchLayout));
+        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, knownBranchLayout, hasConditionalJump));
     }
     // The SSA snapshot describes the code before any fold above.
-    if (!changed && ssaState && ssaState->isValid())
+    if (!changed && hasConditionalJump && ssaState && ssaState->isValid())
         rewrote(foldImpliedBranches(storage, operands, *ssaState, knownBranchLayout));
 
     if (changed && context.builder)

@@ -1527,6 +1527,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         uint64_t accessBenefit = 0;
     };
     SmallVector<GlobalCandidate> candidates;
+    bool hasIntCandidate   = false;
+    bool hasFloatCandidate = false;
 
     const uint32_t lastIndex = instructionCount_ ? instructionCount_ - 1 : 0;
     const auto&    vregs     = denseVirtualRegs_.regs();
@@ -1555,6 +1557,10 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             .rawBenefit    = benefits[denseIndex],
             .accessBenefit = 0,
         });
+        if (vregs[denseIndex].isVirtualFloat())
+            hasFloatCandidate = true;
+        else
+            hasIntCandidate = true;
     }
 
     if (candidates.empty())
@@ -1608,10 +1614,16 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     auto& reservedFloat = reservedFloat_;
     auto& reservedIntPersistent = reservedIntPersistent_;
     auto& reservedFloatPersistent = reservedFloatPersistent_;
-    reservedInt.assign(instructionCount_, 0);
-    reservedFloat.assign(instructionCount_, 0);
-    reservedIntPersistent.assign(instructionCount_, 0);
-    reservedFloatPersistent.assign(instructionCount_, 0);
+    if (hasIntCandidate)
+    {
+        reservedInt.assign(instructionCount_, 0);
+        reservedIntPersistent.assign(instructionCount_, 0);
+    }
+    if (hasFloatCandidate)
+    {
+        reservedFloat.assign(instructionCount_, 0);
+        reservedFloatPersistent.assign(instructionCount_, 0);
+    }
 
     const size_t totalInt         = freeIntPersistent_.size() + freeIntTransient_.size();
     const size_t totalFloat       = freeFloatPersistent_.size() + freeFloatTransient_.size();

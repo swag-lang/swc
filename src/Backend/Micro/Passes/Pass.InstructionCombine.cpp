@@ -163,7 +163,7 @@ namespace
         return R;
     }
 
-    void runPerInstructionPatterns(Context& ctx)
+    bool runPerInstructionPatterns(Context& ctx)
     {
         // An instruction that carries a relocation is normally opaque to the combiner:
         // rewriting it to another opcode would leave the relocation pointing
@@ -176,8 +176,10 @@ namespace
         const PatternRegistry& reg   = registry();
         const auto             view  = ctx.storage->view();
         const auto             endIt = view.end();
+        bool                   hasForwardableMemory = false;
         for (auto it = view.begin(); it != endIt; ++it)
         {
+            hasForwardableMemory |= it->op == MicroInstrOpcode::LoadRegMem || it->op == MicroInstrOpcode::LoadMemReg;
             if (!ctx.relocated.empty() && ctx.isRelocated(it.current) && it->op != MicroInstrOpcode::LoadRegPtrReloc)
             {
                 if (it->op == MicroInstrOpcode::LoadRegMem)
@@ -190,6 +192,7 @@ namespace
                     break;
             }
         }
+        return hasForwardableMemory;
     }
 }
 
@@ -218,12 +221,13 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         }
     }
 
-    runPerInstructionPatterns(ctx);
+    const bool hasForwardableMemory = runPerInstructionPatterns(ctx);
 
     // Whole-IR scans with per-position state don't fit the anchor-per-instruction
     // dispatch. They emit into the same action queue so claim tracking works
     // uniformly with per-instruction patterns.
-    runStoreToLoadForwarding(ctx);
+    if (hasForwardableMemory)
+        runStoreToLoadForwarding(ctx);
 
     // Widening a 32-bit copy changes a fact other rules read (its upper half
     // being zero) and claims the copy's readers. It runs only once no other

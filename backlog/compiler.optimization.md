@@ -19,6 +19,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.055 — Explain why pure calls do not unlock global loads in quicksort
 
 - Recorded: 2026-09-25 11:15
+- Updated: 2026-09-25 11:26 — The `Swag.memcmp` target is marked impure in wordfreq even after a larger purity-analysis budget and recognition of `Swag.vecmask`.
 - Area: compiler/backend, loop-invariant code motion and call effects
 - Evidence: wordfreq's `qsort` reloads `g_Idx` and `g_Cnt` from RIP-relative
   globals on each inner comparison, while LDC keeps their pointers outside the
@@ -28,10 +29,15 @@ block, and the hot path keeps the register.
   retained it across an impure call (1,103 C++ tests passed). Yet wordfreq's
   emitted `qsort` remained 130 instructions with the same loads at the same
   positions; only relocation addresses differed. The experiment was reverted.
-- Next: inspect the `Swag.memcmp` call target's purity metadata in wordfreq
-  and the LICM rejection reason for each RIP-relative load. Then adjust the
-  general metadata or eligibility rule and re-count the inner loops before
-  timing it.
+- Additional evidence: a temporary compiler trace of `qsort`'s call
+  relocations reported `Swag.memcmp pure=0` for both comparisons. Raising the
+  purity-analysis budget from 64 to 256 and recognizing the value-only
+  `Swag.vecmask` intrinsic still reported `pure=0`; both edits and the trace
+  were reverted. The metadata may come from the bodyless runtime API rather
+  than the implementation, which needs verification.
+- Next: trace how runtime API declarations acquire effect metadata and why
+  the implementation's read-only behavior is absent at the call site. Then
+  establish a general read-only call contract and re-count the inner loops.
 
 ### compiler.optimization.054 — Prove contiguous indexed updates before packing them
 

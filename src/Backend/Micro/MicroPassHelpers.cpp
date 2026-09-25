@@ -354,8 +354,12 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cf
     if (index >= count)
         return false;
 
-    std::vector<bool>     visited(count, false);
-    SmallVector<uint32_t> worklist;
+    // Queries are sequential on each compiler worker; retain the CFG walk's
+    // buffers instead of allocating them for every candidate branch.
+    thread_local std::vector<bool>     visited;
+    thread_local SmallVector<uint32_t> worklist;
+    visited.assign(count, false);
+    worklist.clear();
     for (const uint32_t successor : cfg.successors(index))
         worklist.push_back(successor);
 

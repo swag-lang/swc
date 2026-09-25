@@ -101,14 +101,10 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         }
     }
 
-    for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
+    uint32_t instructionIndex = 0;
+    for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++instructionIndex)
     {
-        const MicroInstr* inst = storage.ptr(instructionRefs_[instructionIndex]);
-        if (!inst)
-        {
-            supportsDeadCodeLiveness_ = false;
-            continue;
-        }
+        const MicroInstr* inst = &*it;
 
         if (inst->op == MicroInstrOpcode::LoadLabelAddress && inst->numOperands >= 2)
         {

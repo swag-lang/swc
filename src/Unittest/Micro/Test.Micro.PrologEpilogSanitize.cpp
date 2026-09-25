@@ -598,16 +598,17 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsFrameWhenBodyAddressesOrCalls)
     constexpr MicroReg rsp = MicroReg::intReg(4);
     constexpr MicroReg rax = MicroReg::intReg(0);
 
-    // A stack access and a call each need the frame.
+    // A stack access keeps its frame; a call needs only its shadow space and
+    // the same alignment residue as the original frame.
     for (uint32_t variant = 0; variant < 2; ++variant)
     {
         MicroBuilder builder(ctx);
-        builder.emitOpBinaryRegImm(rsp, ApInt(48, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Subtract, MicroOpBits::B64);
         if (variant == 0)
             builder.emitLoadRegMem(rax, rsp, 8, MicroOpBits::B64);
         else
             builder.emitCallReg(rax, CallConvKind::Swag);
-        builder.emitOpBinaryRegImm(rsp, ApInt(48, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitRet();
 
         SWC_RESULT(runPrologEpilogSanitizePass(builder));
@@ -616,8 +617,9 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsFrameWhenBodyAddressesOrCalls)
         const MicroInstr* add = instructionAt(builder, 2);
         if (builder.instructions().count() != 4 || !sub || !add)
             return Result::Error;
-        if (!isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, 48) ||
-            !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, 48))
+        const uint64_t expectedFrame = variant == 0 ? 56 : 40;
+        if (!isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, expectedFrame) ||
+            !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, expectedFrame))
             return Result::Error;
     }
 }
@@ -678,6 +680,27 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsUnusedStackPrefix)
     if (!outgoingSub || !outgoingStore ||
         !isStackAdjust(*outgoingSub, outgoingSub->ops(outgoing.operands()), rsp, MicroOp::Subtract, 200) ||
         outgoingStore->ops(outgoing.operands())[3].valueU64 != 48)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsEmptyCallFrame)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryRegImm(rsp, ApInt(136, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCallReg(rax, CallConvKind::Swag);
+    builder.emitOpBinaryRegImm(rsp, ApInt(136, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
+    const auto* sub = instructionAt(builder, 0);
+    const auto* add = instructionAt(builder, 2);
+    if (builder.instructions().count() != 4 || !sub || !add ||
+        !isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, 40) ||
+        !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, 40))
         return Result::Error;
     return Result::Continue;
 }

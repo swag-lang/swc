@@ -16,6 +16,15 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.071 — Trim empty call frames to their ABI reserve
+
+- Recorded: 2026-09-25 22:45
+- Updated: 2026-09-25 22:45 — Removed unused local space from wordfreq's collision-probe frame.
+- Area: compiler/backend, final stack-frame layout and wordfreq probing
+- Evidence: Wordfreq's generated `mapProbe` retained a 136-byte frame after optimization, although its body has no surviving direct stack access; it only needs call shadow space and alignment for `memcmp`. LDC saves seven registers and reserves 32 bytes, a total of 88 bytes. Swag saves six registers and now reserves 40 bytes, also 88 in total. The paired `sub`/`add` instructions now encode with 8-bit rather than 32-bit immediates, removing six machine-code bytes per call while leaving the 81-instruction probe and its hash and collision loops unchanged. The rule requires one fixed frame, a single release/return, an actual call, no address escape or direct stack access, and preserves the original frame's alignment residue. Wordfreq's `qsort` remains at a 72-byte frame and 132 Micro instructions; csvagg's `main` remains at 1,022. Focused C++ coverage includes an empty call frame and a nonempty frame that must stay fixed. All 1,125 C++, 3,480 native, and 1,500 JIT tests pass; the independently drawn safety suite exits successfully with its expected failing cases. Both benchmarks pass `--validate-micro`, with checksums 130489 and 24828641. No elapsed-time sample informed the decision.
+- Negative lead: Extending the post-allocation `ADD` plus result-copy fold across one independent instruction changed neither wordfreq's `qsort` or `main` nor csvagg's `main`. The intervening instruction in the targeted `memcmp` setup reads the old destination register, so moving the result definition earlier would be incorrect. The rule and its test were reverted.
+- Next: inspect the two-pointer argument setup around `memcmp` as a scheduling and register-allocation problem, then compare csvagg's row parser and hash-mask residency with clang-cl.
+
 ### compiler.optimization.070 — Compact private spill frames after allocation
 
 - Recorded: 2026-09-25 22:25

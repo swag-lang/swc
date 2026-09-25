@@ -244,28 +244,50 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         bool replacedUses = false;
         for (auto scanIt = it; scanIt != endIt; ++scanIt)
         {
-            const MicroInstrUseDef useDef = scanIt->collectUseDef(*operands_, context_->encoder);
-            if (containsKey(useDef.defs, srcReg) || containsKey(useDef.defs, dstReg))
-                break;
-
-            if (containsKey(useDef.uses, dstReg))
+            const MicroInstrDef& info = MicroInstr::info(scanIt->op);
+            MicroInstrOperand* scanOps = scanIt->ops(*operands_);
+            const auto modes = scanOps ? info.resolvedRegModes(scanOps) : info.regModes;
+            bool definesSource = false;
+            bool definesDestination = false;
+            bool usesDestination = false;
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
-                MicroInstrOperand* scanOps = scanIt->ops(*operands_);
-                if (scanOps)
+                const MicroInstrUseDef useDef = scanIt->collectUseDef(*operands_, context_->encoder);
+                definesSource = containsKey(useDef.defs, srcReg);
+                definesDestination = containsKey(useDef.defs, dstReg);
+                usesDestination = containsKey(useDef.uses, dstReg);
+            }
+            else if (scanOps)
+            {
+                for (size_t i = 0; i < modes.size(); ++i)
                 {
-                    const auto modes = MicroInstr::info(scanIt->op).resolvedRegModes(scanOps);
-                    for (size_t i = 0; i < modes.size(); ++i)
+                    if (scanOps[i].reg == srcReg)
+                        definesSource |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                    if (scanOps[i].reg == dstReg)
                     {
-                        if (modes[i] != MicroInstrRegMode::Use || scanOps[i].reg != dstReg)
-                            continue;
-
-                        scanOps[i].reg = srcReg;
-                        replacedUses   = true;
+                        definesDestination |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                        usesDestination |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
                     }
                 }
             }
+            if (definesSource || definesDestination)
+                break;
 
-            if (MicroInstrInfo::isLocalDataflowBarrier(*scanIt, useDef))
+            if (usesDestination && scanOps)
+            {
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] != MicroInstrRegMode::Use || scanOps[i].reg != dstReg)
+                        continue;
+
+                    scanOps[i].reg = srcReg;
+                    replacedUses   = true;
+                }
+            }
+
+            if (scanIt->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 break;
         }
 

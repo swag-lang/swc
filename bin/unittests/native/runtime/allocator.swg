@@ -176,7 +176,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     let backing = cast(const *Swag.Interface) &scratch.allocator
     Swag.assert(backing.obj == &alloc)
-    Swag.assert(alloc.stats().countAlloc == 1)
+    Swag.assert(alloc.stats().countAlloc == 0)
 
     var req: AllocatorRequest
     req.size = 64
@@ -198,7 +198,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     scratch.setCapacity(AllocatorScratchBufSize, backing)
     let itf = Swag.makeInterface(&scratch, #typeof(scratch), IAllocator)
 
-    Swag.assert(alloc.stats().countAlloc == 1)
+    Swag.assert(alloc.stats().countAlloc == 0)
 
     var inBuffer: AllocatorRequest
     inBuffer.size = AllocatorScratchBufSize - 64

@@ -1503,8 +1503,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     if (!context_->isFirstAllocationSweep)
         return;
 
-    computeConcreteClaimPositions();
-
     auto& benefits = globalBenefits_;
     computeGlobalBenefits(benefits);
 
@@ -1562,6 +1560,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     if (candidates.empty())
         return;
 
+    computeConcreteClaimPositions();
     auto& accessBenefits = globalAccessBenefits_;
     computeGlobalAccessBenefits(accessBenefits);
     for (GlobalCandidate& candidate : candidates)

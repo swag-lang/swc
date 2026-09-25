@@ -1372,9 +1372,8 @@ namespace PostRaPeephole
         ctx.emitRewrite(ref, opcode, add);
         // The copy or existing addend supplies every result bit now. Retain
         // the old clear only if the comparison itself reads that zero value.
-        const MicroInstr*      compare       = ctx.instruction(value.compareRef);
-        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
-        if (!microRegSpanContains(compareUseDef.uses.span(), value.reg))
+        const MicroInstr* compare = ctx.instruction(value.compareRef);
+        if (!instructionRegTouch(ctx, *compare, value.reg).use)
             ctx.emitErase(value.clearRef);
         return true;
     }
@@ -1981,8 +1980,7 @@ namespace PostRaPeephole
             default:
                 return false;
         }
-        const MicroInstrUseDef initialUseDef = initial->collectUseDef(*ctx.operands, ctx.encoder);
-        if (initialUseDef.defs.size() != 1 || initialUseDef.defs[0] != result ||
+        if (initialOps[0].reg != result ||
             instructionActuallyUsesCpuFlags(*initial, initialOps) || instructionActuallyDefinesCpuFlags(*initial, initialOps))
             return false;
 
@@ -2017,13 +2015,11 @@ namespace PostRaPeephole
             firstCmp->numOperands > Action::K_MAX_OPS || secondCmp->numOperands > Action::K_MAX_OPS)
             return false;
 
-        const MicroInstrUseDef firstCmpUseDef  = firstCmp->collectUseDef(*ctx.operands, ctx.encoder);
-        const MicroInstrUseDef secondCmpUseDef = secondCmp->collectUseDef(*ctx.operands, ctx.encoder);
-        if (microRegSpanContains(firstCmpUseDef.uses.span(), result) ||
-            microRegSpanContains(secondCmpUseDef.uses.span(), result) ||
-            microRegSpanContains(secondCmpUseDef.uses.span(), firstBool) ||
-            microRegSpanContains(initialUseDef.uses.span(), firstBool) ||
-            microRegSpanContains(initialUseDef.uses.span(), secondBool))
+        if (instructionRegTouch(ctx, *firstCmp, result).use ||
+            instructionRegTouch(ctx, *secondCmp, result).use ||
+            instructionRegTouch(ctx, *secondCmp, firstBool).use ||
+            instructionRegTouch(ctx, *initial, firstBool).use ||
+            instructionRegTouch(ctx, *initial, secondBool).use)
             return false;
         if ((firstBool != result && !ctx.isRegDeadAfterCurrent(firstBool)) ||
             (secondBool != result && !ctx.isRegDeadAfterCurrent(secondBool)) ||
@@ -2093,9 +2089,7 @@ namespace PostRaPeephole
         const MicroInstr*   cmp    = ctx.instruction(cmpRef);
         if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
-        const MicroInstrUseDef cmpUseDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
-        if (std::ranges::find(cmpUseDef.uses, zero[0].reg) != cmpUseDef.uses.end() ||
-            std::ranges::find(cmpUseDef.defs, zero[0].reg) != cmpUseDef.defs.end())
+        if (instructionRegTouch(ctx, *cmp, zero[0].reg).any())
             return false;
 
         const MicroInstrRef selectRef = ctx.nextRef(zeroRef);
@@ -2143,10 +2137,8 @@ namespace PostRaPeephole
         }
         if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
-        const MicroInstrUseDef cmpUseDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : cmpUseDef.uses)
-            if (reg == copy[0].reg)
-                return false;
+        if (instructionRegTouch(ctx, *cmp, copy[0].reg).use)
+            return false;
         const MicroInstrRef zeroRef = ctx.nextRef(compareFirst ? ref : cmpRef);
         const MicroInstr*   zero    = ctx.instruction(zeroRef);
         if (!zero || zero->op != MicroInstrOpcode::LoadRegImm)
@@ -2214,10 +2206,8 @@ namespace PostRaPeephole
         const MicroInstr*   cmp    = ctx.instruction(cmpRef);
         if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
-        const MicroInstrUseDef useDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : useDef.uses)
-            if (reg == copy[0].reg)
-                return false;
+        if (instructionRegTouch(ctx, *cmp, copy[0].reg).use)
+            return false;
         if (!ctx.claimAll({cmpRef, zeroRef, selectRef, copyRef}))
             return false;
         MicroInstrOperand clear[2]         = {};
@@ -2568,10 +2558,8 @@ namespace PostRaPeephole
             if (!flagSettingResultDef(*cmp, cmpOps, resultReg, resultBits))
                 return false;
         }
-        const MicroInstrUseDef useDef = cmp->collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : useDef.uses)
-            if (reg == ext[0].reg)
-                return false;
+        if (instructionRegTouch(ctx, *cmp, ext[0].reg).use)
+            return false;
         if (!ctx.claimAll({cmpRef, setRef, ref}))
             return false;
         MicroInstrOperand clear[2] = {};

@@ -285,8 +285,10 @@ namespace
             const MicroInstr&   inst    = *it;
             ++it;
 
+            if (inst.op != MicroInstrOpcode::LoadRegReg)
+                continue;
             const MicroInstrOperand* ops = inst.ops(operands);
-            if (!isCopyInstruction(inst, ops))
+            if (!ops)
                 continue;
 
             if (isSelfCopy(inst, ops))

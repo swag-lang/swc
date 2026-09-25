@@ -261,9 +261,10 @@ void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& cont
 
     outIntIndex   = context.builder ? std::max(1u, context.builder->nextVirtualIntRegIndexHint()) : 1;
     outFloatIndex = 1;
+    SmallVector<MicroInstrRegOperandRef> refs;
     for (const MicroInstr& inst : context.instructions->view())
     {
-        SmallVector<MicroInstrRegOperandRef> refs;
+        refs.clear();
         inst.collectRegOperands(*context.operands, refs, context.encoder);
         for (const auto& ref : refs)
         {

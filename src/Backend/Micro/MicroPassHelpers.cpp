@@ -712,6 +712,32 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         const MicroInstr* inst = context.instructions->ptr(instructionRefs[i]);
         if (!inst)
             return;
+        const MicroInstrDef& info = MicroInstr::info(inst->op);
+        if (!retainUseDefs &&
+            !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
+            (!context.encoder || !info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+        {
+            uint64_t useMask = 0;
+            uint64_t defMask = 0;
+            if (const MicroInstrOperand* ops = inst->ops(*context.operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
+                {
+                    if (modes[operand] == MicroInstrRegMode::None)
+                        continue;
+                    const uint64_t bit = maskOf(ops[operand].reg);
+                    if (modes[operand] == MicroInstrRegMode::Use || modes[operand] == MicroInstrRegMode::UseDef)
+                        useMask |= bit;
+                    if (modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef)
+                        defMask |= bit;
+                }
+            }
+            scratch.useMasks[i] = useMask;
+            scratch.defMasks[i] = defMask;
+            continue;
+        }
+
         MicroInstrUseDef useDef = inst->collectUseDef(*context.operands, context.encoder);
         uint64_t useMask = 0;
         uint64_t defMask = 0;

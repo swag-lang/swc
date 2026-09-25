@@ -82,9 +82,10 @@ namespace
         }
 
         auto& operands = *context.operands;
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const auto& inst : context.instructions->view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(operands, refs, context.encoder);
             uint64_t usedRegs    = 0;
             uint64_t definedRegs = 0;
@@ -125,9 +126,10 @@ namespace
             return false;
 
         auto& operands = *context.operands;
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const auto& inst : context.instructions->view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(operands, refs, context.encoder);
 
             bool framePointerUsed = false;
@@ -180,9 +182,10 @@ namespace
             return false;
 
         auto& operands = *context.operands;
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const auto& inst : context.instructions->view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(operands, refs, context.encoder);
 
             bool hasUse = false;
@@ -473,9 +476,10 @@ namespace
 
         bool  remapped = false;
         auto& operands = *context.operands;
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const auto& inst : context.instructions->view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(operands, refs, context.encoder);
             for (const MicroInstrRegOperandRef& microInstrRef : refs)
             {
@@ -512,12 +516,13 @@ namespace
         const uint64_t firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
         SmallVector<MicroInstrRef> accesses;
         auto&                      operands = *context.operands;
+        SmallVector<MicroInstrRegOperandRef> regOperands;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             MicroInstr*              inst = context.instructions->ptr(it.current);
             MicroInstrOperand*       ops  = inst ? inst->ops(operands) : nullptr;
             const MicroInstrDef&     info = MicroInstr::info(inst->op);
-            SmallVector<MicroInstrRegOperandRef> regOperands;
+            regOperands.clear();
             inst->collectRegOperands(operands, regOperands, context.encoder);
 
             if (inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop ||

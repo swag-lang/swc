@@ -477,12 +477,13 @@ namespace InstructionCombine
                 uses.push_back(use.instRef);
         }
 
+        SmallVector<MicroInstrRegOperandRef> regOperands;
         for (const MicroInstrRef useRef : uses)
         {
             MicroInstr* useInst = ctx.storage->ptr(useRef);
             if (!useInst || useInst->numOperands > Action::K_MAX_OPS)
                 return false;
-            SmallVector<MicroInstrRegOperandRef> regOperands;
+            regOperands.clear();
             useInst->collectRegOperands(*ctx.operands, regOperands, nullptr);
             bool found = false;
             for (const MicroInstrRegOperandRef& regOperand : regOperands)

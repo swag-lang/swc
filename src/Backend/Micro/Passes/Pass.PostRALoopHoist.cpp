@@ -212,6 +212,7 @@ namespace
         }
 
         bool anyBaseNamed = false;
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const MicroInstr& inst : storage.view())
         {
             const MicroInstrOperand* ops  = inst.ops(operands);
@@ -240,7 +241,7 @@ namespace
                 }
             }
 
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(operands, refs, encoder);
             for (const MicroInstrRegOperandRef& ref : refs)
             {
@@ -441,6 +442,7 @@ namespace
 
         // Every rewritten instruction has to remain encodable with the hoisted
         // register in place of the dead one.
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (const uint32_t k : useSites)
         {
             const MicroInstr*        inst = storage.ptr(instrRefs[k]);
@@ -476,7 +478,7 @@ namespace
             const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
             if (!ops)
                 continue;
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst->collectRegOperands(operands, refs, encoder);
             for (const auto& ref : refs)
             {

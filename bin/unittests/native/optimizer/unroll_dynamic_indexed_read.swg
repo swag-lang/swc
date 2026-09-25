@@ -32,4 +32,9 @@ func hashBytesStrided(data: const [*] u8, len, stride: u64)->u64
         Swag.assert(hashBytes(&data[0], len) == hashBytesStrided(&data[0], len, 1))
     Swag.assert(hashBytes(&data[0], 0) == 2166136261)
     Swag.assert(hashBytes(&data[0], 1) == 84696351)
+    Swag.assert(hashBytes(&data[0], 4) == 3282719153)
+    Swag.assert(hashBytes(&data[0], 5) == 3122569199)
+    Swag.assert(hashBytes(&data[0], 8) == 1811325981)
+    Swag.assert(hashBytes(&data[0], 9) == 172248335)
+    Swag.assert(hashBytes(&data[0], 16) == 3372216853)
 }

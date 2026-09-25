@@ -403,6 +403,10 @@ namespace
 
         std::unordered_set<uint32_t> claimed; // instruction slot ids planned this round
         std::vector<HoistPlan>       plans;
+        std::vector<uint32_t>        bodyIndices;
+        std::vector<MicroReg>        slotDefReg;
+        std::vector<uint8_t>         slotIsFullDef;
+        std::vector<uint8_t>         slotIsCompute;
 
         for (const NaturalLoop* loop : loops)
         {
@@ -452,7 +456,7 @@ namespace
             // private frame slot only aliases frame-derived loads.
             // Keep the body's listing order once; acceptance retries must not
             // rescan the rest of the function for each loop.
-            std::vector<uint32_t> bodyIndices;
+            bodyIndices.clear();
             bodyIndices.reserve(loop->bodySize);
             std::unordered_set<MicroReg> defsInLoop;
             bool                         loopHasCall         = false;
@@ -627,9 +631,9 @@ namespace
                 bool                  chainOk = true;
             };
             std::unordered_map<MicroReg, RegWeb> websByReg;
-            std::vector<MicroReg>                slotDefReg(n, MicroReg::invalid());
-            std::vector<uint8_t>                 slotIsFullDef(n, 0);
-            std::vector<uint8_t>                 slotIsCompute(n, 0);
+            slotDefReg.assign(n, MicroReg::invalid());
+            slotIsFullDef.assign(n, 0);
+            slotIsCompute.assign(n, 0);
             for (const uint32_t i : bodyIndices)
             {
                 if (i == header)

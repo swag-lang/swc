@@ -843,6 +843,8 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
 {
     // Guarded calls sit either below a conditional jump to their join, or
     // below a jump over a labeled panic block. Both shapes are presumed cold.
+    if (callPositions_.empty())
+        return;
     guardedCallPositions_.assign(instructionCount_, 0);
     if (!hasControlFlow_ || !instructionCount_)
         return;

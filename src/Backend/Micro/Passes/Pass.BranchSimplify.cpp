@@ -1434,15 +1434,20 @@ namespace
                     if (!inst)
                         continue;
 
-                    const MicroInstrUseDef useDef = inst->collectUseDef(operands, nullptr);
-                    for (const MicroReg reg : useDef.uses)
+                    const MicroInstrOperand* instOps = inst->ops(operands);
+                    if (!instOps)
+                        continue;
+                    const auto modes = MicroInstr::info(inst->op).resolvedRegModes(instOps);
+                    for (size_t i = 0; i < modes.size(); ++i)
                     {
-                        if (reg.isVirtualInt())
+                        if (modes[i] == MicroInstrRegMode::None)
+                            continue;
+                        const MicroReg reg = instOps[i].reg;
+                        if (!reg.isVirtualInt())
+                            continue;
+                        if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
                             sites[reg.index()].uses.push_back(ordinal);
-                    }
-                    for (const MicroReg reg : useDef.defs)
-                    {
-                        if (reg.isVirtualInt())
+                        if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
                             sites[reg.index()].defs.push_back(ordinal);
                     }
                 }

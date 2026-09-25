@@ -45,6 +45,26 @@ inline const MicroInstrOperand* MicroInstr::ops(const MicroOperandStorage& opera
     return operands.ptr(opsRef);
 }
 
+inline void MicroInstr::collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
+{
+    MicroInstrOperand* instructionOps = ops(operands);
+    if (!instructionOps)
+        return;
+
+    const auto modes = info(op).resolvedRegModes(instructionOps);
+    for (size_t i = 0; i < modes.size(); ++i)
+    {
+        const MicroInstrRegMode mode = modes[i];
+        if (mode != MicroInstrRegMode::Use && mode != MicroInstrRegMode::Def && mode != MicroInstrRegMode::UseDef)
+            continue;
+        MicroReg* reg = &instructionOps[i].reg;
+        if (!reg->isValid() || reg->isNoBase())
+            continue;
+        out.push_back({reg, mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef,
+                       mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef});
+    }
+}
+
 class MicroStorage
 {
 public:

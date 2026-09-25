@@ -52,37 +52,6 @@ namespace
         }
     }
 
-    void addOperand(SmallVector<MicroInstrRegOperandRef>& out, MicroReg* reg, bool use, bool def)
-    {
-        if (!reg || !reg->isValid() || reg->isNoBase())
-            return;
-        out.push_back({reg, use, def});
-    }
-
-    void collectRegOperandsFromModes(SmallVector<MicroInstrRegOperandRef>& out, MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
-    {
-        if (!ops)
-            return;
-
-        for (size_t i = 0; i < modes.size(); ++i)
-        {
-            switch (modes[i])
-            {
-                case MicroInstrRegMode::None:
-                    break;
-                case MicroInstrRegMode::Use:
-                    addOperand(out, &ops[i].reg, true, false);
-                    break;
-                case MicroInstrRegMode::Def:
-                    addOperand(out, &ops[i].reg, false, true);
-                    break;
-                case MicroInstrRegMode::UseDef:
-                    addOperand(out, &ops[i].reg, true, true);
-                    break;
-            }
-        }
-    }
-
     uint8_t resolveCallArgMask(const MicroInstr& inst, const MicroInstrOperand* ops, const bool floatMask)
     {
         uint8_t maskOperandIndex = 0xFF;
@@ -154,14 +123,6 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
         encoder->updateRegUseDef(*this, ops, useDef);
 
     return useDef;
-}
-
-void MicroInstr::collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
-{
-    const MicroInstrDef& opcodeInfo = info(op);
-    MicroInstrOperand*   ops        = this->ops(operands);
-    const auto           modes      = opcodeInfo.resolvedRegModes(ops);
-    collectRegOperandsFromModes(out, ops, modes);
 }
 
 SWC_END_NAMESPACE();

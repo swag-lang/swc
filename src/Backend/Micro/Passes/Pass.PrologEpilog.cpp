@@ -434,17 +434,18 @@ namespace
 
         bool  remapped = false;
         auto& operands = *context.operands;
-        MicroInstrRegOperandRefs refs;
         for (const auto& inst : context.instructions->view())
         {
-            refs.clear();
-            inst.collectRegOperands(operands, refs, context.encoder);
-            for (const MicroInstrRegOperandRef& microInstrRef : refs)
+            MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!microInstrRef.reg)
+                if (modes[i] == MicroInstrRegMode::None)
                     continue;
 
-                const MicroReg reg = *(microInstrRef.reg);
+                const MicroReg reg = ops[i].reg;
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -452,8 +453,8 @@ namespace
                 if (mapIt == remap.end())
                     continue;
 
-                *(microInstrRef.reg) = mapIt->second;
-                remapped             = true;
+                ops[i].reg = mapIt->second;
+                remapped   = true;
             }
         }
 

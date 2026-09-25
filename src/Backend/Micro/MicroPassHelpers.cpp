@@ -216,17 +216,18 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        MicroInstrRegOperandRefs refs;
         for (const MicroInstr& inst : context.instructions->view())
         {
-            refs.clear();
-            inst.collectRegOperands(*context.operands, refs, context.encoder);
-            for (const auto& ref : refs)
+            const MicroInstrOperand* ops = inst.ops(*context.operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!ref.reg)
+                if (modes[i] == MicroInstrRegMode::None)
                     continue;
 
-                const MicroReg reg = *ref.reg;
+                const MicroReg reg = ops[i].reg;
                 if (isFloat ? !reg.isVirtualFloat() : !reg.isVirtualInt())
                     continue;
 
@@ -261,16 +262,17 @@ void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& cont
 
     outIntIndex   = context.builder ? std::max(1u, context.builder->nextVirtualIntRegIndexHint()) : 1;
     outFloatIndex = 1;
-    MicroInstrRegOperandRefs refs;
     for (const MicroInstr& inst : context.instructions->view())
     {
-        refs.clear();
-        inst.collectRegOperands(*context.operands, refs, context.encoder);
-        for (const auto& ref : refs)
+        const MicroInstrOperand* ops = inst.ops(*context.operands);
+        if (!ops)
+            continue;
+        const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+        for (size_t i = 0; i < modes.size(); ++i)
         {
-            if (!ref.reg || !ref.reg->isVirtual())
+            if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtual())
                 continue;
-            const MicroReg reg       = *ref.reg;
+            const MicroReg reg       = ops[i].reg;
             uint32_t&      nextIndex = reg.isVirtualFloat() ? outFloatIndex : outIntIndex;
             if (reg.index() < MicroReg::K_MAX_INDEX)
                 nextIndex = std::max(nextIndex, reg.index() + 1);

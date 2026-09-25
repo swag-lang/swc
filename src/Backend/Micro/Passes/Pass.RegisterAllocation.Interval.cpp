@@ -1611,6 +1611,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 labelEdges.push_back({s, p, MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::JumpInstruction)});
             }
         }
+        std::vector<bool> reached;
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {
             RematRecipe& recipe = remat[denseIndex];
@@ -1628,7 +1629,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 const int64_t slot = node - firstNode;
                 return slot >= 0 && slot < static_cast<int64_t>(last - first) ? slot : -1;
             };
-            std::vector<bool> reached(last - first, false);
+            reached.assign(last - first, false);
             reached[nodeSlot(defNode)] = true;
             for (bool changed = true; changed;)
             {
@@ -1754,10 +1755,11 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             const bool isTramp = connectors[i].trampJump != std::numeric_limits<uint32_t>::max();
             byPoint[(static_cast<uint64_t>(connectors[i].beforeIndex) << 2) | (isTramp ? 0u : 2u) | connectors[i].phase].push_back(i);
         }
+        std::vector<bool> emitted;
         for (auto& [point, list] : byPoint)
         {
             uint32_t          order = 0;
-            std::vector<bool> emitted(list.size(), false);
+            emitted.assign(list.size(), false);
             for (;;)
             {
                 bool progressed = true;

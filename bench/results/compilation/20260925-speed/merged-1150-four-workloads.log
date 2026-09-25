@@ -1,0 +1,28 @@
+A: C:\Perso\swag-lang\swc-speed\bin\swc.exe
+5 round(s), 6 compiler worker(s)
+  round 1 A core_rebuild  wall=   2408.3 ms  cpu=   9406.2 ms  commit= 652.3 MiB  ws= 581.3 MiB
+  round 1 A core_noop     wall=     37.1 ms  cpu=     62.5 ms  commit=   7.6 MiB  ws=  10.3 MiB
+  round 1 A core_touch    wall=   1533.2 ms  cpu=   7093.8 ms  commit= 594.2 MiB  ws= 541.9 MiB
+  round 1 A hello_build   wall=    112.6 ms  cpu=    281.2 ms  commit=  60.1 MiB  ws=  55.7 MiB
+  round 2 A core_rebuild  wall=   1861.6 ms  cpu=   8375.0 ms  commit= 654.3 MiB  ws= 575.2 MiB
+  round 2 A core_noop     wall=     47.6 ms  cpu=     46.9 ms  commit=   7.6 MiB  ws=  10.3 MiB
+  round 2 A core_touch    wall=   1898.5 ms  cpu=   8890.6 ms  commit= 603.5 MiB  ws= 544.7 MiB
+  round 2 A hello_build   wall=    119.6 ms  cpu=    390.6 ms  commit=  61.0 MiB  ws=  56.6 MiB
+  round 3 A core_rebuild  wall=   1974.8 ms  cpu=   8671.9 ms  commit= 646.2 MiB  ws= 581.7 MiB
+  round 3 A core_noop     wall=     40.3 ms  cpu=     15.6 ms  commit=   7.6 MiB  ws=  10.3 MiB
+  round 3 A core_touch    wall=   1934.8 ms  cpu=   9140.6 ms  commit= 596.8 MiB  ws= 533.6 MiB
+  round 3 A hello_build   wall=    137.5 ms  cpu=    500.0 ms  commit=  60.3 MiB  ws=  55.5 MiB
+  round 4 A core_rebuild  wall=   2241.2 ms  cpu=  10203.1 ms  commit= 645.6 MiB  ws= 581.2 MiB
+  round 4 A core_noop     wall=     47.6 ms  cpu=     78.1 ms  commit=   7.5 MiB  ws=  10.3 MiB
+  round 4 A core_touch    wall=   2123.7 ms  cpu=  10109.4 ms  commit= 605.2 MiB  ws= 554.2 MiB
+  round 4 A hello_build   wall=    126.4 ms  cpu=    437.5 ms  commit=  59.7 MiB  ws=  54.7 MiB
+  round 5 A core_rebuild  wall=   2547.0 ms  cpu=  10984.4 ms  commit= 644.5 MiB  ws= 580.2 MiB
+  round 5 A core_noop     wall=     41.5 ms  cpu=     31.2 ms  commit=   7.5 MiB  ws=  10.3 MiB
+  round 5 A core_touch    wall=   2167.3 ms  cpu=  10375.0 ms  commit= 620.3 MiB  ws= 565.0 MiB
+  round 5 A hello_build   wall=    140.2 ms  cpu=    593.8 ms  commit=  62.6 MiB  ws=  57.6 MiB
+
+workload              min ms  median ms     cpu ms commit MiB     ws MiB
+core_rebuild  A       1861.6     2241.2     9406.2      654.3      581.7
+core_noop     A         37.1       41.5       46.9        7.6       10.3
+core_touch    A       1533.2     1934.8     9140.6      620.3      565.0
+hello_build   A        112.6      126.4      437.5       62.6       57.6

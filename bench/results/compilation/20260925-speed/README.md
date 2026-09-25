@@ -6,6 +6,12 @@ compiler only, with six compiler workers. No compiler optimization from the firs
 part of this session was retained. The attempted changes and their measurements
 are preserved so that the same approaches are not accepted on misleading evidence.
 
+The following commits were made for prompt 4 before the commit-message prefix
+was requested: `eeaaf6077`, `605f12062`, `050706013`, `4d742f283`,
+`37322f448`, and `b50cc7681`. The two merge commits in that list also belong
+to this campaign. Subsequent campaign commits carry `[prompt 4]` in their
+subjects.
+
 ## Updated base, build 1145
 
 After the first part of this session, the worktree merged the committed `master`
@@ -174,6 +180,25 @@ both independent series, well outside the predicted sub-1% gain. See the
 [follow-up series](candidate-inline-view-core-followup-ab.log). The trial is
 rejected and its source and version changes are reverted. No full Release suite
 was run for this discarded candidate.
+
+## Current merged source, build 1150
+
+The worktree incorporated the local `master` commit `0c6d4074c`, including its
+separate compiler optimization, then rebuilt the checkout-local
+[Release compiler](merged-1150-release-build.log). Five runs of the four work
+paths on this source gave:
+
+| Workload | Median wall | Median CPU | Peak resident | Prompt target |
+| --- | ---: | ---: | ---: | --- |
+| Full `std/core` rebuild | 2,241.2 ms | 9,406.2 ms | 581.7 MiB | Under 1,000 ms |
+| Warm `std/core` no-op | 41.5 ms | 46.9 ms | 10.3 MiB | Under 100 ms |
+| One `std/core` source touched | 1,934.8 ms | 9,140.6 ms | 565.0 MiB | Diagnostic workload |
+| Hello world through linking | 126.4 ms | 437.5 ms | 57.6 MiB | Under 50 ms |
+
+The compiler source and machine load changed after the build-1149 table, so
+the difference between those tables is not attributed to prompt 4. See the
+[build-1150 samples](merged-1150-four-workloads.log). The no-op guardrail
+passes; the core and hello targets remain open.
 
 ## Four edit-loop workloads
 

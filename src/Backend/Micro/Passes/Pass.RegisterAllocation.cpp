@@ -2171,21 +2171,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             }
         }
 
-        if (useDef.isCall)
-        {
-            const CallConv& callConv = CallConv::get(useDef.callConv);
-            for (const MicroReg reg : callConv.intTransientRegs)
-            {
-                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                appendUniqueDenseIndex(defsC, regIndex);
-            }
-            for (const MicroReg reg : callConv.floatTransientRegs)
-            {
-                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                appendUniqueDenseIndex(defsC, regIndex);
-            }
-        }
-
         const MicroInstr* inst = instructions_->ptr(instructionRefs[idx]);
         const MicroInstrOperand* ops = inst ? inst->ops(*operands_) : nullptr;
         for (uint8_t opIndex = 0; inst && opIndex < inst->numOperands; ++opIndex)

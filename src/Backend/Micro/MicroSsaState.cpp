@@ -49,14 +49,20 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
     const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
     instructionRefs_.assign(instructionRefs.begin(), instructionRefs.end());
-    liveInstructionSlots_.assign(storage.slotCount(), 0);
+    if (liveInstructionSlots_.size() < storage.slotCount())
+        liveInstructionSlots_.resize(storage.slotCount(), 0);
+    if (++liveInstructionEpoch_ == 0)
+    {
+        std::ranges::fill(liveInstructionSlots_, 0);
+        ++liveInstructionEpoch_;
+    }
 
     for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
     {
         const MicroInstrRef instRef = instructionRefs_[instructionIndex];
         const uint32_t      slot    = instRef.get();
 
-        liveInstructionSlots_[slot] = 1;
+        liveInstructionSlots_[slot] = liveInstructionEpoch_;
         InstrInfo& info             = instrInfos_[slot];
         // Reset SSA bookkeeping only for live instructions during the existing
         // collection walk. Removed slots are excluded by liveInstructionSlots_.
@@ -188,7 +194,6 @@ void MicroSsaState::resetForBuild(MicroStorage& storage)
 
     trackedRegs_.clear();
     instructionRefs_.clear();
-    liveInstructionSlots_.clear();
     trackedDefCount_ = 0;
     valueInfoCount_  = 0;
     phiInfoCount_    = 0;
@@ -215,6 +220,7 @@ void MicroSsaState::clear()
     }
     instructionRefs_.clear();
     liveInstructionSlots_.clear();
+    liveInstructionEpoch_ = 0;
     instructionToBlock_.clear();
     useVisitStamps_.clear();
     useVisitStack_.clear();
@@ -241,7 +247,7 @@ MicroSsaState::ReachingDef MicroSsaState::reachingDef(const MicroReg reg, const 
     SWC_ASSERT(slot < instrInfos_.size());
     SWC_ASSERT(slot < liveInstructionSlots_.size());
 
-    if (!liveInstructionSlots_[slot])
+    if (liveInstructionSlots_[slot] != liveInstructionEpoch_)
         return {};
 
     const uint32_t regIndex = trackedRegs_.find(reg);
@@ -284,7 +290,7 @@ const MicroInstrUseDef* MicroSsaState::instrUseDef(const MicroInstrRef instRef) 
     const uint32_t slot = instRef.get();
     if (slot >= liveInstructionSlots_.size())
         return nullptr;
-    if (!liveInstructionSlots_[slot])
+    if (liveInstructionSlots_[slot] != liveInstructionEpoch_)
         return nullptr;
     SWC_ASSERT(slot < instrInfos_.size());
     return &instrInfos_[slot].useDef;
@@ -299,7 +305,7 @@ bool MicroSsaState::defValue(const MicroReg reg, const MicroInstrRef instRef, ui
     const uint32_t slot = instRef.get();
     if (slot >= liveInstructionSlots_.size())
         return false;
-    if (!liveInstructionSlots_[slot])
+    if (liveInstructionSlots_[slot] != liveInstructionEpoch_)
         return false;
     SWC_ASSERT(slot < instrInfos_.size());
     outValueId = findRegValue(instrInfos_[slot].defValues, reg);

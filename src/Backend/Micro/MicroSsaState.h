@@ -189,6 +189,7 @@ private:
     RenameState           renameState_;
     // Snapshot membership stays valid across erasures until the next build.
     std::vector<uint8_t>   liveInstructionSlots_;
+    uint8_t                liveInstructionEpoch_ = 0;
     std::vector<uint32_t>  instructionToBlock_;
     std::vector<BlockInfo> blocks_;
     // Block discovery and dominator construction are sequential. Keep their

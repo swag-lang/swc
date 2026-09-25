@@ -321,7 +321,7 @@ namespace
         context.instructions->insertSyntheticBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
 
         std::vector<MicroInstrRef> retRefs;
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             if (it->op == MicroInstrOpcode::Ret)
                 retRefs.push_back(it.current);
@@ -1225,7 +1225,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
 
     // Iterate once over instructions, but keep fixing a given instruction
     // until the encoder reports it conformant.
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end();)
+    for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt;)
     {
         const MicroInstrRef instRef = it.current;
         ++it;

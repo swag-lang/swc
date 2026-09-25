@@ -38,6 +38,7 @@ enum class RtAttributeFlagsE : uint64_t
     NoDoc          = 1 << 26,
     OperatorIgnore = 1 << 27,
     DynCast        = 1 << 28,
+    ReadOnly       = 1 << 29,
 };
 using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 

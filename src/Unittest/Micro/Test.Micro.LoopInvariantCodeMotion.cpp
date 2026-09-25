@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -93,6 +94,53 @@ namespace
         builder.emitRet();
     }
 }
+
+SWC_TEST_BEGIN(LICM_HoistsGlobalLoadAcrossReadOnlyCall)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        if (mode != 0)
+        {
+            AttributeList attributes;
+            attributes.addRtFlag(RtAttributeFlagsE::ReadOnly);
+            callee.setAttributes(ctx, attributes);
+        }
+
+        constexpr MicroReg count = MicroReg::virtualIntReg(1);
+        constexpr MicroReg value = MicroReg::virtualIntReg(2);
+        constexpr MicroReg sum   = MicroReg::virtualIntReg(3);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(sum, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadRegMem(value, mode == 2 ? MicroReg::intReg(2) : MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        if (mode != 2)
+        {
+            MicroRelocation relocation;
+            relocation.kind           = MicroRelocation::Kind::GlobalZeroAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = builder.instructions().lastInstructionRef();
+            builder.addRelocation(relocation);
+        }
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(MicroReg::intReg(0), sum, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+
+        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroDominators_MatchReachabilityWithANodeRemoved)
 {

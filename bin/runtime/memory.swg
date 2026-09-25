@@ -142,6 +142,7 @@ func memmove(dst: [*] void?, src: const [*] void?, size: u64)
         __memoryCopyBackward(target, source, size)
 }
 
+#[Swag.ReadOnly]
 func memcmp(left, right: const [*] void?, size: u64)->s32
 {
     if not size do

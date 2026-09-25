@@ -162,6 +162,7 @@ namespace
         static constexpr PredefinedRtFlag PREDEFINED_RT_FLAGS[] = {
             {.name = IdentifierManager::PredefinedName::AttrMulti, .flag = RtAttributeFlagsE::AttrMulti},
             {.name = IdentifierManager::PredefinedName::ConstExpr, .flag = RtAttributeFlagsE::ConstExpr},
+            {.name = IdentifierManager::PredefinedName::ReadOnly, .flag = RtAttributeFlagsE::ReadOnly},
             {.name = IdentifierManager::PredefinedName::PrintMicro, .flag = RtAttributeFlagsE::PrintMicro},
             {.name = IdentifierManager::PredefinedName::PrintAst, .flag = RtAttributeFlagsE::PrintAst},
             {.name = IdentifierManager::PredefinedName::Compiler, .flag = RtAttributeFlagsE::Compiler},

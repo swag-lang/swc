@@ -64,6 +64,7 @@ public:
         AttrMulti,
         TestTag,
         ConstExpr,
+        ReadOnly,
         PrintMicro,
         PrintAst,
         Compiler,

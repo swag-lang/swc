@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -379,6 +380,16 @@ namespace
             }
         }
 
+        const auto callDoesNotWrite = [&](const MicroInstrRef ref, const MicroInstrOpcode op) {
+            if (op != MicroInstrOpcode::CallLocal && op != MicroInstrOpcode::CallExtern)
+                return false;
+            const auto it = firstRelocation.find(ref.get());
+            if (it == firstRelocation.end())
+                return false;
+            const Symbol* target = relocations[it->second].targetSymbol;
+            return target && target->isFunction() && target->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
+        };
+
         const MicroReg     stackPointer = CallConv::get(context.callConvKind).stackPointer;
         const FramePrivacy frame        = analyzeFramePrivacy(storage, operands, instrRefs, useDefs, stackPointer, defCount, context.encoder);
 
@@ -445,6 +456,7 @@ namespace
             bodyIndices.reserve(loop->bodySize);
             std::unordered_set<MicroReg> defsInLoop;
             bool                         loopHasCall         = false;
+            bool                         loopHasReadOnlyCall = false;
             bool                         loopHasPointerStore = false;
             bool                         loopHasFrameStore   = false;
             for (uint32_t i = 0; i < n; ++i)
@@ -460,7 +472,10 @@ namespace
                     defsInLoop.insert(def);
                 if (useDef->isCall || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 {
-                    loopHasCall = true;
+                    if (callDoesNotWrite(instrRefs[i], inst->op))
+                        loopHasReadOnlyCall = true;
+                    else
+                        loopHasCall = true;
                     continue;
                 }
                 if (!MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory))
@@ -785,6 +800,24 @@ namespace
                             // A call may write the loaded location; never hoist past one.
                             if (loopHasCall)
                                 continue;
+
+                            // Across a read-only call, favor direct global loads:
+                            // their pointer-sized values can replace repeated
+                            // global accesses without retaining an arbitrary
+                            // array element or constant throughout the loop.
+                            if (loopHasReadOnlyCall)
+                            {
+                                const MicroInstrOperand* loadOps = inst->ops(operands);
+                                if (inst->op != MicroInstrOpcode::LoadRegMem || !loadOps ||
+                                    !loadOps[1].reg.isInstructionPointer() || loadOps[2].opBits != MicroOpBits::B64)
+                                    continue;
+                                const auto relocationIt = firstRelocation.find(ref.get());
+                                if (relocationIt == firstRelocation.end())
+                                    continue;
+                                const auto kind = relocations[relocationIt->second].kind;
+                                if (kind != MicroRelocation::Kind::GlobalInitAddress && kind != MicroRelocation::Kind::GlobalZeroAddress)
+                                    continue;
+                            }
 
                             const MicroReg base        = firstUseReg(*useDef);
                             const bool     baseIsFrame = base.isValid() && frame.isFrame(base, stackPointer);

@@ -126,8 +126,9 @@ namespace MicroPassHelpers
     };
 
     // Fills 'out' from the context's CFG. Leaves it invalid (and every query
-    // conservative) when the CFG does not support liveness.
-    void computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context);
+    // conservative) when the CFG does not support liveness. Callers that only
+    // query live-in/live-out masks can omit the per-instruction use/def lists.
+    void computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context, bool retainUseDefs = true);
 
     bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops);
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);

@@ -24,6 +24,11 @@
 //       Drops the local-stack subtract and its releases when the body calls
 //       nothing and no longer addresses the stack.
 //
+//   compactUnusedStackPrefix
+//       Trims a fixed call frame with no surviving stack access, or rebases
+//       allocator-owned spills above its unused prefix without moving ABI
+//       argument slots.
+//
 //   expandLargePrologueStackAdjustments
 //       Windows requires touching every guard page when growing the stack by
 //       more than one page, so a function that subtracts more than 4 KiB needs
@@ -613,17 +618,15 @@ namespace
         return true;
     }
 
-    // Register allocation can leave the only surviving spill slots far above
-    // the outgoing call area. Move only allocator-owned slots down together
-    // with a single fixed frame, keeping their absolute addresses and call
-    // alignment. Outgoing argument slots have fixed ABI offsets from rsp and
-    // must never be rebased.
+    // Register allocation can leave a frame with no surviving stack access,
+    // or with only spill slots far above the outgoing call area. Keep the ABI
+    // shadow and call alignment; move only allocator-owned slots when present.
+    // Outgoing argument slots have fixed offsets from rsp and must not move.
     // An address of the frame or a dynamic stack adjustment needs a fuller
     // layout analysis, so neither participates in this conservative rewrite.
     bool compactUnusedStackPrefix(const MicroPassContext& context, const CallConv& conv)
     {
         if (context.forceFramePointer || context.debugStackBasePhysReg.isValid() ||
-            context.spillAreaLo >= context.spillAreaHi ||
             !conv.stackShadowSpace || !conv.stackAlignment)
             return false;
 
@@ -633,6 +636,7 @@ namespace
         MicroInstrRef releaseRef = MicroInstrRef::invalid();
         uint64_t frameSize = 0;
         uint64_t firstOffset = UINT64_MAX;
+        bool hasCall = false;
         struct StackAccess { MicroInstrRef ref; uint8_t offsetIndex; };
         SmallVector<StackAccess> accesses;
         MicroInstrRegOperandRefs regOperands;
@@ -678,6 +682,7 @@ namespace
                 return false;
 
             const MicroInstrDef& def = MicroInstr::info(inst.op);
+            hasCall |= def.flags.has(MicroInstrFlagsE::IsCallInstruction);
             const bool directAccess = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                                       ops[def.memBaseOperandIndex].reg == conv.stackPointer;
             if (directAccess)
@@ -689,7 +694,8 @@ namespace
                     return false;
                 const uint64_t offset = ops[def.memOffsetOperandIndex].valueU64;
                 const uint64_t width  = getNumBytes(ops[2].opBits);
-                if (offset < context.spillAreaLo || offset > context.spillAreaHi || width > context.spillAreaHi - offset)
+                if (context.spillAreaLo >= context.spillAreaHi ||
+                    offset < context.spillAreaLo || offset > context.spillAreaHi || width > context.spillAreaHi - offset)
                     return false;
                 firstOffset = std::min(firstOffset, ops[def.memOffsetOperandIndex].valueU64);
                 accesses.push_back({it.current, def.memOffsetOperandIndex});
@@ -705,11 +711,22 @@ namespace
             }
         }
 
-        if (phase != Phase::Done || frameRef.isInvalid() || releaseRef.isInvalid() ||
-            firstOffset < conv.stackShadowSpace + conv.stackAlignment)
+        if (phase != Phase::Done || frameRef.isInvalid() || releaseRef.isInvalid())
             return false;
 
-        const uint64_t delta = ((firstOffset - conv.stackShadowSpace) / conv.stackAlignment) * conv.stackAlignment;
+        uint64_t delta = 0;
+        if (accesses.empty())
+        {
+            if (!hasCall || frameSize < conv.stackShadowSpace)
+                return false;
+            delta = ((frameSize - conv.stackShadowSpace) / conv.stackAlignment) * conv.stackAlignment;
+        }
+        else
+        {
+            if (firstOffset < conv.stackShadowSpace + conv.stackAlignment)
+                return false;
+            delta = ((firstOffset - conv.stackShadowSpace) / conv.stackAlignment) * conv.stackAlignment;
+        }
         if (!delta || delta >= frameSize)
             return false;
 

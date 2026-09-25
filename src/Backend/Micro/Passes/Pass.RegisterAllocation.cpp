@@ -810,7 +810,7 @@ void MicroRegisterAllocationPass::computeGlobalAccessBenefits(std::vector<uint64
                 return;
 
             const uint32_t denseIndex = denseVirtualRegs_.find(reg);
-            if (denseIndex != MicroDenseRegIndex::K_INVALID_INDEX && denseIndex < outBenefit.size())
+            if (denseIndex != MicroDenseRegIndex::K_INVALID_INDEX && denseIndex < outBenefit.size() && globalBenefits_[denseIndex])
                 outBenefit[denseIndex] += weight;
         };
 

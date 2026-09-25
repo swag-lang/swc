@@ -174,6 +174,41 @@ namespace PostRaPeephole
         return false;
     }
 
+    struct RegTouch
+    {
+        bool use = false;
+        bool def = false;
+    };
+
+    RegTouch regTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg, MicroReg alsoDef = MicroReg::invalid())
+    {
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+            return {std::ranges::find(useDef.uses, reg) != useDef.uses.end(),
+                    std::ranges::find(useDef.defs, reg) != useDef.defs.end() ||
+                        (alsoDef.isValid() && std::ranges::find(useDef.defs, alsoDef) != useDef.defs.end())};
+        }
+
+        RegTouch touch;
+        if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
+        {
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if (modes[i] == MicroInstrRegMode::None)
+                    continue;
+                if (ops[i].reg == reg)
+                    touch.use |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
+                if (ops[i].reg == reg || (alsoDef.isValid() && ops[i].reg == alsoDef))
+                    touch.def |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+            }
+        }
+        return touch;
+    }
+
     // Mirrors the "dead after consumer" scan used by the forwarding rules.
     // Fallthrough-jumps-to-next-label count as no-ops because a sibling pattern
     // in this same pass erases them.
@@ -188,17 +223,11 @@ namespace PostRaPeephole
             if (!inst)
                 return false;
 
-            const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
-            for (const MicroReg used : useDef.uses)
-            {
-                if (used == reg)
-                    return false;
-            }
-            for (const MicroReg defined : useDef.defs)
-            {
-                if (defined == reg)
-                    return true;
-            }
+            const RegTouch touch = regTouch(ctx, *inst, reg);
+            if (touch.use)
+                return false;
+            if (touch.def)
+                return true;
 
             if (inst->op == MicroInstrOpcode::JumpCond &&
                 isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, inst->ops(*ctx.operands)))
@@ -255,8 +284,7 @@ namespace PostRaPeephole
                 instructionMayReadMemory(*scanInst))
                 return false;
 
-            const MicroInstrUseDef useDef = scanInst->collectUseDef(*ctx.operands, ctx.encoder);
-            if (std::ranges::find(useDef.defs, baseReg) != useDef.defs.end())
+            if (regTouch(ctx, *scanInst, baseReg).def)
                 return false;
         }
 
@@ -325,9 +353,7 @@ namespace PostRaPeephole
             if (info.flags.has(MicroInstrFlagsE::JumpInstruction) && !conditionalJump)
                 return false;
 
-            const MicroInstrUseDef useDef = scanInst->collectUseDef(*ctx.operands, ctx.encoder);
-            if (std::ranges::find(useDef.defs, baseReg) != useDef.defs.end() ||
-                std::ranges::find(useDef.defs, sourceReg) != useDef.defs.end())
+            if (regTouch(ctx, *scanInst, baseReg, sourceReg).def)
                 return false;
         }
 
@@ -398,9 +424,7 @@ namespace PostRaPeephole
             if (info.flags.has(MicroInstrFlagsE::JumpInstruction) && !conditionalJump)
                 return false;
 
-            const MicroInstrUseDef useDef = scanInst->collectUseDef(*ctx.operands, ctx.encoder);
-            if (std::ranges::find(useDef.defs, baseReg) != useDef.defs.end() ||
-                std::ranges::find(useDef.defs, sourceReg) != useDef.defs.end())
+            if (regTouch(ctx, *scanInst, baseReg, sourceReg).def)
                 return false;
         }
 

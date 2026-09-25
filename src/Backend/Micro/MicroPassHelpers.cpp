@@ -287,16 +287,18 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
         if (!scanInst)
             return false;
 
-        const MicroInstrOperand* scanOps = scanInst->ops(operands);
-        if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+        const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+        const bool mayUseFlags = info.flags.has(MicroInstrFlagsE::UsesCpuFlags);
+        const bool mayDefineFlags = info.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+        const MicroInstrOperand* scanOps = mayUseFlags || mayDefineFlags ? scanInst->ops(operands) : nullptr;
+        if (mayUseFlags && instructionActuallyUsesCpuFlags(*scanInst, scanOps))
             return false;
 
-        const MicroInstrDef& info = MicroInstr::info(scanInst->op);
         // A jump preserves the flags. Its destination can read them even if
         // the jump itself is unconditional; only a CFG walk can prove otherwise.
         if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
             return builder && areCpuFlagsDeadAfterInCfg(*builder, scanRef);
-        if (instructionOverwritesCpuFlags(*scanInst, scanOps) ||
+        if ((mayDefineFlags && instructionOverwritesCpuFlags(*scanInst, scanOps)) ||
             info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
             info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
         {
@@ -315,18 +317,20 @@ bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& st
         if (!scanInst)
             return false;
 
-        const MicroInstrOperand* scanOps = scanInst->ops(operands);
-        if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+        const MicroInstrDef& scanInfo = MicroInstr::info(scanInst->op);
+        const bool mayUseFlags = scanInfo.flags.has(MicroInstrFlagsE::UsesCpuFlags);
+        const bool mayDefineFlags = scanInfo.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+        const MicroInstrOperand* scanOps = mayUseFlags || mayDefineFlags ? scanInst->ops(operands) : nullptr;
+        if (mayUseFlags && instructionActuallyUsesCpuFlags(*scanInst, scanOps))
             return false;
 
-        const MicroInstrDef& scanInfo = MicroInstr::info(scanInst->op);
         if (scanInst->op == MicroInstrOpcode::Label ||
             scanInfo.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
             scanInfo.flags.has(MicroInstrFlagsE::JumpInstruction) ||
             scanInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
             return false;
 
-        if (instructionOverwritesCpuFlags(*scanInst, scanOps))
+        if (mayDefineFlags && instructionOverwritesCpuFlags(*scanInst, scanOps))
             return true;
     }
 
@@ -366,10 +370,13 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cf
         const MicroInstr* inst = storage.ptr(cfg.instructionRefs()[i]);
         if (!inst)
             return false;
-        const MicroInstrOperand* ops = inst->ops(operands);
-        if (instructionActuallyUsesCpuFlags(*inst, ops))
+        const MicroInstrFlags flags = MicroInstr::info(inst->op).flags;
+        const bool mayUseFlags = flags.has(MicroInstrFlagsE::UsesCpuFlags);
+        const bool mayDefineFlags = flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+        const MicroInstrOperand* ops = mayUseFlags || mayDefineFlags ? inst->ops(operands) : nullptr;
+        if (mayUseFlags && instructionActuallyUsesCpuFlags(*inst, ops))
             return false;
-        if (instructionOverwritesCpuFlags(*inst, ops) || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+        if ((mayDefineFlags && instructionOverwritesCpuFlags(*inst, ops)) || flags.has(MicroInstrFlagsE::IsCallInstruction))
             continue;
         for (const uint32_t successor : cfg.successors(i))
             worklist.push_back(successor);

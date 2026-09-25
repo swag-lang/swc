@@ -19,10 +19,11 @@ block, and the hot path keeps the register.
 ### compiler.optimization.056 — Branch directly on an inlined comparator's result
 
 - Recorded: 2026-09-25 11:40
-- Updated: 2026-09-25 14:23 — The sole-use byte result now branches on its producer's condition; the equal-count path still repeats `memcmp`'s zero compare.
+- Updated: 2026-09-25 14:33 — Reusing comparison flags on the equal-count path reduced code size but consistently slowed wordfreq; the rule was reverted.
 - Area: compiler/backend, inlining and branch simplification
 - Evidence: wordfreq's common unequal-count comparator path used `setcc`, a copy, an unconditional jump, then a test and conditional jump at the boolean join. A guarded branch-threading rule sends that path to the consumer's successors while preserving the other join predecessors. Its tests cover both branch polarities, a multiply used result, and live flags. The common path loses the materialization and retest; checksum 130489 and 1,104 C++, 3,480 native, and 1,500 JIT tests pass. Two 30-pair interleaved runs favored the candidate in 23 and 18 pairs, with median ratios 0.927 and 0.963; machine load varied sharply, so the static path is stronger evidence.
-- Next: the equal-count path compares `memcmp`'s result with zero, branches on equality, then compares the same value again before testing its sign. Prove flag reuse across the first branch and copies, or choose a better block order that avoids the duplicate compare without changing other consumers.
+- Additional evidence: a guarded post-RA rule reused the first `memcmp` zero comparison's flags across its equality branch and removed the second comparison. A focused C++ test passed, and the two inlined paths made `qsort` shrink from 130 to 126 instructions; csvagg's main function stayed at 1,073. Two interleaved 40-pair wordfreq runs nevertheless measured candidate/baseline median ratios 1.066 and 1.046, with the candidate faster in only 8/40 pairs in each run. The rule and tests were reverted.
+- Next: compare the branch layout and frequency of the `memcmp` path before trying another flag reuse. Prefer improvements on the common unequal-count path.
 
 ### compiler.optimization.057 — Price constant-pool hoists by register pressure
 

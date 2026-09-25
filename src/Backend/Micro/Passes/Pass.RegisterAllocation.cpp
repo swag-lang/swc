@@ -875,11 +875,8 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
     {
         if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
             continue;
-        if (MicroInstrInfo::isUnconditionalJumpInstruction(*it, it->ops(*operands_)))
-            continue;
-
         const MicroInstrOperand* ops = it->ops(*operands_);
-        if (!ops)
+        if (!ops || MicroInstrInfo::isUnconditionalJumpInstruction(*it, ops))
             continue;
 
         const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
@@ -921,13 +918,10 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
     idx = 0;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
-        if (!MicroInstrInfo::isUnconditionalJumpInstruction(*it, it->ops(*operands_)))
-            continue;
         if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
             continue;
-
         const MicroInstrOperand* ops = it->ops(*operands_);
-        if (!ops)
+        if (!ops || !MicroInstrInfo::isUnconditionalJumpInstruction(*it, ops))
             continue;
 
         const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
@@ -1100,11 +1094,6 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         {
             if (!MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::JumpInstruction))
                 continue;
-            if (MicroInstrInfo::isUnconditionalJumpInstruction(*it, it->ops(*operands_)))
-            {
-                jumpsToOwnNextLabel[idx] = 1;
-                continue;
-            }
             if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
             {
                 jumpsToOwnNextLabel[idx] = 1;
@@ -1112,7 +1101,7 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
             }
 
             const MicroInstrOperand* ops = it->ops(*operands_);
-            if (!ops)
+            if (!ops || MicroInstrInfo::isUnconditionalJumpInstruction(*it, ops))
             {
                 jumpsToOwnNextLabel[idx] = 1;
                 continue;

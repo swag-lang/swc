@@ -92,12 +92,11 @@ namespace
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return scanRegLivenessAfterInstruction(context, instRef, reg, true);
 
-        const std::span<const MicroInstrRef> instructionRefs = cfg.instructionRefs();
-        const auto                           instructionIt   = std::ranges::find(instructionRefs, instRef);
-        if (instructionIt == instructionRefs.end())
+        const std::span<const MicroInstrRef> instructionRefs  = cfg.instructionRefs();
+        const uint32_t                       instructionIndex = cfg.indexOf(instRef);
+        if (instructionIndex == MicroControlFlowGraph::K_NO_INDEX)
             return true;
 
-        const uint32_t        instructionIndex = static_cast<uint32_t>(std::distance(instructionRefs.begin(), instructionIt));
         std::vector<uint8_t>  visited(instructionRefs.size(), 0);
         SmallVector<uint32_t> pending;
         for (const uint32_t successor : cfg.successors(instructionIndex))

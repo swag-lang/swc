@@ -1509,7 +1509,7 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
     {
         // successors = [taken (cond true), fallthrough (cond false)].
         queueRefined(state, succs[0], slot, condTrueIfSubjectZero == slotZeroIfSubjectZero, worklist);
-        queueRefined(state, succs[1], slot, (!condTrueIfSubjectZero) == slotZeroIfSubjectZero, worklist);
+        queueRefined(std::move(state), succs[1], slot, (!condTrueIfSubjectZero) == slotZeroIfSubjectZero, worklist);
         return;
     }
 
@@ -1551,7 +1551,7 @@ bool Sanitizer::resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSl
     return false;
 }
 
-void Sanitizer::queueRefined(const SanitizerState& state, uint32_t index, int64_t slot, bool slotIsZero, std::vector<uint32_t>& worklist)
+void Sanitizer::queueRefined(SanitizerState state, uint32_t index, int64_t slot, bool slotIsZero, std::vector<uint32_t>& worklist)
 {
     const auto           it      = state.stack.find(slot);
     const SanitizerValue current = it != state.stack.end() ? it->second : SanitizerValue{};
@@ -1561,13 +1561,12 @@ void Sanitizer::queueRefined(const SanitizerState& state, uint32_t index, int64_
     if (!slotIsZero && current.isZero())
         return; // infeasible
 
-    SanitizerState edge = state;
     // A guard narrows an unknown value, but must retain any value already known,
     // including its storage width: later reloads and wide copies need the same fact.
     if (current.kind == SanitizerValueKind::Unknown)
-        edge.stack[slot] = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
-    edge.flagsSubject = MicroReg::invalid();
-    propagate(std::move(edge), index, worklist);
+        state.stack[slot] = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
+    state.flagsSubject = MicroReg::invalid();
+    propagate(std::move(state), index, worklist);
 }
 
 void Sanitizer::dropZeros(SanitizerState& state)

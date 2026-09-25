@@ -33,7 +33,7 @@ namespace
     struct FloatDefCounts
     {
         const MicroStorage*                    storage  = nullptr;
-        const MicroOperandStorage*             operands = nullptr;
+        const MicroSsaState*                   ssaState = nullptr;
         std::unordered_map<MicroReg, uint32_t> counts;
         bool                                   ready = false;
 
@@ -41,10 +41,11 @@ namespace
         {
             if (!ready)
             {
-                for (const MicroInstr& inst : storage->view())
+                for (auto it = storage->view().begin(), endIt = storage->view().end(); it != endIt; ++it)
                 {
-                    const MicroInstrUseDef useDef = inst.collectUseDef(*operands, nullptr);
-                    for (const MicroReg def : useDef.defs)
+                    const MicroInstrUseDef* useDef = ssaState->instrUseDef(it.current);
+                    SWC_ASSERT(useDef != nullptr);
+                    for (const MicroReg def : useDef->defs)
                     {
                         if (def.isVirtualFloat())
                             ++counts[def];
@@ -299,7 +300,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     bool                 directUseCursorsReady = false;
     FloatDefCounts       floatDefs;
     floatDefs.storage  = &storage;
-    floatDefs.operands = &operands;
+    floatDefs.ssaState = ssaState;
 
     // Erasing a dead definition cannot change the reaching value of a surviving
     // use. Keep this SSA graph for the entire fixed point and ignore erased

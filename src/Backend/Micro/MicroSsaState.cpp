@@ -649,10 +649,12 @@ void MicroSsaState::placePhiNodes()
     auto& inWorkStamp = phiInWorkStamps_;
     auto& hasPhiStamp = phiHasPhiStamps_;
     auto& workList    = phiWorkList_;
-    inWorkStamp.assign(blocks_.size(), 0);
-    hasPhiStamp.assign(blocks_.size(), 0);
+    if (inWorkStamp.size() < blocks_.size())
+        inWorkStamp.resize(blocks_.size(), 0);
+    if (hasPhiStamp.size() < blocks_.size())
+        hasPhiStamp.resize(blocks_.size(), 0);
     workList.clear();
-    uint32_t    stamp = 1;
+    uint32_t    stamp = phiStamp_;
     const auto& regs  = trackedRegs_.regs();
     for (uint32_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
     {
@@ -699,6 +701,7 @@ void MicroSsaState::placePhiNodes()
             }
         }
     }
+    phiStamp_ = stamp;
 }
 
 void MicroSsaState::renameIntoSsa()

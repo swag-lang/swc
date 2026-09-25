@@ -185,6 +185,7 @@ private:
     // Phi placement and renaming overwrite these workspaces on every build.
     std::vector<uint32_t> phiInWorkStamps_;
     std::vector<uint32_t> phiHasPhiStamps_;
+    uint32_t              phiStamp_ = 1;
     std::vector<uint32_t> phiWorkList_;
     RenameState           renameState_;
     // Snapshot membership stays valid across erasures until the next build.

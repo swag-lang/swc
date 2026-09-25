@@ -639,10 +639,10 @@ namespace
 
             auto nextIt = it;
             ++nextIt;
-            if (nextIt == context.instructions->view().end())
+            if (nextIt == endIt)
                 return false;
 
-            while (nextIt != context.instructions->view().end())
+            while (nextIt != endIt)
             {
                 const MicroInstrOperand* nextOps = nextIt->ops(*context.operands);
                 if (!isFramePointerSetupInstruction(conv, *nextIt, nextOps, conv.stackPointer))
@@ -650,7 +650,7 @@ namespace
                 ++nextIt;
             }
 
-            if (nextIt == context.instructions->view().end())
+            if (nextIt == endIt)
                 return false;
 
             const MicroInstrRef insertBeforeRef = nextIt.current;

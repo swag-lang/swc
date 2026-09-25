@@ -340,7 +340,8 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
         context.instructions->erase(adjustRef);
 
     const auto beginIt = context.instructions->view().begin();
-    if (beginIt == context.instructions->view().end())
+    const auto endIt   = context.instructions->view().end();
+    if (beginIt == endIt)
         return Result::Continue;
 
     MicroInstrOperand stackAdjustOps[4];
@@ -353,7 +354,7 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
     stackAdjustOps[2].microOp = MicroOp::Add;
     // Iterators hold references, so inserting before the current Ret leaves
     // its successor unchanged, even when instruction storage reallocates.
-    for (auto it = beginIt; it != context.instructions->view().end(); ++it)
+    for (auto it = beginIt; it != endIt; ++it)
     {
         if (it->op != MicroInstrOpcode::Ret)
             continue;

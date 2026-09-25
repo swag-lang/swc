@@ -238,7 +238,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         }
 
         bool replacedUses = false;
-        for (auto scanIt = it; scanIt != instructions_->view().end(); ++scanIt)
+        for (auto scanIt = it; scanIt != endIt; ++scanIt)
         {
             const MicroInstrUseDef useDef = scanIt->collectUseDef(*operands_, context_->encoder);
             if (containsKey(useDef.defs, srcReg) || containsKey(useDef.defs, dstReg))

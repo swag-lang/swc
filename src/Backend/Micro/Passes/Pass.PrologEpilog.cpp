@@ -588,12 +588,13 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     }
 
     const auto beginIt = context.instructions->view().begin();
-    if (beginIt != context.instructions->view().end())
+    const auto endIt   = context.instructions->view().end();
+    if (beginIt != endIt)
     {
         insertSavedRegsPrologue(context, conv, beginIt.current);
         // Insertions before a Ret preserve its successor. Walk from the
         // original first instruction to skip the newly inserted prologue.
-        for (auto it = beginIt; it != context.instructions->view().end(); ++it)
+        for (auto it = beginIt; it != endIt; ++it)
         {
             if (it->op == MicroInstrOpcode::Ret)
                 insertSavedRegsEpilogue(context, conv, it.current);

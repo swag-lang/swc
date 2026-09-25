@@ -16,6 +16,22 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.065 — Forward indexed store addresses through conversion chains
+
+- Recorded: 2026-09-25 20:22
+- Updated: 2026-09-25 20:22 — Removed an address calculation from csvagg's existing-slot row path.
+- Area: compiler/backend, pre-allocation address forwarding
+- Evidence: clang-cl writes the accumulated revenue directly to `[base + index*8]`. Swag previously computed that address with `lea`, then carried it through the integer-to-float conversion, an indexed load and the addition before storing through the temporary pointer. The pre-allocation address-forwarding walk already proves that the base and index stay unchanged, but its eight-instruction window ended immediately before this store. Extending the bounded walk to sixteen instructions lets it rewrite the store to an indexed form; later dead-code elimination removes the `lea`. The generated csvagg row region shrinks from 244 to 243 instructions with stack accesses unchanged at 17; `main` shrinks from 1,027 to 1,024 instructions. Csvagg keeps checksum 24828641. Wordfreq's `mapProbe` and `qsort` remain at 90 and 130 instructions with checksum 130489. A focused C++ test covers a nine-operation gap and a base-register redefinition that blocks the rewrite; all 1,119 C++ tests pass. The randomly drawn parser suite passed its positive and expected-error files. Both benchmark programs pass `--validate-micro`. No elapsed-time sample informed the decision.
+- Next: inspect the scalar floating-point load/add/store on this same row path; clang-cl adds the old value as a memory operand and stores without the separate load. Check operand-order and floating-point semantics before changing the combiner.
+
+### compiler.optimization.064 — Price speculative loop loads by resulting spill traffic
+
+- Recorded: 2026-09-25 20:03
+- Updated: 2026-09-25 20:15 — Checked register availability and hash arithmetic against both winning compilers.
+- Area: compiler/backend, loop-invariant motion and register allocation
+- Evidence: LDC keeps the byte-map mask in `r12` across collision probes; Swag folds its mask read into `and index, [map+40]`. Preventing that fold and hoisting the field made `mapProbe` grow from 90 to 98 instructions, because the mask occupied a volatile register and the `memcmp` path added a save, reload and register shuffles. Reducing the allocator's persistent-register reserve from two to one did not change this code. Admitting the preferred local-stack-base register when no debug base is pinned, together with the mask hoist, still gave 98 instructions in `mapProbe` and enlarged wordfreq's `main` to 497 instructions; the new register was not selected for this value. In `qsort`, LDC retains both key lengths across `memcmp`. A scratch-source experiment that named both lengths once removed the three memory operands on one equality path, but whole-function instructions rose from 130 to 131 and stack operands from 2 to 10. Allowing non-dominating RIP-relative global pointer loads to hoist across read-only calls moved several pointers to the inner-loop preheader, but `qsort` rose from 130 to 150 instructions and stack operands from 2 to 18; the new spill and reload traffic outweighed the removed global loads. Narrowing the XOR before each 32-bit hash multiply matched LDC's operand width, but left `mapProbe` at 90 instructions with the same memory operations and encoding size for its extended register operands; it also diverged from clang-cl's 64-bit XOR in csvagg. All compiler-source trials were reverted. These are static instruction and memory counts; elapsed milliseconds were not used.
+- Next: select residency using a cost that includes additional live ranges and spills, or reuse the lengths across `memcmp` without extending their lifetime through both comparator loops. Continue comparing csvagg's row loop with clang-cl.
+
 ### compiler.optimization.057 — Price constant-pool hoists by register pressure
 
 - Recorded: 2026-09-25 13:59

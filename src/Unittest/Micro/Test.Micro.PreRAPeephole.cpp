@@ -662,6 +662,37 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcAddressIntoStore)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PreRAPeephole_FoldsAddressAcrossConversionChain)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(1);
+    constexpr MicroReg idx  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg src  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg addr = MicroReg::virtualIntReg(4);
+    for (const bool redefineBase : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(base, ApInt(0x7000, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(idx, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(src, ApInt(5, 64), MicroOpBits::B64);
+        builder.emitLoadAddressAmcRegMem(addr, MicroOpBits::B64, base, idx, 8, 0, MicroOpBits::B64);
+        for (uint32_t i = 0; i < 9; ++i)
+        {
+            if (redefineBase && i == 4)
+                builder.emitLoadRegImm(base, ApInt(0x8000, 64), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(src, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+        builder.emitLoadMemReg(addr, 0, src, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPreRaPeepholePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcMemReg) != (redefineBase ? 0 : 1) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != (redefineBase ? 1 : 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcAddressIntoMemoryUpdate)
 {
     constexpr MicroReg base = MicroReg::virtualIntReg(1);

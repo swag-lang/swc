@@ -134,4 +134,26 @@ private:
     uint64_t                   revision_ = 1;
 };
 
+inline MicroInstr* MicroStorage::ptr(const MicroInstrRef ref) noexcept
+{
+    if (ref.isInvalid() || ref.get() >= nodes_.size())
+        return nullptr;
+
+    Node& node = nodes_[ref.get()];
+    if (!node.alive)
+        return nullptr;
+    return &node.instr;
+}
+
+inline const MicroInstr* MicroStorage::ptr(const MicroInstrRef ref) const noexcept
+{
+    if (ref.isInvalid() || ref.get() >= nodes_.size())
+        return nullptr;
+
+    const Node& node = nodes_[ref.get()];
+    if (!node.alive)
+        return nullptr;
+    return &node.instr;
+}
+
 SWC_END_NAMESPACE();

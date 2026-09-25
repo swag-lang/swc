@@ -111,6 +111,8 @@ namespace
         if (!bodyCount || bodyCount > 12)
             return false;
         bool indexedRead = false;
+        std::unordered_set<MicroReg> indexedBases;
+        std::unordered_set<MicroReg> bodyDefs;
         for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
         {
             const MicroInstrRef      ref  = order[ordinal];
@@ -127,6 +129,7 @@ namespace
                 MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops))
                 return false;
             const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+            bodyDefs.insert(useDef.defs.begin(), useDef.defs.end());
             if (std::ranges::find(useDef.defs, counter) != useDef.defs.end() ||
                 std::ranges::find(useDef.defs, bound) != useDef.defs.end())
                 return false;
@@ -138,9 +141,15 @@ namespace
                 ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX - 3))
                 return false;
             indexedRead = true;
+            indexedBases.insert(ops[1].reg);
         }
         if (!indexedRead)
             return false;
+        for (const MicroReg base : indexedBases)
+        {
+            if (bodyDefs.contains(base))
+                return false;
+        }
 
         const uint32_t nextVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
         if (nextVirtual >= MicroReg::K_MAX_INDEX)

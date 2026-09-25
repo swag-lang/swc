@@ -164,6 +164,31 @@ SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_RejectsOtherCounterUses)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_RejectsChangingBase)
+{
+    constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg bound   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+    const auto         header = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadAmcRegMem(value, MicroOpBits::B8, base, counter, 1, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(base, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegReg(counter, bound, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+    builder.emitRet();
+
+    SWC_RESULT(runLoopUnrollPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_MultipleLoops_RebuildsIncomingJumpRanges)
 {
     MicroBuilder builder(ctx);

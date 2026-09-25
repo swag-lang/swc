@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.076 - Keep local pointers across disjoint spills
+
+- Recorded: 2026-09-26 00:47
+- Updated: 2026-09-26 00:47 - Removed one csvagg row-path pointer load.
+- Area: compiler/backend, post-allocation frame value forwarding
+- Evidence: Csvagg's inlined table probe keeps `agg.used` in `r14`, but the caller reloaded that pointer for its indexed test. A spill store to `[rsp+offset]` between the two reads made the previous all-writes barrier decline the proof. The frame allocator exposes its private spill byte range, and the function symbol exposes each local object's extent. The backward path walk now permits only a direct store wholly inside that spill range when the earlier pointer load lies wholly inside a known local object; other stores still stop it. If the reloaded physical register is dead after the branch, the indexed compare uses the persistent register directly and the reload is erased. Csvagg's `main` falls from 1,001 to 1,000 Micro instructions and loses one memory read on the row path, matching clang-cl's retained table pointer more closely. Wordfreq stays at 452. Both programs pass `--validate-micro` and checksums 130489 and 24828641. A C++ test covers a declared local object and spill, an unknown object, and a store outside the spill area. All 1,130 C++, 3,480 native, and 1,500 JIT tests pass before integration. No millisecond reading informed the decision.
+- Next: the caller still repeats `used[idx]` after the inlined probe in both programs; eliminate that test only with a path-sensitive memory fact that survives the read-only comparison call and every loop backedge.
+
 ### compiler.optimization.075 - Forward private-frame pointers through read-only branches
 
 - Recorded: 2026-09-26 00:20

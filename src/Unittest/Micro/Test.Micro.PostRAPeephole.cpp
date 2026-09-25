@@ -10,6 +10,9 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/DataSegment.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
@@ -18,7 +21,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr, MicroReg localStackBase = MicroReg::invalid())
+    Result runPostRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr, MicroReg localStackBase = MicroReg::invalid(),
+                                const SymbolFunction* function = nullptr, uint64_t spillLo = 0, uint64_t spillHi = 0)
     {
         MicroPostRaPeepholePass pass;
         MicroPassManager        passManager;
@@ -27,6 +31,9 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
         passContext.debugStackBasePhysReg = localStackBase;
+        passContext.sanitizerFunction = function;
+        passContext.spillAreaLo = spillLo;
+        passContext.spillAreaHi = spillHi;
         return builder.runPasses(passManager, encoder, passContext);
     }
 
@@ -231,6 +238,66 @@ SWC_TEST_BEGIN(PostRAPeephole_ForwardsPrivateFrameReloadAcrossBranches)
             for (const MicroInstr& inst : builder.instructions().view())
             {
                 if (inst.op != MicroInstrOpcode::CmpAmcImm && inst.op != MicroInstrOpcode::LoadAmcMemImm)
+                    continue;
+                const auto* ops = inst.ops(builder.operands());
+                if (!ops || ops[0].reg != saved)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ForwardsLocalPointerAcrossDisjointSpill)
+{
+    SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable local(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    local.setTypeRef(ctx.typeMgr().typeU64());
+    local.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+    local.setOffset(8);
+    local.setCodeGenLocalSize(16);
+    function.addLocalVariable(ctx, &local);
+
+    constexpr MicroReg localBase = MicroReg::intReg(3);
+    constexpr MicroReg saved = MicroReg::intReg(12);
+    constexpr MicroReg result = MicroReg::intReg(2);
+    constexpr MicroReg index = MicroReg::intReg(6);
+    constexpr MicroReg other = MicroReg::intReg(7);
+    const MicroReg stackPointer = CallConv::get(CallConvKind::Swag).stackPointer;
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const auto done = builder.createLabel();
+        builder.emitLoadRegMem(saved, localBase, 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(stackPointer, variant == 2 ? 0x88 : 0x80, other, MicroOpBits::B64);
+        builder.emitLoadRegMem(result, localBase, 8, MicroOpBits::B64);
+        builder.emitCmpRegImm(result, ApInt(0, 8), MicroOpBits::B8);
+        const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
+        MicroInstrOperand indexedCompare[7] = {};
+        indexedCompare[0].reg = result;
+        indexedCompare[1].reg = index;
+        indexedCompare[2].opBits = MicroOpBits::B8;
+        indexedCompare[3].opBits = MicroOpBits::B64;
+        indexedCompare[4].valueU64 = 1;
+        indexedCompare[5].valueU64 = 0;
+        indexedCompare[6].setImmediateValue(ApInt(0, 8));
+        builder.instructions().insertDerivedBefore(builder.operands(), oldCompare, MicroInstrOpcode::CmpAmcImm, indexedCompare);
+        builder.instructions().erase(oldCompare);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, done);
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, localBase,
+                                         variant == 1 ? nullptr : &function, 0x80, 0x88));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (variant == 0 ? 1u : 2u))
+            return Result::Error;
+        if (variant == 0)
+        {
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::CmpAmcImm)
                     continue;
                 const auto* ops = inst.ops(builder.operands());
                 if (!ops || ops[0].reg != saved)

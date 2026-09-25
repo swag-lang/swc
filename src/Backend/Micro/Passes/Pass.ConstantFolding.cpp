@@ -900,13 +900,34 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
         MicroInstr&         inst    = *it;
         MicroInstrOperand*  ops     = inst.ops(operands);
 
-        const bool changed = tryFoldCopyFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldAddressFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldBinaryRegImm(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldExtend(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldLoadFromConstant(memoryContext, instRef, inst, ops) ||
-                             tryFoldFloatBinaryRegReg(floatContext, toErase, instRef, inst, ops);
+        bool changed = false;
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+                changed = tryFoldCopyFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops);
+                break;
+            case MicroInstrOpcode::LoadAddrRegMem:
+                changed = tryFoldAddressFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops);
+                break;
+            case MicroInstrOpcode::OpBinaryRegImm:
+                changed = tryFoldBinaryRegImm(*ssaState, context, knownValues, knownFlags, instRef, inst, ops);
+                break;
+            case MicroInstrOpcode::OpBinaryRegReg:
+                changed = tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
+                          tryFoldFloatBinaryRegReg(floatContext, toErase, instRef, inst, ops);
+                break;
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+                changed = tryFoldExtend(*ssaState, knownValues, knownFlags, instRef, inst, ops);
+                break;
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                changed = tryFoldLoadFromConstant(memoryContext, instRef, inst, ops);
+                break;
+            default:
+                break;
+        }
         if (changed)
             context.passChanged = true;
     }

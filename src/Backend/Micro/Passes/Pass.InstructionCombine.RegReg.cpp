@@ -2014,8 +2014,8 @@ namespace InstructionCombine
                 return false;
             if (seenOp && cur != opRef)
             {
-                const MicroInstrUseDef ud = w.collectUseDef(*ctx.operands, nullptr);
-                if (microRegSpanContains(ud.uses, a))
+                const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(cur);
+                if (!useDef || microRegSpanContains(useDef->uses, a))
                     return false;
             }
             if (cur == opRef)

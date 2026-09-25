@@ -354,11 +354,18 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cf
     if (index >= count)
         return false;
 
-    // Queries are sequential on each compiler worker; retain the CFG walk's
-    // buffers instead of allocating them for every candidate branch.
-    thread_local std::vector<bool>     visited;
+    // Queries are sequential on each compiler worker. A stamp avoids clearing
+    // every CFG row when a candidate only visits a few successors.
+    thread_local std::vector<uint8_t>  visited;
+    thread_local uint8_t               visitStamp = 0;
     thread_local SmallVector<uint32_t> worklist;
-    visited.assign(count, false);
+    if (visited.size() < count)
+        visited.resize(count, 0);
+    if (++visitStamp == 0)
+    {
+        std::ranges::fill(visited, 0);
+        ++visitStamp;
+    }
     worklist.clear();
     for (const uint32_t successor : cfg.successors(index))
         worklist.push_back(successor);
@@ -367,9 +374,9 @@ bool MicroPassHelpers::areCpuFlagsDeadAfterInCfg(const MicroControlFlowGraph& cf
     {
         const uint32_t i = worklist.back();
         worklist.pop_back();
-        if (i >= count || visited[i])
+        if (i >= count || visited[i] == visitStamp)
             continue;
-        visited[i] = true;
+        visited[i] = visitStamp;
 
         const MicroInstr* inst = storage.ptr(cfg.instructionRefs()[i]);
         if (!inst)

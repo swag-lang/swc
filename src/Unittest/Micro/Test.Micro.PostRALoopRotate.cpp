@@ -178,6 +178,53 @@ SWC_TEST_BEGIN(PostRALoopRotate_ConditionalBackEdgeBlocks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopRotate_PlacesShortComparisonStepOnFallthrough)
+{
+    for (const bool unitStep : {true, false})
+    {
+        MicroBuilder builder(ctx);
+        const auto header = builder.createLabel();
+        const auto tie = builder.createLabel();
+        const auto step = builder.createLabel();
+        const auto stop = builder.createLabel();
+        constexpr MicroReg counter = MicroReg::intReg(0);
+        constexpr MicroReg value = MicroReg::intReg(1);
+
+        builder.placeLabel(header);
+        builder.emitCmpRegReg(counter, value, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, tie);
+        builder.emitJumpToLabel(MicroCond::Above, MicroOpBits::B64, step);
+        const MicroInstrRef secondRef = builder.instructions().lastInstructionRef();
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, stop);
+        builder.placeLabel(tie);
+        builder.emitCmpRegImm(counter, ApInt(5, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B64, stop);
+        builder.placeLabel(step);
+        builder.emitOpBinaryRegImm(counter, ApInt(unitStep ? 1 : 2, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, header);
+        builder.placeLabel(stop);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        const MicroInstr* second = builder.instructions().ptr(secondRef);
+        if (!second || second->op != MicroInstrOpcode::JumpCond)
+            return Result::Error;
+        const auto* secondOps = second->ops(builder.operands());
+        if (!secondOps || secondOps[0].cpuCond != (unitStep ? MicroCond::BelowOrEqual : MicroCond::Above) ||
+            secondOps[2].valueU64 != (unitStep ? stop.get() : step.get()))
+            return Result::Error;
+
+        const auto nextRef = builder.instructions().findNextInstructionRef(secondRef);
+        const auto* next = builder.instructions().ptr(nextRef);
+        if (!next || next->op != (unitStep ? MicroInstrOpcode::Label : MicroInstrOpcode::JumpCond))
+            return Result::Error;
+        if (unitStep && next->ops(builder.operands())[0].valueU64 != step.get())
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -1,0 +1,14 @@
+py : Could not find platform independent libraries <prefix>
+Au caractère Ligne:2 : 125
++ ... -20260925'; py -3 bench/compile.py --swc (Join-Path $root 'swc-baseli ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Could not find ...raries <prefix>:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+A: C:\Users\chris\AppData\Local\swc-agent-builds\speed-20260925\bin\swc-baseline.exe
+B: C:\Perso\swag-lang\swc-speed\bin\swc.exe
+5 round(s), 6 compiler worker(s)
+  round 1 A core_rebuild  wall=   4553.5 ms  cpu=  18937.5 ms  commit= 639.5 MiB  ws= 573.3 MiB
+  round 1 B core_rebuild  wall=  39663.1 ms  cpu= 150015.6 ms  commit= 620.9 MiB  ws= 552.3 MiB
+  round 2 B core_rebuild  wall=  39923.6 ms  cpu= 153437.5 ms  commit= 618.0 MiB  ws= 550.9 MiB
+  round 2 A core_rebuild  wall=   2774.8 ms  cpu=  12265.6 ms  commit= 639.4 MiB  ws= 572.4 MiB

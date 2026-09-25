@@ -1,0 +1,7 @@
+
+  ◆  swag        build • std [core] • devmode
+  ✓  module      win32 • 36 files • 125 ms
+  ✓  module      xinput • 32 files • 84 ms
+  ✓  module      core • 360 files • core.dll • 2 s 598 ms
+  ✓  workspace   std [core] • 3 modules • 3 s 309 ms
+  ✓  clean       3 s 309 ms

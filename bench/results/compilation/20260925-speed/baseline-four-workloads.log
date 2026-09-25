@@ -1,0 +1,35 @@
+py : Could not find platform independent libraries <prefix>
+Au caractère Ligne:2 : 150
++ ... 925'; try { py -3 bench/compile.py --swc bin/swc.exe --swc-cores 6 -- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Could not find ...raries <prefix>:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+A: C:\Perso\swag-lang\swc-speed\bin\swc.exe
+5 round(s), 6 compiler worker(s)
+  round 1 A core_rebuild  wall=   4523.3 ms  cpu=  18406.2 ms  commit= 668.3 MiB  ws= 590.7 MiB
+  round 1 A core_noop     wall=     64.8 ms  cpu=     31.2 ms  commit=   7.6 MiB  ws=  10.3 MiB
+  round 1 A core_touch    wall=  38317.3 ms  cpu= 150718.8 ms  commit= 590.8 MiB  ws= 531.8 MiB
+  round 1 A hello_build   wall=   2843.8 ms  cpu=   7562.5 ms  commit=  60.1 MiB  ws=  55.9 MiB
+  round 2 A core_rebuild  wall=  17179.6 ms  cpu=  66578.1 ms  commit= 637.3 MiB  ws= 566.3 MiB
+  round 2 A core_noop     wall=     64.6 ms  cpu=     31.2 ms  commit=   7.6 MiB  ws=  10.3 MiB
+  round 2 A core_touch    wall=   2688.3 ms  cpu=  11484.4 ms  commit= 599.9 MiB  ws= 547.3 MiB
+  round 2 A hello_build   wall=    227.6 ms  cpu=    531.2 ms  commit=  60.7 MiB  ws=  56.2 MiB
+  round 3 A core_rebuild  wall=   3527.2 ms  cpu=  14296.9 ms  commit= 644.4 MiB  ws= 576.9 MiB
+  round 3 A core_noop     wall=     60.2 ms  cpu=     31.2 ms  commit=   7.5 MiB  ws=  10.3 MiB
+  round 3 A core_touch    wall=   3053.2 ms  cpu=  13687.5 ms  commit= 606.3 MiB  ws= 548.3 MiB
+  round 3 A hello_build   wall=    210.4 ms  cpu=    656.2 ms  commit=  60.8 MiB  ws=  56.1 MiB
+  round 4 A core_rebuild  wall=   3874.7 ms  cpu=  16000.0 ms  commit= 647.9 MiB  ws= 574.9 MiB
+  round 4 A core_noop     wall=     67.7 ms  cpu=     46.9 ms  commit=   7.5 MiB  ws=  10.3 MiB
+  round 4 A core_touch    wall=   3026.1 ms  cpu=  13312.5 ms  commit= 600.9 MiB  ws= 545.7 MiB
+  round 4 A hello_build   wall=    220.6 ms  cpu=    687.5 ms  commit=  60.3 MiB  ws=  55.4 MiB
+  round 5 A core_rebuild  wall=   3609.6 ms  cpu=  15765.6 ms  commit= 638.5 MiB  ws= 571.2 MiB
+  round 5 A core_noop     wall=     71.2 ms  cpu=     46.9 ms  commit=   7.6 MiB  ws=  10.3 MiB
+  round 5 A core_touch    wall=   3011.8 ms  cpu=  13046.9 ms  commit= 597.7 MiB  ws= 545.9 MiB
+  round 5 A hello_build   wall=    212.5 ms  cpu=    578.1 ms  commit=  61.4 MiB  ws=  56.2 MiB
+
+workload              min ms  median ms     cpu ms commit MiB     ws MiB
+core_rebuild  A       3527.2     3874.7    16000.0      668.3      590.7
+core_noop     A         60.2       64.8       31.2        7.6       10.3
+core_touch    A       2688.3     3026.1    13312.5      606.3      548.3
+hello_build   A        210.4      220.6      656.2       61.4       56.2

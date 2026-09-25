@@ -1,0 +1,12 @@
+
+  DebugInfoCodeView.cpp
+  PELinker.cpp
+  PEWriter.cpp
+  PdbWriter.cpp
+  Pass.BranchSimplify.cpp
+  NativeBackendBuilder.cpp
+  Sema.Compiler.cpp
+  DocPage.cpp
+  CommandLineParser.Help.cpp
+  CompilerInstance.Module.cpp
+  swc.vcxproj -> C:\Perso\swag-lang\swc-speed\bin\swc.exe

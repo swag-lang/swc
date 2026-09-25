@@ -16,31 +16,10 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.054 — Prove contiguous indexed updates before packing them
-
-- Recorded: 2026-09-24 23:10
-- Updated: 2026-09-24 23:42 — Confirmed the SLP memory-effect guard leaves ChaCha's 48/48 output loop unchanged.
-- Area: compiler/backend, SLP vectorization and indexed memory
-- Evidence: after folding ChaCha's output address into each XOR, its unrolled
-  16-word update has 48 micro instructions and 48 explicit memory operations.
-  Clang-cl and MSVC also use scalar indexed read-modify-write operations there.
-  `Pass.SlpVectorize.cpp` seeds groups only from plain aligned 32-bit stores at
-  known root offsets. Indexed read-modify-write operations lack a fixed offset;
-  treating them as invisible to the block scan could move packed stores across
-  an alias, so the current pass rejects such blocks.
-- Next: seek an unrelated four-lane loop with one stable base and index and
-  constant offsets, then prototype a proof that the four indexed updates are
-  adjacent, do not alias intervening accesses, and retain their source values.
-  Compare per-loop instruction and memory counts against scalar code from both
-  C++ compilers before adding a vector rewrite. Include an aliasing counterexample
-  and a case where packing costs more than the scalar memory instructions.
-- Complete when: either a profitable general rule and its alias tests are in
-  place, or measurements show that scalar indexed updates are the better form.
-
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-09-24 23:42 — Completed the final warm-build guardrail check.
+- Updated: 2026-09-25 11:16 — Ruled out cumulative graph invalidation gating under variable machine load.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -154,6 +133,18 @@ block, and the hot path keeps the register.
   In the paired comparison above, the final compiler's core-rebuild median was 4,890.1 ms
   and hello-build median was 244.0 ms. These are noisy three-run observations, not the
   five-run quiet-machine baseline required for a stable target claim.
+- Ruled out on 2026-09-25: tracking changes since the last graph invalidation instead of using
+  the pass-wide `changed` flag at each synchronization point. A Release 1142 core profile put
+  `MicroBranchSimplifyPass::run` at 10.27% and `MicroControlFlowGraph::build` at 3.35% of
+  sampled worker CPU, so the predicted whole-build saving was below 1%. The Release 1143 trial
+  passed two focused native files and a randomly drawn JIT file (12 tests), but five loaded
+  A/B pairs gave `core_rebuild` candidate/baseline ratios of 1.249 wall and 1.234 CPU, while
+  `core_touch` gave 0.808 wall and 0.872 CPU. A follow-up candidate core rebuild took 39.7 and
+  39.9 seconds, yet the restored baseline also took 49.5 seconds during the complete Release
+  suite. Five A/A pairs of byte-identical binaries gave 1.000 wall and 1.044 CPU, with individual
+  builds between 2.7 and 5.8 seconds. The evidence does not isolate the candidate from shared
+  machine load or establish a repeatable benefit. The change and version bump were reverted;
+  [raw logs and analysis](../bench/results/compilation/20260925-speed/README.md) preserve the trial.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
@@ -162,6 +153,27 @@ block, and the hot path keeps the register.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
+
+### compiler.optimization.054 — Prove contiguous indexed updates before packing them
+
+- Recorded: 2026-09-24 23:10
+- Updated: 2026-09-24 23:42 — Confirmed the SLP memory-effect guard leaves ChaCha's 48/48 output loop unchanged.
+- Area: compiler/backend, SLP vectorization and indexed memory
+- Evidence: after folding ChaCha's output address into each XOR, its unrolled
+  16-word update has 48 micro instructions and 48 explicit memory operations.
+  Clang-cl and MSVC also use scalar indexed read-modify-write operations there.
+  `Pass.SlpVectorize.cpp` seeds groups only from plain aligned 32-bit stores at
+  known root offsets. Indexed read-modify-write operations lack a fixed offset;
+  treating them as invisible to the block scan could move packed stores across
+  an alias, so the current pass rejects such blocks.
+- Next: seek an unrelated four-lane loop with one stable base and index and
+  constant offsets, then prototype a proof that the four indexed updates are
+  adjacent, do not alias intervening accesses, and retain their source values.
+  Compare per-loop instruction and memory counts against scalar code from both
+  C++ compilers before adding a vector rewrite. Include an aliasing counterexample
+  and a case where packing costs more than the scalar memory instructions.
+- Complete when: either a profitable general rule and its alias tests are in
+  place, or measurements show that scalar indexed updates are the better form.
 
 ### compiler.optimization.053 — Recheck scalar global loop updates with RIP memory operands
 

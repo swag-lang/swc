@@ -35,9 +35,9 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-25 11:16 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-25 07:04 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-24 23:54 |
-| [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-24 23:42 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-23 19:25 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-23 17:21 |
 | [std.gui.md](std.gui.md) | `std/gui` | 2026-09-21 19:04 |

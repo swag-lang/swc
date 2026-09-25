@@ -1,0 +1,18 @@
+swc.exe :
+Au caractère Ligne:2 : 52
++ ... -20260925'; & bin/swc.exe --num-cores 6 tools/unittests.swgs jit -bc  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  ◆  swag        run • tools • devmode
+  ✓  checked     35 files • 193_067 tokens • 445 ms
+  ✓  tuned       521 functions • 995 ms
+
+  ◆  swag        test • bin/unittests/jit • release
+  ✓  checked     20 files • 43_845 tokens • 103 ms
+  ✓  tuned       216 functions • 35 ms
+  ✓  executed    12 passed • 38 ms
+  ✓  verified    2 us
+  ✓  tested      12 passed • 143 ms
+  ✓  clean       145 ms

@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.055 — Keep read-only global pointers resident across comparator calls
+
+- Recorded: 2026-09-25 11:15
+- Updated: 2026-09-25 15:57 — Clarified the row-loop comparison and retained the read-only global-pointer evidence.
+- Area: compiler/backend, loop-invariant code motion and call effects
+- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. In wordfreq's inlined quicksort, the first comparison loop retains 10 instructions and 5 memory operations per turn; the second drops from 10 to 9 instructions and from 5 to 4 memory operations. The full function grows from 126 to 134 instructions because the allocator stores the hoisted pointers in stack slots. The checksum remains 130489. A broader rule also hoisted other loads across read-only calls and added eight instructions to csvagg's row-loop span; restricting the rule to direct globals restores csvagg's prior row-loop shape, its 1,076-instruction `main`, and checksum 24828641.
+- Next: improve register allocation for loop-invariant pointers live across calls so the global pointers stay in callee-saved registers, as in LDC, instead of being reloaded from the stack each iteration. Recount both inner loops and csvagg's row loop after any change.
+
 ### compiler.optimization.056 — Branch directly on an inlined comparator's result
 
 - Recorded: 2026-09-25 11:40
@@ -24,14 +32,6 @@ block, and the hot path keeps the register.
 - Evidence: wordfreq's common unequal-count comparator path used `setcc`, a copy, an unconditional jump, then a test and conditional jump at the boolean join. A guarded branch-threading rule sends that path to the consumer's successors while preserving the other join predecessors. Its tests cover both branch polarities, a multiply used result, and live flags. The common path loses the materialization and retest; checksum 130489 and 1,104 C++, 3,480 native, and 1,500 JIT tests pass. A guarded post-RA rule then reuses the first comparison's flags across the equality branch when a preceding copy proves both registers hold the same low bits. LDC's inlined comparator emits `test eax, eax; je ...; js ...`; Swag now has the same flag reuse, and `qsort` shrank from 130 to 126 instructions before the later global-load hoist. Timing samples on the shared machine conflicted and were not used to reject either static gain.
 - Additional evidence: the more frequent unequal-count path still emits `cmp; je tie; ja advance; jmp stop`, while LDC branches to the unequal path and lays out `jbe stop; advance` with advance as fall-through. `tryInvertBranchOverJump` in `Pass.PostRAPeephole.Trivial.cpp` requires the first conditional target label immediately after the unconditional jump; the tie-handling block between that jump and the advance label prevents the rule from firing. `Pass.PostRALoopRotate.cpp` rotates top-tested loop back edges but does not lay out comparator successor blocks. This is a control-flow layout gap, independent of the flag-reuse rule.
 - Next: prototype a general block-placement rule that puts the advance successor after the second comparison branch without duplicating the tie path. Prove label ownership, fall-through, flags, and back-edge behavior on both comparator directions and an unrelated branch diamond; then recount each hot loop against LDC.
-
-### compiler.optimization.055 — Keep read-only global pointers resident across comparator calls
-
-- Recorded: 2026-09-25 11:15
-- Updated: 2026-09-25 15:42 — A read-only call contract unlocks direct global-pointer hoists while excluding other loads that increased csvagg's row loop.
-- Area: compiler/backend, loop-invariant code motion and call effects
-- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. In wordfreq's inlined quicksort, the first comparison loop retains 10 instructions and 5 memory operations per turn; the second drops from 10 to 9 instructions and from 5 to 4 memory operations. The full function grows from 126 to 134 instructions because the allocator stores the hoisted pointers in stack slots. The checksum remains 130489. A broader rule also hoisted other loads across read-only calls and increased csvagg's row-loop span from 270 to 278 instructions; restricting the rule to direct globals restores csvagg's `main` to 1,076 instructions and its checksum to 24828641.
-- Next: improve register allocation for loop-invariant pointers live across calls so the global pointers stay in callee-saved registers, as in LDC, instead of being reloaded from the stack each iteration. Recount both inner loops and csvagg's row loop after any change.
 
 ### compiler.optimization.057 — Price constant-pool hoists by register pressure
 

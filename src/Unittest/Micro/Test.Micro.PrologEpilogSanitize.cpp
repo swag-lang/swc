@@ -14,7 +14,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPrologEpilogSanitizePass(MicroBuilder& builder, const bool forceFramePointer = false)
+    Result runPrologEpilogSanitizePass(MicroBuilder& builder, const bool forceFramePointer = false, const MicroReg debugStackBasePhysReg = MicroReg::invalid(), const uint64_t spillAreaLo = UINT64_MAX, const uint64_t spillAreaHi = 0)
     {
         MicroPrologEpilogSanitizePass pass;
         MicroPassManager              passManager;
@@ -23,6 +23,9 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind      = CallConvKind::Swag;
         passContext.forceFramePointer = forceFramePointer;
+        passContext.debugStackBasePhysReg = debugStackBasePhysReg;
+        passContext.spillAreaLo = spillAreaLo;
+        passContext.spillAreaHi = spillAreaHi;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -617,6 +620,66 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsFrameWhenBodyAddressesOrCalls)
             !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, 48))
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsUnusedStackPrefix)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(2);
+
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(rsp, ApInt(200, 64), MicroOp::Subtract, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitLoadRegMem(rax, rsp, 40, MicroOpBits::B64);
+        else if (variant == 2)
+            builder.emitLoadAddressRegMem(rax, rsp, 168, MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(rax, rsp, 168, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 176, rax, MicroOpBits::B64);
+        builder.emitCallReg(rcx, CallConvKind::Swag);
+        builder.emitLoadRegMem(rax, rsp, 184, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(200, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPrologEpilogSanitizePass(builder, false, variant == 3 ? MicroReg::intReg(3) : MicroReg::invalid(), 168, 192));
+        const uint64_t expectedFrame = variant == 0 ? 72 : 200;
+        const uint64_t expectedOffset = variant == 0 ? 40 : variant == 1 ? 40 : 168;
+        const auto* sub = instructionAt(builder, 0);
+        const auto* first = instructionAt(builder, 1);
+        const auto* store = instructionAt(builder, 2);
+        const auto* last = instructionAt(builder, 4);
+        const auto* add = instructionAt(builder, 5);
+        if (builder.instructions().count() != 7 || !sub || !first || !store || !last || !add ||
+            !isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, expectedFrame) ||
+            !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, expectedFrame) ||
+            first->ops(builder.operands())[3].valueU64 != expectedOffset ||
+            store->ops(builder.operands())[3].valueU64 != (variant == 0 ? 48 : 176) ||
+            last->ops(builder.operands())[3].valueU64 != (variant == 0 ? 56 : 184))
+            return Result::Error;
+    }
+
+    // A stack argument belongs to the call ABI, even when the other accesses
+    // belong to the allocator's spill area.
+    MicroBuilder outgoing(ctx);
+    outgoing.emitOpBinaryRegImm(rsp, ApInt(200, 64), MicroOp::Subtract, MicroOpBits::B64);
+    outgoing.emitLoadMemReg(rsp, 48, rax, MicroOpBits::B64);
+    outgoing.emitLoadMemReg(rsp, 168, rcx, MicroOpBits::B64);
+    outgoing.emitCallReg(rcx, CallConvKind::Swag);
+    outgoing.emitLoadRegMem(rax, rsp, 168, MicroOpBits::B64);
+    outgoing.emitOpBinaryRegImm(rsp, ApInt(200, 64), MicroOp::Add, MicroOpBits::B64);
+    outgoing.emitRet();
+    SWC_RESULT(runPrologEpilogSanitizePass(outgoing, false, MicroReg::invalid(), 168, 176));
+    const auto* outgoingSub = instructionAt(outgoing, 0);
+    const auto* outgoingStore = instructionAt(outgoing, 1);
+    if (!outgoingSub || !outgoingStore ||
+        !isStackAdjust(*outgoingSub, outgoingSub->ops(outgoing.operands()), rsp, MicroOp::Subtract, 200) ||
+        outgoingStore->ops(outgoing.operands())[3].valueU64 != 48)
+        return Result::Error;
+    return Result::Continue;
 }
 SWC_TEST_END()
 

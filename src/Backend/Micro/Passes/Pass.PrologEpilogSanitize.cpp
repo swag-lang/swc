@@ -613,6 +613,113 @@ namespace
         return true;
     }
 
+    // Register allocation can leave the only surviving spill slots far above
+    // the outgoing call area. Move only allocator-owned slots down together
+    // with a single fixed frame, keeping their absolute addresses and call
+    // alignment. Outgoing argument slots have fixed ABI offsets from rsp and
+    // must never be rebased.
+    // An address of the frame or a dynamic stack adjustment needs a fuller
+    // layout analysis, so neither participates in this conservative rewrite.
+    bool compactUnusedStackPrefix(const MicroPassContext& context, const CallConv& conv)
+    {
+        if (context.forceFramePointer || context.debugStackBasePhysReg.isValid() ||
+            context.spillAreaLo >= context.spillAreaHi ||
+            !conv.stackShadowSpace || !conv.stackAlignment)
+            return false;
+
+        enum class Phase : uint8_t { Entry, Body, Exit, Done };
+        Phase phase = Phase::Entry;
+        MicroInstrRef frameRef = MicroInstrRef::invalid();
+        MicroInstrRef releaseRef = MicroInstrRef::invalid();
+        uint64_t frameSize = 0;
+        uint64_t firstOffset = UINT64_MAX;
+        struct StackAccess { MicroInstrRef ref; uint8_t offsetIndex; };
+        SmallVector<StackAccess> accesses;
+        MicroInstrRegOperandRefs regOperands;
+
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
+        {
+            const MicroInstr& inst = *it;
+            if (inst.op == MicroInstrOpcode::Nop || inst.op == MicroInstrOpcode::Label)
+                continue;
+            MicroInstrOperand* ops = inst.ops(*context.operands);
+            uint64_t adjust = 0;
+
+            if (phase == Phase::Entry)
+            {
+                if (inst.op == MicroInstrOpcode::Push)
+                    continue;
+                if (!isStackAdjustWithOp(inst, ops, conv.stackPointer, MicroOp::Subtract, adjust) ||
+                    adjust < conv.stackShadowSpace + conv.stackAlignment)
+                    return false;
+                frameRef = it.current;
+                frameSize = adjust;
+                phase = Phase::Body;
+                continue;
+            }
+            if (phase == Phase::Body && isStackAdjustWithOp(inst, ops, conv.stackPointer, MicroOp::Add, adjust))
+            {
+                if (adjust != frameSize)
+                    return false;
+                releaseRef = it.current;
+                phase = Phase::Exit;
+                continue;
+            }
+            if (phase == Phase::Exit)
+            {
+                if (inst.op == MicroInstrOpcode::Pop)
+                    continue;
+                if (inst.op != MicroInstrOpcode::Ret)
+                    return false;
+                phase = Phase::Done;
+                continue;
+            }
+            if (phase != Phase::Body || inst.op == MicroInstrOpcode::Push || inst.op == MicroInstrOpcode::Pop || inst.op == MicroInstrOpcode::Ret)
+                return false;
+
+            const MicroInstrDef& def = MicroInstr::info(inst.op);
+            const bool directAccess = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                                      ops[def.memBaseOperandIndex].reg == conv.stackPointer;
+            if (directAccess)
+            {
+                if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem ||
+                    ops[def.memOffsetOperandIndex].valueU64 > INT32_MAX)
+                    return false;
+                if (inst.op != MicroInstrOpcode::LoadMemReg && inst.op != MicroInstrOpcode::LoadRegMem)
+                    return false;
+                const uint64_t offset = ops[def.memOffsetOperandIndex].valueU64;
+                const uint64_t width  = getNumBytes(ops[2].opBits);
+                if (offset < context.spillAreaLo || offset > context.spillAreaHi || width > context.spillAreaHi - offset)
+                    return false;
+                firstOffset = std::min(firstOffset, ops[def.memOffsetOperandIndex].valueU64);
+                accesses.push_back({it.current, def.memOffsetOperandIndex});
+            }
+
+            regOperands.clear();
+            inst.collectRegOperands(*context.operands, regOperands, context.encoder);
+            for (const MicroInstrRegOperandRef& operand : regOperands)
+            {
+                if (operand.reg && *operand.reg == conv.stackPointer &&
+                    (!directAccess || operand.reg != &ops[def.memBaseOperandIndex].reg))
+                    return false;
+            }
+        }
+
+        if (phase != Phase::Done || frameRef.isInvalid() || releaseRef.isInvalid() ||
+            firstOffset < conv.stackShadowSpace + conv.stackAlignment)
+            return false;
+
+        const uint64_t delta = ((firstOffset - conv.stackShadowSpace) / conv.stackAlignment) * conv.stackAlignment;
+        if (!delta || delta >= frameSize)
+            return false;
+
+        for (const StackAccess access : accesses)
+            context.instructions->ptr(access.ref)->ops(*context.operands)[access.offsetIndex].valueU64 -= delta;
+        context.instructions->ptr(frameRef)->ops(*context.operands)[3].setImmediateValue(ApInt(frameSize - delta, 64));
+        context.instructions->ptr(releaseRef)->ops(*context.operands)[3].setImmediateValue(ApInt(frameSize - delta, 64));
+        return true;
+    }
+
     bool needsWindowsStackProbe(const MicroPassContext& context, const uint64_t stackAdjust)
     {
         if (stackAdjust <= K_WINDOWS_STACK_PROBE_PAGE_SIZE)
@@ -743,8 +850,9 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedStackEpilogue      = sanitizeEpilogueStackAdjustments(context, conv);
     const bool      changedUnusedSaves        = eraseUnusedRegisterSaves(context, conv);
     const bool      changedUnusedFrame        = eraseUnusedStackFrame(context, conv);
+    const bool      changedCompactFrame       = compactUnusedStackPrefix(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame;
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame;
     context.passChanged                       = changed;
     return Result::Continue;
 }

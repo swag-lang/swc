@@ -16,6 +16,15 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.070 — Compact private spill frames after allocation
+
+- Recorded: 2026-09-25 22:25
+- Updated: 2026-09-25 22:25 — Reduced wordfreq's recursive sort frame after register allocation.
+- Area: compiler/backend, stack-frame layout and wordfreq sorting
+- Evidence: The final `qsort` stream used only three allocator-owned spill slots at `rsp+168`, `+176`, and `+184`, but reserved 200 bytes. LDC's corresponding sort reserves 88 bytes. A final guarded pass now moves only proven spill accesses and reduces the paired frame adjustments by the same aligned amount; `qsort` reserves 72 bytes and uses slots `rsp+40`, `+48`, and `+56`. The `sub` and `add` each encode with an 8-bit rather than 32-bit immediate, removing six machine-code bytes per function without changing the comparator loops' 115 machine instructions or their memory access count. The guard requires one fixed frame, a single return, no address escape, no physical debug stack base, and every direct stack access inside the allocator-owned spill area. An initial broader rewrite moved the stack-passed arguments of an eight-argument call and failed a native test; the spill-area guard excludes that call. The focused C++ regression covers a private spill frame, an outgoing stack argument, a lower non-spill access, an address escape, and a physical debug stack base. All 1,124 C++, 3,480 native, and 1,500 JIT tests pass; the independently drawn workspace suite passes. Wordfreq and csvagg pass `--validate-micro` with checksums 130489 and 24828641; csvagg's `main` remains at 1,022 Micro instructions. No elapsed-time sample informed the decision.
+- Negative lead: Forcing csvagg's `mapInit` inline exposed the constant mask but grew `main` from 1,022 to 1,037 instructions and added row-path spills. Replacing its mask read with literal 63 grew `main` to 1,023 instructions because a two-instruction collision step became three instructions. Both source-only trials were reverted.
+- Next: compare wordfreq's spill and pointer residency through `memcmp` against LDC, and csvagg's decimal parsing and existing-slot branch against clang-cl, using per-loop assembly counts.
+
 ### compiler.optimization.069 — Compare indexed float slots in memory
 
 - Recorded: 2026-09-25 21:33

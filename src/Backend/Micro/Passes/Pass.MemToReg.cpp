@@ -697,6 +697,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // argument area, which a callee reads behind the analysis: they take part
     // in the overlap checks but are never promoted.
     std::unordered_set<uint64_t> stackPointerSlots;
+    SmallVector<MicroInstrRegOperandRef> regRefs;
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
     {
@@ -913,7 +914,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // Any tracked register appearing anywhere other than as the base of a
         // recognized scalar access is an escape the scalar analysis cannot
         // explain: poison the variable it points into.
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        regRefs.clear();
         inst.collectRegOperands(operands, regRefs, context.encoder);
         for (const auto& rref : regRefs)
         {

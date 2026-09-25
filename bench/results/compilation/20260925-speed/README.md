@@ -137,6 +137,44 @@ suites, 2,390 standard-module, 550 application, and 479 reference tests,
 scripts, all 32 example smokes, and all four application smokes. See the
 [merged Release test log](merged-1149-release-tests.log).
 
+## Inline instruction views, build 1150 trial
+
+The earlier core profile sampled `MicroStorage::view` at 0.63% of worker CPU
+(one sample), while the backend made repeated out-of-line calls to create a
+view and obtain its begin and end iterators. The merged build-1149
+`Pass.BranchSimplify.obj` contained 176 `REL32` references to those view-family
+functions. The hypothesis is that moving the eight tiny definitions into the
+header will let callers inline them and remove call overhead, without changing
+iteration or the emitted Swag code. The predicted CPU gain is below 1% on a
+core rebuild and may be below this machine's timing floor; peak memory should
+not rise materially. Fewer relocation references are the structural check.
+
+The build-1150 Release compiler [built successfully](candidate-inline-view-build.log).
+The same `Pass.BranchSimplify.obj` relocation count fell from 176 to zero.
+The focused native `branch_simplification.swg` file passed one test. The
+independently drawn `safety/math.swg` file passed 11 tests. See the
+[native result](candidate-inline-view-native-branch.log) and
+[random safety result](candidate-inline-view-random-safety-math.log).
+
+Five alternated A/B rounds against the merged build-1149 binary yielded
+paired B/A medians of 1.075 wall and 1.077 CPU for `core_rebuild`, 0.997 and
+1.000 for the no-op, 0.968 and 0.954 for `core_touch`, and 0.988 and 0.917 for
+hello. Candidate peak resident was 0.977 times baseline for `core_rebuild` and
+1.001 for `core_touch`. The rebuild regression is outside the predicted
+sub-1% effect, while the other work paths do not support it. One rebuild pair
+was 3.575 seconds candidate versus 2.160 baseline. A follow-up core rebuild
+series is required before deciding whether to retain the code. See the
+[first A/B series](candidate-inline-view-four-workloads-ab.log).
+
+Seven additional alternated core-rebuild pairs returned B/A medians of 1.138
+wall, 1.148 CPU and 1.003 peak resident. Background load was severe: baseline
+rebuilds ranged from 3.864 to 8.262 seconds, and the admission script waited
+before the last candidate run. Still, the candidate's CPU median was worse in
+both independent series, well outside the predicted sub-1% gain. See the
+[follow-up series](candidate-inline-view-core-followup-ab.log). The trial is
+rejected and its source and version changes are reverted. No full Release suite
+was run for this discarded candidate.
+
 ## Four edit-loop workloads
 
 `bench/compile.py` already drives all four workloads through `swc.exe`, records wall

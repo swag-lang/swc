@@ -131,7 +131,7 @@ namespace
         if (instructionIndex == MicroControlFlowGraph::K_NO_INDEX)
             return true;
 
-        std::vector<uint8_t>  visited(instructionRefs.size(), 0);
+        SmallVector<uint8_t, 128> visited(instructionRefs.size(), 0);
         SmallVector<uint32_t> pending;
         for (const uint32_t successor : cfg.successors(instructionIndex))
             pending.push_back(successor);

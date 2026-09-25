@@ -161,6 +161,116 @@ private:
     uint64_t                   revision_ = 1;
 };
 
+inline MicroStorage::Iterator::reference MicroStorage::Iterator::operator*() const
+{
+    SWC_ASSERT(storage);
+    SWC_ASSERT(current.isValid());
+    return storage->nodes_[current.get()].instr;
+}
+
+inline MicroStorage::Iterator::pointer MicroStorage::Iterator::operator->() const
+{
+    return &(**this);
+}
+
+inline MicroStorage::Iterator& MicroStorage::Iterator::operator++()
+{
+    SWC_ASSERT(storage);
+    SWC_ASSERT(current.isValid());
+    current = storage->nodes_[current.get()].next;
+    return *this;
+}
+
+inline MicroStorage::Iterator& MicroStorage::Iterator::operator--()
+{
+    SWC_ASSERT(storage);
+    if (current.isInvalid())
+        current = storage->tail_;
+    else
+        current = storage->nodes_[current.get()].prev;
+    return *this;
+}
+
+inline bool MicroStorage::Iterator::operator==(const Iterator& other) const
+{
+    return storage == other.storage && current == other.current;
+}
+
+inline MicroStorage::ConstIterator::reference MicroStorage::ConstIterator::operator*() const
+{
+    SWC_ASSERT(storage);
+    SWC_ASSERT(current.isValid());
+    return storage->nodes_[current.get()].instr;
+}
+
+inline MicroStorage::ConstIterator::pointer MicroStorage::ConstIterator::operator->() const
+{
+    return &(**this);
+}
+
+inline MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator++()
+{
+    SWC_ASSERT(storage);
+    SWC_ASSERT(current.isValid());
+    current = storage->nodes_[current.get()].next;
+    return *this;
+}
+
+inline MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator--()
+{
+    SWC_ASSERT(storage);
+    if (current.isInvalid())
+        current = storage->tail_;
+    else
+        current = storage->nodes_[current.get()].prev;
+    return *this;
+}
+
+inline bool MicroStorage::ConstIterator::operator==(const ConstIterator& other) const
+{
+    return storage == other.storage && current == other.current;
+}
+
+inline MicroStorage::View::View(MicroStorage* storage) :
+    storage_(storage)
+{
+}
+
+inline MicroStorage::Iterator MicroStorage::View::begin() const
+{
+    return {storage_, storage_->head_};
+}
+
+inline MicroStorage::Iterator MicroStorage::View::end() const
+{
+    return {storage_, MicroInstrRef::invalid()};
+}
+
+inline MicroStorage::ConstView::ConstView(const MicroStorage* storage) :
+    storage_(storage)
+{
+}
+
+inline MicroStorage::ConstIterator MicroStorage::ConstView::begin() const
+{
+    return {storage_, storage_->head_};
+}
+
+inline MicroStorage::ConstIterator MicroStorage::ConstView::end() const
+{
+    return {storage_, MicroInstrRef::invalid()};
+}
+
+inline MicroStorage::View MicroStorage::view() noexcept
+{
+    return View(this);
+}
+
+inline MicroStorage::ConstView MicroStorage::view() const noexcept
+{
+    return ConstView(this);
+}
+
 inline MicroInstr* MicroStorage::ptr(const MicroInstrRef ref) noexcept
 {
     if (ref.isInvalid() || ref.get() >= nodes_.size())

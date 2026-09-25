@@ -29,45 +29,11 @@ std::pair<MicroOperandRef, MicroInstrOperand*> MicroOperandStorage::emplaceUnini
     return {first, operands_.data() + first.get()};
 }
 
-MicroStorage::Iterator::reference MicroStorage::Iterator::operator*() const
-{
-    SWC_ASSERT(storage);
-    SWC_ASSERT(current.isValid());
-    return storage->nodes_[current.get()].instr;
-}
-
-MicroStorage::Iterator::pointer MicroStorage::Iterator::operator->() const
-{
-    return &(**this);
-}
-
-MicroStorage::Iterator& MicroStorage::Iterator::operator++()
-{
-    SWC_ASSERT(storage);
-    SWC_ASSERT(current.isValid());
-    current = storage->nodes_[current.get()].next;
-    return *this;
-}
-
 MicroStorage::Iterator MicroStorage::Iterator::operator++(int)
 {
     const Iterator copy = *this;
     ++(*this);
     return copy;
-}
-
-MicroStorage::Iterator& MicroStorage::Iterator::operator--()
-{
-    SWC_ASSERT(storage);
-
-    if (current.isInvalid())
-    {
-        current = storage->tail_;
-        return *this;
-    }
-
-    current = storage->nodes_[current.get()].prev;
-    return *this;
 }
 
 MicroStorage::Iterator MicroStorage::Iterator::operator--(int)
@@ -77,31 +43,6 @@ MicroStorage::Iterator MicroStorage::Iterator::operator--(int)
     return copy;
 }
 
-bool MicroStorage::Iterator::operator==(const Iterator& other) const
-{
-    return storage == other.storage && current == other.current;
-}
-
-MicroStorage::ConstIterator::reference MicroStorage::ConstIterator::operator*() const
-{
-    SWC_ASSERT(storage);
-    SWC_ASSERT(current.isValid());
-    return storage->nodes_[current.get()].instr;
-}
-
-MicroStorage::ConstIterator::pointer MicroStorage::ConstIterator::operator->() const
-{
-    return &(**this);
-}
-
-MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator++()
-{
-    SWC_ASSERT(storage);
-    SWC_ASSERT(current.isValid());
-    current = storage->nodes_[current.get()].next;
-    return *this;
-}
-
 MicroStorage::ConstIterator MicroStorage::ConstIterator::operator++(int)
 {
     const ConstIterator copy = *this;
@@ -109,60 +50,11 @@ MicroStorage::ConstIterator MicroStorage::ConstIterator::operator++(int)
     return copy;
 }
 
-MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator--()
-{
-    SWC_ASSERT(storage);
-
-    if (current.isInvalid())
-    {
-        current = storage->tail_;
-        return *this;
-    }
-
-    current = storage->nodes_[current.get()].prev;
-    return *this;
-}
-
 MicroStorage::ConstIterator MicroStorage::ConstIterator::operator--(int)
 {
     const ConstIterator copy = *this;
     --(*this);
     return copy;
-}
-
-bool MicroStorage::ConstIterator::operator==(const ConstIterator& other) const
-{
-    return storage == other.storage && current == other.current;
-}
-
-MicroStorage::View::View(MicroStorage* storage) :
-    storage_(storage)
-{
-}
-
-MicroStorage::Iterator MicroStorage::View::begin() const
-{
-    return {storage_, storage_->head_};
-}
-
-MicroStorage::Iterator MicroStorage::View::end() const
-{
-    return {storage_, MicroInstrRef::invalid()};
-}
-
-MicroStorage::ConstView::ConstView(const MicroStorage* storage) :
-    storage_(storage)
-{
-}
-
-MicroStorage::ConstIterator MicroStorage::ConstView::begin() const
-{
-    return {storage_, storage_->head_};
-}
-
-MicroStorage::ConstIterator MicroStorage::ConstView::end() const
-{
-    return {storage_, MicroInstrRef::invalid()};
 }
 
 uint32_t MicroStorage::count() const noexcept
@@ -320,16 +212,6 @@ MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroIns
     }
 
     return insertBefore(beforeRef, inst);
-}
-
-MicroStorage::View MicroStorage::view() noexcept
-{
-    return View(this);
-}
-
-MicroStorage::ConstView MicroStorage::view() const noexcept
-{
-    return ConstView(this);
 }
 
 void MicroStorage::releaseErasedRefs()

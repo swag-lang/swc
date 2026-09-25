@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.063 — Keep decimal byte values zero-extended through parsing
+
+- Recorded: 2026-09-25 19:13
+- Updated: 2026-09-25 19:13 — Removed three redundant byte extensions from csvagg's row parsers.
+- Area: compiler/backend, post-allocation peephole and csvagg parsing
+- Evidence: clang-cl loads each digit with `movzx` before the decimal arithmetic. In csvagg's quantity and integer-price loops, Swag already used a zero-extending indexed byte load but repeated `movzx` after subtracting `'0'` in the low byte. The x86 byte subtraction preserves the previously zero high bits, including when the byte wraps. A guarded rule removes that second extension after a delimiter compare and an independent LEA. In the fractional-price loop, Swag used a plain byte load followed by the same subtraction and extension; a second rule moves the extension into the indexed load when no instruction reads the original high bits between the load and the final extension. The three inner loops each lose one instruction per digit. Csvagg's generated `main` shrinks from 1,031 to 1,028 instructions and the timed row span from 256 to 253; its checksum remains 24828641. Wordfreq's `mapProbe` stays at 90 and `qsort` at 130 instructions, with checksum 130489. Focused C++ cases cover indexed and simple loads, a nonzero-extended load, a wider subtraction, an intervening high-bit read, and an LEA that modifies the digit register. All 1,116 C++, 3,480 native, and 1,500 JIT tests pass; both benchmark programs pass `--validate-micro`. No elapsed-time sample informed the decision.
+- Next: compare csvagg's remaining row-loop memory traffic and `u64`-to-`f64` constant residency with clang-cl; retain a vector-constant hoist only if its register and spill cost is favourable.
+
 ### compiler.optimization.056 — Branch directly on an inlined comparator's result
 
 - Recorded: 2026-09-25 11:40

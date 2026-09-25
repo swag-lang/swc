@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.068 — Let count-mismatch comparisons fall through
+
+- Recorded: 2026-09-25 21:08
+- Updated: 2026-09-25 21:08 — Removed one executed back-edge jump from each wordfreq comparator advance.
+- Area: compiler/backend, post-allocation loop layout and wordfreq sorting
+- Evidence: In both `qsort` comparator loops, a count mismatch that advances `i` or `j` previously executed an unconditional jump back to the indexed load. LDC places the increment or decrement before the header, branches backward to it on a mismatch, then falls through to the next load. A guarded post-allocation layout rewrite now uses that shape for the one- or two-load header followed by a count comparison, equality branch, ordered exit, unit index update, and back edge. Each advancing mismatch path loses one executed jump; a one-time jump enters the header. The generated `qsort` still contains 115 machine instructions, while the Micro listing grows from 130 to 132 entries only because it includes two new zero-byte labels. The register and memory operands in both comparator loops remain unchanged. Wordfreq's `mapProbe` stays at 81 instructions and its checksum at 130489. Csvagg's `main` remains at 1,023 instructions with checksum 24828641. A C++ test covers both header lengths, increment/decrement steps, and rejection of a non-unit step. All 1,122 C++, 3,480 native, and 1,500 JIT tests pass; parser positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
+- Next: inspect the spill-backed global pointers and comparator lengths around `memcmp` against LDC, accounting for the register pressure caused by any longer live range; continue examining csvagg's row parsers against clang-cl.
+
 ### compiler.optimization.067 — Share identical post-allocation return tails
 
 - Recorded: 2026-09-25 20:58

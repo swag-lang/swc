@@ -225,6 +225,86 @@ SWC_TEST_BEGIN(PostRALoopRotate_PlacesShortComparisonStepOnFallthrough)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopRotate_CountMismatchFallsThroughToNextIteration)
+{
+    constexpr MicroReg base = MicroReg::intReg(8);
+    constexpr MicroReg counter = MicroReg::intReg(9);
+    constexpr MicroReg value = MicroReg::intReg(10);
+    constexpr MicroReg pivot = MicroReg::intReg(11);
+    for (const uint32_t loads : {1u, 2u})
+    {
+        MicroBuilder builder(ctx);
+        const MicroLabelRef header = builder.createLabel();
+        const MicroLabelRef tie = builder.createLabel();
+        const MicroLabelRef step = builder.createLabel();
+        const MicroLabelRef stop = builder.createLabel();
+        builder.placeLabel(header);
+        builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, counter, 8, 0, MicroOpBits::B64);
+        if (loads == 2)
+            builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, value, 8, 0, MicroOpBits::B64);
+        builder.emitCmpRegReg(value, pivot, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, tie);
+        const MicroInstrRef equalRef = builder.instructions().lastInstructionRef();
+        builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, stop);
+        builder.placeLabel(step);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), loads == 1 ? MicroOp::Add : MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, header);
+        const MicroInstrRef backRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(tie);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, step);
+        builder.placeLabel(stop);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        const MicroInstr* equal = builder.instructions().ptr(equalRef);
+        const MicroInstrOperand* equalOps = equal ? equal->ops(builder.operands()) : nullptr;
+        if (!equal || !equalOps || equalOps[0].cpuCond != MicroCond::NotEqual ||
+            equalOps[2].valueU64 == tie.get() || builder.instructions().ptr(backRef))
+            return Result::Error;
+
+        uint64_t mismatchId = 0;
+        bool foundEntry = false;
+        bool foundStep = false;
+        for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(builder.operands());
+            if (it->op == MicroInstrOpcode::JumpCond && ops &&
+                ops[0].cpuCond == MicroCond::Unconditional && ops[2].valueU64 == header.get())
+                foundEntry = true;
+            if (it->op == MicroInstrOpcode::Label && ops && ops[0].valueU64 == equalOps[2].valueU64)
+                mismatchId = ops[0].valueU64;
+            if (it->op == MicroInstrOpcode::OpBinaryRegImm && ops && ops[0].reg == counter)
+                foundStep = true;
+        }
+        if (!foundEntry || !foundStep || mismatchId == 0)
+            return Result::Error;
+    }
+
+    MicroBuilder nonUnit(ctx);
+    const MicroLabelRef header = nonUnit.createLabel();
+    const MicroLabelRef tie = nonUnit.createLabel();
+    const MicroLabelRef step = nonUnit.createLabel();
+    const MicroLabelRef stop = nonUnit.createLabel();
+    nonUnit.placeLabel(header);
+    nonUnit.emitLoadAmcRegMem(value, MicroOpBits::B64, base, counter, 8, 0, MicroOpBits::B64);
+    nonUnit.emitCmpRegReg(value, pivot, MicroOpBits::B64);
+    nonUnit.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, tie);
+    nonUnit.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, stop);
+    nonUnit.placeLabel(step);
+    nonUnit.emitOpBinaryRegImm(counter, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
+    nonUnit.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, header);
+    const MicroInstrRef backRef = nonUnit.instructions().lastInstructionRef();
+    nonUnit.placeLabel(tie);
+    nonUnit.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, step);
+    nonUnit.placeLabel(stop);
+    nonUnit.emitRet();
+    SWC_RESULT(runPostRaLoopRotatePass(nonUnit));
+    if (!nonUnit.instructions().ptr(backRef))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -167,9 +167,25 @@ namespace
         uint32_t defCount = 0;
         for (const MicroInstr& inst : storage.view())
         {
-            const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
-            for (const MicroReg def : useDef.defs)
-                defCount += def == candidate ? 1 : 0;
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+                for (const MicroReg def : useDef.defs)
+                    defCount += def == candidate ? 1 : 0;
+            }
+            else if (const MicroInstrOperand* ops = inst.ops(operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == candidate)
+                        ++defCount;
+                }
+            }
+            if (defCount > 1)
+                return MicroReg::invalid();
         }
 
         return defCount == 1 ? candidate : MicroReg::invalid();

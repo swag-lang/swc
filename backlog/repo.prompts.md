@@ -709,9 +709,9 @@ Verify that a full core rebuild, warm no-op, one-file-touched rebuild and hello-
 all run through `bin/swc.exe` and record wall, process CPU and peak working set. The dedicated full
 benchmark campaign owns durable `history.json`; do not update that history during experiments.
 
-Use `bench/compile.py --swc bin/swc.exe --swc-cores 6 --admit --only core_rebuild` for quick
-screening. Add `core_touch` or hello only when the changed path could affect them. Run all four
-workloads for an accepted batch or a milestone, not after each exploratory edit.
+Use `bench/compile.py --swc bin/swc.exe --swc-cores 6 --admit --only core_rebuild` when a
+performance question needs measurement. Add `core_touch` or hello when the changed path could
+affect them. Run all four workloads at spaced milestones, not after each small optimization.
 
 Use external profilers for per-stage investigation. Do not add optional counters, allocation
 tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
@@ -726,13 +726,16 @@ THE LOOP — PRIORITIZE CODE ITERATIONS
 
   1. Use a recent profile to select one costly internal stage. Give one concrete hypothesis and a
      predicted effect; spend minutes, not hours, on investigation before the first edit.
-  2. Make the smallest code change and rebuild Release. Screen it with one or two admitted runs of
-     the affected workload against a saved baseline binary. This is a reject/continue signal, not
-     a percentage claim. If it fails, revert and try a different code hypothesis immediately.
-  3. For a promising candidate, run order-alternated A/B measurements with enough rounds to judge
-     wall, process CPU and peak memory together. If load obscures them, use a short control or state
-     that the effect is below the measurement floor. Do not repeat long campaigns for an obviously
-     losing idea.
+  2. Make the smallest code change and rebuild Release. If code inspection proves equivalent
+     output with fewer calls, traversals, allocations or synchronization steps, retain that
+     structural saving after focused correctness validation. Do not time every such change or
+     demand a standalone measurable gain. For an uncertain tradeoff, screen with one or two
+     admitted runs of the affected workload; reject a clear loss and try the next hypothesis.
+  3. Measure accumulated changes at spaced milestones, about every four to six retained batches,
+     and promptly when a change may trade CPU, memory or generated-code quality. Use
+     order-alternated A/B rounds for percentage claims and judge wall, process CPU and peak memory
+     together. An effect below the measurement floor is compatible with a proven small saving;
+     do not turn noisy timings into a requirement for every edit.
   4. Before retaining code, run the smallest focused Release-compiler test that exercises it.
      Rotate one random test from another area every few retained batches, and run a broader Release
      suite about every five retained batches, after a high-risk change, and at the final milestone.
@@ -772,9 +775,10 @@ accepting the compile-time gain.
 DO NOT STOP AT THE FIRST FAILURE
 
 Compiler hot paths are mature, so many valid improvements will land below the noise floor. Retain
-a correctness-certified change when its mechanical proof shows less compiler work and measurements
-show no regression. Label it "below the measurement floor" without a percentage claim. Revert
-speculative rewrites, unjustified complexity, and regressions quickly, then try the next idea.
+a correctness-certified change when its mechanical proof shows less compiler work. Accumulate
+these small savings and check aggregate performance at milestones. Label an unmeasured saving as
+structural, without a percentage claim. Revert speculative rewrites, unjustified complexity, and
+clear regressions quickly, then try the next idea.
 
 The campaign ends when the compiler-speed targets are met and both guardrail workloads remain
 green. It does not end because one internal optimization avenue turned out to be harder than it

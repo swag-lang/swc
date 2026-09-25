@@ -100,6 +100,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegImm, tryEraseRepeatedImmediate);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoTest);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldDeadScalarIncrement);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadRegMem, tryEraseFloatClearBeforeFullWrite);

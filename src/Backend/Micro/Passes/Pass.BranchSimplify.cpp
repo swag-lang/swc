@@ -2317,6 +2317,11 @@ namespace
         while (ordinal < layout.order.size())
         {
             const size_t start = ordinal++;
+            if (start + 3 >= layout.order.size())
+                continue;
+            const MicroInstr* firstInst = storage.ptr(layout.order[start]);
+            if (!firstInst || firstInst->op != MicroInstrOpcode::CmpRegImm)
+                continue;
 
             // One link: cmp X, C; setcc T; D = T; then a je to the end or the end label itself.
             MicroReg             value;

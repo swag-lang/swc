@@ -65,18 +65,14 @@ namespace InstructionCombine
                     return scanInst;
                 }
 
-                const MicroInstrUseDef useDef = scanInst->collectUseDef(operands, nullptr);
-                for (const MicroReg reg : useDef.defs)
+                const MicroInstrOperand* scanOps = scanInst->ops(operands);
+                if (!scanOps)
+                    continue;
+                const auto modes = MicroInstr::info(scanInst->op).resolvedRegModes(scanOps);
+                for (size_t i = 0; i < modes.size(); ++i)
                 {
-                    if (reg == valueReg || reg == guardReg)
-                    {
-                        outRef = scanRef;
-                        return scanInst;
-                    }
-                }
-                for (const MicroReg reg : useDef.uses)
-                {
-                    if (reg == valueReg || reg == guardReg)
+                    if (modes[i] != MicroInstrRegMode::None &&
+                        (scanOps[i].reg == valueReg || scanOps[i].reg == guardReg))
                     {
                         outRef = scanRef;
                         return scanInst;

@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.074 - Reuse private frame pointers after a branch
+
+- Recorded: 2026-09-25 23:43
+- Updated: 2026-09-25 23:43 - Removed two redundant `used` pointer reloads from wordfreq.
+- Area: compiler/backend, post-allocation private-frame load elimination
+- Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
+- Next: prove the inlined probe's empty/occupied result across the caller's redundant `used[idx]` test, or find a narrower path-specific branch thread that avoids additional jumps. Compare the remaining wordfreq tokenization and csvagg row path against LDC and clang-cl assembly.
+
 ### compiler.optimization.073 - Reserve call shadow once in fixed local frames
 
 - Recorded: 2026-09-25 23:28

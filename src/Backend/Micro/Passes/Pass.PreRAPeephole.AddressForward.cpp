@@ -43,15 +43,34 @@ namespace PreRaPeephole
                     info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     return MicroInstrRef::invalid();
 
-                const MicroInstrUseDef useDef = w->collectUseDef(*ctx.operands, ctx.encoder);
-                if (w->op != MicroInstrOpcode::LoadRegReg && std::ranges::find(useDef.uses, addrReg) != useDef.uses.end())
+                bool readsAddr    = false;
+                bool changesInput = false;
+                if (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+                {
+                    const MicroInstrUseDef useDef = w->collectUseDef(*ctx.operands, ctx.encoder);
+                    readsAddr = std::ranges::find(useDef.uses, addrReg) != useDef.uses.end();
+                    for (const MicroReg def : useDef.defs)
+                        changesInput |= def == addrReg || def == inputA || (inputB.isValid() && def == inputB);
+                }
+                else if (const MicroInstrOperand* ops = w->ops(*ctx.operands))
+                {
+                    const auto modes = info.resolvedRegModes(ops);
+                    for (size_t i = 0; i < modes.size(); ++i)
+                    {
+                        if (modes[i] == MicroInstrRegMode::None)
+                            continue;
+                        const MicroReg reg = ops[i].reg;
+                        if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
+                            readsAddr |= reg == addrReg;
+                        if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                            changesInput |= reg == addrReg || reg == inputA || (inputB.isValid() && reg == inputB);
+                    }
+                }
+                if (w->op != MicroInstrOpcode::LoadRegReg && readsAddr)
                     return cur; // candidate consumer.
 
-                for (const MicroReg def : useDef.defs)
-                {
-                    if (def == addrReg || def == inputA || (inputB.isValid() && def == inputB))
-                        return MicroInstrRef::invalid(); // an addressing input changed.
-                }
+                if (changesInput)
+                    return MicroInstrRef::invalid(); // an addressing input changed.
 
                 outCrossed.push_back(cur);
                 cur = ctx.nextRef(cur);

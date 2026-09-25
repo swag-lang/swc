@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -57,9 +58,10 @@ namespace PostRaPeephole
 
     // Keep a pointer already held in a persistent register across the
     // collision paths of a table probe. Every path back to its original load
-    // must be free of writes to that register, its private frame slot, and
-    // memory in general. A read-only call may intervene: the ABI preserves the
-    // register, and the call cannot change the frame slot.
+    // must be free of writes to that register or its private frame slot. A
+    // spill store is disjoint when allocator metadata places it outside the
+    // source local object. A read-only call may intervene: the ABI preserves
+    // the register, and the call cannot change the frame slot.
     bool forwardPrivateFrameReloads(Context& ctx)
     {
         if (!ctx.builder || !ctx.localStackBase.isValid())
@@ -78,6 +80,22 @@ namespace PostRaPeephole
                 if (relocation.instructionRef != ref || !relocation.targetSymbol || !relocation.targetSymbol->isFunction())
                     continue;
                 return relocation.targetSymbol->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
+            }
+            return false;
+        };
+
+        const auto isSourceObjectSlot = [&](const MicroInstrOperand* source) {
+            if (!ctx.passContext->sanitizerFunction || source[1].reg != ctx.localStackBase)
+                return false;
+            const uint64_t offset = source[3].valueU64;
+            for (const SymbolVariable* variable : ctx.passContext->sanitizerFunction->localVariables())
+            {
+                if (!variable || !variable->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
+                    variable->codeGenLocalSize() < 8)
+                    continue;
+                const uint64_t start = static_cast<uint64_t>(variable->offset());
+                if (offset >= start && offset - start <= variable->codeGenLocalSize() - 8)
+                    return true;
             }
             return false;
         };
@@ -105,6 +123,20 @@ namespace PostRaPeephole
                     sourceOps[1].reg != load[1].reg || sourceOps[2].opBits != load[2].opBits ||
                     sourceOps[3].valueU64 != load[3].valueU64)
                     continue;
+
+                const bool sourceObjectSlot = isSourceObjectSlot(sourceOps);
+                const auto disjointSpillStore = [&](const MicroInstr& step) {
+                    if (!sourceObjectSlot || ctx.passContext->spillAreaLo >= ctx.passContext->spillAreaHi)
+                        return false;
+                    const MicroInstrOperand* ops = step.ops(*ctx.operands);
+                    if (!ops || (step.op != MicroInstrOpcode::LoadMemReg && step.op != MicroInstrOpcode::LoadMemImm) ||
+                        ops[0].reg != conv.stackPointer)
+                        return false;
+                    const uint64_t offset = ops[step.op == MicroInstrOpcode::LoadMemReg ? 3 : 2].valueU64;
+                    const uint64_t width = getNumBytes(ops[step.op == MicroInstrOpcode::LoadMemReg ? 2 : 1].opBits);
+                    return width && offset >= ctx.passContext->spillAreaLo &&
+                           offset <= ctx.passContext->spillAreaHi && width <= ctx.passContext->spillAreaHi - offset;
+                };
 
                 std::vector<uint8_t> visited(refs.size());
                 std::vector<uint32_t> pending{candidateIndex};
@@ -138,7 +170,8 @@ namespace PostRaPeephole
                                 break;
                             }
                         }
-                        else if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::WritesMemory))
+                        else if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::WritesMemory) &&
+                                 !disjointSpillStore(*step))
                         {
                             valid = false;
                             break;
@@ -162,6 +195,18 @@ namespace PostRaPeephole
                     reloadInst->ops(*ctx.operands) : nullptr;
                 const bool redundantReload = reload && reload[0].reg == load[0].reg && reload[1].reg == load[1].reg &&
                                              reload[2].opBits == load[2].opBits && reload[3].valueU64 == load[3].valueU64;
+                if (!redundantReload && ctx.isRegDeadAfter(load[0].reg, candidateIndex + 2) &&
+                    ctx.claimAll({refs[sourceIndex], candidateRef, refs[candidateIndex + 1]}))
+                {
+                    MicroInstrOperand rewrittenCompare[8] = {};
+                    std::copy_n(compareOps, compare->numOperands, rewrittenCompare);
+                    rewrittenCompare[0].reg = sourceOps[0].reg;
+                    ctx.emitRewrite(refs[candidateIndex + 1], compare->op,
+                                    std::span(rewrittenCompare, compare->numOperands));
+                    ctx.emitErase(candidateRef);
+                    changed = true;
+                    break;
+                }
                 const uint32_t storeIndex = candidateIndex + (redundantReload ? 4 : 3);
                 const MicroInstrRef storeRef = storeIndex < refs.size() ? refs[storeIndex] : MicroInstrRef::invalid();
                 const MicroInstr* storeInst = ctx.instruction(storeRef);

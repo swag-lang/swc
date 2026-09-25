@@ -5,4 +5,4 @@
 // behavior against artifacts produced by an older binary.
 inline constexpr uint32_t SWC_VERSION   = 0;
 inline constexpr uint32_t SWC_REVISION  = 1;
-inline constexpr uint32_t SWC_BUILD_NUM = 1171;
+inline constexpr uint32_t SWC_BUILD_NUM = 1172;

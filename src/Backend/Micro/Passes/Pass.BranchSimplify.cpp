@@ -1022,18 +1022,15 @@ namespace
 
             if (trackedReg.isValid())
             {
-                const MicroInstrUseDef useDef         = scanInst->collectUseDef(operands, nullptr);
-                bool                   definesTracked = false;
-                for (const MicroReg def : useDef.defs)
+                const MicroInstrOperand* scanOps = scanInst->ops(operands);
+                if (!scanOps)
+                    continue;
+                const auto modes = MicroInstr::info(scanInst->op).resolvedRegModes(scanOps);
+                for (size_t i = 0; i < modes.size(); ++i)
                 {
-                    if (def == trackedReg)
-                    {
-                        definesTracked = true;
-                        break;
-                    }
+                    if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && scanOps[i].reg == trackedReg)
+                        return scanRef;
                 }
-                if (definesTracked)
-                    return scanRef;
             }
         }
 

@@ -1313,6 +1313,40 @@ SWC_TEST_BEGIN(InstCombine_IndexedRotateWithCopy_UsesMemoryOperand)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_IndexedMemoryFoldInsideLoopKeepsFrameScalar)
+{
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index = MicroReg::virtualIntReg(2);
+    constexpr MicroReg word  = MicroReg::virtualIntReg(3);
+    for (const bool frameBase : {false, true})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef loop = builder.createLabel();
+        if (frameBase)
+            builder.emitLoadAddressRegMem(base, stack, 16, MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(index, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadAmcRegMem(word, MicroOpBits::B64, base, index, 8, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(word, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadAmcMemReg(base, index, 8, 0, MicroOpBits::B64, word, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(index, ApInt(uint64_t{1}, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(index, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpUnaryAmcMem) != (frameBase ? 0 : 1) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (frameBase ? 1 : 0) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcMemReg) != (frameBase ? 1 : 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The same round trip on a frame slot stays scalar: inside a loop that slot
 // is slot promotion's and the vectorizer's to take.
 SWC_TEST_BEGIN(InstCombine_MemoryFoldTriple_LeavesLoopFrameSlot)

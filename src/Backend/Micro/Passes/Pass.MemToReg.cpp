@@ -694,8 +694,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // argument area, which a callee reads behind the analysis: they take part
     // in the overlap checks but are never promoted.
     std::unordered_set<uint64_t> stackPointerSlots;
-    MicroInstrRegOperandRefs regRefs;
-
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
     {
         const MicroInstrRef      ref  = it.current;
@@ -911,15 +909,18 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // Any tracked register appearing anywhere other than as the base of a
         // recognized scalar access is an escape the scalar analysis cannot
         // explain: poison the variable it points into.
-        regRefs.clear();
-        inst.collectRegOperands(operands, regRefs, context.encoder);
-        for (const auto& rref : regRefs)
+        const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+        for (size_t i = 0; i < modes.size(); ++i)
         {
-            if (!rref.reg || !(isTracked(*rref.reg) || (stackPointerTracksFrame && *rref.reg == stackPointer)))
+            if (modes[i] == MicroInstrRegMode::None)
                 continue;
-            const bool isExplainedBase    = baseValid && *rref.reg == baseReg && isHandledScalarMemOp(inst.op);
-            const bool isExplainedValue   = storesTrackedValue && *rref.reg == valueReg;
-            const bool isExplainedAmcBase = amcBase.isValid() && *rref.reg == amcBase;
+            const MicroReg reg = ops[i].reg;
+            if (!reg.isValid() || reg.isNoBase() ||
+                !(isTracked(reg) || (stackPointerTracksFrame && reg == stackPointer)))
+                continue;
+            const bool isExplainedBase    = baseValid && reg == baseReg && isHandledScalarMemOp(inst.op);
+            const bool isExplainedValue   = storesTrackedValue && reg == valueReg;
+            const bool isExplainedAmcBase = amcBase.isValid() && reg == amcBase;
             if (isExplainedBase || isExplainedValue || isExplainedAmcBase)
                 continue;
             // The frame base read as a value - added to an element offset,
@@ -928,8 +929,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // forms every element address from the object's address, so the
             // base never stands for another object.
             uint64_t   escapedOffset = 0;
-            const bool resolved      = escapedObjectOffset(*rref.reg, escapedOffset);
-            if (!resolved || !poisonTrackedEscape(*rref.reg, escapedOffset, 0))
+            const bool resolved      = escapedObjectOffset(reg, escapedOffset);
+            if (!resolved || !poisonTrackedEscape(reg, escapedOffset, 0))
             {
                 bail = true;
                 break;
@@ -1361,19 +1362,23 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Allocate a fresh virtual register per promoted offset (int or float). ----
     uint32_t nextVirtualIntRegIndex   = std::max<uint32_t>(1, context.builder->nextVirtualIntRegIndexHint());
     uint32_t nextVirtualFloatRegIndex = 1;
-    MicroInstrRegOperandRefs refs;
     for (const MicroInstr& inst : storage.view())
     {
-        refs.clear();
-        inst.collectRegOperands(operands, refs, context.encoder);
-        for (const auto& ref : refs)
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+        const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+        for (size_t i = 0; i < modes.size(); ++i)
         {
-            if (!ref.reg || ref.reg->index() >= MicroReg::K_MAX_INDEX)
+            if (modes[i] == MicroInstrRegMode::None)
                 continue;
-            if (ref.reg->isVirtualInt())
-                nextVirtualIntRegIndex = std::max(nextVirtualIntRegIndex, ref.reg->index() + 1);
-            else if (ref.reg->isVirtualFloat())
-                nextVirtualFloatRegIndex = std::max(nextVirtualFloatRegIndex, ref.reg->index() + 1);
+            const MicroReg reg = ops[i].reg;
+            if (!reg.isValid() || reg.isNoBase() || reg.index() >= MicroReg::K_MAX_INDEX)
+                continue;
+            if (reg.isVirtualInt())
+                nextVirtualIntRegIndex = std::max(nextVirtualIntRegIndex, reg.index() + 1);
+            else if (reg.isVirtualFloat())
+                nextVirtualFloatRegIndex = std::max(nextVirtualFloatRegIndex, reg.index() + 1);
         }
     }
 

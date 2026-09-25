@@ -577,31 +577,24 @@ namespace
 
         if (srcBits == MicroOpBits::B64)
         {
-            const MicroLabelRef directLabel = builder.createLabel();
-            const MicroLabelRef doneLabel   = builder.createLabel();
-            const MicroReg      dstF64Reg   = codeGen.nextVirtualFloatRegister();
+            // Build exact low and high 32-bit contributions as packed doubles.
+            // Each subtraction is exact; only their final sum rounds to f64.
+            const TypeRef vecTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(codeGen.typeMgr().typeU64(), 2));
+            const std::array<uint64_t, 2> seedBits = {0x4530000043300000ULL, 0};
+            const std::array<uint64_t, 2> biasBits = {0x4330000000000000ULL, 0x4530000000000000ULL};
+            const MicroReg seedReg = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{seedBits}));
+            const MicroReg biasReg = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{biasBits}));
 
-            builder.emitCmpRegImm(srcReg, ApInt(0, 64), MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, directLabel);
-
-            const MicroReg shiftedReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(shiftedReg, srcReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(shiftedReg, ApInt(1, 64), MicroOp::ShiftRight, MicroOpBits::B64);
-
-            const MicroReg lsbReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(lsbReg, srcReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(lsbReg, ApInt(1, 64), MicroOp::And, MicroOpBits::B64);
-            builder.emitOpBinaryRegReg(shiftedReg, lsbReg, MicroOp::Or, MicroOpBits::B64);
-
-            builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
-            builder.emitConvertIntToFloat(dstF64Reg, shiftedReg, MicroOpBits::B64, MicroOpBits::B64);
-            builder.emitOpBinaryRegReg(dstF64Reg, dstF64Reg, MicroOp::FloatAdd, MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-
-            builder.placeLabel(directLabel);
-            builder.emitClearReg(dstF64Reg, MicroOpBits::B64);
-            builder.emitConvertIntToFloat(dstF64Reg, srcReg, MicroOpBits::B64, MicroOpBits::B64);
-            builder.placeLabel(doneLabel);
+            const MicroReg sourceVecReg = codeGen.nextVirtualFloatRegister();
+            builder.emitLoadRegReg(sourceVecReg, srcReg, MicroOpBits::B64);
+            const MicroReg splitReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(splitReg, sourceVecReg, seedReg, MicroOp::VecUnpackLo32, MicroOpBits::B128);
+            const MicroReg partsReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(partsReg, splitReg, biasReg, MicroOp::VecSubF64, MicroOpBits::B128);
+            const MicroReg upperReg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(upperReg, partsReg, partsReg, MicroOp::VecUnpackHi64, MicroOpBits::B128);
+            const MicroReg dstF64Reg = codeGen.nextVirtualFloatRegister();
+            builder.emitOpBinaryRegRegReg(dstF64Reg, partsReg, upperReg, MicroOp::FloatAdd, MicroOpBits::B64);
             return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstTypeRef);
         }
 

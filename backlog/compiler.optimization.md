@@ -16,6 +16,13 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.057 — Price constant-pool hoists by register pressure
+
+- Recorded: 2026-09-25 13:59
+- Area: compiler/backend, loop-invariant code motion and register allocation
+- Evidence: csvagg converts `u64` to `f64` with two invariant 128-bit constant-pool reads per row. An experimental LICM rule proved `ConstantAddress` loads unaffected by calls and pointer stores, then hoisted both reads above the row loop. A focused C++ test and all 1,104 C++ tests passed. In csvagg, the constants remained live across parsing and map probing; the generated function grew from 1,073 to 1,078 instructions, and an interleaved 12-sample run measured 22.27 ms median with the hoist against 18.06 ms without it and 19.49 ms before the conversion change. The LICM rule and test were reverted.
+- Next: cost a hoist by the resulting live range and expected spill traffic. Consider a nearer loop preheader or rematerialization where the constant has a short use region, then recheck the row loop and an unrelated consumer.
+
 ### compiler.optimization.056 — Branch directly on an inlined comparator's result
 
 - Recorded: 2026-09-25 11:40

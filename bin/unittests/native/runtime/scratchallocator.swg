@@ -627,7 +627,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     scratch.release()
 }
 
-// Capacity and block are set correctly
+// Capacity does not commit a buffer until the first nonempty allocation
 #test
 {
     var alloc:   Allocator
@@ -635,7 +635,20 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     let itf = makeScratchAllocator(&scratch, &alloc)
 
     Swag.assert(scratch.capacity == BufSize)
+    Swag.assert(scratch.block == null)
+    Swag.assert(alloc.stats().countAlloc == 0)
+
+    var empty: AllocatorRequest
+    itf.alloc(&empty)
+    Swag.assert(scratch.block == null)
+    Swag.assert(alloc.stats().countAlloc == 0)
+
+    var first: AllocatorRequest
+    first.size = 1
+    itf.alloc(&first)
+    Swag.assert(first.address != null)
     Swag.assert(scratch.block != null)
+    Swag.assert(alloc.stats().countAlloc == 1)
 
     scratch.release()
 }

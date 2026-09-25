@@ -71,17 +71,12 @@ impl ScratchAllocator
     }
 
     // This will call 'release' prior to changing the capacity, so this must
-    // be called at an early stage
+    // be called at an early stage. The buffer is allocated on first use.
     mtd setCapacity(newCapacity: u64, allocator: IAllocator)
     {
         .release()
         .allocator = allocator
         .capacity  = newCapacity
-
-        var req: AllocatorRequest
-        req.size = .capacity
-        .allocator.alloc(&req)
-        .block = req.address
     }
 }
 
@@ -89,9 +84,10 @@ impl IAllocator for ScratchAllocator
 {
     mtd impl free(request: *AllocatorRequest)
     {
-        Swag.assert(.block != null)
         if not request.address do
             return
+
+        Swag.assert(.block != null)
         let reqAddr = request.address
 
         // If this is the last allocated block in the buffer, we can free it
@@ -131,8 +127,18 @@ impl IAllocator for ScratchAllocator
     // old payload ('request.oldSize' bytes) is copied into the new block.
     mtd allocBlock(request: *AllocatorRequest)
     {
+        if not .block
+        {
+            .block = cast([*] u8?) .alloc(.capacity)
+            if not .block
+            {
+                request.address = null
+                return
+            }
+        }
+
         // Allocate in the buffer if there is enough room
-        let block        = .block!
+        let block        = .block
         let blockAddress = cast(u64) block
         let userAddress  = ScratchAllocator.align(blockAddress + .used, request.alignment)
         let usedAlign    = userAddress - blockAddress
@@ -168,7 +174,6 @@ impl IAllocator for ScratchAllocator
 
     mtd impl alloc(request: *AllocatorRequest)
     {
-        Swag.assert(.block != null)
         if request.size == 0
         {
             request.address = null
@@ -181,7 +186,6 @@ impl IAllocator for ScratchAllocator
 
     mtd impl realloc(request: *AllocatorRequest)
     {
-        Swag.assert(.block != null)
         if request.size == 0
         {
             .free(request)
@@ -220,7 +224,6 @@ impl IAllocator for ScratchAllocator
 
     mtd impl freeAll(request: *AllocatorRequest)
     {
-        Swag.assert(.block != null)
         .releaseAll()
         request.address = null
     }

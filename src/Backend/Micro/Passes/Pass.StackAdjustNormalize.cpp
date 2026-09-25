@@ -191,7 +191,7 @@ namespace
         labelDepthById.reserve(context.instructions->count() / 8 + 1);
 
         uint64_t depth = 0;
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstrOperand* ops = it->ops(*context.operands);
 

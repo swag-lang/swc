@@ -511,7 +511,7 @@ namespace
         const uint64_t firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
         SmallVector<MicroInstrRef> accesses;
         auto&                      operands = *context.operands;
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             MicroInstr*              inst = context.instructions->ptr(it.current);
             MicroInstrOperand*       ops  = inst ? inst->ops(operands) : nullptr;

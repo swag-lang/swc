@@ -37,6 +37,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatReturnXorCopyChain);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
         r.add(MicroInstrOpcode::JumpCond, tryInvertBranchOverJump);
+        r.add(MicroInstrOpcode::JumpCond, tryShareReturnEpilogue);
         r.add(MicroInstrOpcode::CmpRegImm, tryFoldConditionalBitwiseNot);
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftNoCopy);
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftBare);

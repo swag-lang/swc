@@ -174,6 +174,7 @@ namespace PostRaPeephole
     bool tryFoldLoadIntoBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldIndexedFloatAccumulation(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryEraseScalarReturnConversionClear(Context& ctx, MicroInstrRef clearRef, const MicroInstr& clearInst);
+    bool tryShareReturnEpilogue(Context& ctx, MicroInstrRef branchRef, const MicroInstr& branchInst);
     bool tryUseSelfOperandForFloatBinary(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
     bool tryEraseOverwrittenStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);
     bool tryEraseRedundantStoreReload(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);

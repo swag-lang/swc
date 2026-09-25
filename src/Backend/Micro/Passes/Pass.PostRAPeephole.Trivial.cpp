@@ -103,6 +103,133 @@ namespace PostRaPeephole
         return true;
     }
 
+    namespace
+    {
+        constexpr uint32_t K_MAX_RETURN_TAIL = 16;
+
+        bool collectSimpleReturnTail(const Context& ctx, MicroInstrRef ref,
+                                     std::array<MicroInstrRef, K_MAX_RETURN_TAIL>& refs, uint32_t& count)
+        {
+            count = 0;
+            const MicroInstr* inst = ctx.instruction(ref);
+            if (inst && inst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                refs[count++] = ref;
+                ref = ctx.nextRef(ref);
+                inst = ctx.instruction(ref);
+            }
+            if (inst && inst->op == MicroInstrOpcode::OpBinaryRegImm)
+            {
+                const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+                if (!ops || ops[0].reg != ctx.stackPointer || ops[1].opBits != MicroOpBits::B64 ||
+                    ops[2].microOp != MicroOp::Add)
+                    return false;
+                refs[count++] = ref;
+                ref = ctx.nextRef(ref);
+                inst = ctx.instruction(ref);
+            }
+            while (inst && inst->op == MicroInstrOpcode::Pop && count + 1 < K_MAX_RETURN_TAIL)
+            {
+                refs[count++] = ref;
+                ref = ctx.nextRef(ref);
+                inst = ctx.instruction(ref);
+            }
+            if (!inst || inst->op != MicroInstrOpcode::Ret || count >= K_MAX_RETURN_TAIL)
+                return false;
+            refs[count++] = ref;
+            return true;
+        }
+
+        bool sameReturnInstruction(const Context& ctx, const MicroInstrRef lhsRef, const MicroInstrRef rhsRef)
+        {
+            const MicroInstr* lhs = ctx.instruction(lhsRef);
+            const MicroInstr* rhs = ctx.instruction(rhsRef);
+            if (!lhs || !rhs || lhs->op != rhs->op || lhs->numOperands != rhs->numOperands)
+                return false;
+            const MicroInstrOperand* a = lhs->ops(*ctx.operands);
+            const MicroInstrOperand* b = rhs->ops(*ctx.operands);
+            switch (lhs->op)
+            {
+                case MicroInstrOpcode::LoadRegReg:
+                    return a && b && a[0].reg == b[0].reg && a[1].reg == b[1].reg && a[2].opBits == b[2].opBits;
+                case MicroInstrOpcode::OpBinaryRegImm:
+                    return a && b && a[0].reg == b[0].reg && a[1].opBits == b[1].opBits &&
+                           a[2].microOp == b[2].microOp &&
+                           a[3].valueInt.bitWidth() == b[3].valueInt.bitWidth() && a[3].valueInt.eq(b[3].valueInt);
+                case MicroInstrOpcode::Pop:
+                    return a && b && a[0].reg == b[0].reg;
+                case MicroInstrOpcode::Ret:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+
+    // Two identical return tails can share one epilogue while the branch to
+    // the collision path becomes the complementary branch to the later tail.
+    // The collision path then becomes the fallthrough, as in a single-exit
+    // lookup loop, without adding a jump to either hot path.
+    bool tryShareReturnEpilogue(Context& ctx, const MicroInstrRef branchRef, const MicroInstr& branchInst)
+    {
+        const MicroInstrOperand* branchOps = branchInst.ops(*ctx.operands);
+        if (!branchOps || branchOps[0].cpuCond == MicroCond::Unconditional)
+            return false;
+        MicroCond inverted = MicroCond::Unconditional;
+        if (!MicroPassHelpers::invertCondition(inverted, branchOps[0].cpuCond))
+            return false;
+
+        std::array<MicroInstrRef, K_MAX_RETURN_TAIL> firstTail;
+        uint32_t firstCount = 0;
+        if (!collectSimpleReturnTail(ctx, ctx.nextRef(branchRef), firstTail, firstCount))
+            return false;
+        const MicroInstrRef collisionRef = ctx.nextRef(firstTail[firstCount - 1]);
+        const MicroInstr* collision = ctx.instruction(collisionRef);
+        const MicroInstrOperand* collisionOps = collision ? collision->ops(*ctx.operands) : nullptr;
+        if (!collision || collision->op != MicroInstrOpcode::Label || !collisionOps ||
+            collisionOps[0].valueU64 != branchOps[2].valueU64)
+            return false;
+
+        MicroInstrRef exitRef = ctx.nextRef(collisionRef);
+        for (uint32_t step = 0; step < 12; ++step)
+        {
+            const MicroInstr* inst = ctx.instruction(exitRef);
+            if (!inst || inst->op == MicroInstrOpcode::Ret)
+                return false;
+            if (inst->op == MicroInstrOpcode::Label)
+                break;
+            exitRef = ctx.nextRef(exitRef);
+        }
+        const MicroInstr* exitLabel = ctx.instruction(exitRef);
+        const MicroInstrOperand* exitOps = exitLabel ? exitLabel->ops(*ctx.operands) : nullptr;
+        if (!exitLabel || exitLabel->op != MicroInstrOpcode::Label || !exitOps)
+            return false;
+
+        std::array<MicroInstrRef, K_MAX_RETURN_TAIL> secondTail;
+        uint32_t secondCount = 0;
+        if (!collectSimpleReturnTail(ctx, ctx.nextRef(exitRef), secondTail, secondCount) ||
+            firstCount != secondCount)
+            return false;
+        for (uint32_t i = 0; i < firstCount; ++i)
+            if (!sameReturnInstruction(ctx, firstTail[i], secondTail[i]))
+                return false;
+
+        std::array<MicroInstrRef, K_MAX_RETURN_TAIL + 1> claims;
+        claims[0] = branchRef;
+        for (uint32_t i = 0; i < firstCount; ++i)
+            claims[i + 1] = firstTail[i];
+        if (!ctx.claimAll(std::span{claims.data(), firstCount + 1}))
+            return false;
+
+        MicroInstrOperand rewritten[3] = {branchOps[0], branchOps[1], branchOps[2]};
+        rewritten[0].cpuCond = inverted;
+        rewritten[2].valueU64 = exitOps[0].valueU64;
+        ctx.emitRewrite(branchRef, MicroInstrOpcode::JumpCond, rewritten);
+        for (uint32_t i = 0; i < firstCount; ++i)
+            ctx.emitErase(firstTail[i]);
+        return true;
+    }
+
     // `mov eax, eax` clears the upper half of rax, so a dword self-copy is
     // kept as a rule. Where that half is already clear on every path - after
     // any 32-bit write - it changes nothing.

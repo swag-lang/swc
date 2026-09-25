@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.067 — Share identical post-allocation return tails
+
+- Recorded: 2026-09-25 20:58
+- Updated: 2026-09-25 20:58 — Gave wordfreq's collision probe one return epilogue.
+- Area: compiler/backend, post-allocation control flow and wordfreq probing
+- Evidence: LDC's `mapProbe` branches from a successful `memcmp` to one common return after the collision step, while Swag emitted the same register copy, stack release, six pops, and `ret` twice. A guarded post-allocation rule now recognizes a conditional branch followed by a simple return tail, its collision label, a short continuation, and a second identical tail. It inverts the branch to the later tail and removes the first; the collision path becomes fallthrough with no added jump. The generated `mapProbe` falls from 90 to 81 instructions, versus LDC's 84, while the collision loop's memory operations remain unchanged. Wordfreq's `qsort` and `main` stay at 130 and 485 instructions, checksum 130489. Csvagg's `main` stays at 1,023 instructions, checksum 24828641. A C++ test checks an identical copied result, stack release and pop sequence, plus a different-return-value refusal. All 1,121 C++, 3,480 native, and 1,500 JIT tests pass; lexer positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
+- Next: compare wordfreq's `qsort` inner comparator path with LDC, especially the spill-backed pointer reloads around `memcmp`, and inspect whether csvagg's field loads can be reduced without adding spills.
+
 ### compiler.optimization.066 — Fold indexed scalar accumulation into the add
 
 - Recorded: 2026-09-25 20:47

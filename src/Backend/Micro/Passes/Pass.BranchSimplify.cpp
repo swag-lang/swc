@@ -93,7 +93,7 @@ namespace
 
     bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {
-        if (!valueInfo.instRef.isValid())
+        if (!valueInfo.instRef.isValid() || !valueInfo.reg.isVirtualInt())
             return false;
 
         SWC_ASSERT(context.storage != nullptr);
@@ -110,14 +110,14 @@ namespace
         switch (inst->op)
         {
             case MicroInstrOpcode::LoadRegImm:
-                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg)
                     return false;
 
                 outValue = makeKnownValue(ops[2].valueU64, ops[1].opBits);
                 return true;
 
             case MicroInstrOpcode::ClearReg:
-                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg)
                     return false;
 
                 outValue = makeKnownValue(0, ops[1].opBits);
@@ -125,7 +125,7 @@ namespace
 
             case MicroInstrOpcode::LoadRegReg:
             {
-                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg)
                     return false;
 
                 // A narrower copy still carries a known value, just a narrower one. This is the
@@ -142,7 +142,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegImm:
             {
-                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg)
                     return false;
 
                 KnownValue inputValue;
@@ -162,7 +162,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegReg:
             {
-                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
+                if (ops[0].reg != valueInfo.reg)
                     return false;
 
                 KnownValue lhs;

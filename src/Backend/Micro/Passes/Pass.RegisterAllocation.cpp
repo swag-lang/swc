@@ -637,13 +637,7 @@ void MicroRegisterAllocationPass::computeLoopDepth()
 
 bool MicroRegisterAllocationPass::functionHasCalls() const
 {
-    for (const MicroInstrUseDef& useDef : instructionUseDefs_)
-    {
-        if (useDef.isCall)
-            return true;
-    }
-
-    return false;
+    return !callPositions_.empty();
 }
 
 bool MicroRegisterAllocationPass::isFlushBoundary(const uint32_t instructionIndex, const MicroInstr& inst) const
@@ -2431,14 +2425,14 @@ void MicroRegisterAllocationPass::computeReachability()
     if (!instructionCount_ || controlFlowGraph_ == nullptr)
         return;
 
-    SmallVector<uint32_t> pending;
-    pending.push_back(0);
+    worklist_.clear();
+    worklist_.push_back(0);
     reachableInstructions_[0] = 1;
 
-    while (!pending.empty())
+    while (!worklist_.empty())
     {
-        const uint32_t instructionIndex = pending.back();
-        pending.pop_back();
+        const uint32_t instructionIndex = worklist_.back();
+        worklist_.pop_back();
 
         for (const uint32_t succIdx : controlFlowGraph_->successors(instructionIndex))
         {
@@ -2446,7 +2440,7 @@ void MicroRegisterAllocationPass::computeReachability()
                 continue;
 
             reachableInstructions_[succIdx] = 1;
-            pending.push_back(succIdx);
+            worklist_.push_back(succIdx);
         }
     }
 }

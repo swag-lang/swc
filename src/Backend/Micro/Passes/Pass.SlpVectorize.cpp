@@ -1790,9 +1790,7 @@ namespace
 
         // ----- Materialize.
         if (!fn.nextVirtualFloatRegIndex)
-            fn.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(*fn.context);
-        if (!fn.nextVirtualIntRegIndex)
-            fn.nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(*fn.context);
+            MicroPassHelpers::computeNextVirtualRegIndices(*fn.context, fn.nextVirtualIntRegIndex, fn.nextVirtualFloatRegIndex);
         std::vector<MicroReg> planRegs(plan.nextPlanReg);
         for (uint32_t planReg = 0; planReg < plan.nextPlanReg; ++planReg)
         {

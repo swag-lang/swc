@@ -810,23 +810,31 @@ namespace
 
                         if (opcodeReadsMemory(inst->op))
                         {
-                            // A call may write the loaded location; never hoist past one.
-                            if (loopHasCall)
+                            // The vector conversion constants live in the read-only pool.
+                            // Neither calls nor pointer stores can change their bytes.
+                            const MicroInstrOperand* loadOps = inst->ops(operands);
+                            if (!loadOps)
+                                continue;
+                            const auto relocationIt = firstRelocation.find(ref.get());
+                            const bool constantPoolVector = inst->op == MicroInstrOpcode::LoadRegMem &&
+                                                            loadOps[1].reg.isInstructionPointer() &&
+                                                            loadOps[2].opBits == MicroOpBits::B128 &&
+                                                            relocationIt != firstRelocation.end() &&
+                                                            relocations[relocationIt->second].kind == MicroRelocation::Kind::ConstantAddress;
+
+                            // A call may write an ordinary loaded location.
+                            if (loopHasCall && !constantPoolVector)
                                 continue;
 
                             // Indexed values and pointer-sized fields of an
                             // invariant structure can also cross a read-only
                             // call when the alias checks below exclude stores.
-                            if (loopHasReadOnlyCall)
+                            if (loopHasReadOnlyCall && !constantPoolVector)
                             {
-                                const MicroInstrOperand* loadOps = inst->ops(operands);
-                                if (!loadOps)
-                                    continue;
                                 bool directGlobal = false;
                                 if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() &&
                                     loadOps[2].opBits == MicroOpBits::B64)
                                 {
-                                    const auto relocationIt = firstRelocation.find(ref.get());
                                     if (relocationIt != firstRelocation.end())
                                     {
                                         const auto kind = relocations[relocationIt->second].kind;
@@ -857,7 +865,7 @@ namespace
                                 // address and no frame address escapes the function - or
                                 // the address is instruction-pointer-relative, which
                                 // names a global or a constant and never the frame.
-                                if (loopHasPointerStore)
+                                if (loopHasPointerStore && !constantPoolVector)
                                     continue;
                                 const bool baseIsConstantAddress = !base.isValid() || base.isInstructionPointer();
                                 if (loopHasFrameStore && !baseIsConstantAddress)

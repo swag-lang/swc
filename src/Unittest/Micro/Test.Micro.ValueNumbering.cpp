@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -573,6 +574,49 @@ SWC_TEST_BEGIN(ValueNumbering_RipRelocationKeepsDifferentTargetsAndStores)
     for (const MicroRelocation& relocation : builder.codeRelocations())
     {
         if (!relocation.instructionRef.isValid())
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ValueNumbering_ConstantPoolReadCrossesCallAndStore)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        constexpr MicroReg pointer = MicroReg::virtualIntReg(1);
+        constexpr MicroReg first   = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg second  = MicroReg::virtualFloatReg(2);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(pointer, MicroReg::intReg(2), MicroOpBits::B64);
+        const auto emitRead = [&](const MicroReg dst, const uint32_t offset) {
+            builder.emitLoadRegMem(dst, MicroReg::instructionPointer(), 0, MicroOpBits::B128);
+            MicroRelocation relocation;
+            relocation.kind           = mode == 1 ? MicroRelocation::Kind::GlobalInitAddress : MicroRelocation::Kind::ConstantAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = builder.instructions().lastInstructionRef();
+            if (mode == 1)
+                relocation.targetAddress = 8;
+            else
+            {
+                relocation.constantShard  = 0;
+                relocation.constantOffset = offset;
+            }
+            builder.addRelocation(relocation);
+        };
+        emitRead(first, 0);
+        builder.emitLoadMemReg(pointer, 0, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        emitRead(second, mode == 2 ? 16 : 0);
+        const auto secondRef = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        SWC_RESULT(runValueNumberingPass(builder));
+        const MicroInstr* inst = builder.instructions().ptr(secondRef);
+        if (!inst || inst->op != (mode == 0 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
+        if (mode == 0 && inst->ops(builder.operands())[1].reg != first)
             return Result::Error;
     }
     return Result::Continue;

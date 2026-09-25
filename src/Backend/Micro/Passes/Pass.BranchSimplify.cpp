@@ -229,7 +229,7 @@ namespace
             outLayout.ordinalByRef[it.current.get()] = ordinal;
 
             uint32_t labelId = 0;
-            if (tryGetLabelId(labelId, *it, it->ops(operands)))
+            if (it->op == MicroInstrOpcode::Label && tryGetLabelId(labelId, *it, it->ops(operands)))
                 outLayout.labelOrdinalById[labelId] = ordinal;
         }
     }
@@ -335,7 +335,7 @@ namespace
                 }
 
                 uint32_t labelId = 0;
-                if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
                     ++scan.labelReferences[labelId];
 
                 regOperands.clear();

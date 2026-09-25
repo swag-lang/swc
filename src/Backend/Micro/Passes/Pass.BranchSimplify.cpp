@@ -7210,7 +7210,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // next reader pays for a new one; a run where nothing fires pays for exactly one.
     thread_local BranchScanCache scanCache;
     scanCache.invalidate();
-    RelocationRefCache relocationCache;
+    thread_local RelocationRefCache relocationCache;
+    relocationCache.invalidate();
     const auto      rewrote = [&](const bool transformChanged) {
         if (transformChanged)
         {

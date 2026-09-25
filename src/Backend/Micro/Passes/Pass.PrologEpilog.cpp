@@ -474,28 +474,31 @@ namespace
         const uint64_t firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
         SmallVector<MicroInstrRef> accesses;
         auto&                      operands = *context.operands;
-        MicroInstrRegOperandRefs regOperands;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             MicroInstr*              inst = context.instructions->ptr(it.current);
             MicroInstrOperand*       ops  = inst ? inst->ops(operands) : nullptr;
             const MicroInstrDef&     info = MicroInstr::info(inst->op);
-            regOperands.clear();
-            inst->collectRegOperands(operands, regOperands, context.encoder);
-
-            if (inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop ||
-                definesStackPointer(context, *inst, conv.stackPointer))
+            if (inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop)
                 return false;
 
             bool namesFramePointer = false;
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            if (ops)
             {
-                if (!regOperand.reg || *regOperand.reg != conv.framePointer)
-                    continue;
-                namesFramePointer = true;
-                if (!ops || regOperand.def || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
-                    regOperand.reg != &ops[info.memBaseOperandIndex].reg)
-                    return false;
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None)
+                        continue;
+                    const bool defines = modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                    if (defines && ops[i].reg == conv.stackPointer)
+                        return false;
+                    if (ops[i].reg != conv.framePointer)
+                        continue;
+                    namesFramePointer = true;
+                    if (defines || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || i != info.memBaseOperandIndex)
+                        return false;
+                }
             }
 
             if (!namesFramePointer)

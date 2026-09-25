@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.062 — Update masked probe indices in place
+
+- Recorded: 2026-09-25 18:22
+- Updated: 2026-09-25 18:22 — Folded the guarded LEA/AND/copy probe update into an in-place increment and mask.
+- Area: compiler/backend, post-allocation peephole and byte-map probing
+- Evidence: LDC advances a probe index with `inc index; and index, mask`. Swag used `lea temp, [index + 1]; and temp, [mask]; mov index, temp` in the collision path. The post-allocation rule now emits `inc index; and index, [mask]` after proving the temporary dies, the mask address uses neither the index nor the temporary, the width and increment are exact, and the following AND replaces the increment's flags. It removes one instruction per collision probe and matches LDC's two-instruction in-place shape; the remaining mask memory operand is a separate register-residency question. Wordfreq's `mapProbe` shrinks from 91 to 90 instructions and csvagg's `main` from 1,032 to 1,031, with its timed row span returning from 257 to 256 instructions. Checksums remain 130489 and 24828641. A C++ regression covers an index-dependent mask address, a live temporary, and a different increment. The 1,113 C++, 3,480 native, and 1,500 JIT tests pass; the random `sema` suite passed its positive and expected-error files. No elapsed-time sample informed the decision.
+- Next: compare the remaining mask memory operand and branch layout in wordfreq's probe with LDC, and keep testing csvagg's parser loop against clang-cl's assembly.
+
 ### compiler.optimization.061 — Keep byte-map probe pointers resident across read-only calls
 
 - Recorded: 2026-09-25 18:15

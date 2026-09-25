@@ -126,6 +126,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldSelectedIntegerAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoIntegerAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetAddressResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldMaskedIndexIncrement);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCommutativeAddressCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryCommuteBinaryResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowShiftCountCopy);

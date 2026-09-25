@@ -350,6 +350,55 @@ namespace PostRaPeephole
         return true;
     }
 
+    // LEA tmp,[index+1]; AND tmp,[mask]; MOV index,tmp can update index in
+    // place. AND replaces LEA's flags before anything can observe them.
+    bool tryFoldMaskedIndexIncrement(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef))
+            return false;
+        const MicroInstrOperand* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+
+        const MicroInstrRef andRef = ctx.previousRef(copyRef);
+        const MicroInstr*   andInst = ctx.instruction(andRef);
+        const MicroInstrOperand* andOps = andInst ? andInst->ops(*ctx.operands) : nullptr;
+        if (!andInst || andInst->op != MicroInstrOpcode::OpBinaryRegMem || !andOps ||
+            andOps[0].reg != copy[1].reg || andOps[1].reg == copy[0].reg || andOps[1].reg == copy[1].reg ||
+            andOps[2].opBits != MicroOpBits::B64 || andOps[3].microOp != MicroOp::And)
+            return false;
+
+        const MicroInstrRef addressRef = ctx.previousRef(andRef);
+        const MicroInstr*   address = ctx.instruction(addressRef);
+        const MicroInstrOperand* lea = address ? address->ops(*ctx.operands) : nullptr;
+        if (!address || address->op != MicroInstrOpcode::LoadAddrRegMem || !lea ||
+            lea[0].reg != copy[1].reg || lea[1].reg != copy[0].reg ||
+            lea[2].opBits != MicroOpBits::B64 || lea[3].hasWideImmediateValue() || lea[3].valueU64 != 1)
+            return false;
+
+        MicroInstrOperand increment[3] = {};
+        increment[0].reg = copy[0].reg;
+        increment[1].opBits = MicroOpBits::B64;
+        increment[2].microOp = MicroOp::Add;
+        MicroInstrOperand masked[5];
+        std::copy_n(andOps, 5, masked);
+        masked[0].reg = copy[0].reg;
+        MicroInstr incrementProbe;
+        incrementProbe.op = MicroInstrOpcode::OpUnaryReg;
+        incrementProbe.numOperands = 3;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && (ctx.encoder->queryConformanceIssue(issue, incrementProbe, increment) ||
+                             ctx.encoder->queryConformanceIssue(issue, *andInst, masked))) ||
+            !ctx.claimAll({addressRef, andRef, copyRef}))
+            return false;
+        ctx.emitRewrite(addressRef, incrementProbe.op, increment, true);
+        ctx.emitRewrite(andRef, andInst->op, masked);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // MOV d,s; LEA s,[s+k]; d op= s can compute the address in d instead.
     // Commutativity preserves the final operation's value and flags; liveness
     // must prove that the old address result in s has no remaining reader.

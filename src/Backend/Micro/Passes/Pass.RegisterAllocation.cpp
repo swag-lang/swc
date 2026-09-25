@@ -2137,6 +2137,8 @@ void MicroRegisterAllocationPass::prepareInstructionData()
             }
         }
 
+        if (useDef.isCall)
+            callPositions_.push_back(idx);
         instructionUseDefs_[idx] = std::move(useDef);
     }
 
@@ -3122,11 +3124,8 @@ bool MicroRegisterAllocationPass::isStraightLineRange(const uint32_t lo, const u
     // stack pointer. The first three make the save and the restore run as a
     // pair; the last keeps both of them addressing the same slot, since spill
     // addresses are stack-pointer relative and biased by the running depth.
-    for (uint32_t idx = lo; idx <= hi && idx < instructionCount_; ++idx)
-    {
-        if (instructionUseDefs_[idx].isCall)
-            return false;
-    }
+    if (intervalHasCall(lo, hi))
+        return false;
 
     uint32_t idx = 0;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
@@ -4484,11 +4483,8 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
         return Result::Continue;
 
     computeGuardedCallPositions();
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+    for (const uint32_t idx : callPositions_)
     {
-        if (!instructionUseDefs_[idx].isCall)
-            continue;
-        callPositions_.push_back(idx);
         if (!guardedCallPositions_[idx])
             hotCallPositions_.push_back(idx);
     }

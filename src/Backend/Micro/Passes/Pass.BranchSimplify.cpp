@@ -322,7 +322,6 @@ namespace
             scan.mentions.clear();
             buildProgramLayout(scan.layout, storage, operands);
 
-            MicroInstrRegOperandRefs regOperands;
             for (const MicroInstrRef ref : scan.layout.order)
             {
                 const MicroInstr* inst = storage.ptr(ref);
@@ -338,12 +337,14 @@ namespace
                 if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
                     ++scan.labelReferences[labelId];
 
-                regOperands.clear();
-                inst->collectRegOperands(operands, regOperands, nullptr);
-                for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                if (const MicroInstrOperand* ops = inst->ops(operands))
                 {
-                    if (regOperand.reg && regOperand.reg->isVirtualInt())
-                        ++scan.mentions[regOperand.reg->index()];
+                    const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
+                    for (size_t i = 0; i < modes.size(); ++i)
+                    {
+                        if (modes[i] != MicroInstrRegMode::None && ops[i].reg.isVirtualInt())
+                            ++scan.mentions[ops[i].reg.index()];
+                    }
                 }
             }
         }

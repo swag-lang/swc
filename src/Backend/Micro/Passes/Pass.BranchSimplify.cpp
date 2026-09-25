@@ -3058,11 +3058,13 @@ namespace
                             break;
                         }
                     }
-                    MicroInstrRegOperandRefs regOperands;
-                    inst->collectRegOperands(operands, regOperands, nullptr);
                     bool touches = false;
-                    for (const MicroInstrRegOperandRef& regOperand : regOperands)
-                        touches |= regOperand.reg && *regOperand.reg == result;
+                    if (const MicroInstrOperand* ops = inst->ops(operands))
+                    {
+                        const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
+                        for (size_t operand = 0; operand < modes.size(); ++operand)
+                            touches |= modes[operand] != MicroInstrRegMode::None && ops[operand].reg == result;
+                    }
                     if (touches)
                         break;
                 }

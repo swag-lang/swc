@@ -648,9 +648,10 @@ namespace PostRaPeephole
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 return false;
             window[step]                  = cursor;
-            const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
-            if (!regInList(useDef.uses.span(), copy[0].reg) && !regInList(useDef.defs.span(), copy[0].reg))
+            const RegTouch touch = regTouch(ctx, *current, copy[0].reg);
+            if (!touch.use && !touch.def)
                 continue;
+            const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
             const auto* ops = current->ops(*ctx.operands);
             if (useDef.defs.empty())
             {

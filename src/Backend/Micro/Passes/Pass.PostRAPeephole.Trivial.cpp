@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
@@ -61,6 +62,51 @@ namespace PostRaPeephole
             return false;
 
         ctx.emitErase(ref);
+        return true;
+    }
+
+    // Register allocation may leave a load/add/store for a loop-local field
+    // that pre-RA combine deliberately kept scalar. Once the assigned result
+    // register is dead, an x64 memory increment avoids both the reload and
+    // the store without changing register allocation or the add's flags.
+    bool tryFoldDeadScalarIncrement(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        const MicroInstrOperand* load = loadInst.ops(*ctx.operands);
+        if (!load || !load[0].reg.isInt() || !load[1].reg.isInt() || load[0].reg == load[1].reg)
+            return false;
+
+        const MicroInstrRef addRef = ctx.nextRef(loadRef);
+        const MicroInstr* addInst = ctx.instruction(addRef);
+        const MicroInstrOperand* add = addInst && addInst->op == MicroInstrOpcode::OpBinaryRegImm ? addInst->ops(*ctx.operands) : nullptr;
+        if (!add || add[0].reg != load[0].reg || add[1].opBits != load[2].opBits ||
+            add[2].microOp != MicroOp::Add || add[3].hasWideImmediateValue() || add[3].valueU64 != 1)
+            return false;
+
+        const MicroInstrRef storeRef = ctx.nextRef(addRef);
+        const MicroInstr* storeInst = ctx.instruction(storeRef);
+        const MicroInstrOperand* store = storeInst && storeInst->op == MicroInstrOpcode::LoadMemReg ? storeInst->ops(*ctx.operands) : nullptr;
+        if (!store || store[0].reg != load[1].reg || store[1].reg != load[0].reg ||
+            store[2].opBits != load[2].opBits || store[3].valueU64 != load[3].valueU64 ||
+            !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 2))
+            return false;
+
+        MicroInstrOperand folded[5];
+        folded[0].reg = load[1].reg;
+        folded[1].opBits = load[2].opBits;
+        folded[2].microOp = MicroOp::Add;
+        folded[3].valueU64 = load[3].valueU64;
+        folded[4].valueU64 = 1;
+        MicroInstr probe;
+        probe.op = MicroInstrOpcode::OpBinaryMemImm;
+        probe.numOperands = 5;
+        MicroConformanceIssue issue;
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, probe, folded)) ||
+            !ctx.claimAll({loadRef, addRef, storeRef}))
+            return false;
+
+        ctx.emitRewrite(addRef, probe.op, folded, true);
+        ctx.emitErase(loadRef);
+        ctx.emitErase(storeRef);
         return true;
     }
 

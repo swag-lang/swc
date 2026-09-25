@@ -16,6 +16,15 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.072 - Fold dead scalar increments after allocation
+
+- Recorded: 2026-09-25 23:08
+- Updated: 2026-09-25 23:08 - Matched direct memory increments in wordfreq and csvagg.
+- Area: compiler/backend, post-allocation integer memory operations
+- Evidence: LDC increments wordfreq's new-key count in memory, and clang-cl does the same for csvagg's new-slot count. Swag's loop-local field update was `mov reg,[base+offset]; add reg,1; mov [base+offset],reg`. A post-allocation rule now replaces this exact adjacent triple with one memory add only when load/store address and width match, the result register differs from the address base and is dead after the store, and the x64 encoder accepts the replacement. Wordfreq's generated `main` falls from 485 to 483 Micro instructions; csvagg's `main` falls from 1,022 to 1,020. Their collision/hash loops retain the same instructions. Both builds pass `--validate-micro`, and their checksums remain 130489 and 24828641. The focused C++ regression covers a dead value, a live value, an address-register overlap, and a different store address. All 1,126 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
+- Negative lead: Allowing the pre-allocation memory-combine rule to fold frame-derived updates inside loops reduced wordfreq by two instructions but grew csvagg's `main` from 1,022 to 1,036 after register allocation. That broad trial was reverted; the post-allocation rule achieves both two-instruction gains without perturbing register assignment.
+- Next: inspect the redundant used-slot retest after inlined `mapProbe` in both programs, then assess whether reserved call shadow space can be reused in the main parsing loops without moving local or outgoing argument slots.
+
 ### compiler.optimization.071 — Trim empty call frames to their ABI reserve
 
 - Recorded: 2026-09-25 22:45

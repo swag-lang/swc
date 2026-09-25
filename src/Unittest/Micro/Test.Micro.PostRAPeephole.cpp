@@ -107,6 +107,35 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FoldsDeadScalarIncrement)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg base = MicroReg::intReg(1);
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegMem(variant == 2 ? base : value, base, 8, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(variant == 2 ? base : value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, variant == 3 ? 16 : 8, variant == 2 ? base : value, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(value, base, 24, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const uint32_t expected = variant == 0 ? 1 : 0;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != expected)
+            return Result::Error;
+        if (variant == 0 && (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0 ||
+                             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ConstantBooleanSet_Folded)
 {
     constexpr MicroReg value = MicroReg::intReg(0);

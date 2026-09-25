@@ -3669,8 +3669,10 @@ namespace PostRaPeephole
     // already clear does nothing.
     void eraseRedundantUpperHalfClears(Context& ctx)
     {
-        for (auto it = ctx.storage->view().begin(); it != ctx.storage->view().end(); ++it)
+        for (auto it = ctx.storage->view().begin(), endIt = ctx.storage->view().end(); it != endIt; ++it)
         {
+            if (it->op != MicroInstrOpcode::LoadRegReg && it->op != MicroInstrOpcode::LoadZeroExtRegReg)
+                continue;
             const MicroInstrOperand* ops = it->ops(*ctx.operands);
             if (!isUpperHalfClear(*it, ops) || !ctx.isUpperHalfZeroBefore(it.current, ops[0].reg))
                 continue;

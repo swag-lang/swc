@@ -127,15 +127,18 @@ namespace PostRaPeephole
             // overwrites the wider value before reading it.
             const MicroInstrRef branchRef = ctx.nextRef(cmpRef);
             const MicroInstr*   branch    = ctx.instruction(branchRef);
-            const auto*         branchOps = branch ? branch->ops(*ctx.operands) : nullptr;
-            if (branchOps && branch->op == MicroInstrOpcode::JumpCond && branch->numOperands >= 3 &&
+            const auto* branchOps = branch && branch->op == MicroInstrOpcode::JumpCond ?
+                branch->ops(*ctx.operands) : nullptr;
+            if (branchOps && branch->numOperands >= 3 &&
                 branchOps[0].cpuCond != MicroCond::Unconditional &&
                 regIsDeadAfter(ctx, branchRef, extend[0].reg))
             {
-                for (auto it = ctx.storage->view().begin(); it != ctx.storage->view().end(); ++it)
+                for (auto it = ctx.storage->view().begin(), endIt = ctx.storage->view().end(); it != endIt; ++it)
                 {
+                    if (it->op != MicroInstrOpcode::Label)
+                        continue;
                     const MicroInstrOperand* labelOps = it->ops(*ctx.operands);
-                    if (it->op == MicroInstrOpcode::Label && labelOps && labelOps[0].valueU64 == branchOps[2].valueU64)
+                    if (labelOps && labelOps[0].valueU64 == branchOps[2].valueU64)
                     {
                         deadAfterCompare = regIsDeadAfter(ctx, it.current, extend[0].reg);
                         break;

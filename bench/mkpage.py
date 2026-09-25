@@ -4,6 +4,7 @@ Every number on the page comes from a JSON file, never from an edit here, so the
 page can never disagree with the measurement that produced it.
 """
 import glob
+import html
 import json
 import math
 import os
@@ -177,16 +178,40 @@ def chart(rows, lo, hi, ticks, unit, scale="log"):
 
 
 def table(headers, rows, cls=""):
-    out = ['<div class="scroll"><table class="%s">' % cls, "<thead><tr>"]
+    out = ['<div class="table-wrap"><table class="%s">' % cls, "<thead><tr>"]
     for i, h in enumerate(headers):
         out.append("<th%s>%s</th>" % (' class="num"' if i else "", h))
     out.append("</tr></thead><tbody>")
     for r in rows:
         out.append('<tr class="f-%s"><th scope="row">%s</th>' % (r[0], r[1]))
-        for c in r[2:]:
-            out.append('<td class="num">%s</td>' % c)
+        for i, c in enumerate(r[2:], 1):
+            label = html.escape(html.unescape(headers[i]), quote=True)
+            out.append('<td class="num" data-label="%s">%s</td>' % (label, c))
         out.append("</tr>")
     out.append("</tbody></table></div>")
+    return "\n".join(out)
+
+
+def ranked_table(tasks, runtimes, value, display):
+    """Show each task's measured runtimes from the lowest value to the highest."""
+    out = ['<table class="ranked">', '<thead><tr><th scope="col">task</th>'
+           '<th scope="col">ranking: left to right, then down</th></tr></thead><tbody>']
+    for task in tasks:
+        out.append('<tr><th scope="row"><code>%s</code></th><td><ol>' % task)
+        measured = [(rt, value(rt, task)) for rt in runtimes]
+        measured.sort(key=lambda item: (item[1] is None,
+                                        item[1] if item[1] is not None else math.inf))
+        for rank, (rt, result) in enumerate(measured, 1):
+            meta = META[rt]
+            variant = ''
+            if meta[3] == 'swag':
+                variant = ' swag-release' if rt.endswith('release') else ' swag-devmode'
+            out.append('<li class="f-%s%s"><span class="rank-number">%d</span>'
+                       '<span class="rank-label">%s</span><span class="mode">%s</span>'
+                       '<span class="rank-value">%s</span></li>'
+                       % (meta[3], variant, rank, meta[1], meta[2], display(result)))
+        out.append('</ol></td></tr>')
+    out.append('</tbody></table>')
     return "\n".join(out)
 
 
@@ -593,25 +618,22 @@ def main():
     ex_lo, ex_hi, ex_ticks = log_axis([gm[r] for r in order])
     ex_chart = chart([(r, gm[r], fmt(gm[r])) for r in order],
                      ex_lo, ex_hi, ex_ticks, "&times;")
-    ex_table = table(["runtime"] + TASK_IDS + ["moy. g&eacute;o"],
-                     [[META[r][3], "%s <span class=\"mode\">%s</span>" % (META[r][1], META[r][2])]
-                      + [fmt(ms(r, t)) for t in TASK_IDS] + ["<b>%s</b>" % fmt(gm[r])]
-                      for r in order], "wide")
-    ra_table = table(["runtime"] + TASK_IDS + ["moy. g&eacute;o"],
-                     [[META[r][3], "%s <span class=\"mode\">%s</span>" % (META[r][1], META[r][2])]
-                      + [fmt(ratio[r][t]) for t in TASK_IDS] + ["<b>%s</b>" % fmt(gm[r])]
-                      for r in order], "wide")
+    native_run = [r for r in present if META[r][2] not in ("JIT", "interpr&eacute;t&eacute;")]
+    jit_and_interpreted = [r for r in present if r not in native_run]
+    ex_native_table = ranked_table(TASK_IDS, native_run, ms,
+                                   lambda v: "%s&nbsp;ms" % fmt(v) if v is not None else "&mdash;")
+    ex_jit_table = ranked_table(TASK_IDS, jit_and_interpreted, ms,
+                                lambda v: "%s&nbsp;ms" % fmt(v) if v is not None else "&mdash;")
 
     border = sorted(aot, key=lambda r: bgeo[r])
     bu_lo, bu_hi, bu_ticks = log_axis([bgeo[r] for r in border])
     bu_chart = chart([(r, bgeo[r], fmt(bgeo[r], 0)) for r in border],
                      bu_lo, bu_hi, bu_ticks, "ms")
-    bu_table = table(["toolchain"] + TASK_IDS + ["moy. g&eacute;o", "hello"],
-                     [[META[r][3], "%s <span class=\"mode\">%s</span>" % (META[r][1], META[r][2])]
-                      + [fmt(build(r, t, "wall_ms"), 0) for t in TASK_IDS]
-                      + ["<b>%s</b>" % fmt(bgeo[r], 0),
-                         fmt((B["hello_build"].get(r) or {}).get("wall_ms"), 0)]
-                      for r in border], "wide")
+    bu_table = ranked_table(
+        TASK_IDS + ["hello"], aot,
+        lambda r, t: ((B["hello_build"].get(r) or {}).get("wall_ms") if t == "hello"
+                      else build(r, t, "wall_ms")),
+        lambda v: "%s&nbsp;ms" % fmt(v, 0) if v is not None else "&mdash;")
 
     # The edit-build loop of this campaign, from its condensed entry: that is where the
     # correction and the index live, and the raw file only holds what was measured.
@@ -644,6 +666,18 @@ def main():
     rm_chart = chart(sorted(((r, rmem[r] / 1048576.0, fmt(rmem[r] / 1048576.0, 0))
                              for r in present), key=lambda x: -x[1]),
                      0, rm_hi, rm_ticks, "Mo", "lin")
+    me_table = ranked_table(TASK_IDS, aot,
+                            lambda r, t: build(r, t, "peak_bytes"),
+                            lambda v: "%s&nbsp;Mo" % fmt(v / 1048576.0, 1)
+                            if v is not None else "&mdash;")
+    def run_peak(rt, task):
+        return (T[task][rt].get("run") or {}).get("peak_bytes")
+
+    def show_mb(value):
+        return "%s&nbsp;Mo" % fmt(value / 1048576.0, 1) if value is not None else "&mdash;"
+
+    rm_native_table = ranked_table(TASK_IDS, native_run, run_peak, show_mb)
+    rm_jit_table = ranked_table(TASK_IDS, jit_and_interpreted, run_peak, show_mb)
 
     hr = R["hello_run"]
     startup = [(r, hr[r].get("first_stdout_ms") or hr[r].get("wall_ms"))
@@ -656,7 +690,7 @@ def main():
     sz_chart = chart(sorted(((r, exekb[r], fmt(exekb[r], 0)) for r in aot), key=lambda x: x[1]),
                      sz_lo, sz_hi, sz_ticks, "Ko")
 
-    tt = ['<div class="scroll"><table class="tasks">',
+    tt = ['<div class="table-wrap"><table class="tasks">',
           "<thead><tr><th>t&acirc;che</th><th>ce qu'elle exerce</th>"
           '<th class="num">checksum commun</th></tr></thead><tbody>']
     for tid, name, desc in TASKS:
@@ -738,9 +772,12 @@ def main():
 
     subs = {
         "{{stats}}": stats,
-        "{{ex_chart}}": ex_chart, "{{ex_table}}": ex_table, "{{ra_table}}": ra_table,
+        "{{ex_chart}}": ex_chart, "{{ex_native_table}}": ex_native_table,
+        "{{ex_jit_table}}": ex_jit_table,
         "{{bu_chart}}": bu_chart, "{{bu_table}}": bu_table,
-        "{{me_chart}}": me_chart, "{{rm_chart}}": rm_chart,
+        "{{me_chart}}": me_chart, "{{me_table}}": me_table,
+        "{{rm_chart}}": rm_chart, "{{rm_native_table}}": rm_native_table,
+        "{{rm_jit_table}}": rm_jit_table,
         "{{st_chart}}": st_chart, "{{sz_chart}}": sz_chart,
         "{{loop_table}}": loop_table, "{{loop_cores}}": loop_cores,
         "{{task_table}}": "\n".join(tt),

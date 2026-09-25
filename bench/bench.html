@@ -6,6 +6,7 @@
     color-scheme: light dark;
 
     --volt:  #F7F900;
+    --arc:   #38BDF8;
     --ink:   #0B0B0D;
     --active: var(--ink);
     --selection: #E7E7E3;
@@ -367,7 +368,7 @@ h3 {
 .legend .k-dynamic { background: var(--g-dynamic); }
 
 /* ------------------------------------------------------------------ table */
-.scroll { overflow-x: auto; margin: 18px 0 6px; }
+.table-wrap { margin: 18px 0 6px; }
 
 table { border-collapse: collapse; width: 100%; font-size: .82rem; }
 
@@ -417,10 +418,67 @@ tbody tr.f-native  th { border-left-color: var(--g-native); }
 tbody tr.f-managed th { border-left-color: var(--g-managed); }
 tbody tr.f-dynamic th { border-left-color: var(--g-dynamic); }
 
-table.wide { min-width: 780px; }
-table.tasks { min-width: 560px; }
-table.tasks tbody th { border-left-color: var(--g-swag); width: 1%; }
+table.wide, table.wide tbody, table.wide tbody tr { display: block; width: 100%; }
+table.wide thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+table.wide tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+    gap: 12px;
+}
+table.wide tbody tr { box-sizing: border-box; padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--line); }
+table.wide tbody th { display: block; padding: 0 0 6px; border: 0; white-space: normal; }
+table.wide tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+table.wide tbody td::before { content: attr(data-label); flex: 1; color: var(--faint); font-family: var(--sans); text-align: left; }
+table.tasks { table-layout: fixed; }
+table.tasks thead th:first-child { width: 210px; }
+table.tasks thead th:last-child { width: 100px; }
+table.tasks tbody th { white-space: normal; border-left-color: var(--g-swag); }
 table.tasks tbody td { color: var(--soft); }
+table.ranked { table-layout: fixed; margin: 8px 0 6px; }
+table.ranked thead th:first-child { width: 100px; }
+table.ranked tbody th { vertical-align: top; border-left-color: var(--g-swag); }
+table.ranked tbody td { padding: 6px 0 10px 8px; vertical-align: top; }
+table.ranked ol {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 88px), 1fr));
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+table.ranked li { min-width: 0; padding: 3px 5px; line-height: 1.3; }
+table.ranked .rank-number { padding-right: 4px; color: var(--faint); font-family: var(--mono); font-size: .64rem; }
+table.ranked .rank-label { color: var(--fg); font-size: .74rem; overflow-wrap: anywhere; }
+table.ranked .mode { display: block; color: var(--faint); font-size: .68rem; }
+table.ranked .rank-value { display: block; font-family: var(--mono); font-size: .74rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.ranked li.swag-release { background: color-mix(in srgb, var(--volt) 32%, var(--bg)); }
+table.ranked li.swag-devmode { background: color-mix(in srgb, var(--arc) 32%, var(--bg)); }
+table.ranked li.f-swag .mode { color: var(--soft); }
+.rank-group-title {
+    margin: 22px 0 0;
+    color: var(--soft);
+    font-family: var(--mono);
+    font-size: .74rem;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
 
 /* ------------------------------------------------------------------- misc */
 .note {
@@ -526,6 +584,25 @@ footer {
     .row .rl { font-size: .74rem; }
     .row .mode { display: none; }
     .hero { padding: 44px 0 36px; }
+    table.tasks, table.tasks tbody, table.tasks tbody tr,
+    table.tasks tbody th, table.tasks tbody td,
+    table.ranked, table.ranked tbody, table.ranked tbody tr,
+    table.ranked tbody th, table.ranked tbody td { display: block; box-sizing: border-box; width: 100%; }
+    table.tasks thead, table.ranked thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    table.tasks tbody tr, table.ranked tbody tr { border-bottom: 1px solid var(--line); }
+    table.tasks tbody th, table.tasks tbody td { padding: 2px 0; border: 0; }
+    table.tasks tbody th { padding-top: 8px; }
+    table.tasks tbody td.num { text-align: left; }
+    table.tasks tbody td.num::before { content: "Checksum: "; font-family: var(--sans); }
+    table.ranked tbody th { padding: 10px 0 2px; border: 0; }
+    table.ranked tbody td { padding: 2px 0 12px; border: 0; }
 }
 </style>
 
@@ -558,7 +635,7 @@ footer {
     <p class="lede">Each task implements its own data structures, avoiding differences in
     standard library container implementations. The execution time covers the computation only;
     input generation is excluded.</p>
-    <div class="scroll"><table class="tasks">
+    <div class="table-wrap"><table class="tasks">
 <thead><tr><th>t&acirc;che</th><th>ce qu'elle exerce</th><th class="num">checksum commun</th></tr></thead><tbody>
 <tr><th scope="row"><code>wordfreq</code> &nbsp;comptage de mots</th><td>table de hachage maison sur 2 M mots, puis tri</td><td class="num">130489</td></tr>
 <tr><th scope="row"><code>csvagg</code> &nbsp;agr&eacute;gation CSV</th><td>400 k lignes, parsing octet &agrave; octet, flottants</td><td class="num">24828641</td></tr>
@@ -618,374 +695,162 @@ footer {
     </div>
 
     <h3>Temps par t&acirc;che, en millisecondes</h3>
-    <div class="scroll"><table class="wide">
-<thead><tr>
-<th>runtime</th>
-<th class="num">wordfreq</th>
-<th class="num">csvagg</th>
-<th class="num">sha256</th>
-<th class="num">dijkstra</th>
-<th class="num">raytrace</th>
-<th class="num">leven</th>
-<th class="num">chacha</th>
-<th class="num">moy. g&eacute;o</th>
-</tr></thead><tbody>
-<tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
-<td class="num">52.68</td>
-<td class="num">16.92</td>
-<td class="num">38.97</td>
-<td class="num">42.93</td>
-<td class="num">11.08</td>
-<td class="num">14.11</td>
-<td class="num">22.26</td>
-<td class="num"><b>1.12</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag release <span class="mode">natif</span></th>
-<td class="num">62.03</td>
-<td class="num">20.27</td>
-<td class="num">35.23</td>
-<td class="num">32.44</td>
-<td class="num">11.60</td>
-<td class="num">13.36</td>
-<td class="num">24.31</td>
-<td class="num"><b>1.12</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Odin <span class="mode">native</span></th>
-<td class="num">61.59</td>
-<td class="num">18.84</td>
-<td class="num">41.98</td>
-<td class="num">44.83</td>
-<td class="num">9.25</td>
-<td class="num">12.72</td>
-<td class="num">22.60</td>
-<td class="num"><b>1.14</b></td>
-</tr>
-<tr class="f-native"><th scope="row">C++ MSVC <span class="mode">natif</span></th>
-<td class="num">54.99</td>
-<td class="num">17.93</td>
-<td class="num">41.07</td>
-<td class="num">29.59</td>
-<td class="num">10.39</td>
-<td class="num">19.15</td>
-<td class="num">27.49</td>
-<td class="num"><b>1.16</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Zig <span class="mode">native</span></th>
-<td class="num">60.56</td>
-<td class="num">19.14</td>
-<td class="num">36.86</td>
-<td class="num">43.94</td>
-<td class="num">11.67</td>
-<td class="num">14.92</td>
-<td class="num">24.56</td>
-<td class="num"><b>1.19</b></td>
-</tr>
-<tr class="f-native"><th scope="row">D (LDC) <span class="mode">native</span></th>
-<td class="num">51.60</td>
-<td class="num">20.68</td>
-<td class="num">41.03</td>
-<td class="num">51.22</td>
-<td class="num">12.02</td>
-<td class="num">13.89</td>
-<td class="num">33.66</td>
-<td class="num"><b>1.27</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag release <span class="mode">JIT</span></th>
-<td class="num">57.40</td>
-<td class="num">22.02</td>
-<td class="num">74.23</td>
-<td class="num">35.24</td>
-<td class="num">12.55</td>
-<td class="num">13.93</td>
-<td class="num">25.90</td>
-<td class="num"><b>1.30</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Rust <span class="mode">natif</span></th>
-<td class="num">53.26</td>
-<td class="num">23.33</td>
-<td class="num">39.28</td>
-<td class="num">48.13</td>
-<td class="num">12.75</td>
-<td class="num">15.21</td>
-<td class="num">32.90</td>
-<td class="num"><b>1.30</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Swift <span class="mode">natif</span></th>
-<td class="num">67.27</td>
-<td class="num">27.05</td>
-<td class="num">56.13</td>
-<td class="num">74.25</td>
-<td class="num">12.67</td>
-<td class="num">14.61</td>
-<td class="num">54.49</td>
-<td class="num"><b>1.64</b></td>
-</tr>
-<tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
-<td class="num">57.89</td>
-<td class="num">28.14</td>
-<td class="num">47.07</td>
-<td class="num">59.15</td>
-<td class="num">11.93</td>
-<td class="num">26.60</td>
-<td class="num">169.32</td>
-<td class="num"><b>1.94</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag devmode <span class="mode">natif</span></th>
-<td class="num">85.20</td>
-<td class="num">38.91</td>
-<td class="num">152.55</td>
-<td class="num">55.04</td>
-<td class="num">13.78</td>
-<td class="num">50.99</td>
-<td class="num">66.07</td>
-<td class="num"><b>2.46</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag devmode <span class="mode">JIT</span></th>
-<td class="num">84.09</td>
-<td class="num">41.65</td>
-<td class="num">278.48</td>
-<td class="num">64.80</td>
-<td class="num">14.47</td>
-<td class="num">49.19</td>
-<td class="num">78.60</td>
-<td class="num"><b>2.84</b></td>
-</tr>
-<tr class="f-managed"><th scope="row">C# CoreCLR <span class="mode">JIT</span></th>
-<td class="num">139.63</td>
-<td class="num">50.97</td>
-<td class="num">47.89</td>
-<td class="num">140.06</td>
-<td class="num">43.65</td>
-<td class="num">25.92</td>
-<td class="num">193.11</td>
-<td class="num"><b>3.31</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">Node / V8 <span class="mode">JIT</span></th>
-<td class="num">191.00</td>
-<td class="num">86.32</td>
-<td class="num">635.44</td>
-<td class="num">151.21</td>
-<td class="num">44.76</td>
-<td class="num">80.42</td>
-<td class="num">300.82</td>
-<td class="num"><b>6.87</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">LuaJIT <span class="mode">JIT</span></th>
-<td class="num">137.00</td>
-<td class="num">85.00</td>
-<td class="num">573.00</td>
-<td class="num">147.00</td>
-<td class="num">30.00</td>
-<td class="num">63.00</td>
-<td class="num">1320.00</td>
-<td class="num"><b>7.22</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">Lua <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">795.00</td>
-<td class="num">1283.00</td>
-<td class="num">10507.00</td>
-<td class="num">797.00</td>
-<td class="num">280.00</td>
-<td class="num">906.00</td>
-<td class="num">12902.00</td>
-<td class="num"><b>73.63</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">CPython <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">2229.07</td>
-<td class="num">2635.00</td>
-<td class="num">23556.65</td>
-<td class="num">2224.85</td>
-<td class="num">903.37</td>
-<td class="num">3508.62</td>
-<td class="num">27348.03</td>
-<td class="num"><b>196.21</b></td>
-</tr>
-</tbody></table></div>
-
-    <h3>Rapport au meilleur de chaque t&acirc;che</h3>
-    <div class="scroll"><table class="wide">
-<thead><tr>
-<th>runtime</th>
-<th class="num">wordfreq</th>
-<th class="num">csvagg</th>
-<th class="num">sha256</th>
-<th class="num">dijkstra</th>
-<th class="num">raytrace</th>
-<th class="num">leven</th>
-<th class="num">chacha</th>
-<th class="num">moy. g&eacute;o</th>
-</tr></thead><tbody>
-<tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
-<td class="num">1.02</td>
-<td class="num">1.00</td>
-<td class="num">1.11</td>
-<td class="num">1.45</td>
-<td class="num">1.20</td>
-<td class="num">1.11</td>
-<td class="num">1.00</td>
-<td class="num"><b>1.12</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag release <span class="mode">natif</span></th>
-<td class="num">1.20</td>
-<td class="num">1.20</td>
-<td class="num">1.00</td>
-<td class="num">1.10</td>
-<td class="num">1.25</td>
-<td class="num">1.05</td>
-<td class="num">1.09</td>
-<td class="num"><b>1.12</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Odin <span class="mode">native</span></th>
-<td class="num">1.19</td>
-<td class="num">1.11</td>
-<td class="num">1.19</td>
-<td class="num">1.52</td>
-<td class="num">1.00</td>
-<td class="num">1.00</td>
-<td class="num">1.02</td>
-<td class="num"><b>1.14</b></td>
-</tr>
-<tr class="f-native"><th scope="row">C++ MSVC <span class="mode">natif</span></th>
-<td class="num">1.07</td>
-<td class="num">1.06</td>
-<td class="num">1.17</td>
-<td class="num">1.00</td>
-<td class="num">1.12</td>
-<td class="num">1.51</td>
-<td class="num">1.24</td>
-<td class="num"><b>1.16</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Zig <span class="mode">native</span></th>
-<td class="num">1.17</td>
-<td class="num">1.13</td>
-<td class="num">1.05</td>
-<td class="num">1.48</td>
-<td class="num">1.26</td>
-<td class="num">1.17</td>
-<td class="num">1.10</td>
-<td class="num"><b>1.19</b></td>
-</tr>
-<tr class="f-native"><th scope="row">D (LDC) <span class="mode">native</span></th>
-<td class="num">1.00</td>
-<td class="num">1.22</td>
-<td class="num">1.16</td>
-<td class="num">1.73</td>
-<td class="num">1.30</td>
-<td class="num">1.09</td>
-<td class="num">1.51</td>
-<td class="num"><b>1.27</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag release <span class="mode">JIT</span></th>
-<td class="num">1.11</td>
-<td class="num">1.30</td>
-<td class="num">2.11</td>
-<td class="num">1.19</td>
-<td class="num">1.36</td>
-<td class="num">1.09</td>
-<td class="num">1.16</td>
-<td class="num"><b>1.30</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Rust <span class="mode">natif</span></th>
-<td class="num">1.03</td>
-<td class="num">1.38</td>
-<td class="num">1.11</td>
-<td class="num">1.63</td>
-<td class="num">1.38</td>
-<td class="num">1.20</td>
-<td class="num">1.48</td>
-<td class="num"><b>1.30</b></td>
-</tr>
-<tr class="f-native"><th scope="row">Swift <span class="mode">natif</span></th>
-<td class="num">1.30</td>
-<td class="num">1.60</td>
-<td class="num">1.59</td>
-<td class="num">2.51</td>
-<td class="num">1.37</td>
-<td class="num">1.15</td>
-<td class="num">2.45</td>
-<td class="num"><b>1.64</b></td>
-</tr>
-<tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
-<td class="num">1.12</td>
-<td class="num">1.66</td>
-<td class="num">1.34</td>
-<td class="num">2.00</td>
-<td class="num">1.29</td>
-<td class="num">2.09</td>
-<td class="num">7.61</td>
-<td class="num"><b>1.94</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag devmode <span class="mode">natif</span></th>
-<td class="num">1.65</td>
-<td class="num">2.30</td>
-<td class="num">4.33</td>
-<td class="num">1.86</td>
-<td class="num">1.49</td>
-<td class="num">4.01</td>
-<td class="num">2.97</td>
-<td class="num"><b>2.46</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag devmode <span class="mode">JIT</span></th>
-<td class="num">1.63</td>
-<td class="num">2.46</td>
-<td class="num">7.90</td>
-<td class="num">2.19</td>
-<td class="num">1.56</td>
-<td class="num">3.87</td>
-<td class="num">3.53</td>
-<td class="num"><b>2.84</b></td>
-</tr>
-<tr class="f-managed"><th scope="row">C# CoreCLR <span class="mode">JIT</span></th>
-<td class="num">2.71</td>
-<td class="num">3.01</td>
-<td class="num">1.36</td>
-<td class="num">4.73</td>
-<td class="num">4.72</td>
-<td class="num">2.04</td>
-<td class="num">8.68</td>
-<td class="num"><b>3.31</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">Node / V8 <span class="mode">JIT</span></th>
-<td class="num">3.70</td>
-<td class="num">5.10</td>
-<td class="num">18.04</td>
-<td class="num">5.11</td>
-<td class="num">4.84</td>
-<td class="num">6.32</td>
-<td class="num">13.51</td>
-<td class="num"><b>6.87</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">LuaJIT <span class="mode">JIT</span></th>
-<td class="num">2.65</td>
-<td class="num">5.02</td>
-<td class="num">16.26</td>
-<td class="num">4.97</td>
-<td class="num">3.24</td>
-<td class="num">4.95</td>
-<td class="num">59.30</td>
-<td class="num"><b>7.22</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">Lua <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">15.41</td>
-<td class="num">75.84</td>
-<td class="num">298.22</td>
-<td class="num">26.94</td>
-<td class="num">30.28</td>
-<td class="num">71.21</td>
-<td class="num">579.63</td>
-<td class="num"><b>73.63</b></td>
-</tr>
-<tr class="f-dynamic"><th scope="row">CPython <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">43.20</td>
-<td class="num">155.76</td>
-<td class="num">668.61</td>
-<td class="num">75.19</td>
-<td class="num">97.68</td>
-<td class="num">275.78</td>
-<td class="num">1228.62</td>
-<td class="num"><b>196.21</b></td>
-</tr>
-</tbody></table></div>
+    <p class="cap">One program per row; read each ranking left to right, then on the next line.</p>
+    <h4 class="rank-group-title">Native and AOT</h4>
+    <table class="ranked">
+<thead><tr><th scope="col">task</th><th scope="col">ranking: left to right, then down</th></tr></thead><tbody>
+<tr><th scope="row"><code>wordfreq</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">51.60&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">52.68&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">53.26&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">54.99&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">5</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">57.89&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">60.56&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">61.59&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">8</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">62.03&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">9</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">67.27&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">85.20&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>csvagg</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">16.92&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">17.93&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">18.84&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">19.14&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">5</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">20.27&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">20.68&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">23.33&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">27.05&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">28.14&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">38.91&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>sha256</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">35.23&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">36.86&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">38.97&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">39.28&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">41.03&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">41.07&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">41.98&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">8</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">47.07&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">9</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">56.13&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">152.55&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>dijkstra</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">29.59&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">2</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">32.44&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">42.93&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">43.94&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">44.83&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">48.13&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">51.22&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">8</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">55.04&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">59.15&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">74.25&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>raytrace</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">9.25&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">10.39&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">11.08&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">4</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">11.60&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">11.67&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">6</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">11.93&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">12.02&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">12.67&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">9</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">12.75&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">13.78&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>leven</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">12.72&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">2</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">13.36&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">13.89&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">14.11&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">14.61&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">14.92&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">15.21&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">19.15&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">26.60&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">50.99&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>chacha</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">22.26&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">22.60&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">3</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">24.31&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">24.56&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">27.49&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">32.90&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">33.66&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">54.49&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">9</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">66.07&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">10</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">169.32&nbsp;ms</span></li>
+</ol></td></tr>
+</tbody></table>
+    <h4 class="rank-group-title">JIT and interpreted</h4>
+    <table class="ranked">
+<thead><tr><th scope="col">task</th><th scope="col">ranking: left to right, then down</th></tr></thead><tbody>
+<tr><th scope="row"><code>wordfreq</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">57.40&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">84.09&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">3</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">137.00&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">4</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">139.63&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">191.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">795.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">2229.07&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>csvagg</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">22.02&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">41.65&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">50.97&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">85.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">86.32&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">1283.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">2635.00&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>sha256</code></th><td><ol>
+<li class="f-managed"><span class="rank-number">1</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">47.89&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">2</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">74.23&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">3</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">278.48&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">573.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">635.44&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">10507.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">23556.65&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>dijkstra</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">35.24&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">64.80&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">140.06&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">147.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">151.21&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">797.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">2224.85&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>raytrace</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">12.55&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">14.47&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">3</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">30.00&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">4</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">43.65&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">44.76&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">280.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">903.37&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>leven</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">13.93&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">2</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">25.92&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">3</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">49.19&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">63.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">80.42&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">906.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">3508.62&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>chacha</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">25.90&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">78.60&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">193.11&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">300.82&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">1320.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">12902.00&nbsp;ms</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">27348.03&nbsp;ms</span></li>
+</ol></td></tr>
+</tbody></table>
 
     <div class="note">
         <p><b>O&ugrave; regarder en premier.</b> <code>sha256</code> est le signal le plus propre : une boucle
@@ -1046,141 +911,114 @@ footer {
     </div>
 
     <h3>Raw build times by task, in milliseconds</h3>
-    <div class="scroll"><table class="wide">
-<thead><tr>
-<th>toolchain</th>
-<th class="num">wordfreq</th>
-<th class="num">csvagg</th>
-<th class="num">sha256</th>
-<th class="num">dijkstra</th>
-<th class="num">raytrace</th>
-<th class="num">leven</th>
-<th class="num">chacha</th>
-<th class="num">moy. g&eacute;o</th>
-<th class="num">hello</th>
-</tr></thead><tbody>
-<tr class="f-swag"><th scope="row">swag release <span class="mode">natif</span></th>
-<td class="num">160</td>
-<td class="num">193</td>
-<td class="num">177</td>
-<td class="num">154</td>
-<td class="num">168</td>
-<td class="num">177</td>
-<td class="num">210</td>
-<td class="num"><b>176</b></td>
-<td class="num">138</td>
-</tr>
-<tr class="f-swag"><th scope="row">swag devmode <span class="mode">natif</span></th>
-<td class="num">165</td>
-<td class="num">188</td>
-<td class="num">174</td>
-<td class="num">154</td>
-<td class="num">175</td>
-<td class="num">190</td>
-<td class="num">402</td>
-<td class="num"><b>196</b></td>
-<td class="num">&mdash;</td>
-</tr>
-<tr class="f-native"><th scope="row">Rust <span class="mode">natif</span></th>
-<td class="num">328</td>
-<td class="num">431</td>
-<td class="num">251</td>
-<td class="num">255</td>
-<td class="num">224</td>
-<td class="num">346</td>
-<td class="num">306</td>
-<td class="num"><b>299</b></td>
-<td class="num">169</td>
-</tr>
-<tr class="f-native"><th scope="row">D (LDC) <span class="mode">native</span></th>
-<td class="num">308</td>
-<td class="num">370</td>
-<td class="num">305</td>
-<td class="num">307</td>
-<td class="num">292</td>
-<td class="num">336</td>
-<td class="num">318</td>
-<td class="num"><b>319</b></td>
-<td class="num">159</td>
-</tr>
-<tr class="f-native"><th scope="row">Odin <span class="mode">native</span></th>
-<td class="num">359</td>
-<td class="num">453</td>
-<td class="num">367</td>
-<td class="num">360</td>
-<td class="num">324</td>
-<td class="num">413</td>
-<td class="num">396</td>
-<td class="num"><b>380</b></td>
-<td class="num">248</td>
-</tr>
-<tr class="f-native"><th scope="row">C++ MSVC <span class="mode">natif</span></th>
-<td class="num">401</td>
-<td class="num">450</td>
-<td class="num">423</td>
-<td class="num">364</td>
-<td class="num">365</td>
-<td class="num">390</td>
-<td class="num">483</td>
-<td class="num"><b>409</b></td>
-<td class="num">141</td>
-</tr>
-<tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
-<td class="num">427</td>
-<td class="num">446</td>
-<td class="num">442</td>
-<td class="num">410</td>
-<td class="num">407</td>
-<td class="num">426</td>
-<td class="num">447</td>
-<td class="num"><b>429</b></td>
-<td class="num">&mdash;</td>
-</tr>
-<tr class="f-native"><th scope="row">Swift <span class="mode">natif</span></th>
-<td class="num">1984</td>
-<td class="num">2740</td>
-<td class="num">1940</td>
-<td class="num">1597</td>
-<td class="num">1651</td>
-<td class="num">2281</td>
-<td class="num">34965</td>
-<td class="num"><b>3006</b></td>
-<td class="num">356</td>
-</tr>
-<tr class="f-managed"><th scope="row">C# CoreCLR <span class="mode">JIT</span></th>
-<td class="num">3092</td>
-<td class="num">3447</td>
-<td class="num">3477</td>
-<td class="num">3211</td>
-<td class="num">3269</td>
-<td class="num">3313</td>
-<td class="num">3741</td>
-<td class="num"><b>3359</b></td>
-<td class="num">2912</td>
-</tr>
-<tr class="f-native"><th scope="row">Zig <span class="mode">native</span></th>
-<td class="num">3627</td>
-<td class="num">3809</td>
-<td class="num">3457</td>
-<td class="num">3222</td>
-<td class="num">3754</td>
-<td class="num">4263</td>
-<td class="num">3664</td>
-<td class="num"><b>3673</b></td>
-<td class="num">3027</td>
-</tr>
-<tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
-<td class="num">6412</td>
-<td class="num">6985</td>
-<td class="num">6791</td>
-<td class="num">6295</td>
-<td class="num">7090</td>
-<td class="num">7484</td>
-<td class="num">7264</td>
-<td class="num"><b>6891</b></td>
-<td class="num">6202</td>
-</tr>
-</tbody></table></div>
+    <p class="cap">One program per row; read the build times from lowest to highest, left to right then down.</p>
+    <table class="ranked">
+<thead><tr><th scope="col">task</th><th scope="col">ranking: left to right, then down</th></tr></thead><tbody>
+<tr><th scope="row"><code>wordfreq</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">160&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">165&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">308&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">328&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">359&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">401&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">427&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">1984&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">3092&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">3627&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">11</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">6412&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>csvagg</code></th><td><ol>
+<li class="f-swag swag-devmode"><span class="rank-number">1</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">188&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">2</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">193&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">370&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">431&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">446&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">450&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">453&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">2740&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">3447&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">3809&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">11</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">6985&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>sha256</code></th><td><ol>
+<li class="f-swag swag-devmode"><span class="rank-number">1</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">174&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">2</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">177&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">251&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">305&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">367&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">423&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">442&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">1940&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">9</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">3457&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">10</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">3477&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">11</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">6791&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>dijkstra</code></th><td><ol>
+<li class="f-swag swag-devmode"><span class="rank-number">1</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">154&nbsp;ms</span></li>
+<li class="f-swag swag-release"><span class="rank-number">2</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">154&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">255&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">307&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">360&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">364&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">410&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">1597&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">3211&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">3222&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">11</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">6295&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>raytrace</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">168&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">175&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">224&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">292&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">324&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">365&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">407&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">1651&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">3269&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">3754&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">11</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">7090&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>leven</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">177&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">2</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">190&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">336&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">346&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">390&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">413&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">426&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">2281&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">3313&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">4263&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">11</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">7484&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>chacha</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">210&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">306&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">318&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">396&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">5</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">402&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">447&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">483&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">3664&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">3741&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">10</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">7264&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">34965&nbsp;ms</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>hello</code></th><td><ol>
+<li class="f-swag swag-release"><span class="rank-number">1</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">138&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">141&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">159&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">169&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">248&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">356&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">7</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">2912&nbsp;ms</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">3027&nbsp;ms</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">6202&nbsp;ms</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">&mdash;</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">&mdash;</span></li>
+</ol></td></tr>
+</tbody></table>
 
     <h3>La boucle d'&eacute;dition</h3>
     <p class="cap">The seven tasks and hello world measure complete builds of small programs.
@@ -1188,7 +1026,7 @@ footer {
     documentation generation and formatting. Each is a command used on the repository's
     <code>core</code> module. Values are sample minimums; indices compare times
     adjusted for machine conditions against the first clean campaign for each workload.</p>
-    <div class="scroll"><table class="wide">
+    <div class="table-wrap"><table class="wide">
 <thead><tr>
 <th>charge</th>
 <th class="num">brut (ms)</th>
@@ -1198,46 +1036,46 @@ footer {
 <th class="num">&eacute;chantillons</th>
 </tr></thead><tbody>
 <tr class="f-swag"><th scope="row">std/core &agrave; froid <span class="mode">tous les fichiers, sorties supprim&eacute;es</span></th>
-<td class="num">2948</td>
-<td class="num">3197</td>
-<td class="num">842</td>
-<td class="num">1.02 <span class="mode">depuis a4677422e</span></td>
-<td class="num">2</td>
+<td class="num" data-label="brut (ms)">2948</td>
+<td class="num" data-label="corrigé (ms)">3197</td>
+<td class="num" data-label="mémoire (Mo)">842</td>
+<td class="num" data-label="indice">1.02 <span class="mode">depuis a4677422e</span></td>
+<td class="num" data-label="échantillons">2</td>
 </tr>
 <tr class="f-swag"><th scope="row">std/core sans changement <span class="mode">rien n'a boug&eacute; depuis la derni&egrave;re construction</span></th>
-<td class="num">63</td>
-<td class="num">69</td>
-<td class="num">8</td>
-<td class="num">1.13 <span class="mode">depuis a4677422e</span></td>
-<td class="num">8</td>
+<td class="num" data-label="brut (ms)">63</td>
+<td class="num" data-label="corrigé (ms)">69</td>
+<td class="num" data-label="mémoire (Mo)">8</td>
+<td class="num" data-label="indice">1.13 <span class="mode">depuis a4677422e</span></td>
+<td class="num" data-label="échantillons">8</td>
 </tr>
 <tr class="f-swag"><th scope="row">std/core, un fichier sauv&eacute; <span class="mode">une seule date de modification a avanc&eacute;</span></th>
-<td class="num">2444</td>
-<td class="num">2650</td>
-<td class="num">794</td>
-<td class="num">0.89 <span class="mode">depuis a4677422e</span></td>
-<td class="num">2</td>
+<td class="num" data-label="brut (ms)">2444</td>
+<td class="num" data-label="corrigé (ms)">2650</td>
+<td class="num" data-label="mémoire (Mo)">794</td>
+<td class="num" data-label="indice">0.89 <span class="mode">depuis a4677422e</span></td>
+<td class="num" data-label="échantillons">2</td>
 </tr>
 <tr class="f-swag"><th scope="row">hello world &rarr; exe <span class="mode">small program, source to executable</span></th>
-<td class="num">138</td>
-<td class="num">149</td>
-<td class="num">109</td>
-<td class="num">1.33 <span class="mode">depuis d36631d85</span></td>
-<td class="num">&mdash;</td>
+<td class="num" data-label="brut (ms)">138</td>
+<td class="num" data-label="corrigé (ms)">149</td>
+<td class="num" data-label="mémoire (Mo)">109</td>
+<td class="num" data-label="indice">1.33 <span class="mode">depuis d36631d85</span></td>
+<td class="num" data-label="échantillons">&mdash;</td>
 </tr>
 <tr class="f-swag"><th scope="row">documentation de std <span class="mode">tout le site de la biblioth&egrave;que standard</span></th>
-<td class="num">41788</td>
-<td class="num">45312</td>
-<td class="num">3963</td>
-<td class="num">1.20 <span class="mode">depuis a4677422e</span></td>
-<td class="num">2</td>
+<td class="num" data-label="brut (ms)">41788</td>
+<td class="num" data-label="corrigé (ms)">45312</td>
+<td class="num" data-label="mémoire (Mo)">3963</td>
+<td class="num" data-label="indice">1.20 <span class="mode">depuis a4677422e</span></td>
+<td class="num" data-label="échantillons">2</td>
 </tr>
 <tr class="f-swag"><th scope="row">formatage du d&eacute;p&ocirc;t <span class="mode">toutes les sources Swag, sur une copie</span></th>
-<td class="num">506</td>
-<td class="num">549</td>
-<td class="num">505</td>
-<td class="num">1.20 <span class="mode">depuis a4677422e</span></td>
-<td class="num">5</td>
+<td class="num" data-label="brut (ms)">506</td>
+<td class="num" data-label="corrigé (ms)">549</td>
+<td class="num" data-label="mémoire (Mo)">505</td>
+<td class="num" data-label="indice">1.20 <span class="mode">depuis a4677422e</span></td>
+<td class="num" data-label="échantillons">5</td>
 </tr>
 </tbody></table></div>
 </section>
@@ -1268,6 +1106,101 @@ footer {
 <div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.649%"></span></div><div class="rv">73<em>Mo</em></div></div>
 <div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.481%"></span></div><div class="rv">70<em>Mo</em></div></div>
 </figure>
+    <p class="cap">Peak memory by program, from lowest to highest, left to right then down.</p>
+    <table class="ranked">
+<thead><tr><th scope="col">task</th><th scope="col">ranking: left to right, then down</th></tr></thead><tbody>
+<tr><th scope="row"><code>wordfreq</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">58.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">69.6&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">3</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">116.1&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">4</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">117.3&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">5</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">119.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">146.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">173.3&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">184.8&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">360.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">750.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">1540.8&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>csvagg</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">69.6&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">73.0&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">118.8&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">4</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">120.6&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">5</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">121.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">146.5&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">180.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">184.9&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">359.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">754.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">1540.7&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>sha256</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">60.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">69.6&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">3</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">115.6&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">4</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">116.5&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">5</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">121.6&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">144.6&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">172.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">182.2&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">347.8&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">758.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">1540.7&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>dijkstra</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">62.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">69.6&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">3</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">117.4&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">4</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">118.2&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">5</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">118.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">144.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">173.3&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">183.8&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">353.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">758.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">1540.7&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>raytrace</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">54.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">69.6&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">3</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">114.3&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">4</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">116.1&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">5</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">119.6&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">144.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">169.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">182.7&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">345.8&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">758.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">1541.2&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>leven</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">56.3&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">69.6&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">3</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">115.6&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">4</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">117.8&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">5</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">119.6&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">145.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">169.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">184.4&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">370.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">750.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">1541.2&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>chacha</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">53.8&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">69.6&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">119.0&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">4</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">125.8&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">144.8&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">168.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">184.8&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">8</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">233.5&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">9</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">350.5&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">10</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">750.3&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">11</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">1540.3&nbsp;Mo</span></li>
+</ol></td></tr>
+</tbody></table>
 
     <div class="note">
         <p><b>Le pic de swc ne d&eacute;pend pas de l'entr&eacute;e.</b> V&eacute;rifi&eacute; s&eacute;par&eacute;ment :
@@ -1304,6 +1237,162 @@ footer {
 <div class="row f-native"><div class="rl">Zig <span class="mode">native</span></div><div class="track"><span class="bar" style="width:6.766%"></span></div><div class="rv">51<em>Mo</em></div></div>
 <div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:6.765%"></span></div><div class="rv">51<em>Mo</em></div></div>
 </figure>
+    <p class="cap">Peak memory by program, from lowest to highest, left to right then down.</p>
+    <h4 class="rank-group-title">Native and AOT</h4>
+    <table class="ranked">
+<thead><tr><th scope="col">task</th><th scope="col">ranking: left to right, then down</th></tr></thead><tbody>
+<tr><th scope="row"><code>wordfreq</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">25.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">25.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">25.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">25.7&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">25.8&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">28.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">28.3&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">8</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">28.6&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">9</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">30.8&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">10</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">30.8&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>csvagg</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">20.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">20.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">20.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">20.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">20.5&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">22.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">23.0&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">8</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">24.9&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">9</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">24.9&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">10</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">38.8&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>sha256</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">18.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">18.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">18.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">18.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">18.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">20.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">20.7&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">8</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">21.1&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">9</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">22.4&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">10</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">22.4&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>dijkstra</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">50.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">50.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">50.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">51.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">51.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">52.9&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">53.6&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">8</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">54.3&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">9</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">55.3&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">55.3&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>raytrace</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">2.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">2.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">2.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">2.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">2.2&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">6</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">4.3&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">4.6&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">4.7&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">9</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">6.4&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">10</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">6.4&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>leven</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">2.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">2.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">2.2&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">2.3&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">2.3&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">6</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">4.5&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">7</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">4.8&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">4.9&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">9</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">7.1&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">10</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">7.1&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>chacha</code></th><td><ol>
+<li class="f-native"><span class="rank-number">1</span><span class="rank-label">C++ MSVC</span><span class="mode">natif</span><span class="rank-value">18.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">2</span><span class="rank-label">Zig</span><span class="mode">native</span><span class="rank-value">18.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">3</span><span class="rank-label">C++ clang-cl</span><span class="mode">natif</span><span class="rank-value">18.0&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">4</span><span class="rank-label">Rust</span><span class="mode">natif</span><span class="rank-value">18.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">5</span><span class="rank-label">Odin</span><span class="mode">native</span><span class="rank-value">18.1&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">6</span><span class="rank-label">D (LDC)</span><span class="mode">native</span><span class="rank-value">20.0&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">7</span><span class="rank-label">C# NativeAOT</span><span class="mode">AOT</span><span class="rank-value">20.4&nbsp;Mo</span></li>
+<li class="f-native"><span class="rank-number">8</span><span class="rank-label">Swift</span><span class="mode">natif</span><span class="rank-value">20.7&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">9</span><span class="rank-label">swag devmode</span><span class="mode">natif</span><span class="rank-value">22.4&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">10</span><span class="rank-label">swag release</span><span class="mode">natif</span><span class="rank-value">22.4&nbsp;Mo</span></li>
+</ol></td></tr>
+</tbody></table>
+    <h4 class="rank-group-title">JIT and interpreted</h4>
+    <table class="ranked">
+<thead><tr><th scope="col">task</th><th scope="col">ranking: left to right, then down</th></tr></thead><tbody>
+<tr><th scope="row"><code>wordfreq</code></th><td><ol>
+<li class="f-managed"><span class="rank-number">1</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">32.1&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">2</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">72.1&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">3</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">74.5&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">99.8&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">5</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">131.5&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">6</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">132.3&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">236.6&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>csvagg</code></th><td><ol>
+<li class="f-managed"><span class="rank-number">1</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">42.5&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">2</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">69.2&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">3</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">74.8&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">74.8&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">5</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">128.6&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">6</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">131.3&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">260.2&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>sha256</code></th><td><ol>
+<li class="f-managed"><span class="rank-number">1</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">25.0&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">2</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">34.4&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">3</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">123.8&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">4</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">124.6&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">259.4&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">422.3&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">7</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">515.1&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>dijkstra</code></th><td><ol>
+<li class="f-dynamic"><span class="rank-number">1</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">22.9&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">2</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">42.2&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">57.8&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">77.2&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">129.1&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">6</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">156.1&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">7</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">156.6&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>raytrace</code></th><td><ol>
+<li class="f-dynamic"><span class="rank-number">1</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">2.2&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">2</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">2.6&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">7.5&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">9.4&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">18.6&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">6</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">104.0&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">7</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">105.9&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>leven</code></th><td><ol>
+<li class="f-dynamic"><span class="rank-number">1</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">2.7&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">2</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">3.2&nbsp;Mo</span></li>
+<li class="f-managed"><span class="rank-number">3</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">8.9&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">9.3&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">5</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">18.2&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">6</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">105.8&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">7</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">108.0&nbsp;Mo</span></li>
+</ol></td></tr>
+<tr><th scope="row"><code>chacha</code></th><td><ol>
+<li class="f-managed"><span class="rank-number">1</span><span class="rank-label">C# CoreCLR</span><span class="mode">JIT</span><span class="rank-value">24.2&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">2</span><span class="rank-label">Node / V8</span><span class="mode">JIT</span><span class="rank-value">34.1&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">3</span><span class="rank-label">LuaJIT</span><span class="mode">JIT</span><span class="rank-value">50.8&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">4</span><span class="rank-label">Lua</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">99.3&nbsp;Mo</span></li>
+<li class="f-swag swag-release"><span class="rank-number">5</span><span class="rank-label">swag release</span><span class="mode">JIT</span><span class="rank-value">130.9&nbsp;Mo</span></li>
+<li class="f-dynamic"><span class="rank-number">6</span><span class="rank-label">CPython</span><span class="mode">interpr&eacute;t&eacute;</span><span class="rank-value">191.3&nbsp;Mo</span></li>
+<li class="f-swag swag-devmode"><span class="rank-number">7</span><span class="rank-label">swag devmode</span><span class="mode">JIT</span><span class="rank-value">236.0&nbsp;Mo</span></li>
+</ol></td></tr>
+</tbody></table>
     <div class="legend">
         <span><i class="k-swag"></i>swag</span>
         <span><i class="k-native"></i>natif AOT</span>
@@ -2039,7 +2128,7 @@ footer {
 </svg></div>
 </div>
 <h3>Journal des campagnes</h3>
-<div class="scroll"><table class="wide">
+<div class="table-wrap"><table class="wide">
 <thead><tr>
 <th>commit</th>
 <th class="num">date</th>
@@ -2054,196 +2143,196 @@ footer {
 <th class="num">sondes machine (%)</th>
 </tr></thead><tbody>
 <tr class="f-swag"><th scope="row"><code>5224d2802</code></th>
-<td class="num">2026-09-25</td>
-<td class="num">&mdash;</td>
-<td class="num">24.35</td>
-<td class="num">28.15</td>
-<td class="num">191</td>
-<td class="num">+0.9</td>
-<td class="num">-7.8</td>
-<td class="num">126</td>
-<td class="num">41</td>
-<td class="num">16.2</td>
+<td class="num" data-label="date">2026-09-25</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">24.35</td>
+<td class="num" data-label="exec JIT corrigée (ms)">28.15</td>
+<td class="num" data-label="compil corrigée (ms)">191</td>
+<td class="num" data-label="contexte exec (%)">+0.9</td>
+<td class="num" data-label="contexte compil (%)">-7.8</td>
+<td class="num" data-label="mémoire (Mo)">126</td>
+<td class="num" data-label="écart des échantillons (%)">41</td>
+<td class="num" data-label="sondes machine (%)">16.2</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>5e182b6b7</code></th>
-<td class="num">2026-09-24</td>
-<td class="num">Three backend batches: csvagg, leven, sha256</td>
-<td class="num">24.27</td>
-<td class="num">27.55</td>
-<td class="num">188</td>
-<td class="num">-0.1</td>
-<td class="num">-11.0</td>
-<td class="num">75</td>
-<td class="num">75</td>
-<td class="num">29.1</td>
+<td class="num" data-label="date">2026-09-24</td>
+<td class="num" data-label="note">Three backend batches: csvagg, leven, sha256</td>
+<td class="num" data-label="exec natif corrigée (ms)">24.27</td>
+<td class="num" data-label="exec JIT corrigée (ms)">27.55</td>
+<td class="num" data-label="compil corrigée (ms)">188</td>
+<td class="num" data-label="contexte exec (%)">-0.1</td>
+<td class="num" data-label="contexte compil (%)">-11.0</td>
+<td class="num" data-label="mémoire (Mo)">75</td>
+<td class="num" data-label="écart des échantillons (%)">75</td>
+<td class="num" data-label="sondes machine (%)">29.1</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>e0cd84130</code></th>
-<td class="num">2026-09-23</td>
-<td class="num">&mdash;</td>
-<td class="num">25.60</td>
-<td class="num">28.34</td>
-<td class="num">177</td>
-<td class="num">-8.8</td>
-<td class="num">-14.1</td>
-<td class="num">120</td>
-<td class="num">22</td>
-<td class="num">10.3</td>
+<td class="num" data-label="date">2026-09-23</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">25.60</td>
+<td class="num" data-label="exec JIT corrigée (ms)">28.34</td>
+<td class="num" data-label="compil corrigée (ms)">177</td>
+<td class="num" data-label="contexte exec (%)">-8.8</td>
+<td class="num" data-label="contexte compil (%)">-14.1</td>
+<td class="num" data-label="mémoire (Mo)">120</td>
+<td class="num" data-label="écart des échantillons (%)">22</td>
+<td class="num" data-label="sondes machine (%)">10.3</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>cdec131ce</code></th>
-<td class="num">2026-09-20</td>
-<td class="num">&mdash;</td>
-<td class="num">&mdash;</td>
-<td class="num">&mdash;</td>
-<td class="num">172</td>
-<td class="num">&mdash;</td>
-<td class="num">-2.1</td>
-<td class="num">120</td>
-<td class="num">&mdash;</td>
-<td class="num">19.9</td>
+<td class="num" data-label="date">2026-09-20</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">&mdash;</td>
+<td class="num" data-label="exec JIT corrigée (ms)">&mdash;</td>
+<td class="num" data-label="compil corrigée (ms)">172</td>
+<td class="num" data-label="contexte exec (%)">&mdash;</td>
+<td class="num" data-label="contexte compil (%)">-2.1</td>
+<td class="num" data-label="mémoire (Mo)">120</td>
+<td class="num" data-label="écart des échantillons (%)">&mdash;</td>
+<td class="num" data-label="sondes machine (%)">19.9</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>e253eb56f*</code></th>
-<td class="num">2026-09-19</td>
-<td class="num">&mdash;</td>
-<td class="num">25.44</td>
-<td class="num">28.47</td>
-<td class="num">176</td>
-<td class="num">+0.9</td>
-<td class="num">-10.2</td>
-<td class="num">118</td>
-<td class="num">43</td>
-<td class="num">20.6</td>
+<td class="num" data-label="date">2026-09-19</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">25.44</td>
+<td class="num" data-label="exec JIT corrigée (ms)">28.47</td>
+<td class="num" data-label="compil corrigée (ms)">176</td>
+<td class="num" data-label="contexte exec (%)">+0.9</td>
+<td class="num" data-label="contexte compil (%)">-10.2</td>
+<td class="num" data-label="mémoire (Mo)">118</td>
+<td class="num" data-label="écart des échantillons (%)">43</td>
+<td class="num" data-label="sondes machine (%)">20.6</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>6c8f957c6*</code></th>
-<td class="num">2026-09-19</td>
-<td class="num">&mdash;</td>
-<td class="num">24.89</td>
-<td class="num">28.26</td>
-<td class="num">198</td>
-<td class="num">+2.8</td>
-<td class="num">-9.1</td>
-<td class="num">127</td>
-<td class="num">42</td>
-<td class="num">25.1</td>
+<td class="num" data-label="date">2026-09-19</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">24.89</td>
+<td class="num" data-label="exec JIT corrigée (ms)">28.26</td>
+<td class="num" data-label="compil corrigée (ms)">198</td>
+<td class="num" data-label="contexte exec (%)">+2.8</td>
+<td class="num" data-label="contexte compil (%)">-9.1</td>
+<td class="num" data-label="mémoire (Mo)">127</td>
+<td class="num" data-label="écart des échantillons (%)">42</td>
+<td class="num" data-label="sondes machine (%)">25.1</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>deb0bea9f</code></th>
-<td class="num">2026-09-19</td>
-<td class="num">&mdash;</td>
-<td class="num">25.03</td>
-<td class="num">28.88</td>
-<td class="num">221</td>
-<td class="num">-7.6</td>
-<td class="num">-15.8</td>
-<td class="num">139</td>
-<td class="num">25</td>
-<td class="num">17.8</td>
+<td class="num" data-label="date">2026-09-19</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">25.03</td>
+<td class="num" data-label="exec JIT corrigée (ms)">28.88</td>
+<td class="num" data-label="compil corrigée (ms)">221</td>
+<td class="num" data-label="contexte exec (%)">-7.6</td>
+<td class="num" data-label="contexte compil (%)">-15.8</td>
+<td class="num" data-label="mémoire (Mo)">139</td>
+<td class="num" data-label="écart des échantillons (%)">25</td>
+<td class="num" data-label="sondes machine (%)">17.8</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>b8b5bb969</code></th>
-<td class="num">2026-09-14</td>
-<td class="num">&mdash;</td>
-<td class="num">25.12</td>
-<td class="num">30.34</td>
-<td class="num">135</td>
-<td class="num">+2.8</td>
-<td class="num">-7.6</td>
-<td class="num">122</td>
-<td class="num">71</td>
-<td class="num">22.4</td>
+<td class="num" data-label="date">2026-09-14</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">25.12</td>
+<td class="num" data-label="exec JIT corrigée (ms)">30.34</td>
+<td class="num" data-label="compil corrigée (ms)">135</td>
+<td class="num" data-label="contexte exec (%)">+2.8</td>
+<td class="num" data-label="contexte compil (%)">-7.6</td>
+<td class="num" data-label="mémoire (Mo)">122</td>
+<td class="num" data-label="écart des échantillons (%)">71</td>
+<td class="num" data-label="sondes machine (%)">22.4</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>85c05997b</code></th>
-<td class="num">2026-09-14</td>
-<td class="num">&mdash;</td>
-<td class="num">26.33</td>
-<td class="num">29.94</td>
-<td class="num">145</td>
-<td class="num">+0.7</td>
-<td class="num">-7.4</td>
-<td class="num">120</td>
-<td class="num">28</td>
-<td class="num">15.4</td>
+<td class="num" data-label="date">2026-09-14</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">26.33</td>
+<td class="num" data-label="exec JIT corrigée (ms)">29.94</td>
+<td class="num" data-label="compil corrigée (ms)">145</td>
+<td class="num" data-label="contexte exec (%)">+0.7</td>
+<td class="num" data-label="contexte compil (%)">-7.4</td>
+<td class="num" data-label="mémoire (Mo)">120</td>
+<td class="num" data-label="écart des échantillons (%)">28</td>
+<td class="num" data-label="sondes machine (%)">15.4</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>8e224f4d0</code></th>
-<td class="num">2026-09-13</td>
-<td class="num">&mdash;</td>
-<td class="num">26.57</td>
-<td class="num">30.10</td>
-<td class="num">146</td>
-<td class="num">-5.7</td>
-<td class="num">-13.0</td>
-<td class="num">122</td>
-<td class="num">29</td>
-<td class="num">14.8</td>
+<td class="num" data-label="date">2026-09-13</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">26.57</td>
+<td class="num" data-label="exec JIT corrigée (ms)">30.10</td>
+<td class="num" data-label="compil corrigée (ms)">146</td>
+<td class="num" data-label="contexte exec (%)">-5.7</td>
+<td class="num" data-label="contexte compil (%)">-13.0</td>
+<td class="num" data-label="mémoire (Mo)">122</td>
+<td class="num" data-label="écart des échantillons (%)">29</td>
+<td class="num" data-label="sondes machine (%)">14.8</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>73e5ff110*</code></th>
-<td class="num">2026-09-12</td>
-<td class="num">&mdash;</td>
-<td class="num">26.38</td>
-<td class="num">30.18</td>
-<td class="num">174</td>
-<td class="num">-7.3</td>
-<td class="num">-15.0</td>
-<td class="num">122</td>
-<td class="num">26</td>
-<td class="num">18.2</td>
+<td class="num" data-label="date">2026-09-12</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">26.38</td>
+<td class="num" data-label="exec JIT corrigée (ms)">30.18</td>
+<td class="num" data-label="compil corrigée (ms)">174</td>
+<td class="num" data-label="contexte exec (%)">-7.3</td>
+<td class="num" data-label="contexte compil (%)">-15.0</td>
+<td class="num" data-label="mémoire (Mo)">122</td>
+<td class="num" data-label="écart des échantillons (%)">26</td>
+<td class="num" data-label="sondes machine (%)">18.2</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>a4677422e</code></th>
-<td class="num">2026-09-06</td>
-<td class="num">&mdash;</td>
-<td class="num">27.51</td>
-<td class="num">32.62</td>
-<td class="num">133</td>
-<td class="num">-4.9</td>
-<td class="num">-6.9</td>
-<td class="num">116</td>
-<td class="num">30</td>
-<td class="num">12.2</td>
+<td class="num" data-label="date">2026-09-06</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">27.51</td>
+<td class="num" data-label="exec JIT corrigée (ms)">32.62</td>
+<td class="num" data-label="compil corrigée (ms)">133</td>
+<td class="num" data-label="contexte exec (%)">-4.9</td>
+<td class="num" data-label="contexte compil (%)">-6.9</td>
+<td class="num" data-label="mémoire (Mo)">116</td>
+<td class="num" data-label="écart des échantillons (%)">30</td>
+<td class="num" data-label="sondes machine (%)">12.2</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>34080a37d</code></th>
-<td class="num">2026-08-12</td>
-<td class="num">&mdash;</td>
-<td class="num">33.09</td>
-<td class="num">34.32</td>
-<td class="num">148</td>
-<td class="num">-7.5</td>
-<td class="num">-2.9</td>
-<td class="num">136</td>
-<td class="num">20</td>
-<td class="num">8.2</td>
+<td class="num" data-label="date">2026-08-12</td>
+<td class="num" data-label="note">&mdash;</td>
+<td class="num" data-label="exec natif corrigée (ms)">33.09</td>
+<td class="num" data-label="exec JIT corrigée (ms)">34.32</td>
+<td class="num" data-label="compil corrigée (ms)">148</td>
+<td class="num" data-label="contexte exec (%)">-7.5</td>
+<td class="num" data-label="contexte compil (%)">-2.9</td>
+<td class="num" data-label="mémoire (Mo)">136</td>
+<td class="num" data-label="écart des échantillons (%)">20</td>
+<td class="num" data-label="sondes machine (%)">8.2</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>d36631d85</code></th>
-<td class="num">2026-08-07</td>
-<td class="num">premiere campagne protocole 2 sur arbre propre</td>
-<td class="num">33.59</td>
-<td class="num">33.27</td>
-<td class="num">112</td>
-<td class="num">+0.0</td>
-<td class="num">+0.0</td>
-<td class="num">117</td>
-<td class="num">42</td>
-<td class="num">15.4</td>
+<td class="num" data-label="date">2026-08-07</td>
+<td class="num" data-label="note">premiere campagne protocole 2 sur arbre propre</td>
+<td class="num" data-label="exec natif corrigée (ms)">33.59</td>
+<td class="num" data-label="exec JIT corrigée (ms)">33.27</td>
+<td class="num" data-label="compil corrigée (ms)">112</td>
+<td class="num" data-label="contexte exec (%)">+0.0</td>
+<td class="num" data-label="contexte compil (%)">+0.0</td>
+<td class="num" data-label="mémoire (Mo)">117</td>
+<td class="num" data-label="écart des échantillons (%)">42</td>
+<td class="num" data-label="sondes machine (%)">15.4</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>115fc00d0*</code></th>
-<td class="num">2026-08-07</td>
-<td class="num">protocole 2 : meme binaire, mesure de la resolution</td>
-<td class="num">33.70</td>
-<td class="num">33.20</td>
-<td class="num">115</td>
-<td class="num">+5.0</td>
-<td class="num">-0.8</td>
-<td class="num">117</td>
-<td class="num">29</td>
-<td class="num">13.8</td>
+<td class="num" data-label="date">2026-08-07</td>
+<td class="num" data-label="note">protocole 2 : meme binaire, mesure de la resolution</td>
+<td class="num" data-label="exec natif corrigée (ms)">33.70</td>
+<td class="num" data-label="exec JIT corrigée (ms)">33.20</td>
+<td class="num" data-label="compil corrigée (ms)">115</td>
+<td class="num" data-label="contexte exec (%)">+5.0</td>
+<td class="num" data-label="contexte compil (%)">-0.8</td>
+<td class="num" data-label="mémoire (Mo)">117</td>
+<td class="num" data-label="écart des échantillons (%)">29</td>
+<td class="num" data-label="sondes machine (%)">13.8</td>
 </tr>
 <tr class="f-swag"><th scope="row"><code>115fc00d0*</code></th>
-<td class="num">2026-08-07</td>
-<td class="num">protocole 2 : reference</td>
-<td class="num">33.66</td>
-<td class="num">33.91</td>
-<td class="num">106</td>
-<td class="num">+4.7</td>
-<td class="num">+1.4</td>
-<td class="num">118</td>
-<td class="num">30</td>
-<td class="num">23.0</td>
+<td class="num" data-label="date">2026-08-07</td>
+<td class="num" data-label="note">protocole 2 : reference</td>
+<td class="num" data-label="exec natif corrigée (ms)">33.66</td>
+<td class="num" data-label="exec JIT corrigée (ms)">33.91</td>
+<td class="num" data-label="compil corrigée (ms)">106</td>
+<td class="num" data-label="contexte exec (%)">+4.7</td>
+<td class="num" data-label="contexte compil (%)">+1.4</td>
+<td class="num" data-label="mémoire (Mo)">118</td>
+<td class="num" data-label="écart des échantillons (%)">30</td>
+<td class="num" data-label="sondes machine (%)">23.0</td>
 </tr>
 </tbody></table></div>
 <p class="cap">Un contexte n&eacute;gatif signifie que les t&eacute;moins ont tourn&eacute; plus vite que pendant la campagne de r&eacute;f&eacute;rence ; les temps Swag bruts sont alors relev&eacute;s d'autant. La dispersion m&eacute;diane des t&eacute;moins de la derni&egrave;re campagne est de 3.2&nbsp;% en ex&eacute;cution et 7.4&nbsp;% en compilation. L'&eacute;cart des &eacute;chantillons est celui d'un runtime avec lui-m&ecirc;me &agrave; l'int&eacute;rieur d'une campagne : il dit si la machine &eacute;tait calme ce jour-l&agrave;, l&agrave; o&ugrave; la bande de r&eacute;solution dit ce que le banc distingue d'une campagne &agrave; l'autre.</p>

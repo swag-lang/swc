@@ -6,6 +6,7 @@
     color-scheme: light dark;
 
     --volt:  #F7F900;
+    --arc:   #38BDF8;
     --ink:   #0B0B0D;
     --active: var(--ink);
     --selection: #E7E7E3;
@@ -367,7 +368,7 @@ h3 {
 .legend .k-dynamic { background: var(--g-dynamic); }
 
 /* ------------------------------------------------------------------ table */
-.scroll { overflow-x: auto; margin: 18px 0 6px; }
+.table-wrap { margin: 18px 0 6px; }
 
 table { border-collapse: collapse; width: 100%; font-size: .82rem; }
 
@@ -417,10 +418,67 @@ tbody tr.f-native  th { border-left-color: var(--g-native); }
 tbody tr.f-managed th { border-left-color: var(--g-managed); }
 tbody tr.f-dynamic th { border-left-color: var(--g-dynamic); }
 
-table.wide { min-width: 780px; }
-table.tasks { min-width: 560px; }
-table.tasks tbody th { border-left-color: var(--g-swag); width: 1%; }
+table.wide, table.wide tbody, table.wide tbody tr { display: block; width: 100%; }
+table.wide thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+table.wide tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+    gap: 12px;
+}
+table.wide tbody tr { box-sizing: border-box; padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--line); }
+table.wide tbody th { display: block; padding: 0 0 6px; border: 0; white-space: normal; }
+table.wide tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+table.wide tbody td::before { content: attr(data-label); flex: 1; color: var(--faint); font-family: var(--sans); text-align: left; }
+table.tasks { table-layout: fixed; }
+table.tasks thead th:first-child { width: 210px; }
+table.tasks thead th:last-child { width: 100px; }
+table.tasks tbody th { white-space: normal; border-left-color: var(--g-swag); }
 table.tasks tbody td { color: var(--soft); }
+table.ranked { table-layout: fixed; margin: 8px 0 6px; }
+table.ranked thead th:first-child { width: 100px; }
+table.ranked tbody th { vertical-align: top; border-left-color: var(--g-swag); }
+table.ranked tbody td { padding: 6px 0 10px 8px; vertical-align: top; }
+table.ranked ol {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 88px), 1fr));
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+table.ranked li { min-width: 0; padding: 3px 5px; line-height: 1.3; }
+table.ranked .rank-number { padding-right: 4px; color: var(--faint); font-family: var(--mono); font-size: .64rem; }
+table.ranked .rank-label { color: var(--fg); font-size: .74rem; overflow-wrap: anywhere; }
+table.ranked .mode { display: block; color: var(--faint); font-size: .68rem; }
+table.ranked .rank-value { display: block; font-family: var(--mono); font-size: .74rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.ranked li.swag-release { background: color-mix(in srgb, var(--volt) 32%, var(--bg)); }
+table.ranked li.swag-devmode { background: color-mix(in srgb, var(--arc) 32%, var(--bg)); }
+table.ranked li.f-swag .mode { color: var(--soft); }
+.rank-group-title {
+    margin: 22px 0 0;
+    color: var(--soft);
+    font-family: var(--mono);
+    font-size: .74rem;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
 
 /* ------------------------------------------------------------------- misc */
 .note {
@@ -526,6 +584,25 @@ footer {
     .row .rl { font-size: .74rem; }
     .row .mode { display: none; }
     .hero { padding: 44px 0 36px; }
+    table.tasks, table.tasks tbody, table.tasks tbody tr,
+    table.tasks tbody th, table.tasks tbody td,
+    table.ranked, table.ranked tbody, table.ranked tbody tr,
+    table.ranked tbody th, table.ranked tbody td { display: block; box-sizing: border-box; width: 100%; }
+    table.tasks thead, table.ranked thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    table.tasks tbody tr, table.ranked tbody tr { border-bottom: 1px solid var(--line); }
+    table.tasks tbody th, table.tasks tbody td { padding: 2px 0; border: 0; }
+    table.tasks tbody th { padding-top: 8px; }
+    table.tasks tbody td.num { text-align: left; }
+    table.tasks tbody td.num::before { content: "Checksum: "; font-family: var(--sans); }
+    table.ranked tbody th { padding: 10px 0 2px; border: 0; }
+    table.ranked tbody td { padding: 2px 0 12px; border: 0; }
 }
 </style>
 
@@ -584,10 +661,11 @@ footer {
     </div>
 
     <h3>Temps par t&acirc;che, en millisecondes</h3>
-    {{ex_table}}
-
-    <h3>Rapport au meilleur de chaque t&acirc;che</h3>
-    {{ra_table}}
+    <p class="cap">One program per row; read each ranking left to right, then on the next line.</p>
+    <h4 class="rank-group-title">Native and AOT</h4>
+    {{ex_native_table}}
+    <h4 class="rank-group-title">JIT and interpreted</h4>
+    {{ex_jit_table}}
 
     <div class="note">
         <p><b>O&ugrave; regarder en premier.</b> <code>sha256</code> est le signal le plus propre : une boucle
@@ -627,6 +705,7 @@ footer {
     </div>
 
     <h3>Raw build times by task, in milliseconds</h3>
+    <p class="cap">One program per row; read the build times from lowest to highest, left to right then down.</p>
     {{bu_table}}
 
     <h3>La boucle d'&eacute;dition</h3>
@@ -645,6 +724,8 @@ footer {
 
     <h3>Pic du compilateur</h3>
     {{me_chart}}
+    <p class="cap">Peak memory by program, from lowest to highest, left to right then down.</p>
+    {{me_table}}
 
     <div class="note">
         <p><b>Le pic de swc ne d&eacute;pend pas de l'entr&eacute;e.</b> V&eacute;rifi&eacute; s&eacute;par&eacute;ment :
@@ -656,6 +737,11 @@ footer {
 
     <h3>Pic du programme compil&eacute;, &agrave; l'ex&eacute;cution</h3>
     {{rm_chart}}
+    <p class="cap">Peak memory by program, from lowest to highest, left to right then down.</p>
+    <h4 class="rank-group-title">Native and AOT</h4>
+    {{rm_native_table}}
+    <h4 class="rank-group-title">JIT and interpreted</h4>
+    {{rm_jit_table}}
     <div class="legend">
         <span><i class="k-swag"></i>swag</span>
         <span><i class="k-native"></i>natif AOT</span>

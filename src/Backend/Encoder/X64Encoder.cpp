@@ -1058,7 +1058,6 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         return;
     }
 
-    const MicroReg stackReg = stackPointerReg();
     switch (inst.op)
     {
         case MicroInstrOpcode::SetCondReg:
@@ -1069,11 +1068,8 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             return;
 
         case MicroInstrOpcode::Push:
-            info.addUseDef(stackReg);
-            return;
-
         case MicroInstrOpcode::Pop:
-            info.addUseDef(stackReg);
+            info.addUseDef(stackPointerReg());
             return;
 
         default:

@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.061 — Keep byte-map probe pointers resident across read-only calls
+
+- Recorded: 2026-09-25 18:15
+- Updated: 2026-09-25 18:15 — Hoisted invariant structure fields only when their value is used as a memory base in the loop.
+- Area: compiler/backend, loop-invariant motion in wordfreq and csvagg map probing
+- Evidence: LDC keeps the byte-map `used` and `keyLen` pointers in persistent registers through `memcmp` while probing occupied slots. Swag loaded both fields from the map object on each probe. The read-only-call LICM rule now admits a 64-bit field load from an invariant virtual base when that loaded pointer is dereferenced in the same loop; existing dominance and store-alias proofs still apply. This excludes the map mask, whose speculative hoist in an earlier wider rule spilled to the stack in csvagg. In wordfreq's `mapProbe`, an occupied-slot check now uses two memory operands and two instructions for `used[idx]` and `keyLen[idx]`, down from four of each; the full function grows from 86 to 91 instructions because it loads and saves two extra persistent registers at entry and exit. The loop body now follows LDC's pointer residency. In csvagg, inlined probing makes generated `main` shrink from 1,034 to 1,032 instructions; the full timed row span changes from 256 to 257 instructions, so the gain is in repeated probe iterations rather than the flat span. Wordfreq and csvagg checksums remain 130489 and 24828641. A focused C++ test covers a writing call and an aliasing store as barriers. The 1,112 C++, 3,480 native, and 1,500 JIT tests pass; the random safety suite passed with 138 successes and 7 expected failures. No elapsed-time sample informed the decision.
+- Next: compare the probe's `(idx + 1) & mask` update with LDC's two-instruction in-place update, and examine whether keeping the mask resident avoids a memory operand without spilling a hotter pointer.
+
 ### compiler.optimization.060 — Keep wordfreq's pivot count resident through comparator loops
 
 - Recorded: 2026-09-25 17:08

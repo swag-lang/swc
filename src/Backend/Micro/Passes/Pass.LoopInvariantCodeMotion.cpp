@@ -459,6 +459,7 @@ namespace
             bodyIndices.clear();
             bodyIndices.reserve(loop->bodySize);
             std::unordered_set<MicroReg> defsInLoop;
+            std::unordered_set<MicroReg> dereferenceBasesInLoop;
             bool                         loopHasCall         = false;
             bool                         loopHasReadOnlyCall = false;
             bool                         loopHasPointerStore = false;
@@ -474,6 +475,13 @@ namespace
                     continue;
                 for (const MicroReg def : useDef->defs)
                     defsInLoop.insert(def);
+                uint8_t baseOperandIndex = 0;
+                if (MicroPassHelpers::dereferenceBaseOperandIndex(baseOperandIndex, inst->op, MicroInstr::info(inst->op)))
+                {
+                    const MicroInstrOperand* instOps = inst->ops(operands);
+                    if (instOps)
+                        dereferenceBasesInLoop.insert(instOps[baseOperandIndex].reg);
+                }
                 if (useDef->isCall || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 {
                     if (callDoesNotWrite(instrRefs[i], inst->op))
@@ -806,9 +814,9 @@ namespace
                             if (loopHasCall)
                                 continue;
 
-                            // An indexed value can also be kept across a
-                            // read-only call when the address is invariant and
-                            // the alias checks below exclude loop stores.
+                            // Indexed values and pointer-sized fields of an
+                            // invariant structure can also cross a read-only
+                            // call when the alias checks below exclude stores.
                             if (loopHasReadOnlyCall)
                             {
                                 const MicroInstrOperand* loadOps = inst->ops(operands);
@@ -826,7 +834,10 @@ namespace
                                                        kind == MicroRelocation::Kind::GlobalZeroAddress;
                                     }
                                 }
-                                if (!directGlobal && inst->op != MicroInstrOpcode::LoadAmcRegMem)
+                                const bool structureField = inst->op == MicroInstrOpcode::LoadRegMem &&
+                                                            loadOps[1].reg.isVirtualInt() && loadOps[2].opBits == MicroOpBits::B64 &&
+                                                            dereferenceBasesInLoop.contains(loadOps[0].reg);
+                                if (!directGlobal && !structureField && inst->op != MicroInstrOpcode::LoadAmcRegMem)
                                     continue;
                             }
 

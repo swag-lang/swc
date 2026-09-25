@@ -36,8 +36,9 @@
 // Loads through the frame are left alone: a local's slot belongs to mem2reg,
 // and numbering its reloads first only leaves copy chains behind once the
 // slot is promoted.
-// RIP-relative loads use the relocation target in place of a register base;
-// identical targets share a read only within the same memory epoch.
+// RIP-relative loads use the relocation target in place of a register base.
+// Reads from the constant pool can cross memory epochs because their bytes
+// cannot change; mutable targets still require the same epoch.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -611,6 +612,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         const MicroRelocation* const loadReloc = shape.readsMemory && relocIt != relocationByInstruction.end() ? relocIt->second : nullptr;
         const bool ripLoad = loadReloc && inst->op == MicroInstrOpcode::LoadRegMem &&
                              ops[1].reg.isInstructionPointer() && loadReloc->form == MicroRelocation::Form::Relative32;
+        const bool constantPoolLoad = ripLoad && loadReloc->kind == MicroRelocation::Kind::ConstantAddress;
         if (shape.readsMemory && loadReloc && !ripLoad)
             continue;
         if (shape.readsMemory && !ripLoad && !isNumberableReg(ops[shape.useSlots[0]].reg))
@@ -699,7 +701,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         {
             if (cand.key.size() != key.size() || !std::equal(cand.key.begin(), cand.key.end(), key.begin()))
                 continue;
-            if (shape.readsMemory && cand.epoch != memoryEpoch)
+            if (shape.readsMemory && !constantPoolLoad && cand.epoch != memoryEpoch)
                 continue;
             // Only matching expressions need dominance. All rewrites are still
             // queued, so this sees the same CFG as an eager construction would.

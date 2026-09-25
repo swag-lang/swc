@@ -2042,13 +2042,35 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
 
     for (MicroInstrRef ref = instructions_->findNextInstructionRef(copyRef); ref.isValid(); ref = instructions_->findNextInstructionRef(ref))
     {
-        const MicroInstr&      inst   = *instructions_->ptr(ref);
-        const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
-        if (containsKey(useDef.uses, dstReg))
+        const MicroInstr&    inst  = *instructions_->ptr(ref);
+        const MicroInstrDef& info  = MicroInstr::info(inst.op);
+        bool                 used    = false;
+        bool                 defined = false;
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
+            used    = containsKey(useDef.uses, dstReg);
+            defined = containsKey(useDef.defs, dstReg);
+        }
+        else if (const MicroInstrOperand* ops = inst.ops(*operands_))
+        {
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if (modes[i] == MicroInstrRegMode::None || ops[i].reg != dstReg)
+                    continue;
+                used    |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
+                defined |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+            }
+        }
+        if (used)
             return false;
-        if (containsKey(useDef.defs, dstReg))
+        if (defined)
             return true;
-        if (!MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
+        if (inst.op != MicroInstrOpcode::Label &&
+            !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
+            !MicroInstrInfo::isTerminatorInstruction(inst))
             continue;
 
         return inst.op == MicroInstrOpcode::Ret;

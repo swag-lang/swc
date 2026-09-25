@@ -1374,6 +1374,23 @@ namespace
                info.flags.has(MicroInstrFlagsE::TerminatorInstruction);
     }
 
+    void renameRegisterOperands(std::span<const MicroInstrRef> refs, MicroStorage& storage, MicroOperandStorage& operands, MicroReg from, MicroReg to)
+    {
+        for (const MicroInstrRef ref : refs)
+        {
+            MicroInstr* instruction = storage.ptr(ref);
+            MicroInstrOperand* instructionOps = instruction->ops(operands);
+            if (!instructionOps)
+                continue;
+            const auto modes = MicroInstr::info(instruction->op).resolvedRegModes(instructionOps);
+            for (size_t operand = 0; operand < modes.size(); ++operand)
+            {
+                if (modes[operand] != MicroInstrRegMode::None && instructionOps[operand].reg == from)
+                    instructionOps[operand].reg = to;
+            }
+        }
+    }
+
     // Gives the results of a chain of `and`s or `or`s one register.
     //
     // Each operator merges its result into a register of its own, and the
@@ -6461,19 +6478,7 @@ namespace
                 secondCompareOps[i] = secondCompareInst->ops(operands)[i];
 
             const MicroReg rejected = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
-            for (const MicroInstrRef ref : diamond.jumpArm.refs)
-            {
-                MicroInstr* instruction = storage.ptr(ref);
-                MicroInstrOperand* instructionOps = instruction->ops(operands);
-                if (!instructionOps)
-                    continue;
-                const auto modes = MicroInstr::info(instruction->op).resolvedRegModes(instructionOps);
-                for (size_t operand = 0; operand < modes.size(); ++operand)
-                {
-                    if (modes[operand] != MicroInstrRegMode::None && instructionOps[operand].reg == diamond.result)
-                        instructionOps[operand].reg = rejected;
-                }
-            }
+            renameRegisterOperands(diamond.jumpArm.refs.span(), storage, operands, diamond.result, rejected);
 
             storage.insertDerivedBefore(operands, diamond.joinLabelRef, secondCompareOp,
                                         std::span<const MicroInstrOperand>(secondCompareOps, secondCompareNumOperands));
@@ -6539,21 +6544,11 @@ namespace
             return false;
 
         LazyVirtualIntRegs nextVirtualIntRegs{context};
-        MicroInstrRegOperandRefs regOperands;
         for (const Diamond& diamond : diamonds)
         {
             const MicroReg renamedResult = nextVirtualIntRegs.take();
 
-            for (const MicroInstrRef ref : diamond.jumpArm.refs)
-            {
-                regOperands.clear();
-                storage.ptr(ref)->collectRegOperands(operands, regOperands, context.encoder);
-                for (const MicroInstrRegOperandRef& regOperand : regOperands)
-                {
-                    if (*regOperand.reg == diamond.result)
-                        *regOperand.reg = renamedResult;
-                }
-            }
+            renameRegisterOperands(diamond.jumpArm.refs.span(), storage, operands, diamond.result, renamedResult);
 
             if (diamond.sinkCompare)
             {
@@ -6713,21 +6708,11 @@ namespace
             return false;
 
         LazyVirtualIntRegs nextVirtualIntRegs{context};
-        MicroInstrRegOperandRefs regOperands;
         for (const Triangle& triangle : triangles)
         {
             const MicroReg renamedResult = nextVirtualIntRegs.take();
 
-            for (const MicroInstrRef ref : triangle.arm.refs)
-            {
-                regOperands.clear();
-                storage.ptr(ref)->collectRegOperands(operands, regOperands, context.encoder);
-                for (const MicroInstrRegOperandRef& regOperand : regOperands)
-                {
-                    if (*regOperand.reg == triangle.result)
-                        *regOperand.reg = renamedResult;
-                }
-            }
+            renameRegisterOperands(triangle.arm.refs.span(), storage, operands, triangle.result, renamedResult);
 
             MicroInstrOperand copyOps[3];
             copyOps[0].reg    = renamedResult;

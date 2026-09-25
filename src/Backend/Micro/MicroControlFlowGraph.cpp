@@ -17,11 +17,7 @@ uint32_t MicroControlFlowGraph::indexOf(const MicroInstrRef ref) const
 
     if (indexBySlot_.empty())
     {
-        uint32_t maxSlot = 0;
-        for (const MicroInstrRef instRef : instructionRefs_)
-            maxSlot = std::max(maxSlot, instRef.get());
-
-        indexBySlot_.assign(maxSlot + 1, K_NO_INDEX);
+        indexBySlot_.assign(maxSlot_ + 1, K_NO_INDEX);
         for (uint32_t index = 0; index < instructionRefs_.size(); ++index)
             indexBySlot_[instructionRefs_[index].get()] = index;
     }
@@ -41,6 +37,7 @@ void MicroControlFlowGraph::clear()
 {
     instructionRefs_.clear();
     indexBySlot_.clear();
+    maxSlot_ = 0;
     // Rebuilds keep overflow storage for high-fanout branches and joins.
     for (auto& edges : successors_)
         edges.clear();
@@ -80,6 +77,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     {
         const uint32_t instructionIndex = static_cast<uint32_t>(instructionRefs_.size());
         instructionRefs_.push_back(it.current);
+        maxSlot_ = std::max(maxSlot_, it.current.get());
         const MicroInstr& inst = *it;
         if ((inst.op == MicroInstrOpcode::JumpReg && inst.numOperands < 2) || inst.op == MicroInstrOpcode::JumpCondImm)
             hasUnsupportedControlFlowForCfgLiveness_ = true;

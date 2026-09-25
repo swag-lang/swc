@@ -48,6 +48,7 @@ private:
 
     std::vector<MicroInstrRef> instructionRefs_;
     mutable std::vector<uint32_t> indexBySlot_;
+    uint32_t                      maxSlot_ = 0;
     uint64_t                      buildId_ = 0;
     std::vector<uint32_t>      labelToInstructionIndex_;
     SmallVector<uint32_t, 2>    addressTakenLabelIndices_;

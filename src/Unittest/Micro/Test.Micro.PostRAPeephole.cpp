@@ -2037,6 +2037,79 @@ SWC_TEST_BEGIN(PostRAPeephole_RipFloatLoadFoldsIntoThreeOperandOp)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatAccumulationUsesMemoryAdd)
+{
+    constexpr MicroReg base        = MicroReg::intReg(7);
+    constexpr MicroReg index       = MicroReg::intReg(1);
+    constexpr MicroReg accumulated = MicroReg::floatReg(3);
+    constexpr MicroReg addend      = MicroReg::floatReg(4);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadAmcRegMem(accumulated, MicroOpBits::B64, base, index, 8, 16, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(accumulated, addend, MicroOp::FloatAdd, MicroOpBits::B64);
+    builder.emitLoadAmcMemReg(base, index, 8, 16, MicroOpBits::B64, accumulated, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegAmcMem) != 1)
+        return Result::Error;
+
+    bool hasAdd   = false;
+    bool hasStore = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::OpBinaryRegAmcMem && ops &&
+            ops[0].reg == addend && ops[1].reg == base && ops[2].reg == index &&
+            ops[3].opBits == MicroOpBits::B64 && ops[5].valueU64 == 8 &&
+            ops[6].valueU64 == 16 && ops[7].microOp == MicroOp::FloatAdd)
+            hasAdd = true;
+        if (inst.op == MicroInstrOpcode::LoadAmcMemReg && ops &&
+            ops[0].reg == base && ops[1].reg == index && ops[2].reg == addend &&
+            ops[5].valueU64 == 8 && ops[6].valueU64 == 16)
+            hasStore = true;
+    }
+    if (!hasAdd || !hasStore)
+        return Result::Error;
+
+    MicroBuilder differentSlot(ctx);
+    differentSlot.emitLoadAmcRegMem(accumulated, MicroOpBits::B64, base, index, 8, 16, MicroOpBits::B64);
+    differentSlot.emitOpBinaryRegReg(accumulated, addend, MicroOp::FloatAdd, MicroOpBits::B64);
+    differentSlot.emitLoadAmcMemReg(base, index, 8, 24, MicroOpBits::B64, accumulated, MicroOpBits::B64);
+    differentSlot.emitRet();
+    X64Encoder differentSlotEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(differentSlot, &differentSlotEncoder));
+    if (Backend::Unittest::countOpcode(differentSlot, MicroInstrOpcode::OpBinaryRegAmcMem) != 0)
+        return Result::Error;
+
+    MicroBuilder liveAddend(ctx);
+    liveAddend.emitLoadAmcRegMem(accumulated, MicroOpBits::B64, base, index, 8, 16, MicroOpBits::B64);
+    liveAddend.emitOpBinaryRegReg(accumulated, addend, MicroOp::FloatAdd, MicroOpBits::B64);
+    liveAddend.emitLoadAmcMemReg(base, index, 8, 16, MicroOpBits::B64, accumulated, MicroOpBits::B64);
+    liveAddend.emitLoadRegReg(MicroReg::floatReg(5), addend, MicroOpBits::B64);
+    liveAddend.emitRet();
+    X64Encoder liveAddendEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(liveAddend, &liveAddendEncoder));
+    if (Backend::Unittest::countOpcode(liveAddend, MicroInstrOpcode::OpBinaryRegAmcMem) != 0)
+        return Result::Error;
+
+    MicroBuilder differentWidth(ctx);
+    differentWidth.emitLoadAmcRegMem(accumulated, MicroOpBits::B64, base, index, 8, 16, MicroOpBits::B32);
+    differentWidth.emitOpBinaryRegReg(accumulated, addend, MicroOp::FloatAdd, MicroOpBits::B64);
+    differentWidth.emitLoadAmcMemReg(base, index, 8, 16, MicroOpBits::B64, accumulated, MicroOpBits::B64);
+    differentWidth.emitRet();
+    X64Encoder differentWidthEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(differentWidth, &differentWidthEncoder));
+    if (Backend::Unittest::countOpcode(differentWidth, MicroInstrOpcode::OpBinaryRegAmcMem) != 0)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar float copied only as the second operand of a three-operand
 // operation: the operation reads the source.
 // A two-operand float operation whose result is copied away is widened to the

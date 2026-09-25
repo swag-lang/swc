@@ -96,11 +96,10 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
         size_t   defCursor = 0;
         bool     open      = false;
         uint32_t openFrom  = 0;
+        bool     liveIn    = (liveInVirtualBits_[static_cast<size_t>(spanLo) * wordCount + wordIndex] & bitMask) != 0;
 
         for (uint32_t idx = spanLo; idx <= spanHi; ++idx)
         {
-            const bool liveIn = (liveInVirtualBits_[static_cast<size_t>(idx) * wordCount + wordIndex] & bitMask) != 0;
-
             bool usedHere = false;
             while (useCursor < interval.usePositions.size() && interval.usePositions[useCursor] < idx * 2)
                 ++useCursor;
@@ -124,20 +123,18 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
                 open     = true;
                 openFrom = idx * 2 + 1;
             }
-            if (!open)
-                continue;
-
             // Live into the next instruction keeps the range open across the
             // gap; otherwise it closes at the last slot this instruction
             // holds the value.
             const bool liveNext = idx + 1 < instructionCount_ &&
                                   (liveInVirtualBits_[static_cast<size_t>(idx + 1) * wordCount + wordIndex] & bitMask) != 0;
-            if (liveNext)
-                continue;
-
-            const uint32_t to = definedHere ? idx * 2 + 2 : idx * 2 + 1;
-            interval.ranges.push_back({openFrom, to});
-            open = false;
+            if (open && !liveNext)
+            {
+                const uint32_t to = definedHere ? idx * 2 + 2 : idx * 2 + 1;
+                interval.ranges.push_back({openFrom, to});
+                open = false;
+            }
+            liveIn = liveNext;
         }
 
         if (open)

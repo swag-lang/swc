@@ -374,14 +374,15 @@ namespace
     BranchScan* ensureBranchScan(BranchScanCache& cache, MicroStorage& storage, MicroOperandStorage& operands)
     {
         BranchScan& scan = cache.scan;
+        cache.ensureLayout(storage, operands);
+        if (!scan.layout.hasConditionalJump)
+            return nullptr;
         if (!cache.built)
         {
             cache.built       = true;
             scan.indirectJump = false;
             scan.labelReferences.clear();
             scan.mentions.clear();
-            cache.ensureLayout(storage, operands);
-
             for (const MicroInstrRef ref : scan.layout.order)
             {
                 const MicroInstr* inst = storage.ptr(ref);

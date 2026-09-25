@@ -929,7 +929,8 @@ namespace
                 continue;
             }
 
-            const MicroInstrOperand* ops = inst.ops(operands);
+            const bool mayDefineFlags = MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::DefinesCpuFlags);
+            const MicroInstrOperand* ops = inst.op == MicroInstrOpcode::JumpCond || mayDefineFlags ? inst.ops(operands) : nullptr;
             if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
                 bool branchTaken = false;
@@ -963,7 +964,7 @@ namespace
 
             // An XMM clear shares its opcode with integer XOR, but preserves the
             // comparison flags a fused boolean branch still observes.
-            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, ops))
+            if (mayDefineFlags && MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, ops))
                 currentFlagDef = instRef;
 
             if (MicroInstrInfo::isTerminatorInstruction(inst))

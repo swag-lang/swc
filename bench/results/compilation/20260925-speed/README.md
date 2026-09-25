@@ -110,6 +110,33 @@ The build-1146 candidate then passed the complete Release campaign: 1,500 JIT,
 plus the repository, portability, scripts, all 32 example smokes and all four
 application smokes. The command returned code 0. See the [Release test log](candidate-inline-ptr-release-tests.log).
 
+## Merged compiler, build 1149
+
+The committed `master` state through `ad66c99a3` was merged into the campaign
+worktree after that validation. Its other backend changes had moved the compiler
+build number to 1148, so the merged compiler used 1149. The checkout-local
+Release [build passed](merged-1149-release-build.log). Five runs of each work
+path on this combined source produced:
+
+| Workload | Current median wall | Current median CPU | Peak resident | Prompt target |
+| --- | ---: | ---: | ---: | --- |
+| Full `std/core` rebuild | 1,925.8 ms | 8,640.6 ms | 616.9 MiB | Under 1,000 ms |
+| Warm `std/core` no-op | 37.8 ms | 31.2 ms | 10.3 MiB | Under 100 ms |
+| One `std/core` source touched | 1,616.8 ms | 7,500.0 ms | 557.0 MiB | Diagnostic workload |
+| Hello world through linking | 113.4 ms | 406.2 ms | 57.3 MiB | Under 50 ms |
+
+One `core_rebuild` run reached 616.9 MiB resident, while the other four ranged
+from 578.6 to 593.0 MiB. The current wall readings are lower than the earlier
+build-1145 series, but the source and machine state both changed; this table
+does not attribute that difference to instruction-slot inlining. See the
+[merged-source samples](merged-1149-four-workloads.log).
+
+The merged build-1149 compiler then passed the complete Release test campaign
+with exit code 0, including the repository and portability checks, compiler
+suites, 2,390 standard-module, 550 application, and 479 reference tests,
+scripts, all 32 example smokes, and all four application smokes. See the
+[merged Release test log](merged-1149-release-tests.log).
+
 ## Four edit-loop workloads
 
 `bench/compile.py` already drives all four workloads through `swc.exe`, records wall

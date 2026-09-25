@@ -834,13 +834,8 @@ void MicroRegisterAllocationPass::computeGlobalAccessBenefits(std::vector<uint64
 
 bool MicroRegisterAllocationPass::intervalHasCall(const uint32_t lo, const uint32_t hi) const
 {
-    for (uint32_t idx = lo; idx <= hi && idx < instructionCount_; ++idx)
-    {
-        if (instructionUseDefs_[idx].isCall)
-            return true;
-    }
-
-    return false;
+    const auto it = std::ranges::lower_bound(callPositions_, lo);
+    return it != callPositions_.end() && *it <= hi;
 }
 
 bool MicroRegisterAllocationPass::isGuardedCall(const uint32_t instructionIndex) const
@@ -851,13 +846,8 @@ bool MicroRegisterAllocationPass::isGuardedCall(const uint32_t instructionIndex)
 
 bool MicroRegisterAllocationPass::intervalHasHotCall(const uint32_t lo, const uint32_t hi) const
 {
-    for (uint32_t idx = lo; idx <= hi && idx < instructionCount_; ++idx)
-    {
-        if (instructionUseDefs_[idx].isCall && (idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx]))
-            return true;
-    }
-
-    return false;
+    const auto it = std::ranges::lower_bound(hotCallPositions_, lo);
+    return it != hotCallPositions_.end() && *it <= hi;
 }
 
 void MicroRegisterAllocationPass::computeGuardedCallPositions()
@@ -4432,6 +4422,8 @@ void MicroRegisterAllocationPass::clearState()
     vregsLiveAcrossCall_.clear();
     vregsLiveAcrossHotCall_.clear();
     guardedCallPositions_.clear();
+    callPositions_.clear();
+    hotCallPositions_.clear();
     instructionUseDefs_.clear();
     denseVirtualRegs_.clear();
     denseConcreteRegs_.clear();
@@ -4496,6 +4488,14 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
         return Result::Continue;
 
     computeGuardedCallPositions();
+    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+    {
+        if (!instructionUseDefs_[idx].isCall)
+            continue;
+        callPositions_.push_back(idx);
+        if (!guardedCallPositions_[idx])
+            hotCallPositions_.push_back(idx);
+    }
     analyzeLiveness();
     computeVirtualLiveSpans();
     setupPools();

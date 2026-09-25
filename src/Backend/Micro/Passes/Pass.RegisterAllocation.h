@@ -408,6 +408,8 @@ private:
     // runs only if the guard fires) than promoted to a callee-saved register
     // (whose save/restore runs on every function entry).
     std::vector<uint8_t>  guardedCallPositions_;
+    std::vector<uint32_t> callPositions_;
+    std::vector<uint32_t> hotCallPositions_;
     std::vector<uint8_t>  vregsLiveAcrossHotCall_;
     std::vector<uint8_t>  callSpillFlags_;
     std::vector<uint32_t> mappedVirtualIndices_;

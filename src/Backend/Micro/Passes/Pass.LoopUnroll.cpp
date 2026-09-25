@@ -545,21 +545,21 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     MicroInstr* inst = storage.ptr(order[o]);
                     if (!inst || !inst->numOperands)
                         continue;
-                    regOps.clear();
-                    inst->collectRegOperands(operands, regOps, context.encoder);
+                    const MicroInstrOperand* ops = inst->ops(operands);
+                    const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                     // The reads of an instruction come before its writes: a
                     // register first met as a read, or as an in-place update,
                     // is carried; one first met as an outright write is a
                     // temporary.
-                    for (const MicroInstrRegOperandRef& regOp : regOps)
-                        if (regOp.reg && regOp.use && regOp.reg->isVirtual())
-                            seenInBody.insert(*regOp.reg);
-                    for (const MicroInstrRegOperandRef& regOp : regOps)
+                    for (size_t i = 0; i < modes.size(); ++i)
+                        if ((modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtual())
+                            seenInBody.insert(ops[i].reg);
+                    for (size_t i = 0; i < modes.size(); ++i)
                     {
-                        if (!regOp.reg || !regOp.def || regOp.use || !regOp.reg->isVirtual())
+                        if (modes[i] != MicroInstrRegMode::Def || !ops[i].reg.isVirtual())
                             continue;
-                        if (seenInBody.insert(*regOp.reg).second)
-                            renamable.insert(*regOp.reg);
+                        if (seenInBody.insert(ops[i].reg).second)
+                            renamable.insert(ops[i].reg);
                     }
                 }
 
@@ -571,11 +571,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         const MicroInstr* inst = storage.ptr(order[o]);
                         if (!inst || !inst->numOperands)
                             continue;
-                        regOps.clear();
-                        inst->collectRegOperands(operands, regOps, context.encoder);
-                        for (const MicroInstrRegOperandRef& regOp : regOps)
-                            if (regOp.reg && regOp.use && regOp.reg->isVirtual())
-                                renamable.erase(*regOp.reg);
+                        const MicroInstrOperand* ops = inst->ops(operands);
+                        const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
+                        for (size_t i = 0; i < modes.size(); ++i)
+                            if ((modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtual())
+                                renamable.erase(ops[i].reg);
                     }
                 };
                 excludeOutsideReads(0, bodyBegin);

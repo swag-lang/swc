@@ -18,7 +18,7 @@ namespace PostRaPeephole
     //     cmovae R, S              cmovae R, S
     bool tryReuseAddFlagsForUnsignedWrap(Context& ctx, const MicroInstrRef cmpRef, const MicroInstr& cmpInst)
     {
-        if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpRegReg)
+        if (ctx.isClaimed(cmpRef))
             return false;
         const auto* cmp = cmpInst.ops(*ctx.operands);
         if (!cmp || (cmp[2].opBits != MicroOpBits::B8 && cmp[2].opBits != MicroOpBits::B16 &&
@@ -153,7 +153,7 @@ namespace PostRaPeephole
     // a second comparison of the same values is redundant.
     bool tryEraseRepeatedCompare(Context& ctx, const MicroInstrRef cmpRef, const MicroInstr& cmpInst)
     {
-        if (ctx.isClaimed(cmpRef) || cmpInst.op != MicroInstrOpcode::CmpRegReg)
+        if (ctx.isClaimed(cmpRef))
             return false;
         const auto* cmp = cmpInst.ops(*ctx.operands);
         if (!cmp || !cmp[0].reg.isAnyInt() || !cmp[1].reg.isAnyInt())
@@ -281,7 +281,7 @@ namespace PostRaPeephole
     {
         constexpr uint32_t K_MAX_WINDOW = 4;
 
-        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegReg)
+        if (ctx.isClaimed(ref))
             return false;
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
         if (!ops || ops[3].microOp != MicroOp::Subtract || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isInt() ||
@@ -966,7 +966,7 @@ namespace PostRaPeephole
     // turns `dec ; cmp 0 ; jge` into `dec ; jns`.
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
     {
-        if (cmpInst.op != MicroInstrOpcode::CmpRegImm || ctx.isClaimed(cmpRef))
+        if (ctx.isClaimed(cmpRef))
             return false;
 
         const MicroInstrOperand* cmpOps = cmpInst.ops(*ctx.operands);
@@ -1497,7 +1497,7 @@ namespace PostRaPeephole
     // sign bits, so only fold when those flags are dead.
     bool tryNarrowBitwiseZeroExtensions(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegReg)
+        if (ctx.isClaimed(ref))
             return false;
         const auto* binary = inst.ops(*ctx.operands);
         if (!binary || (binary[3].microOp != MicroOp::And && binary[3].microOp != MicroOp::Or && binary[3].microOp != MicroOp::Xor) ||
@@ -1712,7 +1712,7 @@ namespace PostRaPeephole
     // zero-extended 64-bit result.
     bool tryNarrowShiftedBoolean(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::OpBinaryRegImm)
+        if (ctx.isClaimed(ref))
             return false;
         const auto* shift = inst.ops(*ctx.operands);
         if (!shift || !shift[0].reg.isInt() || ctx.isPrivateFrameBase(shift[0].reg) ||
@@ -1840,7 +1840,7 @@ namespace PostRaPeephole
     // flags, so the rewrite is valid only when no later instruction reads them.
     bool tryFoldScaledAdd(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (ctx.isClaimed(ref) || !ctx.encoder || inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+        if (ctx.isClaimed(ref) || !ctx.encoder)
             return false;
         const auto* address = inst.ops(*ctx.operands);
         if (!address || !address[0].reg.isInt() || !address[1].reg.isInt() || !address[2].reg.isInt() ||
@@ -1915,7 +1915,7 @@ namespace PostRaPeephole
     // rewrite removes the canonical boolean value produced by OR.
     bool tryFoldBooleanOrSelect(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (ctx.isClaimed(ref) || !ctx.encoder || inst.op != MicroInstrOpcode::LoadCondRegReg)
+        if (ctx.isClaimed(ref) || !ctx.encoder)
             return false;
         const auto* select = inst.ops(*ctx.operands);
         if (!select || select[2].cpuCond != MicroCond::NotEqual ||
@@ -2042,7 +2042,7 @@ namespace PostRaPeephole
     // the selected value or letting XOR replace the comparison flags.
     bool tryClearZeroBeforeSelect(Context& ctx, const MicroInstrRef zeroRef, const MicroInstr& zeroInst)
     {
-        if (ctx.isClaimed(zeroRef) || zeroInst.op != MicroInstrOpcode::LoadRegImm)
+        if (ctx.isClaimed(zeroRef))
             return false;
         const auto* zero = zeroInst.ops(*ctx.operands);
         if (!zero || !zero[0].reg.isInt() || zero[2].hasWideImmediateValue() || zero[2].valueU64 != 0 ||
@@ -2242,7 +2242,7 @@ namespace PostRaPeephole
     // already a canonical boolean. A following SETNE only reproduces it.
     bool tryEraseBooleanRecanonicalization(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (ctx.isClaimed(ref) || inst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+        if (ctx.isClaimed(ref))
             return false;
         const auto* widened = inst.ops(*ctx.operands);
         if (!widened || widened[0].reg != widened[1].reg || widened[3].opBits != MicroOpBits::B8 ||
@@ -2548,8 +2548,7 @@ namespace PostRaPeephole
         if (ctx.isClaimed(ref))
             return false;
         const auto* ops = inst.ops(*ctx.operands);
-        if (!ops || (inst.op != MicroInstrOpcode::OpBinaryRegImm && inst.op != MicroInstrOpcode::OpBinaryRegReg) ||
-            !ops[0].reg.isInt() ||
+        if (!ops || !ops[0].reg.isInt() ||
             ctx.isPrivateFrameBase(ops[0].reg) || !ctx.isRegDeadAfterCurrent(ops[0].reg))
             return false;
 

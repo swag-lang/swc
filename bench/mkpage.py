@@ -70,7 +70,7 @@ LOOP = [
     ("core_rebuild", "std/core &agrave; froid", "tous les fichiers, sorties supprim&eacute;es"),
     ("core_noop", "std/core sans changement", "rien n'a boug&eacute; depuis la derni&egrave;re construction"),
     ("core_touch", "std/core, un fichier sauv&eacute;", "une seule date de modification a avanc&eacute;"),
-    ("hello_build", "hello world &rarr; exe", "le co&ucirc;t fixe, source jusqu'&agrave; l'ex&eacute;cutable"),
+    ("hello_build", "hello world &rarr; exe", "small program, source to executable"),
     ("doc_std", "documentation de std", "tout le site de la biblioth&egrave;que standard"),
     ("format_tree", "formatage du d&eacute;p&ocirc;t", "toutes les sources Swag, sur une copie"),
 ]
@@ -364,7 +364,7 @@ def history_section(entries):
     for field, name, nd, unit in (
             ("exec_vs_best", "ex&eacute;cution vs le meilleur (&times;)", 2, "&times;"),
             ("jit_gap_pct", "JIT swc vs natif swc (%)", 0, "%"),
-            ("build_edge", "compilation vs MSVC (&times;)", 1, "&times;")):
+            ("build_edge", "complete build vs MSVC (&times;)", 1, "&times;")):
         vals = [e.get("headline", {}).get(field) for e in entries]
         parts.append('<div class="sm"><b>%s</b>%s</div>'
                      % (name, svg_lines(labels, [("h-a", "", vals)], unit,
@@ -583,8 +583,8 @@ def main():
              % (len(TASK_IDS), META[best_rt][1])),
         stat("%+.0f" % jit_gap, "%", "JIT swc vs natif swc",
              "Le m&ecirc;me code, compil&eacute; en m&eacute;moire au lieu d'un exe."),
-        stat(fmt(build_edge, 1), "&times;", "compilation plus rapide",
-             "swc face &agrave; MSVC, m&ecirc;me protocole, ex&eacute;cutable produit."),
+        stat(fmt(build_edge, 1), "&times;", "build recipe ratio",
+             "swc versus MSVC, including each port's imports and linker."),
         stat("%d" % round(bmem["swag-release"]), "Mo", "pic m&eacute;moire du compilateur",
              "Plancher fixe : m&ecirc;me valeur sur un hello world."),
     ])
@@ -682,9 +682,8 @@ def main():
         "",
         "%s programs, written by hand and identically in every language, none of them using a "
         "standard library" % spelled(len(TASK_IDS)),
-        "container: each one reimplements its own hash map, heap, or matrix, so the benchmark "
-        "measures the",
-        "compiler rather than somebody's hash table. All ports print the same checksum.",
+        "container: each one reimplements its own hash map, heap, or matrix. All ports "
+        "print the same checksum, while their required imports and runtime interfaces differ.",
         "",
         "Milliseconds, lower is better. `swc` in `release`, `clang-cl /O2`,",
         "`rustc -C opt-level=3 -C codegen-units=1`, one campaign on a Windows laptop",
@@ -697,16 +696,20 @@ def main():
         md_table(["program"] + [name for _, name in ex_cols],
                  [["`%s`" % t] + [fmt(ms(r, t), 1) for r, _ in ex_cols] for t in TASK_IDS]),
         "",
-        "**Compilation**, from source to a linked executable:",
+        "**Compilation**, from source to a linked executable, including each port's required "
+        "imports and runtime interfaces:",
+        "The programs have matching behavior, but these numbers do not isolate compiler speed "
+        "because library work and build pipelines differ between languages. The `hello` program "
+        "is a separate small workload, not a common overhead to subtract.",
         "",
         md_table(["program"] + [name for _, name in bu_cols],
                  [["`%s`" % t] + [fmt(build(r, t, "wall_ms"), 1) for r, _ in bu_cols]
                   for t in TASK_IDS]),
         "",
         "Native code runs within about **%sx of clang-cl** on those %s programs (geometric "
-        "mean), while the" % (fmt(gm["swag-release"] / gm["cpp-clang-cl"], 1),
+        "mean), while" % (fmt(gm["swag-release"] / gm["cpp-clang-cl"], 1),
                               spelled(len(TASK_IDS)).lower()),
-        "compiler produces them roughly **%sx faster** than `clang-cl` and **%sx faster** than "
+        "swc's build recipe finishes roughly **%sx sooner** than `clang-cl` and **%sx sooner** than "
         "`rustc`, linker" % (fmt(bgeo["cpp-clang-cl"] / bgeo["swag-release"], 1),
                              fmt(bgeo["rust"] / bgeo["swag-release"], 1)),
         "included. A hello world compiles and links in %s ms."

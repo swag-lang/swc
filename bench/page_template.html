@@ -542,7 +542,7 @@ footer {
     <div class="wrap">
         <div class="rule"></div>
         <span class="eyebrow">{{ntasks}} t&acirc;ches &middot; {{nruntimes}} runtimes &middot; checksums identiques</span>
-        <h1>swc produit du code <b>{{swag_geo}}&times;</b> plus lent, et le produit <b>{{build_edge}}&times;</b> plus vite.</h1>
+        <h1>Matching algorithms and checksums; build times include each recipe's libraries and headers.</h1>
         <p class="lede">{{ntasks}} programmes r&eacute;alistes &eacute;crits &agrave; la main &agrave; l'identique en swag, C++, Rust,
         Swift, C#, JavaScript, Lua et Python. M&ecirc;me algorithme, m&ecirc;me g&eacute;n&eacute;rateur al&eacute;atoire,
         m&ecirc;me section chronom&eacute;tr&eacute;e. Les {{nbinaries}} binaires produisent le m&ecirc;me checksum &mdash; c'est la
@@ -555,10 +555,9 @@ footer {
 
 <section id="taches">
     <div class="sh"><span class="eyebrow">01</span><h2>Ce qui est mesur&eacute;</h2></div>
-    <p class="lede">Aucune biblioth&egrave;que : chaque t&acirc;che r&eacute;implante sa structure de donn&eacute;es
-    &agrave; la main, pour que le banc mesure le compilateur et non la qualit&eacute; d'une biblioth&egrave;que standard.
-    Le temps rapport&eacute; est celui de la section de calcul seule &mdash; la g&eacute;n&eacute;ration des
-    donn&eacute;es est exclue.</p>
+    <p class="lede">Each task implements its own data structures, avoiding differences in
+    standard library container implementations. The execution time covers the computation only;
+    input generation is excluded.</p>
     {{task_table}}
 </section>
 
@@ -604,8 +603,9 @@ footer {
 
 <section id="compilation">
     <div class="sh"><span class="eyebrow">03</span><h2>Temps de compilation</h2></div>
-    <p class="lede">Dur&eacute;e d'une compilation &agrave; froid produisant un ex&eacute;cutable : sorties
-    supprim&eacute;es avant chaque mesure, minimum de trois. C'est l'autre moiti&eacute; du compromis.</p>
+    <p class="lede">Cold build time from source to executable, with outputs removed before
+    each sample and at least three samples per build. The clock includes imports, runtime code,
+    optimization and linking.</p>
     {{bu_chart}}
     <div class="legend">
         <span><i class="k-swag"></i>swag</span>
@@ -614,24 +614,26 @@ footer {
     </div>
 
     <div class="note">
-        <p>swc compile en {{swag_build}}&nbsp;ms l&agrave; o&ugrave; rustc met {{rustc_edge}}&times; plus,
-        MSVC {{build_edge}}&times;, swiftc {{swiftc_edge}}&times; et NativeAOT {{aot_edge}}&times;. La colonne
-        <em>hello</em> isole le co&ucirc;t fixe de chaque compilateur : <code>dotnet publish</code> paie plusieurs
-        secondes avant m&ecirc;me de regarder le code, parce qu'il traverse MSBuild, la restauration NuGet puis ILC.</p>
+        <p>For these build recipes, swc takes {{swag_build}}&nbsp;ms; rustc takes {{rustc_edge}}&times;
+        as long, MSVC {{build_edge}}&times;, swiftc {{swiftc_edge}}&times;, and NativeAOT {{aot_edge}}&times;.
+        The ports implement the same algorithms and output, but their compilers process different
+        library interfaces. Swag uses built-in printing and a prepublished Win32 API; other ports
+        parse or import their selected system libraries. These ratios describe complete builds,
+        not isolated compiler speed. <em>hello</em> measures a different small program and cannot
+        be subtracted as a common library cost. For a compiler change, the paired
+        <code>compile.py --against</code> comparison uses identical Swag sources and imports for
+        both compiler binaries.</p>
     </div>
 
     <h3>D&eacute;tail par t&acirc;che, en millisecondes</h3>
     {{bu_table}}
 
     <h3>La boucle d'&eacute;dition</h3>
-    <p class="cap">Les sept t&acirc;ches et le hello world chiffrent le compilateur sur un petit programme.
-    Ce qui co&ucirc;te &agrave; une personne qui &eacute;dite, c'est autre chose : un vrai module, une
-    reconstruction o&ugrave; rien n'a chang&eacute;, un seul fichier sauvegard&eacute;, la documentation,
-    une passe de formatage. Chaque charge est ce que l'on tape r&eacute;ellement, sur le module
-    <code>core</code> de la biblioth&egrave;que standard, construit en place comme le font les outils
-    du d&eacute;p&ocirc;t{{loop_cores}}. Minimum des &eacute;chantillons ; l'indice rapporte le temps
-    corrig&eacute; du contexte machine &agrave; la premi&egrave;re campagne propre qui a mesur&eacute;
-    la charge.</p>
+    <p class="cap">The seven tasks and hello world measure complete builds of small programs.
+    The edit loop measures a real module rebuild, a no-op build, a build after one file is saved,
+    documentation generation and formatting. Each is a command used on the repository's
+    <code>core</code> module{{loop_cores}}. Values are sample minimums; indices compare times
+    adjusted for machine conditions against the first clean campaign for each workload.</p>
     {{loop_table}}
 </section>
 

@@ -542,12 +542,12 @@ footer {
     <div class="wrap">
         <div class="rule"></div>
         <span class="eyebrow">7 t&acirc;ches &middot; 17 runtimes &middot; checksums identiques</span>
-        <h1>swc produit du code <b>1.12&times;</b> plus lent, et le produit <b>2.3&times;</b> plus vite.</h1>
+        <h1>Matching algorithms and checksums; build times include each recipe's libraries and headers.</h1>
         <p class="lede">7 programmes r&eacute;alistes &eacute;crits &agrave; la main &agrave; l'identique en swag, C++, Rust,
         Swift, C#, JavaScript, Lua et Python. M&ecirc;me algorithme, m&ecirc;me g&eacute;n&eacute;rateur al&eacute;atoire,
         m&ecirc;me section chronom&eacute;tr&eacute;e. Les 119 binaires produisent le m&ecirc;me checksum &mdash; c'est la
         preuve qu'on compare bien le m&ecirc;me travail.</p>
-        <div class="stats"><div class="stat"><div class="sv">1.12<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div><p>Moyenne g&eacute;om&eacute;trique sur les 7 t&acirc;ches. Le meilleur est C++ clang-cl.</p></div><div class="stat"><div class="sv">+16<em>%</em></div><div class="sl">JIT swc vs natif swc</div><p>Le m&ecirc;me code, compil&eacute; en m&eacute;moire au lieu d'un exe.</p></div><div class="stat"><div class="sv">2.3<em>&times;</em></div><div class="sl">compilation plus rapide</div><p>swc face &agrave; MSVC, m&ecirc;me protocole, ex&eacute;cutable produit.</p></div><div class="stat"><div class="sv">126<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div><p>Plancher fixe : m&ecirc;me valeur sur un hello world.</p></div></div>
+        <div class="stats"><div class="stat"><div class="sv">1.12<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div><p>Moyenne g&eacute;om&eacute;trique sur les 7 t&acirc;ches. Le meilleur est C++ clang-cl.</p></div><div class="stat"><div class="sv">+16<em>%</em></div><div class="sl">JIT swc vs natif swc</div><p>Le m&ecirc;me code, compil&eacute; en m&eacute;moire au lieu d'un exe.</p></div><div class="stat"><div class="sv">2.3<em>&times;</em></div><div class="sl">build recipe ratio</div><p>swc versus MSVC, including each port's imports and linker.</p></div><div class="stat"><div class="sv">126<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div><p>Plancher fixe : m&ecirc;me valeur sur un hello world.</p></div></div>
     </div>
 </div>
 
@@ -555,10 +555,9 @@ footer {
 
 <section id="taches">
     <div class="sh"><span class="eyebrow">01</span><h2>Ce qui est mesur&eacute;</h2></div>
-    <p class="lede">Aucune biblioth&egrave;que : chaque t&acirc;che r&eacute;implante sa structure de donn&eacute;es
-    &agrave; la main, pour que le banc mesure le compilateur et non la qualit&eacute; d'une biblioth&egrave;que standard.
-    Le temps rapport&eacute; est celui de la section de calcul seule &mdash; la g&eacute;n&eacute;ration des
-    donn&eacute;es est exclue.</p>
+    <p class="lede">Each task implements its own data structures, avoiding differences in
+    standard library container implementations. The execution time covers the computation only;
+    input generation is excluded.</p>
     <div class="scroll"><table class="tasks">
 <thead><tr><th>t&acirc;che</th><th>ce qu'elle exerce</th><th class="num">checksum commun</th></tr></thead><tbody>
 <tr><th scope="row"><code>wordfreq</code> &nbsp;comptage de mots</th><td>table de hachage maison sur 2 M mots, puis tri</td><td class="num">130489</td></tr>
@@ -1002,8 +1001,9 @@ footer {
 
 <section id="compilation">
     <div class="sh"><span class="eyebrow">03</span><h2>Temps de compilation</h2></div>
-    <p class="lede">Dur&eacute;e d'une compilation &agrave; froid produisant un ex&eacute;cutable : sorties
-    supprim&eacute;es avant chaque mesure, minimum de trois. C'est l'autre moiti&eacute; du compromis.</p>
+    <p class="lede">Cold build time from source to executable, with outputs removed before
+    each sample and at least three samples per build. The clock includes imports, runtime code,
+    optimization and linking.</p>
     <figure class="chart">
 <div class="axis" aria-hidden="true">
 <span class="tick" style="left:0.700%"><i></i><b>128</b></span>
@@ -1033,10 +1033,15 @@ footer {
     </div>
 
     <div class="note">
-        <p>swc compile en 176&nbsp;ms l&agrave; o&ugrave; rustc met 1.7&times; plus,
-        MSVC 2.3&times;, swiftc 17&times; et NativeAOT 39&times;. La colonne
-        <em>hello</em> isole le co&ucirc;t fixe de chaque compilateur : <code>dotnet publish</code> paie plusieurs
-        secondes avant m&ecirc;me de regarder le code, parce qu'il traverse MSBuild, la restauration NuGet puis ILC.</p>
+        <p>For these build recipes, swc takes 176&nbsp;ms; rustc takes 1.7&times;
+        as long, MSVC 2.3&times;, swiftc 17&times;, and NativeAOT 39&times;.
+        The ports implement the same algorithms and output, but their compilers process different
+        library interfaces. Swag uses built-in printing and a prepublished Win32 API; other ports
+        parse or import their selected system libraries. These ratios describe complete builds,
+        not isolated compiler speed. <em>hello</em> measures a different small program and cannot
+        be subtracted as a common library cost. For a compiler change, the paired
+        <code>compile.py --against</code> comparison uses identical Swag sources and imports for
+        both compiler binaries.</p>
     </div>
 
     <h3>D&eacute;tail par t&acirc;che, en millisecondes</h3>
@@ -1177,14 +1182,11 @@ footer {
 </tbody></table></div>
 
     <h3>La boucle d'&eacute;dition</h3>
-    <p class="cap">Les sept t&acirc;ches et le hello world chiffrent le compilateur sur un petit programme.
-    Ce qui co&ucirc;te &agrave; une personne qui &eacute;dite, c'est autre chose : un vrai module, une
-    reconstruction o&ugrave; rien n'a chang&eacute;, un seul fichier sauvegard&eacute;, la documentation,
-    une passe de formatage. Chaque charge est ce que l'on tape r&eacute;ellement, sur le module
-    <code>core</code> de la biblioth&egrave;que standard, construit en place comme le font les outils
-    du d&eacute;p&ocirc;t. Minimum des &eacute;chantillons ; l'indice rapporte le temps
-    corrig&eacute; du contexte machine &agrave; la premi&egrave;re campagne propre qui a mesur&eacute;
-    la charge.</p>
+    <p class="cap">The seven tasks and hello world measure complete builds of small programs.
+    The edit loop measures a real module rebuild, a no-op build, a build after one file is saved,
+    documentation generation and formatting. Each is a command used on the repository's
+    <code>core</code> module. Values are sample minimums; indices compare times
+    adjusted for machine conditions against the first clean campaign for each workload.</p>
     <div class="scroll"><table class="wide">
 <thead><tr>
 <th>charge</th>
@@ -1215,7 +1217,7 @@ footer {
 <td class="num">0.89 <span class="mode">depuis a4677422e</span></td>
 <td class="num">2</td>
 </tr>
-<tr class="f-swag"><th scope="row">hello world &rarr; exe <span class="mode">le co&ucirc;t fixe, source jusqu'&agrave; l'ex&eacute;cutable</span></th>
+<tr class="f-swag"><th scope="row">hello world &rarr; exe <span class="mode">small program, source to executable</span></th>
 <td class="num">138</td>
 <td class="num">149</td>
 <td class="num">109</td>
@@ -1434,7 +1436,7 @@ footer {
 <circle class="hdot h-a" cx="272.5" cy="39.6" r="2.6"/>
 <circle class="hdot h-a" cx="288.0" cy="35.1" r="2.6"/>
 </svg></div>
-<div class="sm"><b>compilation vs MSVC (&times;)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
+<div class="sm"><b>complete build vs MSVC (&times;)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
 <text class="hlab" x="34" y="87.5" text-anchor="end">1.5</text>
 <line class="hgrid" x1="40" y1="48.0" x2="288" y2="48.0"/>

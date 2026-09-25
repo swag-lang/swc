@@ -30,16 +30,29 @@ run it and leave the machine alone, rather than run it and work beside it.
 
 Seven equivalent programs in swag, C++, Rust, Zig, D, Odin, Swift, C#, JavaScript, Lua
 and Python. None of them uses a standard library container: each reimplements its own hash
-map, heap or matrix, so the benchmark measures the compiler rather than somebody's hash
-table. `chacha` is the one written against a published specification rather than invented
+map, heap or matrix, avoiding differences in those container implementations. `chacha` is
+the one written against a published specification rather than invented
 here: the same ChaCha20 rounds every port implements word for word, which is what makes it a
-fair reading of 32-bit lane arithmetic and of whatever each compiler does with it. Every port prints the same checksum, and **a campaign that reports a checksum mismatch
+consistent reading of 32-bit lane arithmetic and of whatever each compiler does with it. Every port prints the same checksum, and **a campaign that reports a checksum mismatch
 has measured nothing** — fix the ports before believing any number.
+
+Compilation times measure a complete command from source to executable, including the language's
+usual startup code, selected imports, header parsing, optimization and linking. The programs match
+in observable behavior and algorithm; they do not make the compilers process an equal amount of
+library source. For example, Swag's `Swag.print` is built in, Rust uses `std`, C++ parses CRT and
+Windows headers, and D and Odin import runtime packages. The shared C++ header even includes
+`<cmath>` for tasks that do not use it. A ratio across languages is therefore a
+ratio of these particular build recipes, not an isolated ratio of compiler front-end speed.
+The `hello` column is a separate small program with a different import set; it is useful as a
+second data point, but subtracting it from a task does not remove library overhead reliably.
+For a compiler improvement claim, `py compile.py --against <baseline-swc>` compares two compiler
+binaries back to back on the same checkout. Both receive identical sources and imports, and the
+order alternates each round. This is a tighter comparison than a cross-language build ratio.
 
 Seventeen runtimes in total: swag native and JIT in both configurations, two C++ compilers,
 Rust, Zig, D through LDC, Odin, Swift, C# ahead-of-time and jitted, V8, LuaJIT, Lua and CPython.
 
-Zig, D and Odin also have hello-world programs for fixed compilation cost. Their release recipes
+Zig, D and Odin also have hello-world programs for a small-program build measurement. Their release recipes
 are `zig build-exe -O ReleaseFast -target x86_64-windows-msvc -lc`,
 `ldc2 -O3 -release -boundscheck=off`, and `odin build -file -o:speed`.
 Zig and D disable bounds checks in these configurations. Odin retains its default checks on
@@ -70,7 +83,7 @@ under test on the repository's own sources — what the tools in `../tools` actu
 | `core_rebuild` | `swc build --workspace bin/std -m core --rebuild` | a real module from nothing: 300 files, every stage |
 | `core_noop` | the same, right after it, nothing changed | the up-to-date check and whatever runs before it |
 | `core_touch` | the same, after one file's write time moved | what one save costs — today, the whole module again |
-| `hello_build` | `swc build -f hello.swg` | the fixed cost, source to linked executable |
+| `hello_build` | `swc build -f hello.swg` | a small program, source to linked executable |
 | `doc_std` | `swc doc --workspace bin/std --rebuild` | the standard library's documentation, into `out/doc` |
 | `format_tree` | `swc format -d out/format` | the source trees selected by `tools/format.swgs`, on a private copy with their `.swc-format` configuration |
 

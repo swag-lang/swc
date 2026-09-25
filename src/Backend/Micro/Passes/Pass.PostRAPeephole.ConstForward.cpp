@@ -27,6 +27,37 @@ namespace PostRaPeephole
             return false;
         }
 
+        struct RegTouch
+        {
+            bool use = false;
+            bool def = false;
+        };
+
+        RegTouch regTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg)
+        {
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                return {regInList(useDef.uses.span(), reg), regInList(useDef.defs.span(), reg)};
+            }
+
+            RegTouch touch;
+            if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None || ops[i].reg != reg)
+                        continue;
+                    touch.use |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
+                    touch.def |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                }
+            }
+            return touch;
+        }
+
         bool canForwardImmediateToBinaryOp(MicroOp op, MicroOpBits bits)
         {
             return op != MicroOp::MultiplySigned || bits != MicroOpBits::B8;
@@ -50,10 +81,10 @@ namespace PostRaPeephole
 
                 const MicroInstrDef& info = MicroInstr::info(inst->op);
 
-                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
-                if (regInList(useDef.uses.span(), reg))
+                const RegTouch touch = regTouch(ctx, *inst, reg);
+                if (touch.use)
                     return false;
-                if (regInList(useDef.defs.span(), reg))
+                if (touch.def)
                     return true;
 
                 const MicroInstrOperand* ops = inst->ops(*ctx.operands);
@@ -84,10 +115,10 @@ namespace PostRaPeephole
                 if (!inst)
                     return false;
 
-                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
-                if (regInList(useDef.uses.span(), reg))
+                const RegTouch touch = regTouch(ctx, *inst, reg);
+                if (touch.use)
                     return true;
-                if (regInList(useDef.defs.span(), reg))
+                if (touch.def)
                     return false;
 
                 const MicroInstrDef& info = MicroInstr::info(inst->op);
@@ -231,13 +262,13 @@ namespace PostRaPeephole
                 if (!inst)
                     return false;
 
-                const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, ctx.encoder);
-                if (regInList(ud.uses.span(), immReg))
+                const RegTouch touch = regTouch(ctx, *inst, immReg);
+                if (touch.use)
                 {
                     consumerRef = cur;
                     break;
                 }
-                if (regInList(ud.defs.span(), immReg))
+                if (touch.def)
                     return false;
 
                 const MicroInstrOperand* scanOps = inst->ops(*ctx.operands);
@@ -440,8 +471,7 @@ namespace PostRaPeephole
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 return false;
 
-            const MicroInstrUseDef useDef = previous->collectUseDef(*ctx.operands, ctx.encoder);
-            if (regInList(useDef.defs.span(), reg))
+            if (regTouch(ctx, *previous, reg).def)
                 return false;
         }
 

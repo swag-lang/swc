@@ -1019,7 +1019,8 @@ namespace
             // What the operation does, not what its opcode may do: a bitwise
             // complement, a move and an address computation share an opcode
             // with arithmetic that writes the flags, and leave them alone.
-            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanInst->ops(operands)))
+            if (flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanInst->ops(operands)))
                 return scanRef;
             if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
                 return scanRef;
@@ -5163,7 +5164,8 @@ namespace
             const MicroInstrDef&     info = MicroInstr::info(inst->op);
             if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags) && !definedFlagsSoFar)
                 arm.readsEntryFlags = true;
-            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
+            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
             {
                 arm.definesFlags  = true;
                 definedFlagsSoFar |= MicroPassHelpers::instructionOverwritesCpuFlags(*inst, ops);
@@ -6855,7 +6857,8 @@ namespace
             const MicroInstrDef& info = MicroInstr::info(inst->op);
             if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags) && !definedFlagsSoFar)
                 out.readsEntryFlags = true;
-            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
+            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
             {
                 out.definesFlags  = true;
                 definedFlagsSoFar |= MicroPassHelpers::instructionOverwritesCpuFlags(*inst, ops);

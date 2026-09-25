@@ -46,6 +46,13 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct)]
     attr ConstExpr()
 
+    // Promises that a call does not write memory visible to its caller.
+    //
+    // The compiler may keep memory values across the call. Only use this on functions
+    // whose full implementation, including functions they call, upholds the promise.
+    #[AttrUsage(AttributeUsage.Function)]
+    attr ReadOnly()
+
     // Prints the micro instructions generated for a function, a struct, or a file.
     //
     // Without a parameter, the instructions are printed right before the emit pass. Otherwise
@@ -1283,6 +1290,7 @@ func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
 func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 
 // Compares `size` bytes and returns -1, 0 when they are equal, or 1.
+#[Swag.ReadOnly]
 func memcmp(dst, src: const [*] void?, size: u64)->s32
 
 // Atomic read-modify-write operations. Each one returns the value `addr` held before it.

@@ -710,11 +710,8 @@ namespace
     // it can hold; when those all make the test jump, it jumps always, and
     // when none does, never. `a == null or b == null` tests two registers:
     // the first says nothing of the second.
-    bool foldImpliedBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState)
+    bool foldImpliedBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const ProgramLayout& layout)
     {
-        // Reused buffer: buildProgramLayout resets every member it holds.
-        thread_local ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
         const uint32_t count = static_cast<uint32_t>(layout.order.size());
 
         std::unordered_map<uint32_t, uint32_t> labelReferences;
@@ -907,11 +904,8 @@ namespace
         return changed;
     }
 
-    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
+    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const ProgramLayout& layout)
     {
-        // Reused buffer: buildProgramLayout resets every member it holds.
-        thread_local ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
         const KnownValueContext context{&ssaState, &storage, &operands};
 
         bool          changed        = false;
@@ -7220,11 +7214,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         return transformChanged;
     };
 
+    thread_local ProgramLayout knownBranchLayout;
     if (ssaState && ssaState->isValid())
-        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags));
+    {
+        buildProgramLayout(knownBranchLayout, storage, operands);
+        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, knownBranchLayout));
+    }
     // The SSA snapshot describes the code before any fold above.
     if (!changed && ssaState && ssaState->isValid())
-        rewrote(foldImpliedBranches(storage, operands, *ssaState));
+        rewrote(foldImpliedBranches(storage, operands, *ssaState, knownBranchLayout));
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

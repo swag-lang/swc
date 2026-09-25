@@ -403,9 +403,9 @@ namespace
         return false;
     }
 
-    bool remapPersistentIntRegsToUnusedTransient(MicroPassContext& context, const CallConv& conv)
+    bool remapPersistentIntRegsToUnusedTransient(MicroPassContext& context, const CallConv& conv, bool containsCall)
     {
-        if (hasCallInstruction(context))
+        if (containsCall)
             return false;
 
         std::unordered_set<MicroReg> usedRegs;
@@ -504,9 +504,9 @@ namespace
     // moves every incoming slot down by one pointer. Reject any other frame or
     // stack use: saved registers, local allocations and calls all change the
     // stack-pointer value seen by the body.
-    bool rewriteLeafIncomingArgsToStackPointer(MicroPassContext& context, const CallConv& conv)
+    bool rewriteLeafIncomingArgsToStackPointer(MicroPassContext& context, const CallConv& conv, bool containsCall)
     {
-        if (!conv.framePointer.isValid() || !conv.stackPointer.isValid() || hasCallInstruction(context))
+        if (!conv.framePointer.isValid() || !conv.stackPointer.isValid() || containsCall)
             return false;
 
         const uint64_t firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
@@ -574,12 +574,13 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     }
 
     const CallConv& conv                              = CallConv::get(context.callConvKind);
-    const bool      remappedPersistentRegsToTransient = remapPersistentIntRegsToUnusedTransient(context, conv);
+    const bool      containsCall                      = hasCallInstruction(context);
+    const bool      remappedPersistentRegsToTransient = remapPersistentIntRegsToUnusedTransient(context, conv, containsCall);
     buildSavedRegsPlan(context, conv);
     bool rewroteIncomingArgs = false;
     if (useFramePointer_ && pushedRegs_.empty() && savedRegSlots_.empty())
     {
-        rewroteIncomingArgs = rewriteLeafIncomingArgsToStackPointer(context, conv);
+        rewroteIncomingArgs = rewriteLeafIncomingArgsToStackPointer(context, conv, containsCall);
         if (rewroteIncomingArgs)
             buildSavedRegsPlan(context, conv);
     }
@@ -642,9 +643,10 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
     auto& storeOps = *context.operands;
+    SmallVector<MicroInstrRegOperandRef> refs;
     for (const auto& inst : context.instructions->view())
     {
-        SmallVector<MicroInstrRegOperandRef> refs;
+        refs.clear();
         inst.collectRegOperands(storeOps, refs, context.encoder);
         for (const MicroInstrRegOperandRef& microInstrRef : refs)
         {

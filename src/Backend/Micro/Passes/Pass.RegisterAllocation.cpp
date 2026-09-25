@@ -2135,18 +2135,27 @@ void MicroRegisterAllocationPass::prepareInstructionData()
             continue;
 
         MicroInstrUseDef useDef = inst->collectUseDef(*operands_, context_->encoder);
-        for (const MicroReg reg : useDef.uses)
+        if (!hasVirtual)
         {
-            if (!reg.isVirtual())
-                continue;
-
-            hasVirtual = true;
-        }
-
-        for (const MicroReg reg : useDef.defs)
-        {
-            if (reg.isVirtual())
-                hasVirtual = true;
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg.isVirtual())
+                {
+                    hasVirtual = true;
+                    break;
+                }
+            }
+            if (!hasVirtual)
+            {
+                for (const MicroReg reg : useDef.defs)
+                {
+                    if (reg.isVirtual())
+                    {
+                        hasVirtual = true;
+                        break;
+                    }
+                }
+            }
         }
 
         instructionUseDefs_[idx] = std::move(useDef);

@@ -228,6 +228,9 @@ namespace InstructionCombine
                 continue;
             }
 
+            if (cache.empty())
+                continue;
+
             if (isControlOrCall(inst) || writesMemory(inst))
             {
                 cache.clear();

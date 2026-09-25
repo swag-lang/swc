@@ -1,6 +1,6 @@
 # Compiler-speed session, 2026-09-25
 
-Worktree: `C:/Perso/swag-lang/swc-speed`, detached from `fd24f96ca` (Release compiler
+Worktree: `C:/Perso/swag-lang/swc-speed`, branched from `fd24f96ca` (Release compiler
 build 1142). The campaign used the Release compiler only, with six compiler workers.
 The source tree is back at its starting commit: **no compiler optimization was
 retained**. The attempted change and the measurements below are preserved so that
@@ -34,6 +34,40 @@ Inclusive attribution was 60.86% in `CodeGenJob::exec`, 53.41% in
 `MicroControlFlowGraph::build`. These inclusive percentages overlap and the
 sampler perturbs execution. See [profile](core-profile.txt) and
 [compiler output](core-profile-compiler.log).
+
+A separate `std [gui]` profile first rebuilt its dependencies, so its 2,009
+samples and 315.906 sampled worker CPU seconds describe the whole eight-module
+workspace rather than GUI alone. Its Release-program build stopped at the
+existing `compiler.core.058` dynamic type-test error in
+`properties.input.swg:174`; the DevMode-program build passed. See the
+[workspace profile](gui-devmode-profile.txt),
+[build output](gui-devmode-profile-compiler.log), and
+[Release failure](gui-release-profile-compiler.log).
+
+With those dependencies warm, touching only `gui/module.swg` rebuilt just GUI.
+The module took 9.451 seconds (10.173 seconds for the command). The sampler
+observed 864 stacks and 48.344 sampled worker CPU seconds. Inclusive
+attribution was 43.02% in `Sema::runCurrentVisit`, 40.76% in `CodeGenJob::exec`,
+32.93% in `MicroPassManager::run`, 28.77% in `semaCallExprCommon`, 10.02% in
+`appendConstantFunctionJitRoots`, and 8.34% in `MicroBranchSimplifyPass::run`.
+The percentages overlap, and sampling perturbs the run. Unlike the workspace
+profile, this trace isolates the GUI module. The touched file's original
+timestamp was restored after the command. See the
+[GUI-only profile](gui-only-profile.txt) and
+[compiler output](gui-only-profile-compiler.log).
+
+## Worker-count diagnostic
+
+Five one-worker `core_rebuild` runs had an 11.633-second median wall time and
+10.156-second median process CPU time. The six-worker series was interrupted
+after three runs because machine load defeated admission for subsequent runs:
+its first two builds took 3.672 and 3.472 seconds with 14.875 and 14.641
+seconds of process CPU, then the third took 49.768 seconds and 165.172 seconds
+of process CPU. These are separate series, not order-alternated pairs. They show
+that six workers can reduce wall time while increasing CPU work on this source,
+but do not establish a stable scaling factor or isolate why CPU work rises.
+See the [one-worker log](core-one-worker.log) and
+[interrupted six-worker log](core-six-worker.log).
 
 The trial tracked control-flow changes since the most recent graph invalidation in
 `MicroBranchSimplifyPass::run`. Previously, several boundaries invalidated the
@@ -83,6 +117,45 @@ The trial was reverted because it did not establish a repeatable gain or a
 regression-free structural saving. The original compiler was restored in the
 worktree, and a three-run core control measured 4.03–4.63 seconds (4.35-second
 median). There is no retained source or version change.
+
+## Empty JIT relocation trial
+
+The GUI-only profile put 10.02% of sampled worker CPU in
+`appendConstantFunctionJitRoots`. This walks the emitted call graph for each
+compile-time call. A second small trial returned one shared empty target list
+when a function's lowered code had no relocations, before acquiring its target
+cache lock or allocating a list. Such a function cannot contribute a constant
+JIT target. The prediction was a gain of about 1% on GUI at best, with no
+output or memory increase. The trial temporarily moved `SWC_BUILD_NUM` to
+1143 and built the Release compiler. The focused Release-program JIT
+`global_function_ptr.swg` test passed (one test). See the
+[build log](jit-empty-candidate-build.log) and
+[focused test](jit-empty-global-pointer.log).
+
+Five alternated baseline/candidate pairs on the normal benchmark recipes gave
+`core_rebuild` median B/A 0.982 wall, 0.996 CPU and 1.007 peak resident;
+`hello_build` gave 1.011 wall, 0.927 CPU and 1.010 peak resident. Wall and CPU
+do not establish the predicted benefit across these workloads. See the
+[core and hello comparison](jit-empty-core-hello-ab.log).
+
+To isolate GUI, two external copies of `bin/std` had their dependencies warmed
+separately; each timed command touched only its copy of `gui/module.swg`, built
+the 319-file GUI module, then restored the source timestamp. Five alternated
+pairs gave median B/A 0.756 wall, 0.782 CPU and 1.033 peak resident. The
+individual wall ratios span 0.147 to 1.519. In one pair, the baseline took
+111.5 seconds and 485.8 seconds of CPU, versus the candidate's 16.4 and 70.9;
+the change cannot plausibly account for that difference given the profiled
+upper bound. See the [GUI comparison](jit-empty-gui-ab.log).
+
+An A/A control then ran the byte-identical baseline compiler against those
+same two workspaces. It was stopped after two pairs as machine load continued
+to distort the result: its first B run took 128.8 seconds and 505.9 seconds of
+CPU against A's 14.5 and 67.1; the second pair was 8.6 versus 8.9 seconds
+with close CPU time. The large GUI ratios therefore cannot be attributed to
+the candidate. See the [partial A/A control](identical-binaries-gui-aa.log).
+The second trial and its version bump were reverted, and the byte-identical
+baseline compiler was restored. No random test or full Release campaign was
+run for the discarded candidate.
 
 ## Release validation
 

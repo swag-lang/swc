@@ -1,0 +1,18 @@
+
+  ◆  swag        build • std [gui] • release
+  ✓  module      win32 • 36 files • 146 ms
+  ✓  module      gdi32 • 33 files • 140 ms
+  ✓  module      xinput • 32 files • 93 ms
+  ✓  module      core • 360 files • core.dll • 1 s 922 ms
+  ✓  module      ogl • 85 files • ogl.dll • 1 s 93 ms
+  ✓  module      truetype • 87 files • truetype.dll • 2 s 350 ms
+  ✓  module      pixel • 298 files • pixel.dll • 6 s 972 ms
+error: a dynamic type test needs 'is'
+   --> C:\Perso\swag-lang\swc-speed\bin\std\modules\gui\src\controls\property\properties.input.swg:174:45-46
+174 │ [38;2;204;204;204m                    [38;2;216;160;223mif hit.label.[38;2;255;116;17mclientRect().[38;2;255;116;17mcontains(pt) [38;2;216;160;223mdo
+    │                                             ^
+   help: use 'value is T', or 'not (value is T)' for a non-match
+
+  ✖  compiling   gui • 319 files • 8 s 154 ms
+  ✖  building    std [gui] • 7/8 modules • 22 s 434 ms
+  ✖  stopped     1 error • 22 s 434 ms

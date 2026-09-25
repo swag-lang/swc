@@ -1573,28 +1573,25 @@ namespace
             if (!narrowReaders)
                 continue;
 
-            MicroInstrRegOperandRefs regRefs;
-            for (const uint32_t ordinal : eSites.uses)
-            {
-                regRefs.clear();
-                storage.ptr(layout.order[ordinal])->collectRegOperands(operands, regRefs, nullptr);
-                for (const MicroInstrRegOperandRef& ref : regRefs)
+            const auto rewriteRegisterAt = [&](const uint32_t ordinal) {
+                MicroInstr* instruction = storage.ptr(layout.order[ordinal]);
+                MicroInstrOperand* instructionOps = instruction->ops(operands);
+                if (!instructionOps)
+                    return;
+                const auto modes = MicroInstr::info(instruction->op).resolvedRegModes(instructionOps);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
                 {
-                    if (ref.reg && *ref.reg == e)
-                        *ref.reg = d;
+                    if (modes[operand] != MicroInstrRegMode::None && instructionOps[operand].reg == e)
+                        instructionOps[operand].reg = d;
                 }
-            }
+            };
+            for (const uint32_t ordinal : eSites.uses)
+                rewriteRegisterAt(ordinal);
             for (const uint32_t ordinal : eSites.defs)
             {
                 if (ordinal == copyOrdinal)
                     continue;
-                regRefs.clear();
-                storage.ptr(layout.order[ordinal])->collectRegOperands(operands, regRefs, nullptr);
-                for (const MicroInstrRegOperandRef& ref : regRefs)
-                {
-                    if (ref.reg && *ref.reg == e)
-                        *ref.reg = d;
-                }
+                rewriteRegisterAt(ordinal);
             }
             storage.erase(layout.order[copyOrdinal]);
 

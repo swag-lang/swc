@@ -1136,7 +1136,8 @@ namespace
                 return false;
             }
 
-            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(*fn_->operands)) &&
+            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(*fn_->operands)) &&
                 !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(*fn_->storage, *fn_->operands, instRef))
             {
                 return false;

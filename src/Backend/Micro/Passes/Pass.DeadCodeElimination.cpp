@@ -119,7 +119,8 @@ namespace
         // Keep a float clear conservative unless the guard above proved it
         // independent: later scalar inserts can still depend on its upper
         // lanes.
-        if (!MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(operands)))
+        if (!info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) ||
+            !MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(operands)))
         {
             if (inst.op == MicroInstrOpcode::ClearReg)
             {

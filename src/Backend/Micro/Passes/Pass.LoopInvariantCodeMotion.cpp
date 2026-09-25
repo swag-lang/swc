@@ -751,7 +751,8 @@ namespace
                         // Both a full definition such as an integer clear and
                         // a continuation may write flags. Floating arithmetic
                         // and XMM clears preserve them despite sharing opcodes.
-                        if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(operands)) &&
+                        if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+                            MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(operands)) &&
                             (!preheaderFlagsDead || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref, context.builder)))
                             continue;
 

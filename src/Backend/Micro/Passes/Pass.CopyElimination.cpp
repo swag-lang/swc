@@ -234,11 +234,12 @@ namespace
         bool                        changed = false;
         const auto                  view    = storage.view();
         const auto                  endIt   = view.end();
+        SmallVector<MicroInstrRegOperandRef> refs;
         for (auto it = view.begin(); it != endIt; ++it)
         {
             const MicroInstrRef                  instRef = it.current;
             MicroInstr&                          inst    = *it;
-            SmallVector<MicroInstrRegOperandRef> refs;
+            refs.clear();
             inst.collectRegOperands(operands, refs, nullptr);
 
             for (const auto& ref : refs)

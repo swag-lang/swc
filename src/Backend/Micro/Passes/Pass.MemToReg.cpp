@@ -125,12 +125,13 @@ namespace
     {
         if (!reg.isValid())
             return false;
+        SmallVector<MicroInstrRegOperandRef> regRefs;
         for (MicroInstrRef cur = storage.findPreviousInstructionRef(atRef); cur.isValid(); cur = storage.findPreviousInstructionRef(cur))
         {
             const MicroInstr* inst = storage.ptr(cur);
             if (!inst)
                 return false;
-            SmallVector<MicroInstrRegOperandRef> regRefs;
+            regRefs.clear();
             inst->collectRegOperands(operands, regRefs, nullptr);
             bool defines = false;
             for (const auto& rref : regRefs)
@@ -431,6 +432,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     {
         bool spMoved    = false;
         bool inEntryRun = true;
+        SmallVector<MicroInstrRegOperandRef> regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstrOperand* ops = it->ops(operands);
@@ -454,7 +456,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
             }
 
-            SmallVector<MicroInstrRegOperandRef> regRefs;
+            regRefs.clear();
             it->collectRegOperands(operands, regRefs, context.encoder);
             for (const auto& rref : regRefs)
             {
@@ -543,9 +545,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // unexplainable escapes.
     if (!addrRegOffset.empty())
     {
+        SmallVector<MicroInstrRegOperandRef> regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
-            SmallVector<MicroInstrRegOperandRef> regRefs;
+            regRefs.clear();
             it->collectRegOperands(operands, regRefs, context.encoder);
             for (const auto& rref : regRefs)
             {
@@ -1360,9 +1363,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Allocate a fresh virtual register per promoted offset (int or float). ----
     uint32_t nextVirtualIntRegIndex   = std::max<uint32_t>(1, context.builder->nextVirtualIntRegIndexHint());
     uint32_t nextVirtualFloatRegIndex = 1;
+    SmallVector<MicroInstrRegOperandRef> refs;
     for (const MicroInstr& inst : storage.view())
     {
-        SmallVector<MicroInstrRegOperandRef> refs;
+        refs.clear();
         inst.collectRegOperands(operands, refs, context.encoder);
         for (const auto& ref : refs)
         {

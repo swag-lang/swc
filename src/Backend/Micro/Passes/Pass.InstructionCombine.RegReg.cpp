@@ -1946,8 +1946,8 @@ namespace InstructionCombine
         // The op must update t in place: t is read and written and is its only
         // def. A source operand equal to t would dangle once the init copy is
         // erased, so reject those.
-        const MicroInstrUseDef opUseDef = opInst.collectUseDef(*ctx.operands, nullptr);
-        if (opUseDef.defs.size() != 1 || opUseDef.defs[0] != t || !microRegSpanContains(opUseDef.uses, t))
+        const auto modes = MicroInstr::info(opInst.op).resolvedRegModes(ops);
+        if (modes[0] != MicroInstrRegMode::UseDef || modes[1] == MicroInstrRegMode::UseDef)
             return false;
         if ((opInst.op == MicroInstrOpcode::OpBinaryRegReg || opInst.op == MicroInstrOpcode::OpBinaryRegMem) && ops[1].reg == t)
             return false;

@@ -264,8 +264,9 @@ namespace
         const MicroReg stackPointerReg = encoder.stackPointerReg();
         int64_t        stackDelta      = 0;
 
-        const MicroStorage::View view = context.instructions->view();
-        for (auto it = view.begin(); it != view.end() && it.current != instRef; ++it)
+        const MicroStorage::View view  = context.instructions->view();
+        const auto               endIt = view.end();
+        for (auto it = view.begin(); it != endIt && it.current != instRef; ++it)
         {
             const MicroInstr&        scanInst = *it;
             const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);

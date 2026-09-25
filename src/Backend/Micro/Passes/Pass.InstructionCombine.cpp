@@ -231,11 +231,14 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     // takes their operands away.
     if (ctx.actions.empty())
     {
-        const auto view = ctx.storage->view();
-        for (auto it = view.begin(); it != view.end(); ++it)
+        const auto view  = ctx.storage->view();
+        const auto endIt = view.end();
+        for (auto it = view.begin(); it != endIt; ++it)
         {
+            if (!ctx.ssa || it->op != MicroInstrOpcode::LoadRegReg)
+                continue;
             const MicroInstrOperand* ops = it->ops(*ctx.operands);
-            if (!ctx.ssa || it->op != MicroInstrOpcode::LoadRegReg || !ops || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isVirtualInt())
+            if (!ops || ops[2].opBits != MicroOpBits::B8 || !ops[0].reg.isVirtualInt())
                 continue;
             MicroSsaState::ReachingDef source = ctx.ssa->reachingDef(ops[1].reg, it.current);
             if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
@@ -247,7 +250,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
             if (source.valid() && !source.isPhi && source.inst && source.inst->op == MicroInstrOpcode::SetCondReg)
                 ctx.booleanMerges.insert(ops[0].reg.index());
         }
-        for (auto it = view.begin(); it != view.end(); ++it)
+        for (auto it = view.begin(); it != endIt; ++it)
         {
             const bool widenable = it->op == MicroInstrOpcode::LoadRegReg || it->op == MicroInstrOpcode::LoadRegImm;
             if (widenable && (ctx.relocated.empty() || !ctx.isRelocated(it.current)))

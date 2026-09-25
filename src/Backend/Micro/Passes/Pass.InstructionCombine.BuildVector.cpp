@@ -122,8 +122,9 @@ namespace InstructionCombine
         // between the lane stores and the load.
         bool slotHasOtherReaders(const Context& ctx, const MicroReg base, const uint64_t slotOffset, const uint64_t slotBytes, const MicroInstrRef loadRef, const SmallVector<MicroInstrRef, 16>& storeRefs)
         {
-            const auto view = ctx.storage->view();
-            for (auto it = view.begin(); it != view.end(); ++it)
+            const auto view  = ctx.storage->view();
+            const auto endIt = view.end();
+            for (auto it = view.begin(); it != endIt; ++it)
             {
                 const MicroInstrRef ref = it.current;
                 if (ref == loadRef || std::ranges::find(storeRefs, ref) != storeRefs.end())

@@ -307,7 +307,8 @@ namespace
         // entry allocation is a run too.
         uint64_t   allocation = 0;
         const auto view       = context.instructions->view();
-        for (auto it = view.begin(); it != view.end(); ++it)
+        const auto endIt      = view.end();
+        for (auto it = view.begin(); it != endIt; ++it)
         {
             const MicroInstrOperand* ops = it->ops(*context.operands);
             if (isStackPointerAdjust(*it, ops, stackPointer, MicroOp::Subtract))
@@ -329,7 +330,7 @@ namespace
 
         // Every return must release exactly that allocation, or the epilogue
         // this fold rewrites is not the one it matched.
-        for (auto it = view.begin(); it != view.end(); ++it)
+        for (auto it = view.begin(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::Ret)
                 continue;

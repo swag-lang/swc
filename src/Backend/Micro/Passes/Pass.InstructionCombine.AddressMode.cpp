@@ -518,8 +518,9 @@ namespace InstructionCombine
         // Rewrites are queued, so every candidate of this width asks the same
         // question. Cache separately by width to retain each scan's early exit.
         cached          = FloatReadFit::DoesNotFit;
-        const auto view = storage->view();
-        for (auto it = view.begin(); it != view.end(); ++it)
+        const auto view  = storage->view();
+        const auto endIt = view.end();
+        for (auto it = view.begin(); it != endIt; ++it)
         {
             const auto* useDef = ssa->instrUseDef(it.current);
             if (!useDef)

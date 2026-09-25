@@ -16,6 +16,15 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.056 — Branch directly on an inlined comparator's result
+
+- Recorded: 2026-09-25 11:40
+- Updated: 2026-09-25 15:54 — Audited the remaining unequal-count branch layout against LDC and the post-RA branch inversion rule.
+- Area: compiler/backend, inlining and branch simplification
+- Evidence: wordfreq's common unequal-count comparator path used `setcc`, a copy, an unconditional jump, then a test and conditional jump at the boolean join. A guarded branch-threading rule sends that path to the consumer's successors while preserving the other join predecessors. Its tests cover both branch polarities, a multiply used result, and live flags. The common path loses the materialization and retest; checksum 130489 and 1,104 C++, 3,480 native, and 1,500 JIT tests pass. A guarded post-RA rule then reuses the first comparison's flags across the equality branch when a preceding copy proves both registers hold the same low bits. LDC's inlined comparator emits `test eax, eax; je ...; js ...`; Swag now has the same flag reuse, and `qsort` shrank from 130 to 126 instructions before the later global-load hoist. Timing samples on the shared machine conflicted and were not used to reject either static gain.
+- Additional evidence: the more frequent unequal-count path still emits `cmp; je tie; ja advance; jmp stop`, while LDC branches to the unequal path and lays out `jbe stop; advance` with advance as fall-through. `tryInvertBranchOverJump` in `Pass.PostRAPeephole.Trivial.cpp` requires the first conditional target label immediately after the unconditional jump; the tie-handling block between that jump and the advance label prevents the rule from firing. `Pass.PostRALoopRotate.cpp` rotates top-tested loop back edges but does not lay out comparator successor blocks. This is a control-flow layout gap, independent of the flag-reuse rule.
+- Next: prototype a general block-placement rule that puts the advance successor after the second comparison branch without duplicating the tie path. Prove label ownership, fall-through, flags, and back-edge behavior on both comparator directions and an unrelated branch diamond; then recount each hot loop against LDC.
+
 ### compiler.optimization.055 — Keep read-only global pointers resident across comparator calls
 
 - Recorded: 2026-09-25 11:15
@@ -31,15 +40,6 @@ block, and the hot path keeps the register.
 - Area: compiler/backend, loop-invariant code motion and register allocation
 - Evidence: csvagg converts `u64` to `f64` with two invariant 128-bit constant-pool reads per row. An experimental LICM rule proved `ConstantAddress` loads unaffected by calls and pointer stores, then hoisted both reads above the row loop. A focused C++ test and all 1,104 C++ tests passed. In csvagg, the constants remained live across parsing and map probing; the generated function grew from 1,073 to 1,078 instructions. The LICM rule and test were reverted because the generated code grew; noisy elapsed timings were not a decision criterion. A separate scalar-literal rule now retains a float constant in an XMM register even when each in-loop use could fold its pool read into an arithmetic memory operand. In csvagg, the row body remains at 271 instructions and drops from 81 to 80 memory operands per row; `fdiv` reads the register, as in clang-cl's assembly. The unrelated raytrace `trace` function remains unchanged, while its pixel loop loses three memory operands without more loop instructions or spills. The 1,106 C++, 3,480 native, and 1,500 JIT tests pass, as do the script smoke suite and a randomly selected safety suite (138 expected successes, 7 expected failures).
 - Next: cost a vector-constant hoist by the resulting live range and expected spill traffic. Consider a nearer loop preheader or rematerialization where the constant has a short use region, then recheck the row loop and an unrelated consumer.
-
-### compiler.optimization.056 — Branch directly on an inlined comparator's result
-
-- Recorded: 2026-09-25 11:40
-- Updated: 2026-09-25 14:42 — The restored flag-reuse rule matches LDC's two-branch comparison structure and passes compiler, native, and JIT checks.
-- Area: compiler/backend, inlining and branch simplification
-- Evidence: wordfreq's common unequal-count comparator path used `setcc`, a copy, an unconditional jump, then a test and conditional jump at the boolean join. A guarded branch-threading rule sends that path to the consumer's successors while preserving the other join predecessors. Its tests cover both branch polarities, a multiply used result, and live flags. The common path loses the materialization and retest; checksum 130489 and 1,104 C++, 3,480 native, and 1,500 JIT tests pass. Two 30-pair interleaved runs favored the candidate in 23 and 18 pairs, with median ratios 0.927 and 0.963; machine load varied sharply, so the static path is stronger evidence.
-- Additional evidence: LDC's inlined `qsort` comparator emits `test eax, eax; je ...; js ...` on both sides of the partition loop. Swag emitted two zero comparisons on each side. A guarded post-RA rule reuses the first comparison's flags across its equality branch when a preceding copy proves both registers hold the same low bits. The inlined Swag paths become `cmp eax, 0; je ...; jl ...`, and `qsort` shrinks from 130 to 126 instructions; csvagg's main function stays at 1,073. The wordfreq checksum is 130489; 1,106 C++, 3,480 native, and 1,500 JIT tests pass. Two exploratory interleaved 40-pair wordfreq runs measured candidate/baseline median ratios 1.066 and 1.046, with the candidate faster in only 8/40 pairs in each run. Shared-machine timing does not outweigh the direct assembly comparison.
-- Next: inspect the more frequent unequal-count path against LDC's inlined branches. The repeated global pointer loads in that path are tracked by .055.
 
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 

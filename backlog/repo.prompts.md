@@ -38,6 +38,11 @@ measured. The failures that produces look exactly like the bug the campaign was 
 ```
 Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 1].
 
+Keep commits tied to verified repairs. Record routine observations in the final report; consolidate
+required backlog and documentation corrections at useful milestones instead of committing each note.
+Keep `SWC_BUILD_NUM` at its current value during ordinary source changes; isolate or clear affected
+caches when changed compiler behavior would make an older binary's artifacts unsafe to reuse.
+
 You are running a repository-wide health reset on swc. The primary goal is to verify the code,
 find bugs by executing the complete validation campaigns, and fix them. Documentation and backlog
 accuracy are required secondary outcomes; they must never delay the first complete code campaign.
@@ -317,10 +322,17 @@ when every end condition above is true.
 ```
 Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 2].
 
+Only integrate validated code or API gains into local master. Include tests and required docs with
+the gain; keep routine observations in the final report and update backlog at useful milestones.
+Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
+
+Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
+affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+
 You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
 points to first, then backlog/compiler.core.md, backlog/compiler.optimization.md, and bench/README.md.
 
-WORK IN A SEPARATE WORKTREE; MERGE EACH VALIDATED BATCH
+WORK IN A SEPARATE WORKTREE; INTEGRATE VERIFIED GAINS
 
 Do not run this campaign in the main checkout. Create an isolated worktree on a branch:
 
@@ -330,9 +342,9 @@ This is not hygiene, it is measurement validity. A shared tree picks up foreign 
 from other sessions, and MSBuild's incremental build then links that in-flight code into the
 swc.exe you are timing - so a number moves and it is not yours. It also lets you abandon a whole
 round with one checkout instead of unpicking it, which you will do often here. Keep each successful
-optimization in a reviewable commit and merge every validated batch into local master. Integrate
-concurrent master changes before merging; resolve conflicts and rerun the affected checks. Do not
-leave validated batches accumulating only in the worktree.
+optimization in a reviewable commit and integrate coherent groups of validated gains into local
+master. Integrate concurrent master changes before merging; resolve conflicts and rerun the affected
+checks. Do not leave completed gains permanently only in the worktree.
 
 START OPTIMIZING IN THE FIRST HALF HOUR
 
@@ -450,8 +462,9 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      swc tools\bench.swgs --label "what changed". When comparing elapsed time, record its baseline
      in the same session. A full benchmark is not a prerequisite for merging a statically proven
      improvement.
-  9. Commit and merge the validated batch into local master, then bring the worktree branch up to
-     date before starting the next batch. Preserve unrelated changes on master.
+  9. Commit each validated code gain in the worktree. Integrate a coherent group of those gains
+     into local master after its checks pass, then bring the worktree branch up to date. Preserve
+     unrelated changes on master; do not merge progress notes by themselves.
 
 Between some batches, audit an existing micro pass or backend decision, even if the current task
 does not use it. Inspect its guards and thresholds, identify the general property that justifies
@@ -513,6 +526,13 @@ been run, naming the fastest non-Swag runtime for each task.
 
 ```
 Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 3].
+
+Only integrate validated code or API gains into local master. Include tests and required docs with
+the gain; keep routine observations in the final report and update backlog at useful milestones.
+Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
+
+Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
+affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
 
 You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
 points to first, then backlog/compiler.safety.md, backlog/compiler.core.md, and the language
@@ -642,6 +662,13 @@ could read.
 ```
 Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 4].
 
+Only integrate validated compiler gains into local master. Include tests and required docs with
+the gain; keep routine observations in the final report and update backlog at useful milestones.
+Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
+
+Keep `SWC_BUILD_NUM` at its current value throughout routine optimization iterations. Isolate or
+clear affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
+
 You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
 then compiler.core.004, compiler.core.030 and compiler.core.056 in backlog/compiler.core.md and
 compiler.optimization.029, compiler.optimization.039 and compiler.optimization.045 in
@@ -741,9 +768,9 @@ THE LOOP — PRIORITIZE CODE ITERATIONS
      suite about every five retained batches, after a high-risk change, and at the final milestone.
      Follow validate-swag-changes and machine-load admission. Do not run a full suite after each
      small edit or after a reverted trial. Do not build the DevMode compiler.
-  5. Commit each retained code batch with `[prompt 4]` in its subject and fast-forward it into local
-     `master` before the next retained batch. Keep failed experiments in the worktree only; summarize
-     their reason briefly so the same dead end is not retried.
+  5. Commit each retained code batch with `[prompt 4]` in its subject. Integrate a coherent group
+     of validated gains into local `master` after its checks pass. Keep failed experiments in the
+     worktree only; summarize their reason briefly so the same dead end is not retried.
 
 Aim for several distinct code hypotheses per work session. If most elapsed time is going to tests,
 report writing or log collection, shorten the validation to the next decision boundary and return
@@ -806,6 +833,13 @@ rejected ideas in a sentence each. Do not commit raw logs or long chronological 
 
 ```
 Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 5].
+
+Only integrate validated code or API gains into local master. Include tests and required docs with
+the gain; keep routine observations in the final report and update backlog at useful milestones.
+Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
+
+Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
+affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
 
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
 backlog/compiler.core.md compiler.core.005.
@@ -915,6 +949,13 @@ workload - always both, so a trade is visible the moment it happens.
 
 ```
 Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 6].
+
+Only integrate validated code or API gains into local master. Include tests and required docs with
+the gain; keep routine observations in the final report and update backlog at useful milestones.
+Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
+
+Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
+affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
 
 You are running a mechanical code-health campaign on the swc compiler itself. Read AGENTS.md and
 the skills it points to first, especially modify-swag-codebase,
@@ -1037,10 +1078,9 @@ individual transformation must remain locally obvious.
 
 VERSION AND VALIDATION
 
-Any campaign that changes src/ increments SWC_BUILD_NUM once in src/Main/Version.h, not once per
-file. Before every compiler build or project test, follow the machine-load admission and compiler
-worker limits in modify-swag-codebase. A separate worktree does not provide separate machine
-resources.
+Keep SWC_BUILD_NUM unchanged for this campaign. Before every compiler build or project test,
+follow the machine-load admission and compiler worker limits in modify-swag-codebase. A separate
+worktree does not provide separate machine resources.
 
 Select validation from the final diff using validate-swag-changes:
 
@@ -1071,8 +1111,8 @@ THE CAMPAIGN MAY END ONLY WHEN
   - No incomplete rename, stale reference, obsolete project entry, new suppression, generated file,
     vendored edit, line-ending-only change, or misplaced output remains.
   - The validation selected from the final diff is green after the last source edit.
-  - SWC_BUILD_NUM is incremented exactly once when required and the worktree contains only the
-    intended code-health changes.
+  - SWC_BUILD_NUM remains at its starting value and the worktree contains only the intended
+    code-health changes.
 
 Do not claim completion for findings deliberately left outside the safety boundary. They are not
 failures of this campaign; list them separately without implementing them. Duplication is not one
@@ -1083,7 +1123,7 @@ REPORT
 
 Report the worktree path and branch, starting commit, coherent cleanup batches, important include
 or dependency reductions, comments added or removed, internal renames, code reductions, skipped
-non-mechanical findings, SWC_BUILD_NUM change, files changed, and every validation command with its
+non-mechanical findings, unchanged SWC_BUILD_NUM, files changed, and every validation command with its
 result. Report structural dependency counts when useful, but no timing or memory measurements.
 ```
 
@@ -1093,6 +1133,13 @@ result. Report structural dependency counts when useful, but no timing or memory
 
 ```
 Prefix every commit message for this campaign, including worktree and merge commits, with [prompt 7].
+
+Only integrate validated code or API gains into local master. Include tests and required docs with
+the gain; keep routine observations in the final report and update backlog at useful milestones.
+Several validated local commits may form one coherent integration. Do not merge a notes-only batch.
+
+Keep `SWC_BUILD_NUM` at its current value during ordinary compiler changes. Isolate or clear
+affected caches when changed compiler behavior would make older artifacts unsafe to reuse.
 
 You are running a repository-wide Swag code and API quality campaign across bin/. Read AGENTS.md,
 then the skills modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code,
@@ -1199,8 +1246,8 @@ IMPROVE THE PLATFORM WHEN IT GETS IN THE WAY
 
 When idiomatic Swag is awkward because of a library defect, compiler defect, or missing language
 capability, investigate the cause. Fix understood, relevant platform defects with their focused
-regression coverage; do not spread local workarounds across bin/. Compiler source edits require
-SWC_BUILD_NUM to move, and surface syntax changes require reference and editor updates.
+regression coverage; do not spread local workarounds across bin/. Keep SWC_BUILD_NUM at its current
+value for ordinary compiler edits; surface syntax changes require reference and editor updates.
 
 For an unresolved design decision or a defect that needs separate investigation, search the whole
 backlog, then update or create the owning domain entry with concrete evidence and a next action.

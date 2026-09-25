@@ -102,22 +102,18 @@ process count and `/MP` compilation capped at six.
   Exceed six only when the user explicitly requests it or a concurrency reproducer genuinely
   requires it, and state that exception before launching the command.
 
-## Bump The Compiler Version With Every Change
+## Keep The Compiler Version Stable During Ordinary Changes
 
-[src/Main/Version.h](../../../src/Main/Version.h) carries the compiler's identity, and that
-identity is part of the key of every cache the compiler fills — the script dependency cache keys
-its directory on it. Increment `SWC_BUILD_NUM` (`0.0.1` → `0.0.2` → `0.0.3`) in the same change
-that touches any compiler source under `src/`.
+[src/Main/Version.h](../../../src/Main/Version.h) carries the compiler identity, which is part
+of the key of the caches the compiler fills. Keep `SWC_BUILD_NUM` at its current value during
+ordinary source changes, including optimization iterations. Change it only for an explicit
+release or cache-identity decision, not for each code batch.
 
-The point is not release numbering; it is that a build produced by one compiler is never read back
-by another. A version that does not move lets a cache filled by the previous binary look valid to
-the next one, and the failure surfaces far from its cause — as a syntax error inside a dependency,
-or as a link against an artifact nothing can explain.
-
-- Bump it for any change under `src/`, however small; a change that cannot alter output is not
-  worth the exception.
-- Do not bump it for a change that only touches `bin/`, `backlog/`, or documentation.
-- One bump per change, not one per file.
+When a changed compiler may produce different cached artifacts, isolate or clear the affected
+caches before validating it against an older binary's output. The script dependency cache can be
+cleared with `swc clean --cache`; use the checkout-local compiler and avoid deleting another
+session's live artifacts. A stable build number alone cannot distinguish those binaries, so do
+not trust a cached result as evidence of the new compiler's behavior.
 
 ## Consume Official Native Wrappers
 

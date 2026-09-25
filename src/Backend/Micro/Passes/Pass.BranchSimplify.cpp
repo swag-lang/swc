@@ -223,7 +223,7 @@ namespace
         outLayout.labelOrdinalById.clear();
 
         uint32_t ordinal = 0;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it, ++ordinal)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++ordinal)
         {
             outLayout.order.push_back(it.current);
             outLayout.ordinalByRef[it.current.get()] = ordinal;
@@ -917,7 +917,7 @@ namespace
         bool          changed        = false;
         MicroInstrRef currentFlagDef = MicroInstrRef::invalid();
 
-        for (auto it = storage.view().begin(); it != storage.view().end();)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt;)
         {
             const MicroInstrRef instRef = it.current;
             MicroInstr&         inst    = *it;
@@ -1046,7 +1046,7 @@ namespace
     bool fuseMaterializedBoolBranches(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
     {
         bool changed = false;
-        for (auto it = storage.view().begin(); it != storage.view().end();)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt;)
         {
             const MicroInstrRef jumpRef  = it.current;
             MicroInstr&         jumpInst = *it;
@@ -3422,7 +3422,7 @@ namespace
 
         SmallVector<RangeCheck> checks;
         std::unordered_set<uint32_t> used;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             RangeCheck check;
             check.firstCmpRef  = it.current;
@@ -3644,7 +3644,7 @@ namespace
     {
         const auto& relocated = relocationCache.get(context);
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond || relocated.contains(it.current.get()))
                 continue;
@@ -3829,7 +3829,7 @@ namespace
                 return false;
         }
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond)
                 continue;
@@ -4060,7 +4060,7 @@ namespace
         };
 
         SmallVector<Candidate> candidates;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::OpBinaryRegReg)
                 continue;
@@ -4184,7 +4184,7 @@ namespace
                 ++labelReferences[labelId];
         }
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond)
                 continue;
@@ -4318,7 +4318,7 @@ namespace
 
         SmallVector<Candidate> candidates;
         std::unordered_set<MicroInstrRef> claimedRefs;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond)
                 continue;
@@ -4457,7 +4457,7 @@ namespace
         const auto&                  relocInstrRefs = relocationCache.get(context);
         SmallVector<MicroInstrRef>   labelRefs;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::JumpReg)
@@ -4536,7 +4536,7 @@ namespace
     bool eraseJumpsToImmediateLabels(MicroStorage& storage, MicroOperandStorage& operands, const ProgramLayout& layout)
     {
         bool changed = false;
-        for (auto it = storage.view().begin(); it != storage.view().end();)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt;)
         {
             const MicroInstrRef instRef = it.current;
             const MicroInstr&   inst    = *it;
@@ -4577,7 +4577,7 @@ namespace
     bool invertJumpOverAdjacentJump(MicroStorage& storage, MicroOperandStorage& operands, const ProgramLayout& layout)
     {
         bool changed = false;
-        for (auto it = storage.view().begin(); it != storage.view().end();)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt;)
         {
             MicroInstr& condInst = *it;
             ++it;
@@ -4588,7 +4588,7 @@ namespace
             if (!condOps || condInst.numOperands < 3 || condOps[0].cpuCond == MicroCond::Unconditional)
                 continue;
 
-            if (it == storage.view().end())
+            if (it == endIt)
                 break;
 
             const MicroInstrRef jumpRef  = it.current;
@@ -4785,7 +4785,7 @@ namespace
         SmallVector<Conversion> conversions;
         bool                    needsScratch = false;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
             if (jumpInst.op != MicroInstrOpcode::JumpCond)
@@ -5285,7 +5285,7 @@ namespace
         scan.operands = &operands;
         scan.builder  = context.builder;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::JumpReg)
@@ -5367,7 +5367,7 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
@@ -5494,7 +5494,7 @@ namespace
                    loadOps[5].valueU64 == memoryOps[5].valueU64 && loadOps[6].valueU64 == memoryOps[6].valueU64;
         };
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
@@ -5697,7 +5697,7 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
@@ -5866,7 +5866,7 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
@@ -6080,7 +6080,7 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstrRef cmpRef = it.current;
             const MicroInstr&   cmp    = *it;
@@ -6206,7 +6206,7 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
             if (jumpInst.op != MicroInstrOpcode::JumpCond || scan.relocated.contains(it.current.get()))
@@ -6395,7 +6395,7 @@ namespace
         if (!scan.ssa || !scan.ssa->isValid())
             return false;
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& secondJumpInst = *it;
             if (secondJumpInst.op != MicroInstrOpcode::JumpCond)
@@ -6519,7 +6519,7 @@ namespace
         DiamondScan& scan = *scanPtr;
 
         std::vector<Diamond> diamonds;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
             if (jumpInst.op != MicroInstrOpcode::JumpCond)
@@ -6690,7 +6690,7 @@ namespace
         DiamondScan& scan = *scanPtr;
 
         std::vector<Triangle> triangles;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
             if (jumpInst.op != MicroInstrOpcode::JumpCond)
@@ -7013,7 +7013,7 @@ namespace
             return false;
 
         std::vector<EarlyReturn> candidates;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& jumpInst = *it;
             if (jumpInst.op != MicroInstrOpcode::JumpCond)
@@ -7095,7 +7095,7 @@ namespace
         bool changed      = false;
         bool inDeadRegion = false;
 
-        for (auto it = storage.view().begin(); it != storage.view().end();)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt;)
         {
             const MicroInstrRef instRef = it.current;
             const MicroInstr&   inst    = *it;

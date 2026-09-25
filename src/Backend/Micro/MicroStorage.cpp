@@ -29,18 +29,6 @@ std::pair<MicroOperandRef, MicroInstrOperand*> MicroOperandStorage::emplaceUnini
     return {first, operands_.data() + first.get()};
 }
 
-MicroInstrOperand* MicroOperandStorage::ptr(MicroOperandRef ref) noexcept
-{
-    SWC_ASSERT(ref.get() < operands_.size());
-    return operands_.data() + ref.get();
-}
-
-const MicroInstrOperand* MicroOperandStorage::ptr(MicroOperandRef ref) const noexcept
-{
-    SWC_ASSERT(ref.get() < operands_.size());
-    return operands_.data() + ref.get();
-}
-
 MicroStorage::Iterator::reference MicroStorage::Iterator::operator*() const
 {
     SWC_ASSERT(storage);

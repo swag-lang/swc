@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,6 +18,32 @@ public:
 private:
     std::vector<MicroInstrOperand> operands_;
 };
+
+inline MicroInstrOperand* MicroOperandStorage::ptr(const MicroOperandRef ref) noexcept
+{
+    SWC_ASSERT(ref.get() < operands_.size());
+    return operands_.data() + ref.get();
+}
+
+inline const MicroInstrOperand* MicroOperandStorage::ptr(const MicroOperandRef ref) const noexcept
+{
+    SWC_ASSERT(ref.get() < operands_.size());
+    return operands_.data() + ref.get();
+}
+
+inline MicroInstrOperand* MicroInstr::ops(MicroOperandStorage& operands) const
+{
+    if (!numOperands)
+        return nullptr;
+    return operands.ptr(opsRef);
+}
+
+inline const MicroInstrOperand* MicroInstr::ops(const MicroOperandStorage& operands) const
+{
+    if (!numOperands)
+        return nullptr;
+    return operands.ptr(opsRef);
+}
 
 class MicroStorage
 {

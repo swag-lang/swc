@@ -124,20 +124,6 @@ namespace
     }
 }
 
-MicroInstrOperand* MicroInstr::ops(MicroOperandStorage& operands) const
-{
-    if (!numOperands)
-        return nullptr;
-    return operands.ptr(opsRef);
-}
-
-const MicroInstrOperand* MicroInstr::ops(const MicroOperandStorage& operands) const
-{
-    if (!numOperands)
-        return nullptr;
-    return operands.ptr(opsRef);
-}
-
 MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const
 {
     const MicroInstrDef&     opcodeInfo = info(op);

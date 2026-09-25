@@ -3962,19 +3962,20 @@ namespace
                 skippedMentions[candidate.skippedMask.index()]      = 0;
             }
         }
-        MicroInstrRegOperandRefs regOperands;
         for (const MicroInstr& inst : storage.view())
         {
-            regOperands.clear();
-            inst.collectRegOperands(operands, regOperands, context.encoder);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!regOperand.reg || !regOperand.reg->isVirtualInt())
+                if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
                     continue;
-                const auto found = rhsMentions.find(regOperand.reg->index());
+                const auto found = rhsMentions.find(ops[i].reg.index());
                 if (found != rhsMentions.end())
                     ++found->second;
-                const auto skipped = skippedMentions.find(regOperand.reg->index());
+                const auto skipped = skippedMentions.find(ops[i].reg.index());
                 if (skipped != skippedMentions.end())
                     ++skipped->second;
             }
@@ -4107,16 +4108,17 @@ namespace
         std::unordered_map<uint32_t, uint32_t> rhsMentions;
         for (const Candidate& candidate : candidates)
             rhsMentions[candidate.rhs.index()] = 0;
-        MicroInstrRegOperandRefs regOperands;
         for (const MicroInstr& inst : storage.view())
         {
-            regOperands.clear();
-            inst.collectRegOperands(operands, regOperands, context.encoder);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!regOperand.reg || !regOperand.reg->isVirtualInt())
+                if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
                     continue;
-                const auto found = rhsMentions.find(regOperand.reg->index());
+                const auto found = rhsMentions.find(ops[i].reg.index());
                 if (found != rhsMentions.end())
                     ++found->second;
             }

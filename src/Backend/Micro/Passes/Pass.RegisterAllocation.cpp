@@ -3944,22 +3944,46 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        MicroInstrRegOperandRefs regRefs;
-        it->collectRegOperands(*operands_, regRefs, context_->encoder);
-
+        MicroInstrOperand* instOps = it->ops(*operands_);
         SmallVector<MicroReg> protectedKeys;
-        protectedKeys.reserve(regRefs.size());
-        for (const auto& regRef : regRefs)
+        SmallVector<AllocRequest> allocRequests;
+        if (instOps)
         {
-            if (!regRef.reg)
-                continue;
+            const auto modes = MicroInstr::info(it->op).resolvedRegModes(instOps);
+            for (size_t operand = 0; operand < modes.size(); ++operand)
+            {
+                const MicroInstrRegMode mode = modes[operand];
+                if (mode == MicroInstrRegMode::None)
+                    continue;
+                const MicroReg reg = instOps[operand].reg;
+                if (!reg.isVirtual())
+                    continue;
 
-            const auto reg = *regRef.reg;
-            if (!reg.isVirtual())
-                continue;
+                if (!containsKey(protectedKeys, reg))
+                    protectedKeys.push_back(reg);
 
-            if (!containsKey(protectedKeys, reg))
-                protectedKeys.push_back(reg);
+                AllocRequest* existing = nullptr;
+                for (auto& request : allocRequests)
+                {
+                    if (request.virtKey == reg)
+                    {
+                        existing = &request;
+                        break;
+                    }
+                }
+
+                if (!existing)
+                {
+                    auto& request            = allocRequests.emplace_back();
+                    request.virtReg          = reg;
+                    request.virtKey          = reg;
+                    request.instructionIndex = idx;
+                    existing                 = &request;
+                }
+
+                existing->isUse |= mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef;
+                existing->isDef |= mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef;
+            }
         }
 
         // On a back-edge, the header's committed pairs were just restored
@@ -3981,41 +4005,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        SmallVector<AllocRequest> allocRequests;
-        allocRequests.reserve(protectedKeys.size());
-        for (const auto& regRef : regRefs)
-        {
-            if (!regRef.reg)
-                continue;
-
-            const auto reg = *regRef.reg;
-            if (!reg.isVirtual())
-                continue;
-
-            AllocRequest* existing = nullptr;
-            for (auto& request : allocRequests)
-            {
-                if (request.virtKey == reg)
-                {
-                    existing = &request;
-                    break;
-                }
-            }
-
-            if (!existing)
-            {
-                auto& request            = allocRequests.emplace_back();
-                request.virtReg          = reg;
-                request.virtKey          = reg;
-                request.instructionIndex = idx;
-                existing                 = &request;
-            }
-
-            existing->isUse = existing->isUse || regRef.use;
-            existing->isDef = existing->isDef || regRef.def;
-        }
-
-        const MicroInstrOperand* instOps = it->ops(*operands_);
         for (auto& request : allocRequests)
         {
             if (!instOps || !request.isDef || request.isUse)
@@ -4238,22 +4227,20 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        for (const auto& regRef : regRefs)
+        if (instOps)
         {
-            if (!regRef.reg)
-                continue;
-
-            const auto reg = *regRef.reg;
-            if (!reg.isVirtual())
-                continue;
-
-            for (const auto& assigned : assignedPhysRegs)
+            const auto modes = MicroInstr::info(it->op).resolvedRegModes(instOps);
+            for (size_t operand = 0; operand < modes.size(); ++operand)
             {
-                if (assigned.virtKey != reg)
+                if (modes[operand] == MicroInstrRegMode::None || !instOps[operand].reg.isVirtual())
                     continue;
-
-                *(regRef.reg) = assigned.physReg;
-                break;
+                for (const auto& assigned : assignedPhysRegs)
+                {
+                    if (assigned.virtKey != instOps[operand].reg)
+                        continue;
+                    instOps[operand].reg = assigned.physReg;
+                    break;
+                }
             }
         }
 

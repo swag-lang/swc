@@ -28,7 +28,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::WritesMemory,
+        .flags                 = MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -39,7 +39,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::WritesMemory,
+        .flags                 = MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -451,7 +451,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::UsesCpuFlags,
+        .flags                 = MicroInstrFlagsE::UsesCpuFlags | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -547,7 +547,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::OpBinaryRegReg,
         .microOpIndex          = 3,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -577,7 +577,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -588,7 +588,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::OpBinaryRegMem,
         .microOpIndex          = 3,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 1,
         .memOffsetOperandIndex = 4,
     })
@@ -621,7 +621,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 7,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::WritesMemory,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -643,7 +643,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::OpBinaryMemReg,
         .microOpIndex          = 3,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 4,
     })
@@ -654,7 +654,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
     })
@@ -829,7 +829,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::Zero,
+        .flags                 = MicroInstrFlagsE::Zero | MicroInstrFlagsE::EncoderRegUseDef,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })

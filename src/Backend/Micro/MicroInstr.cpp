@@ -119,7 +119,7 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
     const auto modes = opcodeInfo.resolvedRegModes(ops);
     collectRegUseDefFromModes(useDef, ops, modes);
 
-    if (encoder)
+    if (encoder && opcodeInfo.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
         encoder->updateRegUseDef(*this, ops, useDef);
 
     return useDef;

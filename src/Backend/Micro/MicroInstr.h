@@ -41,6 +41,8 @@ enum class MicroInstrFlagsE : uint16_t
     HasMemBaseOffsetOperands = 1 << 5,
     IsCallInstruction        = 1 << 6,
     WritesMemory             = 1 << 7,
+    // An encoder may add implicit register uses or definitions for this opcode.
+    EncoderRegUseDef         = 1 << 8,
 };
 using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 

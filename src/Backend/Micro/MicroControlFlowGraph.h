@@ -36,9 +36,8 @@ public:
     uint32_t                  indexOf(MicroInstrRef ref) const;
     uint32_t                  indexOfLabel(uint64_t labelRef) const;
 
-    // Identifies this graph's contents. Every build takes a fresh value, so a reader that
-    // derived something from the graph can tell whether that derivation still describes it -
-    // even if a graph is destroyed and another is allocated at the same address.
+    // Identifies this graph's contents during its lifetime. SSA also checks the graph
+    // pointer and clears that association before starting another function.
     uint64_t buildId() const { return buildId_; }
 
 private:

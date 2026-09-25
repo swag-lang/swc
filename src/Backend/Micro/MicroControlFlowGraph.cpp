@@ -63,8 +63,7 @@ void MicroControlFlowGraph::addEdge(const uint32_t source, const uint32_t target
 
 void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperandStorage& operands)
 {
-    static std::atomic<uint64_t> nextBuildId{1};
-    buildId_ = nextBuildId.fetch_add(1, std::memory_order_relaxed);
+    ++buildId_;
 
     clear();
 

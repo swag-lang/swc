@@ -456,9 +456,23 @@ namespace
     // Every register the instruction defines becomes an opaque value.
     void setDefsOpaque(const SlpFunctionContext& fn, BlockScan& scan, const MicroInstr& inst)
     {
-        const MicroInstrUseDef useDef = inst.collectUseDef(*fn.operands, fn.encoder);
-        for (const MicroReg reg : useDef.defs)
-            setOpaque(scan, reg);
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(*fn.operands, fn.encoder);
+            for (const MicroReg reg : useDef.defs)
+                setOpaque(scan, reg);
+        }
+        else if (const MicroInstrOperand* ops = inst.ops(*fn.operands))
+        {
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) &&
+                    ops[i].reg.isValid() && !ops[i].reg.isNoBase())
+                    setOpaque(scan, ops[i].reg);
+            }
+        }
     }
 
     void killLocationRange(BlockScan& scan, uint32_t rootKey, uint64_t offset, uint32_t size, MicroInstrRef storeRef)

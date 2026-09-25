@@ -68,6 +68,24 @@ namespace
         return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0;
     }
 
+    template<typename F>
+    void visitRegOperands(const MicroInstr& inst, const MicroOperandStorage& operands, F&& visit)
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            return;
+        const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+        for (size_t index = 0; index < modes.size(); ++index)
+        {
+            const MicroInstrRegMode mode = modes[index];
+            if (mode == MicroInstrRegMode::None)
+                continue;
+            const MicroReg reg = ops[index].reg;
+            if (reg.isValid() && !reg.isNoBase())
+                visit(reg, mode);
+        }
+    }
+
     void collectUsedConcreteRegs(const MicroPassContext& context, const CallConv& conv, uint64_t& outUsedRegs, uint64_t& outDefinedBeforeUse)
     {
         SWC_ASSERT(context.instructions);
@@ -83,35 +101,24 @@ namespace
                 pendingRegs |= 1ull << bit;
         }
 
-        auto& operands = *context.operands;
-        MicroInstrRegOperandRefs refs;
+        const auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
-            refs.clear();
-            inst.collectRegOperands(operands, refs, context.encoder);
             uint64_t usedRegs    = 0;
             uint64_t definedRegs = 0;
-            for (const MicroInstrRegOperandRef& microInstrRef : refs)
-            {
-                if (!microInstrRef.reg)
-                    continue;
-
-                const MicroReg reg = *(microInstrRef.reg);
-                if (!reg.isValid() || reg.isVirtual())
-                    continue;
-
-                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
-                if (bit >= MicroPhysLiveness::K_INVALID_BIT)
-                    continue;
-                outUsedRegs |= 1ull << bit;
+            visitRegOperands(inst, operands, [&](MicroReg reg, MicroInstrRegMode mode) {
+                const uint64_t regMask = physicalRegMask(reg);
+                if (!regMask)
+                    return;
+                outUsedRegs |= regMask;
                 if (!pendingRegs)
-                    continue;
-                const uint64_t mask = (1ull << bit) & pendingRegs;
-                if (microInstrRef.use)
+                    return;
+                const uint64_t mask = regMask & pendingRegs;
+                if (mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef)
                     usedRegs |= mask;
-                if (microInstrRef.def)
+                if (mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef)
                     definedRegs |= mask;
-            }
+            });
             // Aggregate the entire instruction before resolving first touches:
             // a read wins over a definition even when its operand appears later.
             outDefinedBeforeUse |= pendingRegs & definedRegs & ~usedRegs;
@@ -127,29 +134,17 @@ namespace
         if (!conv.framePointer.isValid() || !conv.stackPointer.isValid())
             return false;
 
-        auto& operands = *context.operands;
-        MicroInstrRegOperandRefs refs;
+        const auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
-            refs.clear();
-            inst.collectRegOperands(operands, refs, context.encoder);
-
             bool framePointerUsed = false;
             bool framePointerDef  = false;
-            for (const MicroInstrRegOperandRef& microInstrRef : refs)
-            {
-                if (!microInstrRef.reg)
-                    continue;
-
-                const MicroReg reg = *(microInstrRef.reg);
-                if (!reg.isValid() || reg.isVirtual() || reg != conv.framePointer)
-                    continue;
-
-                if (microInstrRef.use)
-                    framePointerUsed = true;
-                if (microInstrRef.def)
-                    framePointerDef = true;
-            }
+            visitRegOperands(inst, operands, [&](MicroReg reg, MicroInstrRegMode mode) {
+                if (reg != conv.framePointer)
+                    return;
+                framePointerUsed |= mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef;
+                framePointerDef |= mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef;
+            });
 
             if (framePointerUsed)
                 return false;
@@ -609,20 +604,12 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
     uint64_t classifiedRegs    = 0;
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
-    auto& storeOps = *context.operands;
-    MicroInstrRegOperandRefs refs;
+    const auto& storeOps = *context.operands;
     for (const auto& inst : context.instructions->view())
     {
-        refs.clear();
-        inst.collectRegOperands(storeOps, refs, context.encoder);
-        for (const MicroInstrRegOperandRef& microInstrRef : refs)
-        {
-            if (!microInstrRef.reg)
-                continue;
-
-            const MicroReg reg = *(microInstrRef.reg);
-            if (!reg.isValid() || reg.isVirtual())
-                continue;
+        visitRegOperands(inst, storeOps, [&](MicroReg reg, MicroInstrRegMode mode) {
+            if (reg.isVirtual())
+                return;
 
             // Merely naming the frame pointer requests its setup. Every
             // other register matters only at its first definition.
@@ -633,24 +620,24 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
                     useFramePointer_  = true;
                     framePointerNamed = true;
                 }
-                continue;
+                return;
             }
-            if (!microInstrRef.def)
-                continue;
+            if (mode != MicroInstrRegMode::Def && mode != MicroInstrRegMode::UseDef)
+                return;
 
             const uint32_t bit = MicroPhysLiveness::bitOf(reg);
             if (bit < MicroPhysLiveness::K_INVALID_BIT)
             {
                 const uint64_t mask = 1ull << bit;
                 if (classifiedRegs & mask)
-                    continue;
+                    return;
                 classifiedRegs |= mask;
             }
 
             if (reg.isInt())
             {
                 if (!conv.isIntPersistentReg(reg))
-                    continue;
+                    return;
 
                 if (!containsPushedReg(reg))
                     pushedRegs_.push_back(reg);
@@ -658,7 +645,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
             else if (reg.isFloat())
             {
                 if (!conv.isFloatPersistentReg(reg))
-                    continue;
+                    return;
 
                 if (!containsSavedSlot(reg))
                 {
@@ -668,7 +655,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
                     savedRegSlots_.push_back(savedSlot);
                 }
             }
-        }
+        });
     }
 
     // The frame register is only owed to the unwinder by a function whose stack pointer moves

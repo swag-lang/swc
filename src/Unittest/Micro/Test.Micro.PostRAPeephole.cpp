@@ -1247,6 +1247,67 @@ SWC_TEST_BEGIN(PostRAPeephole_FallthroughJumpSkipsTrivialGap)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_SharesIdenticalReturnEpilogue)
+{
+    constexpr MicroReg value = MicroReg::intReg(13);
+    constexpr MicroReg other = MicroReg::intReg(14);
+    const MicroReg ret = CallConv::get(CallConvKind::Swag).intReturn;
+    const MicroReg stack = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    MicroBuilder builder(ctx);
+    const MicroLabelRef collision = builder.createLabel();
+    const MicroLabelRef exit = builder.createLabel();
+    builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, collision);
+    builder.emitLoadRegReg(ret, value, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(stack, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitPop(value);
+    builder.emitRet();
+    builder.placeLabel(collision);
+    builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.placeLabel(exit);
+    builder.emitLoadRegReg(ret, value, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(stack, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitPop(value);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Ret) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Pop) != 1)
+        return Result::Error;
+    bool redirected = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::JumpCond)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (ops && ops[0].cpuCond == MicroCond::Equal && ops[2].valueU64 == exit.get())
+            redirected = true;
+    }
+    if (!redirected)
+        return Result::Error;
+
+    MicroBuilder differentValue(ctx);
+    const MicroLabelRef otherCollision = differentValue.createLabel();
+    const MicroLabelRef otherExit = differentValue.createLabel();
+    differentValue.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+    differentValue.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, otherCollision);
+    differentValue.emitLoadRegReg(ret, value, MicroOpBits::B64);
+    differentValue.emitRet();
+    differentValue.placeLabel(otherCollision);
+    differentValue.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    differentValue.placeLabel(otherExit);
+    differentValue.emitLoadRegReg(ret, other, MicroOpBits::B64);
+    differentValue.emitRet();
+    X64Encoder differentValueEncoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(differentValue, &differentValueEncoder));
+    if (Backend::Unittest::countOpcode(differentValue, MicroInstrOpcode::Ret) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_DeadCompareBeforeRet_Erased)
 {
     const CallConv& conv = CallConv::get(CallConvKind::Swag);

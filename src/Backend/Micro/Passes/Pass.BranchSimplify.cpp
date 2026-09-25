@@ -83,6 +83,8 @@ namespace
         std::vector<uint32_t>                  ordinalByRef;
         std::unordered_map<uint32_t, uint32_t> labelOrdinalById;
         bool                                   hasConditionalJump = false;
+        bool                                   hasImmediateCompare = false;
+        bool                                   hasSetCondition = false;
     };
 
     bool tryGetKnownReachingValue(KnownValue& outValue, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
@@ -222,7 +224,9 @@ namespace
         outLayout.order.reserve(storage.count());
         outLayout.ordinalByRef.assign(storage.slotCount(), K_INVALID_ORDINAL);
         outLayout.labelOrdinalById.clear();
-        outLayout.hasConditionalJump = false;
+        outLayout.hasConditionalJump  = false;
+        outLayout.hasImmediateCompare = false;
+        outLayout.hasSetCondition     = false;
 
         uint32_t ordinal = 0;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++ordinal)
@@ -238,6 +242,10 @@ namespace
                 const MicroInstrOperand* ops = it->ops(operands);
                 outLayout.hasConditionalJump |= ops && ops[0].cpuCond != MicroCond::Unconditional;
             }
+            else if (it->op == MicroInstrOpcode::CmpRegImm)
+                outLayout.hasImmediateCompare = true;
+            else if (it->op == MicroInstrOpcode::SetCondReg)
+                outLayout.hasSetCondition = true;
         }
     }
 
@@ -2296,6 +2304,9 @@ namespace
 
         if (!context.builder)
             return false;
+        scanCache.ensureLayout(storage, operands);
+        if (!scanCache.scan.layout.hasImmediateCompare)
+            return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
         if (!scanPtr)
@@ -2557,6 +2568,9 @@ namespace
 
         if (!context.builder)
             return false;
+        scanCache.ensureLayout(storage, operands);
+        if (!scanCache.scan.layout.hasSetCondition)
+            return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
         if (!scanPtr)
@@ -2765,6 +2779,9 @@ namespace
     {
         if (!context.builder)
             return false;
+        scanCache.ensureLayout(storage, operands);
+        if (!scanCache.scan.layout.hasSetCondition)
+            return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
         if (!scanPtr)
@@ -2962,6 +2979,9 @@ namespace
         constexpr size_t   K_MAX_LOOKBACK = 4;
 
         if (!context.builder)
+            return false;
+        scanCache.ensureLayout(storage, operands);
+        if (!scanCache.scan.layout.hasImmediateCompare)
             return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);

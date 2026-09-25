@@ -238,7 +238,7 @@ namespace PostRaPeephole
     // unobservable, so the clear is pure encoding overhead.
     bool tryEraseScalarReturnConversionClear(Context& ctx, const MicroInstrRef clearRef, const MicroInstr& clearInst)
     {
-        if (ctx.isClaimed(clearRef) || clearInst.op != MicroInstrOpcode::ClearReg ||
+        if (ctx.isClaimed(clearRef) ||
             !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
             return false;
         const auto* clear = clearInst.ops(*ctx.operands);
@@ -511,7 +511,7 @@ namespace PostRaPeephole
     // about to write.
     bool tryUseSelfOperandForFloatBinary(Context& ctx, const MicroInstrRef opRef, const MicroInstr& opInst)
     {
-        if (opInst.op != MicroInstrOpcode::OpBinaryRegMem || opInst.numOperands < 5)
+        if (opInst.numOperands < 5)
             return false;
 
         const MicroInstrOperand* ops = ctx.operandsFor(opRef);
@@ -595,7 +595,7 @@ namespace PostRaPeephole
     {
         constexpr uint32_t K_MAX_SCAN = 8;
 
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+        if (copyInst.numOperands < 3)
             return false;
 
         const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
@@ -688,7 +688,7 @@ namespace PostRaPeephole
     {
         constexpr uint32_t K_MAX_SCAN = 8;
 
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+        if (copyInst.numOperands < 3)
             return false;
 
         const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
@@ -786,7 +786,7 @@ namespace PostRaPeephole
     {
         constexpr uint32_t K_MAX_SCAN = 8;
 
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+        if (copyInst.numOperands < 3)
             return false;
 
         const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
@@ -889,7 +889,7 @@ namespace PostRaPeephole
     // only when the logical shift itself proves the upper dword is zero.
     bool tryFoldMultiplyShiftResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (ctx.isClaimed(copyRef) || !ctx.encoder || copyInst.op != MicroInstrOpcode::LoadRegReg)
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
             return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
@@ -947,7 +947,7 @@ namespace PostRaPeephole
     {
         if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
             return false;
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+        if (copyInst.numOperands < 3)
             return false;
 
         const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
@@ -1037,7 +1037,7 @@ namespace PostRaPeephole
     {
         if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
             return false;
-        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+        if (copyInst.numOperands < 3)
             return false;
 
         const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);

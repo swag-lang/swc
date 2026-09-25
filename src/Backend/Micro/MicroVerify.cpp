@@ -589,7 +589,7 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
         return Result::Continue;
 
     uint32_t instructionIdx = 0;
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it, ++instructionIdx)
+    for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it, ++instructionIdx)
     {
         const MicroInstr& inst = *it;
         if (!inst.numOperands || inst.opsRef.isInvalid())
@@ -628,7 +628,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
     std::vector instructionOrdinalByRef(context.instructions->slotCount(), K_ORDINAL_INVALID);
 
     uint32_t instructionOrdinal = 0;
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
     {
         instructionOrdinalByRef[it.current.get()] = instructionOrdinal++;
         const MicroInstr& inst                    = *it;
@@ -742,7 +742,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
         relocationCountByRef.resize(instructionSlotCount);
     }
 
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
     {
         const MicroInstrRef instructionRef = it.current;
         const MicroInstr&   inst           = *it;

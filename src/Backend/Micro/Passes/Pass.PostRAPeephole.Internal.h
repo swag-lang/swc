@@ -106,6 +106,7 @@ namespace PostRaPeephole
     bool tryUseTestForDeadMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseRepeatedCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldConstantBooleanSet(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConditionalBitwiseNot(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConditionalAddSubtract(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldFloatReturnXorCopyChain(Context& ctx, MicroInstrRef firstCopyRef, const MicroInstr& firstCopyInst);

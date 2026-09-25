@@ -60,6 +60,176 @@ namespace
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
         return std::ranges::find(useDef.defs, reg) != useDef.defs.end();
     }
+
+    // A short, straight-line indexed read loop can pay one bound test for four
+    // reads. Keep the original loop as the scalar tail, and use displacements
+    // for the other three reads so its induction value advances only once.
+    bool partiallyUnrollIndexedReadLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands,
+                                        MicroBuilder& builder, const std::vector<MicroInstrRef>& order,
+                                        const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot,
+                                        const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
+    {
+        if (headerOrdinal + 4 > jumpOrdinal || jumpOrdinal + 1 >= order.size())
+            return false;
+        const MicroInstr*        compare = storage.ptr(order[jumpOrdinal - 1]);
+        const MicroInstr*        step    = storage.ptr(order[jumpOrdinal - 2]);
+        const MicroInstr*        jump    = storage.ptr(order[jumpOrdinal]);
+        const MicroInstrOperand* cmpOps  = compare ? compare->ops(operands) : nullptr;
+        const MicroInstrOperand* stepOps = step ? step->ops(operands) : nullptr;
+        const MicroInstrOperand* jumpOps = jump ? jump->ops(operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !cmpOps ||
+            !step || step->op != MicroInstrOpcode::OpBinaryRegImm || !stepOps ||
+            !jumpOps || jumpOps[0].cpuCond != MicroCond::Below ||
+            stepOps[2].microOp != MicroOp::Add || stepOps[3].hasWideImmediateValue() || stepOps[3].valueU64 != 1 ||
+            cmpOps[0].reg != stepOps[0].reg || cmpOps[0].reg == cmpOps[1].reg ||
+            !cmpOps[0].reg.isVirtualInt() || !cmpOps[1].reg.isVirtualInt() ||
+            cmpOps[2].opBits != MicroOpBits::B64 || stepOps[1].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg counter = cmpOps[0].reg;
+        const MicroReg bound   = cmpOps[1].reg;
+        bool haveZeroInit = false;
+        for (uint32_t back = 1; back <= 8 && back <= headerOrdinal; ++back)
+        {
+            const MicroInstr* inst = storage.ptr(order[headerOrdinal - back]);
+            if (!inst || inst->op == MicroInstrOpcode::Label)
+                break;
+            if (!defsRegister(*inst, operands, context.encoder, counter))
+                continue;
+            const MicroInstrOperand* ops = inst->ops(operands);
+            haveZeroInit = inst->op == MicroInstrOpcode::ClearReg ||
+                           (inst->op == MicroInstrOpcode::LoadRegImm && ops && ops[1].opBits == MicroOpBits::B64 &&
+                            !ops[2].hasWideImmediateValue() && ops[2].valueU64 == 0);
+            break;
+        }
+        if (!haveZeroInit)
+            return false;
+
+        const uint32_t bodyBegin = headerOrdinal + 1;
+        const uint32_t bodyEnd   = jumpOrdinal - 2;
+        const uint32_t bodyCount = bodyEnd - bodyBegin;
+        if (!bodyCount || bodyCount > 12)
+            return false;
+        bool indexedRead = false;
+        std::unordered_set<MicroReg> indexedBases;
+        std::unordered_set<MicroReg> bodyDefs;
+        for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
+        {
+            const MicroInstrRef      ref  = order[ordinal];
+            const MicroInstr*        inst = storage.ptr(ref);
+            const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            if (!inst || !ops || relocsBySlot.contains(ref.get()))
+                return false;
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            if (inst->op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::WritesMemory) ||
+                MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops))
+                return false;
+            const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+            bodyDefs.insert(useDef.defs.begin(), useDef.defs.end());
+            if (std::ranges::find(useDef.defs, counter) != useDef.defs.end() ||
+                std::ranges::find(useDef.defs, bound) != useDef.defs.end())
+                return false;
+            if (std::ranges::find(useDef.uses, counter) == useDef.uses.end())
+                continue;
+            if ((inst->op != MicroInstrOpcode::LoadAmcRegMem && inst->op != MicroInstrOpcode::LoadZeroExtAmcRegMem) ||
+                ops[1].reg == counter ||
+                ops[2].reg != counter || ops[5].valueU64 != 1 ||
+                ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX - 3))
+                return false;
+            indexedRead = true;
+            indexedBases.insert(ops[1].reg);
+        }
+        if (!indexedRead)
+            return false;
+        for (const MicroReg base : indexedBases)
+        {
+            if (bodyDefs.contains(base))
+                return false;
+        }
+
+        const uint32_t nextVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        if (nextVirtual >= MicroReg::K_MAX_INDEX)
+            return false;
+        const MicroReg limit = MicroReg::virtualIntReg(nextVirtual);
+        const uint64_t groupId = builder.createLabel().get();
+        const uint64_t exitId  = builder.createLabel().get();
+        const MicroInstrRef headerRef = order[headerOrdinal];
+        const MicroInstrRef afterRef  = order[jumpOrdinal + 1];
+        const MicroInstrOperand jumpBits = jumpOps[1];
+        const MicroInstrOperand originalCmp[3] = {cmpOps[0], cmpOps[1], cmpOps[2]};
+        const MicroInstrOperand originalStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
+
+        MicroInstrOperand boundCheck[3] = {};
+        boundCheck[0].reg = bound;
+        boundCheck[1].opBits = MicroOpBits::B64;
+        boundCheck[2].setImmediateValue(ApInt(4, 64));
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::CmpRegImm, boundCheck);
+        MicroInstrOperand shortJump[3] = {};
+        shortJump[0].cpuCond  = MicroCond::Below;
+        shortJump[1]          = jumpBits;
+        shortJump[2].valueU64 = headerId;
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::JumpCond, shortJump);
+        MicroInstrOperand limitCopy[3] = {};
+        limitCopy[0].reg = limit;
+        limitCopy[1].reg = bound;
+        limitCopy[2].opBits = MicroOpBits::B64;
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::LoadRegReg, limitCopy);
+        MicroInstrOperand limitSub[4] = {};
+        limitSub[0].reg = limit;
+        limitSub[1].opBits = MicroOpBits::B64;
+        limitSub[2].microOp = MicroOp::Subtract;
+        limitSub[3].setImmediateValue(ApInt(3, 64));
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::OpBinaryRegImm, limitSub);
+        MicroInstrOperand groupLabel[1] = {};
+        groupLabel[0].valueU64 = groupId;
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::Label, groupLabel);
+
+        for (uint64_t copy = 0; copy < 4; ++copy)
+        {
+            for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
+            {
+                const MicroInstr* src = storage.ptr(order[ordinal]);
+                const MicroInstrOperand* srcOps = src->ops(operands);
+                SmallVector<MicroInstrOperand, 8> cloned;
+                for (uint32_t index = 0; index < src->numOperands; ++index)
+                    cloned.push_back(srcOps[index]);
+                if ((src->op == MicroInstrOpcode::LoadAmcRegMem || src->op == MicroInstrOpcode::LoadZeroExtAmcRegMem) &&
+                    cloned[2].reg == counter)
+                    cloned[6].valueU64 += copy;
+                storage.insertDerivedBefore(operands, headerRef, src->op, {cloned.data(), cloned.size()});
+            }
+        }
+        MicroInstrOperand groupStep[4] = {originalStep[0], originalStep[1], originalStep[2], originalStep[3]};
+        groupStep[3].setImmediateValue(ApInt(4, 64));
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::OpBinaryRegImm, groupStep);
+        MicroInstrOperand groupCmp[3] = {};
+        groupCmp[0].reg = counter;
+        groupCmp[1].reg = limit;
+        groupCmp[2].opBits = MicroOpBits::B64;
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::CmpRegReg, groupCmp);
+        MicroInstrOperand groupJump[3] = {};
+        groupJump[0].cpuCond  = MicroCond::Below;
+        groupJump[1]          = jumpBits;
+        groupJump[2].valueU64 = groupId;
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::JumpCond, groupJump);
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::CmpRegReg, originalCmp);
+        MicroInstrOperand exitJump[3] = {};
+        exitJump[0].cpuCond  = MicroCond::AboveOrEqual;
+        exitJump[1]          = jumpBits;
+        exitJump[2].valueU64 = exitId;
+        storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::JumpCond, exitJump);
+        MicroInstrOperand exitLabel[1] = {};
+        exitLabel[0].valueU64 = exitId;
+        storage.insertDerivedBefore(operands, afterRef, MicroInstrOpcode::Label, exitLabel);
+
+        builder.invalidateControlFlowGraph();
+        context.passChanged = true;
+        return true;
+    }
 }
 
 Result MicroLoopUnrollPass::run(MicroPassContext& context)
@@ -165,6 +335,12 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // The latch: add %i, step / cmp %i, N / jcc H.
             const MicroInstr* cmp = storage.ptr(order[jccOrdinal - 1]);
             const MicroInstr* add = storage.ptr(order[jccOrdinal - 2]);
+            if (cmp && add && cmp->op == MicroInstrOpcode::CmpRegReg && add->op == MicroInstrOpcode::OpBinaryRegImm &&
+                partiallyUnrollIndexedReadLoop(context, storage, operands, builder, order, relocsBySlot, h, jccOrdinal, headerId))
+            {
+                unrolledOne = true;
+                break;
+            }
             if (!cmp || !add || cmp->op != MicroInstrOpcode::CmpRegImm || add->op != MicroInstrOpcode::OpBinaryRegImm)
                 continue;
             const MicroInstrOperand* cmpOps = cmp->ops(operands);

@@ -16,6 +16,66 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.056 — Branch directly on an inlined comparator's result
+
+- Recorded: 2026-09-25 11:40
+- Area: compiler/backend, inlining and branch simplification
+- Evidence: in wordfreq's `qsort`, the common unequal-count path of each
+  inlined `less` comparison emits `set_cond_reg`, an unconditional jump to the
+  boolean join, then `cmp` against zero and a conditional jump. LDC branches
+  on the original count-comparison flags. This adds a boolean materialization,
+  a repeated test, and a jump in each scan-loop iteration. The join also
+  receives the equal-count path through `memcmp`, so a local adjacent-instruction
+  peephole cannot remove the sequence safely.
+- Next: inspect the inlined-return CFG before register allocation. Find a
+  branch-threading rule that sends each boolean-producing predecessor to the
+  consumer's true or false edge while preserving flags and all other incoming
+  paths; validate it on an unrelated inlined predicate and a multi-use boolean.
+
+### compiler.optimization.055 — Explain why pure calls do not unlock global loads in quicksort
+
+- Recorded: 2026-09-25 11:15
+- Updated: 2026-09-25 11:26 — The `Swag.memcmp` target is marked impure in wordfreq even after a larger purity-analysis budget and recognition of `Swag.vecmask`.
+- Area: compiler/backend, loop-invariant code motion and call effects
+- Evidence: wordfreq's `qsort` reloads `g_Idx` and `g_Cnt` from RIP-relative
+  globals on each inner comparison, while LDC keeps their pointers outside the
+  comparison loops. An experimental LICM change treated `CallLocal` targets
+  whose `SymbolFunction::isPure()` flag is set as non-writing. A C++ fixture
+  confirmed that the rule hoisted an invariant load across a pure call and
+  retained it across an impure call (1,103 C++ tests passed). Yet wordfreq's
+  emitted `qsort` remained 130 instructions with the same loads at the same
+  positions; only relocation addresses differed. The experiment was reverted.
+- Additional evidence: a temporary compiler trace of `qsort`'s call
+  relocations reported `Swag.memcmp pure=0` for both comparisons. Raising the
+  purity-analysis budget from 64 to 256 and recognizing the value-only
+  `Swag.vecmask` intrinsic still reported `pure=0`; both edits and the trace
+  were reverted. The metadata may come from the bodyless runtime API rather
+  than the implementation, which needs verification.
+- Next: trace how runtime API declarations acquire effect metadata and why
+  the implementation's read-only behavior is absent at the call site. Then
+  establish a general read-only call contract and re-count the inner loops.
+
+### compiler.optimization.054 — Prove contiguous indexed updates before packing them
+
+- Recorded: 2026-09-24 23:10
+- Updated: 2026-09-24 23:42 — Confirmed the SLP memory-effect guard leaves ChaCha's 48/48 output loop unchanged.
+- Area: compiler/backend, SLP vectorization and indexed memory
+- Evidence: after folding ChaCha's output address into each XOR, its unrolled
+  16-word update has 48 micro instructions and 48 explicit memory operations.
+  Clang-cl and MSVC also use scalar indexed read-modify-write operations there.
+  `Pass.SlpVectorize.cpp` seeds groups only from plain aligned 32-bit stores at
+  known root offsets. Indexed read-modify-write operations lack a fixed offset;
+  treating them as invisible to the block scan could move packed stores across
+  an alias, so the current pass rejects such blocks.
+- Next: seek an unrelated four-lane loop with one stable base and index and
+  constant offsets, then prototype a proof that the four indexed updates are
+  adjacent, do not alias intervening accesses, and retain their source values.
+  Compare per-loop instruction and memory counts against scalar code from both
+  C++ compilers before adding a vector rewrite. Include an aliasing counterexample
+  and a case where packing costs more than the scalar memory instructions.
+- Complete when: either a profitable general rule and its alias tests are in
+  place, or measurements show that scalar indexed updates are the better form.
+
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25

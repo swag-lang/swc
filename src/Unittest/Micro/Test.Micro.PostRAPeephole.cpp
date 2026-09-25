@@ -107,6 +107,66 @@ SWC_TEST_BEGIN(PostRAPeephole_CompareFlagsAcrossJump_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ConstantBooleanSet_Folded)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg base  = MicroReg::intReg(8);
+    for (const uint64_t input : {0ULL, 1ULL})
+    {
+        for (const MicroCond cond : {MicroCond::Equal, MicroCond::NotEqual})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(value, ApInt(input, 64), MicroOpBits::B64);
+            builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
+            builder.emitSetCondReg(value, cond);
+            builder.emitLoadMemReg(base, 0, value, MicroOpBits::B64);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 0)
+                return Result::Error;
+            const uint64_t expected    = cond == MicroCond::Equal ? uint64_t(input == 0) : uint64_t(input != 0);
+            bool           foundResult = false;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::LoadRegImm)
+                    continue;
+                const auto* ops = inst.ops(builder.operands());
+                foundResult     = ops && ops[0].reg == value && ops[2].valueU64 == expected;
+            }
+            if (!foundResult)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ConstantBooleanSet_LiveFlagsKept)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg other = MicroReg::intReg(1);
+    constexpr MicroReg base  = MicroReg::intReg(8);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
+    builder.emitSetCondReg(value, MicroCond::NotEqual);
+    builder.emitSetCondReg(other, MicroCond::Above);
+    builder.emitLoadMemReg(base, 0, value, MicroOpBits::B64);
+    builder.emitLoadMemReg(base, 8, other, MicroOpBits::B8);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SetCondReg) != 2)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_CommutesCopiedSumWithLaterCompare)
 {
     constexpr MicroReg sum     = MicroReg::intReg(0);

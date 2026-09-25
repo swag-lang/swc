@@ -194,6 +194,61 @@ namespace PostRaPeephole
         return false;
     }
 
+    // A SETcc of a known zero or one after a compare with zero is itself a
+    // constant. The wide load already clears the upper bytes that SETcc leaves
+    // untouched, so the compare and byte write can both disappear.
+    bool tryFoldConstantBooleanSet(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || loadInst.op != MicroInstrOpcode::LoadRegImm)
+            return false;
+        const auto* load = loadInst.ops(*ctx.operands);
+        if (!load || !load[0].reg.isInt() ||
+            (load[1].opBits != MicroOpBits::B32 && load[1].opBits != MicroOpBits::B64) ||
+            load[2].hasWideImmediateValue() || load[2].valueU64 > 1)
+            return false;
+
+        const MicroInstrRef cmpRef = ctx.nextRef(loadRef);
+        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        const auto*         cmpOps = cmp ? cmp->ops(*ctx.operands) : nullptr;
+        if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm || !cmpOps ||
+            cmpOps[0].reg != load[0].reg || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 ||
+            (cmpOps[1].opBits != MicroOpBits::B8 && cmpOps[1].opBits != MicroOpBits::B32 && cmpOps[1].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef setRef = ctx.nextRef(cmpRef);
+        const MicroInstr*   set    = ctx.instruction(setRef);
+        const auto*         setOps = set ? set->ops(*ctx.operands) : nullptr;
+        if (!set || set->op != MicroInstrOpcode::SetCondReg || !setOps || setOps[0].reg != load[0].reg ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, setRef, ctx.builder))
+            return false;
+
+        uint64_t result;
+        switch (setOps[1].cpuCond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::Zero:
+                result = load[2].valueU64 == 0;
+                break;
+            case MicroCond::NotEqual:
+            case MicroCond::NotZero:
+                result = load[2].valueU64 != 0;
+                break;
+            default:
+                return false;
+        }
+        if (!ctx.claimAll({loadRef, cmpRef, setRef}))
+            return false;
+        if (result != load[2].valueU64)
+        {
+            MicroInstrOperand replacement[3] = {load[0], load[1], load[2]};
+            replacement[2].setImmediateValue(ApInt(result, getNumBits(load[1].opBits)));
+            ctx.emitRewrite(loadRef, MicroInstrOpcode::LoadRegImm, replacement);
+        }
+        ctx.emitErase(cmpRef);
+        ctx.emitErase(setRef);
+        return true;
+    }
+
     bool isComparisonOpcode(MicroInstrOpcode op)
     {
         switch (op)

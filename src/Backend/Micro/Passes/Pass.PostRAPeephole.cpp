@@ -91,6 +91,7 @@ namespace
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryRetargetNarrowSelectCascade);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryWidenNarrowSelectGraph);
         r.add(MicroInstrOpcode::LoadRegImm, tryClearZeroBeforeSelect);
+        r.add(MicroInstrOpcode::LoadRegImm, tryFoldConstantBooleanSet);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryEraseRepeatedImmediate);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);

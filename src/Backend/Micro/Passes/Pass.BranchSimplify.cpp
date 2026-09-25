@@ -271,11 +271,22 @@ namespace
     struct BranchScanCache
     {
         BranchScan scan;
-        bool       built = false;
+        bool       built       = false;
+        bool       layoutBuilt = false;
 
         void invalidate()
         {
-            built = false;
+            built       = false;
+            layoutBuilt = false;
+        }
+
+        void ensureLayout(MicroStorage& storage, MicroOperandStorage& operands)
+        {
+            if (!layoutBuilt)
+            {
+                buildProgramLayout(scan.layout, storage, operands);
+                layoutBuilt = true;
+            }
         }
     };
 
@@ -352,7 +363,7 @@ namespace
             scan.indirectJump = false;
             scan.labelReferences.clear();
             scan.mentions.clear();
-            buildProgramLayout(scan.layout, storage, operands);
+            cache.ensureLayout(storage, operands);
 
             for (const MicroInstrRef ref : scan.layout.order)
             {
@@ -1740,8 +1751,8 @@ namespace
         // The preceding speculation pass has already built this layout when it
         // left the instruction stream unchanged.
         thread_local ProgramLayout fallbackLayout;
-        ProgramLayout&           layout = scanCache.built ? scanCache.scan.layout : fallbackLayout;
-        if (!scanCache.built)
+        ProgramLayout&           layout = scanCache.layoutBuilt ? scanCache.scan.layout : fallbackLayout;
+        if (!scanCache.layoutBuilt)
             buildProgramLayout(layout, storage, operands);
 
         struct ConstantEdge
@@ -7267,16 +7278,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         return transformChanged;
     };
 
-    thread_local ProgramLayout sharedLayout;
     bool                       hasConditionalJump = false;
     if (ssaState && ssaState->isValid())
     {
-        buildProgramLayout(sharedLayout, storage, operands);
-        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, sharedLayout, hasConditionalJump));
+        scanCache.ensureLayout(storage, operands);
+        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout, hasConditionalJump));
     }
     // The SSA snapshot describes the code before any fold above.
     if (!changed && hasConditionalJump && ssaState && ssaState->isValid())
-        rewrote(foldImpliedBranches(storage, operands, *ssaState, sharedLayout));
+        rewrote(foldImpliedBranches(storage, operands, *ssaState, scanCache.scan.layout));
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
@@ -7343,9 +7353,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         {
             // The branch scan already has the current layout when earlier transforms
             // inspected this stream without rewriting it.
-            ProgramLayout& layout = scanCache.built ? scanCache.scan.layout : sharedLayout;
-            if (!scanCache.built)
-                buildProgramLayout(layout, storage, operands);
+            scanCache.ensureLayout(storage, operands);
+            ProgramLayout& layout = scanCache.scan.layout;
             structuralChanged |= redirectJumpChains(storage, operands, layout);
             const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
             structuralChanged |= erasedImmediateJumps;

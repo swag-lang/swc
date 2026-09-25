@@ -1955,15 +1955,29 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
         if (fn.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
             fn.firstCallPos = position;
 
-        const MicroInstrUseDef useDef = it->collectUseDef(*fn.operands, fn.encoder);
-        for (const MicroReg reg : useDef.defs)
-        {
+        const auto recordDef = [&](const MicroReg reg) {
             if (!reg.isVirtual())
-                continue;
+                return;
             RegDefInfo& info = fn.regDefs[reg.packed];
             info.defCount++;
             info.defRef = it.current;
             info.defPos = position;
+        };
+        const MicroInstrDef& info = MicroInstr::info(it->op);
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+        {
+            const MicroInstrUseDef useDef = it->collectUseDef(*fn.operands, fn.encoder);
+            for (const MicroReg reg : useDef.defs)
+                recordDef(reg);
+        }
+        else if (const MicroInstrOperand* ops = it->ops(*fn.operands))
+        {
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                    recordDef(ops[i].reg);
+            }
         }
     }
 

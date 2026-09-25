@@ -2158,6 +2158,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     defVirtualIndices_.resize(instructionCount_);
     useConcreteIndices_.resize(instructionCount_);
     defConcreteIndices_.resize(instructionCount_);
+    SmallVector<uint32_t> wideInstructionPositions;
 
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
@@ -2213,6 +2214,16 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 appendUniqueDenseIndex(defsC, regIndex);
             }
         }
+
+        const MicroInstr* inst = instructions_->ptr(instructionRefs[idx]);
+        const MicroInstrOperand* ops = inst ? inst->ops(*operands_) : nullptr;
+        for (uint8_t opIndex = 0; inst && opIndex < inst->numOperands; ++opIndex)
+        {
+            if (ops[opIndex].opBits != MicroOpBits::B128)
+                continue;
+            wideInstructionPositions.push_back(idx);
+            break;
+        }
     }
 
     const uint32_t virtualWordCount  = denseVirtualRegs_.wordCount();
@@ -2234,17 +2245,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // double pay a 16-byte movdqu and 16 bytes of frame for eight bytes of
     // value, on every spill and every reload. An instruction carrying a 128-bit
     // operand marks everything it names as wide; anything else is a scalar.
-    uint32_t wideScanIndex = 0;
-    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && wideScanIndex < instructionCount_; ++it, ++wideScanIndex)
+    for (const uint32_t wideScanIndex : wideInstructionPositions)
     {
-        const MicroInstrOperand* ops = it->ops(*operands_);
-
-        bool wide = false;
-        for (uint8_t opIndex = 0; opIndex < it->numOperands && !wide; ++opIndex)
-            wide = ops[opIndex].opBits == MicroOpBits::B128;
-        if (!wide)
-            continue;
-
         for (const uint32_t denseIndex : useVirtualIndices_[wideScanIndex])
             states_[denseIndex].wideFloat = true;
         for (const uint32_t denseIndex : defVirtualIndices_[wideScanIndex])
@@ -2373,6 +2375,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // Only calls contribute to these summaries; their concrete live-out set is unused.
     for (const uint32_t idx : callPositions_)
     {
+        const bool     hotCall = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
+        const uint8_t  weight  = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
         for (uint64_t& value : tempOutVirtual_)
             value = 0;
 
@@ -2397,13 +2401,11 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 if (bitIndex >= virtualRegs.size())
                     break;
                 vregsLiveAcrossCall_[bitIndex] = 1;
-                if (idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx])
+                if (hotCall)
                 {
                     // Weight one flat crossing per call, and any in-loop call
                     // enough to dominate: the count decides below whether a
                     // callee-saved register amortizes its prologue traffic.
-                    const uint32_t depth              = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
-                    const uint32_t weight             = depth ? 10u : 1u;
                     const uint32_t current            = vregsLiveAcrossHotCall_[bitIndex];
                     vregsLiveAcrossHotCall_[bitIndex] = static_cast<uint8_t>(std::min<uint32_t>(current + weight, 255u));
                 }

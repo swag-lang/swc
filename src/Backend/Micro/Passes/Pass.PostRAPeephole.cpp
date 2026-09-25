@@ -107,6 +107,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldClearIntoResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedFloatAccumulation);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedFloatCompare);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldIndexedByteAverage);
         r.add(MicroInstrOpcode::LoadMemReg, tryEraseOverwrittenStore);

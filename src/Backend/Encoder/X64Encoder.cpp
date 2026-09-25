@@ -1180,7 +1180,8 @@ bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const Mi
         case MicroInstrOpcode::OpUnaryAmcMem:
         case MicroInstrOpcode::OpBinaryAmcMemImm:
         case MicroInstrOpcode::CmpAmcReg:
-            // This form is only built for native integer register operations.
+        case MicroInstrOpcode::CmpRegAmc:
+            // Both indexed compare forms encode directly.
             return false;
 
         case MicroInstrOpcode::OpBinaryRegMem:
@@ -2253,6 +2254,7 @@ namespace
         const bool countMemory     = op == MicroOp::PopCount || op == MicroOp::LeadingZeroCount || op == MicroOp::TrailingZeroCount;
         const bool floatArithmetic = reg.isFloat() && (op == MicroOp::FloatAdd || op == MicroOp::FloatSubtract || op == MicroOp::FloatMultiply ||
                                                        op == MicroOp::FloatDivide || op == MicroOp::FloatMin || op == MicroOp::FloatMax);
+        const bool floatCompare = reg.isFloat() && op == MicroOp::Compare;
         if (countMemory)
             store.pushU8(0xF3);
         if (opBitsBaseMul == MicroOpBits::B32)
@@ -2261,12 +2263,12 @@ namespace
             store.pushU8(0xF3); // movdqu (128-bit) - mandatory prefix, not the 0x66 of movd/movq
         else if (floatArithmetic)
             store.pushU8(opBitsReg == MicroOpBits::B64 ? 0xF2 : 0xF3); // scalar sd/ss arithmetic
-        else if (opBitsReg == MicroOpBits::B16 || reg.isFloat())
+        else if (opBitsReg == MicroOpBits::B16 || (reg.isFloat() && (!floatCompare || opBitsReg == MicroOpBits::B64)))
             store.pushU8(0x66);
 
         // REX prefix. Scalar float arithmetic takes its width from F2/F3,
         // never from REX.W.
-        const bool wide    = opBitsReg == MicroOpBits::B64 && !floatArithmetic;
+        const bool wide    = opBitsReg == MicroOpBits::B64 && !floatArithmetic && !floatCompare;
         const bool b0      = isExtendedReg(regX64);
         const bool b1      = isExtendedReg(mulX64);
         const bool b2      = !baseIsNoBase && isExtendedReg(baseX64);
@@ -2286,9 +2288,18 @@ namespace
             case MicroOp::And:
             case MicroOp::Or:
             case MicroOp::Xor:
-            case MicroOp::Compare:
                 SWC_ASSERT(!reg.isFloat());
                 emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
+                break;
+            case MicroOp::Compare:
+                if (floatCompare)
+                {
+                    SWC_ASSERT(!mr && (opBitsReg == MicroOpBits::B32 || opBitsReg == MicroOpBits::B64));
+                    emitCpuOp(store, 0x0F);
+                    emitCpuOp(store, 0x2F);
+                }
+                else
+                    emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
                 break;
             case MicroOp::ShiftLeft:
             case MicroOp::ShiftArithmeticLeft:
@@ -2482,6 +2493,13 @@ void X64Encoder::encodeCmpAmcReg(MicroReg regBase, MicroReg regMul, uint64_t mul
 {
     SWC_ASSERT(regBase.isInt() && regMul.isInt() && regSrc.isInt());
     return encodeAmcReg(store_, regSrc, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::Compare, true);
+}
+
+void X64Encoder::encodeCmpRegAmc(MicroReg regLhs, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBits)
+{
+    SWC_ASSERT(regLhs.isFloat() && regBase.isInt() && regMul.isInt());
+    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+    encodeAmcReg(store_, regLhs, opBits, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::Compare, false);
 }
 
 // ============================================================================

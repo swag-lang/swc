@@ -2171,6 +2171,52 @@ SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatAccumulationUsesMemoryAdd)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatCompareUsesMemoryOperand)
+{
+    constexpr MicroReg base   = MicroReg::intReg(7);
+    constexpr MicroReg index  = MicroReg::intReg(1);
+    constexpr MicroReg result = MicroReg::intReg(8);
+    constexpr MicroReg lhs    = MicroReg::floatReg(3);
+    constexpr MicroReg loaded = MicroReg::floatReg(4);
+
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool keepLoaded : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadAmcRegMem(loaded, bits, base, index, 8, 16, bits);
+            builder.emitCmpRegReg(lhs, loaded, bits);
+            builder.emitSetCondReg(result, MicroCond::Above);
+            if (keepLoaded)
+                builder.emitLoadMemReg(base, 24, loaded, bits);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegAmc) != (keepLoaded ? 0 : 1) ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (keepLoaded ? 1 : 0))
+                return Result::Error;
+
+            if (!keepLoaded)
+            {
+                bool found = false;
+                for (const MicroInstr& inst : builder.instructions().view())
+                {
+                    if (inst.op != MicroInstrOpcode::CmpRegAmc)
+                        continue;
+                    const auto* ops = inst.ops(builder.operands());
+                    found = ops && ops[0].reg == lhs && ops[1].reg == base && ops[2].reg == index &&
+                            ops[3].opBits == bits && ops[5].valueU64 == 8 && ops[6].valueU64 == 16;
+                }
+                if (!found)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A scalar float copied only as the second operand of a three-operand
 // operation: the operation reads the source.
 // A two-operand float operation whose result is copied away is widened to the

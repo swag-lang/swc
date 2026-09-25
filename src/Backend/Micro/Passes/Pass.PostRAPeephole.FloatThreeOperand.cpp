@@ -265,6 +265,44 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Compare a scalar against its indexed source without staging that source
+    // in another XMM register. The source register must die at the compare.
+    bool tryFoldIndexedFloatCompare(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (loadInst.op != MicroInstrOpcode::LoadAmcRegMem || loadInst.numOperands < 8)
+            return false;
+
+        const MicroInstrOperand* loadOps = ctx.operandsFor(loadRef);
+        if (!loadOps || !loadOps[0].reg.isFloat() || !loadOps[1].reg.isInt() || !loadOps[2].reg.isInt() ||
+            loadOps[3].opBits != loadOps[4].opBits ||
+            (loadOps[3].opBits != MicroOpBits::B32 && loadOps[3].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef cmpRef = ctx.nextRef(loadRef);
+        const MicroInstr* cmpInst = ctx.instruction(cmpRef);
+        const MicroInstrOperand* cmpOps = ctx.operandsFor(cmpRef);
+        if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegReg || cmpInst->numOperands < 3 || !cmpOps ||
+            !cmpOps[0].reg.isFloat() || cmpOps[1].reg != loadOps[0].reg ||
+            cmpOps[0].reg == loadOps[0].reg || cmpOps[2].opBits != loadOps[3].opBits ||
+            (!regIsDeadAfter(ctx, cmpRef, loadOps[0].reg) &&
+             !ctx.isRegDeadAfter(loadOps[0].reg, ctx.instructionIndex + 1)))
+            return false;
+
+        MicroInstrOperand rewritten[7] = {};
+        rewritten[0] = cmpOps[0];
+        rewritten[1] = loadOps[1];
+        rewritten[2] = loadOps[2];
+        rewritten[3] = cmpOps[2];
+        rewritten[4] = loadOps[4];
+        rewritten[5] = loadOps[5];
+        rewritten[6] = loadOps[6];
+        if (!ctx.claimAll({loadRef, cmpRef}))
+            return false;
+        ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpRegAmc, std::span{rewritten, 7}, true);
+        ctx.emitErase(loadRef);
+        return true;
+    }
+
     // Add a scalar to an indexed accumulator in place. The stored result can
     // use the other addend as its destination when both values die here.
     bool tryFoldIndexedFloatAccumulation(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)

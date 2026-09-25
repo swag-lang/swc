@@ -16,6 +16,15 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.069 — Compare indexed float slots in memory
+
+- Recorded: 2026-09-25 21:33
+- Updated: 2026-09-25 21:33 — Matched the memory-operand comparison in csvagg's existing-slot path.
+- Area: compiler/backend, x64 scalar comparison and csvagg row aggregation
+- Evidence: clang-cl compares price to `slotMax[slot]` with `ucomisd xmm9, [base + index*8]`. Swag had a separate indexed load followed by `comisd xmm10, xmm0`. A guarded post-allocation rewrite now emits a new `CmpRegAmc` form only for adjacent f32/f64 loads whose loaded register dies at the compare. The x64 encoder uses the existing register-register `comis` opcode, preserving its floating-point exception behavior while reading the second operand directly from memory. The actual binary contains `comisd xmm10, qword ptr [r14 + 8*rcx]`; csvagg's generated `main` falls from 1,023 to 1,022 Micro instructions, and the row path loses the separate load. Csvagg's checksum stays 24828641. Wordfreq's `mapProbe`, `qsort`, and `main` remain at 81, 132 (115 machine instructions), and 485 Micro instructions, checksum 130489. The focused C++ test checks f32/f64 and rejects a live loaded register. All 1,123 C++, 3,480 native, and 1,500 JIT tests pass; the sema positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
+- Negative lead: naming one cached length across wordfreq's `memcmp` did not reduce the 115 machine instructions in `qsort`; stack accesses rose from 6 to 8 because the extra live range displaced a persistent register. Making the preferred debug stack-base register available to allocation left this code unchanged. Both experiments were reverted.
+- Next: continue comparing csvagg's decimal parser and row-loop branches with clang-cl, and find a wordfreq length or pointer residency improvement that accounts for spill cost across `memcmp`.
+
 ### compiler.optimization.068 — Let count-mismatch comparisons fall through
 
 - Recorded: 2026-09-25 21:08

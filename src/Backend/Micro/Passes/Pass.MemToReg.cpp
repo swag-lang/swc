@@ -125,21 +125,21 @@ namespace
     {
         if (!reg.isValid())
             return false;
-        MicroInstrRegOperandRefs regRefs;
         for (MicroInstrRef cur = storage.findPreviousInstructionRef(atRef); cur.isValid(); cur = storage.findPreviousInstructionRef(cur))
         {
             const MicroInstr* inst = storage.ptr(cur);
             if (!inst)
                 return false;
-            regRefs.clear();
-            inst->collectRegOperands(operands, regRefs, nullptr);
+            const MicroInstrOperand* ops = inst->ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
             bool defines = false;
-            for (const auto& rref : regRefs)
-                defines = defines || (rref.reg && rref.def && *rref.reg == reg);
+            for (size_t i = 0; i < modes.size(); ++i)
+                defines |= (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == reg;
             if (!defines)
                 continue;
-            const MicroInstrOperand* ops = inst->ops(operands);
-            return inst->op == MicroInstrOpcode::ClearReg && ops && ops[0].reg == reg;
+            return inst->op == MicroInstrOpcode::ClearReg && ops[0].reg == reg;
         }
         return false;
     }
@@ -206,7 +206,6 @@ namespace
 
         // Pass B: invalidate candidates redefined/modified elsewhere, and count
         // their uses as a constant-offset memory base.
-        MicroInstrRegOperandRefs regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstr&        inst = *it;
@@ -214,13 +213,12 @@ namespace
             if (!ops)
                 continue;
 
-            regRefs.clear();
-            inst.collectRegOperands(operands, regRefs, nullptr);
-            for (const auto& rref : regRefs)
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!rref.reg || !rref.def)
+                if (modes[i] != MicroInstrRegMode::Def && modes[i] != MicroInstrRegMode::UseDef)
                     continue;
-                const auto found = cands.find(*rref.reg);
+                const auto found = cands.find(ops[i].reg);
                 if (found != cands.end() && it.current != found->second.defRef)
                     found->second.stable = false;
             }
@@ -433,7 +431,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     {
         bool spMoved    = false;
         bool inEntryRun = true;
-        MicroInstrRegOperandRefs regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstrOperand* ops = it->ops(operands);
@@ -457,14 +454,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
             }
 
-            regRefs.clear();
-            it->collectRegOperands(operands, regRefs, context.encoder);
-            for (const auto& rref : regRefs)
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(it->op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (rref.reg && *rref.reg == stackPointer)
-                {
-                    spMoved |= rref.def;
-                }
+                if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == stackPointer)
+                    spMoved = true;
             }
         }
         stackPointerTracksFrame = !spMoved;
@@ -546,16 +542,17 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // unexplainable escapes.
     if (!addrRegOffset.empty())
     {
-        MicroInstrRegOperandRefs regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
-            regRefs.clear();
-            it->collectRegOperands(operands, regRefs, context.encoder);
-            for (const auto& rref : regRefs)
+            const MicroInstrOperand* ops = it->ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(it->op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!rref.reg || !rref.def)
+                if (modes[i] != MicroInstrRegMode::Def && modes[i] != MicroInstrRegMode::UseDef)
                     continue;
-                const auto found = addrRegOffset.find(*rref.reg);
+                const auto found = addrRegOffset.find(ops[i].reg);
                 if (found != addrRegOffset.end() && it.current != found->second.defRef && !addressAdjustments.contains(it.current.get()))
                 {
                     // A frame-derived pointer can cross local-object boundaries:
@@ -563,13 +560,12 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     // Its original object does not bound the modified pointer.
                     // Only another recorded frame address has a known extent;
                     // defer promotion until address folding resolves the rest.
-                    const MicroInstrOperand* ops = it->ops(operands);
                     const bool knownFrameAddress = (it->op == MicroInstrOpcode::LoadAddrRegMem ||
                                                     (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64)) &&
                                                    isFrameRegister(ops[1].reg);
                     if (!knownFrameAddress)
                         return Result::Continue;
-                    badAddrReg.insert(*rref.reg);
+                    badAddrReg.insert(ops[i].reg);
                 }
             }
         }

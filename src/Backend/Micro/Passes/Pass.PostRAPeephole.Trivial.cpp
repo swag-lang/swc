@@ -118,6 +118,107 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A zero-extended byte remains zero above bit seven after an 8-bit
+    // subtract: x86 changes only the low byte. A delimiter check may branch
+    // away, but its fall-through still comes from the zero-extending load.
+    //
+    //   movzx r, byte [p]; cmp r, ','; je exit; sub r8, '0'; movzx r, r8
+    //       ->
+    //   movzx r, byte [p]; cmp r, ','; je exit; sub r8, '0'
+    bool tryEraseByteZeroExtendAfterSubtract(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* loadOps = inst.ops(*ctx.operands);
+        const uint32_t destBitsIndex = inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ? 3 : 2;
+        const uint32_t sourceBitsIndex = inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ? 4 : 3;
+        if (!loadOps || !loadOps[0].reg.isInt() ||
+            (loadOps[destBitsIndex].opBits != MicroOpBits::B32 && loadOps[destBitsIndex].opBits != MicroOpBits::B64) ||
+            loadOps[sourceBitsIndex].opBits != MicroOpBits::B8)
+            return false;
+        const MicroReg reg = loadOps[0].reg;
+        const MicroInstrRef cmpRef = ctx.nextRef(ref);
+        const MicroInstrRef branchRef = ctx.nextRef(cmpRef);
+        MicroInstrRef subRef = ctx.nextRef(branchRef);
+        const MicroInstr* beforeSub = ctx.instruction(subRef);
+        MicroInstrRef addressRef = MicroInstrRef::invalid();
+        // The decimal accumulator may prepare its LEA between the delimiter
+        // branch and the byte subtraction. It cannot change this byte value.
+        if (beforeSub &&
+            (beforeSub->op == MicroInstrOpcode::LoadAddrRegMem ||
+             beforeSub->op == MicroInstrOpcode::LoadAddrAmcRegMem))
+        {
+            const MicroInstrUseDef useDef = beforeSub->collectUseDef(*ctx.operands, ctx.encoder);
+            if (std::ranges::find(useDef.uses, reg) != useDef.uses.end() ||
+                std::ranges::find(useDef.defs, reg) != useDef.defs.end())
+                return false;
+            addressRef = subRef;
+            subRef = ctx.nextRef(subRef);
+        }
+        const MicroInstrRef extRef = ctx.nextRef(subRef);
+        const MicroInstr* sub = ctx.instruction(subRef);
+        const MicroInstr* branch = ctx.instruction(branchRef);
+        const MicroInstr* cmp = ctx.instruction(cmpRef);
+        const MicroInstr* ext = ctx.instruction(extRef);
+        if (!sub || !branch || !cmp || !ext ||
+            sub->op != MicroInstrOpcode::OpBinaryRegImm || branch->op != MicroInstrOpcode::JumpCond ||
+            cmp->op != MicroInstrOpcode::CmpRegImm ||
+            ext->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* subOps = sub->ops(*ctx.operands);
+        const auto* branchOps = branch->ops(*ctx.operands);
+        const auto* cmpOps = cmp->ops(*ctx.operands);
+        const auto* extOps = ext->ops(*ctx.operands);
+        if (!subOps || !branchOps || !cmpOps || !extOps ||
+            subOps[0].reg != reg || subOps[1].opBits != MicroOpBits::B8 || subOps[2].microOp != MicroOp::Subtract ||
+            branchOps[0].cpuCond == MicroCond::Unconditional || cmpOps[0].reg != reg ||
+            (cmpOps[1].opBits != MicroOpBits::B32 && cmpOps[1].opBits != MicroOpBits::B64) ||
+            extOps[0].reg != reg || extOps[1].reg != reg ||
+            extOps[2].opBits != MicroOpBits::B64 || extOps[3].opBits != MicroOpBits::B8)
+            return false;
+        const bool claimed = addressRef.isValid() ?
+            ctx.claimAll({ref, cmpRef, branchRef, addressRef, subRef, extRef}) :
+            ctx.claimAll({ref, cmpRef, branchRef, subRef, extRef});
+        if (!claimed)
+            return false;
+        ctx.emitErase(extRef);
+        return true;
+    }
+
+    // Move a byte's zero extension into its memory load when the only work
+    // before the original extension is a low-byte subtraction. The subtraction
+    // leaves the high bits established by MOVZX intact, so the final MOVZX is
+    // redundant even when the byte subtraction wraps.
+    bool tryFoldByteLoadSubtractExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* load = inst.ops(*ctx.operands);
+        if (!load || inst.numOperands < 7 || load[3].opBits != MicroOpBits::B8 ||
+            load[4].opBits != MicroOpBits::B64 || load[1].reg.isInstructionPointer())
+            return false;
+        const MicroReg reg = load[0].reg;
+        if (!reg.isInt())
+            return false;
+        const MicroInstrRef subRef = ctx.nextRef(ref);
+        const MicroInstrRef extRef = ctx.nextRef(subRef);
+        const MicroInstr* sub = ctx.instruction(subRef);
+        const MicroInstr* ext = ctx.instruction(extRef);
+        if (!sub || !ext || sub->op != MicroInstrOpcode::OpBinaryRegImm ||
+            ext->op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+        const auto* subOps = sub->ops(*ctx.operands);
+        const auto* extOps = ext->ops(*ctx.operands);
+        if (!subOps || !extOps || subOps[0].reg != reg || subOps[1].opBits != MicroOpBits::B8 ||
+            subOps[2].microOp != MicroOp::Subtract || extOps[0].reg != reg || extOps[1].reg != reg ||
+            extOps[2].opBits != MicroOpBits::B64 || extOps[3].opBits != MicroOpBits::B8 ||
+            !ctx.claimAll({ref, subRef, extRef}))
+            return false;
+
+        MicroInstrOperand widened[7] = {load[0], load[1], load[2], load[3], load[4], load[5], load[6]};
+        widened[3].opBits = MicroOpBits::B64;
+        widened[4].opBits = MicroOpBits::B8;
+        ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtAmcRegMem, widened);
+        ctx.emitErase(extRef);
+        return true;
+    }
+
     // A 32-bit comparison observes the same low bits before and after a
     // 32-to-64-bit sign extension. Read the original register when the wider
     // value has no later consumer.

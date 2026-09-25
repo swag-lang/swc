@@ -30,6 +30,9 @@ namespace
         r.add(MicroInstrOpcode::ClearReg, tryEraseScalarReturnConversionClear);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseZeroExtendedSelfCopy);
+        r.add(MicroInstrOpcode::LoadZeroExtRegMem, tryEraseByteZeroExtendAfterSubtract);
+        r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryEraseByteZeroExtendAfterSubtract);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldByteLoadSubtractExtend);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatReturnSelectDiamond);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldFloatReturnXorCopyChain);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);

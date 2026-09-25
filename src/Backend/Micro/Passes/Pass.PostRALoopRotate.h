@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Post-RA rotation of top-tested loops.
+// Post-RA layout of loop tests and short step blocks.
 //
 // A `while` lowers to a header that tests and a body that jumps back, so every
 // iteration pays an unconditional jump on top of its test. clang-cl and MSVC

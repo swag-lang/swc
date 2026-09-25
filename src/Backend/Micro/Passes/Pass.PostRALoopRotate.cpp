@@ -6,7 +6,7 @@
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
-// Post-RA rotation of top-tested loops. See the header for why it runs here.
+// Post-RA loop layout. See the header for why it runs here.
 //
 //   H:                            H:
 //     cmp  A, B                     cmp  A, B          ; now entry only
@@ -127,6 +127,119 @@ namespace
         MicroInstrRef backRef      = MicroInstrRef::invalid();
         MicroCond     inverted     = MicroCond::Unconditional;
     };
+
+    // Put a short loop step on the fall-through path of a two-way comparison:
+    //
+    //   je T; ja P; jmp S; T: ...; P: inc i; jmp H; S:
+    //       ->
+    //   je T; jbe S; P: inc i; jmp H; T: ...; jmp P; S:
+    //
+    // The unequal advancing path saves one executed jump. Moving the existing
+    // step, rather than cloning it, keeps code size and incoming edges stable.
+    // This is post-RA so block layout cannot change register assignment.
+    bool placeShortLoopStep(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
+    {
+        MicroStorage& storage = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        const auto findLabel = [&](const uint64_t id) {
+            for (uint32_t index = 0; index < order.size(); ++index)
+            {
+                const MicroInstr* inst = storage.ptr(order[index]);
+                if (inst && inst->op == MicroInstrOpcode::Label && inst->ops(operands)[0].valueU64 == id)
+                    return index;
+            }
+            return static_cast<uint32_t>(order.size());
+        };
+
+        for (uint32_t ordinal = 0; ordinal + 4 < order.size(); ++ordinal)
+        {
+            const MicroInstrRef firstRef = order[ordinal];
+            const MicroInstrRef secondRef = order[ordinal + 1];
+            const MicroInstrRef skipRef = order[ordinal + 2];
+            const MicroInstrRef tieRef = order[ordinal + 3];
+            const MicroInstr* first = storage.ptr(firstRef);
+            const MicroInstr* second = storage.ptr(secondRef);
+            const MicroInstr* skip = storage.ptr(skipRef);
+            const MicroInstr* tie = storage.ptr(tieRef);
+            if (!first || !second || !skip || !tie ||
+                first->op != MicroInstrOpcode::JumpCond || second->op != MicroInstrOpcode::JumpCond ||
+                skip->op != MicroInstrOpcode::JumpCond || tie->op != MicroInstrOpcode::Label ||
+                first->numOperands < 3 || second->numOperands < 3 || skip->numOperands < 3)
+                continue;
+            const auto* firstOps = first->ops(operands);
+            const auto* secondOps = second->ops(operands);
+            const auto* skipOps = skip->ops(operands);
+            const auto* tieOps = tie->ops(operands);
+            if (!firstOps || !secondOps || !skipOps || !tieOps ||
+                firstOps[0].cpuCond == MicroCond::Unconditional ||
+                secondOps[0].cpuCond == MicroCond::Unconditional ||
+                skipOps[0].cpuCond != MicroCond::Unconditional ||
+                firstOps[2].valueU64 != tieOps[0].valueU64)
+                continue;
+            MicroCond inverted = MicroCond::Unconditional;
+            if (!invertCondition(secondOps[0].cpuCond, inverted))
+                continue;
+
+            const uint32_t stepOrdinal = findLabel(secondOps[2].valueU64);
+            if (stepOrdinal <= ordinal + 4 ||
+                stepOrdinal - ordinal > 80 || stepOrdinal + 3 >= order.size())
+                continue;
+            const MicroInstrRef stepLabelRef = order[stepOrdinal];
+            const MicroInstrRef updateRef = order[stepOrdinal + 1];
+            const MicroInstrRef backRef = order[stepOrdinal + 2];
+            const MicroInstr* update = storage.ptr(updateRef);
+            const MicroInstr* back = storage.ptr(backRef);
+            const MicroInstr* stop = storage.ptr(order[stepOrdinal + 3]);
+            if (!update || !back || !stop ||
+                update->op != MicroInstrOpcode::OpBinaryRegImm || back->op != MicroInstrOpcode::JumpCond ||
+                stop->op != MicroInstrOpcode::Label || update->numOperands < 4 || back->numOperands < 3)
+                continue;
+            const auto* updateOps = update->ops(operands);
+            const auto* backOps = back->ops(operands);
+            const auto* stopOps = stop->ops(operands);
+            const MicroInstr* beforeStep = storage.ptr(order[stepOrdinal - 1]);
+            if (!updateOps || !backOps || !stopOps || !beforeStep ||
+                (updateOps[2].microOp != MicroOp::Add && updateOps[2].microOp != MicroOp::Subtract) ||
+                updateOps[1].opBits != MicroOpBits::B64 || updateOps[3].valueU64 != 1 ||
+                backOps[0].cpuCond != MicroCond::Unconditional ||
+                skipOps[2].valueU64 != stopOps[0].valueU64 ||
+                beforeStep->op == MicroInstrOpcode::Ret ||
+                (beforeStep->op == MicroInstrOpcode::JumpCond &&
+                 beforeStep->ops(operands)[0].cpuCond == MicroCond::Unconditional))
+                continue;
+            if (findLabel(backOps[2].valueU64) >= ordinal)
+                continue;
+
+            // Capture operands before insertions can grow their storage.
+            std::array<MicroInstrOperand, 3> rewritten = {secondOps[0], secondOps[1], secondOps[2]};
+            rewritten[0].cpuCond = inverted;
+            rewritten[2].valueU64 = skipOps[2].valueU64;
+            std::array<MicroInstrOperand, 3> jumpToStep = {backOps[0], backOps[1], backOps[2]};
+            jumpToStep[2].valueU64 = secondOps[2].valueU64;
+            std::array<MicroInstrOperand, 4> updateCopy = {updateOps[0], updateOps[1], updateOps[2], updateOps[3]};
+            const MicroInstrOperand stepLabelCopy = storage.ptr(stepLabelRef)->ops(operands)[0];
+            std::array<MicroInstrOperand, 3> backCopy = {backOps[0], backOps[1], backOps[2]};
+            const MicroInstrOpcode updateOpcode = update->op;
+            const MicroInstrOpcode backOpcode = back->op;
+
+            storage.insertDerivedBefore(operands, tieRef, MicroInstrOpcode::Label, std::span(&stepLabelCopy, 1));
+            storage.insertDerivedBefore(operands, tieRef, updateOpcode, updateCopy);
+            storage.insertDerivedBefore(operands, tieRef, backOpcode, backCopy);
+            storage.insertDerivedBefore(operands, order[stepOrdinal + 3], MicroInstrOpcode::JumpCond, jumpToStep);
+            MicroInstr* rewrittenSecond = storage.ptr(secondRef);
+            MicroInstrOperand* rewrittenOps = rewrittenSecond->ops(operands);
+            for (uint32_t i = 0; i < 3; ++i)
+                rewrittenOps[i] = rewritten[i];
+            storage.erase(skipRef);
+            storage.erase(stepLabelRef);
+            storage.erase(updateRef);
+            storage.erase(backRef);
+            context.builder->invalidateControlFlowGraph();
+            context.passChanged = true;
+            return true;
+        }
+        return false;
+    }
 }
 
 Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
@@ -161,6 +274,9 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         ++incoming.count;
         incoming.ordinal = ordinal;
     }
+
+    if (placeShortLoopStep(context, order))
+        return Result::Continue;
 
     // Every rotation needs an incoming jump to its header.
     if (jumpsByTarget.empty())

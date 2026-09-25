@@ -326,6 +326,83 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsMaskedIndexIncrementOnlyWhenAddressIsIndepend
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ByteSubtractKeepsKnownZeroExtension)
+{
+    constexpr MicroReg value = MicroReg::intReg(10);
+    constexpr MicroReg base = MicroReg::intReg(7);
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u})
+    {
+        MicroBuilder builder(ctx);
+        const auto exit = builder.createLabel();
+        if (mode == 1)
+            builder.emitLoadRegMem(value, base, 0, MicroOpBits::B8);
+        else
+            builder.emitLoadZeroExtendRegMem(value, base, 0, MicroOpBits::B64, MicroOpBits::B8);
+        if (mode == 5)
+        {
+            const MicroInstrRef oldLoad = builder.instructions().lastInstructionRef();
+            MicroInstrOperand indexed[7] = {};
+            indexed[0].reg = value;
+            indexed[1].reg = base;
+            indexed[2].reg = MicroReg::intReg(8);
+            indexed[3].opBits = MicroOpBits::B32;
+            indexed[4].opBits = MicroOpBits::B8;
+            indexed[5].valueU64 = 1;
+            builder.instructions().insertDerivedBefore(builder.operands(), oldLoad,
+                                                       MicroInstrOpcode::LoadZeroExtAmcRegMem, indexed);
+            builder.instructions().erase(oldLoad);
+        }
+        builder.emitCmpRegImm(value, ApInt(',', 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, exit);
+        if (mode >= 3)
+            builder.emitLoadAddressRegMem(mode == 4 ? value : MicroReg::intReg(8), base, 16, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(value, ApInt('0', 64), MicroOp::Subtract,
+                                   mode == 2 ? MicroOpBits::B32 : MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegReg(value, value, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+        builder.placeLabel(exit);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const uint32_t extensions = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg);
+        if (extensions != (mode == 0 || mode == 3 || mode == 5 ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ByteLoadSubtractExtendsAtTheLoad)
+{
+    constexpr MicroReg value = MicroReg::intReg(10);
+    constexpr MicroReg base = MicroReg::intReg(7);
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAmcRegMem(value, MicroOpBits::B8, base, MicroReg::intReg(8), 1, 0, MicroOpBits::B64);
+        if (mode == 2)
+        {
+            builder.emitLoadRegReg(MicroReg::intReg(9), value, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 16, MicroReg::intReg(9), MicroOpBits::B64);
+        }
+        builder.emitOpBinaryRegImm(value, ApInt('0', 64), MicroOp::Subtract,
+                                   mode == 1 ? MicroOpBits::B32 : MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegReg(value, value, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const uint32_t extensions = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg);
+        const uint32_t indexedExtensions = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadZeroExtAmcRegMem);
+        if (extensions != (mode == 0 ? 0u : 1u) || indexedExtensions != (mode == 0 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_MultiplyShiftResultUsesCopyDestination)
 {
     constexpr MicroReg rax = MicroReg::intReg(0);

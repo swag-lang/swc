@@ -59,8 +59,10 @@ namespace PostRaPeephole
     // included.
     bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (inst.op != MicroInstrOpcode::JumpCond)
+            return false;
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || inst.op != MicroInstrOpcode::JumpCond || ops[0].cpuCond == MicroCond::Unconditional)
+        if (!ops || ops[0].cpuCond == MicroCond::Unconditional)
             return false;
         MicroCond inverted = MicroCond::Unconditional;
         if (!MicroPassHelpers::invertCondition(inverted, ops[0].cpuCond))
@@ -68,13 +70,15 @@ namespace PostRaPeephole
 
         const MicroInstrRef      skipRef  = ctx.nextRef(ref);
         const MicroInstr*        skip     = ctx.instruction(skipRef);
-        const MicroInstrOperand* skipOps  = skip ? skip->ops(*ctx.operands) : nullptr;
-        if (!skipOps || skip->op != MicroInstrOpcode::JumpCond || skipOps[0].cpuCond != MicroCond::Unconditional)
+        const MicroInstrOperand* skipOps  = skip && skip->op == MicroInstrOpcode::JumpCond ?
+            skip->ops(*ctx.operands) : nullptr;
+        if (!skipOps || skipOps[0].cpuCond != MicroCond::Unconditional)
             return false;
         const MicroInstrRef      labelRef = ctx.nextRef(skipRef);
         const MicroInstr*        label    = ctx.instruction(labelRef);
-        const MicroInstrOperand* labelOps = label ? label->ops(*ctx.operands) : nullptr;
-        if (!labelOps || label->op != MicroInstrOpcode::Label || labelOps[0].valueU64 != ops[2].valueU64 || !ctx.claimAll({ref, skipRef}))
+        const MicroInstrOperand* labelOps = label && label->op == MicroInstrOpcode::Label ?
+            label->ops(*ctx.operands) : nullptr;
+        if (!labelOps || labelOps[0].valueU64 != ops[2].valueU64 || !ctx.claimAll({ref, skipRef}))
             return false;
 
         MicroInstrOperand branch[3] = {ops[0], ops[1], ops[2]};
@@ -91,8 +95,10 @@ namespace PostRaPeephole
     // any 32-bit write - it changes nothing.
     bool tryEraseZeroExtendedSelfCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (inst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || inst.op != MicroInstrOpcode::LoadRegReg || ops[0].reg != ops[1].reg || !ops[0].reg.isInt() ||
+        if (!ops || ops[0].reg != ops[1].reg || !ops[0].reg.isInt() ||
             ops[2].opBits != MicroOpBits::B32)
             return false;
         if (!ctx.isUpperHalfZeroBefore(ref, ops[0].reg) || !ctx.claimAll({ref}))
@@ -106,16 +112,19 @@ namespace PostRaPeephole
     // value has no later consumer.
     bool tryDropSignExtendBeforeNarrowCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
+        if (inst.op != MicroInstrOpcode::LoadSignedExtRegReg)
+            return false;
         const MicroInstrOperand* extend = inst.ops(*ctx.operands);
-        if (!extend || inst.op != MicroInstrOpcode::LoadSignedExtRegReg ||
+        if (!extend ||
             extend[2].opBits != MicroOpBits::B64 || extend[3].opBits != MicroOpBits::B32 ||
             !extend[0].reg.isInt() || !extend[1].reg.isInt())
             return false;
 
         const MicroInstrRef cmpRef = ctx.nextRef(ref);
         const MicroInstr*   cmp    = ctx.instruction(cmpRef);
-        const auto*         cmpOps = cmp ? cmp->ops(*ctx.operands) : nullptr;
-        if (!cmpOps || cmp->op != MicroInstrOpcode::CmpRegImm || cmpOps[0].reg != extend[0].reg ||
+        const auto*         cmpOps = cmp && cmp->op == MicroInstrOpcode::CmpRegImm ?
+            cmp->ops(*ctx.operands) : nullptr;
+        if (!cmpOps || cmpOps[0].reg != extend[0].reg ||
             cmpOps[1].opBits != MicroOpBits::B32)
             return false;
 

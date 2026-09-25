@@ -82,6 +82,7 @@ namespace
         std::vector<MicroInstrRef>             order;
         std::vector<uint32_t>                  ordinalByRef;
         std::unordered_map<uint32_t, uint32_t> labelOrdinalById;
+        bool                                   hasConditionalJump = false;
     };
 
     bool tryGetKnownReachingValue(KnownValue& outValue, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
@@ -221,6 +222,7 @@ namespace
         outLayout.order.reserve(storage.count());
         outLayout.ordinalByRef.assign(storage.slotCount(), K_INVALID_ORDINAL);
         outLayout.labelOrdinalById.clear();
+        outLayout.hasConditionalJump = false;
 
         uint32_t ordinal = 0;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++ordinal)
@@ -231,6 +233,11 @@ namespace
             uint32_t labelId = 0;
             if (it->op == MicroInstrOpcode::Label && tryGetLabelId(labelId, *it, it->ops(operands)))
                 outLayout.labelOrdinalById[labelId] = ordinal;
+            else if (it->op == MicroInstrOpcode::JumpCond)
+            {
+                const MicroInstrOperand* ops = it->ops(operands);
+                outLayout.hasConditionalJump |= ops && ops[0].cpuCond != MicroCond::Unconditional;
+            }
         }
     }
 
@@ -958,7 +965,7 @@ namespace
         return changed;
     }
 
-    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const ProgramLayout& layout, bool& hasConditionalJump)
+    bool foldKnownBranches(MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, const ProgramLayout& layout)
     {
         const KnownValueContext context{&ssaState, &storage, &operands};
 
@@ -981,7 +988,6 @@ namespace
             const MicroInstrOperand* ops = inst.op == MicroInstrOpcode::JumpCond || mayDefineFlags ? inst.ops(operands) : nullptr;
             if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
-                hasConditionalJump = true;
                 bool branchTaken = false;
                 if (tryEvaluateKnownBranch(branchTaken, context, knownValues, knownFlags, currentFlagDef, ops[0].cpuCond))
                 {
@@ -7263,8 +7269,17 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         return Result::Continue;
     }
 
+    // One walk of the instruction stream serves every transform below that opens on
+    // the program order and its label and register counts. It only describes the
+    // stream as it stands, so a transform that rewrites it drops the walk, and the
+    // next reader pays for a new one; a run where nothing fires pays for exactly one.
+    thread_local BranchScanCache scanCache;
+    scanCache.invalidate();
+    scanCache.ensureLayout(storage, operands);
+    const bool hasConditionalJump = scanCache.scan.layout.hasConditionalJump;
+
     MicroSsaState        localSsaState;
-    const MicroSsaState* ssaState = MicroSsaState::ensureFor(context, localSsaState);
+    const MicroSsaState* ssaState = hasConditionalJump ? MicroSsaState::ensureFor(context, localSsaState) : nullptr;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
@@ -7275,12 +7290,6 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     bool changed = false;
 
-    // One walk of the instruction stream serves every transform below that opens on
-    // the program order and its label and register counts. It only describes the
-    // stream as it stands, so a transform that rewrites it drops the walk, and the
-    // next reader pays for a new one; a run where nothing fires pays for exactly one.
-    thread_local BranchScanCache scanCache;
-    scanCache.invalidate();
     thread_local RelocationRefCache relocationCache;
     relocationCache.invalidate();
     const auto      rewrote = [&](const bool transformChanged) {
@@ -7294,12 +7303,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         return transformChanged;
     };
 
-    bool                       hasConditionalJump = false;
     if (ssaState && ssaState->isValid())
-    {
-        scanCache.ensureLayout(storage, operands);
-        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout, hasConditionalJump));
-    }
+        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout));
     // The SSA snapshot describes the code before any fold above.
     if (!changed && hasConditionalJump && ssaState && ssaState->isValid())
         rewrote(foldImpliedBranches(storage, operands, *ssaState, scanCache.scan.layout));

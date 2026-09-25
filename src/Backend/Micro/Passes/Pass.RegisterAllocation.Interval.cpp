@@ -1300,6 +1300,13 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
 
     // Edge connectors. For each label, each predecessor edge reconciles the
     // location at the predecessor's end with the location at the label.
+    struct EdgeMove
+    {
+        uint32_t            denseIndex = 0;
+        const LiveInterval* from       = nullptr;
+        const LiveInterval* to         = nullptr;
+    };
+    SmallVector<EdgeMove, 8> edgeMoves;
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
     for (uint32_t s = 0; s < instructionCount_; ++s)
     {
@@ -1349,13 +1356,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
 
             // Collect this edge's moves first; placement is decided for the
             // edge as a whole.
-            struct EdgeMove
-            {
-                uint32_t            denseIndex = 0;
-                const LiveInterval* from       = nullptr;
-                const LiveInterval* to         = nullptr;
-            };
-            SmallVector<EdgeMove, 8> edgeMoves;
+            edgeMoves.clear();
 
             for (size_t wordIndex = 0; wordIndex < liveRow.size(); ++wordIndex)
             {

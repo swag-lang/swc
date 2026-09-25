@@ -6532,11 +6532,11 @@ namespace
             return false;
 
         LazyVirtualIntRegs nextVirtualIntRegs{context};
+        SmallVector<MicroInstrRegOperandRef> regOperands;
         for (const Diamond& diamond : diamonds)
         {
             const MicroReg renamedResult = nextVirtualIntRegs.take();
 
-            SmallVector<MicroInstrRegOperandRef> regOperands;
             for (const MicroInstrRef ref : diamond.jumpArm.refs)
             {
                 regOperands.clear();
@@ -6706,11 +6706,11 @@ namespace
             return false;
 
         LazyVirtualIntRegs nextVirtualIntRegs{context};
+        SmallVector<MicroInstrRegOperandRef> regOperands;
         for (const Triangle& triangle : triangles)
         {
             const MicroReg renamedResult = nextVirtualIntRegs.take();
 
-            SmallVector<MicroInstrRegOperandRef> regOperands;
             for (const MicroInstrRef ref : triangle.arm.refs)
             {
                 regOperands.clear();

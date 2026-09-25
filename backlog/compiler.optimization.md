@@ -16,6 +16,23 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.055 — Explain why pure calls do not unlock global loads in quicksort
+
+- Recorded: 2026-09-25 11:15
+- Area: compiler/backend, loop-invariant code motion and call effects
+- Evidence: wordfreq's `qsort` reloads `g_Idx` and `g_Cnt` from RIP-relative
+  globals on each inner comparison, while LDC keeps their pointers outside the
+  comparison loops. An experimental LICM change treated `CallLocal` targets
+  whose `SymbolFunction::isPure()` flag is set as non-writing. A C++ fixture
+  confirmed that the rule hoisted an invariant load across a pure call and
+  retained it across an impure call (1,103 C++ tests passed). Yet wordfreq's
+  emitted `qsort` remained 130 instructions with the same loads at the same
+  positions; only relocation addresses differed. The experiment was reverted.
+- Next: inspect the `Swag.memcmp` call target's purity metadata in wordfreq
+  and the LICM rejection reason for each RIP-relative load. Then adjust the
+  general metadata or eligibility rule and re-count the inner loops before
+  timing it.
+
 ### compiler.optimization.054 — Prove contiguous indexed updates before packing them
 
 - Recorded: 2026-09-24 23:10

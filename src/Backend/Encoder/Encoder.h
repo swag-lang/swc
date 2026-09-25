@@ -156,6 +156,7 @@ protected:
     virtual void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)                                                                                 = 0;
     virtual void encodeCmpAmcImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, const ApInt& value, MicroOpBits opBits)                                             = 0;
     virtual void encodeCmpAmcReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroReg regSrc, MicroOpBits opBits)                                               = 0;
+    virtual void encodeCmpRegAmc(MicroReg regLhs, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBits)                                               = 0;
     virtual void encodeTestRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)                                                                                                        = 0;
     virtual void encodeCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)                                                                                                        = 0;
     virtual void encodeSetCondReg(MicroReg reg, MicroCond cpuCond)                                                                                                                            = 0;

@@ -986,6 +986,7 @@ bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
         case MicroInstrOpcode::LoadAddrAmcRegMem:
         case MicroInstrOpcode::VecUnaryAmcRegMem:
         case MicroInstrOpcode::OpBinaryRegAmcMem:
+        case MicroInstrOpcode::CmpRegAmc:
             return true;
         case MicroInstrOpcode::LoadAmcMemReg:
         case MicroInstrOpcode::LoadAmcMemImm:

@@ -936,3 +936,17 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 2,
     })
+
+// Compare a scalar float register with an indexed memory operand:
+// [lhs, base, index, cmpBits, addrBits, mul, add]. Defines CPU flags.
+SWC_MICRO_INSTR_DEF(
+    CmpRegAmc,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

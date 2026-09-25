@@ -308,6 +308,38 @@ namespace
         }
     };
 
+    struct JumpLabelReferenceCache
+    {
+        std::unordered_map<uint32_t, uint32_t> counts;
+        bool                                   built = false;
+
+        void invalidate() { built = false; }
+
+        const std::unordered_map<uint32_t, uint32_t>& get(const MicroStorage& storage, const MicroOperandStorage& operands)
+        {
+            if (!built)
+            {
+                counts.clear();
+                for (const MicroInstr& inst : storage.view())
+                {
+                    if (inst.op != MicroInstrOpcode::JumpCond)
+                        continue;
+                    uint32_t labelId = 0;
+                    if (tryGetJumpTargetLabelId(labelId, inst, inst.ops(operands)))
+                        ++counts[labelId];
+                }
+                built = true;
+            }
+            return counts;
+        }
+    };
+
+    uint32_t jumpLabelReferenceCount(const std::unordered_map<uint32_t, uint32_t>& counts, const uint32_t labelId)
+    {
+        const auto it = counts.find(labelId);
+        return it == counts.end() ? 0 : it->second;
+    }
+
     // Null when the function jumps through a register or takes a label's address:
     // none of the transforms that share this walk can reason about where such a jump
     // lands, and each one used to give up on the same test.
@@ -4200,20 +4232,12 @@ namespace
     //     if CC: R = A * C       T = B
     //     else:  R = A * B   ->  T = C if CC
     //                            R = A * T
-    bool factorByteMultiplyDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool factorByteMultiplyDiamond(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, JumpLabelReferenceCache& labelCache)
     {
         if (!context.builder)
             return false;
 
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        for (const MicroInstr& inst : storage.view())
-        {
-            if (inst.op != MicroInstrOpcode::JumpCond)
-                continue;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, inst, inst.ops(operands)))
-                ++labelReferences[labelId];
-        }
+        const auto& labelReferences = labelCache.get(storage, operands);
 
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
@@ -4222,7 +4246,7 @@ namespace
             const MicroInstrOperand* branchOps = it->ops(operands);
             uint32_t armLabelId = 0;
             if (!branchOps || branchOps[0].cpuCond == MicroCond::Unconditional ||
-                !tryGetJumpTargetLabelId(armLabelId, *it, branchOps) || labelReferences[armLabelId] != 1)
+                !tryGetJumpTargetLabelId(armLabelId, *it, branchOps) || jumpLabelReferenceCount(labelReferences, armLabelId) != 1)
                 continue;
 
             const MicroInstrRef fallCopyRef = storage.findNextInstructionRef(it.current);
@@ -4247,7 +4271,7 @@ namespace
                 joinJumpOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
             uint32_t joinLabelId = 0;
-            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || labelReferences[joinLabelId] != 1)
+            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || jumpLabelReferenceCount(labelReferences, joinLabelId) != 1)
                 continue;
 
             const MicroInstrRef armLabelRef = storage.findNextInstructionRef(joinJumpRef);
@@ -4317,20 +4341,12 @@ namespace
     // Two pure guards that return one only when both pass need no control
     // flow. Materialize each passing condition, combine the bytes, then
     // restore the original full-width boolean result.
-    bool convertBooleanGuardPairs(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    bool convertBooleanGuardPairs(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, JumpLabelReferenceCache& labelCache)
     {
         if (!context.builder)
             return false;
 
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        for (const MicroInstr& inst : storage.view())
-        {
-            if (inst.op != MicroInstrOpcode::JumpCond)
-                continue;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, inst, inst.ops(operands)))
-                ++labelReferences[labelId];
-        }
+        const auto& labelReferences = labelCache.get(storage, operands);
 
         struct Candidate
         {
@@ -4361,7 +4377,7 @@ namespace
             if (!MicroPassHelpers::invertCondition(candidate.firstTrue, firstJumpOps[0].cpuCond))
                 continue;
             uint32_t falseLabelId = 0;
-            if (!tryGetJumpTargetLabelId(falseLabelId, *it, firstJumpOps) || labelReferences[falseLabelId] != 2)
+            if (!tryGetJumpTargetLabelId(falseLabelId, *it, firstJumpOps) || jumpLabelReferenceCount(labelReferences, falseLabelId) != 2)
                 continue;
 
             const MicroInstrRef secondCmpRef = storage.findNextInstructionRef(candidate.firstJumpRef);
@@ -4396,7 +4412,7 @@ namespace
                 joinJumpOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
             uint32_t joinLabelId = 0;
-            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || labelReferences[joinLabelId] != 1)
+            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || jumpLabelReferenceCount(labelReferences, joinLabelId) != 1)
                 continue;
 
             candidate.falseLabelRef = storage.findNextInstructionRef(candidate.joinJumpRef);
@@ -7354,13 +7370,16 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         rewrote(structuralChanged);
     }
 
-    if (rewrote(factorByteMultiplyDiamond(storage, operands, context)))
+    thread_local JumpLabelReferenceCache jumpLabelCache;
+    jumpLabelCache.invalidate();
+    if (rewrote(factorByteMultiplyDiamond(storage, operands, context, jumpLabelCache)))
     {
+        jumpLabelCache.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
 
-    if (rewrote(convertBooleanGuardPairs(storage, operands, context)))
+    if (rewrote(convertBooleanGuardPairs(storage, operands, context, jumpLabelCache)))
     {
         if (context.builder)
             context.builder->invalidateControlFlowGraph();

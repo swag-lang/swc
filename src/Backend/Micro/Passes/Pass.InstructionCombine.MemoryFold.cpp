@@ -234,8 +234,10 @@ namespace InstructionCombine
         const MicroReg value = loadOps[0].reg;
         const MicroReg base  = loadOps[1].reg;
         const MicroReg index = loadOps[2].reg;
+        // Indexed accesses are opaque to SLP even inside a loop. A matched
+        // single-use triple therefore has no scalar lanes to preserve for it.
         if (!value.isVirtualInt() || !base.isVirtualInt() || !index.isVirtualInt() ||
-            value == base || value == index || ctx.isInsideLoop(loadRef) || keepAccessScalar(ctx, loadRef, base) ||
+            value == base || value == index || keepAccessScalar(ctx, loadRef, base) ||
             !valueHasSingleUse(*ctx.ssa, value, loadRef))
             return false;
 

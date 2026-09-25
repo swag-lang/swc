@@ -202,6 +202,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     ctx.allowForwarding  = context.isFirstOptimizationSweep;
 
     eraseRedundantUpperHalfClears(ctx);
+    forwardPrivateFrameReloads(ctx);
     runPerInstructionPatterns(ctx);
 
     if (ctx.actions.empty())

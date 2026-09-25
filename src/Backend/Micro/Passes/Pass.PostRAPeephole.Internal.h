@@ -74,6 +74,7 @@ namespace PostRaPeephole
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldDeadScalarIncrement(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryErasePrivateFrameReloadAfterBranch(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool forwardPrivateFrameReloads(Context& ctx);
     bool tryFoldClearIntoResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryEraseRepeatedImmediate(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryEraseZeroExtendedSelfCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

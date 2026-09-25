@@ -176,6 +176,72 @@ SWC_TEST_BEGIN(PostRAPeephole_ErasesPrivateFrameReloadAfterBranch)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ForwardsPrivateFrameReloadAcrossBranches)
+{
+    constexpr MicroReg localBase = MicroReg::intReg(3);
+    constexpr MicroReg saved = MicroReg::intReg(12);
+    constexpr MicroReg result = MicroReg::intReg(0);
+    constexpr MicroReg index = MicroReg::intReg(6);
+    constexpr MicroReg other = MicroReg::intReg(7);
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const auto join = builder.createLabel();
+        const auto done = builder.createLabel();
+        if (variant == 3)
+        {
+            builder.emitCmpRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+        }
+        builder.emitLoadRegMem(saved, localBase, 8, MicroOpBits::B64);
+        builder.emitCmpRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+        if (variant == 1)
+            builder.emitLoadMemImm(other, 0, ApInt(1, 8), MicroOpBits::B8);
+        if (variant == 2)
+            builder.emitLoadRegImm(saved, ApInt(1, 64), MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitLoadRegMem(result, localBase, 8, MicroOpBits::B64);
+        builder.emitCmpRegImm(result, ApInt(0, 8), MicroOpBits::B8);
+        const MicroInstrRef oldCompare = builder.instructions().lastInstructionRef();
+        MicroInstrOperand indexedCompare[7] = {};
+        indexedCompare[0].reg = result;
+        indexedCompare[1].reg = index;
+        indexedCompare[2].opBits = MicroOpBits::B8;
+        indexedCompare[3].opBits = MicroOpBits::B64;
+        indexedCompare[4].valueU64 = 1;
+        indexedCompare[5].valueU64 = 0;
+        indexedCompare[6].setImmediateValue(ApInt(0, 8));
+        builder.instructions().insertDerivedBefore(builder.operands(), oldCompare, MicroInstrOpcode::CmpAmcImm, indexedCompare);
+        builder.instructions().erase(oldCompare);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, done);
+        builder.emitLoadRegMem(result, localBase, 8, MicroOpBits::B64);
+        builder.emitLoadAmcMemImm(result, index, 1, 0, MicroOpBits::B64, ApInt(1, 8), MicroOpBits::B8);
+        builder.placeLabel(done);
+        builder.emitLoadRegImm(result, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, localBase));
+        const uint32_t expected = variant == 0 ? 1u : 2u;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != expected)
+            return Result::Error;
+        if (variant == 0)
+        {
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                if (inst.op != MicroInstrOpcode::CmpAmcImm && inst.op != MicroInstrOpcode::LoadAmcMemImm)
+                    continue;
+                const auto* ops = inst.ops(builder.operands());
+                if (!ops || ops[0].reg != saved)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ConstantBooleanSet_Folded)
 {
     constexpr MicroReg value = MicroReg::intReg(0);

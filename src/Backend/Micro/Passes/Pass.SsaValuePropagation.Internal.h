@@ -91,8 +91,9 @@ void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint
     outValues.assign(values.size(), T_VALUE{});
     outFlags.assign(values.size(), 0);
 
-    bool changed = true;
-    while (changed)
+    size_t unresolved = values.size();
+    bool   changed    = true;
+    while (changed && unresolved)
     {
         changed = false;
         for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
@@ -120,6 +121,7 @@ void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint
 
             outValues[valueId] = inferredValue;
             outFlags[valueId]  = 1;
+            --unresolved;
             changed            = true;
         }
 

@@ -367,20 +367,20 @@ each task in bench/, using runtimes from the same accepted full campaign. Concre
 This is the only thing being optimized here. Compile time is not a competing goal in this
 campaign - see RULES.
 
-Where it stands, clean campaign 20260924-194339 (run ms, lower is better):
+Where it stands, clean campaign 20260925-045442 (run ms, lower is better):
 
   task      swag    fastest other runtime     other ms   ratio
-  chacha    27.047  C++ / clang-cl             22.963    1.178x
-  csvagg    22.424  C++ / clang-cl             18.367    1.221x
-  dijkstra  29.973  C++ / MSVC                 29.562    1.014x
-  leven     12.552  Odin                       13.148    0.955x
-  raytrace  10.604  C++ / MSVC                  9.345    1.135x
-  sha256    33.745  Rust                       36.465    0.925x
-  wordfreq  60.094  D / LDC                    52.951    1.135x
-  geometric mean                                     1.075x
+  chacha    24.312  C++ / clang-cl             22.259    1.092x
+  csvagg    20.270  C++ / clang-cl             16.918    1.198x
+  dijkstra  32.445  C++ / MSVC                 29.589    1.097x
+  leven     13.358  Odin                       12.723    1.050x
+  raytrace  11.602  Odin                        9.248    1.255x
+  sha256    35.233  Zig                        36.865    0.956x
+  wordfreq  62.027  D / LDC                    51.603    1.202x
+  geometric mean                                     1.117x
 
 That table is one campaign on one machine, so read it as a starting order and nothing more. It
-already meets the numerical ceilings above; any new campaign must re-evaluate its own per-task
+exceeds the per-task ceiling on raytrace; any new campaign must re-evaluate its own per-task
 winners and ratios. Do not re-measure it before the first change. Open the largest remaining gap
 and inspect the code or execution strategy that produced the winning time.
 

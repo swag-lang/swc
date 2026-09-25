@@ -2416,12 +2416,21 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
 {
     SWC_ASSERT(controlFlowGraph_ != nullptr);
 
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    if (successors.size() == 1 && successors[0] < instructionCount_)
+    {
+        const auto succInVirtual  = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
+        const auto succInConcrete = DenseBits::row(liveInConcreteBits_, successors[0], denseConcreteRegs_.wordCount());
+        std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
+        std::ranges::copy(succInConcrete, tempOutConcrete_.begin());
+        return;
+    }
+
     for (uint64_t& value : tempOutVirtual_)
         value = 0;
     for (uint64_t& value : tempOutConcrete_)
         value = 0;
 
-    const auto& successors = controlFlowGraph_->successors(instructionIndex);
     for (const uint32_t succIdx : successors)
     {
         if (succIdx >= instructionCount_)

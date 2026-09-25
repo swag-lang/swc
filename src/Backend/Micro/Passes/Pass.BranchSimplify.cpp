@@ -6941,21 +6941,25 @@ namespace
     // read before, and route the path's result into `valueReg`. False when a
     // read-modify-write touches a register the path never wrote first: its
     // read needs the old value and its write the new name.
-    bool renameEarlyPath(const ReturnPath& path, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder, const MicroReg returnReg, const MicroReg valueReg, uint32_t& nextVirtualIntRegIndex)
+    bool renameEarlyPath(const ReturnPath& path, MicroStorage& storage, MicroOperandStorage& operands, const MicroReg returnReg, const MicroReg valueReg, uint32_t& nextVirtualIntRegIndex)
     {
         std::unordered_map<MicroReg, MicroReg> renamed;
-        MicroInstrRegOperandRefs   regOperands;
-        SmallVector<MicroInstrRef, 8>          refs = path.refs;
-        refs.push_back(path.valueRef);
-
-        for (const MicroInstrRef ref : refs)
-        {
-            regOperands.clear();
-            storage.ptr(ref)->collectRegOperands(operands, regOperands, encoder);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+        const auto renameInstruction = [&](const MicroInstrRef ref) {
+            MicroInstr* instruction = storage.ptr(ref);
+            MicroInstrOperand* instructionOps = instruction->ops(operands);
+            if (!instructionOps)
+                return true;
+            const auto modes = MicroInstr::info(instruction->op).resolvedRegModes(instructionOps);
+            for (size_t operand = 0; operand < modes.size(); ++operand)
             {
-                MicroReg& reg = *regOperand.reg;
-                if (regOperand.def && ref == path.valueRef && reg == returnReg)
+                const MicroInstrRegMode mode = modes[operand];
+                if (mode == MicroInstrRegMode::None)
+                    continue;
+                MicroReg& reg = instructionOps[operand].reg;
+                if (!reg.isValid() || reg.isNoBase())
+                    continue;
+                const bool isDef = mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef;
+                if (isDef && ref == path.valueRef && reg == returnReg)
                 {
                     reg = valueReg;
                     continue;
@@ -6967,18 +6971,24 @@ namespace
                     reg = it->second;
                     continue;
                 }
-                if (!regOperand.def || !reg.isVirtualInt())
+                if (!isDef || !reg.isVirtualInt())
                     continue;
-                if (regOperand.use)
+                if (mode == MicroInstrRegMode::UseDef)
                     return false;
 
                 const MicroReg fresh = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
                 renamed.emplace(reg, fresh);
                 reg = fresh;
             }
-        }
+            return true;
+        };
 
-        return true;
+        for (const MicroInstrRef ref : path.refs)
+        {
+            if (!renameInstruction(ref))
+                return false;
+        }
+        return renameInstruction(path.valueRef);
     }
 
     bool convertEarlyReturnsToSelects(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, DiamondScanCache& scanCache)
@@ -7016,7 +7026,7 @@ namespace
         {
             const MicroReg armValue  = nextVirtualIntRegs.take();
             const MicroReg tailValue = nextVirtualIntRegs.take();
-            if (!renameEarlyPath(earlyReturn.arm, storage, operands, context.encoder, conv.intReturn, armValue, nextVirtualIntRegs.index()))
+            if (!renameEarlyPath(earlyReturn.arm, storage, operands, conv.intReturn, armValue, nextVirtualIntRegs.index()))
                 continue;
 
             MicroInstrOperand* tailValueOps = storage.ptr(earlyReturn.tail.valueRef)->ops(operands);

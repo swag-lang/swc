@@ -193,7 +193,10 @@ namespace
         uint64_t depth = 0;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
-            const MicroInstrOperand* ops = it->ops(*context.operands);
+            const MicroInstrOpcode op = it->op;
+            const bool needsOps = op == MicroInstrOpcode::Label || op == MicroInstrOpcode::OpBinaryRegImm ||
+                                  op == MicroInstrOpcode::JumpCond || op == MicroInstrOpcode::JumpCondImm;
+            const MicroInstrOperand* ops = needsOps ? it->ops(*context.operands) : nullptr;
 
             if (it->op == MicroInstrOpcode::Label && ops && ops[0].valueU64 <= std::numeric_limits<uint32_t>::max())
             {

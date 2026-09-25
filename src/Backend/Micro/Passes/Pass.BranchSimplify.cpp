@@ -3701,14 +3701,15 @@ namespace
                     continue;
 
                 uint32_t sourceMentions = 0;
-                MicroInstrRegOperandRefs regOperands;
                 for (MicroInstr& inst : storage.view())
                 {
-                    regOperands.clear();
-                    inst.collectRegOperands(operands, regOperands, context.encoder);
-                    for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                    const MicroInstrOperand* instOps = inst.ops(operands);
+                    if (!instOps)
+                        continue;
+                    const auto modes = MicroInstr::info(inst.op).resolvedRegModes(instOps);
+                    for (size_t operand = 0; operand < modes.size(); ++operand)
                     {
-                        if (regOperand.reg && *regOperand.reg == sourceLoadOps[0].reg)
+                        if (modes[operand] != MicroInstrRegMode::None && instOps[operand].reg == sourceLoadOps[0].reg)
                             ++sourceMentions;
                     }
                 }

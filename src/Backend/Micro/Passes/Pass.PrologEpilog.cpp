@@ -53,13 +53,9 @@ namespace
     bool hasCallInstruction(const MicroPassContext& context)
     {
         SWC_ASSERT(context.instructions);
-        SWC_ASSERT(context.operands);
-
-        const auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
-            const auto useDef = inst.collectUseDef(operands, context.encoder);
-            if (useDef.isCall)
+            if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return true;
         }
 

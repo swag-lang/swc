@@ -664,6 +664,8 @@ namespace
         std::vector<uint32_t> stack;
         std::vector<uint32_t> childCursor;
         std::vector<uint32_t> postorder;
+        std::vector<uint64_t> useMasks;
+        std::vector<uint64_t> defMasks;
     };
 
     GraphWalkScratch& graphWalkScratch()
@@ -698,13 +700,24 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0ull;
     };
 
+    auto& scratch = graphWalkScratch();
     out.useDefs.resize(instCount);
+    scratch.useMasks.resize(instCount);
+    scratch.defMasks.resize(instCount);
     for (uint32_t i = 0; i < instCount; ++i)
     {
         const MicroInstr* inst = context.instructions->ptr(instructionRefs[i]);
         if (!inst)
             return;
         out.useDefs[i] = inst->collectUseDef(*context.operands, context.encoder);
+        uint64_t useMask = 0;
+        uint64_t defMask = 0;
+        for (const MicroReg reg : out.useDefs[i].uses)
+            useMask |= maskOf(reg);
+        for (const MicroReg reg : out.useDefs[i].defs)
+            defMask |= maskOf(reg);
+        scratch.useMasks[i] = useMask;
+        scratch.defMasks[i] = defMask;
     }
 
     const CallConv& conv        = CallConv::get(context.callConvKind);
@@ -726,7 +739,6 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     out.liveOut.resize(instCount);
 
     // Graph walks run sequentially on a worker and reuse the same buffers.
-    auto& scratch    = graphWalkScratch();
     auto& inWorklist = scratch.marks;
     auto& worklist   = scratch.stack;
     inWorklist.assign(instCount, 1);
@@ -755,11 +767,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         out.liveOut[i] = newOut;
 
         // live_in = (live_out \ defs) | uses
-        uint64_t newIn = newOut;
-        for (const MicroReg def : out.useDefs[i].defs)
-            newIn &= ~maskOf(def);
-        for (const MicroReg use : out.useDefs[i].uses)
-            newIn |= maskOf(use);
+        const uint64_t newIn = (newOut & ~scratch.defMasks[i]) | scratch.useMasks[i];
 
         if (newIn != out.liveIn[i])
         {

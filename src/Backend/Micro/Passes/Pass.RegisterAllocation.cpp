@@ -840,10 +840,8 @@ bool MicroRegisterAllocationPass::intervalHasHotCall(const uint32_t lo, const ui
 
 void MicroRegisterAllocationPass::computeGuardedCallPositions()
 {
-    // A call is guarded when a conditional jump before it targets a label
-    // after it: the fall-through path steps over the call, which is the shape
-    // of every compiler-emitted safety check (bounds, null, math) and of
-    // hand-written error paths. Guarded calls are presumed cold.
+    // Guarded calls sit either below a conditional jump to their join, or
+    // below a jump over a labeled panic block. Both shapes are presumed cold.
     guardedCallPositions_.assign(instructionCount_, 0);
     if (!hasControlFlow_ || !instructionCount_)
         return;
@@ -854,63 +852,21 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
             continue;
         const MicroInstrOperand* ops = it->ops(*operands_);
-        if (!ops || MicroInstrInfo::isUnconditionalJumpInstruction(*it, ops))
+        if (!ops)
             continue;
 
+        const bool     jumpOver  = MicroInstrInfo::isUnconditionalJumpInstruction(*it, ops);
         const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
-        if (targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx <= idx)
+        if (targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx <= idx + (jumpOver ? 2u : 1u))
             continue;
 
-        // Only a region that falls into the join right after its call is a
-        // guard shadow: that is the emitted shape of a safety check (argument
-        // loads, then the panic call, then the label the jump targets). A
-        // then-block of an if/else ends with its own jump instead, and a
-        // region with an interior label has other ways in — either could be
-        // hot, so neither is marked.
-        bool           regionIsGuard = targetIdx > idx + 1;
-        uint32_t       inner         = idx + 1;
+        // The region must end in a call, have no interior entry or terminator,
+        // and start with a label when the hot path jumps over it.
+        bool     regionIsGuard = true;
+        uint32_t inner         = idx + 1;
         for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
         {
-            if (innerIt->op == MicroInstrOpcode::Label)
-                regionIsGuard = false;
-            else if (inner + 1 == targetIdx)
-                regionIsGuard = instructionUseDefs_[inner].isCall;
-            else if (MicroInstrInfo::isTerminatorInstruction(*innerIt))
-                regionIsGuard = false;
-        }
-
-        if (!regionIsGuard)
-            continue;
-
-        for (inner = idx + 1; inner < targetIdx; ++inner)
-        {
-            if (instructionUseDefs_[inner].isCall)
-                guardedCallPositions_[inner] = 1;
-        }
-    }
-
-    // Second emitted shape: the hot path jumps OVER the panic block with an
-    // unconditional jump, and the guards branch INTO it. The region between
-    // that jump and its target starts with the panic label, ends with the
-    // panic call, and falls into the join — same signature, different entry.
-    idx = 0;
-    for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
-    {
-        if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
-            continue;
-        const MicroInstrOperand* ops = it->ops(*operands_);
-        if (!ops || !MicroInstrInfo::isUnconditionalJumpInstruction(*it, ops))
-            continue;
-
-        const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
-        if (targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx <= idx)
-            continue;
-
-        bool           regionIsGuard = targetIdx > idx + 2;
-        uint32_t       inner         = idx + 1;
-        for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
-        {
-            if (inner == idx + 1)
+            if (jumpOver && inner == idx + 1)
                 regionIsGuard = innerIt->op == MicroInstrOpcode::Label;
             else if (innerIt->op == MicroInstrOpcode::Label)
                 regionIsGuard = false;
@@ -923,11 +879,9 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         if (!regionIsGuard)
             continue;
 
-        for (inner = idx + 2; inner < targetIdx; ++inner)
-        {
-            if (instructionUseDefs_[inner].isCall)
-                guardedCallPositions_[inner] = 1;
-        }
+        for (auto call = std::ranges::lower_bound(callPositions_, idx + (jumpOver ? 2u : 1u));
+             call != callPositions_.end() && *call < targetIdx; ++call)
+            guardedCallPositions_[*call] = 1;
     }
 }
 

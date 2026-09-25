@@ -1399,7 +1399,7 @@ namespace
     // any length settles without a copy per exit. Joins are visited last to
     // first so each result register takes over the next one's readers.
     bool coalesceShortCircuitResults(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
-                                     ProgramLayoutCache& layoutCache)
+                                     ProgramLayoutCache& layoutCache, RelocationRefCache& relocationCache)
     {
         const ProgramLayout& layout = layoutCache.get(storage, operands);
         const size_t count = layout.order.size();
@@ -1427,25 +1427,6 @@ namespace
         {
             SmallVector<uint32_t, 4> uses;
             SmallVector<uint32_t, 4> defs;
-        };
-
-        std::unordered_set<uint32_t> relocated;
-        bool                         relocatedCollected = false;
-        const auto                   isRelocated        = [&](const MicroInstrRef ref) {
-            if (!relocatedCollected)
-            {
-                relocatedCollected = true;
-                if (context.builder)
-                {
-                    for (const MicroRelocation& reloc : context.builder->codeRelocations())
-                    {
-                        if (reloc.instructionRef.isValid())
-                            relocated.insert(reloc.instructionRef.get());
-                    }
-                }
-            }
-
-            return relocated.contains(ref.get());
         };
 
         std::unordered_map<uint32_t, RegSites> sites;
@@ -1507,7 +1488,7 @@ namespace
                 continue;
             const auto labelIt = layout.labelOrdinalById.find(labelId);
             if (labelIt == layout.labelOrdinalById.end() || labelIt->second <= p || labelReferences[labelId] != 1 ||
-                isRelocated(layout.order[labelIt->second]))
+                relocationCache.get(context).contains(layout.order[labelIt->second].get()))
                 continue;
             const uint32_t j = labelIt->second;
 
@@ -7258,10 +7239,13 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         shortCircuitLayout.invalidate();
         bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
-        const bool coalesced = coalesceShortCircuitResults(storage, operands, context, shortCircuitLayout);
+        const bool coalesced = coalesceShortCircuitResults(storage, operands, context, shortCircuitLayout, relocationCache);
         roundChanged |= coalesced;
         if (coalesced)
+        {
             shortCircuitLayout.invalidate();
+            relocationCache.invalidate();
+        }
         if (threadInlinedBooleanBranches(storage, operands, context.builder, shortCircuitLayout))
         {
             roundChanged = true;

@@ -142,6 +142,96 @@ SWC_TEST_BEGIN(LICM_HoistsGlobalLoadAcrossReadOnlyCall)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LICM_HoistsIndexedLoadOnlyAcrossReadOnlyCallWithoutAlias)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        if (mode != 0)
+        {
+            AttributeList attributes;
+            attributes.addRtFlag(RtAttributeFlagsE::ReadOnly);
+            callee.setAttributes(ctx, attributes);
+        }
+
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg index = MicroReg::virtualIntReg(2);
+        constexpr MicroReg count = MicroReg::virtualIntReg(3);
+        constexpr MicroReg value = MicroReg::virtualIntReg(4);
+        constexpr MicroReg sum   = MicroReg::virtualIntReg(5);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(index, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(sum, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, index, 8, 0, MicroOpBits::B64);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B64);
+        if (mode == 2)
+            builder.emitLoadAmcMemReg(base, index, 8, 0, MicroOpBits::B64, sum, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(MicroReg::intReg(0), sum, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+
+        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadAmcRegMem);
+        if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LICM_HoistsInvariantStructureFieldAcrossReadOnlyCall)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        if (mode != 0)
+        {
+            AttributeList attributes;
+            attributes.addRtFlag(RtAttributeFlagsE::ReadOnly);
+            callee.setAttributes(ctx, attributes);
+        }
+
+        constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+        constexpr MicroReg count = MicroReg::virtualIntReg(2);
+        constexpr MicroReg value = MicroReg::virtualIntReg(3);
+        constexpr MicroReg sum   = MicroReg::virtualIntReg(4);
+        constexpr MicroReg item  = MicroReg::virtualIntReg(5);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(sum, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitLoadRegMem(item, value, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(sum, item, MicroOp::Add, MicroOpBits::B64);
+        if (mode == 2)
+            builder.emitLoadMemReg(base, 8, sum, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(MicroReg::intReg(0), sum, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+
+        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroDominators_MatchReachabilityWithANodeRemoved)
 {
     constexpr MicroReg  value = MicroReg::virtualIntReg(1);

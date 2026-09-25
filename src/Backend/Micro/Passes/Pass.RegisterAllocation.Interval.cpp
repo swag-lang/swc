@@ -847,13 +847,21 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             }
         }
 
-        // Usable only when the register serves the whole interval, or the
-        // partial allocation leaves a legal even split position strictly
-        // inside it.
+        // A free register that ends at a call can split a loop value at the
+        // call even when a less-used value occupies a persistent register.
+        // Try the blocked election first in that case; retain the partial
+        // free register as a fallback when no owner can be displaced.
         const bool freeServesWhole = bestFree < poolCount && freeUntilPos[bestFree] >= out.nodes[currentIndex].end();
         const bool freeSplittable  = bestFree < poolCount && (freeUntilPos[bestFree] & ~1u) > position;
-        if (freeServesWhole || freeSplittable)
+        bool       freeEndsAtCall  = false;
+        if (freeSplittable && !freeServesWhole && !fixed[bestFree].ranges.empty() &&
+            fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == freeUntilPos[bestFree])
         {
+            const uint32_t blockIndex = freeUntilPos[bestFree] / 2;
+            const MicroInstr* blockInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
+            freeEndsAtCall = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction);
+        }
+        const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
             if (freeUntilPos[bestFree] < out.nodes[currentIndex].end())
             {
@@ -865,6 +873,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
                 }
             }
             walk.active.push_back(currentIndex);
+        };
+        if (freeServesWhole || (freeSplittable && !freeEndsAtCall))
+        {
+            allocateFree();
             continue;
         }
 
@@ -956,6 +968,11 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
 
         if (chosen == poolCount)
         {
+            if (freeSplittable)
+            {
+                allocateFree();
+                continue;
+            }
             // Spill current: it carries, others compute. Split before its
             // first access; the head is register-free.
             if (currentFirstUse != std::numeric_limits<uint32_t>::max() &&

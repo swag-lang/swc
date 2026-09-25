@@ -746,6 +746,47 @@ SWC_TEST_BEGIN(RegAlloc_PersistentAcross)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_PrefersPersistentOwnerOverFreeRegisterEndingAtCall)
+{
+    const CallConv&    conv    = CallConv::get(CallConvKind::WindowsX64);
+    constexpr MicroReg owner   = MicroReg::virtualIntReg(8000);
+    constexpr MicroReg current = MicroReg::virtualIntReg(8001);
+    constexpr MicroReg r8      = MicroReg::intReg(8);
+    constexpr MicroReg r12     = MicroReg::intReg(12);
+    MicroBuilder       builder(ctx);
+    builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+    for (const MicroReg reg : conv.intRegs)
+    {
+        if (reg != r12)
+            builder.addVirtualRegForbiddenPhysReg(owner, reg);
+        if (reg != r8 && reg != r12)
+            builder.addVirtualRegForbiddenPhysReg(current, reg);
+    }
+    builder.emitLoadRegImm(owner, ApInt(42, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(current, ApInt(7, 64), MicroOpBits::B64);
+    const MicroInstrRef currentDef = builder.instructions().lastInstructionRef();
+    builder.emitCallReg(MicroReg::intReg(0), CallConvKind::WindowsX64);
+    builder.emitLoadMemReg(conv.stackPointer, 32, current, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.stackPointer, 40, owner, MicroOpBits::B64);
+    builder.emitRet();
+
+    MicroRegisterAllocationPass pass;
+    MicroPassContext            passCtx;
+    passCtx.taskContext  = &ctx;
+    passCtx.builder      = &builder;
+    passCtx.instructions = &builder.instructions();
+    passCtx.operands     = &builder.operands();
+    passCtx.callConvKind = CallConvKind::WindowsX64;
+    SWC_RESULT(pass.run(passCtx));
+    SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+    const MicroInstr* currentInst = builder.instructions().ptr(currentDef);
+    if (!passCtx.intervalAllocated || !currentInst || currentInst->op != MicroInstrOpcode::LoadRegImm ||
+        currentInst->ops(builder.operands())[0].reg != r12)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_NoCalls)
 {
     SWC_RESULT(runCase(ctx, buildNoCalls));

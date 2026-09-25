@@ -150,7 +150,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     std::unordered_map<uint32_t, JumpTarget> jumpsByTarget;
     std::vector<MicroInstrRef>               order;
     order.reserve(storage.count());
-    for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+    for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {
         const auto ordinal = static_cast<uint32_t>(order.size());
         order.push_back(it.current);

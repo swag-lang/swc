@@ -1265,7 +1265,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         std::unordered_map<uint32_t, uint32_t> position;
         uint32_t                               entryEnd = std::numeric_limits<uint32_t>::max();
         uint32_t                               index    = 0;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it, ++index)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
         {
             position[it.current.get()] = index;
             const MicroInstrDef& info  = MicroInstr::info(it->op);

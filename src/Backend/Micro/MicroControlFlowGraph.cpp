@@ -76,7 +76,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     successors_.resize(instructionCount);
     predecessors_.resize(instructionCount);
 
-    for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+    for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {
         const uint32_t instructionIndex = static_cast<uint32_t>(instructionRefs_.size());
         instructionRefs_.push_back(it.current);

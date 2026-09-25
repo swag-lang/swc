@@ -257,7 +257,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
         std::vector<std::pair<uint32_t, uint64_t>> jumps;
         order.reserve(storage.count());
 
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& inst = *it;
             const uint32_t    ord  = static_cast<uint32_t>(order.size());

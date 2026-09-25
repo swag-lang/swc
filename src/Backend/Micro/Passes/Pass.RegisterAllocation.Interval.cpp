@@ -1853,17 +1853,18 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // virtual access must resolve to a register node.
     {
         uint32_t idx = 0;
-        MicroInstrRegOperandRefs regRefs;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
-            regRefs.clear();
-            it->collectRegOperands(*operands_, regRefs, context_->encoder);
-            for (const MicroInstrRegOperandRef& ref : regRefs)
+            const MicroInstrOperand* ops = it->ops(*operands_);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(it->op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (!ref.reg || !ref.reg->isVirtual())
+                if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtual())
                     continue;
-                const uint32_t      denseIndex = denseVirtualIndex(*ref.reg);
-                const uint32_t      pos        = ref.def && !ref.use ? idx * 2 + 1 : idx * 2;
+                const uint32_t      denseIndex = denseVirtualIndex(ops[i].reg);
+                const uint32_t      pos        = modes[i] == MicroInstrRegMode::Def ? idx * 2 + 1 : idx * 2;
                 const LiveInterval* node       = locate(denseIndex, pos);
                 if (!node || node->spilled || !node->assignedReg.isValid())
                     return false;
@@ -1908,7 +1909,6 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     size_t   nextConnector = 0;
     size_t   nextTrampoline = 0;
     uint32_t idx           = 0;
-    MicroInstrRegOperandRefs regRefs;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         const MicroInstrRef instructionRef = it.current;
@@ -2058,17 +2058,20 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             insertPending(instructionRef, labelInst);
         }
 
-        regRefs.clear();
-        it->collectRegOperands(*operands_, regRefs, context_->encoder);
-        for (const MicroInstrRegOperandRef& ref : regRefs)
+        MicroInstrOperand* ops = it->ops(*operands_);
+        if (ops)
         {
-            if (!ref.reg || !ref.reg->isVirtual())
-                continue;
-            const uint32_t      denseIndex = denseVirtualIndex(*ref.reg);
-            const uint32_t      pos        = ref.def && !ref.use ? idx * 2 + 1 : idx * 2;
-            const LiveInterval* node       = locate(denseIndex, pos);
-            SWC_ASSERT(node && !node->spilled && node->assignedReg.isValid()); // pre-validated
-            *ref.reg = node->assignedReg;
+            const auto modes = MicroInstr::info(it->op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtual())
+                    continue;
+                const uint32_t      denseIndex = denseVirtualIndex(ops[i].reg);
+                const uint32_t      pos        = modes[i] == MicroInstrRegMode::Def ? idx * 2 + 1 : idx * 2;
+                const LiveInterval* node       = locate(denseIndex, pos);
+                SWC_ASSERT(node && !node->spilled && node->assignedReg.isValid()); // pre-validated
+                ops[i].reg = node->assignedReg;
+            }
         }
 
         // A copy both sides of which took the same register is a no-op and

@@ -1,7 +1,0 @@
-A: C:\Perso\swag-lang\swc-speed\bin\swc.exe
-5 round(s), 6 compiler worker(s)
-  round 1 A core_rebuild  wall=   3672.4 ms  cpu=  14875.0 ms  commit= 654.3 MiB  ws= 583.3 MiB
-  round 2 A core_rebuild  wall=   3471.6 ms  cpu=  14640.6 ms  commit= 628.3 MiB  ws= 559.3 MiB
-  round 3 A core_rebuild  wall=  49768.1 ms  cpu= 165171.9 ms  commit= 547.7 MiB  ws= 481.6 MiB
-Waiting for compiler headroom
-Waiting for compiler headroom

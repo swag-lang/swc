@@ -658,19 +658,17 @@ Do not run this campaign in the main checkout. Create an isolated worktree and d
 
   git worktree add --detach ../swc-speed HEAD
 
-Every claim in this campaign is a timing, and a timing taken in a shared tree is worthless: foreign
-uncommitted edits from other sessions get linked into your swc.exe by MSBuild's incremental build,
-and a second build running on the same machine moves the number by more than anything you will
-change. The levers below are also large, staged rewrites - a module interface format, a caching
-layer - which need somewhere they can be half-finished without blocking anyone.
+Keep experiments isolated so another session's files cannot enter the measured compiler. Make
+small code changes and finish or discard each one promptly. Do not spend a work session collecting
+logs, rewriting reports, or running broad tests while only one code hypothesis has been tried.
 
 RELEASE COMPILER ONLY
 
 Build, validate and measure only the Release compiler, `bin/swc.exe`. Do not build, invoke or run a
 campaign through `bin/swc.dm.exe`; DevMode compiler behavior and timing are outside this campaign.
-Before the first change, rebuild `swc.exe` from source, run the full Release test sequence at
-baseline with that executable, and record every compilation workload's time with it once the
-instrument below exists. Those are the numbers every later round is measured against.
+Before the first change, rebuild `swc.exe` from source and record a baseline for the four workloads.
+Use an existing recent green Release campaign as the correctness baseline. Run the complete Release
+suite only at a spaced milestone, after a high-risk change, or before the final integration.
 
 GOAL
 
@@ -687,8 +685,8 @@ measured command. The same source inputs must go through the same required compi
 produce equivalent output. A cache or pipeline change belongs to another campaign even if it
 improves one of the edit-loop numbers below.
 
-Targets, all on this machine, all re-measured before you start. The readings below are from
-2026-09-23 with Release 0.1.1056, six workers, minimum of five runs on a quiet machine:
+Targets, all on this machine. The readings below are from 2026-09-23 with Release 0.1.1056 and
+six workers; refresh the baseline once before the first edit:
 
   - std/core rebuild (360 files): 2.63 s. Target under 1.0 s.
   - Warm no-op build of the same: 50 ms. Guardrail under 100 ms; not an optimization target here.
@@ -696,8 +694,8 @@ Targets, all on this machine, all re-measured before you start. The readings bel
     solve it with cache or invalidation changes in this campaign.
   - Hello world, source to linked executable: 211 ms. Target under 50 ms.
 
-The hello-world reading is far above the 89 ms this prompt used to quote, and none of that is a
-compiler regression: see compiler.core.030. Re-measure all four before trusting any of them.
+The hello-world reading is far above the 89 ms this prompt used to quote because runtime grew; see
+compiler.core.030. Do not repeatedly remeasure all four workloads between code hypotheses.
 
 For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
 in 93-132 ms against clang-cl's 481-647 ms and rustc's 425-585 ms. This campaign is not about
@@ -705,17 +703,15 @@ beating them. It is about the loop a person actually sits in.
 
 START BY VERIFYING THE INSTRUMENT
 
-Do this before any optimization; nothing below can be judged without it, and it is compiler.core.004
-in backlog/compiler.core.md.
+Check the instrument once before the first edit; this is compiler.core.004 in backlog/compiler.core.md.
 
-The campaign must measure a full core rebuild, a warm no-op, a one-file-touched rebuild and a hello
-world source-to-linked-executable build. Verify that all four workloads still run through
-`bin/swc.exe`, record wall time and peak working set, and preserve the same normalization in
-history.json before trusting any optimization result.
+Verify that a full core rebuild, warm no-op, one-file-touched rebuild and hello-world linked build
+all run through `bin/swc.exe` and record wall, process CPU and peak working set. The dedicated full
+benchmark campaign owns durable `history.json`; do not update that history during experiments.
 
-Use `bench/compile.py --swc bin/swc.exe --swc-cores 6 --admit --only core_rebuild,core_noop,core_touch,hello_build`
-for fast iteration between campaigns. It does not record results; the full benchmark campaign owns
-the durable history.
+Use `bench/compile.py --swc bin/swc.exe --swc-cores 6 --admit --only core_rebuild` for quick
+screening. Add `core_touch` or hello only when the changed path could affect them. Run all four
+workloads for an accepted batch or a milestone, not after each exploratory edit.
 
 Use external profilers for per-stage investigation. Do not add optional counters, allocation
 tracking, or profiling-only branches to the compiler: the benchmark campaign owns stable wall-time
@@ -726,31 +722,30 @@ clean workload. Name the serial fraction or contended primitive before changing 
 better scaling rather than merely shifting work between threads. Never exceed the repository's
 per-process worker cap or the measured machine-load admission rules.
 
-THE LOOP
+THE LOOP — PRIORITIZE CODE ITERATIONS
 
-  1. Profile the target workload. Name the stage that costs, with a number.
-  2. Form one hypothesis about why, and predict what the fix should buy before you write it.
-  3. Implement the smallest version of it.
-  4. Measure against the prediction. A fix that lands far off its prediction means the model was
-     wrong - go back to step 1 rather than keeping an accidental win.
-  5. Confirm the result with order-alternated baseline/candidate runs. Require wall and process CPU
-     to agree before claiming a measured speedup; a wall-only result under changing machine load
-     does not support a performance percentage.
-  6. Build `bin/swc.exe` in Release and run the smallest focused tests and concrete consumers that
-     exercise the changed behavior, following validate-swag-changes. For every batch, also draw one
-     test at random from a different area. Draw without replacement until the pool is exhausted,
-     then reshuffle; record the draw and both results. Run a broader Release regression campaign
-     roughly every five validated batches, sooner after a high-risk cross-cutting change or a
-     failure, and once more before the final report. Do not rerun the full repository sequence for
-     each batch. Do not add a DevMode build or `dm` test pass.
-  7. Record the changed internal stage, prediction, measurements, memory effect and validation.
-  8. Commit the verified optimization and fast-forward it into `main` before starting the next
-     batch. "Verified" includes either a repeatable measured win, or a correctness-certified
-     structural improvement that demonstrably removes work, allocation, copying, contention, or a
-     worse complexity class without a measured regression. For the latter, record "below the
-     measurement floor" and make no percentage speedup claim. Revert only changes that are wrong,
-     regress a guardrail, fail their structural proof, or add complexity that the evidence does not
-     justify.
+  1. Use a recent profile to select one costly internal stage. Give one concrete hypothesis and a
+     predicted effect; spend minutes, not hours, on investigation before the first edit.
+  2. Make the smallest code change and rebuild Release. Screen it with one or two admitted runs of
+     the affected workload against a saved baseline binary. This is a reject/continue signal, not
+     a percentage claim. If it fails, revert and try a different code hypothesis immediately.
+  3. For a promising candidate, run order-alternated A/B measurements with enough rounds to judge
+     wall, process CPU and peak memory together. If load obscures them, use a short control or state
+     that the effect is below the measurement floor. Do not repeat long campaigns for an obviously
+     losing idea.
+  4. Before retaining code, run the smallest focused Release-compiler test that exercises it.
+     Rotate one random test from another area every few retained batches, and run a broader Release
+     suite about every five retained batches, after a high-risk change, and at the final milestone.
+     Follow validate-swag-changes and machine-load admission. Do not run a full suite after each
+     small edit or after a reverted trial. Do not build the DevMode compiler.
+  5. Commit each retained code batch with `[prompt 4]` in its subject and fast-forward it into local
+     `master` before the next retained batch. Keep failed experiments in the worktree only; summarize
+     their reason briefly so the same dead end is not retried.
+
+Aim for several distinct code hypotheses per work session. If most elapsed time is going to tests,
+report writing or log collection, shorten the validation to the next decision boundary and return
+to code. Keep raw benchmark and test logs outside the repository; commit source changes and only a
+concise evidence summary for retained work.
 
 OPTIMIZE THE COMPILER, IN THIS ORDER OF EVIDENCE
 
@@ -776,12 +771,10 @@ accepting the compile-time gain.
 
 DO NOT STOP AT THE FIRST FAILURE
 
-Compiler hot paths are mature, so many valid improvements will land below the noise floor. That is
-not grounds to remove better code: retain a correctness-certified change when its mechanical proof
-shows less compiler work, allocation, copying or contention and the measurements show no regression.
-Label it honestly as below the measurement floor. Revert speculative rewrites, unjustified
-complexity, and regressions. Keep batches small enough that either the measured gain or the
-structural proof has one credible cause.
+Compiler hot paths are mature, so many valid improvements will land below the noise floor. Retain
+a correctness-certified change when its mechanical proof shows less compiler work and measurements
+show no regression. Label it "below the measurement floor" without a percentage claim. Revert
+speculative rewrites, unjustified complexity, and regressions quickly, then try the next idea.
 
 The campaign ends when the compiler-speed targets are met and both guardrail workloads remain
 green. It does not end because one internal optimization avenue turned out to be harder than it
@@ -789,18 +782,18 @@ looked.
 
 RULES
 
-  - Never trade correctness for speed. Every retained batch passes its focused boundaries and a
-    rotating random test from another area. The broader Release campaign must be green at spaced
-    milestones and before the final report.
+  - Never trade correctness for speed. Every retained code batch passes its focused boundary;
+    rotating random tests and broad Release campaigns run at spaced milestones.
   - Never trade generated-code quality for compile speed without measuring both. Run bench.
   - Never trade memory for speed without measuring both - campaign 5 owns that number and a
     regression there is a regression here.
-  - A measurement taken once is a guess. Medians over order-alternated runs, or it is not a number.
+  - A single run may reject an idea but cannot establish a speedup. Use alternated medians for claims.
 
 REPORT
 
-The four targets as a table, current versus target, refreshed every round. Under it, what changed,
-what it bought, and the focused and rotating random test results.
+After each retained batch, give the changed code and its measured or structural effect in a short
+summary. At a milestone, report the four targets versus current readings, memory and tests. Report
+rejected ideas in a sentence each. Do not commit raw logs or long chronological notes.
 ```
 
 ---

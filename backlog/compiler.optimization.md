@@ -184,7 +184,7 @@ block, and the hot path keeps the register.
   suite. Five A/A pairs of byte-identical binaries gave 1.000 wall and 1.044 CPU, with individual
   builds between 2.7 and 5.8 seconds. The evidence does not isolate the candidate from shared
   machine load or establish a repeatable benefit. The change and version bump were reverted;
-  [raw logs and analysis](../bench/results/compilation/20260925-speed/README.md) preserve the trial.
+  The [campaign summary](../bench/results/compilation/20260925-speed/README.md) records the outcome.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

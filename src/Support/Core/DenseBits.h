@@ -54,7 +54,6 @@ public:
         return (bits[wordIndex] & (1ull << (bitIndex & 63u))) != 0;
     }
     static bool                      copyIfChanged(std::span<uint64_t> outDst, std::span<const uint64_t> src);
-    static uint32_t                  count(std::span<const uint64_t> bits);
 };
 
 SWC_END_NAMESPACE();

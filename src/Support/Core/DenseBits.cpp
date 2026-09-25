@@ -19,12 +19,4 @@ bool DenseBits::copyIfChanged(const std::span<uint64_t> outDst, const std::span<
     return changed;
 }
 
-uint32_t DenseBits::count(const std::span<const uint64_t> bits)
-{
-    uint32_t result = 0;
-    for (const uint64_t value : bits)
-        result += std::popcount(value);
-    return result;
-}
-
 SWC_END_NAMESPACE();

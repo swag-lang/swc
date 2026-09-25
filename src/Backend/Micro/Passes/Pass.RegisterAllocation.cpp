@@ -2381,11 +2381,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     computeConcreteLoopCarried();
 
     // Only calls contribute to these summaries; their concrete live-out set is unused.
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+    for (const uint32_t idx : callPositions_)
     {
-        if (!instructionUseDefs_[idx].isCall)
-            continue;
-
         for (uint64_t& value : tempOutVirtual_)
             value = 0;
 
@@ -2498,7 +2495,6 @@ void MicroRegisterAllocationPass::rebuildCurrentConcreteLiveOutRegs()
 {
     const auto& concreteRegs = denseConcreteRegs_.regs();
     currentConcreteLiveOut_.clear();
-    currentConcreteLiveOut_.reserve(DenseBits::count(tempOutConcrete_));
     for (size_t wordIndex = 0; wordIndex < tempOutConcrete_.size(); ++wordIndex)
     {
         uint64_t wordBits = tempOutConcrete_[wordIndex];

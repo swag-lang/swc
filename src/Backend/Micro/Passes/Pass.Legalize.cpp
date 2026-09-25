@@ -72,14 +72,37 @@ namespace
         for (MicroInstrRef ref = context.instructions->findNextInstructionRef(instRef); ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
         {
             const MicroInstr&      scanInst = *context.instructions->ptr(ref);
-            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
-            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+            const MicroInstrDef&   info     = MicroInstr::info(scanInst.op);
+            if (scanInst.op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return fallbackResult;
 
-            if (microRegSpanContains(useDef.uses, reg))
-                return true;
-            if (microRegSpanContains(useDef.defs, reg))
-                return false;
+            if (context.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+            {
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+                if (microRegSpanContains(useDef.uses, reg))
+                    return true;
+                if (microRegSpanContains(useDef.defs, reg))
+                    return false;
+                continue;
+            }
+
+            if (const MicroInstrOperand* ops = scanInst.ops(*context.operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                bool       defined = false;
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (ops[i].reg != reg)
+                        continue;
+                    if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
+                        return true;
+                    defined |= modes[i] == MicroInstrRegMode::Def;
+                }
+                if (defined)
+                    return false;
+            }
         }
 
         return false;
@@ -188,24 +211,51 @@ namespace
         for (MicroInstrRef ref = context.instructions->findNextInstructionRef(instRef); pendingRegs && ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
         {
             const MicroInstr&      scanInst = *context.instructions->ptr(ref);
-            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*context.operands, context.encoder);
-            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+            const MicroInstrDef&   info     = MicroInstr::info(scanInst.op);
+            if (scanInst.op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                 break;
 
-            for (const MicroReg reg : useDef.uses)
+            if (context.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
             {
-                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
-                if (bit >= MicroPhysLiveness::K_INVALID_BIT)
-                    continue;
-                const uint64_t mask = 1ull << bit;
-                liveRegs |= pendingRegs & mask;
-                pendingRegs &= ~mask;
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
+                for (const MicroReg reg : useDef.uses)
+                {
+                    const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                    if (bit >= MicroPhysLiveness::K_INVALID_BIT)
+                        continue;
+                    const uint64_t mask = 1ull << bit;
+                    liveRegs |= pendingRegs & mask;
+                    pendingRegs &= ~mask;
+                }
+                for (const MicroReg reg : useDef.defs)
+                {
+                    const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                    if (bit < MicroPhysLiveness::K_INVALID_BIT)
+                        pendingRegs &= ~(1ull << bit);
+                }
+                continue;
             }
-            for (const MicroReg reg : useDef.defs)
+
+            if (const MicroInstrOperand* ops = scanInst.ops(*context.operands))
             {
-                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
-                if (bit < MicroPhysLiveness::K_INVALID_BIT)
-                    pendingRegs &= ~(1ull << bit);
+                const auto modes = info.resolvedRegModes(ops);
+                uint64_t   defined = 0;
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None)
+                        continue;
+                    const uint32_t bit = MicroPhysLiveness::bitOf(ops[i].reg);
+                    if (bit >= MicroPhysLiveness::K_INVALID_BIT)
+                        continue;
+                    const uint64_t mask = 1ull << bit;
+                    if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
+                        liveRegs |= pendingRegs & mask;
+                    if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                        defined |= mask;
+                }
+                pendingRegs &= ~(liveRegs | defined);
             }
         }
 

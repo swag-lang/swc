@@ -89,6 +89,9 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
         if (spanLo > spanHi)
             continue; // never occupied
 
+        const uint32_t wordIndex = denseIndex >> 6u;
+        const uint64_t bitMask   = 1ull << (denseIndex & 63u);
+
         size_t   useCursor = 0;
         size_t   defCursor = 0;
         bool     open      = false;
@@ -96,7 +99,7 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
 
         for (uint32_t idx = spanLo; idx <= spanHi; ++idx)
         {
-            const bool liveIn = DenseBits::contains(DenseBits::row(liveInVirtualBits_, idx, wordCount), denseIndex);
+            const bool liveIn = (liveInVirtualBits_[static_cast<size_t>(idx) * wordCount + wordIndex] & bitMask) != 0;
 
             bool usedHere = false;
             while (useCursor < interval.usePositions.size() && interval.usePositions[useCursor] < idx * 2)
@@ -128,7 +131,7 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
             // gap; otherwise it closes at the last slot this instruction
             // holds the value.
             const bool liveNext = idx + 1 < instructionCount_ &&
-                                  DenseBits::contains(DenseBits::row(liveInVirtualBits_, idx + 1, wordCount), denseIndex);
+                                  (liveInVirtualBits_[static_cast<size_t>(idx + 1) * wordCount + wordIndex] & bitMask) != 0;
             if (liveNext)
                 continue;
 
@@ -293,6 +296,9 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
         if (denseConcrete == MicroDenseRegIndex::K_INVALID_INDEX)
             continue;
 
+        const uint32_t wordIndex = denseConcrete >> 6u;
+        const uint64_t bitMask   = 1ull << (denseConcrete & 63u);
+
         // A claim that only defines the register - an ABI argument copy, a
         // call's clobber - starts at the output slot, like a value's own
         // definition: the input slot stays free, so a value read for the
@@ -308,7 +314,7 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
         {
             const bool usedHere    = std::ranges::find(useConcreteIndices_[idx], denseConcrete) != useConcreteIndices_[idx].end();
             const bool definedHere = std::ranges::find(defConcreteIndices_[idx], denseConcrete) != defConcreteIndices_[idx].end();
-            const bool liveInHere  = DenseBits::contains(DenseBits::row(liveInConcreteBits_, idx, concreteWordCount), denseConcrete);
+            const bool liveInHere  = (liveInConcreteBits_[static_cast<size_t>(idx) * concreteWordCount + wordIndex] & bitMask) != 0;
             const bool definedOnly = definedHere && !usedHere && !liveInHere && isPlainDefinition(idx);
 
             // A call the straight-line path steps over clobbers nothing the hot path has to
@@ -333,7 +339,7 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
                     {
                         for (const uint32_t successor : controlFlowGraph_->successors(idx))
                         {
-                            if (DenseBits::contains(DenseBits::row(liveInConcreteBits_, successor, concreteWordCount), denseConcrete))
+                            if (liveInConcreteBits_[static_cast<size_t>(successor) * concreteWordCount + wordIndex] & bitMask)
                             {
                                 copiedLastUse = false;
                                 break;

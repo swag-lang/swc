@@ -1169,7 +1169,7 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
 bool X64Encoder::mayNeedLegalizeScratchRegister(const MicroInstr& inst, const MicroInstrOperand* ops) const
 {
     if (!ops)
-        return true;
+        return inst.numOperands != 0;
 
     switch (inst.op)
     {

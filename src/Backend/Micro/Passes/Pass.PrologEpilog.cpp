@@ -62,12 +62,18 @@ namespace
         return false;
     }
 
-    void collectUsedConcreteRegs(const MicroPassContext& context, const CallConv& conv, std::unordered_set<MicroReg>& outUsedRegs, uint64_t& outDefinedBeforeUse)
+    uint64_t physicalRegMask(MicroReg reg)
+    {
+        const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+        return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0;
+    }
+
+    void collectUsedConcreteRegs(const MicroPassContext& context, const CallConv& conv, uint64_t& outUsedRegs, uint64_t& outDefinedBeforeUse)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        outUsedRegs.clear();
+        outUsedRegs          = 0;
         outDefinedBeforeUse  = 0;
         uint64_t pendingRegs = 0;
         for (const MicroReg reg : conv.intPersistentRegs)
@@ -94,11 +100,11 @@ namespace
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
-                outUsedRegs.insert(reg);
-                if (!pendingRegs)
-                    continue;
                 const uint32_t bit = MicroPhysLiveness::bitOf(reg);
                 if (bit >= MicroPhysLiveness::K_INVALID_BIT)
+                    continue;
+                outUsedRegs |= 1ull << bit;
+                if (!pendingRegs)
                     continue;
                 const uint64_t mask = (1ull << bit) & pendingRegs;
                 if (microInstrRef.use)
@@ -169,49 +175,6 @@ namespace
         return false;
     }
 
-    bool isRegDefinedBeforeAnyUse(const MicroPassContext& context, MicroReg reg)
-    {
-        SWC_ASSERT(context.instructions);
-        SWC_ASSERT(context.operands);
-
-        if (!reg.isValid())
-            return false;
-
-        auto& operands = *context.operands;
-        SmallVector<MicroInstrRegOperandRef> refs;
-        for (const auto& inst : context.instructions->view())
-        {
-            refs.clear();
-            inst.collectRegOperands(operands, refs, context.encoder);
-
-            bool hasUse = false;
-            bool hasDef = false;
-            for (const MicroInstrRegOperandRef& microInstrRef : refs)
-            {
-                if (!microInstrRef.reg)
-                    continue;
-
-                const MicroReg refReg = *(microInstrRef.reg);
-                if (refReg != reg)
-                    continue;
-
-                if (microInstrRef.use)
-                    hasUse = true;
-                if (microInstrRef.def)
-                    hasDef = true;
-            }
-
-            if (!hasUse && !hasDef)
-                continue;
-            if (hasUse)
-                return false;
-
-            return hasDef;
-        }
-
-        return false;
-    }
-
     bool isSafeTransientReplacementIntReg(const CallConv& conv, MicroReg reg)
     {
         if (!reg.isValid() || !reg.isInt())
@@ -223,7 +186,7 @@ namespace
         return true;
     }
 
-    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<MicroReg>& usedRegs, MicroReg& outReg)
+    bool tryPickUnusedTransientIntReg(const CallConv& conv, uint64_t usedRegs, MicroReg& outReg)
     {
         for (const MicroReg reg : conv.intTransientRegs)
         {
@@ -231,7 +194,8 @@ namespace
                 continue;
             if (!isSafeTransientReplacementIntReg(conv, reg))
                 continue;
-            if (usedRegs.contains(reg))
+            const uint64_t mask = physicalRegMask(reg);
+            if (!mask || (usedRegs & mask))
                 continue;
 
             outReg = reg;
@@ -408,10 +372,10 @@ namespace
         if (containsCall)
             return false;
 
-        std::unordered_set<MicroReg> usedRegs;
-        uint64_t                     definedBeforeUse = 0;
+        uint64_t usedRegs         = 0;
+        uint64_t definedBeforeUse = 0;
         collectUsedConcreteRegs(context, conv, usedRegs, definedBeforeUse);
-        if (usedRegs.empty())
+        if (!usedRegs)
             return false;
 
         SmallVector<MicroReg> remapCandidates;
@@ -419,7 +383,7 @@ namespace
 
         if (conv.framePointer.isValid() &&
             conv.isIntPersistentReg(conv.framePointer) &&
-            usedRegs.contains(conv.framePointer) &&
+            (usedRegs & physicalRegMask(conv.framePointer)) &&
             isFramePointerLocallyInitializedFromStackPointer(context, conv))
         {
             remapCandidates.push_back(conv.framePointer);
@@ -431,10 +395,10 @@ namespace
                 continue;
             if (persistentReg == conv.framePointer)
                 continue;
-            if (!usedRegs.contains(persistentReg))
+            const uint64_t mask = physicalRegMask(persistentReg);
+            if (!(usedRegs & mask))
                 continue;
-            const uint32_t bit        = MicroPhysLiveness::bitOf(persistentReg);
-            const bool     firstIsDef = bit < MicroPhysLiveness::K_INVALID_BIT ? (definedBeforeUse & (1ull << bit)) != 0 : isRegDefinedBeforeAnyUse(context, persistentReg);
+            const bool firstIsDef = (definedBeforeUse & mask) != 0;
             if (!firstIsDef)
                 continue;
 
@@ -454,7 +418,7 @@ namespace
                 continue;
 
             remap[persistentReg] = replacementReg;
-            usedRegs.insert(replacementReg);
+            usedRegs |= physicalRegMask(replacementReg);
         }
 
         if (remap.empty())

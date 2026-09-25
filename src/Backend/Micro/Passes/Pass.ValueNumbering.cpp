@@ -608,8 +608,13 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
         // A RIP-relative load names its cell through the relocation, rather
         // than through an SSA base. Keep other physical bases opaque.
-        const auto relocIt = relocationByInstruction.find(instRef);
-        const MicroRelocation* const loadReloc = shape.readsMemory && relocIt != relocationByInstruction.end() ? relocIt->second : nullptr;
+        const MicroRelocation* loadReloc = nullptr;
+        if (shape.readsMemory)
+        {
+            const auto relocIt = relocationByInstruction.find(instRef);
+            if (relocIt != relocationByInstruction.end())
+                loadReloc = relocIt->second;
+        }
         const bool ripLoad = loadReloc && inst->op == MicroInstrOpcode::LoadRegMem &&
                              ops[1].reg.isInstructionPointer() && loadReloc->form == MicroRelocation::Form::Relative32;
         const bool constantPoolLoad = ripLoad && loadReloc->kind == MicroRelocation::Kind::ConstantAddress;

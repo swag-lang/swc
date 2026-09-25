@@ -7223,16 +7223,16 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         return transformChanged;
     };
 
-    thread_local ProgramLayout knownBranchLayout;
+    thread_local ProgramLayout sharedLayout;
     bool                       hasConditionalJump = false;
     if (ssaState && ssaState->isValid())
     {
-        buildProgramLayout(knownBranchLayout, storage, operands);
-        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, knownBranchLayout, hasConditionalJump));
+        buildProgramLayout(sharedLayout, storage, operands);
+        rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, sharedLayout, hasConditionalJump));
     }
     // The SSA snapshot describes the code before any fold above.
     if (!changed && hasConditionalJump && ssaState && ssaState->isValid())
-        rewrote(foldImpliedBranches(storage, operands, *ssaState, knownBranchLayout));
+        rewrote(foldImpliedBranches(storage, operands, *ssaState, sharedLayout));
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
@@ -7292,7 +7292,6 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     }
 
     bool structuralChanged = true;
-    thread_local ProgramLayout structuralLayout;
     while (structuralChanged)
     {
         structuralChanged = false;
@@ -7300,7 +7299,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         {
             // The branch scan already has the current layout when earlier transforms
             // inspected this stream without rewriting it.
-            ProgramLayout& layout = scanCache.built ? scanCache.scan.layout : structuralLayout;
+            ProgramLayout& layout = scanCache.built ? scanCache.scan.layout : sharedLayout;
             if (!scanCache.built)
                 buildProgramLayout(layout, storage, operands);
             structuralChanged |= redirectJumpChains(storage, operands, layout);

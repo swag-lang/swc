@@ -206,6 +206,7 @@ namespace
 
         // Pass B: invalidate candidates redefined/modified elsewhere, and count
         // their uses as a constant-offset memory base.
+        SmallVector<MicroInstrRegOperandRef> regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstr&        inst = *it;
@@ -213,7 +214,7 @@ namespace
             if (!ops)
                 continue;
 
-            SmallVector<MicroInstrRegOperandRef> regRefs;
+            regRefs.clear();
             inst.collectRegOperands(operands, regRefs, nullptr);
             for (const auto& rref : regRefs)
             {

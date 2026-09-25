@@ -52,7 +52,7 @@ namespace PostRaPeephole
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        const MicroInstrOperand* ops = inst.op == MicroInstrOpcode::Nop ? nullptr : inst.ops(*ctx.operands);
         if (!isTriviallyErasableNoEffect(inst, ops) &&
             !isRedundantFallthroughJumpToNextLabel(ctx, ref, inst, ops))
             return false;

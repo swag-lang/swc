@@ -153,6 +153,8 @@ namespace PostRaPeephole
             const MicroInstr* scanInst = ctx.instruction(scanRef);
             if (!scanInst)
                 return false;
+            if (scanInst->op == MicroInstrOpcode::Nop)
+                continue;
 
             const MicroInstrOperand* scanOps = scanInst->ops(*ctx.operands);
             if (scanInst->op == MicroInstrOpcode::Label)
@@ -198,8 +200,8 @@ namespace PostRaPeephole
                     return true;
             }
 
-            const MicroInstrOperand* ops = inst->ops(*ctx.operands);
-            if (isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, ops))
+            if (inst->op == MicroInstrOpcode::JumpCond &&
+                isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, inst->ops(*ctx.operands)))
                 continue;
 
             const MicroInstrDef& info = MicroInstr::info(inst->op);

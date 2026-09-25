@@ -806,21 +806,27 @@ namespace
                             if (loopHasCall)
                                 continue;
 
-                            // Across a read-only call, favor direct global loads:
-                            // their pointer-sized values can replace repeated
-                            // global accesses without retaining an arbitrary
-                            // array element or constant throughout the loop.
+                            // An indexed value can also be kept across a
+                            // read-only call when the address is invariant and
+                            // the alias checks below exclude loop stores.
                             if (loopHasReadOnlyCall)
                             {
                                 const MicroInstrOperand* loadOps = inst->ops(operands);
-                                if (inst->op != MicroInstrOpcode::LoadRegMem || !loadOps ||
-                                    !loadOps[1].reg.isInstructionPointer() || loadOps[2].opBits != MicroOpBits::B64)
+                                if (!loadOps)
                                     continue;
-                                const auto relocationIt = firstRelocation.find(ref.get());
-                                if (relocationIt == firstRelocation.end())
-                                    continue;
-                                const auto kind = relocations[relocationIt->second].kind;
-                                if (kind != MicroRelocation::Kind::GlobalInitAddress && kind != MicroRelocation::Kind::GlobalZeroAddress)
+                                bool directGlobal = false;
+                                if (inst->op == MicroInstrOpcode::LoadRegMem && loadOps[1].reg.isInstructionPointer() &&
+                                    loadOps[2].opBits == MicroOpBits::B64)
+                                {
+                                    const auto relocationIt = firstRelocation.find(ref.get());
+                                    if (relocationIt != firstRelocation.end())
+                                    {
+                                        const auto kind = relocations[relocationIt->second].kind;
+                                        directGlobal = kind == MicroRelocation::Kind::GlobalInitAddress ||
+                                                       kind == MicroRelocation::Kind::GlobalZeroAddress;
+                                    }
+                                }
+                                if (!directGlobal && inst->op != MicroInstrOpcode::LoadAmcRegMem)
                                     continue;
                             }
 

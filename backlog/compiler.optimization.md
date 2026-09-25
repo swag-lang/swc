@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.060 — Keep wordfreq's pivot count resident through comparator loops
+
+- Recorded: 2026-09-25 17:08
+- Updated: 2026-09-25 17:45 — Gave long-lived values a persistent register when a nominally free register ends at a call, then hoisted the indexed pivot count across read-only calls.
+- Area: compiler/backend, loop-invariant motion and interval allocation
+- Evidence: LDC loads the pivot's count once before wordfreq's inner comparisons and keeps it in a callee-saved register. Swag previously read that count from `g_Cnt` on every first-loop iteration. A first indexed-load hoist alone spilled the count at `Swag.memcmp` and grew `qsort` from 132 to 134 instructions. The interval trace showed all six persistent integer registers occupied at the pivot load, while a caller-saved register was free only until the call. The allocator now tries to displace the owner of a persistent register before accepting that partial free interval, and falls back to the partial register if no owner can move. This preference applies only when the free interval ends at a call: a general preference grew raytrace's `intersect` from 214 to 222 instructions, while the call-specific rule keeps it at 214. LICM can now hoist an indexed load across a read-only call when its address is invariant and the existing store-alias checks prove safety. Focused C++ tests cover the register choice and a writing call or aliasing store as barriers to the hoist. In wordfreq, the pivot count stays in a callee-saved register; the first unequal-count comparator path drops from 9 instructions and 4 explicit memory operands to 7 and 2. Full `qsort` remains 132 instructions because work outside that path grows. Csvagg's `main` drops from 1,066 to 1,034 instructions, with its timed row span from 268 to 256; its checksum remains 24828641. Wordfreq's checksum remains 130489; raytrace's remains 56061776. The 1,111 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
+- Next: compare wordfreq's second comparator and partition branches with LDC, then reduce csvagg's remaining parser and aggregation traffic against clang-cl without regressing the other generated programs.
+
 ### compiler.optimization.059 — Fold indexed memory updates inside loops
 
 - Recorded: 2026-09-25 17:09
@@ -23,14 +31,6 @@ block, and the hot path keeps the register.
 - Area: compiler/backend, instruction combine and csvagg row aggregation
 - Evidence: csvagg's existing-slot row path loaded `slotCount[slot]`, added one, then stored it; `slotQty[slot]` used the same three-instruction pattern with a register addend. clang-cl emits `inc [slot]` and `add [slot], reg`. The existing indexed memory fold already proves the load and store address, width, and single-use value match, but excluded every loop. Allowing the fold in loops emits the same two memory update forms as clang-cl, removes four instructions from csvagg's timed row span (271 to 267) and two explicit memory operands (80 to 78); generated `main` drops from 1,070 to 1,066 instructions. SLP already treats indexed accesses as opaque, so this does not hide a vectorizable scalar lane. A C++ regression covers an indexed loop update and an indexed frame-derived slot that stays scalar. The 1,109 C++, 3,480 native, and 1,500 JIT tests pass; a random lexer draw passed. Csvagg checksum remains 24828641; wordfreq checksum remains 130489, and its `qsort` remains 132 instructions. No elapsed-time sample informed the decision.
 - Next: compare the remaining row parser and hash-probe blocks with clang-cl, especially branches and redundant stack traffic around the existing-slot path.
-
-### compiler.optimization.060 — Keep wordfreq's pivot count resident through comparator loops
-
-- Recorded: 2026-09-25 17:08
-- Updated: 2026-09-25 17:08 — Tested a wider read-only-call hoist and an extra persistent register; both missed the hot-loop target.
-- Area: compiler/backend, loop-invariant motion and interval allocation
-- Evidence: LDC loads the pivot's count once before wordfreq's inner comparisons and keeps it in a callee-saved register. Swag reads that count from `g_Cnt` on every first-loop iteration. Permitting an invariant indexed load across `Swag.memcmp`'s read-only contract moved the read before the loop, but the allocator stored it on the stack and reloaded it each iteration; `qsort` grew from 132 to 134 instructions while the first loop retained 9 instructions and 4 memory operands per unequal-count iteration. Admitting the preferred local-stack-base register only when no debug base was requested did not change that assembly. A second eligibility check based on whether the debug base still appeared in the register index did admit `rbx`, but the pivot count still spilled; the function returned to 132 instructions without lowering the first loop's 9/4. A store-to-load cache experiment preserving global values across read-only calls likewise left `qsort` at 132 and both inner-loop counts unchanged. All these prototypes were reverted based on the generated code, without consulting elapsed time.
-- Next: determine why the interval allocator keeps the outer `high` bound in `rbx` while spilling the pivot count used in the inner loop. Compare next-use and loop-depth weights, then try a general allocation change that keeps a loop-invariant value in a register without adding spill traffic elsewhere.
 
 ### compiler.optimization.058 — Forward stores to known global targets into following loads
 

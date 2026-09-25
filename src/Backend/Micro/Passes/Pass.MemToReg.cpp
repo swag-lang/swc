@@ -125,7 +125,7 @@ namespace
     {
         if (!reg.isValid())
             return false;
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        MicroInstrRegOperandRefs regRefs;
         for (MicroInstrRef cur = storage.findPreviousInstructionRef(atRef); cur.isValid(); cur = storage.findPreviousInstructionRef(cur))
         {
             const MicroInstr* inst = storage.ptr(cur);
@@ -206,7 +206,7 @@ namespace
 
         // Pass B: invalidate candidates redefined/modified elsewhere, and count
         // their uses as a constant-offset memory base.
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        MicroInstrRegOperandRefs regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstr&        inst = *it;
@@ -433,7 +433,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     {
         bool spMoved    = false;
         bool inEntryRun = true;
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        MicroInstrRegOperandRefs regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstrOperand* ops = it->ops(operands);
@@ -546,7 +546,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // unexplainable escapes.
     if (!addrRegOffset.empty())
     {
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        MicroInstrRegOperandRefs regRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             regRefs.clear();
@@ -698,7 +698,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // argument area, which a callee reads behind the analysis: they take part
     // in the overlap checks but are never promoted.
     std::unordered_set<uint64_t> stackPointerSlots;
-    SmallVector<MicroInstrRegOperandRef> regRefs;
+    MicroInstrRegOperandRefs regRefs;
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end && !bail; ++it)
     {
@@ -1365,7 +1365,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Allocate a fresh virtual register per promoted offset (int or float). ----
     uint32_t nextVirtualIntRegIndex   = std::max<uint32_t>(1, context.builder->nextVirtualIntRegIndexHint());
     uint32_t nextVirtualFloatRegIndex = 1;
-    SmallVector<MicroInstrRegOperandRef> refs;
+    MicroInstrRegOperandRefs refs;
     for (const MicroInstr& inst : storage.view())
     {
         refs.clear();

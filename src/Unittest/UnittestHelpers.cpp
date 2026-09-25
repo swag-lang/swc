@@ -146,7 +146,7 @@ namespace Backend::Unittest
         auto& storeOps = builder.operands();
         for (const auto& inst : builder.instructions().view())
         {
-            SmallVector<MicroInstrRegOperandRef> regs;
+            MicroInstrRegOperandRefs regs;
             inst.collectRegOperands(storeOps, regs, nullptr);
             for (const auto& regRef : regs)
             {

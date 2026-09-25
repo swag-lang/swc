@@ -216,7 +216,7 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        SmallVector<MicroInstrRegOperandRef> refs;
+        MicroInstrRegOperandRefs refs;
         for (const MicroInstr& inst : context.instructions->view())
         {
             refs.clear();
@@ -261,7 +261,7 @@ void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& cont
 
     outIntIndex   = context.builder ? std::max(1u, context.builder->nextVirtualIntRegIndexHint()) : 1;
     outFloatIndex = 1;
-    SmallVector<MicroInstrRegOperandRef> refs;
+    MicroInstrRegOperandRefs refs;
     for (const MicroInstr& inst : context.instructions->view())
     {
         refs.clear();
@@ -428,7 +428,7 @@ uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage& storage, MicroOpe
             break;
 
         // Collect mutable register operand refs.
-        SmallVector<MicroInstrRegOperandRef> refs;
+        MicroInstrRegOperandRefs refs;
         inst.collectRegOperands(operands, refs, nullptr);
 
         bool replacedInThisInst = false;

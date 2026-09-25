@@ -322,7 +322,7 @@ namespace
             scan.mentions.clear();
             buildProgramLayout(scan.layout, storage, operands);
 
-            SmallVector<MicroInstrRegOperandRef> regOperands;
+            MicroInstrRegOperandRefs regOperands;
             for (const MicroInstrRef ref : scan.layout.order)
             {
                 const MicroInstr* inst = storage.ptr(ref);
@@ -1569,7 +1569,7 @@ namespace
             if (!narrowReaders)
                 continue;
 
-            SmallVector<MicroInstrRegOperandRef> regRefs;
+            MicroInstrRegOperandRefs regRefs;
             for (const uint32_t ordinal : eSites.uses)
             {
                 regRefs.clear();
@@ -2516,7 +2516,7 @@ namespace
                 if (!links.empty())
                 {
                     std::unordered_map<uint32_t, uint32_t> inside;
-                    SmallVector<MicroInstrRegOperandRef>   regOperands;
+                    MicroInstrRegOperandRefs   regOperands;
                     for (size_t index = at; index <= link.merge; ++index)
                     {
                         regOperands.clear();
@@ -3054,7 +3054,7 @@ namespace
                             break;
                         }
                     }
-                    SmallVector<MicroInstrRegOperandRef> regOperands;
+                    MicroInstrRegOperandRefs regOperands;
                     inst->collectRegOperands(operands, regOperands, nullptr);
                     bool touches = false;
                     for (const MicroInstrRegOperandRef& regOperand : regOperands)
@@ -3693,7 +3693,7 @@ namespace
                     continue;
 
                 uint32_t sourceMentions = 0;
-                SmallVector<MicroInstrRegOperandRef> regOperands;
+                MicroInstrRegOperandRefs regOperands;
                 for (MicroInstr& inst : storage.view())
                 {
                     regOperands.clear();
@@ -3958,7 +3958,7 @@ namespace
                 skippedMentions[candidate.skippedMask.index()]      = 0;
             }
         }
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (const MicroInstr& inst : storage.view())
         {
             regOperands.clear();
@@ -4103,7 +4103,7 @@ namespace
         std::unordered_map<uint32_t, uint32_t> rhsMentions;
         for (const Candidate& candidate : candidates)
             rhsMentions[candidate.rhs.index()] = 0;
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (const MicroInstr& inst : storage.view())
         {
             regOperands.clear();
@@ -6451,7 +6451,7 @@ namespace
                 secondCompareOps[i] = secondCompareInst->ops(operands)[i];
 
             const MicroReg rejected = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
-            SmallVector<MicroInstrRegOperandRef> regOperands;
+            MicroInstrRegOperandRefs regOperands;
             for (const MicroInstrRef ref : diamond.jumpArm.refs)
             {
                 regOperands.clear();
@@ -6527,7 +6527,7 @@ namespace
             return false;
 
         LazyVirtualIntRegs nextVirtualIntRegs{context};
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (const Diamond& diamond : diamonds)
         {
             const MicroReg renamedResult = nextVirtualIntRegs.take();
@@ -6701,7 +6701,7 @@ namespace
             return false;
 
         LazyVirtualIntRegs nextVirtualIntRegs{context};
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (const Triangle& triangle : triangles)
         {
             const MicroReg renamedResult = nextVirtualIntRegs.take();
@@ -6947,7 +6947,7 @@ namespace
     bool renameEarlyPath(const ReturnPath& path, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder, const MicroReg returnReg, const MicroReg valueReg, uint32_t& nextVirtualIntRegIndex)
     {
         std::unordered_map<MicroReg, MicroReg> renamed;
-        SmallVector<MicroInstrRegOperandRef>   regOperands;
+        MicroInstrRegOperandRefs   regOperands;
         SmallVector<MicroInstrRef, 8>          refs = path.refs;
         refs.push_back(path.valueRef);
 

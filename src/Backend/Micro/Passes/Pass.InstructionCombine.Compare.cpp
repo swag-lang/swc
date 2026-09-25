@@ -477,7 +477,7 @@ namespace InstructionCombine
                 uses.push_back(use.instRef);
         }
 
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (const MicroInstrRef useRef : uses)
         {
             MicroInstr* useInst = ctx.storage->ptr(useRef);
@@ -605,7 +605,7 @@ namespace InstructionCombine
         // T or those copies.
         SmallVector<MicroInstrRef, 4>        followers;
         SmallVector<MicroReg, 4>             followerRegs;
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (const MicroInstrRef betweenRef : between)
         {
             const MicroInstr*        betweenInst = ctx.storage->ptr(betweenRef);

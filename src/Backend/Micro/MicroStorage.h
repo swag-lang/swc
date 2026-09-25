@@ -45,7 +45,7 @@ inline const MicroInstrOperand* MicroInstr::ops(const MicroOperandStorage& opera
     return operands.ptr(opsRef);
 }
 
-inline void MicroInstr::collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
+inline void MicroInstr::collectRegOperands(MicroOperandStorage& operands, MicroInstrRegOperandRefs& out, const Encoder*) const
 {
     MicroInstrOperand* instructionOps = ops(operands);
     if (!instructionOps)

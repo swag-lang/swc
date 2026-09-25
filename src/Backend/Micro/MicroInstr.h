@@ -188,6 +188,9 @@ struct MicroInstrRegOperandRef
     bool      def = false;
 };
 
+// resolvedRegModes exposes at most three register operands per instruction.
+using MicroInstrRegOperandRefs = SmallVector<MicroInstrRegOperandRef, 3>;
+
 struct MicroInstr
 {
     DebugSourceInfo  debugSourceInfo;
@@ -198,7 +201,7 @@ struct MicroInstr
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;
     MicroInstrUseDef         collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
-    void                     collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder* encoder) const;
+    void                     collectRegOperands(MicroOperandStorage& operands, MicroInstrRegOperandRefs& out, const Encoder* encoder) const;
 
     static constexpr const MicroInstrDef& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
 };

@@ -84,7 +84,7 @@ namespace
         }
 
         auto& operands = *context.operands;
-        SmallVector<MicroInstrRegOperandRef> refs;
+        MicroInstrRegOperandRefs refs;
         for (const auto& inst : context.instructions->view())
         {
             refs.clear();
@@ -128,7 +128,7 @@ namespace
             return false;
 
         auto& operands = *context.operands;
-        SmallVector<MicroInstrRegOperandRef> refs;
+        MicroInstrRegOperandRefs refs;
         for (const auto& inst : context.instructions->view())
         {
             refs.clear();
@@ -216,7 +216,7 @@ namespace
 
     bool definesStackPointer(const MicroPassContext& context, const MicroInstr& inst, MicroReg stackPointer)
     {
-        SmallVector<MicroInstrRegOperandRef> refs;
+        MicroInstrRegOperandRefs refs;
         inst.collectRegOperands(*context.operands, refs, context.encoder);
         for (const MicroInstrRegOperandRef& regRef : refs)
         {
@@ -436,7 +436,7 @@ namespace
 
         bool  remapped = false;
         auto& operands = *context.operands;
-        SmallVector<MicroInstrRegOperandRef> refs;
+        MicroInstrRegOperandRefs refs;
         for (const auto& inst : context.instructions->view())
         {
             refs.clear();
@@ -476,7 +476,7 @@ namespace
         const uint64_t firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
         SmallVector<MicroInstrRef> accesses;
         auto&                      operands = *context.operands;
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             MicroInstr*              inst = context.instructions->ptr(it.current);
@@ -607,7 +607,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
     auto& storeOps = *context.operands;
-    SmallVector<MicroInstrRegOperandRef> refs;
+    MicroInstrRegOperandRefs refs;
     for (const auto& inst : context.instructions->view())
     {
         refs.clear();

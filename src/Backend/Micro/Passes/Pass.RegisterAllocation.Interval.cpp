@@ -1853,7 +1853,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // virtual access must resolve to a register node.
     {
         uint32_t idx = 0;
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        MicroInstrRegOperandRefs regRefs;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
             regRefs.clear();
@@ -1908,7 +1908,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     size_t   nextConnector = 0;
     size_t   nextTrampoline = 0;
     uint32_t idx           = 0;
-    SmallVector<MicroInstrRegOperandRef> regRefs;
+    MicroInstrRegOperandRefs regRefs;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         const MicroInstrRef instructionRef = it.current;

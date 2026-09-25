@@ -380,7 +380,7 @@ namespace
         uint64_t                             frameSize  = 0;
         bool                                 inEntryRun = true;
         SmallVector<MicroInstrRef>           rets;
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         const auto                           markUsed = [&saves](const MicroReg reg) {
             for (Save& save : saves)
             {
@@ -543,7 +543,7 @@ namespace
         uint32_t                             numRets      = 0;
         bool                                 inEntryRun   = true;
         SmallVector<MicroInstrRef>           releaseRefs;
-        SmallVector<MicroInstrRegOperandRef> regOperands;
+        MicroInstrRegOperandRefs regOperands;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstr& inst = *it;

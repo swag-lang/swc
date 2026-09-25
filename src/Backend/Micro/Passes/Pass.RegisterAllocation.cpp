@@ -206,7 +206,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
     SWC_ASSERT(instructions_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
 
-    SmallVector<MicroInstrRegOperandRef> refs;
+    MicroInstrRegOperandRefs refs;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt;)
     {
         const MicroInstrRef instructionRef = it.current;
@@ -3921,7 +3921,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        MicroInstrRegOperandRefs regRefs;
         it->collectRegOperands(*operands_, regRefs, context_->encoder);
 
         SmallVector<MicroReg> protectedKeys;

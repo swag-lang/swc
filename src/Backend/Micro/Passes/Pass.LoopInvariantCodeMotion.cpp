@@ -269,7 +269,7 @@ namespace
             }
 
             const MicroInstr*                    mutInst = storage.ptr(instrRefs[i]);
-            SmallVector<MicroInstrRegOperandRef> regRefs;
+            MicroInstrRegOperandRefs regRefs;
             mutInst->collectRegOperands(operands, regRefs, encoder);
             for (const auto& rref : regRefs)
             {

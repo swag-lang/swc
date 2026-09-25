@@ -234,7 +234,7 @@ namespace
         bool                        changed = false;
         const auto                  view    = storage.view();
         const auto                  endIt   = view.end();
-        SmallVector<MicroInstrRegOperandRef> refs;
+        MicroInstrRegOperandRefs refs;
         for (auto it = view.begin(); it != endIt; ++it)
         {
             const MicroInstrRef                  instRef = it.current;

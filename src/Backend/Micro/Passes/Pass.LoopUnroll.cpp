@@ -536,7 +536,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // every name.
             std::unordered_set<MicroReg> renamable;
             bool                         hasRenamableFloat = false;
-            SmallVector<MicroInstrRegOperandRef> regOps;
+            MicroInstrRegOperandRefs regOps;
             if (internalLabels.empty())
             {
                 std::unordered_set<MicroReg> seenInBody;

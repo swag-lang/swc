@@ -36,7 +36,7 @@ namespace
 
         for (const auto& inst : builder.instructions().view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            MicroInstrRegOperandRefs refs;
             inst.collectRegOperands(storeOps, refs, nullptr);
             for (const auto& microLabelRef : refs)
             {
@@ -613,7 +613,7 @@ namespace
         auto& storeOps = builder.operands();
         for (const auto& inst : builder.instructions().view())
         {
-            SmallVector<MicroInstrRegOperandRef> refs;
+            MicroInstrRegOperandRefs refs;
             inst.collectRegOperands(storeOps, refs, nullptr);
             for (const auto& microLabelRef : refs)
             {
@@ -1563,7 +1563,7 @@ SWC_TEST_BEGIN(MicroInstr_FloatToIntReplacesItsDestination)
                     return Result::Error;
                 if ((std::ranges::find(useDef.uses, dst) != useDef.uses.end()) == replaces)
                     return Result::Error;
-                SmallVector<MicroInstrRegOperandRef> refs;
+                MicroInstrRegOperandRefs refs;
                 inst.collectRegOperands(builder.operands(), refs, nullptr);
                 if (refs.size() != 2 || *refs[0].reg != dst || !refs[0].def || refs[0].use == replaces ||
                     *refs[1].reg != src || !refs[1].use || refs[1].def)
@@ -1597,7 +1597,7 @@ SWC_TEST_BEGIN(MicroInstr_SqrtReplacesItsDestination)
                 if (useDef.defs.size() != 1 || useDef.defs[0] != dst || useDef.uses.size() != 1 || useDef.uses[0] != src)
                     return Result::Error;
 
-                SmallVector<MicroInstrRegOperandRef> refs;
+                MicroInstrRegOperandRefs refs;
                 inst.collectRegOperands(builder.operands(), refs, nullptr);
                 if (refs.size() != 2 || *refs[0].reg != dst || refs[0].use || !refs[0].def ||
                     *refs[1].reg != src || !refs[1].use || refs[1].def)

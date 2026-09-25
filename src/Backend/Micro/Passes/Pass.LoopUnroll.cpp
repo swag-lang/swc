@@ -536,6 +536,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // every name.
             std::unordered_set<MicroReg> renamable;
             bool                         hasRenamableFloat = false;
+            SmallVector<MicroInstrRegOperandRef> regOps;
             if (internalLabels.empty())
             {
                 std::unordered_set<MicroReg> seenInBody;
@@ -544,7 +545,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     MicroInstr* inst = storage.ptr(order[o]);
                     if (!inst || !inst->numOperands)
                         continue;
-                    SmallVector<MicroInstrRegOperandRef> regOps;
+                    regOps.clear();
                     inst->collectRegOperands(operands, regOps, context.encoder);
                     // The reads of an instruction come before its writes: a
                     // register first met as a read, or as an in-place update,
@@ -570,7 +571,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         const MicroInstr* inst = storage.ptr(order[o]);
                         if (!inst || !inst->numOperands)
                             continue;
-                        SmallVector<MicroInstrRegOperandRef> regOps;
+                        regOps.clear();
                         inst->collectRegOperands(operands, regOps, context.encoder);
                         for (const MicroInstrRegOperandRef& regOp : regOps)
                             if (regOp.reg && regOp.use && regOp.reg->isVirtual())
@@ -599,6 +600,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
             std::unordered_map<MicroReg, MicroReg> currentName;
             uint32_t                               nextFreshInt = firstFreshVirtual + static_cast<uint32_t>(trips) - 1;
+            std::unordered_map<uint64_t, uint64_t> labelMap;
+            labelMap.reserve(internalLabels.size());
+            SmallVector<MicroInstrOperand, 8> newOps;
 
             for (uint64_t k = 1; k < trips; ++k)
             {
@@ -610,8 +614,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 counterOps[2].setImmediateValue(ApInt(initValue + k * step, getNumBits(counterBits)));
                 storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegImm, counterOps);
 
-                std::unordered_map<uint64_t, uint64_t> labelMap;
-                labelMap.reserve(internalLabels.size());
+                labelMap.clear();
                 for (const uint64_t id : internalLabels)
                     labelMap.emplace(id, builder.createLabel().get());
 
@@ -621,7 +624,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     const MicroInstr*        src    = storage.ptr(srcRef);
                     const MicroInstrOperand* srcOps = src->ops(operands);
 
-                    SmallVector<MicroInstrOperand, 8> newOps;
+                    newOps.clear();
                     for (uint32_t oi = 0; oi < src->numOperands; ++oi)
                         newOps.push_back(srcOps[oi]);
 
@@ -641,7 +644,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     MicroInstr* inserted = storage.ptr(newRef);
                     if (inserted && inserted->numOperands)
                     {
-                        SmallVector<MicroInstrRegOperandRef> regOps;
+                        regOps.clear();
                         inserted->collectRegOperands(operands, regOps, context.encoder);
 
                         // The reads first, under the name the previous write

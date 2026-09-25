@@ -201,28 +201,35 @@ namespace
         // values agree keeps their common form.
         const auto values  = ssaState.values();
         bool       changed = false;
+        size_t     unresolvedInstructions = 0;
         for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
         {
-            if (outFlags[valueId] || !values[valueId].isPhi())
+            if (outFlags[valueId])
                 continue;
+            if (!values[valueId].isPhi())
+            {
+                ++unresolvedInstructions;
+                continue;
+            }
             outValues[valueId].reg     = values[valueId].reg;
             outValues[valueId].valueId = valueId;
             outFlags[valueId]          = 1;
             changed                    = true;
         }
 
-        while (changed)
+        while (changed && unresolvedInstructions)
         {
             changed = false;
             for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
             {
-                if (outFlags[valueId] || values[valueId].isPhi())
+                if (outFlags[valueId])
                     continue;
                 CanonicalValue inferred;
                 if (!tryInferInstructionCanonical(inferred, context, valueId, values[valueId], outValues, outFlags))
                     continue;
                 outValues[valueId] = inferred;
                 outFlags[valueId]  = 1;
+                --unresolvedInstructions;
                 changed            = true;
             }
         }

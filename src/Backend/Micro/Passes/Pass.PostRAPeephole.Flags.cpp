@@ -59,15 +59,17 @@ namespace PostRaPeephole
         if (copy && copy->op != MicroInstrOpcode::LoadRegReg)
         {
             const auto* middleOps = copy->ops(*ctx.operands);
-            const MicroInstrUseDef useDef = copy->collectUseDef(*ctx.operands, ctx.encoder);
             if (add->op != MicroInstrOpcode::OpBinaryRegReg || !middleOps ||
                 (copy->op != MicroInstrOpcode::LoadRegMem && copy->op != MicroInstrOpcode::LoadAmcRegMem) ||
-                middleOps[0].reg != addOps[1].reg ||
-                std::ranges::find(useDef.uses, sum) != useDef.uses.end() ||
-                std::ranges::find(useDef.uses, original) != useDef.uses.end() ||
-                std::ranges::find(useDef.defs, sum) != useDef.defs.end() ||
-                std::ranges::find(useDef.defs, original) != useDef.defs.end())
+                middleOps[0].reg != addOps[1].reg)
                 return false;
+            const auto modes = MicroInstr::info(copy->op).resolvedRegModes(middleOps);
+            for (size_t operand = 0; operand < modes.size(); ++operand)
+            {
+                if (modes[operand] != MicroInstrRegMode::None &&
+                    (middleOps[operand].reg == sum || middleOps[operand].reg == original))
+                    return false;
+            }
             middleLoadRef = copyRef;
             copyRef       = ctx.previousRef(middleLoadRef);
             copy          = ctx.instruction(copyRef);

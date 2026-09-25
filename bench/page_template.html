@@ -604,7 +604,7 @@ footer {
 <section id="compilation">
     <div class="sh"><span class="eyebrow">03</span><h2>Temps de compilation</h2></div>
     <p class="lede">Cold build time from source to executable, with outputs removed before
-    each sample and at least three samples per build. The clock includes imports, runtime code,
+    each sample and at least two samples per build. The clock includes imports, runtime code,
     optimization and linking.</p>
     {{bu_chart}}
     <div class="legend">
@@ -614,18 +614,19 @@ footer {
     </div>
 
     <div class="note">
-        <p>For these build recipes, swc takes {{swag_build}}&nbsp;ms; rustc takes {{rustc_edge}}&times;
-        as long, MSVC {{build_edge}}&times;, swiftc {{swiftc_edge}}&times;, and NativeAOT {{aot_edge}}&times;.
+        <p>In the latest accepted campaign, swc's raw build time is {{swag_build}}&nbsp;ms.
+        The MSVC/swc ratio of {{build_edge}}&times; uses a fixed MSVC baseline and adjusts swc
+        with the median movement of unchanged compiler controls.
         The ports implement the same algorithms and output, but their compilers process different
         library interfaces. Swag uses built-in printing and a prepublished Win32 API; other ports
-        parse or import their selected system libraries. These ratios describe complete builds,
+        parse or import their selected system libraries. This ratio describes complete builds,
         not isolated compiler speed. <em>hello</em> measures a different small program and cannot
         be subtracted as a common library cost. For a compiler change, the paired
         <code>compile.py --against</code> comparison uses identical Swag sources and imports for
         both compiler binaries.</p>
     </div>
 
-    <h3>D&eacute;tail par t&acirc;che, en millisecondes</h3>
+    <h3>Raw build times by task, in milliseconds</h3>
     {{bu_table}}
 
     <h3>La boucle d'&eacute;dition</h3>
@@ -729,6 +730,9 @@ footer {
         d'une t&acirc;che avant de dispara&icirc;tre, campagne propre aux deux bouts et fiction au milieu.
         Au-del&agrave; de {{drift_limit}}&nbsp;%, la campagne est archiv&eacute;e sans &ecirc;tre
         publi&eacute;e.</span></li>
+        <li><b>Build controls</b><span>Before publication, unchanged compiler recipes are compared
+        with the preceding accepted campaign. A split above {{build_control_limit}}&nbsp;% between the middle quartiles
+        archives the campaign: an execution probe alone cannot detect compiler-specific slowdown.</span></li>
         <li><b>Correction du contexte</b><span>Les runtimes non-Swag sont suppos&eacute;s stables.
         Leur variation m&eacute;diane par rapport &agrave; la premi&egrave;re campagne propre corrige
         s&eacute;par&eacute;ment les temps d'ex&eacute;cution et de compilation de Swag.</span></li>

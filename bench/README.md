@@ -43,6 +43,9 @@ library source. For example, Swag's `Swag.print` is built in, Rust uses `std`, C
 Windows headers, and D and Odin import runtime packages. The shared C++ header even includes
 `<cmath>` for tasks that do not use it. A ratio across languages is therefore a
 ratio of these particular build recipes, not an isolated ratio of compiler front-end speed.
+The report's MSVC/Swag ratio fixes MSVC at the first clean campaign and divides Swag's build
+time by the per-task median movement of unchanged compiler controls. The per-task table still
+shows raw times from the latest accepted campaign.
 The `hello` column is a separate small program with a different import set; it is useful as a
 second data point, but subtracting it from a task does not remove library overhead reliably.
 For a compiler improvement claim, `py compile.py --against <baseline-swc>` compares two compiler
@@ -141,8 +144,9 @@ at one end, so every runtime covers the same minutes whatever its sample count. 
 repetitions gave a ratio spread of 10 %; the budget gives 2 %, and costs less, because the
 five repetitions were being spent on CPython where they bought nothing.
 
-**Every sample is kept**, not only the minimum that becomes the result. A campaign that cannot
-say how sure it is has not measured anything.
+**Every sample is kept**, including each compiler build, not only the minimum that becomes the
+result. Earlier campaigns recorded only build minima, so their within-campaign build spread
+cannot be reconstructed.
 
 **The machine has to belong to the campaign.** Two gates, because the first one alone was not
 enough:
@@ -152,7 +156,7 @@ is running, so whatever it reads is somebody else's. It waits for three consecut
 under 15 % and refuses to measure at all if the machine stays busy for five minutes. Waiting a
 minute is cheaper than discovering the contention twenty minutes later.
 
-*While it runs*, a fixed reference workload is timed before every task and at both ends of the
+*While it runs*, a fixed execution reference workload is timed before every task and at both ends of the
 sweep. Each probe is compared with its **neighbours in time**, not with the whole timeline: a
 campaign settles as it runs, opening warmer than it ends, and that ramp moves a task's Swag
 measurement and its controls together, which is what the per-task correction exists for. A
@@ -160,6 +164,19 @@ visitor behaves differently — it arrives, hits one task, and leaves. When a pr
 its neighbours by more than 40 % the campaign goes to `results/rejected/` and never enters the
 history, kept because deleting a measurement one dislikes is how a benchmark starts lying, but
 not published.
+
+That execution probe cannot detect interference limited to compilers. Before publication, the
+driver also compares each unchanged compiler control's geometric build-time movement with the
+previous accepted build campaign, over the same seven tasks. If the upper and lower quartiles
+differ by more than 25 %, the campaign is archived under `results/rejected/`. On 2026-09-25,
+MSVC, clang-cl, Rust, D and Odin slowed by 40–65 % between two unchanged-code campaigns while
+Zig and .NET stayed near their previous times; the old execution probe accepted this split and
+the displayed MSVC/Swag build ratio jumped from 2.3 to 3.9. The build control check catches it.
+The two split campaigns measure about 54 % by this check; adjacent accepted nine-control
+campaigns around them stay below 10 %.
+The split campaigns `20260924-172317` and `20260925-055026` are preserved in
+`results/rejected/`; neither contributes to the published history. The first campaign and
+campaigns with fewer than six matching controls have no such comparison.
 
 Endpoints alone were not enough, and that is not hypothetical: a build launched from another
 window multiplied *every* compilation of `raytrace` by ten — clang-cl went from 408 ms to
@@ -202,8 +219,9 @@ and median dispersion so the correction remains auditable. A context factor belo
 the controls ran faster than at baseline, so the raw Swag value is raised before comparison.
 
 Compiler memory is the exception. It does not drift with machine state, so it is plotted raw.
-So are the three headline ratios: they compare Swag with runtimes measured in the same
-campaign, so the machine cancels out of them and they are recorded uncorrected.
+The execution headline ratios compare runtimes within one accepted campaign. The build headline
+ratio instead uses the fixed MSVC baseline and Swag's control-adjusted build time; raw build
+ratios do not reliably cancel machine effects on different compilers.
 
 ## What the bench can actually see
 

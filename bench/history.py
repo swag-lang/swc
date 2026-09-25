@@ -48,6 +48,7 @@ PROTOCOL = 2
 # left the campaign reading clean from both ends and fiction in the middle. Against
 # that timeline it reads 950 %.
 DRIFT_LIMIT_PCT = 40.0
+BUILD_CONTROL_SPREAD_LIMIT_PCT = 25.0
 
 TRACKED = ["swag-release", "swc-jit-release", "swag-fast-debug", "swc-jit-fast-debug"]
 BUILT = ["swag-release", "swag-fast-debug"]
@@ -61,6 +62,38 @@ def geo(values):
     if not values:
         return None
     return math.exp(sum(math.log(v) for v in values) / len(values))
+
+
+def build_control_spread(current, reference):
+    """Compare unchanged build recipes with the preceding accepted campaign.
+
+    A runtime calibration cannot see a slowdown confined to a group of compilers.
+    Compare each control's geometric build-time movement across the same tasks; a
+    wide middle-half spread means one machine factor cannot explain the campaign.
+    """
+    if not reference or set(current["tasks"]) != set(reference["tasks"]):
+        return None
+
+    tasks = list(current["tasks"])
+    controls = {}
+    for runtime in current["tasks"][tasks[0]]:
+        if runtime in TRACKED:
+            continue
+        before = [_metric(reference["tasks"][task].get(runtime, {}), "build", "wall_ms")
+                  for task in tasks]
+        after = [_metric(current["tasks"][task].get(runtime, {}), "build", "wall_ms")
+                 for task in tasks]
+        if all(before) and all(after):
+            controls[runtime] = geo([new / old for new, old in zip(after, before)])
+
+    if len(controls) < 6:
+        return None
+    values = sorted(controls.values())
+    return {
+        "reference": reference["meta"]["stamp"],
+        "controls": controls,
+        "spread_pct": (values[3 * len(values) // 4] / values[len(values) // 4] - 1.0) * 100.0,
+    }
 
 
 def robust_factor(values):
@@ -259,8 +292,8 @@ def _null_indices(results, refs, panel):
 def _headline(results, panel):
     """The ratios the report leads with, recomputed for every campaign.
 
-    They compare Swag with runtimes measured in the same campaign, so they carry no
-    machine drift and take no correction. They are computed over the panel only: a
+    Execution compares runtimes measured in the same campaign. Build comparison is
+    added after applying the compiler-control context. Both cover the panel only: a
     task that joined the benchmark later would otherwise move the geometric mean on
     the campaign it first appeared in, which would read as a compiler movement.
     """
@@ -270,25 +303,16 @@ def _headline(results, panel):
     def ms(rt, task):
         return (tasks[task].get(rt, {}).get("run") or {}).get("ms")
 
-    def wall(rt, task):
-        return (tasks[task].get(rt, {}).get("build") or {}).get("wall_ms")
-
     present = [rt for rt in tasks[task_ids[0]] if all(ms(rt, t) for t in task_ids)]
     best = {t: min(ms(rt, t) for rt in present) for t in task_ids} if present else {}
     run_geo = {rt: geo([ms(rt, t) / best[t] for t in task_ids]) for rt in present}
-    built = [rt for rt in tasks[task_ids[0]] if all(wall(rt, t) for t in task_ids)]
-    build_geo = {rt: geo([wall(rt, t) for t in task_ids]) for rt in built}
     native = run_geo.get("swag-release")
     jit = run_geo.get("swc-jit-release")
-    swag_build = build_geo.get("swag-release")
-    reference_build = build_geo.get(BUILD_REFERENCE)
     return {
         "tasks": len(task_ids),
         "exec_vs_best": native,
         "exec_fastest": min(run_geo, key=lambda rt: run_geo[rt]) if run_geo else None,
         "jit_gap_pct": (jit / native - 1.0) * 100.0 if native and jit else None,
-        "build_edge": (reference_build / swag_build
-                       if swag_build and reference_build else None),
     }
 
 
@@ -298,7 +322,7 @@ def condense(results, refs=None, baseline=None):
     refs = refs or _task_references([results], baseline)
     tasks = results["tasks"]
     task_ids = list(tasks)
-    panel = {family: {t for t, r in refs[family].items() if r is baseline}
+    panel = {family: [t for t in task_ids if refs[family].get(t) is baseline]
              for family, _ in FAMILIES}
     context = _context(results, refs, panel)
 
@@ -385,6 +409,11 @@ def condense(results, refs=None, baseline=None):
         entry["runtimes"][rt] = rec
 
     entry["headline"] = _headline(results, panel["run"])
+    reference_build = geo([baseline_metric(BUILD_REFERENCE, task, "build", "wall_ms")
+                           for task in panel["build"]])
+    adjusted_build = (entry["runtimes"].get("swag-release") or {}).get("build_geo_adjusted_ms")
+    entry["headline"]["build_edge"] = (reference_build / adjusted_build
+                                        if reference_build and adjusted_build else None)
     entry["null"] = _null_indices(results, refs, panel)
 
     # How far apart a runtime's own repeated samples landed, inside this campaign. The

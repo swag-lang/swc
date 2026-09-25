@@ -1,3 +1,4 @@
+import copy
 import os
 import sys
 import unittest
@@ -59,6 +60,28 @@ def add_task(result, task, swag_run=100.0, run_scale=1.0):
 
 
 class HistoryAdjustmentTests(unittest.TestCase):
+    def test_split_build_controls_reject_a_false_compiler_speedup(self):
+        baseline = campaign("run-01", False)
+        for task in TASKS:
+            for index in range(5):
+                baseline["tasks"][task]["extra-%d" % index] = {
+                    "build": {"wall_ms": 40.0 + index}}
+
+        coherent = copy.deepcopy(baseline)
+        split = copy.deepcopy(baseline)
+        for task in TASKS:
+            for runtime, entry in coherent["tasks"][task].items():
+                if runtime != "swag-release" and entry.get("build"):
+                    entry["build"]["wall_ms"] *= 1.1
+            for runtime, entry in split["tasks"][task].items():
+                if runtime in ("cpp-a", "cpp-b", "rust", "extra-0", "extra-1"):
+                    entry["build"]["wall_ms"] *= 1.55
+
+        stable = history.build_control_spread(coherent, baseline)
+        unstable = history.build_control_spread(split, baseline)
+        self.assertAlmostEqual(stable["spread_pct"], 0.0)
+        self.assertGreater(unstable["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT)
+
     def test_oldest_clean_campaign_is_the_baseline(self):
         dirty = campaign("run-01", True, run_scale=2.0)
         clean = campaign("run-02", False)
@@ -83,6 +106,15 @@ class HistoryAdjustmentTests(unittest.TestCase):
         self.assertAlmostEqual(native["build_geo_adjusted_ms"], 50.0)
         self.assertAlmostEqual(native["run_geo_index"], 1.0)
         self.assertAlmostEqual(native["build_geo_index"], 1.0)
+
+    def test_build_ratio_uses_fixed_control_baseline_and_adjusted_swag(self):
+        baseline = campaign("run-01", False)
+        same_builds_on_slower_machine = campaign("run-02", False, build_scale=1.5)
+
+        first, second = history.build_entries([baseline, same_builds_on_slower_machine])
+
+        self.assertAlmostEqual(first["headline"]["build_edge"],
+                               second["headline"]["build_edge"])
 
     def test_one_control_outlier_does_not_move_the_median(self):
         baseline = campaign("run-01", False)

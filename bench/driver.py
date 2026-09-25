@@ -189,6 +189,7 @@ def keep_build(acc, r, recipe):
     acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
     acc["peak_working_set_bytes"] = max(acc.get("peak_working_set_bytes", 0), r["peak_working_set_bytes"])
     acc["exe_bytes"] = os.path.getsize(recipe["exe"])
+    acc.setdefault("samples", []).append(round(r["wall_ms"], 1))
 
 
 def keep_run(acc, got, r):
@@ -654,9 +655,23 @@ def main():
         print("partial sweep (%s): nothing recorded" % ", ".join(tasks))
         return 0
 
+    build_controls = None
+    if measure_build:
+        previous = next((entry for entry in reversed(history.load_results())
+                         if all((entry.get("tasks", {}).get(task, {}).get("swag-release", {}).get("build") or {}).get("wall_ms")
+                                for task in tasks)), None)
+        build_controls = history.build_control_spread(results, previous)
+        if build_controls:
+            results["calibration"]["build_controls"] = build_controls
+            print("build control spread: %.1f %% across %d toolchains (vs %s)" %
+                  (build_controls["spread_pct"], len(build_controls["controls"]),
+                   build_controls["reference"]))
+
     stamp = results["meta"]["stamp"]
     spread = results["calibration"]["spread_pct"]
-    rejected = spread > DRIFT_LIMIT_PCT
+    rejected = (spread > DRIFT_LIMIT_PCT or
+                (build_controls is not None and
+                 build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT))
     folder = os.path.join(tc.BENCH, "results", "rejected" if rejected else "")
     os.makedirs(folder, exist_ok=True)
     raw = os.path.join(folder, "%s.json" % stamp)
@@ -664,14 +679,17 @@ def main():
         json.dump(results, f, indent=2)
 
     if rejected:
-        # Kept, because deleting a measurement one dislikes is how a benchmark starts
-        # lying, but out of the history: something else was using the machine while it
-        # measured, so this campaign dates the machine, not the compiler.
-        print("the reference workload moved %.1f %% across the campaign, past the %.0f %% "
-              "limit, worst around %s" % (spread, DRIFT_LIMIT_PCT,
-                                          results["calibration"]["worst_moment"]))
+        # Preserve the raw measurement for audit, but do not let a machine-state or
+        # toolchain divergence change the published compiler history.
+        if spread > DRIFT_LIMIT_PCT:
+            print("the reference workload moved %.1f %% across the campaign, past the %.0f %% "
+                  "limit, worst around %s" % (spread, DRIFT_LIMIT_PCT,
+                                              results["calibration"]["worst_moment"]))
+        if build_controls and build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT:
+            print("unchanged build controls diverged by %.1f %%, past the %.0f %% limit" %
+                  (build_controls["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT))
         print("campaign archived in results/rejected/%s.json and NOT recorded" % stamp)
-        print("close what else is using the machine and measure again")
+        print("check machine load and toolchain versions, then measure again")
         return 0
 
     print("raw campaign written to results/%s.json" % stamp)

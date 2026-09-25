@@ -355,11 +355,9 @@ def history_section(entries):
                          if ((entry.get("null") or {}).get("run") or {}).get("controls")), 0)
 
     parts.append("<h3>Les quatre chiffres de t&ecirc;te, campagne apr&egrave;s campagne</h3>")
-    parts.append('<p class="cap">Les trois rapports affich&eacute;s en haut de page compar&eacute;s '
-                 "aux m&ecirc;mes runtimes mesur&eacute;s dans la m&ecirc;me campagne : ce sont des "
-                 "rapports, ils ne portent donc aucune d&eacute;rive machine et ne re&ccedil;oivent "
-                 "aucune correction. Le quatri&egrave;me, le pic m&eacute;moire, a son propre graphe "
-                 "plus bas.</p>")
+    parts.append('<p class="cap">The two execution ratios compare programs in one accepted '
+                 "campaign. The build ratio compares swc after compiler-control adjustment "
+                 "with a fixed MSVC baseline. Compiler memory is plotted separately below.</p>")
     parts.append('<div class="small-mult">')
     for field, name, nd, unit in (
             ("exec_vs_best", "ex&eacute;cution vs le meilleur (&times;)", 2, "&times;"),
@@ -571,7 +569,9 @@ def main():
     swag = gm["swag-release"]
     best_rt = min(present, key=lambda r: gm[r])
     jit_gap = (gm["swc-jit-release"] / swag - 1.0) * 100.0
-    build_edge = bgeo["cpp-msvc"] / bgeo["swag-release"]
+    build_entry = next(entry for entry in entries
+                       if entry["meta"]["stamp"] == B["meta"]["stamp"])
+    build_edge = build_entry["headline"]["build_edge"]
 
     def stat(value, unit, name, note):
         return ('<div class="stat"><div class="sv">%s<em>%s</em></div>'
@@ -584,7 +584,7 @@ def main():
         stat("%+.0f" % jit_gap, "%", "JIT swc vs natif swc",
              "Le m&ecirc;me code, compil&eacute; en m&eacute;moire au lieu d'un exe."),
         stat(fmt(build_edge, 1), "&times;", "build recipe ratio",
-             "swc versus MSVC, including each port's imports and linker."),
+             "MSVC baseline divided by swc after compiler-control adjustment."),
         stat("%d" % round(bmem["swag-release"]), "Mo", "pic m&eacute;moire du compilateur",
              "Plancher fixe : m&ecirc;me valeur sur un hello world."),
     ])
@@ -709,10 +709,9 @@ def main():
         "Native code runs within about **%sx of clang-cl** on those %s programs (geometric "
         "mean), while" % (fmt(gm["swag-release"] / gm["cpp-clang-cl"], 1),
                               spelled(len(TASK_IDS)).lower()),
-        "swc's build recipe finishes roughly **%sx sooner** than `clang-cl` and **%sx sooner** than "
-        "`rustc`, linker" % (fmt(bgeo["cpp-clang-cl"] / bgeo["swag-release"], 1),
-                             fmt(bgeo["rust"] / bgeo["swag-release"], 1)),
-        "included. A hello world compiles and links in %s ms."
+        "the control-adjusted MSVC baseline / swc build ratio is **%sx**. The raw table "
+        "above includes each compiler's imports and linker." % fmt(build_edge, 1),
+        "A hello world compiles and links in %s ms."
         % fmt((B["hello_build"].get("swag-release") or {}).get("wall_ms"), 0),
         "",
         "The JIT lands **within %s percent of the native backend** here, which is what makes "
@@ -783,6 +782,7 @@ def main():
         "{{min_reps}}": str(settings.get("min_reps", "?")),
         "{{max_reps}}": str(settings.get("max_reps", "?")),
         "{{drift_limit}}": "%.0f" % DRIFT_LIMIT,
+        "{{build_control_limit}}": "%.0f" % history.BUILD_CONTROL_SPREAD_LIMIT_PCT,
         "{{ntasks}}": str(len(TASK_IDS)),
         "{{nruntimes}}": str(len(present)),
         "{{nbinaries}}": str(len(TASK_IDS) * len(present)),

@@ -91,6 +91,17 @@ class ScheduleTests(unittest.TestCase):
 
 
 class EditLoopTests(unittest.TestCase):
+    def test_build_records_every_sample_and_keeps_its_minimum(self):
+        with tempfile.TemporaryDirectory() as directory:
+            exe = Path(directory) / "bench.exe"
+            exe.write_bytes(b"exe")
+            acc = {}
+            for wall in (160.0, 140.0, 155.0):
+                driver.keep_build(acc, {"wall_ms": wall, "peak_job_bytes": 10,
+                                        "peak_working_set_bytes": 5}, {"exe": str(exe)})
+        self.assertEqual(acc["wall_ms"], 140.0)
+        self.assertEqual(acc["samples"], [160.0, 140.0, 155.0])
+
     def test_worker_cap_reaches_every_swag_recipe(self):
         tools = {"clang_cl": "clang-cl", "node": "node", "luajit": "luajit",
                  "lua": "lua", "py": "py", "rustc": "rustc", "swiftc": "swiftc",
@@ -157,7 +168,7 @@ class EditLoopTests(unittest.TestCase):
     def test_workload_preparation_obeys_machine_admission(self):
         admit = mock.Mock()
         workloads = toolchains.make_compiler_workloads("swc.exe", 6, admit)
-        with mock.patch.object(toolchains.subprocess, "run"):
+        with mock.patch.object(toolchains.subprocess, "run", return_value=mock.Mock(returncode=0)):
             workloads["core_noop"]["prepare"]({})
         admit.assert_called_once_with()
 

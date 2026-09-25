@@ -43,7 +43,7 @@ void MicroControlFlowGraph::clear()
         edges.clear();
     for (auto& edges : predecessors_)
         edges.clear();
-    std::ranges::fill(labelToInstructionIndex_, K_INVALID_INSTRUCTION_INDEX);
+    labelToInstructionIndex_.clear();
     addressTakenLabelIndices_.clear();
     hasUnsupportedControlFlowForCfgLiveness_ = false;
     supportsDeadCodeLiveness_                = true;

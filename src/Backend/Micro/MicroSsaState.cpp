@@ -877,8 +877,8 @@ uint32_t MicroSsaState::createPhi(const uint32_t blockIndex, const MicroReg reg,
     phi.regIndex      = regIndex;
     phi.blockIndex    = blockIndex;
     phi.resultValueId = K_INVALID_VALUE;
-    phi.predecessorBlocks.clear();
-    phi.predecessorBlocks.assign(block.predecessors.begin(), block.predecessors.end());
+    // Blocks remain fixed for this SSA build; every phi in a block shares its predecessor order.
+    phi.predecessorBlocks = block.predecessors;
     phi.incomingValueIds.clear();
     phi.incomingValueIds.resize(phi.predecessorBlocks.size(), K_INVALID_VALUE);
     block.phis.push_back(phiIndex);

@@ -63,7 +63,7 @@ public:
         uint32_t                 regIndex      = K_INVALID_VALUE;
         uint32_t                 blockIndex    = 0;
         uint32_t                 resultValueId = K_INVALID_VALUE;
-        SmallVector<uint32_t, 2> predecessorBlocks;
+        std::span<const uint32_t> predecessorBlocks;
         SmallVector<uint32_t, 2> incomingValueIds;
     };
 

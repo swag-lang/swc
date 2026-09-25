@@ -426,8 +426,9 @@ namespace PostRaPeephole
             if (!previous || ctx.isClaimed(cursor))
                 return false;
 
-            const MicroInstrOperand* previousOps = previous->ops(*ctx.operands);
-            if (previous->op == MicroInstrOpcode::LoadRegImm && previousOps && previousOps[0].reg == reg &&
+            const MicroInstrOperand* previousOps = previous->op == MicroInstrOpcode::LoadRegImm ?
+                previous->ops(*ctx.operands) : nullptr;
+            if (previousOps && previousOps[0].reg == reg &&
                 previousOps[1].opBits == bits && !previousOps[2].hasWideImmediateValue() && previousOps[2].valueU64 == value)
             {
                 if (!ctx.claimAll({defRef}))

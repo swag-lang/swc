@@ -366,6 +366,25 @@ namespace
         }
     }
 
+    const NumberingShape* cachedNumberingShapeFor(const MicroInstrOpcode op)
+    {
+        struct ShapeTable
+        {
+            std::array<NumberingShape, MICRO_INSTR_OPCODE_INFOS.size()> shapes;
+            std::array<bool, MICRO_INSTR_OPCODE_INFOS.size()>           supported = {};
+
+            ShapeTable()
+            {
+                for (size_t i = 0; i < shapes.size(); ++i)
+                    supported[i] = numberingShapeFor(static_cast<MicroInstrOpcode>(i), shapes[i]);
+            }
+        };
+
+        static const ShapeTable table;
+        const size_t            index = static_cast<size_t>(op);
+        return table.supported[index] ? &table.shapes[index] : nullptr;
+    }
+
     // An instruction after which a load may observe different memory: any
     // write, a call, a stack adjustment, and a label, where another path may
     // join the straight line the epoch vouches for. A conditional jump keeps
@@ -555,9 +574,10 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             memoryEpoch = ++lastEpoch;
         epochAt[i] = memoryEpoch;
 
-        NumberingShape shape;
-        if (!numberingShapeFor(inst->op, shape))
+        const NumberingShape* shapePtr = cachedNumberingShapeFor(inst->op);
+        if (!shapePtr)
             continue;
+        const NumberingShape& shape = *shapePtr;
 
         const MicroInstrDef& info = MicroInstr::info(inst->op);
         if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags))

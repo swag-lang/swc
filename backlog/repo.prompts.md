@@ -36,6 +36,8 @@ measured. The failures that produces look exactly like the bug the campaign was 
 ## 1. Repository health reset
 
 ```
+Prefix every commit message for this campaign with [prompt 1].
+
 You are running a repository-wide health reset on swc. The primary goal is to verify the code,
 find bugs by executing the complete validation campaigns, and fix them. Documentation and backlog
 accuracy are required secondary outcomes; they must never delay the first complete code campaign.
@@ -313,6 +315,8 @@ when every end condition above is true.
 ## 2. Generated-code performance
 
 ```
+Prefix every commit message for this campaign with [prompt 2].
+
 You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
 points to first, then backlog/compiler.core.md, backlog/compiler.optimization.md, and bench/README.md.
 
@@ -505,6 +509,8 @@ been run, naming the fastest non-Swag runtime for each task.
 ## 3. Safety without annotations
 
 ```
+Prefix every commit message for this campaign with [prompt 3].
+
 You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
 points to first, then backlog/compiler.safety.md, backlog/compiler.core.md, and the language
 reference page bin/reference/modules/language/src/013_004_borrowing.swg, which states what the
@@ -631,6 +637,8 @@ could read.
 ## 4. Compilation speed
 
 ```
+Prefix every commit message for this campaign with [prompt 4].
+
 You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
 then compiler.core.004, compiler.core.030 and compiler.core.056 in backlog/compiler.core.md and
 compiler.optimization.029, compiler.optimization.039 and compiler.optimization.045 in
@@ -797,6 +805,8 @@ what it bought, and the focused and rotating random test results.
 ## 5. Compiler memory
 
 ```
+Prefix every commit message for this campaign with [prompt 5].
+
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
 backlog/compiler.core.md compiler.core.005.
 
@@ -904,6 +914,8 @@ workload - always both, so a trade is visible the moment it happens.
 ## 6. Compiler code health
 
 ```
+Prefix every commit message for this campaign with [prompt 6].
+
 You are running a mechanical code-health campaign on the swc compiler itself. Read AGENTS.md and
 the skills it points to first, especially modify-swag-codebase,
 modify-swag-codebase/references/cpp-coding-rules.md, and validate-swag-changes. This is an
@@ -1080,6 +1092,8 @@ result. Report structural dependency counts when useful, but no timing or memory
 ## 7. Swag code and API quality
 
 ```
+Prefix every commit message for this campaign with [prompt 7].
+
 You are running a repository-wide Swag code and API quality campaign across bin/. Read AGENTS.md,
 then the skills modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code,
 design-swag-bin-modules, and write-swag-public-api-docs. Read tools/README.md, backlog/README.md,

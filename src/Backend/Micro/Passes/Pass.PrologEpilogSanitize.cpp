@@ -380,7 +380,6 @@ namespace
         uint64_t                             frameSize  = 0;
         bool                                 inEntryRun = true;
         SmallVector<MicroInstrRef>           rets;
-        MicroInstrRegOperandRefs regOperands;
         const auto                           markUsed = [&saves](const MicroReg reg) {
             for (Save& save : saves)
             {
@@ -443,14 +442,6 @@ namespace
                 continue;
             }
 
-            regOperands.clear();
-            inst.collectRegOperands(*context.operands, regOperands, context.encoder);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
-            {
-                if (regOperand.reg)
-                    markUsed(*regOperand.reg);
-            }
-
             const MicroInstrFlags flags = MicroInstr::info(inst.op).flags;
             if (flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 (context.encoder && flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
@@ -460,6 +451,15 @@ namespace
                     markUsed(reg);
                 for (const MicroReg reg : useDef.defs)
                     markUsed(reg);
+            }
+            else if (ops)
+            {
+                const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] != MicroInstrRegMode::None)
+                        markUsed(ops[i].reg);
+                }
             }
         }
 
@@ -548,7 +548,6 @@ namespace
         uint32_t                             numRets      = 0;
         bool                                 inEntryRun   = true;
         SmallVector<MicroInstrRef>           releaseRefs;
-        MicroInstrRegOperandRefs regOperands;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstr& inst = *it;
@@ -593,11 +592,12 @@ namespace
             if (inst.op == MicroInstrOpcode::Push || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return false;
 
-            regOperands.clear();
-            inst.collectRegOperands(*context.operands, regOperands, context.encoder);
-            for (const MicroInstrRegOperandRef& regOperand : regOperands)
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
             {
-                if (regOperand.reg && *regOperand.reg == stackPointer)
+                if (modes[i] != MicroInstrRegMode::None && ops[i].reg == stackPointer)
                     return false;
             }
         }

@@ -1852,9 +1852,10 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // virtual access must resolve to a register node.
     {
         uint32_t idx = 0;
+        SmallVector<MicroInstrRegOperandRef> regRefs;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
-            SmallVector<MicroInstrRegOperandRef> regRefs;
+            regRefs.clear();
             it->collectRegOperands(*operands_, regRefs, context_->encoder);
             for (const MicroInstrRegOperandRef& ref : regRefs)
             {
@@ -1897,25 +1898,25 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         return a.order < b.order;
     });
 
+    std::ranges::sort(trampolines, {}, &Trampoline::jumpIndex);
     const auto trampolineFor = [&](const uint32_t jumpIndex) -> const Trampoline* {
-        for (const Trampoline& trampoline : trampolines)
-        {
-            if (trampoline.jumpIndex == jumpIndex)
-                return &trampoline;
-        }
-        return nullptr;
+        const auto it = std::ranges::lower_bound(trampolines, jumpIndex, {}, &Trampoline::jumpIndex);
+        return it != trampolines.end() && it->jumpIndex == jumpIndex ? &*it : nullptr;
     };
 
     size_t   nextConnector = 0;
+    size_t   nextTrampoline = 0;
     uint32_t idx           = 0;
+    SmallVector<MicroInstrRegOperandRef> regRefs;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
     {
         const MicroInstrRef instructionRef = it.current;
 
         // A jcc that owns a trampoline is inverted and retargeted to the
         // fresh label closing the trampoline block just below it.
-        if (const Trampoline* trampoline = trampolineFor(idx))
+        if (nextTrampoline < trampolines.size() && trampolines[nextTrampoline].jumpIndex == idx)
         {
+            const Trampoline* trampoline = &trampolines[nextTrampoline++];
             MicroInstrOperand* jccOps = it->ops(*operands_);
             SWC_ASSERT(jccOps);
             jccOps[0].cpuCond  = trampoline->inverted;
@@ -2056,7 +2057,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             insertPending(instructionRef, labelInst);
         }
 
-        SmallVector<MicroInstrRegOperandRef> regRefs;
+        regRefs.clear();
         it->collectRegOperands(*operands_, regRefs, context_->encoder);
         for (const MicroInstrRegOperandRef& ref : regRefs)
         {

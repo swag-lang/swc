@@ -203,7 +203,7 @@ namespace
         uint64_t                   frameDelta          = 0;
         bool                       seenPrologueStore   = false;
 
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstrOperand* ops = it->ops(*context.operands);
             if (!isPrologueInstruction(conv, *it, ops, conv.stackPointer))
@@ -267,7 +267,7 @@ namespace
         // fp (final stack pointer), which is frameDelta lower: `[fp + disp]` -> `[fp + disp + frameDelta]`.
         if (frameDelta != 0)
         {
-            for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+            for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
             {
                 const MicroInstrDef& def = MicroInstr::info(it->op);
                 if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
@@ -389,7 +389,7 @@ namespace
             }
         };
 
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstr&        inst = *it;
             const MicroInstrOperand* ops  = inst.ops(*context.operands);
@@ -544,7 +544,7 @@ namespace
         bool                                 inEntryRun   = true;
         SmallVector<MicroInstrRef>           releaseRefs;
         SmallVector<MicroInstrRegOperandRef> regOperands;
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstr&        inst = *it;
             const MicroInstrOperand* ops  = inst.ops(*context.operands);
@@ -625,7 +625,7 @@ namespace
         if (!conv.intReturn.isValid() || !conv.intReturn.isInt())
             return false;
 
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             const MicroInstrOperand* ops = it->ops(*context.operands);
             if (!isPrologueInstruction(conv, *it, ops, conv.stackPointer))
@@ -682,7 +682,7 @@ namespace
         SWC_ASSERT(context.operands);
 
         bool changedAny = false;
-        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::Ret)
                 continue;

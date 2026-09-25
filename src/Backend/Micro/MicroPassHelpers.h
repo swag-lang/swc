@@ -91,6 +91,13 @@ namespace MicroPassHelpers
     // which is every value defined at the bottom of a loop body — exactly where
     // the interesting ones are. This answers the question instead of declining
     // it.
+    enum class MicroPhysLivenessMode : uint8_t
+    {
+        WithUseDefs,
+        LiveOutOnly,
+        DeadDefs,
+    };
+
     struct MicroPhysLiveness
     {
         // One bit per physical register: 0-31 integer, 32-63 float. Post-RA
@@ -112,6 +119,8 @@ namespace MicroPassHelpers
         std::vector<MicroInstrUseDef> useDefs;
         std::vector<uint64_t>         liveIn;
         std::vector<uint64_t>         liveOut;
+        // Set only in DeadDefs mode, after the liveness fixed point.
+        std::vector<uint8_t>          deadDefs;
         bool                          valid = false;
 
         bool isLiveOut(uint32_t index, MicroReg reg) const
@@ -126,9 +135,9 @@ namespace MicroPassHelpers
     };
 
     // Fills 'out' from the context's CFG. Leaves it invalid (and every query
-    // conservative) when the CFG does not support liveness. Callers that only
-    // query live-in/live-out masks can omit the per-instruction use/def lists.
-    void computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context, bool retainUseDefs = true);
+    // conservative) when the CFG does not support liveness. Callers select
+    // only the per-instruction data they actually consume.
+    void computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context, MicroPhysLivenessMode mode = MicroPhysLivenessMode::WithUseDefs);
 
     bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops);
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);

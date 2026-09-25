@@ -71,17 +71,7 @@ namespace
 
     bool allDefsAreDead(const MicroPhysLiveness& liveness, uint32_t index)
     {
-        const MicroInstrUseDef& useDef = liveness.useDefs[index];
-        if (useDef.defs.empty())
-            return false;
-
-        for (const MicroReg def : useDef.defs)
-        {
-            if (liveness.isLiveOut(index, def))
-                return false;
-        }
-
-        return true;
+        return index < liveness.deadDefs.size() && liveness.deadDefs[index] != 0;
     }
 }
 
@@ -105,7 +95,7 @@ Result MicroPostRaDeadCodeElimPass::run(MicroPassContext& context)
     // The shared physical-register analysis computes the same backward fixed point,
     // using one machine word per set instead of repeatedly scanning register vectors.
     MicroPhysLiveness liveness;
-    MicroPassHelpers::computePhysicalLiveness(liveness, context);
+    MicroPassHelpers::computePhysicalLiveness(liveness, context, MicroPassHelpers::MicroPhysLivenessMode::DeadDefs);
     if (!liveness.valid)
         return Result::Continue;
 

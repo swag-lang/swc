@@ -675,7 +675,7 @@ namespace
     }
 }
 
-void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context, const bool retainUseDefs)
+void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context, const MicroPhysLivenessMode mode)
 {
     out.valid = false;
     if (!context.builder || !context.instructions || !context.operands)
@@ -701,10 +701,16 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     };
 
     auto& scratch = graphWalkScratch();
+    const bool retainUseDefs = mode == MicroPhysLivenessMode::WithUseDefs;
+    const bool recordDeadDefs = mode == MicroPhysLivenessMode::DeadDefs;
     if (retainUseDefs)
         out.useDefs.resize(instCount);
     else
         out.useDefs.clear();
+    if (recordDeadDefs)
+        out.deadDefs.assign(instCount, 0);
+    else
+        out.deadDefs.clear();
     scratch.useMasks.resize(instCount);
     scratch.defMasks.resize(instCount);
     for (uint32_t i = 0; i < instCount; ++i)
@@ -719,6 +725,8 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
         {
             uint64_t useMask = 0;
             uint64_t defMask = 0;
+            bool     hasDef = false;
+            bool     hasUnknownDef = false;
             if (const MicroInstrOperand* ops = inst->ops(*context.operands))
             {
                 const auto modes = info.resolvedRegModes(ops);
@@ -730,11 +738,20 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
                     if (modes[operand] == MicroInstrRegMode::Use || modes[operand] == MicroInstrRegMode::UseDef)
                         useMask |= bit;
                     if (modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef)
+                    {
                         defMask |= bit;
+                        if (recordDeadDefs && ops[operand].reg.isValid() && !ops[operand].reg.isNoBase())
+                        {
+                            hasDef        = true;
+                            hasUnknownDef |= bit == 0;
+                        }
+                    }
                 }
             }
             scratch.useMasks[i] = useMask;
             scratch.defMasks[i] = defMask;
+            if (recordDeadDefs)
+                out.deadDefs[i] = hasDef && !hasUnknownDef;
             continue;
         }
 
@@ -747,6 +764,13 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
             defMask |= maskOf(reg);
         scratch.useMasks[i] = useMask;
         scratch.defMasks[i] = defMask;
+        if (recordDeadDefs)
+        {
+            bool hasUnknownDef = false;
+            for (const MicroReg reg : useDef.defs)
+                hasUnknownDef |= maskOf(reg) == 0;
+            out.deadDefs[i] = !useDef.defs.empty() && !hasUnknownDef;
+        }
         if (retainUseDefs)
             out.useDefs[i] = std::move(useDef);
     }
@@ -812,6 +836,12 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
                 }
             }
         }
+    }
+
+    if (recordDeadDefs)
+    {
+        for (uint32_t i = 0; i < instCount; ++i)
+            out.deadDefs[i] &= (scratch.defMasks[i] & out.liveOut[i]) == 0;
     }
 
     out.valid = true;

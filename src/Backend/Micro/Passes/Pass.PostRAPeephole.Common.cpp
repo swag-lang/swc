@@ -96,7 +96,7 @@ namespace PostRaPeephole
         if (!physicalLivenessReady)
         {
             physicalLivenessReady = true;
-            MicroPassHelpers::computePhysicalLiveness(physicalLiveness, *passContext, false);
+            MicroPassHelpers::computePhysicalLiveness(physicalLiveness, *passContext, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
         }
         return !physicalLiveness.isLiveOut(index, reg);
     }

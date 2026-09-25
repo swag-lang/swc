@@ -451,11 +451,16 @@ namespace
                     markUsed(*regOperand.reg);
             }
 
-            const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, context.encoder);
-            for (const MicroReg reg : useDef.uses)
-                markUsed(reg);
-            for (const MicroReg reg : useDef.defs)
-                markUsed(reg);
+            const MicroInstrFlags flags = MicroInstr::info(inst.op).flags;
+            if (flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (context.encoder && flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(*context.operands, context.encoder);
+                for (const MicroReg reg : useDef.uses)
+                    markUsed(reg);
+                for (const MicroReg reg : useDef.defs)
+                    markUsed(reg);
+            }
         }
 
         if (inEntryRun || rets.empty())
@@ -585,7 +590,7 @@ namespace
                 continue;
             }
 
-            if (inst.op == MicroInstrOpcode::Push || inst.collectUseDef(*context.operands, context.encoder).isCall)
+            if (inst.op == MicroInstrOpcode::Push || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return false;
 
             regOperands.clear();

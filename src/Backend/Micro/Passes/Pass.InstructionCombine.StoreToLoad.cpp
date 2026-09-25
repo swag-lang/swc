@@ -110,6 +110,19 @@ namespace InstructionCombine
         // always ([ip], 0) and only the relocation tells two targets apart.
         std::unordered_map<uint32_t, const MicroRelocation*> relocationByRef;
         bool                                                 relocationsReady = false;
+        const auto ensureRelocationsReady = [&]() {
+            if (relocationsReady)
+                return;
+            if (ctx.builder)
+            {
+                for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+                {
+                    if (reloc.instructionRef.isValid())
+                        relocationByRef[reloc.instructionRef.get()] = &reloc;
+                }
+            }
+            relocationsReady = true;
+        };
 
         Cache cache;
 
@@ -128,21 +141,9 @@ namespace InstructionCombine
                 const MicroRelocation* relocation = nullptr;
                 if (ops[1].reg.isInstructionPointer())
                 {
-                    if (!relocationsReady)
-                    {
-                        // Only forwarding a RIP load can invalidate a relocation
-                        // in this scan. The first such load still sees the original
-                        // snapshot, including relocations added by earlier patterns.
-                        if (ctx.builder)
-                        {
-                            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
-                            {
-                                if (reloc.instructionRef.isValid())
-                                    relocationByRef[reloc.instructionRef.get()] = &reloc;
-                            }
-                        }
-                        relocationsReady = true;
-                    }
+                    // Forwarding only invalidates an existing relocation; the
+                    // first RIP access sees the original snapshot.
+                    ensureRelocationsReady();
                     const auto relocIt = relocationByRef.find(it.current.get());
                     if (relocIt == relocationByRef.end() || relocIt->second->form != MicroRelocation::Form::Relative32)
                     {
@@ -191,12 +192,22 @@ namespace InstructionCombine
                 const MicroOpBits bits = ops[2].opBits;
                 const uint64_t    off  = ops[3].valueU64;
 
-                // A RIP-relative store writes a global some cached base may
-                // point at, and its true target is invisible to this model:
-                // flush everything and cache nothing.
+                // A RIP-relative store may alias earlier cached locations, so
+                // flush them. Its own relocated global target is exact and can
+                // answer a following load until another writer or barrier.
                 if (base.isInstructionPointer())
                 {
                     cache.clear();
+                    if (ctx.isClaimed(it.current))
+                        continue;
+                    ensureRelocationsReady();
+                    const auto relocIt = relocationByRef.find(it.current.get());
+                    if (relocIt == relocationByRef.end() || relocIt->second->form != MicroRelocation::Form::Relative32)
+                        continue;
+                    const MicroRelocation::Kind kind = relocIt->second->kind;
+                    if (kind != MicroRelocation::Kind::GlobalInitAddress && kind != MicroRelocation::Kind::GlobalZeroAddress)
+                        continue;
+                    cache.push_back({.base = base, .src = ops[1].reg, .bits = bits, .off = off, .relocation = relocIt->second});
                     continue;
                 }
 

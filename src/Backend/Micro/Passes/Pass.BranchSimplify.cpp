@@ -6461,15 +6461,17 @@ namespace
                 secondCompareOps[i] = secondCompareInst->ops(operands)[i];
 
             const MicroReg rejected = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
-            MicroInstrRegOperandRefs regOperands;
             for (const MicroInstrRef ref : diamond.jumpArm.refs)
             {
-                regOperands.clear();
-                storage.ptr(ref)->collectRegOperands(operands, regOperands, context.encoder);
-                for (const MicroInstrRegOperandRef& regOperand : regOperands)
+                MicroInstr* instruction = storage.ptr(ref);
+                MicroInstrOperand* instructionOps = instruction->ops(operands);
+                if (!instructionOps)
+                    continue;
+                const auto modes = MicroInstr::info(instruction->op).resolvedRegModes(instructionOps);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
                 {
-                    if (*regOperand.reg == diamond.result)
-                        *regOperand.reg = rejected;
+                    if (modes[operand] != MicroInstrRegMode::None && instructionOps[operand].reg == diamond.result)
+                        instructionOps[operand].reg = rejected;
                 }
             }
 

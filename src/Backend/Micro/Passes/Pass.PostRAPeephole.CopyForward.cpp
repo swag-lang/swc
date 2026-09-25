@@ -96,6 +96,33 @@ namespace PostRaPeephole
             return touch;
         }
 
+        bool instructionMentionsAny(const Context& ctx, const MicroInstr& inst, std::initializer_list<MicroReg> regs)
+        {
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                for (const MicroReg reg : regs)
+                {
+                    if (regInList(useDef.uses.span(), reg) || regInList(useDef.defs.span(), reg))
+                        return true;
+                }
+                return false;
+            }
+
+            if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
+                {
+                    if (modes[operand] != MicroInstrRegMode::None && std::ranges::find(regs, ops[operand].reg) != regs.end())
+                        return true;
+                }
+            }
+            return false;
+        }
+
         bool regDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
         {
             return regIsDeadAfter(ctx, fromRef, reg);
@@ -2356,12 +2383,8 @@ namespace PostRaPeephole
             !ctx.isRegDeadAfter(common, ctx.instructionIndex + 4) ||
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
             return false;
-        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : {result, common, firstCount, secondCount})
-        {
-            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
-                return false;
-        }
+        if (instructionMentionsAny(ctx, *compare, {result, common, firstCount, secondCount}))
+            return false;
 
         MicroCond inverted;
         if (!MicroPassHelpers::invertCondition(inverted, selected[2].cpuCond))
@@ -2475,12 +2498,8 @@ namespace PostRaPeephole
         const bool flagsDead      = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder);
         if (!firstCountDead || !commonDead || !flagsDead)
             return false;
-        const MicroInstrUseDef compareUseDef = compareInst.collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : {result, common, firstCount, secondCount})
-        {
-            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
-                return false;
-        }
+        if (instructionMentionsAny(ctx, compareInst, {result, common, firstCount, secondCount}))
+            return false;
 
         MicroInstrOperand copyValue[3] = {};
         copyValue[0].reg                = result;
@@ -2579,12 +2598,8 @@ namespace PostRaPeephole
             !ctx.isRegDeadAfter(common, ctx.instructionIndex + 3) ||
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
             return false;
-        const MicroInstrUseDef compareUseDef = compareInst.collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : {result, common, firstCount, secondCount})
-        {
-            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
-                return false;
-        }
+        if (instructionMentionsAny(ctx, compareInst, {result, common, firstCount, secondCount}))
+            return false;
 
         MicroInstrOperand copyValue[3] = {};
         copyValue[0].reg                = result;
@@ -2699,12 +2714,8 @@ namespace PostRaPeephole
         const MicroInstr*   compare    = ctx.instruction(compareRef);
         if (!compare || (compare->op != MicroInstrOpcode::CmpRegImm && compare->op != MicroInstrOpcode::CmpRegReg))
             return false;
-        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : {result, common, alternate, countReg, firstCount, secondCount})
-        {
-            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
-                return false;
-        }
+        if (instructionMentionsAny(ctx, *compare, {result, common, alternate, countReg, firstCount, secondCount}))
+            return false;
 
         const MicroInstrRef selectRef = ctx.nextRef(compareRef);
         const MicroInstr*   select    = ctx.instruction(selectRef);
@@ -3105,12 +3116,8 @@ namespace PostRaPeephole
         const MicroInstr*   compare    = ctx.instruction(compareRef);
         if (!compare || (compare->op != MicroInstrOpcode::CmpRegImm && compare->op != MicroInstrOpcode::CmpRegReg))
             return false;
-        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
-        for (const MicroReg reg : {result, common, firstVarying, secondVarying})
-        {
-            if (regInList(compareUseDef.uses.span(), reg) || regInList(compareUseDef.defs.span(), reg))
-                return false;
-        }
+        if (instructionMentionsAny(ctx, *compare, {result, common, firstVarying, secondVarying}))
+            return false;
 
         const MicroInstrRef selectRef = ctx.nextRef(compareRef);
         const MicroInstr*   select    = ctx.instruction(selectRef);
@@ -3190,8 +3197,7 @@ namespace PostRaPeephole
         if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !compared ||
             (compared[2].opBits != MicroOpBits::B32 && compared[2].opBits != MicroOpBits::B64))
             return false;
-        const MicroInstrUseDef compareUseDef = compare->collectUseDef(*ctx.operands, ctx.encoder);
-        if (regInList(compareUseDef.uses.span(), result) || regInList(compareUseDef.defs.span(), result))
+        if (instructionMentionsAny(ctx, *compare, {result}))
             return false;
 
         const MicroInstrRef selectRef = ctx.nextRef(compareRef);

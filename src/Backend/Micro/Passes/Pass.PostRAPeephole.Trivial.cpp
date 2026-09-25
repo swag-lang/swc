@@ -8,30 +8,45 @@ namespace PostRaPeephole
 {
     namespace
     {
-        uint32_t countLabelReferences(const Context& ctx, const uint64_t labelId)
+        bool labelsHaveSingleReference(const Context& ctx, const uint64_t firstLabelId, const uint64_t secondLabelId)
         {
-            uint32_t count = 0;
+            uint32_t firstCount  = 0;
+            uint32_t secondCount = 0;
             for (const MicroInstr& candidate : ctx.storage->view())
             {
+                if (candidate.op != MicroInstrOpcode::JumpCond && candidate.op != MicroInstrOpcode::JumpCondImm &&
+                    candidate.op != MicroInstrOpcode::JumpReg && candidate.op != MicroInstrOpcode::JumpTableData)
+                    continue;
                 const MicroInstrOperand* ops = candidate.ops(*ctx.operands);
                 if (!ops)
                     continue;
 
                 if ((candidate.op == MicroInstrOpcode::JumpCond || candidate.op == MicroInstrOpcode::JumpCondImm) &&
                     candidate.numOperands >= 3)
-                    count += ops[2].valueU64 == labelId;
+                {
+                    firstCount += ops[2].valueU64 == firstLabelId;
+                    secondCount += ops[2].valueU64 == secondLabelId;
+                }
                 else if (candidate.op == MicroInstrOpcode::JumpReg && candidate.numOperands >= 2)
                 {
                     for (uint8_t index = 1; index < candidate.numOperands; ++index)
-                        count += ops[index].valueU64 == labelId;
+                    {
+                        firstCount += ops[index].valueU64 == firstLabelId;
+                        secondCount += ops[index].valueU64 == secondLabelId;
+                    }
                 }
                 else if (candidate.op == MicroInstrOpcode::JumpTableData)
                 {
                     for (uint8_t index = 0; index < candidate.numOperands; ++index)
-                        count += ops[index].valueU64 == labelId;
+                    {
+                        firstCount += ops[index].valueU64 == firstLabelId;
+                        secondCount += ops[index].valueU64 == secondLabelId;
+                    }
                 }
+                if (firstCount > 1 || secondCount > 1)
+                    return false;
             }
-            return count;
+            return firstCount == 1 && secondCount == 1;
         }
     }
 
@@ -305,7 +320,7 @@ namespace PostRaPeephole
         const uint64_t doneLabelId  = ops[7][0].valueU64;
         if (ops[3][0].cpuCond == MicroCond::Unconditional || ops[3][2].valueU64 != falseLabelId ||
             ops[4][0].cpuCond != MicroCond::Unconditional || ops[4][2].valueU64 != doneLabelId ||
-            countLabelReferences(ctx, falseLabelId) != 1 || countLabelReferences(ctx, doneLabelId) != 1)
+            !labelsHaveSingleReference(ctx, falseLabelId, doneLabelId))
             return false;
 
         const MicroInstr* compare = ctx.instruction(refs[2]);

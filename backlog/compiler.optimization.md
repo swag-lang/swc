@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.058 — Forward stores to known global targets into following loads
+
+- Recorded: 2026-09-25 16:43
+- Updated: 2026-09-25 16:43 — Cached RIP-relative global stores by relocation identity.
+- Area: compiler/backend, instruction combine and memory forwarding
+- Evidence: the store-to-load cache discarded every RIP-relative store, even when its relocation identified a global exactly and the next instruction read that same location. It now clears potentially aliasing entries and retains the stored register for a matching global load until a write, call, control-flow barrier, or register redefinition. Focused C++ cases cover relocation kind/address/width mismatch and alias barriers. In csvagg's generated `main`, six global-seed reloads disappear (1,076 to 1,070 instructions); wordfreq's `main` loses one (485 to 484). Both changes are in input construction before the timed region; neither `qsort` nor csvagg's timed row loop changes. The wordfreq and csvagg checksums remain 130489 and 24828641. The 1,108 C++, 3,480 native, and 1,500 JIT tests pass. The random additional draw was `sema`, whose positive and expected-error files passed. No elapsed-time sample was used as evidence.
+- Next: look for the same provable store/read pair inside a measured loop, then compare its memory operations with the winning implementation. Keep the timed-loop effort on wordfreq's comparator layout and csvagg's row parser.
+
 ### compiler.optimization.055 — Keep read-only global pointers resident across comparator calls
 
 - Recorded: 2026-09-25 11:15

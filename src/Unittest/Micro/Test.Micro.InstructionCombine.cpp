@@ -291,6 +291,74 @@ SWC_TEST_BEGIN(InstCombine_RelocatedLoad_UsesExactTargetAndLiveMemory)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_RipGlobalStoreForwardsOnlyLiveMatchingLoad)
+{
+    enum class Case
+    {
+        Same,
+        ZeroGlobal,
+        Address,
+        Width,
+        AliasingStore,
+        SourceRedefined,
+        Call,
+    };
+    constexpr MicroReg source = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    for (const Case test : {Case::Same, Case::ZeroGlobal, Case::Address, Case::Width, Case::AliasingStore, Case::SourceRedefined, Case::Call})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegImm(source, ApInt(42, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::instructionPointer(), 0, source, MicroOpBits::B64);
+        MicroRelocation storeRelocation;
+        storeRelocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+        storeRelocation.form           = MicroRelocation::Form::Relative32;
+        storeRelocation.targetAddress  = 8;
+        storeRelocation.instructionRef = builder.instructions().lastInstructionRef();
+        builder.addRelocation(storeRelocation);
+        const MicroInstrRef storeRef = storeRelocation.instructionRef;
+
+        if (test == Case::AliasingStore)
+            builder.emitLoadMemReg(base, 0, source, MicroOpBits::B64);
+        else if (test == Case::SourceRedefined)
+            builder.emitLoadRegImm(source, ApInt(7, 64), MicroOpBits::B64);
+        else if (test == Case::Call)
+            builder.emitCallReg(MicroReg::intReg(0), CallConvKind::Swag);
+
+        builder.emitLoadRegMem(result, MicroReg::instructionPointer(), 0, test == Case::Width ? MicroOpBits::B32 : MicroOpBits::B64);
+        MicroRelocation loadRelocation = storeRelocation;
+        loadRelocation.instructionRef  = builder.instructions().lastInstructionRef();
+        if (test == Case::ZeroGlobal)
+            loadRelocation.kind = MicroRelocation::Kind::GlobalZeroAddress;
+        else if (test == Case::Address)
+            loadRelocation.targetAddress = 16;
+        builder.addRelocation(loadRelocation);
+        const MicroInstrRef loadRef = loadRelocation.instructionRef;
+        builder.emitLoadMemReg(base, 8, result, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        const bool        expectedForward = test == Case::Same;
+        const MicroInstr* load            = builder.instructions().ptr(loadRef);
+        if (!load || load->op != (expectedForward ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
+        if (expectedForward && load->ops(builder.operands())[1].reg != source)
+            return Result::Error;
+        bool storeRelocationPresent = false;
+        bool loadRelocationPresent  = false;
+        for (const MicroRelocation& relocation : builder.codeRelocations())
+        {
+            storeRelocationPresent |= relocation.instructionRef == storeRef;
+            loadRelocationPresent |= relocation.instructionRef == loadRef;
+        }
+        if (!storeRelocationPresent || loadRelocationPresent == expectedForward)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_ForwardingCacheKeepsClaimedLoadsOut)
 {
     constexpr MicroReg base = MicroReg::intReg(8);

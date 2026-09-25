@@ -619,17 +619,32 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
         if (fn.firstCallIndex == K_INVALID && MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
             fn.firstCallIndex = i;
 
-        const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
-        for (const MicroReg reg : useDef.defs)
-        {
+        const auto recordDef = [&](const MicroReg reg) {
             if (reg == stackPointer)
                 fn.stackPointerDefs.push_back(i);
             if (!reg.isVirtual())
-                continue;
+                return;
             RegDefInfo& info = fn.regDefs[reg.packed];
             info.defCount++;
             info.defRef   = instrRefs[i];
             info.defIndex = i;
+        };
+        const MicroInstrDef& info = MicroInstr::info(inst->op);
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            (context.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+        {
+            const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+            for (const MicroReg reg : useDef.defs)
+                recordDef(reg);
+        }
+        else if (const MicroInstrOperand* ops = inst->ops(operands))
+        {
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
+            {
+                if (modes[operandIndex] == MicroInstrRegMode::Def || modes[operandIndex] == MicroInstrRegMode::UseDef)
+                    recordDef(ops[operandIndex].reg);
+            }
         }
     }
 

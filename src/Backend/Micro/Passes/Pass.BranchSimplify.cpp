@@ -1391,6 +1391,33 @@ namespace
         }
     }
 
+    bool definesEitherRegister(const MicroInstr& instruction, const MicroOperandStorage& operands, const Encoder* encoder, MicroReg first, MicroReg second)
+    {
+        const MicroInstrDef& info = MicroInstr::info(instruction.op);
+        if (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+        {
+            const MicroInstrUseDef useDef = instruction.collectUseDef(operands, encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == first || reg == second)
+                    return true;
+            }
+            return false;
+        }
+
+        const MicroInstrOperand* instructionOps = instruction.ops(operands);
+        if (!instructionOps)
+            return false;
+        const auto modes = info.resolvedRegModes(instructionOps);
+        for (size_t operand = 0; operand < modes.size(); ++operand)
+        {
+            if ((modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef) &&
+                (instructionOps[operand].reg == first || instructionOps[operand].reg == second))
+                return true;
+        }
+        return false;
+    }
+
     // Gives the results of a chain of `and`s or `or`s one register.
     //
     // Each operator merges its result into a register of its own, and the
@@ -3686,12 +3713,10 @@ namespace
             bool safe = true;
             for (MicroInstrRef ref = storage.findNextInstructionRef(leftCmpRef); ref.isValid() && ref != rightCmpRef; ref = storage.findNextInstructionRef(ref))
             {
-                const MicroInstr*      between = storage.ptr(ref);
-                const MicroInstrDef&   info    = MicroInstr::info(between->op);
-                const MicroInstrUseDef useDef  = between->collectUseDef(operands, context.encoder);
-                if (info.flags.has(MicroInstrFlagsE::WritesMemory) || useDef.isCall ||
-                    std::ranges::find(useDef.defs, leftOps[0].reg) != useDef.defs.end() ||
-                    std::ranges::find(useDef.defs, leftOps[1].reg) != useDef.defs.end())
+                const MicroInstr* between = storage.ptr(ref);
+                const MicroInstrDef& info = MicroInstr::info(between->op);
+                if (info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    definesEitherRegister(*between, operands, context.encoder, leftOps[0].reg, leftOps[1].reg))
                 {
                     safe = false;
                     break;
@@ -5450,12 +5475,10 @@ namespace
             bool safe = true;
             for (MicroInstrRef ref = storage.findNextInstructionRef(sourceLoadRef); ref.isValid() && ref != reloadRef; ref = storage.findNextInstructionRef(ref))
             {
-                const MicroInstr*        between = storage.ptr(ref);
-                const MicroInstrDef&     info    = MicroInstr::info(between->op);
-                const MicroInstrUseDef   useDef  = between->collectUseDef(operands, context.encoder);
-                if (info.flags.has(MicroInstrFlagsE::WritesMemory) || useDef.isCall ||
-                    std::ranges::find(useDef.defs, sourceLoadOps[1].reg) != useDef.defs.end() ||
-                    std::ranges::find(useDef.defs, sourceLoadOps[2].reg) != useDef.defs.end())
+                const MicroInstr* between = storage.ptr(ref);
+                const MicroInstrDef& info = MicroInstr::info(between->op);
+                if (info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    definesEitherRegister(*between, operands, context.encoder, sourceLoadOps[1].reg, sourceLoadOps[2].reg))
                 {
                     safe = false;
                     break;

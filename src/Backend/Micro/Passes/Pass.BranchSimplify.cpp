@@ -1490,23 +1490,29 @@ namespace
     // any length settles without a copy per exit. Joins are visited last to
     // first so each result register takes over the next one's readers.
     bool coalesceShortCircuitResults(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
-                                     ProgramLayoutCache& layoutCache, RelocationRefCache& relocationCache)
+                                     ProgramLayoutCache& layoutCache, RelocationRefCache& relocationCache, const BranchScan* branchScan)
     {
+        if (branchScan && branchScan->indirectJump)
+            return false;
         const ProgramLayout& layout = layoutCache.get(storage, operands);
         const size_t count = layout.order.size();
 
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
+        std::unordered_map<uint32_t, uint32_t> localLabelReferences;
+        if (!branchScan)
         {
-            const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
-            if (!inst)
-                continue;
-            if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                return false;
-            uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                ++labelReferences[labelId];
+            for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
+            {
+                const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
+                if (!inst)
+                    continue;
+                if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                    return false;
+                uint32_t labelId = 0;
+                if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                    ++localLabelReferences[labelId];
+            }
         }
+        const auto& labelReferences = branchScan ? branchScan->labelReferences : localLabelReferences;
 
         // Where every virtual integer register is read and written, and which instructions a
         // relocation pins. Both are only consulted once a jump, its single-reference forward
@@ -1583,7 +1589,7 @@ namespace
             if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional || !tryGetJumpTargetLabelId(labelId, *jumpInst, jumpOps))
                 continue;
             const auto labelIt = layout.labelOrdinalById.find(labelId);
-            if (labelIt == layout.labelOrdinalById.end() || labelIt->second <= p || labelReferences[labelId] != 1 ||
+            if (labelIt == layout.labelOrdinalById.end() || labelIt->second <= p || jumpLabelReferenceCount(labelReferences, labelId) != 1 ||
                 relocationCache.get(context).contains(layout.order[labelIt->second].get()))
                 continue;
             const uint32_t j = labelIt->second;
@@ -7313,7 +7319,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
         if (roundChanged)
             shortCircuitLayout.invalidate();
-        const bool coalesced = coalesceShortCircuitResults(storage, operands, context, shortCircuitLayout, relocationCache);
+        const BranchScan* currentBranchScan = !roundChanged && scanCache.built ? &scanCache.scan : nullptr;
+        const bool coalesced = coalesceShortCircuitResults(storage, operands, context, shortCircuitLayout, relocationCache, currentBranchScan);
         roundChanged |= coalesced;
         if (coalesced)
         {

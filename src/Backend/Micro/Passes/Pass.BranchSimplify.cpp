@@ -1730,16 +1730,19 @@ namespace
     // it, and the setcc and copy before the jump die on both paths: clang's
     // `and` chains test and branch, and only the last link materializes.
     // The block costs a move and a jump, so it needs two edges to pay.
-    bool threadShortCircuitReturnValues(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder)
+    bool threadShortCircuitReturnValues(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, BranchScanCache& scanCache)
     {
         constexpr uint32_t K_MAX_CHAIN = 6;
 
         if (!builder)
             return false;
 
-        // Reused buffer: buildProgramLayout resets every member it holds.
-        thread_local ProgramLayout layout;
-        buildProgramLayout(layout, storage, operands);
+        // The preceding speculation pass has already built this layout when it
+        // left the instruction stream unchanged.
+        thread_local ProgramLayout fallbackLayout;
+        ProgramLayout&           layout = scanCache.built ? scanCache.scan.layout : fallbackLayout;
+        if (!scanCache.built)
+            buildProgramLayout(layout, storage, operands);
 
         struct ConstantEdge
         {
@@ -7217,7 +7220,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         bool lateChanged = speculateCheapElseArms(storage, operands, scanCache);
         if (lateChanged)
             scanCache.invalidate();
-        if (threadShortCircuitReturnValues(storage, operands, context.builder))
+        if (threadShortCircuitReturnValues(storage, operands, context.builder, scanCache))
         {
             lateChanged = true;
             scanCache.invalidate();

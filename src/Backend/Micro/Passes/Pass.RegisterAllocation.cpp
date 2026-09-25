@@ -206,7 +206,6 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
     SWC_ASSERT(instructions_ != nullptr);
     SWC_ASSERT(operands_ != nullptr);
 
-    MicroInstrRegOperandRefs refs;
     for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt;)
     {
         const MicroInstrRef instructionRef = it.current;
@@ -251,15 +250,18 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
 
             if (containsKey(useDef.uses, dstReg))
             {
-                refs.clear();
-                scanIt->collectRegOperands(*operands_, refs, context_->encoder);
-                for (const MicroInstrRegOperandRef& ref : refs)
+                MicroInstrOperand* scanOps = scanIt->ops(*operands_);
+                if (scanOps)
                 {
-                    if (!ref.reg || *ref.reg != dstReg || !ref.use || ref.def)
-                        continue;
+                    const auto modes = MicroInstr::info(scanIt->op).resolvedRegModes(scanOps);
+                    for (size_t i = 0; i < modes.size(); ++i)
+                    {
+                        if (modes[i] != MicroInstrRegMode::Use || scanOps[i].reg != dstReg)
+                            continue;
 
-                    *ref.reg     = srcReg;
-                    replacedUses = true;
+                        scanOps[i].reg = srcReg;
+                        replacedUses   = true;
+                    }
                 }
             }
 

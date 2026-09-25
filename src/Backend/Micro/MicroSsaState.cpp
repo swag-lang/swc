@@ -48,7 +48,10 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
     const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
-    instructionRefs_.assign(instructionRefs.begin(), instructionRefs.end());
+    const bool reuseBlocks = blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() &&
+                             instructionRefs_.size() == instructionRefs.size();
+    if (!reuseBlocks)
+        instructionRefs_.assign(instructionRefs.begin(), instructionRefs.end());
     if (liveInstructionSlots_.size() < storage.slotCount())
         liveInstructionSlots_.resize(storage.slotCount(), 0);
     if (++liveInstructionEpoch_ == 0)
@@ -142,7 +145,7 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
     // Only the phi lists belong to this build; the rest of the block structure describes the
     // control-flow graph, which has not moved when its build identity has not.
-    if (blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() && instructionToBlock_.size() == instructionRefs_.size())
+    if (reuseBlocks && instructionToBlock_.size() == instructionRefs_.size())
     {
         for (BlockInfo& block : blocks_)
             block.phis.clear();
@@ -193,7 +196,6 @@ void MicroSsaState::resetForBuild(MicroStorage& storage)
     storage_ = &storage;
 
     trackedRegs_.clear();
-    instructionRefs_.clear();
     trackedDefCount_ = 0;
     valueInfoCount_  = 0;
     phiInfoCount_    = 0;

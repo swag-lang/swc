@@ -7,6 +7,31 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    namespace
+    {
+        bool instructionTouchesReg(const Context& ctx, const MicroInstr& inst, MicroReg reg)
+        {
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                return microRegSpanContains(useDef.uses.span(), reg) || microRegSpanContains(useDef.defs.span(), reg);
+            }
+
+            if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
+                {
+                    if (modes[operand] != MicroInstrRegMode::None && ops[operand].reg == reg)
+                        return true;
+                }
+            }
+            return false;
+        }
+    }
+
     // An unsigned modular sum is at least its original left operand exactly
     // when the addition did not carry. Keep the ADD flags across a fallback
     // constant load and let the conditional move consume CF directly:
@@ -316,8 +341,7 @@ namespace PostRaPeephole
             if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*current, currentOps))
                 return false;
-            const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
-            if (microRegSpanContains(useDef.uses.span(), carry) || microRegSpanContains(useDef.defs.span(), carry))
+            if (instructionTouchesReg(ctx, *current, carry))
                 return false;
             cursor = ctx.previousRef(cursor);
         }
@@ -1663,11 +1687,10 @@ namespace PostRaPeephole
             }
             else
             {
-                const MicroInstrUseDef useDef = current->collectUseDef(*ctx.operands, ctx.encoder);
                 for (const MicroReg reg : {result, other})
                 {
                     const bool pending = reg == result ? !resultLoad.isValid() : !otherLoad.isValid();
-                    if (pending && (microRegSpanContains(useDef.uses.span(), reg) || microRegSpanContains(useDef.defs.span(), reg)))
+                    if (pending && instructionTouchesReg(ctx, *current, reg))
                         return false;
                 }
             }

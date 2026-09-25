@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -14,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPrologEpilogSanitizePass(MicroBuilder& builder, const bool forceFramePointer = false, const MicroReg debugStackBasePhysReg = MicroReg::invalid(), const uint64_t spillAreaLo = UINT64_MAX, const uint64_t spillAreaHi = 0)
+    Result runPrologEpilogSanitizePass(MicroBuilder& builder, const bool forceFramePointer = false, const MicroReg debugStackBasePhysReg = MicroReg::invalid(), const uint64_t spillAreaLo = UINT64_MAX, const uint64_t spillAreaHi = 0, Encoder* encoder = nullptr)
     {
         MicroPrologEpilogSanitizePass pass;
         MicroPassManager              passManager;
@@ -26,7 +27,7 @@ namespace
         passContext.debugStackBasePhysReg = debugStackBasePhysReg;
         passContext.spillAreaLo = spillAreaLo;
         passContext.spillAreaHi = spillAreaHi;
-        return builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, encoder, passContext);
     }
 
     const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
@@ -702,6 +703,67 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_CompactsEmptyCallFrame)
         !isStackAdjust(*sub, sub->ops(builder.operands()), rsp, MicroOp::Subtract, 40) ||
         !isStackAdjust(*add, add->ops(builder.operands()), rsp, MicroOp::Add, 40))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReservesBodyCallShadow)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rbp = MicroReg::intReg(5);
+    constexpr MicroReg rbx = MicroReg::intReg(3);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(2);
+    constexpr MicroReg xmm6 = MicroReg::floatReg(6);
+
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitPush(rbp);
+        builder.emitPush(rbx);
+        builder.emitOpBinaryRegImm(rsp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 0, xmm6, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rsp, ApInt(256, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(rbx, rsp, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 248, rax, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Subtract, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitLoadMemReg(rsp, 48, rax, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitLoadRegReg(rcx, rsp, MicroOpBits::B64);
+        builder.emitCallReg(rax, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegMem(rcx, rsp, 248, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(144, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(rcx, rsp, 16, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCallReg(rcx, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(rsp, ApInt(440, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegMem(xmm6, rsp, 0, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rsp, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitPop(rbx);
+        builder.emitPop(rbp);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPrologEpilogSanitizePass(builder, false, rbx, UINT64_MAX, 0, &encoder));
+        uint32_t callAdds = 0;
+        uint32_t tailSubs = 0;
+        uint32_t rebasedAccesses = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            callAdds += isStackAdjust(inst, ops, rsp, MicroOp::Add, 40);
+            tailSubs += isStackAdjust(inst, ops, rsp, MicroOp::Subtract, variant == 0 ? 104 : 144);
+            if (ops && (inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadMemReg) &&
+                ops[inst.op == MicroInstrOpcode::LoadRegMem ? 1 : 0].reg == rsp &&
+                ops[3].valueU64 == (variant == 0 ? 288 : 248))
+                ++rebasedAccesses;
+        }
+        if (callAdds != (variant == 0 ? 0u : 1u) || tailSubs != 1 || rebasedAccesses != 2)
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

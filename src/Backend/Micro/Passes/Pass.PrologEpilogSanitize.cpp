@@ -29,6 +29,10 @@
 //       allocator-owned spills above its unused prefix without moving ABI
 //       argument slots.
 //
+//   reserveBodyCallShadow
+//       Keeps one ABI call area below a local frame's saved stack base, then
+//       restores the original stack address before the final argument frame.
+//
 //   expandLargePrologueStackAdjustments
 //       Windows requires touching every guard page when growing the stack by
 //       more than one page, so a function that subtracts more than 4 KiB needs
@@ -737,6 +741,221 @@ namespace
         return true;
     }
 
+    // A local frame based on a saved copy of rsp can keep the ABI shadow
+    // permanently below that copy. Calls in the body then need no per-call
+    // sub/add pair. A later argument frame gives the reserve back before its
+    // own contents are addressed, so its rsp and the epilogue stay unchanged.
+    bool reserveBodyCallShadow(const MicroPassContext& context, const CallConv& conv)
+    {
+        if (!context.encoder || conv.stackShadowSpace != 32 || conv.stackAlignment != 16 ||
+            !conv.framePointer.isValid())
+            return false;
+
+        constexpr uint64_t K_RESERVE = 40;
+        SmallVector<MicroInstrRef> order;
+        for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
+            order.push_back(it.current);
+        if (order.size() < 12)
+            return false;
+
+        const auto get = [&](size_t index) -> const MicroInstr* {
+            return index < order.size() ? context.instructions->ptr(order[index]) : nullptr;
+        };
+        const auto opsAt = [&](size_t index) -> const MicroInstrOperand* {
+            const MicroInstr* inst = get(index);
+            return inst ? inst->ops(*context.operands) : nullptr;
+        };
+
+        // The frame-pointer setup must precede the body allocation. The local
+        // base copy keeps pointing at the old local frame when rsp moves down.
+        size_t bodyBase = order.size();
+        uint64_t frameSize = 0;
+        bool sawFramePointer = false;
+        for (size_t i = 0; i + 1 < order.size() && i < 32; ++i)
+        {
+            const MicroInstr* inst = get(i);
+            const MicroInstrOperand* ops = opsAt(i);
+            if (inst && isFramePointerSetupInstruction(conv, *inst, ops, conv.stackPointer))
+            {
+                sawFramePointer = true;
+                continue;
+            }
+            uint64_t adjust = 0;
+            const MicroInstr* next = get(i + 1);
+            const MicroInstrOperand* nextOps = opsAt(i + 1);
+            if (sawFramePointer && inst && isStackAdjustWithOp(*inst, ops, conv.stackPointer, MicroOp::Subtract, adjust) &&
+                adjust >= K_RESERVE && adjust <= INT32_MAX - K_RESERVE && adjust % conv.stackAlignment == 0 &&
+                next && next->op == MicroInstrOpcode::LoadRegReg &&
+                nextOps && nextOps[1].reg == conv.stackPointer && nextOps[0].reg != conv.framePointer &&
+                nextOps[0].reg.isInt() && nextOps[2].opBits == MicroOpBits::B64)
+            {
+                bodyBase = i + 1;
+                frameSize = adjust;
+                break;
+            }
+        }
+        if (bodyBase == order.size() || bodyBase + 1 >= order.size())
+            return false;
+
+        struct Access { MicroInstrRef ref; uint8_t offsetIndex; uint64_t newOffset; };
+        SmallVector<Access> accesses;
+        SmallVector<MicroInstrRef> callAdjusts;
+        MicroInstrRegOperandRefs regs;
+        size_t tailStart = order.size();
+        size_t finalAdd = order.size();
+        uint64_t tailSubtract = 0;
+        uint32_t retCount = 0;
+        uint32_t foldedCalls = 0;
+        for (size_t i = bodyBase + 1; i < order.size(); ++i)
+        {
+            const MicroInstr* inst = get(i);
+            const MicroInstrOperand* ops = opsAt(i);
+            if (!inst)
+                return false;
+            if (inst->op == MicroInstrOpcode::Ret)
+            {
+                if (finalAdd == order.size())
+                    return false;
+                ++retCount;
+                continue;
+            }
+            if (finalAdd != order.size())
+            {
+                if (inst->op != MicroInstrOpcode::Nop &&
+                    !isEpilogueInstruction(*inst, ops, conv.stackPointer))
+                    return false;
+                continue;
+            }
+
+            uint64_t adjust = 0;
+            if (isStackAdjustWithOp(*inst, ops, conv.stackPointer, MicroOp::Subtract, adjust))
+            {
+                if (tailStart != order.size())
+                {
+                    if (finalAdd != order.size() || adjust > UINT64_MAX - tailSubtract)
+                        return false;
+                    tailSubtract += adjust;
+                    continue;
+                }
+                if (adjust != K_RESERVE)
+                {
+                    if (adjust <= K_RESERVE)
+                        return false;
+                    tailStart = i;
+                    tailSubtract = adjust;
+                    continue;
+                }
+
+                // The simple call frame may contain register argument setup,
+                // but no stack access, label or second call before its release.
+                bool sawCall = false;
+                size_t release = i + 1;
+                for (; release < order.size(); ++release)
+                {
+                    const MicroInstr* step = get(release);
+                    const MicroInstrOperand* stepOps = opsAt(release);
+                    uint64_t releaseAmount = 0;
+                    if (step && isStackAdjustWithOp(*step, stepOps, conv.stackPointer, MicroOp::Add, releaseAmount))
+                    {
+                        if (releaseAmount == K_RESERVE && sawCall)
+                            break;
+                        return false;
+                    }
+                    if (!step || step->op == MicroInstrOpcode::Label || step->op == MicroInstrOpcode::JumpCond ||
+                        step->op == MicroInstrOpcode::Ret || step->op == MicroInstrOpcode::Push || step->op == MicroInstrOpcode::Pop ||
+                        isStackAdjustWithOp(*step, stepOps, conv.stackPointer, MicroOp::Subtract, releaseAmount))
+                        return false;
+                    if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    {
+                        if (sawCall)
+                            return false;
+                        sawCall = true;
+                        continue;
+                    }
+                    regs.clear();
+                    step->collectRegOperands(*context.operands, regs, context.encoder);
+                    for (const MicroInstrRegOperandRef& operand : regs)
+                        if (operand.reg && *operand.reg == conv.stackPointer)
+                            return false;
+                }
+                if (release >= order.size())
+                    return false;
+                callAdjusts.push_back(order[i]);
+                callAdjusts.push_back(order[release]);
+                ++foldedCalls;
+                i = release;
+                continue;
+            }
+
+            if (isStackAdjustWithOp(*inst, ops, conv.stackPointer, MicroOp::Add, adjust))
+            {
+                if (tailStart == order.size() || finalAdd != order.size() ||
+                    frameSize > UINT64_MAX - tailSubtract || adjust != frameSize + tailSubtract)
+                    return false;
+                finalAdd = i;
+                continue;
+            }
+
+            if (tailStart != order.size())
+            {
+                if (finalAdd == order.size() && (inst->op == MicroInstrOpcode::Label || inst->op == MicroInstrOpcode::JumpCond))
+                    return false;
+                continue;
+            }
+
+            if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop)
+                return false;
+            const MicroInstrDef& def = MicroInstr::info(inst->op);
+            const bool direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                                ops[def.memBaseOperandIndex].reg == conv.stackPointer;
+            if (direct)
+            {
+                if ((inst->op != MicroInstrOpcode::LoadRegMem && inst->op != MicroInstrOpcode::LoadMemReg) ||
+                    inst->numOperands != 4 || ops[def.memOffsetOperandIndex].valueU64 > frameSize ||
+                    getNumBytes(ops[2].opBits) > frameSize - ops[def.memOffsetOperandIndex].valueU64)
+                    return false;
+                MicroInstrOperand candidate[4];
+                std::copy_n(ops, 4, candidate);
+                candidate[def.memOffsetOperandIndex].valueU64 += K_RESERVE;
+                if (MicroPassHelpers::violatesEncoderConformance(context, *inst, candidate))
+                    return false;
+                accesses.push_back({order[i], def.memOffsetOperandIndex, candidate[def.memOffsetOperandIndex].valueU64});
+            }
+            regs.clear();
+            inst->collectRegOperands(*context.operands, regs, context.encoder);
+            for (const MicroInstrRegOperandRef& operand : regs)
+                if (operand.reg && *operand.reg == conv.stackPointer &&
+                    (!direct || operand.reg != &ops[def.memBaseOperandIndex].reg))
+                    return false;
+        }
+
+        if (!foldedCalls || tailStart == order.size() || finalAdd == order.size() || retCount != 1 ||
+            finalAdd <= tailStart || finalAdd + 1 >= order.size())
+            return false;
+        const MicroInstr* tail = get(tailStart);
+        const MicroInstrOperand* tailOps = opsAt(tailStart);
+        MicroInstrOperand tailCandidate[4];
+        std::copy_n(tailOps, 4, tailCandidate);
+        tailCandidate[3].setImmediateValue(ApInt(tailOps[3].valueU64 - K_RESERVE, 64));
+        if (MicroPassHelpers::violatesEncoderConformance(context, *tail, tailCandidate))
+            return false;
+
+        for (const Access& access : accesses)
+            context.instructions->ptr(access.ref)->ops(*context.operands)[access.offsetIndex].valueU64 = access.newOffset;
+        context.instructions->ptr(order[tailStart])->ops(*context.operands)[3] = tailCandidate[3];
+        for (const MicroInstrRef ref : callAdjusts)
+            context.instructions->erase(ref);
+
+        MicroInstrOperand reserveOps[4];
+        reserveOps[0].reg = conv.stackPointer;
+        reserveOps[1].opBits = MicroOpBits::B64;
+        reserveOps[2].microOp = MicroOp::Subtract;
+        reserveOps[3].setImmediateValue(ApInt(K_RESERVE, 64));
+        context.instructions->insertSyntheticBefore(*context.operands, order[bodyBase + 1], MicroInstrOpcode::OpBinaryRegImm, reserveOps);
+        return true;
+    }
+
     bool needsWindowsStackProbe(const MicroPassContext& context, const uint64_t stackAdjust)
     {
         if (stackAdjust <= K_WINDOWS_STACK_PROBE_PAGE_SIZE)
@@ -868,8 +1087,9 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedUnusedSaves        = eraseUnusedRegisterSaves(context, conv);
     const bool      changedUnusedFrame        = eraseUnusedStackFrame(context, conv);
     const bool      changedCompactFrame       = compactUnusedStackPrefix(context, conv);
+    const bool      changedReservedCallShadow = reserveBodyCallShadow(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame;
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallShadow;
     context.passChanged                       = changed;
     return Result::Continue;
 }

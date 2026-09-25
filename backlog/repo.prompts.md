@@ -13,7 +13,7 @@ source inventory for code-quality campaigns.
 | Campaign | Target |
 | --- | --- |
 | [1. Repository health reset](#1-repository-health-reset) | Restore a clean, current, all-green baseline |
-| [2. Generated-code performance](#2-generated-code-performance) | Reach clang-cl and MSVC on `bench/` |
+| [2. Generated-code performance](#2-generated-code-performance) | Reach the fastest other language on each `bench/` task |
 | [3. Safety without annotations](#3-safety-without-annotations) | Rust-class guarantees with nothing for the user to write |
 | [4. Compilation speed](#4-compilation-speed) | The fastest thing that does this work |
 | [5. Compiler memory](#5-compiler-memory) | A fraction of the resident set, at the same speed |
@@ -333,9 +333,11 @@ leave validated batches accumulating only in the worktree.
 START OPTIMIZING IN THE FIRST HALF HOUR
 
 Build the compiler in the worktree and go straight to THE LOOP. Nothing comes before your first
-change. The entry point of this campaign is one comparison - what clang-cl and MSVC emit for a hot
-loop against what we emit for the same loop - and that comparison needs a compiler and two dumps,
-not a validated tree.
+change. The entry point of this campaign is one comparison: what the fastest other language for a
+task does in its hot loop against what we emit for the same loop. Use the latest accepted full
+campaign to identify that language and its exact runtime or toolchain; do not assume it is C++ or
+LLVM. Inspect its generated code when available, then ours. This needs a compiler and focused
+inspection, not a validated tree.
 
 Do NOT open with a baseline test ladder or a baseline bench campaign. Both are hours of machine
 time spent answering a question you do not have yet, and the emitted code answers the question you
@@ -355,45 +357,44 @@ and it is not yours.
 
 GOAL
 
-Bring the code swc generates to the state of the art: match clang-cl and MSVC on every task in
-bench/, on a machine where all three are measured in the same campaign. Concretely:
+Bring the code swc generates to the state of the art: match the fastest other measured language on
+each task in bench/, using runtimes from the same accepted full campaign. Concretely:
 
-  - No task slower than 1.25x the FASTER of clang-cl and MSVC.
-  - Geometric mean across all tasks at or below 1.15x that same best-of-both.
+  - No task slower than 1.25x its fastest non-Swag runtime.
+  - Geometric mean across all tasks at or below 1.15x those per-task winners.
   - No task regressed, ever, at any point in the campaign.
 
 This is the only thing being optimized here. Compile time is not a competing goal in this
 campaign - see RULES.
 
-Where it stands, campaign 20260806-174758 (run ms, lower is better):
+Where it stands, clean campaign 20260924-194339 (run ms, lower is better):
 
-  task      swag    clang-cl  msvc    swag / best-of-both
-  chacha     1.71     1.23     1.58     1.39x
-  csvagg    25.86    16.20    16.31     1.60x
-  dijkstra  35.94    38.21    25.91     1.39x
-  leven     18.16    11.84    16.24     1.53x
-  raytrace  14.81     9.40     9.27     1.60x
-  sha256     3.20     2.05     2.39     1.56x
-  wordfreq  65.72    47.55    52.83     1.38x
-  geometric mean                        1.49x
+  task      swag    fastest other runtime     other ms   ratio
+  chacha    27.047  C++ / clang-cl             22.963    1.178x
+  csvagg    22.424  C++ / clang-cl             18.367    1.221x
+  dijkstra  29.973  C++ / MSVC                 29.562    1.014x
+  leven     12.552  Odin                       13.148    0.955x
+  raytrace  10.604  C++ / MSVC                  9.345    1.135x
+  sha256    33.745  Rust                       36.465    0.925x
+  wordfreq  60.094  D / LDC                    52.951    1.135x
+  geometric mean                                     1.075x
 
-That table is one campaign on one machine, so read it as a starting order and nothing more: it says
-which task to open, and your own campaign overrides it the moment you record one. Do not re-measure
-it first. Every task in it sits between 1.38x and 1.60x, so whichever one you open has a real gap
-waiting, and that gap is visible in the emitted code - two dumps, not twenty-five minutes.
+That table is one campaign on one machine, so read it as a starting order and nothing more. It
+already meets the numerical ceilings above; any new campaign must re-evaluate its own per-task
+winners and ratios. Do not re-measure it before the first change. Open the largest remaining gap
+and inspect the code or execution strategy that produced the winning time.
 
 THE LOOP
 
 Pick the task with the worst ratio that you have not already exhausted, then:
 
-  1. Read the assembly clang-cl AND MSVC produce for that task before you read ours. It is the
-     answer sheet: it tells you what the win actually is, and it has repeatedly turned out to be
-     something other than the transformation that looked obvious from our side (it does not
-     vectorize the ChaCha rounds at all - it keeps sixteen words in sixteen registers). Read both:
-     clang is not the best on every task, and where the two agree there is nothing left to decide.
-
-       clang-cl /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp
-       cl       /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp   (from vcvars64)
+  1. Identify the fastest non-Swag runtime for that task in the latest accepted full campaign,
+     verifying the checksum and exact toolchain. Read its task source and inspect the hot-loop
+     assembly or JIT output it actually produces before reading ours. Build with the same options
+     as the benchmark; inspect a second implementation only when it helps explain a specific
+     difference. If the winner is interpreted or its generated code cannot be inspected, study
+     its hot-path strategy and use the fastest inspectable native implementation for assembly
+     evidence. Keep the actual winner as the timing target. Never default to clang-cl or LLVM.
 
   2. Dump our micro code for the same function and find the specific difference: instruction
      count, memory operations in the loop, spills, dependency chain length. Name the mechanism
@@ -421,17 +422,19 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      include the appropriate DevMode, configuration, Release, and script coverage there. Do not
      run the full suite after every small optimization. A checksum mismatch in bench means you
      measured nothing.
-  6. Judge the change against clang-cl and MSVC's output, not against the clock. The clock on this
-     machine drifts more than most single changes are worth (two campaigns of the SAME binary
-     measured a geometric mean of 1.41x and 1.54x, and drift inside one sweep reached +37%), and
-     the context factor does not remove it. So: a change that provably moves the emitted code
-     toward what the best compilers emit is kept even when the measurement is flat or slightly
-     negative. They are right; matching them comes first, and beating them comes later.
+  6. Judge the change against the winning implementation's efficient mechanism, not against the
+     clock. The clock on this machine drifts more than most single changes are worth (two
+     campaigns of the SAME binary measured a geometric mean of 1.41x and 1.54x, and drift inside
+     one sweep reached +37%), and the context factor does not remove it. So: a change that provably
+     moves the emitted code toward the winning implementation's efficient mechanism is kept even
+     when the measurement is flat or slightly negative.
      What "provably" means here is the per-loop count, which is deterministic: instructions and
      memory operations per iteration of each hot loop, before and after, next to the same loop in
-     clang's assembly. A change is only reverted when the emitted code is not better - not when the
-     benchmark fails to see that it is. Static proof plus correctness validation is sufficient to
-     keep and merge a batch; no elapsed-time measurement is required. Small individual gains may
+     the winner's assembly when available. For a runtime without inspectable output, use the
+     fastest inspectable native implementation as secondary code evidence and retain the actual
+     winner as the timing target. A change is only reverted when the emitted code is not better,
+     not when the benchmark fails to see that it is. Static proof plus correctness validation is
+     sufficient to keep and merge a batch; no elapsed-time measurement is required. Small gains may
      become visible only after several batches. Name any enabling step and its follow-up.
   7. Use a quick timing sweep only when a tradeoff remains unresolved after static analysis:
      cd bench && py driver.py --tasks <task> --quick --swc-cores 6. Treat timings under changing
@@ -462,7 +465,8 @@ one does not repeat them. When something does not work:
 
 The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
 - meaning three consecutive rounds across the whole task set left the emitted code no closer to
-what clang-cl and MSVC emit. It does not end because one pass turned out to miscompile, one idea
+the corresponding fastest implementation's efficient mechanism. It does not end because one pass
+turned out to miscompile, one idea
 lost 2%, or one task resisted.
 
 RULES
@@ -489,10 +493,11 @@ RULES
 
 REPORT
 
-After each round, one table: what you tried, before/after per-loop instruction and memory counts,
-the focused and rotating test results, the merged commit, and why it was kept or reverted. Include
-timings only when useful and credible. At the end of the campaign, give the new ratio table next to
-the one above when a full campaign has been run.
+After each round, one table: the task's winning language and toolchain, what you tried,
+before/after per-loop instruction and memory counts, the focused and rotating test results, the
+merged commit, and why it was kept or reverted. Include timings only when useful and credible. At
+the end of the campaign, give the new ratio table next to the one above when a full campaign has
+been run, naming the fastest non-Swag runtime for each task.
 ```
 
 ---

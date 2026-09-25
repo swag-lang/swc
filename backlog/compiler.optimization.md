@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.073 - Reserve call shadow once in fixed local frames
+
+- Recorded: 2026-09-25 23:28
+- Updated: 2026-09-25 23:28 - Removed repeated call-frame adjustments from wordfreq and csvagg parsing loops.
+- Area: compiler/backend, final stack layout and call ABI
+- Evidence: Unlike LDC and clang-cl, Swag adjusted `rsp` down and up by 40 bytes around every ordinary call from the two benchmark main functions, including their collision-loop `memcmp` calls. Each function has a frame-pointer anchor, a copied base for its local frame, and a final argument frame. A conservative final pass now reserves the 40-byte Windows x64 shadow/alignment area once immediately after the local-base copy, rebases only direct accesses proven inside that local frame, and removes only individually matched simple call pairs with no stack operand between them. It shrinks the later final argument-frame subtract by 40 bytes, restoring the exact original `rsp` before that frame is addressed; its contents and epilogue are unchanged. Wordfreq's `main` falls from 483 to 456 Micro instructions (14 pairs removed, one reserve added); csvagg's `main` falls from 1,020 to 1,001 (10 pairs removed, one reserve added). The final 144-byte argument-frame subtract becomes 104 bytes in both and encodes with a short immediate. Both programs pass `--validate-micro` with checksums 130489 and 24828641. The focused C++ regression covers re-based locals and rejects a stack argument or stack-pointer copy within a candidate call frame. All 1,127 C++, 3,480 native, and 1,500 JIT tests pass, including the native recovery probes. No elapsed-time sample informed the decision.
+- Next: revisit the redundant used-slot retest after inlined `mapProbe` with a memory-safe CFG proof, and compare remaining wordfreq tokenization and csvagg row parsing operations against the competitor assembly.
+
 ### compiler.optimization.072 - Fold dead scalar increments after allocation
 
 - Recorded: 2026-09-25 23:08

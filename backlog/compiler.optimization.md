@@ -16,6 +16,22 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.056 — Branch directly on an inlined comparator's result
+
+- Recorded: 2026-09-25 11:40
+- Area: compiler/backend, inlining and branch simplification
+- Evidence: in wordfreq's `qsort`, the common unequal-count path of each
+  inlined `less` comparison emits `set_cond_reg`, an unconditional jump to the
+  boolean join, then `cmp` against zero and a conditional jump. LDC branches
+  on the original count-comparison flags. This adds a boolean materialization,
+  a repeated test, and a jump in each scan-loop iteration. The join also
+  receives the equal-count path through `memcmp`, so a local adjacent-instruction
+  peephole cannot remove the sequence safely.
+- Next: inspect the inlined-return CFG before register allocation. Find a
+  branch-threading rule that sends each boolean-producing predecessor to the
+  consumer's true or false edge while preserving flags and all other incoming
+  paths; validate it on an unrelated inlined predicate and a multi-use boolean.
+
 ### compiler.optimization.055 — Explain why pure calls do not unlock global loads in quicksort
 
 - Recorded: 2026-09-25 11:15

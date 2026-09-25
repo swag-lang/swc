@@ -234,20 +234,21 @@ namespace
         bool                        changed = false;
         const auto                  view    = storage.view();
         const auto                  endIt   = view.end();
-        MicroInstrRegOperandRefs refs;
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstrRef                  instRef = it.current;
-            MicroInstr&                          inst    = *it;
-            refs.clear();
-            inst.collectRegOperands(operands, refs, nullptr);
+            const MicroInstrRef instRef = it.current;
+            MicroInstr&         inst    = *it;
+            MicroInstrOperand*  ops     = inst.ops(operands);
+            if (!ops)
+                continue;
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
 
-            for (const auto& ref : refs)
+            for (size_t opIndex = 0; opIndex < modes.size(); ++opIndex)
             {
-                if (!ref.reg || !ref.use || ref.def || !ref.reg->isVirtual())
+                if (modes[opIndex] != MicroInstrRegMode::Use || !ops[opIndex].reg.isVirtual())
                     continue;
 
-                const MicroReg oldReg = *ref.reg;
+                const MicroReg oldReg = ops[opIndex].reg;
                 CanonicalValue canonicalValue;
                 if (!tryGetCanonicalReachingValue(canonicalValue, context, canonicalValues, canonicalFlags, oldReg, instRef))
                     continue;
@@ -265,8 +266,8 @@ namespace
                 if (builder)
                     builder->mergeVirtualRegForbiddenPhysRegs(oldReg, canonicalValue.reg);
 
-                *ref.reg = canonicalValue.reg;
-                changed  = true;
+                ops[opIndex].reg = canonicalValue.reg;
+                changed          = true;
             }
         }
 

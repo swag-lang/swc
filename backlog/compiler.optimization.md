@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.066 — Fold indexed scalar accumulation into the add
+
+- Recorded: 2026-09-25 20:47
+- Updated: 2026-09-25 20:47 — Matched clang-cl's indexed memory addition in csvagg's existing-slot path.
+- Area: compiler/backend, post-allocation float peephole and csvagg aggregation
+- Evidence: clang-cl adds the previous slot revenue from `[base + index*8]` to the newly computed product and stores the product register back to the same indexed slot. Swag loaded the previous value into a separate XMM register before `fadd`. A guarded post-allocation rule now recognizes the adjacent indexed load, scalar addition, and same-address store; it rewrites the addition to use the indexed memory operand and stores from the product register. The rule requires matching memory width and dead loaded/product values after the store. The existing-slot sequence falls from three instructions to two with the same one memory read and one write. Csvagg's `main` falls from 1,024 to 1,023 instructions, its row region from 243 to 242, and its checksum remains 24828641. Wordfreq's `mapProbe`, `qsort`, and `main` remain 90, 130, and 485 instructions with checksum 130489. A focused C++ test covers the fold, a different store address, a live product, and mismatched memory width. All 1,120 C++, 3,480 native, and 1,500 JIT tests pass; the sema positive and expected-error suites pass. Both benchmarks pass `--validate-micro`. No elapsed-time sample informed the decision.
+- Next: compare wordfreq's `qsort` register residency and collision-probe code with LDC; for csvagg, inspect repeated field loads and decimal parser branches against clang-cl without lengthening hot live ranges.
+
 ### compiler.optimization.065 — Forward indexed store addresses through conversion chains
 
 - Recorded: 2026-09-25 20:22

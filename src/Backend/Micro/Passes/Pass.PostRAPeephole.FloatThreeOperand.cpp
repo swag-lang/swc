@@ -265,6 +265,68 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Add a scalar to an indexed accumulator in place. The stored result can
+    // use the other addend as its destination when both values die here.
+    bool tryFoldIndexedFloatAccumulation(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (loadInst.op != MicroInstrOpcode::LoadAmcRegMem || loadInst.numOperands < 8)
+            return false;
+
+        const MicroInstrOperand* loadOps = ctx.operandsFor(loadRef);
+        if (!loadOps || !loadOps[0].reg.isFloat() ||
+            loadOps[3].opBits != loadOps[4].opBits ||
+            (loadOps[3].opBits != MicroOpBits::B32 && loadOps[3].opBits != MicroOpBits::B64))
+            return false;
+
+        const MicroInstrRef addRef = ctx.nextRef(loadRef);
+        const MicroInstr* addInst = ctx.instruction(addRef);
+        const MicroInstrOperand* addOps = ctx.operandsFor(addRef);
+        if (!addInst || addInst->op != MicroInstrOpcode::OpBinaryRegReg || addInst->numOperands < 4 || !addOps ||
+            addOps[0].reg != loadOps[0].reg || !addOps[1].reg.isFloat() ||
+            addOps[1].reg == loadOps[0].reg || addOps[2].opBits != loadOps[3].opBits ||
+            addOps[3].microOp != MicroOp::FloatAdd)
+            return false;
+
+        const MicroInstrRef storeRef = ctx.nextRef(addRef);
+        const MicroInstr* storeInst = ctx.instruction(storeRef);
+        const MicroInstrOperand* storeOps = ctx.operandsFor(storeRef);
+        if (!storeInst || storeInst->op != MicroInstrOpcode::LoadAmcMemReg || storeInst->numOperands < 8 || !storeOps ||
+            storeOps[0].reg != loadOps[1].reg || storeOps[1].reg != loadOps[2].reg ||
+            storeOps[2].reg != loadOps[0].reg || storeOps[3].opBits != MicroOpBits::B64 ||
+            storeOps[4].opBits != loadOps[4].opBits ||
+            storeOps[5].valueU64 != loadOps[5].valueU64 ||
+            storeOps[6].valueU64 != loadOps[6].valueU64)
+            return false;
+
+        const MicroReg addend = addOps[1].reg;
+        const MicroReg loaded = loadOps[0].reg;
+        const uint32_t storeIndex = ctx.instructionIndex + 2;
+        if ((!regIsDeadAfter(ctx, storeRef, addend) && !ctx.isRegDeadAfter(addend, storeIndex)) ||
+            (!regIsDeadAfter(ctx, storeRef, loaded) && !ctx.isRegDeadAfter(loaded, storeIndex)) ||
+            !ctx.claimAll({loadRef, addRef, storeRef}))
+            return false;
+
+        MicroInstrOperand newAddOps[8] = {};
+        newAddOps[0].reg = addend;
+        newAddOps[1].reg = loadOps[1].reg;
+        newAddOps[2].reg = loadOps[2].reg;
+        newAddOps[3].opBits = loadOps[3].opBits;
+        newAddOps[4].opBits = storeOps[3].opBits;
+        newAddOps[5] = loadOps[5];
+        newAddOps[6] = loadOps[6];
+        newAddOps[7].microOp = MicroOp::FloatAdd;
+
+        MicroInstrOperand newStoreOps[8] = {};
+        for (uint32_t i = 0; i < 8; ++i)
+            newStoreOps[i] = storeOps[i];
+        newStoreOps[2].reg = addend;
+
+        ctx.emitRewrite(addRef, MicroInstrOpcode::OpBinaryRegAmcMem, std::span{newAddOps, 8}, true);
+        ctx.emitRewrite(storeRef, MicroInstrOpcode::LoadAmcMemReg, std::span{newStoreOps, 8}, true);
+        ctx.emitErase(loadRef);
+        return true;
+    }
+
     // Fold an operand's reload into the operation that consumes it.
     //
     // x86 arithmetic can read one operand straight from memory, but the

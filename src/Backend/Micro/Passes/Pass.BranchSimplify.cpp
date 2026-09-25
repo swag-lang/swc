@@ -7249,6 +7249,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     {
         thread_local BranchScanCache scanCache;
         scanCache.invalidate();
+        scanCache.ensureLayout(storage, operands);
+        if (!scanCache.scan.layout.hasConditionalJump)
+            return Result::Continue;
 
         bool lateChanged = speculateCheapElseArms(storage, operands, scanCache);
         if (lateChanged)

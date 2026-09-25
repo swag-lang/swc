@@ -7282,14 +7282,17 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     }
 
     bool structuralChanged = true;
+    thread_local ProgramLayout structuralLayout;
     while (structuralChanged)
     {
         structuralChanged = false;
 
         {
-            // Reused buffer: buildProgramLayout resets every member it holds.
-            thread_local ProgramLayout layout;
-            buildProgramLayout(layout, storage, operands);
+            // The branch scan already has the current layout when earlier transforms
+            // inspected this stream without rewriting it.
+            ProgramLayout& layout = scanCache.built ? scanCache.scan.layout : structuralLayout;
+            if (!scanCache.built)
+                buildProgramLayout(layout, storage, operands);
             structuralChanged |= redirectJumpChains(storage, operands, layout);
             const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
             structuralChanged |= erasedImmediateJumps;

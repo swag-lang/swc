@@ -12,7 +12,9 @@ namespace PreRaPeephole
             return scale == 1 || scale == 2 || scale == 4 || scale == 8;
         }
 
-        constexpr uint32_t K_MAX_ADDR_FORWARD_COPIES = 8;
+        // An address can remain live through a short conversion chain before
+        // its store. Keep the search bounded while covering that straight line.
+        constexpr uint32_t K_MAX_ADDR_FORWARD_COPIES = 16;
 
         // The first reader of the address on the straight line after its
         // definition - the candidate consumer for the lea. Folding the lea into

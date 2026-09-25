@@ -100,17 +100,13 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
 
         for (uint32_t idx = spanLo; idx <= spanHi; ++idx)
         {
-            bool usedHere = false;
-            while (useCursor < interval.usePositions.size() && interval.usePositions[useCursor] < idx * 2)
+            // Event positions are unique, ordered, and included in this span.
+            const bool usedHere = useCursor < interval.usePositions.size() && interval.usePositions[useCursor] == idx * 2;
+            if (usedHere)
                 ++useCursor;
-            if (useCursor < interval.usePositions.size() && interval.usePositions[useCursor] == idx * 2)
-                usedHere = true;
-
-            bool definedHere = false;
-            while (defCursor < interval.defPositions.size() && interval.defPositions[defCursor] < idx * 2 + 1)
+            const bool definedHere = defCursor < interval.defPositions.size() && interval.defPositions[defCursor] == idx * 2 + 1;
+            if (definedHere)
                 ++defCursor;
-            if (defCursor < interval.defPositions.size() && interval.defPositions[defCursor] == idx * 2 + 1)
-                definedHere = true;
 
             const bool occupiedInput = liveIn || usedHere;
             if (occupiedInput && !open)

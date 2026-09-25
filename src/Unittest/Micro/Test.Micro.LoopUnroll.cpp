@@ -103,6 +103,67 @@ SWC_TEST_BEGIN(LoopUnroll_SeventeenConstantTableTrips_FlattenWithinSizeBudget)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_GroupsFourAndKeepsTail)
+{
+    constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg bound   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(4);
+    constexpr MicroReg sum     = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+    const auto         header = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadAmcRegMem(value, MicroOpBits::B8, base, counter, 1, 0, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegReg(counter, bound, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+    builder.emitRet();
+
+    SWC_RESULT(runLoopUnrollPass(builder));
+    std::array<uint32_t, 4> displacements{};
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadAmcRegMem)
+            continue;
+        const auto* ops = inst.ops(builder.operands());
+        if (ops[6].valueU64 >= displacements.size())
+            return Result::Error;
+        ++displacements[ops[6].valueU64];
+    }
+    if (displacements != std::array<uint32_t, 4>{2, 1, 1, 1} ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_RejectsOtherCounterUses)
+{
+    constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg bound   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+    const auto         header = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadAmcRegMem(value, MicroOpBits::B8, base, counter, 1, 0, MicroOpBits::B64);
+    builder.emitLoadRegReg(value, counter, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegReg(counter, bound, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+    builder.emitRet();
+
+    SWC_RESULT(runLoopUnrollPass(builder));
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_MultipleLoops_RebuildsIncomingJumpRanges)
 {
     MicroBuilder builder(ctx);

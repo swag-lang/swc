@@ -2297,24 +2297,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         worklist_.pop_back();
         inWorklist_[instructionIndex] = 0;
 
-        for (uint64_t& value : tempOutVirtual_)
-            value = 0;
-        for (uint64_t& value : tempOutConcrete_)
-            value = 0;
-
-        const auto& successors = controlFlowGraph.successors(instructionIndex);
-        for (const uint32_t succIdx : successors)
-        {
-            if (succIdx >= instructionCount_)
-                continue;
-
-            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
-            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, concreteWordCount);
-            for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
-                tempOutVirtual_[word] |= succInVirtual[word];
-            for (size_t word = 0; word < tempOutConcrete_.size(); ++word)
-                tempOutConcrete_[word] |= succInConcrete[word];
-        }
+        computeCurrentLiveOutBits(instructionIndex);
 
         // Only live-in is published during the fixed point. Consume the
         // temporary live-out in place; later live-out queries rebuild it.
@@ -2355,18 +2338,24 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     {
         const bool     hotCall = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
         const uint8_t  weight  = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
-        for (uint64_t& value : tempOutVirtual_)
-            value = 0;
-
         const auto& successors = controlFlowGraph.successors(idx);
-        for (const uint32_t succIdx : successors)
+        if (successors.size() == 1 && successors[0] < instructionCount_)
         {
-            if (succIdx >= instructionCount_)
-                continue;
+            const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
+            std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
+        }
+        else
+        {
+            std::ranges::fill(tempOutVirtual_, 0);
+            for (const uint32_t succIdx : successors)
+            {
+                if (succIdx >= instructionCount_)
+                    continue;
 
-            const std::span<const uint64_t> succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
-            for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
-                tempOutVirtual_[word] |= succInVirtual[word];
+                const auto succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
+                for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
+                    tempOutVirtual_[word] |= succInVirtual[word];
+            }
         }
 
         for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)

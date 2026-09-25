@@ -216,11 +216,14 @@ namespace
 
     bool definesStackPointer(const MicroPassContext& context, const MicroInstr& inst, MicroReg stackPointer)
     {
-        MicroInstrRegOperandRefs refs;
-        inst.collectRegOperands(*context.operands, refs, context.encoder);
-        for (const MicroInstrRegOperandRef& regRef : refs)
+        const MicroInstrOperand* ops = inst.ops(*context.operands);
+        if (!ops)
+            return false;
+        const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+        for (size_t index = 0; index < modes.size(); ++index)
         {
-            if (regRef.reg && regRef.def && *regRef.reg == stackPointer)
+            if ((modes[index] == MicroInstrRegMode::Def || modes[index] == MicroInstrRegMode::UseDef) &&
+                ops[index].reg == stackPointer)
                 return true;
         }
 

@@ -923,13 +923,13 @@ namespace
             MicroInstr&         inst    = *it;
             ++it;
 
-            const MicroInstrOperand* ops = inst.ops(operands);
             if (inst.op == MicroInstrOpcode::Label)
             {
                 currentFlagDef = MicroInstrRef::invalid();
                 continue;
             }
 
+            const MicroInstrOperand* ops = inst.ops(operands);
             if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
                 bool branchTaken = false;
@@ -7079,13 +7079,13 @@ namespace
         return changed;
     }
 
-    bool instructionHasNoFallthrough(const MicroInstr& inst, const MicroInstrOperand* ops)
+    bool instructionHasNoFallthrough(const MicroInstr& inst, const MicroOperandStorage& operands)
     {
         if (!MicroInstrInfo::isTerminatorInstruction(inst))
             return false;
 
         if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::JumpInstruction))
-            return MicroInstrInfo::isUnconditionalJumpInstruction(inst, ops);
+            return MicroInstrInfo::isUnconditionalJumpInstruction(inst, inst.ops(operands));
 
         return true;
     }
@@ -7113,7 +7113,7 @@ namespace
                 continue;
             }
 
-            if (instructionHasNoFallthrough(inst, inst.ops(operands)))
+            if (instructionHasNoFallthrough(inst, operands))
                 inDeadRegion = true;
         }
 

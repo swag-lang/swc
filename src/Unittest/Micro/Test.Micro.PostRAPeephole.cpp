@@ -2415,6 +2415,48 @@ SWC_TEST_BEGIN(PostRAPeephole_DifferentCompareAfterBranch_Kept)
 }
 SWC_TEST_END()
 
+// The first comparison's flags also cover a copied value after the branch.
+SWC_TEST_BEGIN(PostRAPeephole_CopiedCompareAfterBranch_Erased)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         exit = builder.createLabel();
+    builder.emitLoadRegReg(rcx, rax, MicroOpBits::B64);
+    builder.emitCmpRegImm(rax, ApInt(0, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+    builder.emitCmpRegImm(rcx, ApInt(0, 64), MicroOpBits::B32);
+    builder.emitSetCondReg(rax, MicroCond::Less);
+    builder.placeLabel(exit);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A narrow copy cannot stand in for a wider comparison.
+SWC_TEST_BEGIN(PostRAPeephole_NarrowCopyBeforeCompare_KeepsTest)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    MicroBuilder       builder(ctx);
+    const auto         exit = builder.createLabel();
+    builder.emitLoadRegReg(rcx, rax, MicroOpBits::B8);
+    builder.emitCmpRegImm(rax, ApInt(0, 64), MicroOpBits::B32);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+    builder.emitCmpRegImm(rcx, ApInt(0, 64), MicroOpBits::B32);
+    builder.emitSetCondReg(rax, MicroCond::Less);
+    builder.placeLabel(exit);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    return Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) == 2 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 namespace
 {
     // [add eax, ecx (dword) | add rax, rcx (qword)] ; mov eax, eax ; store rax

@@ -1158,6 +1158,118 @@ namespace
         return changed;
     }
 
+    // An inlined boolean return can reach a sole branch through a copy and a
+    // join. Thread the producer's condition to the consumer's two successors
+    // when the temporary and the merged byte have no other readers.
+    bool threadInlinedBooleanBranches(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder,
+                                      ProgramLayoutCache& layoutCache)
+    {
+        if (!builder)
+            return false;
+
+        const ProgramLayout& layout = layoutCache.get(storage, operands);
+        const auto soleUseIs = [&](MicroReg reg, MicroInstrRef expected) {
+            uint32_t uses = 0;
+            for (const MicroInstr& inst : storage.view())
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(operands, nullptr);
+                for (const MicroReg use : useDef.uses)
+                {
+                    if (use == reg)
+                        ++uses;
+                }
+                if (uses > 1)
+                    return false;
+            }
+            if (uses != 1)
+                return false;
+            const MicroInstr* reader = storage.ptr(expected);
+            if (!reader)
+                return false;
+            const MicroInstrUseDef useDef = reader->collectUseDef(operands, nullptr);
+            return std::ranges::find(useDef.uses, reg) != useDef.uses.end();
+        };
+
+        for (size_t ordinal = 2; ordinal + 1 < layout.order.size(); ++ordinal)
+        {
+            const MicroInstrRef jumpRef = layout.order[ordinal];
+            MicroInstr* jumpInst = storage.ptr(jumpRef);
+            if (!jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
+                continue;
+            MicroInstrOperand* jumpOps = jumpInst->ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond != MicroCond::Unconditional)
+                continue;
+
+            const MicroInstrRef setRef = layout.order[ordinal - 2];
+            const MicroInstrRef copyRef = layout.order[ordinal - 1];
+            const MicroInstr* setInst = storage.ptr(setRef);
+            const MicroInstr* copyInst = storage.ptr(copyRef);
+            if (!setInst || setInst->op != MicroInstrOpcode::SetCondReg ||
+                !copyInst || copyInst->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const MicroInstrOperand* setOps = setInst->ops(operands);
+            const MicroInstrOperand* copyOps = copyInst->ops(operands);
+            if (!setOps || !copyOps || !setOps[0].reg.isVirtualInt() || !copyOps[0].reg.isVirtualInt() ||
+                copyOps[1].reg != setOps[0].reg || copyOps[2].opBits != MicroOpBits::B8)
+                continue;
+
+            uint32_t joinId = 0;
+            if (!tryGetJumpTargetLabelId(joinId, *jumpInst, jumpOps))
+                continue;
+            const auto joinIt = layout.labelOrdinalById.find(joinId);
+            if (joinIt == layout.labelOrdinalById.end() || joinIt->second + 3 >= layout.order.size())
+                continue;
+            const size_t joinOrdinal = joinIt->second;
+            const MicroInstrRef cmpRef = layout.order[joinOrdinal + 1];
+            const MicroInstrRef branchRef = layout.order[joinOrdinal + 2];
+            const MicroInstr* cmpInst = storage.ptr(cmpRef);
+            const MicroInstr* branchInst = storage.ptr(branchRef);
+            if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegImm ||
+                !branchInst || branchInst->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* cmpOps = cmpInst->ops(operands);
+            const MicroInstrOperand* branchOps = branchInst->ops(operands);
+            if (!cmpOps || !branchOps || cmpOps[0].reg != copyOps[0].reg ||
+                cmpOps[1].opBits != MicroOpBits::B8 || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 ||
+                (branchOps[0].cpuCond != MicroCond::Equal && branchOps[0].cpuCond != MicroCond::NotEqual) ||
+                !soleUseIs(setOps[0].reg, copyRef) || !soleUseIs(copyOps[0].reg, cmpRef) ||
+                !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, branchRef))
+                continue;
+
+            uint32_t exitId = 0;
+            if (!tryGetJumpTargetLabelId(exitId, *branchInst, branchOps))
+                continue;
+            const MicroInstrRef continueRef = layout.order[joinOrdinal + 3];
+            const MicroInstr* continueInst = storage.ptr(continueRef);
+            if (!continueInst)
+                continue;
+            uint32_t continueId = 0;
+            const bool needsContinueLabel = !tryGetLabelId(continueId, *continueInst, continueInst->ops(operands));
+            if (needsContinueLabel)
+                continueId = builder->createLabel().get();
+            if (continueId == exitId)
+                continue;
+
+            const bool exitOnZero = branchOps[0].cpuCond == MicroCond::Equal;
+            MicroInstrOperand otherJumpOps[3];
+            std::copy_n(jumpOps, 3, otherJumpOps);
+            otherJumpOps[2].valueU64 = exitOnZero ? exitId : continueId;
+            jumpOps[0].cpuCond = setOps[1].cpuCond;
+            jumpOps[2].valueU64 = exitOnZero ? continueId : exitId;
+            storage.insertDerivedBefore(operands, layout.order[ordinal + 1], MicroInstrOpcode::JumpCond, otherJumpOps);
+            storage.erase(setRef);
+            storage.erase(copyRef);
+            if (needsContinueLabel)
+            {
+                MicroInstrOperand labelOps[1];
+                labelOps[0].valueU64 = continueId;
+                storage.insertDerivedBefore(operands, continueRef, MicroInstrOpcode::Label, labelOps);
+            }
+            return true;
+        }
+        return false;
+    }
+
     // Threads a short-circuit exit through the boolean merge it decides.
     //
     // The `and`/`or` lowering materializes its result and branches around the
@@ -7143,6 +7255,11 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         roundChanged |= coalesced;
         if (coalesced)
             shortCircuitLayout.invalidate();
+        if (threadInlinedBooleanBranches(storage, operands, context.builder, shortCircuitLayout))
+        {
+            roundChanged = true;
+            shortCircuitLayout.invalidate();
+        }
         roundChanged |= threadShortCircuitExits(storage, operands, context.builder, shortCircuitLayout);
         roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
         if (!roundChanged)

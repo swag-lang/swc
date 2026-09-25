@@ -622,6 +622,59 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExit)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(BranchSimplify_ThreadsInlinedBooleanReturnToSoleBranch)
+{
+    for (uint32_t mode = 0; mode < 4; ++mode)
+    {
+        const MicroReg a      = MicroReg::virtualIntReg(10);
+        const MicroReg b      = MicroReg::virtualIntReg(11);
+        const MicroReg c      = MicroReg::virtualIntReg(12);
+        const MicroReg first  = MicroReg::virtualIntReg(13);
+        const MicroReg second = MicroReg::virtualIntReg(14);
+        const MicroReg merged = MicroReg::virtualIntReg(15);
+        const MicroReg flag   = MicroReg::virtualIntReg(16);
+        MicroBuilder   builder(ctx);
+        const auto     equal = builder.createLabel();
+        const auto     join  = builder.createLabel();
+        const auto     exit  = builder.createLabel();
+
+        builder.emitCmpRegReg(a, b, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, equal);
+        builder.emitCmpRegReg(a, b, MicroOpBits::B64);
+        builder.emitSetCondReg(first, MicroCond::Above);
+        builder.emitLoadRegReg(merged, first, MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+        builder.placeLabel(equal);
+        builder.emitCmpRegReg(a, c, MicroOpBits::B64);
+        builder.emitSetCondReg(second, MicroCond::Below);
+        builder.emitLoadRegReg(merged, second, MicroOpBits::B8);
+        builder.placeLabel(join);
+        builder.emitCmpRegImm(merged, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(mode == 3 ? MicroCond::NotEqual : MicroCond::Equal, MicroOpBits::B32, exit);
+        if (mode == 2)
+            builder.emitSetCondReg(flag, MicroCond::Equal);
+        builder.emitOpBinaryRegImm(a, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.placeLabel(exit);
+        if (mode == 1)
+            builder.emitLoadMemReg(c, 0, merged, MicroOpBits::B8);
+        if (mode == 2)
+            builder.emitLoadMemReg(c, 0, flag, MicroOpBits::B8);
+        builder.emitRet();
+
+        SWC_RESULT(runBranchSimplifyPass(builder));
+        bool threaded = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::JumpCond && inst.ops(builder.operands())[0].cpuCond == MicroCond::Above)
+                threaded = true;
+        }
+        if (threaded != (mode == 0 || mode == 3))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 namespace
 {
     // cmp a, b; setb t; r = t; jae .join; <rhs>; .join: cmp r, 0; jne .exit;

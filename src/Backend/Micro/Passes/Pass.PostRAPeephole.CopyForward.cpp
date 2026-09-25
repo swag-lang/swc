@@ -3663,20 +3663,35 @@ namespace PostRaPeephole
 
         UpperHalfState upperHalfAfter(const Context& ctx, const MicroInstr& inst, const UpperHalfState before)
         {
-            const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
-            if (useDef.isCall)
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return 0;
 
-            const MicroInstrOperand* ops   = inst.ops(*ctx.operands);
-            UpperHalfState           after = before;
-            for (const MicroReg def : useDef.defs)
-                after &= ~regBit(def);
-            for (const MicroReg def : useDef.defs)
+            const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+            UpperHalfState killed = 0;
+            UpperHalfState generated = 0;
+            const auto recordDef = [&](MicroReg def) {
+                const UpperHalfState bit = regBit(def);
+                killed |= bit;
+                if (bit && definesUpperHalfZero(inst, ops, def, before))
+                    generated |= bit;
+            };
+            if (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
             {
-                if (definesUpperHalfZero(inst, ops, def, before))
-                    after |= regBit(def);
+                const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
+                for (const MicroReg def : useDef.defs)
+                    recordDef(def);
             }
-            return after;
+            else if (ops)
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t operand = 0; operand < modes.size(); ++operand)
+                {
+                    if (modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef)
+                        recordDef(ops[operand].reg);
+                }
+            }
+            return (before & ~killed) | generated;
         }
 
         // A move that only clears the upper half of its own register:

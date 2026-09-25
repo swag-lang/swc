@@ -442,12 +442,10 @@ SWC_TEST_BEGIN(LICM_KeepsIntegerClearWhenFlagsAreLiveAtEitherSite)
 }
 SWC_TEST_END()
 
-// A scalar float literal legalizes to a constant-pool read, and x86 arithmetic
-// takes that read as its own memory operand. So a literal every in-loop reader
-// consumes in a foldable position stays in the loop - hoisting it would remove
-// no instruction and hold a register across the whole body - while one read in
-// a position that cannot fold is hoisted as before.
-SWC_TEST_BEGIN(LICM_KeepsAFoldableScalarLiteralInTheLoop)
+// Even when x86 arithmetic could fold a scalar constant-pool read into its
+// memory operand, hoisting the literal lets the loop read the retained register
+// instead. Both operand positions must leave the materialization in the preheader.
+SWC_TEST_BEGIN(LICM_HoistsScalarFloatLiteralsWithFoldableAndNonfoldableReaders)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
@@ -496,7 +494,7 @@ SWC_TEST_BEGIN(LICM_KeepsAFoldableScalarLiteralInTheLoop)
                 if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg == literal)
                 {
                     found = true;
-                    if ((position < header) == foldable)
+                    if (position >= header)
                         return Result::Error;
                 }
                 ++position;

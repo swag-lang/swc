@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.057 — Price constant-pool hoists by register pressure
+
+- Recorded: 2026-09-25 13:59
+- Updated: 2026-09-25 15:06 — Scalar float literals now hoist through foldable uses; csvagg and raytrace hot loops lose memory reads without extra loop instructions or spills.
+- Area: compiler/backend, loop-invariant code motion and register allocation
+- Evidence: csvagg converts `u64` to `f64` with two invariant 128-bit constant-pool reads per row. An experimental LICM rule proved `ConstantAddress` loads unaffected by calls and pointer stores, then hoisted both reads above the row loop. A focused C++ test and all 1,104 C++ tests passed. In csvagg, the constants remained live across parsing and map probing; the generated function grew from 1,073 to 1,078 instructions. The LICM rule and test were reverted because the generated code grew; noisy elapsed timings were not a decision criterion. A separate scalar-literal rule now retains a float constant in an XMM register even when each in-loop use could fold its pool read into an arithmetic memory operand. In csvagg, the row body remains at 271 instructions and drops from 81 to 80 memory operands per row; `fdiv` reads the register, as in clang-cl's assembly. The unrelated raytrace `trace` function remains unchanged, while its pixel loop loses three memory operands without more loop instructions or spills. The 1,106 C++, 3,480 native, and 1,500 JIT tests pass, as do the script smoke suite and a randomly selected safety suite (138 expected successes, 7 expected failures).
+- Next: cost a vector-constant hoist by the resulting live range and expected spill traffic. Consider a nearer loop preheader or rematerialization where the constant has a short use region, then recheck the row loop and an unrelated consumer.
+
 ### compiler.optimization.056 — Branch directly on an inlined comparator's result
 
 - Recorded: 2026-09-25 11:40
@@ -24,13 +32,6 @@ block, and the hot path keeps the register.
 - Evidence: wordfreq's common unequal-count comparator path used `setcc`, a copy, an unconditional jump, then a test and conditional jump at the boolean join. A guarded branch-threading rule sends that path to the consumer's successors while preserving the other join predecessors. Its tests cover both branch polarities, a multiply used result, and live flags. The common path loses the materialization and retest; checksum 130489 and 1,104 C++, 3,480 native, and 1,500 JIT tests pass. Two 30-pair interleaved runs favored the candidate in 23 and 18 pairs, with median ratios 0.927 and 0.963; machine load varied sharply, so the static path is stronger evidence.
 - Additional evidence: LDC's inlined `qsort` comparator emits `test eax, eax; je ...; js ...` on both sides of the partition loop. Swag emitted two zero comparisons on each side. A guarded post-RA rule reuses the first comparison's flags across its equality branch when a preceding copy proves both registers hold the same low bits. The inlined Swag paths become `cmp eax, 0; je ...; jl ...`, and `qsort` shrinks from 130 to 126 instructions; csvagg's main function stays at 1,073. The wordfreq checksum is 130489; 1,106 C++, 3,480 native, and 1,500 JIT tests pass. Two exploratory interleaved 40-pair wordfreq runs measured candidate/baseline median ratios 1.066 and 1.046, with the candidate faster in only 8/40 pairs in each run. Shared-machine timing does not outweigh the direct assembly comparison.
 - Next: inspect the more frequent unequal-count path against LDC's inlined branches. The repeated global pointer loads in that path are tracked by .055.
-
-### compiler.optimization.057 — Price constant-pool hoists by register pressure
-
-- Recorded: 2026-09-25 13:59
-- Area: compiler/backend, loop-invariant code motion and register allocation
-- Evidence: csvagg converts `u64` to `f64` with two invariant 128-bit constant-pool reads per row. An experimental LICM rule proved `ConstantAddress` loads unaffected by calls and pointer stores, then hoisted both reads above the row loop. A focused C++ test and all 1,104 C++ tests passed. In csvagg, the constants remained live across parsing and map probing; the generated function grew from 1,073 to 1,078 instructions, and an interleaved 12-sample run measured 22.27 ms median with the hoist against 18.06 ms without it and 19.49 ms before the conversion change. The LICM rule and test were reverted.
-- Next: cost a hoist by the resulting live range and expected spill traffic. Consider a nearer loop preheader or rematerialization where the constant has a short use region, then recheck the row loop and an unrelated consumer.
 
 ### compiler.optimization.055 — Explain why pure calls do not unlock global loads in quicksort
 

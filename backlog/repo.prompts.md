@@ -440,6 +440,9 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      not when the benchmark fails to see that it is. Static proof plus correctness validation is
      sufficient to keep and merge a batch; no elapsed-time measurement is required. Small gains may
      become visible only after several batches. Name any enabling step and its follow-up.
+     Before reverting an optimization, record the before/after hot-loop instruction and memory
+     counts alongside the winner's mechanism and identify the concrete generated-code loss.
+     A worse millisecond reading on a shared CPU is never, by itself, a reason to revert.
   7. Use a quick timing sweep only when a tradeoff remains unresolved after static analysis:
      cd bench && py driver.py --tasks <task> --quick --swc-cores 6. Treat timings under changing
      machine load as exploratory. Partial sweeps are never recorded.

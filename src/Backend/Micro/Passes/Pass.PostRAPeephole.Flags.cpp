@@ -364,14 +364,37 @@ namespace PostRaPeephole
         const MicroInstrOperand* original = earlier->ops(*ctx.operands);
         if (!repeated || !original)
             return false;
+        bool identical = true;
         for (uint8_t index = 0; index < inst.numOperands; ++index)
         {
             if (repeated[index].valueU64 != original[index].valueU64 ||
                 repeated[index].hasWideImmediateValue() || original[index].hasWideImmediateValue())
-                return false;
+            {
+                identical = false;
+                break;
+            }
         }
 
-        if (!ctx.claimAll({earlierRef, jumpRef, ref}))
+        if (!identical)
+        {
+            // A copy immediately before the first comparison gives the
+            // fallthrough comparison the same low bits; the branch keeps flags.
+            if (inst.op != MicroInstrOpcode::CmpRegImm ||
+                repeated[1].opBits != original[1].opBits ||
+                repeated[2].hasWideImmediateValue() || original[2].hasWideImmediateValue() ||
+                repeated[2].valueU64 != original[2].valueU64)
+                return false;
+
+            const MicroInstrRef copyRef = ctx.previousRef(earlierRef);
+            const MicroInstr*   copy    = ctx.instruction(copyRef);
+            const auto*         copied  = copy ? copy->ops(*ctx.operands) : nullptr;
+            if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copied ||
+                copied[0].reg != repeated[0].reg || copied[1].reg != original[0].reg ||
+                getNumBits(copied[2].opBits) < getNumBits(original[1].opBits) ||
+                !ctx.claimAll({copyRef, earlierRef, jumpRef, ref}))
+                return false;
+        }
+        else if (!ctx.claimAll({earlierRef, jumpRef, ref}))
             return false;
         ctx.emitErase(ref);
         return true;

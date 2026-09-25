@@ -6373,10 +6373,6 @@ namespace
             return false;
         DiamondScan& scan = *scanPtr;
 
-        scan.ssa = MicroSsaState::ensureFor(context, localSsaState);
-        if (!scan.ssa || !scan.ssa->isValid())
-            return false;
-
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             const MicroInstr& secondJumpInst = *it;
@@ -6417,6 +6413,12 @@ namespace
                 !conditionSupportsConditionalMove(firstJumpOps[0].cpuCond))
                 continue;
 
+            if (!scan.ssa)
+            {
+                scan.ssa = MicroSsaState::ensureFor(context, localSsaState);
+                if (!scan.ssa || !scan.ssa->isValid())
+                    return false;
+            }
             if (!qualifyDiamond(diamond, scan) || diamond.fallthroughArm.readsEntryFlags || diamond.jumpArm.readsEntryFlags)
                 continue;
 

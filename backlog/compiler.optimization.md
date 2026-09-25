@@ -16,6 +16,14 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.075 - Forward private-frame pointers through read-only branches
+
+- Recorded: 2026-09-26 00:20
+- Updated: 2026-09-26 00:20 - Removed two wordfreq probe-pointer reloads.
+- Area: compiler/backend, post-allocation frame value forwarding
+- Evidence: After an inlined `mapProbe`, wordfreq reloads `counts.used` from the local frame for the caller's indexed test, although the probe still holds the same pointer in a persistent register. A bounded backward walk of the instruction CFG now requires every path to reach the earlier frame load, with no register clobber or memory write in between. It permits a call only when its function is marked `Swag.ReadOnly` and the ABI preserves both the held pointer and frame base. When the indexed store after the branch is the final use of the reloaded register on either edge, it retargets the test and store and removes both loads. Wordfreq's `main` falls from 454 to 452 Micro instructions; the generated machine code uses the retained register directly. Csvagg remains at 1,001 because a frame spill between the two loads blocks this deliberately conservative proof. Both benchmark checksums remain 130489 and 24828641. The C++ test covers a valid branch join, an intervening store, a register clobber, and a path that bypasses the first load; all 1,129 C++, 3,480 native, and 1,500 JIT tests pass before integration. No millisecond reading influenced this decision.
+- Next: determine whether a disjoint frame spill can be proved harmless for csvagg without weakening the call and path guards, then revisit the still-repeated `used[idx]` memory comparison at the probe/caller join.
+
 ### compiler.optimization.074 - Reuse private frame pointers after a branch
 
 - Recorded: 2026-09-25 23:43

@@ -1,7 +1,11 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -49,6 +53,176 @@ namespace PostRaPeephole
             }
             return firstCount == 1 && secondCount == 1;
         }
+    }
+
+    // Keep a pointer already held in a persistent register across the
+    // collision paths of a table probe. Every path back to its original load
+    // must be free of writes to that register, its private frame slot, and
+    // memory in general. A read-only call may intervene: the ABI preserves the
+    // register, and the call cannot change the frame slot.
+    bool forwardPrivateFrameReloads(Context& ctx)
+    {
+        if (!ctx.builder || !ctx.localStackBase.isValid())
+            return false;
+
+        const MicroControlFlowGraph& cfg = ctx.builder->controlFlowGraph();
+        if (cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+        const auto refs = cfg.instructionRefs();
+        const CallConv& conv = CallConv::get(ctx.passContext->callConvKind);
+        bool changed = false;
+
+        const auto readOnlyCall = [&](const MicroInstrRef ref) {
+            for (const auto& relocation : ctx.builder->codeRelocations())
+            {
+                if (relocation.instructionRef != ref || !relocation.targetSymbol || !relocation.targetSymbol->isFunction())
+                    continue;
+                return relocation.targetSymbol->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly);
+            }
+            return false;
+        };
+
+        constexpr uint32_t K_MAX_SPAN = 64;
+        for (uint32_t candidateIndex = 1; candidateIndex + 2 < refs.size(); ++candidateIndex)
+        {
+            const MicroInstrRef candidateRef = refs[candidateIndex];
+            const MicroInstr* candidate = ctx.instruction(candidateRef);
+            const auto* load = candidate && candidate->op == MicroInstrOpcode::LoadRegMem ? candidate->ops(*ctx.operands) : nullptr;
+            if (!load || !load[0].reg.isInt() || !ctx.isPrivateFrameBase(load[1].reg) || load[2].opBits != MicroOpBits::B64)
+                continue;
+            const MicroInstr* compare = ctx.instruction(refs[candidateIndex + 1]);
+            const MicroInstr* jump = ctx.instruction(refs[candidateIndex + 2]);
+            const auto* compareOps = compare && compare->op == MicroInstrOpcode::CmpAmcImm ? compare->ops(*ctx.operands) : nullptr;
+            if (!compareOps || compareOps[0].reg != load[0].reg || !jump || jump->op != MicroInstrOpcode::JumpCond)
+                continue;
+
+            const uint32_t first = candidateIndex > K_MAX_SPAN ? candidateIndex - K_MAX_SPAN : 0;
+            for (uint32_t sourceIndex = candidateIndex; sourceIndex-- > first;)
+            {
+                const MicroInstr* source = ctx.instruction(refs[sourceIndex]);
+                const auto* sourceOps = source && source->op == MicroInstrOpcode::LoadRegMem ? source->ops(*ctx.operands) : nullptr;
+                if (!sourceOps || !conv.isIntPersistentReg(sourceOps[0].reg) || sourceOps[0].reg == load[0].reg ||
+                    sourceOps[1].reg != load[1].reg || sourceOps[2].opBits != load[2].opBits ||
+                    sourceOps[3].valueU64 != load[3].valueU64)
+                    continue;
+
+                std::vector<uint8_t> visited(refs.size());
+                std::vector<uint32_t> pending{candidateIndex};
+                bool valid = true;
+                while (!pending.empty() && valid)
+                {
+                    const uint32_t index = pending.back();
+                    pending.pop_back();
+                    for (const uint32_t predecessor : cfg.predecessors(index))
+                    {
+                        if (predecessor == sourceIndex)
+                            continue;
+                        if (predecessor <= sourceIndex || predecessor >= candidateIndex || visited[predecessor])
+                        {
+                            if (predecessor <= sourceIndex || predecessor >= candidateIndex)
+                                valid = false;
+                            continue;
+                        }
+                        visited[predecessor] = 1;
+                        const MicroInstr* step = ctx.instruction(refs[predecessor]);
+                        if (!step)
+                        {
+                            valid = false;
+                            break;
+                        }
+                        if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                        {
+                            if (!readOnlyCall(refs[predecessor]) || !conv.isIntPersistentReg(load[1].reg))
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+                        else if (MicroInstr::info(step->op).flags.has(MicroInstrFlagsE::WritesMemory))
+                        {
+                            valid = false;
+                            break;
+                        }
+                        const MicroInstrUseDef useDef = step->collectUseDef(*ctx.operands, ctx.encoder);
+                        if (std::ranges::find(useDef.defs, sourceOps[0].reg) != useDef.defs.end() ||
+                            std::ranges::find(useDef.defs, load[1].reg) != useDef.defs.end())
+                        {
+                            valid = false;
+                            break;
+                        }
+                        pending.push_back(predecessor);
+                    }
+                }
+                if (!valid)
+                    continue;
+
+                const MicroInstrRef reloadRef = candidateIndex + 3 < refs.size() ? refs[candidateIndex + 3] : MicroInstrRef::invalid();
+                const MicroInstr* reloadInst = ctx.instruction(reloadRef);
+                const auto* reload = reloadInst && reloadInst->op == MicroInstrOpcode::LoadRegMem ?
+                    reloadInst->ops(*ctx.operands) : nullptr;
+                const bool redundantReload = reload && reload[0].reg == load[0].reg && reload[1].reg == load[1].reg &&
+                                             reload[2].opBits == load[2].opBits && reload[3].valueU64 == load[3].valueU64;
+                const uint32_t storeIndex = candidateIndex + (redundantReload ? 4 : 3);
+                const MicroInstrRef storeRef = storeIndex < refs.size() ? refs[storeIndex] : MicroInstrRef::invalid();
+                const MicroInstr* storeInst = ctx.instruction(storeRef);
+                const auto* store = storeInst && storeInst->op == MicroInstrOpcode::LoadAmcMemImm ?
+                    storeInst->ops(*ctx.operands) : nullptr;
+                if (store && store[0].reg == load[0].reg)
+                {
+                    if (!ctx.physicalLivenessReady)
+                    {
+                        ctx.physicalLivenessReady = true;
+                        MicroPassHelpers::computePhysicalLiveness(ctx.physicalLiveness, *ctx.passContext);
+                    }
+                    const uint32_t bit = MicroPassHelpers::MicroPhysLiveness::bitOf(load[0].reg);
+                    bool deadOnTaken = ctx.physicalLiveness.valid && bit < 64 &&
+                                       cfg.successors(candidateIndex + 2).size() == 2;
+                    for (const uint32_t successor : cfg.successors(candidateIndex + 2))
+                    {
+                        if (successor == candidateIndex + 3)
+                            continue;
+                        deadOnTaken &= bit < 64 && successor < ctx.physicalLiveness.liveIn.size() &&
+                                       (ctx.physicalLiveness.liveIn[successor] & (1ull << bit)) == 0;
+                    }
+                    if (deadOnTaken && !ctx.physicalLiveness.isLiveOut(storeIndex, load[0].reg))
+                    {
+                        const bool claimed = redundantReload ?
+                            ctx.claimAll({refs[sourceIndex], candidateRef, refs[candidateIndex + 1], reloadRef, storeRef}) :
+                            ctx.claimAll({refs[sourceIndex], candidateRef, refs[candidateIndex + 1], storeRef});
+                        if (!claimed)
+                            continue;
+                        MicroInstrOperand rewrittenCompare[8] = {};
+                        MicroInstrOperand rewrittenStore[8] = {};
+                        std::copy_n(compareOps, compare->numOperands, rewrittenCompare);
+                        std::copy_n(store, storeInst->numOperands, rewrittenStore);
+                        rewrittenCompare[0].reg = sourceOps[0].reg;
+                        rewrittenStore[0].reg = sourceOps[0].reg;
+                        ctx.emitRewrite(refs[candidateIndex + 1], compare->op,
+                                        std::span(rewrittenCompare, compare->numOperands));
+                        ctx.emitRewrite(storeRef, storeInst->op, std::span(rewrittenStore, storeInst->numOperands));
+                        ctx.emitErase(candidateRef);
+                        if (redundantReload)
+                            ctx.emitErase(reloadRef);
+                        changed = true;
+                        break;
+                    }
+                }
+                if (redundantReload ? !ctx.claimAll({refs[sourceIndex], candidateRef, reloadRef}) :
+                                      !ctx.claimAll({refs[sourceIndex], candidateRef}))
+                    continue;
+
+                MicroInstrOperand copy[3] = {};
+                copy[0].reg = load[0].reg;
+                copy[1].reg = sourceOps[0].reg;
+                copy[2].opBits = MicroOpBits::B64;
+                ctx.emitRewrite(candidateRef, MicroInstrOpcode::LoadRegReg, copy);
+                if (redundantReload)
+                    ctx.emitErase(reloadRef);
+                changed = true;
+                break;
+            }
+        }
+        return changed;
     }
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

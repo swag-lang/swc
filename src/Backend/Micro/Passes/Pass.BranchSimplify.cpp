@@ -1170,26 +1170,21 @@ namespace
             return false;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        const auto soleUseIs = [&](MicroReg reg, MicroInstrRef expected) {
-            uint32_t uses = 0;
-            for (const MicroInstr& inst : storage.view())
+        const auto soleUsesAre = [&](MicroReg firstReg, MicroInstrRef firstReader, MicroReg secondReg, MicroInstrRef secondReader) {
+            uint32_t firstUses  = 0;
+            uint32_t secondUses = 0;
+            for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
             {
-                const MicroInstrUseDef useDef = inst.collectUseDef(operands, nullptr);
+                const MicroInstrUseDef useDef = it->collectUseDef(operands, nullptr);
                 for (const MicroReg use : useDef.uses)
                 {
-                    if (use == reg)
-                        ++uses;
+                    if (use == firstReg && (++firstUses > 1 || it.current != firstReader))
+                        return false;
+                    if (use == secondReg && (++secondUses > 1 || it.current != secondReader))
+                        return false;
                 }
-                if (uses > 1)
-                    return false;
             }
-            if (uses != 1)
-                return false;
-            const MicroInstr* reader = storage.ptr(expected);
-            if (!reader)
-                return false;
-            const MicroInstrUseDef useDef = reader->collectUseDef(operands, nullptr);
-            return std::ranges::find(useDef.uses, reg) != useDef.uses.end();
+            return firstUses == 1 && secondUses == 1;
         };
 
         for (size_t ordinal = 2; ordinal + 1 < layout.order.size(); ++ordinal)
@@ -1234,7 +1229,7 @@ namespace
             if (!cmpOps || !branchOps || cmpOps[0].reg != copyOps[0].reg ||
                 cmpOps[1].opBits != MicroOpBits::B8 || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 ||
                 (branchOps[0].cpuCond != MicroCond::Equal && branchOps[0].cpuCond != MicroCond::NotEqual) ||
-                !soleUseIs(setOps[0].reg, copyRef) || !soleUseIs(copyOps[0].reg, cmpRef) ||
+                !soleUsesAre(setOps[0].reg, copyRef, copyOps[0].reg, cmpRef) ||
                 !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, branchRef))
                 continue;
 

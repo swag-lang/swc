@@ -9,26 +9,38 @@ namespace PostRaPeephole
 {
     namespace
     {
-        bool instructionTouchesReg(const Context& ctx, const MicroInstr& inst, MicroReg reg)
+        struct RegTouch
+        {
+            bool use = false;
+            bool def = false;
+
+            bool any() const { return use || def; }
+        };
+
+        RegTouch instructionRegTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg)
         {
             const MicroInstrDef& info = MicroInstr::info(inst.op);
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
                 const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
-                return microRegSpanContains(useDef.uses.span(), reg) || microRegSpanContains(useDef.defs.span(), reg);
+                return {microRegSpanContains(useDef.uses.span(), reg), microRegSpanContains(useDef.defs.span(), reg)};
             }
 
+            RegTouch touch;
             if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
             {
                 const auto modes = info.resolvedRegModes(ops);
                 for (size_t operand = 0; operand < modes.size(); ++operand)
                 {
                     if (modes[operand] != MicroInstrRegMode::None && ops[operand].reg == reg)
-                        return true;
+                    {
+                        touch.use |= modes[operand] == MicroInstrRegMode::Use || modes[operand] == MicroInstrRegMode::UseDef;
+                        touch.def |= modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef;
+                    }
                 }
             }
-            return false;
+            return touch;
         }
     }
 
@@ -213,9 +225,8 @@ namespace PostRaPeephole
                 instructionActuallyDefinesCpuFlags(*previous, previousOperands))
                 return false;
 
-            const MicroInstrUseDef useDef = previous->collectUseDef(*ctx.operands, ctx.encoder);
-            if (std::ranges::find(useDef.defs, cmp[0].reg) != useDef.defs.end() ||
-                std::ranges::find(useDef.defs, cmp[1].reg) != useDef.defs.end())
+            if (instructionRegTouch(ctx, *previous, cmp[0].reg).def ||
+                instructionRegTouch(ctx, *previous, cmp[1].reg).def)
                 return false;
         }
         return false;
@@ -341,7 +352,7 @@ namespace PostRaPeephole
             if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*current, currentOps))
                 return false;
-            if (instructionTouchesReg(ctx, *current, carry))
+            if (instructionRegTouch(ctx, *current, carry).any())
                 return false;
             cursor = ctx.previousRef(cursor);
         }
@@ -1690,7 +1701,7 @@ namespace PostRaPeephole
                 for (const MicroReg reg : {result, other})
                 {
                     const bool pending = reg == result ? !resultLoad.isValid() : !otherLoad.isValid();
-                    if (pending && instructionTouchesReg(ctx, *current, reg))
+                    if (pending && instructionRegTouch(ctx, *current, reg).any())
                         return false;
                 }
             }

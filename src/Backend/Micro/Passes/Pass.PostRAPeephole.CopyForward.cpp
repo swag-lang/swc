@@ -3416,10 +3416,7 @@ namespace PostRaPeephole
                 if (ctx.isClaimed(cur))
                     return false;
 
-                const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, ctx.encoder);
-
-                const bool defsSrc = regInList(ud.defs.span(), src);
-                const bool usesSrc = regInList(ud.uses.span(), src);
+                const RegTouch srcTouch = regTouch(ctx, *inst, src);
 
                 // The producer is allowed to read `dst`: its operands are read
                 // before its destination is written, so retargeting it at `dst`
@@ -3429,21 +3426,20 @@ namespace PostRaPeephole
                 // loops of the benchmark. Every OTHER read or write of `dst`
                 // before the copy still blocks: `dst` carries a live value
                 // there, and retargeting would clobber or shadow it.
-                if (defsSrc && !usesSrc)
+                if (srcTouch.def && !srcTouch.use)
                 {
                     prevRef = cur;
                     prev    = inst;
                     break;
                 }
 
-                if (regInList(ud.uses.span(), dst))
-                    return false;
-                if (regInList(ud.defs.span(), dst))
+                const RegTouch dstTouch = regTouch(ctx, *inst, dst);
+                if (dstTouch.use || dstTouch.def)
                     return false;
 
-                if (defsSrc)
+                if (srcTouch.def)
                     return false; // UseDef of src: not a pure producer.
-                if (usesSrc)
+                if (srcTouch.use)
                     return false; // Intermediate read of src's future value.
 
                 const MicroInstrDef& info = MicroInstr::info(inst->op);

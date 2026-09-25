@@ -3066,12 +3066,15 @@ namespace
                     if (inst->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                         flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
                         break;
-                    const MicroInstrOperand* ops = inst->ops(operands);
-                    if (inst->op == MicroInstrOpcode::LoadRegImm && ops[0].reg == result && ops[1].opBits == resultBits && !ops[2].hasWideImmediateValue())
+                    if (inst->op == MicroInstrOpcode::LoadRegImm)
                     {
-                        defaultValue = ops[2].valueU64 & getBitsMask(resultBits);
-                        found        = true;
-                        break;
+                        const MicroInstrOperand* ops = inst->ops(operands);
+                        if (ops[0].reg == result && ops[1].opBits == resultBits && !ops[2].hasWideImmediateValue())
+                        {
+                            defaultValue = ops[2].valueU64 & getBitsMask(resultBits);
+                            found        = true;
+                            break;
+                        }
                     }
                     SmallVector<MicroInstrRegOperandRef> regOperands;
                     inst->collectRegOperands(operands, regOperands, nullptr);

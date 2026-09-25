@@ -547,9 +547,9 @@ namespace PostRaPeephole
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 return false;
             window[step + 2] = cursor;
-            const MicroInstrUseDef currentUseDef = current->collectUseDef(*ctx.operands, ctx.encoder);
-            const bool readsOld = regInList(currentUseDef.uses.span(), copy[1].reg);
-            const bool writesOld = regInList(currentUseDef.defs.span(), copy[1].reg);
+            const RegTouch oldTouch = regTouch(ctx, *current, copy[1].reg);
+            const bool readsOld = oldTouch.use;
+            const bool writesOld = oldTouch.def;
             if (readsOld)
             {
                 if (compareRef.isValid() || (current->op != MicroInstrOpcode::CmpRegReg && current->op != MicroInstrOpcode::CmpRegImm) ||
@@ -566,7 +566,7 @@ namespace PostRaPeephole
                     return false;
                 compareRef = cursor;
             }
-            if (!compareRef.isValid() && regInList(currentUseDef.defs.span(), copy[0].reg))
+            if (!compareRef.isValid() && regTouch(ctx, *current, copy[0].reg).def)
                 return false;
             if (writesOld)
             {
@@ -3372,8 +3372,7 @@ namespace PostRaPeephole
                     }
                 }
             }
-            const MicroInstrUseDef ud = next->collectUseDef(*ctx.operands, ctx.encoder);
-            if (regInList(ud.defs, copyOps[0].reg) || regInList(ud.defs, copyOps[1].reg))
+            if (regTouch(ctx, *next, copyOps[0].reg).def || regTouch(ctx, *next, copyOps[1].reg).def)
                 return false;
         }
         return false;

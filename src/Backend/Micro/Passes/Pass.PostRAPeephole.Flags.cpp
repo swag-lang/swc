@@ -199,7 +199,7 @@ namespace PostRaPeephole
     // untouched, so the compare and byte write can both disappear.
     bool tryFoldConstantBooleanSet(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst)
     {
-        if (ctx.isClaimed(loadRef) || loadInst.op != MicroInstrOpcode::LoadRegImm)
+        if (ctx.isClaimed(loadRef))
             return false;
         const auto* load = loadInst.ops(*ctx.operands);
         if (!load || !load[0].reg.isInt() ||

@@ -208,8 +208,7 @@ namespace PostRaPeephole
     // argument's original bits, and the two moves become dead.
     bool tryFoldFloatReturnXorCopyChain(Context& ctx, const MicroInstrRef firstCopyRef, const MicroInstr& firstCopyInst)
     {
-        if (ctx.isClaimed(firstCopyRef) || firstCopyInst.op != MicroInstrOpcode::LoadRegReg ||
-            !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
+        if (ctx.isClaimed(firstCopyRef) || !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
             return false;
 
         const auto* firstCopy = firstCopyInst.ops(*ctx.operands);
@@ -250,8 +249,7 @@ namespace PostRaPeephole
     // return diamond around a float comparison can become MINSS/MAXSS directly.
     bool tryFoldFloatReturnSelectDiamond(Context& ctx, const MicroInstrRef firstCopyRef, const MicroInstr& firstCopyInst)
     {
-        if (ctx.isClaimed(firstCopyRef) || firstCopyInst.op != MicroInstrOpcode::LoadRegReg ||
-            !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
+        if (ctx.isClaimed(firstCopyRef) || !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
             return false;
 
         std::array<MicroInstrRef, 9> refs;

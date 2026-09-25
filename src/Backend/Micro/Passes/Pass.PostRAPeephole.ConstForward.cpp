@@ -207,8 +207,6 @@ namespace PostRaPeephole
         // post-RA IR. Restrict to the first sweep of the optimization loop.
         if (!ctx.allowForwarding)
             return false;
-        if (defInst.op != MicroInstrOpcode::LoadRegImm)
-            return false;
         if (ctx.isClaimed(defRef))
             return false;
 
@@ -314,7 +312,7 @@ namespace PostRaPeephole
     // pure code-size win with no instruction-count regression.
     bool tryCanonicalizeZeroToClear(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst)
     {
-        if (defInst.op != MicroInstrOpcode::LoadRegImm || ctx.isClaimed(defRef))
+        if (ctx.isClaimed(defRef))
             return false;
 
         const MicroInstrOperand* ops = defInst.ops(*ctx.operands);

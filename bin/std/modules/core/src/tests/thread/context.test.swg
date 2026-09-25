@@ -11,7 +11,7 @@ func probeContext(thread: Threading.Thread)
 {
     let probe   = cast(*ContextProbe) thread.userParam!
     let context = Swag.getContext()
-    probe.isolated = context.errorAllocator.block != probe.parent.errorAllocator.block and context.errorIndex == 0 and context.curError == null and context.hasError == 0
+    probe.isolated = context != probe.parent and context.errorAllocator.block == null and context.errorIndex == 0 and context.curError == null and context.hasError == 0
 }
 
 // Creating a worker inside a fallible call must not inherit its live error stack or storage.

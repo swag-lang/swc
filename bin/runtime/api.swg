@@ -533,7 +533,7 @@ namespace Swag
         mtd assertAllocated(request: *AllocatorRequest)
     }
 
-    // A linear allocator that serves blocks from one buffer and releases them all at once.
+    // A linear allocator that acquires its buffer on first use and releases all blocks at once.
     struct ScratchAllocator
     {
         public

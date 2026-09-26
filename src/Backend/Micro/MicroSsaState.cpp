@@ -452,12 +452,13 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     auto&                 postOrder = domPostOrder_;
     auto&                 rpoPosition = domRpoPosition_;
     auto&                 rpoStamp = domRpoStamp_;
-    uint32_t              currentRpoStamp = 1;
     dfsStack.clear();
     dfsIter.clear();
     postOrder.clear();
-    rpoPosition.assign(blocks_.size(), K_INVALID);
-    rpoStamp.assign(blocks_.size(), 0);
+    // A position is read only for a block stamped into the current component.
+    // Retain stamps across functions to avoid clearing both arrays on every rebuild.
+    rpoPosition.resize(blocks_.size());
+    rpoStamp.resize(blocks_.size(), 0);
     dfsStack.reserve(blocks_.size());
     dfsIter.reserve(blocks_.size());
     postOrder.reserve(blocks_.size());
@@ -518,13 +519,13 @@ bool MicroSsaState::computeDominators(const bool acyclic)
             dfsIter.pop_back();
         }
 
-        if (currentRpoStamp == std::numeric_limits<uint32_t>::max())
+        if (!domRpoNextStamp_)
         {
             std::ranges::fill(rpoStamp, 0);
-            currentRpoStamp = 1;
+            domRpoNextStamp_ = 1;
         }
 
-        const uint32_t rpoComponentStamp = currentRpoStamp++;
+        const uint32_t rpoComponentStamp = domRpoNextStamp_++;
         const uint32_t rpoSize           = static_cast<uint32_t>(postOrder.size());
         for (uint32_t i = 0; i < rpoSize; ++i)
         {

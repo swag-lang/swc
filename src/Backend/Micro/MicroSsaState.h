@@ -199,6 +199,7 @@ private:
     std::vector<uint32_t> domIdomValues_;
     std::vector<uint32_t> domRpoPosition_;
     std::vector<uint32_t> domRpoStamp_;
+    uint32_t              domRpoNextStamp_ = 1;
     std::vector<uint32_t> domDfsStack_;
     std::vector<uint32_t> domDfsIter_;
     std::vector<uint32_t> domPostOrder_;

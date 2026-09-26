@@ -82,6 +82,7 @@ namespace
         std::vector<MicroInstrRef>             order;
         std::vector<uint32_t>                  ordinalByRef;
         std::unordered_map<uint32_t, uint32_t> labelOrdinalById;
+        bool                                   hasAnyLabel = false;
         bool                                   hasConditionalJump = false;
         bool                                   hasImmediateCompare = false;
         bool                                   hasSetCondition = false;
@@ -224,6 +225,7 @@ namespace
         outLayout.order.reserve(storage.count());
         outLayout.ordinalByRef.assign(storage.slotCount(), K_INVALID_ORDINAL);
         outLayout.labelOrdinalById.clear();
+        outLayout.hasAnyLabel         = false;
         outLayout.hasConditionalJump  = false;
         outLayout.hasImmediateCompare = false;
         outLayout.hasSetCondition     = false;
@@ -235,8 +237,12 @@ namespace
             outLayout.ordinalByRef[it.current.get()] = ordinal;
 
             uint32_t labelId = 0;
-            if (it->op == MicroInstrOpcode::Label && tryGetLabelId(labelId, *it, it->ops(operands)))
-                outLayout.labelOrdinalById[labelId] = ordinal;
+            if (it->op == MicroInstrOpcode::Label)
+            {
+                outLayout.hasAnyLabel = true;
+                if (tryGetLabelId(labelId, *it, it->ops(operands)))
+                    outLayout.labelOrdinalById[labelId] = ordinal;
+            }
             else if (it->op == MicroInstrOpcode::JumpCond)
             {
                 const MicroInstrOperand* ops = it->ops(operands);
@@ -7379,7 +7385,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             shortCircuitLayout.invalidate();
         }
         roundChanged |= threadShortCircuitExits(storage, operands, context.builder, shortCircuitLayout);
-        roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
+        // The first-round scan can rule out labels without collecting jump
+        // targets and relocations. A preceding rewrite makes it stale.
+        if (roundChanged || !scanCache.layoutBuilt || scanCache.scan.layout.hasAnyLabel)
+            roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
         if (!roundChanged)
             break;
         rewrote(true);
@@ -7425,21 +7434,26 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             // inspected this stream without rewriting it.
             scanCache.ensureLayout(storage, operands);
             ProgramLayout& layout = scanCache.scan.layout;
-            structuralChanged |= redirectJumpChains(storage, operands, layout);
-            const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
-            structuralChanged |= erasedImmediateJumps;
-            // Retargeting preserves layout; erasing jumps leaves holes that the
-            // adjacent-label query deliberately rejects, so rebuild only then.
-            if (erasedImmediateJumps)
-                buildProgramLayout(layout, storage, operands);
-            structuralChanged |= invertJumpOverAdjacentJump(storage, operands, layout);
+            if (layout.hasAnyLabel)
+            {
+                structuralChanged |= redirectJumpChains(storage, operands, layout);
+                const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
+                structuralChanged |= erasedImmediateJumps;
+                // Retargeting preserves layout; erasing jumps leaves holes that the
+                // adjacent-label query deliberately rejects, so rebuild only then.
+                if (erasedImmediateJumps)
+                    buildProgramLayout(layout, storage, operands);
+                structuralChanged |= invertJumpOverAdjacentJump(storage, operands, layout);
+            }
         }
         structuralChanged |= eraseDeadInstructionsAfterTerminators(storage, operands);
 
         if (structuralChanged && context.builder)
             context.builder->invalidateControlFlowGraph();
 
-        if (context.builder)
+        // With no labels, the linear terminator sweep above removes every
+        // unreachable instruction. A rewrite may have changed that layout.
+        if (context.builder && (structuralChanged || scanCache.scan.layout.hasAnyLabel))
         {
             const bool erasedUnreachable = eraseCfgUnreachable(*context.builder, storage, operands);
             if (erasedUnreachable)
@@ -7476,6 +7490,19 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         if (context.ssaState)
             context.ssaState->invalidate();
         localSsaState.invalidate();
+    }
+
+    // Every remaining if-conversion needs a conditional JumpCond. The shared
+    // layout still describes the stream only when no preceding rewrite dropped it.
+    if (scanCache.layoutBuilt && !scanCache.scan.layout.hasConditionalJump)
+    {
+        if (changed)
+        {
+            if (context.builder)
+                context.builder->invalidateControlFlowGraph();
+            context.passChanged = true;
+        }
+        return Result::Continue;
     }
 
     thread_local DiamondScanCache diamondCache;

@@ -363,6 +363,16 @@ block, and the hot path keeps the register.
   builds between 2.7 and 5.8 seconds. The evidence does not isolate the candidate from shared
   machine load or establish a repeatable benefit. The change and version bump were reverted;
   The [campaign summary](../bench/results/compilation/20260925-speed/README.md) records the outcome.
+- Taken on 2026-09-26 under prompt 4: the existing program-layout scan now also records whether
+  any label exists. The branch pass skips jump-threading, immediate-label, inverted-jump, CFG
+  reachability and unused-label sweeps when their required label is absent; it skips the diamond
+  family when the current layout has no conditional jump. Each guard uses already collected layout
+  state and falls back to the original path after a rewrite. Focused native Release tests passed,
+  as did the full 3,480 native and 1,500 JIT test suites. Five order-alternated four-workload pairs
+  against the earlier campaign binary were too variable for a speedup claim: candidate medians were
+  2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
+  2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
+  error in `compiler.core.058`, which the pre-campaign master compiler also reproduces.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

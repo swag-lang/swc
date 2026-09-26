@@ -124,7 +124,8 @@ void Sanitizer::computeFunctionProperties()
         const auto regCount = std::min(static_cast<size_t>(inst.numOperands), modes.size());
         for (size_t r = 0; r < regCount; r++)
         {
-            if (modes[r] == MicroInstrRegMode::Def || modes[r] == MicroInstrRegMode::UseDef)
+            // Only virtual-register counts are queried by the provenance checks.
+            if ((modes[r] == MicroInstrRegMode::Def || modes[r] == MicroInstrRegMode::UseDef) && ops[r].reg.isVirtual())
             {
                 auto [it, inserted] = definitionCounts_.try_emplace(ops[r].reg.packed, 1);
                 if (!inserted && it->second < 2)

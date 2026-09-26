@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Sanitizer/SanitizerState.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -152,15 +153,15 @@ private:
     bool                 resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const;
 
     // Join + propagation.
-    void        propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist);
-    void        propagate(SanitizerState&& edge, uint32_t index, std::vector<uint32_t>& worklist);
+    void        propagate(const SanitizerState& edge, uint32_t index, SmallVector<uint32_t, 32>& worklist);
+    void        propagate(SanitizerState&& edge, uint32_t index, SmallVector<uint32_t, 32>& worklist);
     static bool joinInto(SanitizerState& into, const SanitizerState& from);
 
     // Walks the straight-line chain starting at 'head' with a single mutable state:
     // states are only stored (and joined) at chain heads, everything in between is
     // recomputed on the fly. With a worklist it propagates the fixpoint; with checks
     // it applies them to each instruction's pre-state.
-    void walkChain(uint32_t head, SanitizerState cur, std::span<const EnabledCheck> checks, std::vector<uint32_t>* worklist, uint64_t& steps);
+    void walkChain(uint32_t head, SanitizerState cur, std::span<const EnabledCheck> checks, SmallVector<uint32_t, 32>* worklist, uint64_t& steps);
 
     // Instruction effects (the transfer function).
     void        applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
@@ -168,9 +169,9 @@ private:
     static bool condIsZeroTest(MicroCond cond, bool& outTrueIfZero);
 
     // Conditional branch handling: guard narrowing + feasibility pruning.
-    void        propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist);
+    void        propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, SmallVector<uint32_t, 32>& worklist);
     static bool resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotZeroIfSubjectZero);
-    void        queueRefined(SanitizerState state, uint32_t index, int64_t slot, bool slotIsZero, std::vector<uint32_t>& worklist);
+    void        queueRefined(SanitizerState state, uint32_t index, int64_t slot, bool slotIsZero, SmallVector<uint32_t, 32>& worklist);
     static void dropZeros(SanitizerState& state);
     static bool isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs);
     void        report(const MicroInstr& inst, DiagnosticId id, const ReportArguments& arguments, std::span<const ReportNote> notes);

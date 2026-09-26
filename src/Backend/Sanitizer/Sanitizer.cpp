@@ -266,7 +266,8 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
 
     reached_[0]    = 1;
     inWorklist_[0] = 1;
-    std::vector<uint32_t> worklist{0};
+    // Small CFGs settle without allocating the heap that a vector of one element needs.
+    SmallVector<uint32_t, 32> worklist{0};
 
     // The worklist is a min-heap on the instruction index: the linear layout is close
     // to a topological order, so processing lower indices first lets predecessors
@@ -306,7 +307,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     return reported_;
 }
 
-void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<const EnabledCheck> checks, std::vector<uint32_t>* worklist, uint64_t& steps)
+void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<const EnabledCheck> checks, SmallVector<uint32_t, 32>* worklist, uint64_t& steps)
 {
     const MicroControlFlowGraph& cfg   = *cfg_;
     uint32_t                     index = head;
@@ -594,7 +595,7 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
     return true;
 }
 
-void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist)
+void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, SmallVector<uint32_t, 32>& worklist)
 {
     const uint32_t stateIndex = headStateIndex_[index];
     SWC_ASSERT(stateIndex != K_NO_STATE);
@@ -619,7 +620,7 @@ void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vecto
     }
 }
 
-void Sanitizer::propagate(SanitizerState&& edge, uint32_t index, std::vector<uint32_t>& worklist)
+void Sanitizer::propagate(SanitizerState&& edge, uint32_t index, SmallVector<uint32_t, 32>& worklist)
 {
     const uint32_t stateIndex = headStateIndex_[index];
     SWC_ASSERT(stateIndex != K_NO_STATE);
@@ -1476,7 +1477,7 @@ bool Sanitizer::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
 
 // Conditional branch: narrow the tested slot on each edge, prune infeasible edges,
 // and fall back to dropping provable zeros when it cannot be modelled.
-void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist)
+void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, SmallVector<uint32_t, 32>& worklist)
 {
     const SanitizerRegInfo* subject = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
 
@@ -1551,7 +1552,7 @@ bool Sanitizer::resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSl
     return false;
 }
 
-void Sanitizer::queueRefined(SanitizerState state, uint32_t index, int64_t slot, bool slotIsZero, std::vector<uint32_t>& worklist)
+void Sanitizer::queueRefined(SanitizerState state, uint32_t index, int64_t slot, bool slotIsZero, SmallVector<uint32_t, 32>& worklist)
 {
     const auto           it      = state.stack.find(slot);
     const SanitizerValue current = it != state.stack.end() ? it->second : SanitizerValue{};

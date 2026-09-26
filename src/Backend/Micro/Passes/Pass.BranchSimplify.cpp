@@ -2190,7 +2190,7 @@ namespace
             return false;
 
         // Labels placed past a join's test, by the join's jump.
-        std::unordered_map<uint32_t, uint32_t> fallThroughLabels;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> fallThroughLabels;
 
         bool changed = false;
         for (size_t ordinal = 0; ordinal < layout.order.size(); ++ordinal)
@@ -2277,9 +2277,11 @@ namespace
                     !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, joinJumpRef) ||
                     fallsIntoBranchlessLink(layout, storage, operands, joinOrdinal + 2))
                     continue;
+                if (!fallThroughLabels)
+                    fallThroughLabels.emplace();
                 uint32_t   pastLabelId = 0;
-                const auto known       = fallThroughLabels.find(joinJumpRef.get());
-                if (known != fallThroughLabels.end())
+                const auto known       = fallThroughLabels->find(joinJumpRef.get());
+                if (known != fallThroughLabels->end())
                 {
                     pastLabelId = known->second;
                 }
@@ -2296,7 +2298,7 @@ namespace
                         labelOps[0].valueU64 = pastLabelId;
                         storage.insertDerivedBefore(operands, pastRef, MicroInstrOpcode::Label, labelOps);
                     }
-                    fallThroughLabels.emplace(joinJumpRef.get(), pastLabelId);
+                    fallThroughLabels->emplace(joinJumpRef.get(), pastLabelId);
                 }
                 if (pastLabelId == joinLabelId)
                     continue;

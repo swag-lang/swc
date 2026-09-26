@@ -3587,7 +3587,7 @@ namespace
         };
 
         SmallVector<RangeCheck> checks;
-        std::unordered_set<uint32_t> used;
+        std::optional<std::unordered_set<uint32_t>> used;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             RangeCheck check;
@@ -3595,7 +3595,7 @@ namespace
             check.firstJumpRef = storage.findNextInstructionRef(check.firstCmpRef);
             check.lastCmpRef   = check.firstJumpRef.isValid() ? storage.findNextInstructionRef(check.firstJumpRef) : MicroInstrRef::invalid();
             check.lastJumpRef  = check.lastCmpRef.isValid() ? storage.findNextInstructionRef(check.lastCmpRef) : MicroInstrRef::invalid();
-            if (!check.lastJumpRef.isValid() || used.contains(check.firstCmpRef.get()))
+            if (!check.lastJumpRef.isValid())
                 continue;
 
             const MicroInstr* firstCmp  = storage.ptr(check.firstCmpRef);
@@ -3604,6 +3604,8 @@ namespace
             const MicroInstr* lastJump  = storage.ptr(check.lastJumpRef);
             if (firstCmp->op != MicroInstrOpcode::CmpRegImm || lastCmp->op != MicroInstrOpcode::CmpRegImm ||
                 firstJump->op != MicroInstrOpcode::JumpCond || lastJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            if (used && used->contains(check.firstCmpRef.get()))
                 continue;
 
             const MicroInstrOperand* firstCmpOps  = firstCmp->ops(operands);
@@ -3654,7 +3656,9 @@ namespace
 
             check.low   = low;
             check.range = (high - low) & mask;
-            used.insert(check.lastCmpRef.get());
+            if (!used)
+                used.emplace();
+            used->insert(check.lastCmpRef.get());
             checks.push_back(check);
         }
 

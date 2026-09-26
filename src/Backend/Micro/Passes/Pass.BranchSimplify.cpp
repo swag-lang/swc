@@ -7445,8 +7445,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // A whole `or` chain goes at once, before the two-link form takes its tail.
     rewrote(convertOrChainsToBranchless(storage, operands, context, scanCache));
     rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache, relocationCache));
-    // Both comparison shapes consume a setcc before the repeated load.
-    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasSetCondition)
+    // Both comparison shapes consume a setcc and branch before the repeated load.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasSetCondition && scanCache.scan.layout.hasConditionalJump))
         rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context, relocationCache));
     // A matching chain has both a conditional jump and a setcc. Use the
     // existing layout only while it still describes the current stream.

@@ -7424,7 +7424,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
 
-    rewrote(convertFloatSelectsToMinMax(storage, operands, context, scanCache));
+    // A float select starts at a conditional jump, and building the richer
+    // branch scan is unnecessary when the current layout excludes one.
+    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump)
+        rewrote(convertFloatSelectsToMinMax(storage, operands, context, scanCache));
     // The small branch-to-cmov pattern starts at a conditional jump.
     if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&
         rewrote(convertBranchesToConditionalMoves(storage, operands, context)))

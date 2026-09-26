@@ -343,8 +343,9 @@ block, and the hot path keeps the register.
   observed gain and a possible guardrail regression, the gate was reverted.
 - Final validation on 2026-09-24: the Release campaign passed 1,500 JIT tests and 3,478 native
   tests, then stopped in `std/gui` on the pre-existing semantic error described in
-  `compiler.core.058`. The pre-campaign compiler build 1131 reproduces that error on unchanged
-  GUI sources. A final five-run four-workload timing attempt was stopped after three runs:
+  a semantic error in `std/gui`, since fixed by preserving the source view of generated `is`
+  casts. The pre-campaign compiler build 1131 reproduced that error on unchanged GUI sources.
+  A final five-run four-workload timing attempt was stopped after three runs:
   unrelated machine load moved a core rebuild from 4.8 to 7.3 seconds and a touched-file
   build from 3.0 to 9.2 seconds. These samples support no final percentage speedup claim.
 - A final three-pair, order-alternated comparison of build 1131 with build 1140 on the same
@@ -379,7 +380,8 @@ block, and the hot path keeps the register.
   against the earlier campaign binary were too variable for a speedup claim: candidate medians were
   2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
   2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
-  error in `compiler.core.058`, which the pre-campaign master compiler also reproduces.
+  error in `std/gui`, since fixed by preserving generated `is` cast source views; the
+  pre-campaign master compiler also reproduced it.
 - A second prompt-4 group on the merged master uses that same layout to skip range-check,
   range-and, branch-to-cmov and repeated-memory-compare scans when their required conditional
   jump or setcc is absent. The 3,480 native and 1,500 JIT Release tests passed. A five-pair A/B

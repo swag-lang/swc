@@ -24,7 +24,8 @@
 // binary operations recurse into their operands, four adjacent loads of block
 // -entry memory become one packed load, a lane permutation of an already
 // -vectorized tuple becomes one shuffle, and equal shift or rotate immediates
-// become packed shifts (a rotate expands to shift/shift/or). Shared subtrees
+// become packed shifts (a 16-bit rotate uses two word shuffles; other rotates
+// expand to shift/shift/or). Shared subtrees
 // are memoized on the ordered lane tuple, which is what turns the second half
 // of a ChaCha20 double round into shuffles of the first half's vectors
 // instead of a recomputation.

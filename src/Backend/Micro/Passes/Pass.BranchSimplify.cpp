@@ -7431,14 +7431,17 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             // inspected this stream without rewriting it.
             scanCache.ensureLayout(storage, operands);
             ProgramLayout& layout = scanCache.scan.layout;
-            structuralChanged |= redirectJumpChains(storage, operands, layout);
-            const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
-            structuralChanged |= erasedImmediateJumps;
-            // Retargeting preserves layout; erasing jumps leaves holes that the
-            // adjacent-label query deliberately rejects, so rebuild only then.
-            if (erasedImmediateJumps)
-                buildProgramLayout(layout, storage, operands);
-            structuralChanged |= invertJumpOverAdjacentJump(storage, operands, layout);
+            if (layout.hasAnyLabel)
+            {
+                structuralChanged |= redirectJumpChains(storage, operands, layout);
+                const bool erasedImmediateJumps = eraseJumpsToImmediateLabels(storage, operands, layout);
+                structuralChanged |= erasedImmediateJumps;
+                // Retargeting preserves layout; erasing jumps leaves holes that the
+                // adjacent-label query deliberately rejects, so rebuild only then.
+                if (erasedImmediateJumps)
+                    buildProgramLayout(layout, storage, operands);
+                structuralChanged |= invertJumpOverAdjacentJump(storage, operands, layout);
+            }
         }
         structuralChanged |= eraseDeadInstructionsAfterTerminators(storage, operands);
 

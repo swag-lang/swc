@@ -15,6 +15,13 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.081 — Price memory intrinsics as possible calls when auto-inlining
+
+- Recorded: 2026-09-26 11:47
+- Area: compiler/parser, automatic inlining cost
+- Evidence: `Swag.memcmp` is an `IntrinsicCallExpr`, so the parse-time body scan treated wordfreq's `mapProbe` as a call-free leaf. Its runtime-sized comparison emits a call. Inlining the probe at two call sites duplicated its hash and collision loops and spilled the caller's byte index across the whole tokenization loop. The cost scan now counts the four memory intrinsics that can lower to runtime calls. Wordfreq's main falls from 452 to 328 pre-emit Micro instructions, with no per-byte index spill/reload on the loop backedge; its `mapProbe` remains an 81-instruction out-of-line function. This matches LDC's out-of-line probe and register-resident token index more closely. The checksum remains 130489 with `--validate-micro`. A C++ regression asserts that a repeatedly called memory-intrinsic wrapper is recognized as containing a possible call and is not auto-inlined. All 1,136 C++, 3,480 native Release, and 1,500 JIT Release tests pass. No runtime timing informed the decision.
+- Next: compare wordfreq's remaining per-character branch and `mapProbe` hash loop with LDC, then inspect the next benchmark's excess operations.
+
 ### compiler.optimization.080 — Add a doubled value with one scaled address
 
 - Recorded: 2026-09-26 11:35

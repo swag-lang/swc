@@ -82,6 +82,7 @@ namespace
         std::vector<MicroInstrRef>             order;
         std::vector<uint32_t>                  ordinalByRef;
         std::unordered_map<uint32_t, uint32_t> labelOrdinalById;
+        bool                                   hasAnyLabel = false;
         bool                                   hasConditionalJump = false;
         bool                                   hasImmediateCompare = false;
         bool                                   hasSetCondition = false;
@@ -224,6 +225,7 @@ namespace
         outLayout.order.reserve(storage.count());
         outLayout.ordinalByRef.assign(storage.slotCount(), K_INVALID_ORDINAL);
         outLayout.labelOrdinalById.clear();
+        outLayout.hasAnyLabel         = false;
         outLayout.hasConditionalJump  = false;
         outLayout.hasImmediateCompare = false;
         outLayout.hasSetCondition     = false;
@@ -235,8 +237,12 @@ namespace
             outLayout.ordinalByRef[it.current.get()] = ordinal;
 
             uint32_t labelId = 0;
-            if (it->op == MicroInstrOpcode::Label && tryGetLabelId(labelId, *it, it->ops(operands)))
-                outLayout.labelOrdinalById[labelId] = ordinal;
+            if (it->op == MicroInstrOpcode::Label)
+            {
+                outLayout.hasAnyLabel = true;
+                if (tryGetLabelId(labelId, *it, it->ops(operands)))
+                    outLayout.labelOrdinalById[labelId] = ordinal;
+            }
             else if (it->op == MicroInstrOpcode::JumpCond)
             {
                 const MicroInstrOperand* ops = it->ops(operands);
@@ -7439,7 +7445,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         if (structuralChanged && context.builder)
             context.builder->invalidateControlFlowGraph();
 
-        if (context.builder)
+        // With no labels, the linear terminator sweep above removes every
+        // unreachable instruction. A rewrite may have changed that layout.
+        if (context.builder && (structuralChanged || scanCache.scan.layout.hasAnyLabel))
         {
             const bool erasedUnreachable = eraseCfgUnreachable(*context.builder, storage, operands);
             if (erasedUnreachable)

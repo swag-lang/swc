@@ -1231,6 +1231,8 @@ namespace
             return false;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
+        if (!layout.hasConditionalJump)
+            return false;
         const auto soleUsesAre = [&](MicroReg firstReg, MicroInstrRef firstReader, MicroReg secondReg, MicroInstrRef secondReader) {
             uint32_t firstUses  = 0;
             uint32_t secondUses = 0;
@@ -1510,6 +1512,8 @@ namespace
         if (branchScan && branchScan->indirectJump)
             return false;
         const ProgramLayout& layout = layoutCache.get(storage, operands);
+        if (!layout.hasConditionalJump)
+            return false;
         const size_t count = layout.order.size();
 
         std::unordered_map<uint32_t, uint32_t> localLabelReferences;
@@ -2157,6 +2161,8 @@ namespace
         constexpr uint32_t K_MAX_CHAIN = 6;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
+        if (!layout.hasConditionalJump)
+            return false;
 
         // Labels placed past a join's test, by the join's jump.
         std::unordered_map<uint32_t, uint32_t> fallThroughLabels;
@@ -7353,7 +7359,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         shortCircuitLayout.invalidate();
         if (round == 0 && scanCache.layoutBuilt)
             shortCircuitLayout.borrow(scanCache.scan.layout);
-        bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
+        // The first round can reuse the earlier scan unless a preceding fold rewrote
+        // the stream. Every fusion needs a SetCondReg as its boolean producer.
+        const bool canFuse = round != 0 || !scanCache.layoutBuilt || scanCache.scan.layout.hasSetCondition;
+        bool       roundChanged = canFuse && fuseMaterializedBoolBranches(storage, operands, context.builder);
         if (roundChanged)
             shortCircuitLayout.invalidate();
         const BranchScan* currentBranchScan = !roundChanged && scanCache.built ? &scanCache.scan : nullptr;
@@ -7388,7 +7397,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     rewrote(convertOrChainsToBranchless(storage, operands, context, scanCache));
     rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache, relocationCache));
     rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context, relocationCache));
-    rewrote(convertShortCircuitBooleans(storage, operands, context));
+    // A matching chain has both a conditional jump and a setcc. Use the
+    // existing layout only while it still describes the current stream.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasConditionalJump && scanCache.scan.layout.hasSetCondition))
+        rewrote(convertShortCircuitBooleans(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     rewrote(foldRangeAnds(storage, operands, context));

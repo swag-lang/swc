@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
 // See the header for the contract. An induction is a register with one
@@ -208,7 +209,7 @@ namespace
     };
 
     // One round over the natural loops, stopping after the first change.
-    bool reduceRound(MicroPassContext& context, std::unordered_set<MicroInstrRef>& processedHeaders, bool& hasOtherLoop)
+    bool reduceRound(MicroPassContext& context, SmallVector<MicroInstrRef, 4>& processedHeaders, bool& hasOtherLoop)
     {
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
@@ -260,7 +261,7 @@ namespace
             const uint32_t      header    = loop.header;
             const auto&         inBody    = loop.inBody;
             const MicroInstrRef headerRef = instrRefs[header];
-            if (processedHeaders.contains(headerRef))
+            if (std::ranges::find(processedHeaders, headerRef) != processedHeaders.end())
                 continue;
 
             // A clean preheader: one predecessor outside the loop, which is the
@@ -743,7 +744,7 @@ namespace
             // pass-manager sweep, after the other pre-RA transforms have run.
             if (changed)
             {
-                processedHeaders.insert(headerRef);
+                processedHeaders.push_back(headerRef);
                 // Carrier arithmetic does not add or remove control-flow edges.
                 hasOtherLoop = processedHeaders.size() < loopsByHeader.size();
                 break;
@@ -778,7 +779,8 @@ Result MicroInductionVariablePass::run(MicroPassContext& context)
     // in that loop, and products retain priority over sums until the next sweep.
     // Keep a local bound; the pass manager still checks convergence across sweeps.
     constexpr uint32_t K_MAX_LOCAL_ROUNDS = 32;
-    std::unordered_set<MicroInstrRef> processedHeaders;
+    // Most functions have one natural loop; keep its header without allocating a hash table.
+    SmallVector<MicroInstrRef, 4> processedHeaders;
     for (uint32_t round = 0; round < K_MAX_LOCAL_ROUNDS; ++round)
     {
         bool hasOtherLoop = false;

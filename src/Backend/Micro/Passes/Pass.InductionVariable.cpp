@@ -207,8 +207,8 @@ namespace
         std::unordered_map<MicroReg, RegOccurrences> defs;
     };
 
-    // One round over every natural loop. Returns true when it changed the IR.
-    bool reduceRound(MicroPassContext& context)
+    // One round over the natural loops, stopping after the first change.
+    bool reduceRound(MicroPassContext& context, std::unordered_set<MicroInstrRef>& processedHeaders, bool& hasOtherLoop)
     {
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
@@ -260,6 +260,8 @@ namespace
             const uint32_t      header    = loop.header;
             const auto&         inBody    = loop.inBody;
             const MicroInstrRef headerRef = instrRefs[header];
+            if (processedHeaders.contains(headerRef))
+                continue;
 
             // A clean preheader: one predecessor outside the loop, which is the
             // linear predecessor and falls through into the header. A carrier's
@@ -737,10 +739,15 @@ namespace
             for (const MicroInstrRef ref : erased)
                 storage.erase(ref);
 
-            // The next loop reads a layout this one has changed; the pass
-            // manager reruns the pass while it keeps finding work.
+            // Another loop must read a fresh CFG. Leave this loop to the next
+            // pass-manager sweep, after the other pre-RA transforms have run.
             if (changed)
+            {
+                processedHeaders.insert(headerRef);
+                // Carrier arithmetic does not add or remove control-flow edges.
+                hasOtherLoop = processedHeaders.size() < loopsByHeader.size();
                 break;
+            }
         }
 
         if (changed)
@@ -765,8 +772,22 @@ Result MicroInductionVariablePass::run(MicroPassContext& context)
     if (!context.builder->controlFlowGraph().hasLoop())
         return Result::Continue;
 
-    if (reduceRound(context))
+    // One reduction invalidates the CFG, so rediscover the next eligible loop
+    // here instead of rerunning every pre-RA pass once per changed loop. Reduce
+    // each loop at most once per invocation: another pass can expose new shapes
+    // in that loop, and products retain priority over sums until the next sweep.
+    // Keep a local bound; the pass manager still checks convergence across sweeps.
+    constexpr uint32_t K_MAX_LOCAL_ROUNDS = 32;
+    std::unordered_set<MicroInstrRef> processedHeaders;
+    for (uint32_t round = 0; round < K_MAX_LOCAL_ROUNDS; ++round)
+    {
+        bool hasOtherLoop = false;
+        if (!reduceRound(context, processedHeaders, hasOtherLoop))
+            break;
         context.passChanged = true;
+        if (!hasOtherLoop)
+            break;
+    }
     return Result::Continue;
 }
 

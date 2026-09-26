@@ -221,8 +221,8 @@ void MicroSsaState::clear()
         useDefCacheEpoch_ = 1;
     }
     instructionRefs_.clear();
-    liveInstructionSlots_.clear();
-    liveInstructionEpoch_ = 0;
+    // Membership is tagged by epoch. Keep the tags across functions so a small
+    // function does not zero the entire buffer left by an earlier large one.
     instructionToBlock_.clear();
     useVisitStamps_.clear();
     useVisitStack_.clear();

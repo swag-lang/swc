@@ -3400,7 +3400,9 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 
     else if (regDst.isFloat() && regSrc.isFloat())
     {
-        if (op != MicroOp::FloatSqrt && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
+        // An in-place scalar square root needs only the low lane. Keep the
+        // packed form when registers differ so the destination is fully defined.
+        if ((op != MicroOp::FloatSqrt || regDst == regSrc) && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
         {
             emitSpecF64(store_, 0xF3, opBits);
             emitRex(store_, MicroOpBits::Zero, regDst, regSrc);

@@ -376,6 +376,8 @@ namespace
         ENCODE_CASE("op_binary_reg_reg_float_min", "F2 0F 5D C1", b.emitOpBinaryRegReg(XMM0, XMM1, MicroOp::FloatMin, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_float_min_extended", "F2 45 0F 5D CA", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::FloatMin, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_float_sqrt", "66 0F 51 C1", b.emitOpBinaryRegReg(XMM0, XMM1, MicroOp::FloatSqrt, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_float_sqrt_in_place_f64", "F2 0F 51 C0", b.emitOpBinaryRegReg(XMM0, XMM0, MicroOp::FloatSqrt, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_float_sqrt_in_place_f32", "F3 0F 51 C0", b.emitOpBinaryRegReg(XMM0, XMM0, MicroOp::FloatSqrt, MicroOpBits::B32););
         ENCODE_CASE("op_binary_reg_reg_float_sub", "F2 0F 5C C1", b.emitOpBinaryRegReg(XMM0, XMM1, MicroOp::FloatSubtract, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_float_xor", "66 0F 57 C1", b.emitOpBinaryRegReg(XMM0, XMM1, MicroOp::FloatXor, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_cvt_float_float", "F2 0F 5A C1", b.emitOpBinaryRegReg(XMM0, XMM1, MicroOp::ConvertFloatToFloat, MicroOpBits::B64););

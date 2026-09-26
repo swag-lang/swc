@@ -580,6 +580,58 @@ SWC_TEST_BEGIN(ValueNumbering_RipRelocationKeepsDifferentTargetsAndStores)
 }
 SWC_TEST_END()
 
+// A constant-pool sign mask can be reused across a branch when its input
+// value dominates both operations. Mutable and different masks stay distinct.
+SWC_TEST_BEGIN(ValueNumbering_ConstantFloatXorAcrossBranch)
+{
+    for (uint32_t mode = 0; mode < 4; ++mode)
+    {
+        const MicroOpBits bits   = mode == 3 ? MicroOpBits::B32 : MicroOpBits::B64;
+        const MicroReg    source = MicroReg::virtualFloatReg(1);
+        const MicroReg    first  = MicroReg::virtualFloatReg(2);
+        const MicroReg    second = MicroReg::virtualFloatReg(3);
+        const MicroReg    flag   = MicroReg::virtualIntReg(1);
+        MicroBuilder      builder(ctx);
+        const auto        join = builder.createLabel();
+
+        builder.emitLoadRegImm(source, ApInt(mode == 3 ? 0x3F800000 : 0x3FF0000000000000, mode == 3 ? 32 : 64), bits);
+        const auto emitNegation = [&](const MicroReg dst, const uint32_t offset) {
+            builder.emitLoadRegReg(dst, source, bits);
+            builder.emitOpBinaryRegMem(dst, MicroReg::instructionPointer(), 0, MicroOp::FloatXor, bits);
+            MicroRelocation relocation;
+            relocation.kind           = mode == 1 ? MicroRelocation::Kind::GlobalInitAddress : MicroRelocation::Kind::ConstantAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = builder.instructions().lastInstructionRef();
+            if (mode == 1)
+                relocation.targetAddress = 8;
+            else
+            {
+                relocation.constantShard  = 0;
+                relocation.constantOffset = offset;
+            }
+            builder.addRelocation(relocation);
+        };
+        emitNegation(first, 0);
+        builder.emitLoadRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, join);
+        builder.emitLoadRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+        builder.placeLabel(join);
+        emitNegation(second, mode == 2 ? 8 : 0);
+        const MicroInstrRef secondRef = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        SWC_RESULT(runValueNumberingPass(builder));
+        const MicroInstr* secondInst = builder.instructions().ptr(secondRef);
+        if (!secondInst || secondInst->op != (mode == 0 || mode == 3 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::OpBinaryRegMem))
+            return Result::Error;
+        if ((mode == 0 || mode == 3) && secondInst->ops(builder.operands())[1].reg != first)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ValueNumbering_ConstantPoolReadCrossesCallAndStore)
 {
     for (const uint32_t mode : {0u, 1u, 2u})

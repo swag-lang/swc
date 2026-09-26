@@ -190,6 +190,15 @@ namespace
                 outShape.dstIsAlsoUse = true;
                 return true;
 
+            case MicroInstrOpcode::OpBinaryRegMem:
+                // Number only a bitwise floating operation on immutable RIP
+                // data. Its destination and the relocated mask form the value.
+                outShape.rawSlots             = {2, 3, 4};
+                outShape.movBitsSlot          = 2;
+                outShape.dstIsAlsoUse         = true;
+                outShape.keyedByRelocationToo = true;
+                return true;
+
             case MicroInstrOpcode::LoadAddrRegMem:
                 // ops: [0] dst, [1] base, [2] opBits, [3] offset
                 outShape.useSlots    = {1};
@@ -626,6 +635,18 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             relocationsReady = true;
         }
 
+        if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
+        {
+            const auto relocIt = relocationByInstruction.find(instRef);
+            if (ops[3].microOp != MicroOp::FloatXor ||
+                (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
+                !ops[1].reg.isInstructionPointer() ||
+                relocIt == relocationByInstruction.end() ||
+                relocIt->second->kind != MicroRelocation::Kind::ConstantAddress ||
+                relocIt->second->form != MicroRelocation::Form::Relative32)
+                continue;
+        }
+
         // A RIP-relative load names its cell through the relocation, rather
         // than through an SSA base. Keep other physical bases opaque.
         const MicroRelocation* loadReloc = nullptr;
@@ -759,7 +780,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             // definition outright, so the strict straight-line criterion
             // applies: the flags must be redefined before any control-flow
             // boundary, including a label that may join another flag chain.
-            if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+            if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops) &&
                 !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef))
                 break;
 

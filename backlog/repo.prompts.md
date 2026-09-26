@@ -402,6 +402,12 @@ and inspect the code or execution strategy that produced the winning time.
 
 THE LOOP
 
+Static comparison is the work of this campaign. For every hypothesis, compare the winner's hot
+loop with ours, change one general mechanism, re-dump the emitted code, and take the next
+hypothesis. Do not run runtime timings, quick sweeps, or A/B trials during these inner iterations.
+Accumulating deterministic improvements matters more than deciding whether one small change
+shifted a noisy millisecond reading.
+
 Pick the task with the worst ratio that you have not already exhausted, then:
 
   1. Identify the fastest non-Swag runtime for that task in the latest accepted full campaign,
@@ -438,27 +444,23 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      include the appropriate DevMode, configuration, Release, and script coverage there. Do not
      run the full suite after every small optimization. A checksum mismatch in bench means you
      measured nothing.
-  6. Judge the change against the winning implementation's efficient mechanism, not against the
-     clock. The clock on this machine drifts more than most single changes are worth (two
-     campaigns of the SAME binary measured a geometric mean of 1.41x and 1.54x, and drift inside
-     one sweep reached +37%), and the context factor does not remove it. So: a change that provably
-     moves the emitted code toward the winning implementation's efficient mechanism is kept even
-     when the measurement is flat or slightly negative.
-     What "provably" means here is the per-loop count, which is deterministic: instructions and
-     memory operations per iteration of each hot loop, before and after, next to the same loop in
-     the winner's assembly when available. For a runtime without inspectable output, use the
-     fastest inspectable native implementation as secondary code evidence and retain the actual
-     winner as the timing target. A change is only reverted when the emitted code is not better,
-     not when the benchmark fails to see that it is. Static proof plus correctness validation is
-     sufficient to keep and merge a batch; no elapsed-time measurement is required. Small gains may
-     become visible only after several batches. Name any enabling step and its follow-up.
-     Before reverting an optimization, record the before/after hot-loop instruction and memory
-     counts alongside the winner's mechanism and identify the concrete generated-code loss.
-     A worse millisecond reading on a shared CPU is never, by itself, a reason to revert.
-  7. Use a quick timing sweep only when a tradeoff remains unresolved after static analysis:
-     cd bench && py driver.py --tasks <task> --quick --swc-cores 6. Treat timings under changing
-     machine load as exploratory. Partial sweeps are never recorded.
-  8. Record a full benchmark campaign periodically across accumulated batches, not after each one:
+  6. Judge the change against the winning implementation's efficient mechanism using static code
+     evidence. Record per-hot-loop instruction and memory-operation counts, branch structure,
+     dependency chains, spills, and relevant opcodes before and after, beside the winner's loop
+     when available. A pure opcode improvement may matter even when the instruction count stays
+     constant. For a runtime without inspectable output, use the fastest inspectable native
+     implementation as secondary code evidence. Keep a proven code improvement after correctness
+     validation and move directly to the next hypothesis. Revert only after identifying a concrete
+     generated-code loss or a correctness failure; record that loss before reverting. Name any
+     enabling step and its follow-up. No runtime timing is needed to keep, commit, or merge a batch.
+  7. Do not time an individual batch to choose whether to keep it. If static analysis cannot settle
+     a tradeoff, record the exact unresolved code-level question and continue with another
+     hypothesis. Only after a coherent group of validated changes, when that specific uncertainty
+     would change an integration decision, may you run a controlled timing experiment with its
+     question and stop rule stated first. Do not use quick sweeps to rank minor edits. Noisy
+     elapsed time cannot overturn a static code improvement.
+  8. Record a full benchmark campaign only at milestones across accumulated validated batches,
+     after broad correctness checks and when the static loop has no immediately actionable gap:
      swc tools\bench.swgs --label "what changed". When comparing elapsed time, record its baseline
      in the same session. A full benchmark is not a prerequisite for merging a statically proven
      improvement.
@@ -497,17 +499,16 @@ RULES
     is a known failure mode; include swc tools/scripts.swgs dm when the change can affect it.
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
-    takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
-    explicitly, and then make the implementation cheaper - a slow analysis is a slow analysis, not
-    a reason to give up the optimization. Only a change that is BOTH slower to compile AND not
-    better in the generated code gets reverted.
+    takes longer, and campaign 4 is where compile time is bought back. Report compile cost when it
+    is measured at a milestone; do not interrupt the static loop to time every batch. Make a slow
+    analysis cheaper without giving up its generated-code improvement.
   - Never change what a bench task computes. That silently resets the history.
   - Bench tasks expose missed general optimizations; they are not special cases to recognize.
     Keep a change only when its rule can benefit ordinary user code with the same proven
     structure, and explain that rule independently of any benchmark.
-  - When timing is needed, A/B two swc.exe binaries by CPU time, alternating order and sampling
-    before the process exits. Do not reject a statically proven improvement because noisy elapsed
-    times fail to resolve a small gain.
+  - Only after the gate in step 7, when timing answers a stated unresolved question, A/B two
+    swc.exe binaries by CPU time, alternating order and sampling before the process exits. Do not
+    reject a statically proven improvement because noisy elapsed times fail to resolve a small gain.
   - Leads you cannot chase now go in backlog/compiler.optimization.md with evidence and a concrete `Next:`
     step. If the evidence establishes implementation work, update that entry in place.
 

@@ -16,42 +16,49 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.076 - Keep local pointers across disjoint spills
+### compiler.optimization.077 — Reuse constant float sign masks across branches
+
+- Recorded: 2026-09-26 10:01
+- Area: compiler/backend, value numbering of immutable relocated operands
+- Evidence: Odin computes raytrace's sphere intersections with one floating sign inversion for each sphere, while Swag repeated the same `fxor [rip]` on both root-selection paths. Value numbering now recognizes `FloatXor` with a constant-pool RIP operand as a pure expression keyed by its input value and full relocation identity. Dominance and the existing reaching-definition check permit reuse after a branch; mutable globals and different constant offsets remain distinct. `intersect` falls from 214 to 206 post-emit Micro instructions, from eight to four `fxor [rip]` operations, from 27 to 23 float-register copies, and from 44 to 40 stack/RIP memory references. The raytrace checksum remains 56061776 with `--validate-micro`. All 1,131 C++ tests pass, including new f32/f64 positive and mutable/different-mask negative cases; an independent native release test (`enum_progress.swg`) and a focused JIT/native f32/f64 branch probe pass. No runtime timing informed the decision.
+- Next: compare raytrace's `trace` and pixel accumulation loops against Odin's emitted code and remove the next general instruction or memory-operation excess.
+
+### compiler.optimization.076 — Keep local pointers across disjoint spills
 
 - Recorded: 2026-09-26 00:47
-- Updated: 2026-09-26 00:47 - Removed one csvagg row-path pointer load.
+- Updated: 2026-09-26 00:47 — Removed one csvagg row-path pointer load.
 - Area: compiler/backend, post-allocation frame value forwarding
 - Evidence: Csvagg's inlined table probe keeps `agg.used` in `r14`, but the caller reloaded that pointer for its indexed test. A spill store to `[rsp+offset]` between the two reads made the previous all-writes barrier decline the proof. The frame allocator exposes its private spill byte range, and the function symbol exposes each local object's extent. The backward path walk now permits only a direct store wholly inside that spill range when the earlier pointer load lies wholly inside a known local object; other stores still stop it. If the reloaded physical register is dead after the branch, the indexed compare uses the persistent register directly and the reload is erased. Csvagg's `main` falls from 1,001 to 1,000 Micro instructions and loses one memory read on the row path, matching clang-cl's retained table pointer more closely. Wordfreq stays at 452. Both programs pass `--validate-micro` and checksums 130489 and 24828641. A C++ test covers a declared local object and spill, an unknown object, and a store outside the spill area. All 1,130 C++, 3,480 native, and 1,500 JIT tests pass before integration. No millisecond reading informed the decision.
 - Next: the caller still repeats `used[idx]` after the inlined probe in both programs; eliminate that test only with a path-sensitive memory fact that survives the read-only comparison call and every loop backedge.
 
-### compiler.optimization.075 - Forward private-frame pointers through read-only branches
+### compiler.optimization.075 — Forward private-frame pointers through read-only branches
 
 - Recorded: 2026-09-26 00:20
-- Updated: 2026-09-26 00:20 - Removed two wordfreq probe-pointer reloads.
+- Updated: 2026-09-26 00:20 — Removed two wordfreq probe-pointer reloads.
 - Area: compiler/backend, post-allocation frame value forwarding
 - Evidence: After an inlined `mapProbe`, wordfreq reloads `counts.used` from the local frame for the caller's indexed test, although the probe still holds the same pointer in a persistent register. A bounded backward walk of the instruction CFG now requires every path to reach the earlier frame load, with no register clobber or memory write in between. It permits a call only when its function is marked `Swag.ReadOnly` and the ABI preserves both the held pointer and frame base. When the indexed store after the branch is the final use of the reloaded register on either edge, it retargets the test and store and removes both loads. Wordfreq's `main` falls from 454 to 452 Micro instructions; the generated machine code uses the retained register directly. Csvagg remains at 1,001 because a frame spill between the two loads blocks this deliberately conservative proof. Both benchmark checksums remain 130489 and 24828641. The C++ test covers a valid branch join, an intervening store, a register clobber, and a path that bypasses the first load; all 1,129 C++, 3,480 native, and 1,500 JIT tests pass before integration. No millisecond reading influenced this decision.
 - Next: determine whether a disjoint frame spill can be proved harmless for csvagg without weakening the call and path guards, then revisit the still-repeated `used[idx]` memory comparison at the probe/caller join.
 
-### compiler.optimization.074 - Reuse private frame pointers after a branch
+### compiler.optimization.074 — Reuse private frame pointers after a branch
 
 - Recorded: 2026-09-25 23:43
-- Updated: 2026-09-25 23:43 - Removed two redundant `used` pointer reloads from wordfreq.
+- Updated: 2026-09-25 23:43 — Removed two redundant `used` pointer reloads from wordfreq.
 - Area: compiler/backend, post-allocation private-frame load elimination
 - Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
 - Next: prove the inlined probe's empty/occupied result across the caller's redundant `used[idx]` test, or find a narrower path-specific branch thread that avoids additional jumps. Compare the remaining wordfreq tokenization and csvagg row path against LDC and clang-cl assembly.
 
-### compiler.optimization.073 - Reserve call shadow once in fixed local frames
+### compiler.optimization.073 — Reserve call shadow once in fixed local frames
 
 - Recorded: 2026-09-25 23:28
-- Updated: 2026-09-25 23:28 - Removed repeated call-frame adjustments from wordfreq and csvagg parsing loops.
+- Updated: 2026-09-25 23:28 — Removed repeated call-frame adjustments from wordfreq and csvagg parsing loops.
 - Area: compiler/backend, final stack layout and call ABI
 - Evidence: Unlike LDC and clang-cl, Swag adjusted `rsp` down and up by 40 bytes around every ordinary call from the two benchmark main functions, including their collision-loop `memcmp` calls. Each function has a frame-pointer anchor, a copied base for its local frame, and a final argument frame. A conservative final pass now reserves the 40-byte Windows x64 shadow/alignment area once immediately after the local-base copy, rebases only direct accesses proven inside that local frame, and removes only individually matched simple call pairs with no stack operand between them. It shrinks the later final argument-frame subtract by 40 bytes, restoring the exact original `rsp` before that frame is addressed; its contents and epilogue are unchanged. Wordfreq's `main` falls from 483 to 456 Micro instructions (14 pairs removed, one reserve added); csvagg's `main` falls from 1,020 to 1,001 (10 pairs removed, one reserve added). The final 144-byte argument-frame subtract becomes 104 bytes in both and encodes with a short immediate. Both programs pass `--validate-micro` with checksums 130489 and 24828641. The focused C++ regression covers re-based locals and rejects a stack argument or stack-pointer copy within a candidate call frame. All 1,127 C++, 3,480 native, and 1,500 JIT tests pass, including the native recovery probes. No elapsed-time sample informed the decision.
 - Next: revisit the redundant used-slot retest after inlined `mapProbe` with a memory-safe CFG proof, and compare remaining wordfreq tokenization and csvagg row parsing operations against the competitor assembly.
 
-### compiler.optimization.072 - Fold dead scalar increments after allocation
+### compiler.optimization.072 — Fold dead scalar increments after allocation
 
 - Recorded: 2026-09-25 23:08
-- Updated: 2026-09-25 23:08 - Matched direct memory increments in wordfreq and csvagg.
+- Updated: 2026-09-25 23:08 — Matched direct memory increments in wordfreq and csvagg.
 - Area: compiler/backend, post-allocation integer memory operations
 - Evidence: LDC increments wordfreq's new-key count in memory, and clang-cl does the same for csvagg's new-slot count. Swag's loop-local field update was `mov reg,[base+offset]; add reg,1; mov [base+offset],reg`. A post-allocation rule now replaces this exact adjacent triple with one memory add only when load/store address and width match, the result register differs from the address base and is dead after the store, and the x64 encoder accepts the replacement. Wordfreq's generated `main` falls from 485 to 483 Micro instructions; csvagg's `main` falls from 1,022 to 1,020. Their collision/hash loops retain the same instructions. Both builds pass `--validate-micro`, and their checksums remain 130489 and 24828641. The focused C++ regression covers a dead value, a live value, an address-register overlap, and a different store address. All 1,126 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
 - Negative lead: Allowing the pre-allocation memory-combine rule to fold frame-derived updates inside loops reduced wordfreq by two instructions but grew csvagg's `main` from 1,022 to 1,036 after register allocation. That broad trial was reverted; the post-allocation rule achieves both two-instruction gains without perturbing register assignment.

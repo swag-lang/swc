@@ -1661,7 +1661,9 @@ void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const ReportArgu
     // instructions; report each (location, diagnostic) pair at most once.
     const uint64_t key = (static_cast<uint64_t>(codeRef.srcViewRef.get()) << 40) ^ (static_cast<uint64_t>(codeRef.tokRef.get()) << 8) ^ static_cast<uint64_t>(id);
     reported_          = true;
-    if (!reportedLocations_.insert(key).second)
+    if (!reportedLocations_)
+        reportedLocations_.emplace();
+    if (!reportedLocations_->insert(key).second)
         return;
 
     ResolvedDebugSourceInfo resolved;

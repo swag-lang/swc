@@ -756,13 +756,16 @@ void MicroRegisterAllocationPass::computeConcreteClaimPositions()
 {
     // An unsuccessful interval allocation leaves these inputs unchanged for
     // the fallback allocator. clearState invalidates the claims on every run.
-    if (!concreteClaimPositionsByDenseIndex_.empty() || denseConcreteRegs_.regs().empty())
+    if (concreteClaimPositionsComputed_)
         return;
 
     // Every instruction at which a fixed register is spoken for: named as an
     // operand, defined by an ABI shuffle, clobbered by a call, or merely live
     // between two of those. A global may not take a register over any of them.
     concreteClaimPositionsByDenseIndex_.resize(denseConcreteRegs_.regs().size());
+    concreteClaimPositionsComputed_ = true;
+    if (denseConcreteRegs_.regs().empty())
+        return;
 
     // Ascending instruction indices and adjacent duplicate suppression keep
     // every register's positions strictly ordered without a separate sort.
@@ -4448,7 +4451,10 @@ void MicroRegisterAllocationPass::clearState()
     concreteLoopCarried_.clear();
     virtualSpanLo_.clear();
     virtualSpanHi_.clear();
-    concreteClaimPositionsByDenseIndex_.clear();
+    // Keep each register's position buffer for the next function on this worker.
+    for (auto& positions : concreteClaimPositionsByDenseIndex_)
+        positions.clear();
+    concreteClaimPositionsComputed_ = false;
     denseGlobalPhysRegs_.clear();
     pendingBorrowRestores_.clear();
     pinnedCallSavedDense_.clear();

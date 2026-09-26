@@ -759,8 +759,8 @@ namespace
         {
             const SymbolFunction& srcFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.srcTypeRef)).payloadSymFunction();
             const SymbolFunction& dstFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.dstTypeRef)).payloadSymFunction();
-            const Utf8 actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, CallConv::displayName(srcFunc.callConvKind()));
-            const Utf8 required = std::format("'{}' with the {} calling convention", dstTypeName, CallConv::displayName(dstFunc.callConvKind()));
+            const Utf8 actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, CallConv::get(srcFunc.callConvKind()).displayName);
+            const Utf8 required = std::format("'{}' with the {} calling convention", dstTypeName, CallConv::get(dstFunc.callConvKind()).displayName);
             if (const SymbolVariable* param = failedParameter(fn, fail))
                 return std::format("{}, but parameter '{}' needs {}", actual, param->name(ctx), required);
             return std::format("{}, but needs {}", actual, required);

@@ -839,6 +839,7 @@ const GWLP_HWNDPARENT = -8
 const GWLP_USERDATA   = -21
 const GWLP_ID         = -12
 
+const GWL_STYLE   = -16
 const GWL_EXSTYLE = -20
 
 const HWND_BROADCAST   = cast(HWND) 0xFFFF'u64

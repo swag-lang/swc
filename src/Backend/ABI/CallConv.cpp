@@ -46,6 +46,7 @@ namespace
     {
         // Windows x64 ABI model used by both compiled calls and JIT bridge calls.
         conv.name         = "win64";
+        conv.displayName  = "Windows x64";
         conv.stackPointer = MicroReg::intReg(4);
         conv.framePointer = MicroReg::intReg(5);
         conv.intReturn    = MicroReg::intReg(0);
@@ -89,14 +90,16 @@ namespace
 
     void setupCallConvC(CallConv& conv, const CallConv& native)
     {
-        conv      = native;
-        conv.name = "c";
+        conv             = native;
+        conv.name        = "c";
+        conv.displayName = "C";
     }
 
     void setupCallConvSwag(CallConv& conv, const CallConv& native)
     {
-        conv      = native;
-        conv.name = "swag";
+        conv             = native;
+        conv.name        = "swag";
+        conv.displayName = "Swag";
         conv.floatArgRegs.push_back(MicroReg::floatReg(4));
         conv.floatArgRegs.push_back(MicroReg::floatReg(5));
         // Direct Swag calls may borrow a large value-semantic aggregate because the callee cannot
@@ -104,21 +107,6 @@ namespace
         // their target may instead be native.
         conv.structArgPassing.passByReferenceNeedsCopy = false;
     }
-}
-
-std::string_view CallConv::displayName(CallConvKind kind)
-{
-    switch (kind)
-    {
-        case CallConvKind::C:
-            return "C";
-        case CallConvKind::WindowsX64:
-            return "Windows x64";
-        case CallConvKind::Swag:
-            return "Swag";
-    }
-
-    SWC_UNREACHABLE();
 }
 
 uint32_t CallConv::numArgRegisterSlots() const

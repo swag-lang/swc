@@ -436,6 +436,17 @@ block, and the hot path keeps the register.
   core rebuild, 89/65 ms no-op, 2,734/2,576 ms core touch, and 245/242 ms hello. One touch
   took 35 seconds and one no-op 1.55 seconds under shared load; these samples establish no
   speedup percentage or stable regression.
+- A fifth prompt-4 group defers the short-circuit fallthrough-label map and boolean-guard
+  claimed-reference set, skips two diamond reference scans without a conditional jump, and uses
+  existing layout flags to skip range and boolean-threading scans without their required
+  immediate compare or setcc. Focused tests, 3,481 native and 1,500 JIT Release tests passed,
+  including after merging master `0308e681d`. Five order-alternated pairs against the preceding
+  integrated master `43766f77f` gave candidate/baseline medians of 2,269/2,304 ms core rebuild,
+  46/57 ms no-op, 2,460/1,904 ms core touch and 152/145 ms hello. Paired rebuild and touch
+  ratios were near one, individual touch runs ranged from 1.8 to 4.0 seconds, and the samples
+  establish no percentage speedup. A fresh `std/video` rebuild still stops at the 24-sweep
+  `Slice.predictIntraPlane` error; compiler `01e0d9e59`, before both recent master changes and
+  these two prompt-4 groups, reproduces the same error.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

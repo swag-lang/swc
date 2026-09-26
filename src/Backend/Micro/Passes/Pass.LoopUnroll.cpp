@@ -36,13 +36,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Ordinary loops stop at sixteen trips. A loop indexing immutable
-    // constant storage can go further when the body-size budget admits it:
-    // every fixed index exposes a constant lookup to later passes. The total
-    // instruction caps bound growth in both cases.
-    constexpr uint64_t K_MAX_TRIPS       = 16;
-    constexpr uint32_t K_MAX_BODY_INSTR  = 96;
-    constexpr uint32_t K_MAX_TOTAL_INSTR = 384;
+    // Ordinary loops stop at sixteen trips. Four or fewer trips over constant
+    // tables admit a larger body: fixed indices expose constant loads to later
+    // passes, even when branches make the original body fairly large.
+    constexpr uint64_t K_MAX_TRIPS                 = 16;
+    constexpr uint64_t K_MAX_WIDE_TABLE_TRIPS      = 4;
+    constexpr uint32_t K_MAX_BODY_INSTR            = 144;
+    constexpr uint32_t K_MAX_TOTAL_INSTR           = 576;
+    constexpr uint32_t K_MAX_ORDINARY_BODY_INSTR   = 96;
+    constexpr uint32_t K_MAX_ORDINARY_TOTAL_INSTR  = 384;
     // A body with branches usually keeps its tests and jumps after unrolling.
     // The exception below is a short loop over constant tables: each fixed
     // index lets later passes fold a table lookup despite those branches.
@@ -493,6 +495,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // code-size cap; ordinary branched loops keep the smaller budget.
             const bool foldsTableIndices = indexedConstantLoads != 0;
             if (trips > K_MAX_TRIPS && !foldsTableIndices)
+                continue;
+            if ((!foldsTableIndices || trips > K_MAX_WIDE_TABLE_TRIPS) &&
+                (bodyCount > K_MAX_ORDINARY_BODY_INSTR || bodyCount * trips > K_MAX_ORDINARY_TOTAL_INSTR))
                 continue;
             if (!internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES && !foldsTableIndices)
                 continue;

@@ -373,6 +373,12 @@ block, and the hot path keeps the register.
   2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
   2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
   error in `compiler.core.058`, which the pre-campaign master compiler also reproduces.
+- A second prompt-4 group on the merged master uses that same layout to skip range-check,
+  range-and, branch-to-cmov and repeated-memory-compare scans when their required conditional
+  jump or setcc is absent. The 3,480 native and 1,500 JIT Release tests passed. A five-pair A/B
+  sweep was disrupted by shared load: core rebuilds grew from about 2 to 5-7 seconds during it.
+  Candidate/baseline medians were 2,067/2,082 ms for core rebuild, 44/49 ms for no-op,
+  1,830/1,929 ms for core touch and 126/120 ms for hello. This supports no percentage claim.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 
 - Recorded: 2026-09-16 12:12
-- Updated: 2026-09-26 15:58 — Counted pre-RA sweeps over the complete standard library in Release.
+- Updated: 2026-09-26 17:47 — Validated later prompt-4 backend workspace savings in Release.
 - Area: compiler/backend, compilation time
 - Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
   changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
@@ -64,6 +64,19 @@ block, and the hot path keeps the register.
   Sixteen functions needed more than ten sweeps; none exceeded fifteen. The current 24-sweep
   limit has nine sweeps of headroom on this corpus. The counter was removed after measurement;
   DevMode and other consumer workspaces remain unmeasured.
+- Later prompt-4 batches avoid a boolean-fusion scan without an immediate compare, count only
+  queried virtual definitions in the sanitizer, defer its call-target, diagnostic, released-location
+  and escaped-object containers, and retain live-slot, visit, block-index and register-position
+  storage across functions. The CFG no longer clears edge lists it is about to discard. These are
+  equivalent-work allocation and traversal savings; the shared machine has not yielded a stable
+  whole-build percentage. The latest Release candidate passed 3,481 native, 1,500 JIT and 781
+  `std/core` tests. After the dense-register change, all 12 standard modules built; the combined
+  test run first stopped once on an undiagnosed `CodeGen` error in `core`, which then passed alone
+  and in the next combined run. That run stopped in `pixel` with `0xC0000005` at `ntdll+0x1ff2a`;
+  the exact pre-campaign parent had crashed at the same offset earlier that day. Separate `gui`
+  and `video` runs passed 783 and 117 tests before the two latest workspace changes. A five-pair
+  four-workload timing attempt was stopped after unrelated load stretched one core touch to 30 s;
+  the shorter A/B screens establish no percentage claim.
 - Next: count DevMode sweeps and other consumer workspaces before treating the Release
   standard-library maximum as a general bound. If any function approaches 24, identify the
   pass chain that keeps changing it before raising the limit.

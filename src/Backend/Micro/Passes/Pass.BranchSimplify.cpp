@@ -7399,7 +7399,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         context.builder->invalidateControlFlowGraph();
     rewrote(convertEqualityChainsToBitTests(storage, operands, context, scanCache, relocationCache));
     rewrote(convertSwitchesToPackedTables(storage, operands, context, scanCache, relocationCache));
-    rewrote(foldRangeChecks(storage, operands, context));
+    // A range exit pair needs conditional jumps. Reuse the current layout
+    // when the earlier transforms left it intact.
+    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump)
+        rewrote(foldRangeChecks(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     // A whole `or` chain goes at once, before the two-link form takes its tail.

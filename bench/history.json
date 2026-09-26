@@ -6679,5 +6679,396 @@
     "hello_build_ms": null,
     "hello_build_peak_mb": null,
     "loop": {}
+  },
+  {
+    "meta": {
+      "protocol": 2,
+      "settings": {
+        "pin_mask": "0x55401",
+        "pin_cores": 6,
+        "phases": [
+          "build",
+          "run"
+        ],
+        "budget_ms": 4500,
+        "min_reps": 3,
+        "max_reps": 24,
+        "build_budget_ms": 3000,
+        "warmup_s": 30
+      },
+      "stamp": "20260926-071537",
+      "date": "2026-09-26T07:15:37+00:00",
+      "label": "",
+      "commit": "96eaeb08a",
+      "subject": "[prompt 4] Gate branch pattern scans on required opcodes",
+      "master": "96eaeb08a",
+      "dirty": false,
+      "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+      "swc_bytes": 7303680
+    },
+    "drift_pct": 1.5265109259137812,
+    "machine_spread_pct": 38.22672616049667,
+    "worst_moment": "raytrace",
+    "calibration_ms": 36.5736,
+    "context": {
+      "baseline": "20260807-134858",
+      "baseline_commit": "d36631d85",
+      "task_baselines": {},
+      "run_factor": 0.8992105232296418,
+      "run_task_factors": {
+        "wordfreq": 0.8233279198971357,
+        "csvagg": 0.8028257913328056,
+        "sha256": 0.8764755501783844,
+        "dijkstra": 0.8790790205917963,
+        "raytrace": 0.8983099475121479,
+        "leven": 1.16594283014059,
+        "chacha": 0.8911777180882443
+      },
+      "run_controls": 70,
+      "run_dispersion_pct": 2.5696684574321833,
+      "build_factor": 0.7761343762197445,
+      "build_task_factors": {
+        "wordfreq": 0.7371574753448807,
+        "csvagg": 0.735612137835291,
+        "sha256": 0.7225731733368187,
+        "dijkstra": 0.8599343227003219,
+        "raytrace": 0.8297599129233224,
+        "leven": 0.7887472529494138,
+        "chacha": 0.7693285496503073
+      },
+      "build_controls": 42,
+      "build_dispersion_pct": 6.462032846579173
+    },
+    "runtimes": {
+      "swag-release": {
+        "run_ms": {
+          "wordfreq": 50.2702,
+          "csvagg": 16.8416,
+          "sha256": 32.0874,
+          "dijkstra": 28.9337,
+          "raytrace": 11.2618,
+          "leven": 11.6166,
+          "chacha": 23.6264
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 61.057324530280255,
+          "csvagg": 20.977901036338825,
+          "sha256": 36.60957797792468,
+          "dijkstra": 32.91365090310291,
+          "raytrace": 12.536652890452052,
+          "leven": 9.963267237210305,
+          "chacha": 26.511434835560507
+        },
+        "run_geo_adjusted_ms": 24.373996387796137,
+        "run_index": {
+          "wordfreq": 0.8444015422774693,
+          "csvagg": 0.7152906462428176,
+          "sha256": 0.6226065760992624,
+          "dijkstra": 0.7279365446578809,
+          "raytrace": 0.7085697013601479,
+          "leven": 0.599998026269028,
+          "chacha": 0.910113862750721
+        },
+        "run_geo_index": 0.7256205269158039,
+        "build_ms": {
+          "wordfreq": 124.6967,
+          "csvagg": 135.4491,
+          "sha256": 122.1549,
+          "dijkstra": 131.4812,
+          "raytrace": 130.1917,
+          "leven": 131.782,
+          "chacha": 129.2965
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 169.15883535151073,
+          "csvagg": 184.13113790997295,
+          "sha256": 169.05540436256825,
+          "dijkstra": 152.896792847074,
+          "raytrace": 156.9028558409412,
+          "leven": 167.07760249841635,
+          "chacha": 168.0640866100326
+        },
+        "build_geo_adjusted_ms": 166.4985593610247,
+        "build_index": {
+          "wordfreq": 1.5290019329724789,
+          "csvagg": 1.6787833286984468,
+          "sha256": 1.4928895020025386,
+          "dijkstra": 1.5463520178554713,
+          "raytrace": 1.435396056354885,
+          "leven": 1.457847231842887,
+          "chacha": 1.2713144736914244
+        },
+        "build_geo_index": 1.4828475210215581,
+        "build_peak_mb": 121.359375,
+        "exe_kb": 89.78025675462575
+      },
+      "swc-jit-release": {
+        "run_ms": {
+          "wordfreq": 47.8607,
+          "csvagg": 20.781,
+          "sha256": 66.8817,
+          "dijkstra": 31.9965,
+          "raytrace": 11.5211,
+          "leven": 11.8122,
+          "chacha": 23.2642
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 58.13078706960355,
+          "csvagg": 25.884818629830722,
+          "sha256": 76.30754786757933,
+          "dijkstra": 36.39775179535049,
+          "raytrace": 12.825306044876232,
+          "leven": 10.131028464385066,
+          "chacha": 26.105006361589016
+        },
+        "run_geo_adjusted_ms": 28.19809571586751,
+        "run_index": {
+          "wordfreq": 0.7711310267290516,
+          "csvagg": 1.0083606138569516,
+          "sha256": 1.3043311807353424,
+          "dijkstra": 0.8029771956144597,
+          "raytrace": 0.7388913158761675,
+          "leven": 0.5987711654660492,
+          "chacha": 0.8714944578916388
+        },
+        "run_geo_index": 0.8474897582191938
+      },
+      "swag-fast-debug": {
+        "run_ms": {
+          "wordfreq": 72.5947,
+          "csvagg": 29.8421,
+          "sha256": 141.8448,
+          "dijkstra": 52.218,
+          "raytrace": 12.3411,
+          "leven": 46.8162,
+          "chacha": 60.348
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 88.17228013969182,
+          "csvagg": 37.17132698297827,
+          "sha256": 161.83543279801825,
+          "dijkstra": 59.40080331441288,
+          "raytrace": 13.738131292187557,
+          "leven": 40.153083658788724,
+          "chacha": 67.71713292995993
+        },
+        "run_geo_adjusted_ms": 53.014299613735076,
+        "run_index": {
+          "wordfreq": 0.9841150516506786,
+          "csvagg": 0.65559977113281,
+          "sha256": 0.6287229802681571,
+          "dijkstra": 1.1506431768254806,
+          "raytrace": 0.6127377281443572,
+          "leven": 0.8473081010250724,
+          "chacha": 0.7191670917671771
+        },
+        "run_geo_index": 0.7791199963315675,
+        "build_ms": {
+          "wordfreq": 130.9391,
+          "csvagg": 129.604,
+          "sha256": 129.7504,
+          "dijkstra": 146.6118,
+          "raytrace": 142.0375,
+          "leven": 146.1726,
+          "chacha": 303.0409
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 177.62703951247303,
+          "csvagg": 176.1852385706818,
+          "sha256": 179.56714252318145,
+          "dijkstra": 170.4918574939736,
+          "raytrace": 171.17903358284505,
+          "leven": 185.32248379110962,
+          "chacha": 393.90309918661546
+        },
+        "build_geo_adjusted_ms": 198.09907872004538,
+        "build_index": {
+          "wordfreq": 1.267955793286661,
+          "csvagg": 1.1571911040585987,
+          "sha256": 1.2843214203587994,
+          "dijkstra": 1.527268258391854,
+          "raytrace": 1.5026658343305082,
+          "leven": 1.261812198610266,
+          "chacha": 0.7980939486083722
+        },
+        "build_geo_index": 1.2339201530776616,
+        "build_peak_mb": 234.71484375,
+        "exe_kb": 127.8733542614438
+      },
+      "swc-jit-fast-debug": {
+        "run_ms": {
+          "wordfreq": 72.9083,
+          "csvagg": 31.8185,
+          "sha256": 234.0923,
+          "dijkstra": 52.5314,
+          "raytrace": 12.8406,
+          "leven": 48.463,
+          "chacha": 62.873
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 88.5531733323327,
+          "csvagg": 39.633131301345884,
+          "sha256": 267.0836624619551,
+          "dijkstra": 59.7573127892824,
+          "raytrace": 14.294175451982687,
+          "leven": 41.56550282500241,
+          "chacha": 70.55046229709967
+        },
+        "run_geo_adjusted_ms": 58.51158248762025,
+        "run_index": {
+          "wordfreq": 0.9612816926594843,
+          "csvagg": 0.646050508480449,
+          "sha256": 0.9993095419579048,
+          "dijkstra": 1.0560273271305123,
+          "raytrace": 0.5807359036069069,
+          "leven": 0.9599534129909892,
+          "chacha": 0.7321413912125189
+        },
+        "run_geo_index": 0.8283006810240671
+      }
+    },
+    "headline": {
+      "tasks": 7,
+      "exec_vs_best": 1.0957438332974192,
+      "exec_fastest": "swag-release",
+      "jit_gap_pct": 15.68925861491497,
+      "build_edge": 2.6421708117777793
+    },
+    "null": {
+      "run": {
+        "controls": 10,
+        "geo": [
+          0.9498986758537732,
+          1.0232908785959864
+        ],
+        "tasks": {
+          "wordfreq": [
+            0.9701330181238312,
+            1.0160504308300806
+          ],
+          "csvagg": [
+            0.9205980123020103,
+            1.080484362080092
+          ],
+          "sha256": [
+            0.9351064070253656,
+            1.0849209414142615
+          ],
+          "dijkstra": [
+            0.9327502843487933,
+            1.0665992202862418
+          ],
+          "raytrace": [
+            0.9153856634453819,
+            1.1327983420584102
+          ],
+          "leven": [
+            0.932247168686668,
+            1.029426548448863
+          ],
+          "chacha": [
+            0.9558638928260546,
+            1.0880260924803975
+          ]
+        }
+      },
+      "build": {
+        "controls": 6,
+        "geo": [
+          0.7393024563854839,
+          1.092136369107267
+        ],
+        "tasks": {
+          "wordfreq": [
+            0.8612219914510465,
+            1.1369672946590956
+          ],
+          "csvagg": [
+            0.42833597712915067,
+            1.2073981403642604
+          ],
+          "sha256": [
+            0.7016638038780003,
+            1.0663791861954008
+          ],
+          "dijkstra": [
+            0.9414417121457491,
+            1.137076493485234
+          ],
+          "raytrace": [
+            0.4548679324790115,
+            1.0972600118821587
+          ],
+          "leven": [
+            0.44782832664538264,
+            1.0926003619322409
+          ],
+          "chacha": [
+            0.9057272099491557,
+            1.3136061670665569
+          ]
+        }
+      }
+    },
+    "sample_spread_pct": 57.040309127429964,
+    "hello_jit_ms": 92.2153,
+    "hello_build_ms": 116.2078,
+    "hello_build_peak_mb": 107.30078125,
+    "loop": {
+      "hello_build": {
+        "wall_ms": 116.2078,
+        "adjusted_ms": 149.7263921822456,
+        "peak_mb": 107.30078125,
+        "peak_working_set_mb": 76.51171875,
+        "samples": 8,
+        "index": 1.3294217651311215,
+        "since": "d36631d85"
+      },
+      "core_rebuild": {
+        "wall_ms": 2851.8296,
+        "adjusted_ms": 3674.4018656797266,
+        "peak_mb": 769.61328125,
+        "peak_working_set_mb": 719.67578125,
+        "samples": 2,
+        "index": 1.1734582801346811,
+        "since": "a4677422e"
+      },
+      "core_noop": {
+        "wall_ms": 47.6436,
+        "adjusted_ms": 61.38576187290385,
+        "peak_mb": 7.703125,
+        "peak_working_set_mb": 14.3984375,
+        "samples": 8,
+        "index": 1.0125812624072332,
+        "since": "a4677422e"
+      },
+      "core_touch": {
+        "wall_ms": 2513.9833,
+        "adjusted_ms": 3239.1083000918693,
+        "peak_mb": 763.05078125,
+        "peak_working_set_mb": 715.1015625,
+        "samples": 2,
+        "index": 1.0844155973180425,
+        "since": "a4677422e"
+      },
+      "doc_std": {
+        "wall_ms": 35840.1984,
+        "adjusted_ms": 46177.82628642734,
+        "peak_mb": 2734.27734375,
+        "peak_working_set_mb": 2683.5,
+        "samples": 2,
+        "index": 1.2224075669950412,
+        "since": "a4677422e"
+      },
+      "format_tree": {
+        "wall_ms": 493.0407,
+        "adjusted_ms": 635.2517232923168,
+        "peak_mb": 507.5859375,
+        "peak_working_set_mb": 432.96875,
+        "samples": 5,
+        "index": 1.387089963744378,
+        "since": "a4677422e"
+      }
+    }
   }
 ]

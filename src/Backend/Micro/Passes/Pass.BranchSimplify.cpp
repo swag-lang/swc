@@ -1256,7 +1256,7 @@ namespace
             return false;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump)
+        if (!layout.hasConditionalJump || !layout.hasSetCondition)
             return false;
         const auto soleUsesAre = [&](MicroReg firstReg, MicroInstrRef firstReader, MicroReg secondReg, MicroInstrRef secondReader) {
             uint32_t firstUses  = 0;
@@ -2186,7 +2186,7 @@ namespace
         constexpr uint32_t K_MAX_CHAIN = 6;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump)
+        if (!layout.hasConditionalJump || !layout.hasSetCondition)
             return false;
 
         // Labels placed past a join's test, by the join's jump.

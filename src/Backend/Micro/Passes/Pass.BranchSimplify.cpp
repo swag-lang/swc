@@ -2996,7 +2996,8 @@ namespace
         if (!context.builder)
             return false;
         scanCache.ensureLayout(storage, operands);
-        if (!scanCache.scan.layout.hasImmediateCompare)
+        // Packed cases require an immediate compare followed by a conditional exit.
+        if (!scanCache.scan.layout.hasImmediateCompare || !scanCache.scan.layout.hasConditionalJump)
             return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);

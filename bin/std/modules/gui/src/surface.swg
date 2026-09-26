@@ -89,6 +89,13 @@ struct Surface
     dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
     isDirty:   bool                                                    // Whether a repaint is pending.
 
+    // Recorded before a native placement and reported when its prepared image is presented.
+    paintRecordUs: u64
+    paintTargetUs: u64
+    paintArea:     u64
+    paintVertices: u64
+    paintBatches:  u64
+
     // What the last pass did with the window tree. A repaint covers one region, so most of a
     // tree is normally rejected before it records anything; these say how much.
     paintedWnds: u32     // Windows the last pass painted.
@@ -416,11 +423,27 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
+        if .paintToRenderTarget(root) do
+            .presentRenderTarget()
+    }
+
+    // Prepares the next native geometry while the old window rectangle is still on screen.
+    // The platform presents this target only after USER32 has committed the new rectangle.
+    internal mtd prepareResizeFrame(root: *Wnd)->bool => .paintToRenderTarget(root)
+
+    internal mtd presentPreparedFrame()
+    {
+        .app.renderer.begin(.rc)
+        .presentRenderTarget()
+    }
+
+    private mtd paintToRenderTarget(root: *Wnd)->bool
+    {
         root.flushLayout()
         .createRT()
 
         if not .isDirty do
-            return
+            return false
 
         // Round the dirty rectangle once, on the logical grid the painter clip uses:
         // deriving the physical clear scissor from the raw edges instead would put
@@ -481,14 +504,14 @@ impl Surface
         .paintShadowOutsideBody()
         .painter.end()
 
-        var recordUs = 0'u64
-        var vertices = 0'u64
-        var batches  = 0'u64
+        .paintRecordUs = 0
+        .paintVertices = 0
+        .paintBatches  = 0
         if tracing
         {
-            recordUs = traceWatch.elapsedMicroseconds()
-            vertices = .painter.vertexBuffer.count
-            batches  = .painter.commandBuffer.count
+            .paintRecordUs = traceWatch.elapsedMicroseconds()
+            .paintVertices = .painter.vertexBuffer.count
+            .paintBatches  = .painter.commandBuffer.count
             traceWatch.restart()
         }
 
@@ -509,12 +532,23 @@ impl Surface
             .renderer.unbindRenderTarget()
         }
 
-        var rtUs = 0'u64
+        .paintTargetUs = 0
+        .paintArea     = 0
         if tracing
         {
-            rtUs = traceWatch.elapsedMicroseconds()
-            traceWatch.restart()
+            .paintTargetUs = traceWatch.elapsedMicroseconds()
+            .paintArea     = cast(u64) (physClip.width * physClip.height)
         }
+
+        return true
+    }
+
+    private mtd presentRenderTarget()
+    {
+        var traceWatch: Time.Stopwatch
+        let tracing = .app.frameTrace.enabled
+        if tracing do
+            traceWatch.restart()
 
         // Paint render target to screen. This pass copies physical texels one to
         // one, so it runs unscaled: destination and source are both device pixels.
@@ -545,20 +579,19 @@ impl Surface
         .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, color)
         .painter.end()
 
-        cxt.renderer.draw(&.painter)
+        .app.renderer.draw(&.painter)
 
         // The copy and the present are timed apart because they answer different questions: one
         // is work the window asked for, the other is how long the display made it wait.
         var presentUs = 0'u64
         if tracing do
             presentUs = traceWatch.elapsedMicroseconds()
-        cxt.renderer.end()
+        .app.renderer.end()
 
         if tracing
         {
-            let area    = cast(u64) (physClip.width * physClip.height)
-            let totalUs = traceWatch.elapsedMicroseconds()
-            .app.frameTrace.addSurface(recordUs, rtUs, presentUs, totalUs - presentUs, area, vertices, batches)
+            let swapUs = traceWatch.elapsedMicroseconds() - presentUs
+            .app.frameTrace.addSurface(.paintRecordUs, .paintTargetUs, presentUs, swapUs, .paintArea, .paintVertices, .paintBatches)
             .app.frameTrace.addSavings(.app.rendererOgl.scratchClearedPixels, .app.rendererOgl.scratchFullPixels)
         }
     }

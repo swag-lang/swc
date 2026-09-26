@@ -1,7 +1,7 @@
 #global public
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Win32, Gdi32
+using Core, Win32, Gdi32, Ogl
 
 // Defines htclient.
 private const HTCLIENT = 1
@@ -57,6 +57,13 @@ struct NativeSurface
         dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
         dropTargetActive: bool                  // Whether that target is registered with OLE.
     }
+
+    // A discrete placement prepares its expensive frame before USER32 exposes the new size.
+    inDiscretePlacement: bool
+    preparingFrame:      bool
+    preparedFrame:       bool
+    preparedWidth:       s32
+    preparedHeight:      s32
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -82,6 +89,7 @@ private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind
     surface.wnd.view.postEvent(evt)
 }
 
+#[Swag.CallingConvention(.C)]
 private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     // Associate pointer to surface with 'hWnd'
@@ -238,6 +246,15 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         case WM_PAINT:
             var ps: PAINTSTRUCT
             discard BeginPaint(hWnd, &ps)
+
+            // A pre-rendered frame belongs to the upcoming geometry. Painting it into the old
+            // drawable before WM_SIZE would expose a frame with mismatched content and bounds.
+            if surface.preparingFrame or surface.preparedFrame
+            {
+                EndPaint(hWnd, &ps)
+                return 0
+            }
+
             surface.invalidatePhysicalRect({cast(f32) ps.rcPaint.left, cast(f32) ps.rcPaint.top, cast(f32) (ps.rcPaint.right - ps.rcPaint.left), cast(f32) (ps.rcPaint.bottom - ps.rcPaint.top)})
 
             // The application loop is suspended during a native border drag. Paint on this
@@ -267,6 +284,28 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_WINDOWPOSCHANGING:
+            if surface.inDiscretePlacement and not surface.preparingFrame and surface.canPresentNow()
+            {
+                let next = cast(*WINDOWPOS) cast #bit (u64) lParam
+                if (next.flags & SWP_NOSIZE) == 0 and next.cx > 0 and next.cy > 0
+                {
+                    if surface.preparedFrame and surface.preparedWidth == next.cx and surface.preparedHeight == next.cy and not surface.isDirty do
+                        return 0
+
+                    surface.preparedFrame = false
+                    surface.preparingFrame = true
+                    surface.sendResizeEvent(cast(f32) next.cx, cast(f32) next.cy)
+                    surface.preparedFrame = surface.prepareResizeFrame(surface.wnd)
+                    surface.preparingFrame = false
+                    if surface.preparedFrame
+                    {
+                        surface.preparedWidth  = next.cx
+                        surface.preparedHeight = next.cy
+                        if Ogl.wglGetCurrentContext() != null do
+                            Ogl.glFlush()
+                    }
+                }
+            }
             return 0
 
         case WM_GETMINMAXINFO:
@@ -340,16 +379,27 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             // A minimized client has no drawable geometry. Keeping the last arranged tree avoids
             // a useless collapse to zero followed by a full expansion on restore.
-            if wParam == SizeMinimized do
+            if wParam == SizeMinimized
+            {
+                surface.preparedFrame = false
                 return 0
+            }
 
-            surface.sendResizeEvent(cast(f32) LOWORD(lParam), cast(f32) HIWORD(lParam))
+            let width    = cast(s32) LOWORD(lParam)
+            let height   = cast(s32) HIWORD(lParam)
+            let prepared = surface.preparedFrame and surface.preparedWidth == width and surface.preparedHeight == height and not surface.isDirty
+            surface.preparedFrame = false
+            if not prepared do
+                surface.sendResizeEvent(cast(f32) width, cast(f32) height)
 
             // Drawing and geometry share the window thread, so WGL does not retire drawable
             // buffers on a worker while USER32 is still changing that same window.
             if surface.canPresentNow()
             {
-                surface.paint()
+                if prepared do
+                    surface.presentPreparedFrame()
+                else do
+                    surface.paint()
                 discard ValidateRect(hWnd, null)
             }
 
@@ -472,6 +522,22 @@ private impl Surface
 
 impl Surface
 {
+    private mtd finishDiscretePlacement()
+    {
+        .inDiscretePlacement = false
+        if not .preparedFrame do
+            return
+
+        .preparedFrame = false
+        if .canPresentNow()
+        {
+            .presentPreparedFrame()
+            discard ValidateRect(.hWnd, null)
+        }
+        else do
+            .invalidate()
+    }
+
     internal mtd const nativeRenderHandle()->const *void? => cast(const *void?) .hWnd
 
     // Returns the Win32 window handle owned by this surface.
@@ -850,6 +916,8 @@ impl Surface
         }
 
         .applyNativeDwmStyle()
+        .inDiscretePlacement = true
+        defer .finishDiscretePlacement()
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
     }
 
@@ -878,6 +946,8 @@ impl Surface
         // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
         .inAppPlacement = true
         defer .inAppPlacement = false
+        .inDiscretePlacement = true
+        defer .finishDiscretePlacement()
 
         with var placement: WINDOWPLACEMENT
         {
@@ -903,6 +973,8 @@ impl Surface
         }
 
         .applyNativeDwmStyle()
+        .inDiscretePlacement = true
+        defer .finishDiscretePlacement()
         ShowWindow(.hWnd, SW_RESTORE)
     }
 

@@ -474,6 +474,7 @@ func freeOne(itf: IAllocator, address: *void?)
         alias HANDLE = *void
         alias DWORD  = u32
         alias SIZE_T = u64
+        #[Swag.CallingConvention(.C)]
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
         const INFINITE = 0xFFFF_FFFF'u32
@@ -504,6 +505,7 @@ func freeOne(itf: IAllocator, address: *void?)
 
     // Allocates a block, then gives this thread's heap back while the block is still live, so the
     // page it came from is left abandoned rather than released.
+    #[Swag.CallingConvention(.C)]
     func allocAndRetireThread(param: *void)->Th.DWORD
     {
         let p = cast(*AllocRetirePayload) param
@@ -520,6 +522,7 @@ func freeOne(itf: IAllocator, address: *void?)
 
     // Fills two medium pages before retiring their owner. The first page shares its first unit
     // with the segment header and holds seven 64 KiB blocks; the second holds eight.
+    #[Swag.CallingConvention(.C)]
     func fillPagesAndRetireThread(param: *void)->Th.DWORD
     {
         let p = cast(*FullPageRetirePayload) param
@@ -648,6 +651,7 @@ func freeOne(itf: IAllocator, address: *void?)
         start: s32
     }
 
+    #[Swag.CallingConvention(.C)]
     func pageThread(param: *void)->Th.DWORD
     {
         let shared = cast(*PageThreadShared) param
@@ -718,6 +722,7 @@ func freeOne(itf: IAllocator, address: *void?)
         freerDone: s32
     }
 
+    #[Swag.CallingConvention(.C)]
     func stressAllocRetireThread(param: *void)->Th.DWORD
     {
         let s    = cast(*StressShared) param
@@ -729,6 +734,7 @@ func freeOne(itf: IAllocator, address: *void?)
         return 0
     }
 
+    #[Swag.CallingConvention(.C)]
     func stressFreerThread(param: *void)->Th.DWORD
     {
         let s = cast(*StressShared) param
@@ -738,6 +744,7 @@ func freeOne(itf: IAllocator, address: *void?)
         return 0
     }
 
+    #[Swag.CallingConvention(.C)]
     func stressTrimThread(param: *void)->Th.DWORD
     {
         let s = cast(*StressShared) param

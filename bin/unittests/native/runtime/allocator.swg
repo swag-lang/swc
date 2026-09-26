@@ -25,6 +25,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         alias HANDLE = *void
         alias DWORD  = u32
         alias SIZE_T = u64
+        #[Swag.CallingConvention(.C)]
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
         const INFINITE = 0xFFFF_FFFF'u32
@@ -44,6 +45,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         done:      *s32
     }
 
+    #[Swag.CallingConvention(.C)]
     func allocatorRemoteFreeThread(param: *void)->AllocatorThreadTest.DWORD
     {
         let payload = cast(*AllocatorRemoteFreePayload) param

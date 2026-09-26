@@ -154,6 +154,11 @@ func localName(value: u32)->u32
 module name, and 'callconv' defaults to the Swag ABI, so a native library
 names 'Swag.CallConv.C' itself.
 
+'Swag.CallingConvention(value: CallConv)' sets the ABI of a function declaration
+or function type. Apply it to a callback function, function type alias, native
+vtable struct, or enclosing scope when the target uses the C ABI. A foreign
+declaration inherits it unless 'Foreign(callconv: ...)' states another ABI.
+
 # Documentation
 
 | Attribute | Purpose |

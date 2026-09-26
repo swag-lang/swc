@@ -411,7 +411,7 @@ namespace
         return Result::Continue;
     }
 
-    Result collectForeignCallConvValue(Sema& sema, CallConvKind& outValue, const ResolvedCallArgument& arg)
+    Result collectForeignCallConvValue(Sema& sema, CallConvKind& outValue, const ResolvedCallArgument& arg, DiagnosticId invalidCallConvDiagnostic = DiagnosticId::sema_err_foreign_invalid_callconv)
     {
         const ConstantValue* value = nullptr;
         SWC_RESULT(collectResolvedConstantValue(sema, arg, value));
@@ -421,7 +421,7 @@ namespace
 
         const auto callConvKind = static_cast<CallConvKind>(value->getInt().asI64());
         if (!isValidCallConvKind(callConvKind))
-            return SemaError::raise(sema, DiagnosticId::sema_err_foreign_invalid_callconv, arg.argRef.isValid() ? arg.argRef : sema.curNodeRef());
+            return SemaError::raise(sema, invalidCallConvDiagnostic, arg.argRef.isValid() ? arg.argRef : sema.curNodeRef());
 
         outValue = callConvKind;
         return Result::Continue;
@@ -517,6 +517,7 @@ namespace
         const IdentifierRef      safetyIdRef        = sema.idMgr().addIdentifier("Safety");
         const IdentifierRef      sanityIdRef        = sema.idMgr().addIdentifier("Sanity");
         const IdentifierRef      borrowSummaryIdRef = sema.idMgr().addIdentifier("BorrowSummary");
+        const IdentifierRef      callingConventionIdRef = sema.idMgr().addIdentifier("CallingConvention");
         const IdentifierRef      warningIdRef       = sema.idMgr().addIdentifier("Warning");
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
@@ -530,6 +531,13 @@ namespace
             return collectSanityOptions(sema, resolvedArgs, outAttributes);
         if (idRef == borrowSummaryIdRef)
             return collectBorrowSummaryOptions(sema, resolvedArgs, outAttributes);
+        if (idRef == callingConventionIdRef)
+        {
+            CallConvKind kind = CallConvKind::Swag;
+            SWC_RESULT(collectForeignCallConvValue(sema, kind, resolvedArgs[0], DiagnosticId::sema_err_calling_convention_invalid_callconv));
+            outAttributes.declaredCallConvKind = kind;
+            return Result::Continue;
+        }
         if (idRef == warningIdRef)
             return collectWarningOptions(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))

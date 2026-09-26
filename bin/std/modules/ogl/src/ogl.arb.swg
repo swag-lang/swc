@@ -369,6 +369,7 @@ const GL_ARB_cull_distance = 1
 
 /* -------------------------- GL_ARB_debug_output -------------------------- */
 
+#[Swag.CallingConvention(.C)]
 alias GLDEBUGPROCARB = func(GLenum, GLenum, GLuint, GLenum, GLsizei, const *GLchar?, const *void?)
 
 const GL_ARB_debug_output                     = 1

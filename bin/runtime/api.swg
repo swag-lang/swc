@@ -206,6 +206,14 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Foreign(module: string = "", function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.Swag)
 
+    // Chooses the ABI for functions and function values declared in this scope.
+    //
+    // Use `.C` for callbacks and vtables supplied to native libraries. An annotated
+    // function declaration is entered with that convention; an annotated function type
+    // calls its target with that convention. The unannotated convention is `.Swag`.
+    #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.StructVariable | AttributeUsage.Alias | AttributeUsage.File | AttributeUsage.Scope)]
+    attr CallingConvention(value: CallConv)
+
     // Lets a caller ignore the function's result without writing 'discard'.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]
     attr Discardable()

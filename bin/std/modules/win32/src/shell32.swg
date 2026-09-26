@@ -355,6 +355,7 @@ struct IDropTargetHelper
     public lpVtbl: *IDropTargetHelperVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IDropTargetHelperVtbl
 {
     public
@@ -374,6 +375,7 @@ struct IDragSourceHelper
     public lpVtbl: *IDragSourceHelperVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IDragSourceHelperVtbl
 {
     public

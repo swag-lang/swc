@@ -33,6 +33,7 @@ struct IFileOperation
     public lpVtbl: *IFileOperationVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IFileOperationVtbl
 {
     public

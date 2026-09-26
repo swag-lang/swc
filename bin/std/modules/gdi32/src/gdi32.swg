@@ -450,7 +450,9 @@ struct NEWTEXTMETRICW
     }
 }
 
+#[Swag.CallingConvention(.C)]
 alias FONTENUMPROCA = func(const *LOGFONTA, const *TEXTMETRICA, DWORD, LPARAM)->BOOL
+#[Swag.CallingConvention(.C)]
 alias FONTENUMPROCW = func(const *LOGFONTW, const *TEXTMETRICW, DWORD, LPARAM)->BOOL
 
 #[Swag.Inline]

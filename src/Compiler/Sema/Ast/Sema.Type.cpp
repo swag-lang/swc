@@ -691,6 +691,8 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     TaskContext& ctx = sema.ctx();
 
     auto* symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    if (sema.frame().currentAttributes().declaredCallConvKind)
+        symFunc->setCallConvKind(*sema.frame().currentAttributes().declaredCallConvKind);
 
     SmallVector<AstNodeRef> params;
     sema.ast().appendNodes(params, spanParamsRef);

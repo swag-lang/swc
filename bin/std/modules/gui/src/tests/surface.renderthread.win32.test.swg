@@ -27,3 +27,31 @@ using Core, Win32, Ogl
         Swag.assert(surface.rt.colorBuffer.isValid())
     }
 }
+
+// Discrete placements finish with a target and client rectangle of the same size. In particular,
+// preparing the large maximized frame before USER32 changes the window must not leave the surface
+// dirty or publish the normal-sized target through the maximized drawable.
+#[Swag.TestTag("gpu")]
+#test
+{
+    var app: Application
+    let surface = (expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-discrete-placement-test"))!
+    surface.show()
+
+    let normal = surface.position
+    surface.showMaximized()
+
+    var client: RECT
+    Swag.assert(GetClientRect(surface.win32Handle(), &client))
+    Swag.assert(surface.isMaximized)
+    Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
+    Swag.assert(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)
+    Swag.assert(not surface.preparedFrame and not surface.isDirty)
+
+    surface.showNormal()
+    Swag.assert(GetClientRect(surface.win32Handle(), &client))
+    Swag.assert(not surface.isMaximized)
+    Swag.assert(surface.position == normal)
+    Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
+    Swag.assert(not surface.preparedFrame and not surface.isDirty)
+}

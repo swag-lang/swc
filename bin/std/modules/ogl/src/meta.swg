@@ -43,12 +43,29 @@ var g_Functions: Array'OneFunc
         var builderVars: StringBuilder
         let etype = e.type!
 
-        // Declare a lambda variable for that extension.
-        builderVars.appendString("var ext_")
+        for p in etype.parameters
+        {
+            if p.pointedType!.kind != TypeInfoKind.Func do
+                continue
+            builderVars.appendString("#[Swag.CallingConvention(.C)]\npublic alias extParamType_")
+            builderVars.appendString(e.name)
+            builderVars.appendString("_")
+            builderVars.appendString(p.name)
+            builderVars.appendString(" = ")
+            builderVars.appendString(p.pointedType.fullname)
+            builderVars.appendString("\n")
+        }
+
+        // OpenGL extension entry points use the native C ABI.
+        builderVars.appendString("#[Swag.CallingConvention(.C)]\nalias extType_")
         builderVars.appendString(e.name)
-        builderVars.appendString(": (")
+        builderVars.appendString(" = ")
         builderVars.appendString(etype.fullname)
-        builderVars.appendString(")?\n")
+        builderVars.appendString("\nvar ext_")
+        builderVars.appendString(e.name)
+        builderVars.appendString(": extType_")
+        builderVars.appendString(e.name)
+        builderVars.appendString("?\n")
 
         // Generate the wrapper function body.
         builderVars.appendString("public func ")
@@ -60,7 +77,15 @@ var g_Functions: Array'OneFunc
                 builderVars.appendString(", ")
             builderVars.appendString(p.name)
             builderVars.appendString(": ")
-            builderVars.appendString(p.pointedType!.fullname)
+            if p.pointedType!.kind == TypeInfoKind.Func
+            {
+                builderVars.appendString("extParamType_")
+                builderVars.appendString(e.name)
+                builderVars.appendString("_")
+                builderVars.appendString(p.name)
+            }
+            else do
+                builderVars.appendString(p.pointedType.fullname)
         }
 
         let retType = etype.returnType
@@ -95,7 +120,8 @@ var g_Functions: Array'OneFunc
         builderInit.appendString("\text_")
         builderInit.appendString(e.name)
         builderInit.appendString(" = cast((")
-        builderInit.appendString(etype.fullname)
+        builderInit.appendString("extType_")
+        builderInit.appendString(e.name)
         builderInit.appendString(")?) getExtensionAddress((\"")
         builderInit.appendString(e.name)
         builderInit.appendString("\").buffer)\n")

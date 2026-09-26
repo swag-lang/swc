@@ -314,6 +314,16 @@ namespace
         return value.a + value.b + value.c;
     }
 
+    uint64_t ffiNativeFifthFloat(uint64_t a, uint64_t b, uint64_t c, uint64_t d, float ratio, uint64_t tail)
+    {
+        return a == 11 && b == 22 && c == 33 && d == 44 && ratio == 2.0f && tail == 55 ? 12345 : 0;
+    }
+
+    struct FFIFloatVTable
+    {
+        decltype(&ffiNativeFifthFloat) invoke;
+    };
+
     FFIStructPair32 ffiNativeReturnStructPair32(uint32_t a, uint32_t b)
     {
         return {.a = a, .b = b};
@@ -543,10 +553,9 @@ namespace
         int32_t y;
     };
 
-    // Cover both interop directions through raw function pointers. F-078 exercises a native caller
-    // entering Swag with small register aggregates; F-079 exercises Swag calling a native target
-    // that mutates the indirect copy of a large by-value aggregate.
-    Result runSwagStructByValueInterop(const TaskContext& ctx, std::string_view buildCfg)
+    // Cover both interop directions through raw function pointers. The fifth float occupies
+    // a native stack slot, including when a Swag function value points at a native method.
+    Result runSwagFunctionValueInterop(const TaskContext& ctx, std::string_view buildCfg)
     {
         static constexpr std::string_view SOURCE     = R"(#global private
 
@@ -606,19 +615,47 @@ func probeLargeOutbound(target: func(Triple)->u64)->u64
     return result * 100 + original.a
 }
 
+#[Swag.CallingConvention(.C)]
+alias NativeFloatCallback = func(u64, u64, u64, u64, f32, u64)->u64
+
+#[Swag.CallingConvention(.C)]
+func probeFloatInbound(a: u64, b: u64, c: u64, d: u64, ratio: f32, tail: u64)->u64
+{
+    return a == 11 and b == 22 and c == 33 and d == 44 and ratio == 2.0'f32 and tail == 55 ? 12345 : 0
+}
+
+func probeFloatOutbound(target: NativeFloatCallback)->u64
+{
+    return target(11, 22, 33, 44, 2.0'f32, 55)
+}
+
+#[Swag.CallingConvention(.C)]
+struct NativeFloatVtbl
+{
+    invoke: func(u64, u64, u64, u64, f32, u64)->u64
+}
+
+func probeFloatVtbl(vtbl: *NativeFloatVtbl)->u64
+{
+    return vtbl.invoke(11, 22, 33, 44, 2.0'f32, 55)
+}
+
 var GProbePairReg: func(u64, Pair, u64)->u64 = &probePairReg
 var GProbePairStack: func(u64, u64, u64, u64, Pair)->u64 = &probePairStack
 var GProbeTinyReg: func(u64, Tiny)->u64 = &probeTinyReg
 var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
 var GProbeLargeOutbound: func(func(Triple)->u64)->u64 = &probeLargeOutbound
+var GProbeFloatInbound: NativeFloatCallback = &probeFloatInbound
+var GProbeFloatOutbound: func(NativeFloatCallback)->u64 = &probeFloatOutbound
+var GProbeFloatVtbl: func(*NativeFloatVtbl)->u64 = &probeFloatVtbl
 )";
-        const fs::path                    sourcePath = Unittest::makeTestSourcePath("ABI", std::format("CallSwagStructByValueInterop_{}", buildCfg));
+        const fs::path                    sourcePath = Unittest::makeTestSourcePath("ABI", std::format("CallSwagFunctionValueInterop_{}", buildCfg));
 
         CommandLine cmdLine;
         cmdLine.command     = CommandKind::Test;
         cmdLine.buildCfg    = Utf8(buildCfg);
         cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
-        cmdLine.name        = std::format("abi_struct_by_value_interop_{}", buildCfg);
+        cmdLine.name        = std::format("abi_function_value_interop_{}", buildCfg);
         cmdLine.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -643,7 +680,7 @@ var GProbeLargeOutbound: func(func(Triple)->u64)->u64 = &probeLargeOutbound
 
         const auto                   initTargets = compiler.nativeGlobalFunctionInitTargetsSnapshot();
         SmallVector<SymbolFunction*> probes;
-        for (const std::string_view name : {"probePairReg", "probePairStack", "probeTinyReg", "probeDragEnter", "probeLargeOutbound"})
+        for (const std::string_view name : {"probePairReg", "probePairStack", "probeTinyReg", "probeDragEnter", "probeLargeOutbound", "probeFloatInbound", "probeFloatOutbound", "probeFloatVtbl"})
         {
             SymbolFunction* probe = nullptr;
             for (SymbolFunction* function : initTargets)
@@ -744,19 +781,41 @@ var GProbeLargeOutbound: func(func(Triple)->u64)->u64 = &probeLargeOutbound
             return Result::Error;
         }
 
+        const auto floatInbound = reinterpret_cast<uint64_t (*)(uint64_t, uint64_t, uint64_t, uint64_t, float, uint64_t)>(probes[5]->jitEntryAddress());
+        if (!floatInbound || floatInbound(11, 22, 33, 44, 2.0f, 55) != 12345)
+        {
+            std::println(stderr, "FFI interop [{}]: fifth float was not received from native code", buildCfg);
+            return Result::Error;
+        }
+
+        const auto floatOutbound = reinterpret_cast<uint64_t (*)(uint64_t (*)(uint64_t, uint64_t, uint64_t, uint64_t, float, uint64_t))>(probes[6]->jitEntryAddress());
+        if (!floatOutbound || floatOutbound(&ffiNativeFifthFloat) != 12345)
+        {
+            std::println(stderr, "FFI interop [{}]: fifth float was not passed to native code", buildCfg);
+            return Result::Error;
+        }
+
+        const auto floatVtbl = reinterpret_cast<uint64_t (*)(const FFIFloatVTable*)>(probes[7]->jitEntryAddress());
+        const FFIFloatVTable nativeVtbl{&ffiNativeFifthFloat};
+        if (!floatVtbl || floatVtbl(&nativeVtbl) != 12345)
+        {
+            std::println(stderr, "FFI interop [{}]: vtable call used the wrong convention", buildCfg);
+            return Result::Error;
+        }
+
         return Result::Continue;
     }
 }
 
-SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropDevMode)
+SWC_TEST_BEGIN(FFI_CallSwagFunctionValueInteropDevMode)
 {
-    SWC_RESULT(runSwagStructByValueInterop(ctx, "devmode"));
+    SWC_RESULT(runSwagFunctionValueInterop(ctx, "devmode"));
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropRelease)
+SWC_TEST_BEGIN(FFI_CallSwagFunctionValueInteropRelease)
 {
-    SWC_RESULT(runSwagStructByValueInterop(ctx, "release"));
+    SWC_RESULT(runSwagFunctionValueInterop(ctx, "release"));
 }
 SWC_TEST_END()
 

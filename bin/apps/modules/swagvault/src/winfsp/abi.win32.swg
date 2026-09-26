@@ -79,25 +79,45 @@ namespace WinFsp
     #assert(#offsetof(FspDirInfo.fileName) == 104)
     #assert(#offsetof(FspFileSystem.userContext) == 8)
 
+    #[Swag.CallingConvention(.C)]
     alias FspGetVolumeInfoFn     = func(*FspFileSystem, *FspVolumeInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspSetVolumeLabelFn    = func(*FspFileSystem, [*] u16?, *FspVolumeInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspGetSecurityByNameFn = func(*FspFileSystem, [*] u16?, *u32?, *void?, *u64?)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspCreateFn            = func(*FspFileSystem, [*] u16?, u32, u32, u32, *void?, u64, *(*void?), *FileInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspOpenFn              = func(*FspFileSystem, [*] u16?, u32, u32, *(*void?), *FileInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspOverwriteFn         = func(*FspFileSystem, *void?, u32, u8, u64, *FileInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspCleanupFn           = func(*FspFileSystem, *void?, [*] u16?, u32)
+    #[Swag.CallingConvention(.C)]
     alias FspCloseFn             = func(*FspFileSystem, *void?)
+    #[Swag.CallingConvention(.C)]
     alias FspReadFn              = func(*FspFileSystem, *void?, *void?, u64, u32, *u32)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspWriteFn             = func(*FspFileSystem, *void?, *void?, u64, u32, u8, u8, *u32, *FileInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspFlushFn             = func(*FspFileSystem, *void?, *FileInfo?)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspGetFileInfoFn       = func(*FspFileSystem, *void?, *FileInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspSetBasicInfoFn      = func(*FspFileSystem, *void?, u32, u64, u64, u64, u64, *FileInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspSetFileSizeFn       = func(*FspFileSystem, *void?, u64, u8, *FileInfo)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspCanDeleteFn         = func(*FspFileSystem, *void?, [*] u16?)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspRenameFn            = func(*FspFileSystem, *void?, [*] u16?, [*] u16?, u8)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspGetSecurityFn       = func(*FspFileSystem, *void?, *void?, *u64)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspSetSecurityFn       = func(*FspFileSystem, *void?, u32, *void?)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspReadDirectoryFn     = func(*FspFileSystem, *void?, [*] u16?, [*] u16?, *void?, u32, *u32)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspGetDirInfoByNameFn  = func(*FspFileSystem, *void?, [*] u16?, *FspDirInfo)->s32
 
     // The dispatch table WinFsp calls back through. Every slot starts null and receives its
@@ -138,18 +158,31 @@ namespace WinFsp
     #assert(#sizeof(FspInterface) == 64 * #sizeof(*void?))
     #assert(#offsetof(FspInterface.getDirInfoByName) == 24 * #sizeof(*void?))
 
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemCreateFn           = func(const [*] u16?, const *FspVolumeParams, const *FspInterface, *(*FspFileSystem?))->s32
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemDeleteFn           = func(*FspFileSystem)
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemSetMountPointFn    = func(*FspFileSystem, const [*] u16?)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemRemoveMountPointFn = func(*FspFileSystem)
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemStartDispatcherFn  = func(*FspFileSystem, u32)->s32
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemStopDispatcherFn   = func(*FspFileSystem)
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemAddDirInfoFn       = func(*FspDirInfo?, *void?, u32, *u32)->u8
+    #[Swag.CallingConvention(.C)]
     alias FspFileSystemSetGuardFn         = func(*FspFileSystem, s32)
+    #[Swag.CallingConvention(.C)]
     alias FspSetSecurityDescriptorFn      = func(const *void?, u32, *void?, *(*void?))->s32
+    #[Swag.CallingConvention(.C)]
     alias FspDeleteSecurityDescriptorFn   = func(*void?, const *void?)
+    #[Swag.CallingConvention(.C)]
     alias WinFspRegistrationFn            = func()->s32
+    #[Swag.CallingConvention(.C)]
     alias FspDebugLogSetHandleFn          = func(NativeHandle)
+    #[Swag.CallingConvention(.C)]
     alias FspFsctlStartServiceFn          = func()->s32
 
     struct WinFspApi

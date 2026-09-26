@@ -50,3 +50,21 @@ using Swag, Core
     host.surface.paint()
     Swag.assert(not host.surface.isDirty, "a synchronous paint leaves nothing pending")
 }
+
+// A frame prepared before the native geometry changes has the same pixels as a normal repaint at
+// that size. The second phase only publishes the prepared target; it does not reflow the tree.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(256, 128)
+    defer host.shutdown()
+
+    host.surface.setPosition({0, 0, 384, 224})
+    Swag.assert(host.surface.prepareResizeFrame(&host.root))
+    let prepared = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
+    Swag.assert(not host.surface.isDirty)
+
+    host.surface.presentPreparedFrame()
+    let direct = host.render()
+    Pixel.Testing.assertImagesNear(&prepared, &direct, "surface.prepared-resize")
+}

@@ -25,6 +25,7 @@ tls var g_Point: TlsPoint
         alias HANDLE = *void
         alias DWORD  = u32
         alias SIZE_T = u64
+        #[Swag.CallingConvention(.C)]
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
         const INFINITE = 0xFFFF_FFFF'u32
@@ -46,6 +47,7 @@ tls var g_Point: TlsPoint
         ownCounter:  u64
     }
 
+    #[Swag.CallingConvention(.C)]
     func tlsWorker(param: *void)->Th.DWORD
     {
         let result = cast(*TlsResult) param

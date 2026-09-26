@@ -51,6 +51,7 @@ const MWMO_INPUTAVAILABLE = 0x0004'u32
 
 alias UINT_PTR  = u64
 alias HRGN      = const *void?
+#[Swag.CallingConvention(.C)]
 alias TIMERPROC = func(HWND, UINT, UINT_PTR, DWORD)
 
 struct LASTINPUTINFO
@@ -948,7 +949,9 @@ struct MONITORINFO
     }
 }
 
+#[Swag.CallingConvention(.C)]
 alias MONITORENUMPROC = func(HMONITOR, HDC, *RECT, LPARAM)->BOOL
+#[Swag.CallingConvention(.C)]
 alias WNDENUMPROC     = func(HWND, LPARAM)->BOOL
 
 const SM_CXSCREEN                    = 0

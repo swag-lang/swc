@@ -13,9 +13,24 @@ parameters are:
 | 'link' | Native import-library name when it differs from 'module' |
 | 'callconv' | ABI: '.Swag' by default, '.C', or '.WindowsX64' |
 
-A Swag declaration is Swag-convention unless it says otherwise, and
-'#[Swag.Foreign]' only states where a function comes from. A function of a
-native library therefore names 'Swag.CallConv.C' itself.
+A Swag declaration uses the Swag ABI unless it says otherwise. A function of a
+native library names 'Swag.CallConv.C' in 'Foreign', or inherits it from an
+enclosing 'Swag.CallingConvention(.C)' scope. Function values and callbacks
+crossing the native boundary also need that convention:
+
+```swag
+#[Swag.CallingConvention(.C)]
+alias NativeCallback = func(u64, u64, u64, u64, f32)->u32
+
+#[Swag.CallingConvention(.C)]
+func onNativeEvent(a: u64, b: u64, c: u64, d: u64, value: f32)->u32
+{
+    return value > 0 ? 1 : 0
+}
+```
+
+The attribute may also decorate a struct of native vtable entries or a scope
+containing native callbacks. Ordinary Swag function values retain the Swag ABI.
 
 A generated module API is the one place where 'module' is left out: it names
 the module the API file describes, and 'function' then defaults to the
@@ -57,4 +72,8 @@ func openVendorHandle(flags: u32)->*void?
 The declaration is an ABI contract, not a conversion layer. A mismatched
 parameter type, struct layout, calling convention, or nullability annotation
 can corrupt memory even when the code compiles.
+
+'.C' selects the target platform's C ABI, which is also the callback ABI of
+the Windows APIs shown here. It is not a promise that every external API uses
+the C ABI on every architecture; use the ABI specified by that API.
 */

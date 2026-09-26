@@ -4,6 +4,9 @@ using Core, Win32
 
 namespace Integration
 {
+    #[Swag.CallingConvention(.C)]
+    alias FspSxsIdentFn = func()->const [*] u16
+
     const PasswordText            = "integration horse battery staple"
     const WrongPasswordText       = "definitely not the password"
     const VisibilityProbeArgument = "--integration-drive-probe"
@@ -566,7 +569,7 @@ namespace Integration
         defer discard FreeLibrary(module)
         let address = GetProcAddress(module, ("FspSxsIdent").buffer)
         try verify(address != null, "WinFsp must expose its active SxS identity")
-        let readIdentity = cast(func()->const [*] u16) address!
+        let readIdentity = cast(FspSxsIdentFn) address!
         let identity     = readIdentity()
         var count        = 0'u64
         while count < 32 and identity[count] do

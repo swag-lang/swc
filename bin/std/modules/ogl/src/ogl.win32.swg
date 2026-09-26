@@ -6,6 +6,8 @@ using Swag, Core, Win32, Gdi32
 
 alias HGLRC = const *void?
 alias getExtensionAddress = wglGetProcAddress
+#[Swag.CallingConvention(.C)]
+alias WglSwapIntervalProc = func(s32)->BOOL
 
 // Sets how many display refreshes a `SwapBuffers` waits for, and reports whether it was accepted.
 //
@@ -16,7 +18,7 @@ alias getExtensionAddress = wglGetProcAddress
 // machines showing the same program never presented at the same cadence.
 public func wglSwapIntervalEXT(interval: s32)->bool
 {
-    let entry = cast((func(s32)->BOOL)?) getExtensionAddress(("wglSwapIntervalEXT").buffer)
+    let entry = cast(WglSwapIntervalProc?) getExtensionAddress(("wglSwapIntervalEXT").buffer)
     if not entry do
         return false
     return entry(interval) != 0

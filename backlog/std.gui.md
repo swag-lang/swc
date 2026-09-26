@@ -33,6 +33,32 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.057 — Prevent stale compositor frames during maximize and restore
+
+- Recorded: 2026-09-26 18:37
+- Updated: 2026-09-26 18:56 — constrain native capture to the target window at display cadence
+- Evidence: a 30 fps, 3680x1970 screen recording of Swag Scope viewing a large Markdown
+  manuscript shows one visibly broken restore frame at frame 84 (2.8 s): the old maximized
+  document is cropped over the desktop at the restored window's location, with no window chrome.
+  Frame 85 has the correctly laid-out restored window. The reverse transition at frames 199-200
+  jumps directly to the maximized frame. The reporter has also seen worse instances.
+- Current boundary: `Surface.showNormal` calls `ShowWindow(SW_RESTORE)`, and `WM_SIZE` relayouts
+  and paints synchronously. `WM_NCCALCSIZE` requests that no old client pixels be preserved;
+  `DWMWA_TRANSITIONS_FORCEDISABLED` is already set. The recording still captures old-sized pixels
+  between the geometry change and the new presentation. A DWM composition race is plausible,
+  but the exact message, swap and composition order has not been measured.
+- Capture constraint: an initial automated desktop capture sampled only about five frames per
+  second and recorded a different foreground window, so it cannot validate this one-frame defect.
+- Next: reproduce on a controlled foreground desktop with a capture at least as fast as the
+  display while timestamping window messages, `SwapBuffers` and composed frames. Test preparing
+  the new render target before the native geometry commit, then presenting it as the size
+  changes. Compare with the current path on the same display and with a large reflowing
+  document; keep the physical border-drag latency measured in std.gui.056 within its existing range.
+- Complete when: repeated maximize/restore captures show no old-size, clipped or blank frame,
+  including when document layout exceeds one refresh, and the regression has a repeatable native
+  visual boundary.
+- Related: std.gui.056
+
 ### std.gui.056 — Reduce ordinary WGL resize latency with window-thread ownership preserved
 
 - Recorded: 2026-09-09 06:35

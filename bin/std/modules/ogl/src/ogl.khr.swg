@@ -4,6 +4,7 @@ using Swag
 
 /* ----------------------------- GL_KHR_debug ------------------------------ */
 
+#[Swag.CallingConvention(.C)]
 alias GLDEBUGPROC = func(GLenum, GLenum, GLuint, GLenum, GLsizei, const *GLchar?, const *void?)
 
 const GL_CONTEXT_FLAG_DEBUG_BIT           = 0x00000002
@@ -46,6 +47,7 @@ const GL_DEBUG_SEVERITY_LOW               = 0x9148
 const GL_DEBUG_OUTPUT                     = 0x92E0
 const GL_KHR_debug                        = 1
 
+#[Swag.CallingConvention(.C)]
 // alias GLDEBUGPROC = func(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, message: ? const *GLchar, userParam: ? const *void)
 
 #[Extension, Swag.PlaceHolder]

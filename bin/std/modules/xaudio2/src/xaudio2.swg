@@ -1,5 +1,6 @@
 #global export
 #global if #os == Swag.TargetOs.Windows
+#global #[Swag.CallingConvention(.C)]
 
 #foreignlib("xaudio2")
 using Swag, Win32

@@ -97,6 +97,7 @@ struct AttributeList
     Utf8                        foreignFunctionName;
     Utf8                        foreignLinkModuleName;
     std::optional<CallConvKind> foreignCallConvKind;
+    std::optional<CallConvKind> declaredCallConvKind;
     GeneratedOperatorFlags      generatedOperators = GeneratedOperatorFlagsE::Zero;
     SourceCodeRef               generatedOperatorsCodeRef;
 
@@ -122,6 +123,7 @@ struct AttributeList
                foreignFunctionName.empty() &&
                foreignLinkModuleName.empty() &&
                !foreignCallConvKind.has_value() &&
+               !declaredCallConvKind.has_value() &&
                generatedOperators.none();
     }
 
@@ -215,12 +217,11 @@ struct AttributeList
         backendOptimize = value;
     }
 
-    // A Swag declaration is Swag-convention unless it says otherwise, and 'Swag.Foreign'
-    // only states where a function comes from. A foreign function of a native library
-    // therefore names 'Swag.CallConv.C' explicitly.
+    // A foreign declaration inherits the convention of its scope unless 'Foreign'
+    // names one explicitly.
     CallConvKind resolvedForeignCallConvKind() const
     {
-        return foreignCallConvKind.value_or(CallConvKind::Swag);
+        return foreignCallConvKind.value_or(declaredCallConvKind.value_or(CallConvKind::Swag));
     }
 
     void setForeign(std::string_view moduleName, std::string_view functionName, std::string_view linkModuleName = {}, std::optional<CallConvKind> callConvKind = std::nullopt)

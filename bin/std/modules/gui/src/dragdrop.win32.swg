@@ -316,6 +316,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
 
 private func dropTargetOf(itf: *IDropTarget)->*SurfaceDropTarget => cast(*SurfaceDropTarget) cast(*void) itf
 
+#[Swag.CallingConvention(.C)]
 private func comQueryInterface(itf: *IDropTarget, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
@@ -328,6 +329,7 @@ private func comQueryInterface(itf: *IDropTarget, riid: const *GUID, ppv: *LPVOI
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func comAddRef(itf: *IDropTarget)->ULONG
 {
     let target = dropTargetOf(itf)
@@ -336,6 +338,7 @@ private func comAddRef(itf: *IDropTarget)->ULONG
 }
 
 // Reaching zero frees nothing: the object is a member of the surface that registered it.
+#[Swag.CallingConvention(.C)]
 private func comRelease(itf: *IDropTarget)->ULONG
 {
     let target = dropTargetOf(itf)
@@ -344,6 +347,7 @@ private func comRelease(itf: *IDropTarget)->ULONG
     return target.refCount
 }
 
+#[Swag.CallingConvention(.C)]
 private func comDragEnter(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
     let target = dropTargetOf(itf)
@@ -364,6 +368,7 @@ private func comDragEnter(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
     let target = dropTargetOf(itf)
@@ -383,6 +388,7 @@ private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwE
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func comDragLeave(itf: *IDropTarget)->HRESULT
 {
     let target  = dropTargetOf(itf)
@@ -397,6 +403,7 @@ private func comDragLeave(itf: *IDropTarget)->HRESULT
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func comDrop(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
     let target = dropTargetOf(itf)
@@ -691,6 +698,7 @@ private func dataObjectOf(itf: *IDataObject)->*DragDataObject    => cast(*DragDa
 private func formatEnumOf(itf: *IEnumFORMATETC)->*DragFormatEnum => cast(*DragFormatEnum) cast(*void) itf
 private func dropSourceOf(itf: *IDropSource)->*DragDropSource    => cast(*DragDropSource) cast(*void) itf
 
+#[Swag.CallingConvention(.C)]
 private func srcQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
@@ -702,6 +710,7 @@ private func srcQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOI
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcAddRef(itf: *IDataObject)->ULONG
 {
     let obj = dataObjectOf(itf)
@@ -710,6 +719,7 @@ private func srcAddRef(itf: *IDataObject)->ULONG
 }
 
 // Reaching zero frees nothing: the object is a member of the session that runs the gesture.
+#[Swag.CallingConvention(.C)]
 private func srcRelease(itf: *IDataObject)->ULONG
 {
     let obj = dataObjectOf(itf)
@@ -756,6 +766,7 @@ private func srcStoredIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
     return -1
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 {
     let obj = dataObjectOf(itf)
@@ -790,6 +801,7 @@ private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HR
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
     let obj    = dataObjectOf(itf)
@@ -850,6 +862,7 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcGetDataHere(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
     discard itf
@@ -858,6 +871,7 @@ private func srcGetDataHere(itf: *IDataObject, fmt: const *FORMATETC, med: *STGM
     return E_NOTIMPL
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcGetCanonicalFormatEtc(itf: *IDataObject, fmtIn: const *FORMATETC, fmtOut: *FORMATETC)->HRESULT
 {
     discard itf
@@ -871,6 +885,7 @@ private func srcGetCanonicalFormatEtc(itf: *IDataObject, fmtIn: const *FORMATETC
 // The drag-image helper is the only caller in practice, and it hands the medium over rather than
 // lending it, which is the `fRelease` case. Lending would mean copying a medium of any shape, so
 // that case is refused instead of half-supported.
+#[Swag.CallingConvention(.C)]
 private func srcSetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM, release: BOOL)->HRESULT
 {
     if not release do
@@ -892,6 +907,7 @@ private func srcSetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESULT
 {
     ppenum[] = null
@@ -911,6 +927,7 @@ private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVO
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcDAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, sink: *void?, conn: *DWORD)->HRESULT
 {
     discard itf
@@ -921,6 +938,7 @@ private func srcDAdvise(itf: *IDataObject, fmt: const *FORMATETC, flags: DWORD, 
     return OLE_E_ADVISENOTSUPPORTED
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcDUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
 {
     discard itf
@@ -928,6 +946,7 @@ private func srcDUnadvise(itf: *IDataObject, conn: DWORD)->HRESULT
     return OLE_E_ADVISENOTSUPPORTED
 }
 
+#[Swag.CallingConvention(.C)]
 private func srcEnumDAdvise(itf: *IDataObject, ppenum: *LPVOID)->HRESULT
 {
     discard itf
@@ -935,6 +954,7 @@ private func srcEnumDAdvise(itf: *IDataObject, ppenum: *LPVOID)->HRESULT
     return OLE_E_ADVISENOTSUPPORTED
 }
 
+#[Swag.CallingConvention(.C)]
 private func enumQueryInterface(itf: *IEnumFORMATETC, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
@@ -946,6 +966,7 @@ private func enumQueryInterface(itf: *IEnumFORMATETC, riid: const *GUID, ppv: *L
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func enumAddRef(itf: *IEnumFORMATETC)->ULONG
 {
     let obj = formatEnumOf(itf)
@@ -953,6 +974,7 @@ private func enumAddRef(itf: *IEnumFORMATETC)->ULONG
     return obj.refCount
 }
 
+#[Swag.CallingConvention(.C)]
 private func enumRelease(itf: *IEnumFORMATETC)->ULONG
 {
     let obj = formatEnumOf(itf)
@@ -964,6 +986,7 @@ private func enumRelease(itf: *IEnumFORMATETC)->ULONG
     return left
 }
 
+#[Swag.CallingConvention(.C)]
 private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, fetched: *ULONG?)->HRESULT
 {
     let obj  = formatEnumOf(itf)
@@ -982,6 +1005,7 @@ private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, f
     return done == count ? S_OK : S_FALSE
 }
 
+#[Swag.CallingConvention(.C)]
 private func enumSkip(itf: *IEnumFORMATETC, count: ULONG)->HRESULT
 {
     let obj  = formatEnumOf(itf)
@@ -990,12 +1014,14 @@ private func enumSkip(itf: *IEnumFORMATETC, count: ULONG)->HRESULT
     return count <= left ? S_OK : S_FALSE
 }
 
+#[Swag.CallingConvention(.C)]
 private func enumReset(itf: *IEnumFORMATETC)->HRESULT
 {
     formatEnumOf(itf).index = 0
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func enumClone(itf: *IEnumFORMATETC, ppenum: *LPVOID)->HRESULT
 {
     let obj = formatEnumOf(itf)
@@ -1007,6 +1033,7 @@ private func enumClone(itf: *IEnumFORMATETC, ppenum: *LPVOID)->HRESULT
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func dropSrcQueryInterface(itf: *IDropSource, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {
     ppv[] = null
@@ -1018,6 +1045,7 @@ private func dropSrcQueryInterface(itf: *IDropSource, riid: const *GUID, ppv: *L
     return S_OK
 }
 
+#[Swag.CallingConvention(.C)]
 private func dropSrcAddRef(itf: *IDropSource)->ULONG
 {
     let obj = dropSourceOf(itf)
@@ -1026,6 +1054,7 @@ private func dropSrcAddRef(itf: *IDropSource)->ULONG
 }
 
 // Reaching zero frees nothing: the object is a member of the session that runs the gesture.
+#[Swag.CallingConvention(.C)]
 private func dropSrcRelease(itf: *IDropSource)->ULONG
 {
     let obj = dropSourceOf(itf)
@@ -1035,6 +1064,7 @@ private func dropSrcRelease(itf: *IDropSource)->ULONG
 }
 
 // Escape gives up, releasing the button drops, and anything else keeps the gesture running.
+#[Swag.CallingConvention(.C)]
 private func dropSrcQueryContinueDrag(itf: *IDropSource, escapePressed: BOOL, grfKeyState: DWORD)->HRESULT
 {
     discard itf
@@ -1057,6 +1087,7 @@ private func dropSrcQueryContinueDrag(itf: *IDropSource, escapePressed: BOOL, gr
 // input inside a loop that already owns the mouse and the keyboard, and would destroy windows the
 // gesture is standing on. The tree itself stays current without any of that: OLE delivers the
 // drop-target callbacks from inside this same loop, so a highlight turning on still turns on.
+#[Swag.CallingConvention(.C)]
 private func dropSrcGiveFeedback(itf: *IDropSource, effect: DWORD)->HRESULT
 {
     discard effect

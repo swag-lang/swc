@@ -75,6 +75,7 @@ public func getMonitors()->Array'Monitor
 {
     var result: retval
 
+    #[Swag.CallingConvention(.C)]
     func proc(hMonitor: HMONITOR, _hDC: HDC, _lpRect: *RECT, lParam: LPARAM)->BOOL
     {
         var mi: MONITORINFO
@@ -426,6 +427,7 @@ public func enableDpiAwareness()
 
 private func getWindowFromHandle(hWnd: HWND)->*Window? => cast(*Window?) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
 
+#[Swag.CallingConvention(.C)]
 private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     if msg == WM_CREATE

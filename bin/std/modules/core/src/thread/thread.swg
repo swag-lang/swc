@@ -142,6 +142,7 @@ impl Thread
     }
 }
 
+#[Swag.CallingConvention(.C)]
 private func threadEntry(param: *void?)->u32
 {
     let thread = cast(*Thread) param!

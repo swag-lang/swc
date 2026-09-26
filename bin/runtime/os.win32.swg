@@ -16,9 +16,12 @@ namespace __Win32RT
     alias CHAR                   = u8
     alias WCHAR                  = u16
     alias BOOL                   = u8
+    #[Swag.CallingConvention(.C)]
     alias PFLS_CALLBACK_FUNCTION = func(*void?)
     alias CONDITION_VARIABLE     = *void?
+    #[Swag.CallingConvention(.C)]
     alias THREAD_START_ROUTINE   = func(*void?)->DWORD
+    #[Swag.CallingConvention(.C)]
     alias RtlDecompressBufferFn  = func(USHORT, [*] u8, ULONG, const [*] u8, ULONG, *ULONG)->s32
 
     const STD_OUTPUT_HANDLE       = 0xFFFF_FFF5'u32
@@ -116,7 +119,7 @@ func __hostTlsAlloc()->u64         => __Win32RT.TlsAlloc()
 func __hostTlsGet(id: u64)->*void? => __Win32RT.TlsGetValue(cast(u32) id)
 func __hostTlsSet(id: u64, value: *void?)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
 
-func __hostThreadStorageAlloc(cleanup: (func(*void?))?)->u64
+func __hostThreadStorageAlloc(cleanup: __Win32RT.PFLS_CALLBACK_FUNCTION?)->u64
 {
     let slot = __Win32RT.FlsAlloc(cleanup)
     return slot == 0xFFFF_FFFF ? 0 : cast(u64) slot + 1
@@ -139,7 +142,7 @@ func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
 ////////////////////////////////////////////////////////////
 
 // Starts one host thread running `entry` with `param`, or returns null when the host refuses.
-func __hostThreadCreate(entry: func(*void?)->u32, param: *void?)->*void? => __Win32RT.CreateThread(null, 0, entry, param, 0, null)
+func __hostThreadCreate(entry: __Win32RT.THREAD_START_ROUTINE, param: *void?)->*void? => __Win32RT.CreateThread(null, 0, entry, param, 0, null)
 
 // Waits for a host thread to finish and releases the handle this runtime owns for it.
 func __hostThreadJoin(handle: *void?)
@@ -545,6 +548,7 @@ private struct __HostExceptionPointers
     context: *void
 }
 
+#[Swag.CallingConvention(.C)]
 private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
 {
     if not g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do

@@ -3,6 +3,7 @@
 
 using Win32
 
+#[Swag.CallingConvention(.C)]
 private func timerEntryNative(param: *void?, _timerOrWaitFired: BOOL)
 {
     timerEntry(param)

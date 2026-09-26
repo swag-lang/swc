@@ -1,6 +1,7 @@
 #global namespace Swag
 
 // Releases the copy a thread made of a thread-local global.
+#[Swag.CallingConvention(.C)]
 private func __releaseTlsVar(value: *void?)
 {
     if value do

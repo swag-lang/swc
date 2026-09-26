@@ -47,7 +47,9 @@ alias LPWCH                  = [*] WCHAR?
 alias SIZE_T                 = u64
 alias va_list                = [*] u8?
 
+#[Swag.CallingConvention(.C)]
 alias LPTHREAD_START_ROUTINE = func(*void?)->DWORD
+#[Swag.CallingConvention(.C)]
 alias WAITORTIMERCALLBACK    = func(*void?, BOOL)
 
 const STD_INPUT_HANDLE      = cast #bit (DWORD) -10
@@ -335,6 +337,7 @@ struct FILE_NOTIFY_INFORMATION
 }
 
 alias LPOVERLAPPED = *OVERLAPPED?
+#[Swag.CallingConvention(.C)]
 alias LPOVERLAPPED_COMPLETION_ROUTINE = func(DWORD, DWORD, LPOVERLAPPED)
 
 #assert(#sizeof(ATOM) == 2)

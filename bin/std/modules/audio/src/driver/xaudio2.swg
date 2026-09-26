@@ -170,25 +170,28 @@ internal
             Swag.setContext(&g_ThreadCxt)
     }
 
-    func onVoiceProcessingPassStart(_me: *IXAudio2VoiceCallback, _bytesRequired: UINT32) {}
-    func onVoiceProcessingPassEnd(_me: *IXAudio2VoiceCallback) {}
-    func onStreamEnd(_me: *IXAudio2VoiceCallback) {}
-    func onBufferStart(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?) {}
-    func onLoopEnd(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?) {}
-    func onVoiceError(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?, _error: HRESULT) {}
-
-    func onBufferEnd(_me: *IXAudio2VoiceCallback, pBufferContext: *void?)
+    #[Swag.CallingConvention(.C)]
     {
-        let voice = cast(*Voice?) pBufferContext
-        if not voice do
-            return
-        let safeVoice = voice
-        if safeVoice.hasState(.PendingDestroy) do
-            return
+        func onVoiceProcessingPassStart(_me: *IXAudio2VoiceCallback, _bytesRequired: UINT32) {}
+        func onVoiceProcessingPassEnd(_me: *IXAudio2VoiceCallback) {}
+        func onStreamEnd(_me: *IXAudio2VoiceCallback) {}
+        func onBufferStart(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?) {}
+        func onLoopEnd(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?) {}
+        func onVoiceError(_me: *IXAudio2VoiceCallback, _pBufferContext: *void?, _error: HRESULT) {}
 
-        enterXAudio2CallbackContext()
+        func onBufferEnd(_me: *IXAudio2VoiceCallback, pBufferContext: *void?)
+        {
+            let voice = cast(*Voice?) pBufferContext
+            if not voice do
+                return
+            let safeVoice = voice
+            if safeVoice.hasState(.PendingDestroy) do
+                return
 
-        g_Driver.updateVoice(safeVoice, .UpdateBuffers)
+            enterXAudio2CallbackContext()
+
+            g_Driver.updateVoice(safeVoice, .UpdateBuffers)
+        }
     }
 }
 

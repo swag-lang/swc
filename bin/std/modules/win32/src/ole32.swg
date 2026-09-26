@@ -153,6 +153,7 @@ struct IUnknown
     public lpVtbl: *IUnknownVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IUnknownVtbl
 {
     public
@@ -168,6 +169,7 @@ struct IDataObject
     public lpVtbl: *IDataObjectVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IDataObjectVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
@@ -197,6 +199,7 @@ struct IStream
 
 // The two `ISequentialStream` methods are spelled inline, because the vtable of a derived
 // interface is the base one followed by its own entries and nothing here needs the base name.
+#[Swag.CallingConvention(.C)]
 struct IStreamVtbl
 {
     public
@@ -223,6 +226,7 @@ struct IDropTarget
     public lpVtbl: *IDropTargetVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IDropTargetVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
@@ -245,6 +249,7 @@ struct IDropSource
     public lpVtbl: *IDropSourceVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IDropSourceVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts
@@ -265,6 +270,7 @@ struct IEnumFORMATETC
     public lpVtbl: *IEnumFORMATETCVtbl
 }
 
+#[Swag.CallingConvention(.C)]
 struct IEnumFORMATETCVtbl
 {
     // The module builds this table and OLE is the only caller, so every entry starts

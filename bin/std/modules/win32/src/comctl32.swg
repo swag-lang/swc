@@ -2,6 +2,7 @@
 
 #foreignlib("comctl32")
 
+#[Swag.CallingConvention(.C)]
 alias SUBCLASSPROC = func(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR)->LRESULT
 
 #[Swag.Foreign("comctl32", callconv: Swag.CallConv.C)]

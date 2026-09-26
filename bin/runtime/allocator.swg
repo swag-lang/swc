@@ -171,6 +171,7 @@ struct Allocator
 
 private var g_DefaultAllocator: Allocator
 
+#[Swag.CallingConvention(.C)]
 private func retireAllocatorThreadHeap(value: *void?)
 {
     if not value do

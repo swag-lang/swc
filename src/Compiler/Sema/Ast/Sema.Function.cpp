@@ -546,6 +546,8 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isForeign())
         sym.setCallConvKind(sym.foreignCallConvKind());
+    else if (sym.attributes().declaredCallConvKind)
+        sym.setCallConvKind(*sym.attributes().declaredCallConvKind);
 
     if (sym.isSemaCompleted())
         return Result::SkipChildren;

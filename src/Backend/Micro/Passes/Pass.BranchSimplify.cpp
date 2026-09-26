@@ -7415,7 +7415,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         rewrote(convertShortCircuitBooleans(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
-    rewrote(foldRangeAnds(storage, operands, context));
+    // This fold needs a setcc result immediately before the boolean and.
+    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasSetCondition)
+        rewrote(foldRangeAnds(storage, operands, context));
 
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();

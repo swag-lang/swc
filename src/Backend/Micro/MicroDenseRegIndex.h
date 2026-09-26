@@ -10,10 +10,16 @@ public:
 
     void clear()
     {
+        // Preserve the direct tables and invalidate only entries this index used.
+        // Rebuilding them from size zero fills every gap up to the largest register.
+        for (const MicroReg reg : regs_)
+        {
+            const uint32_t kind = static_cast<uint32_t>(reg.kind());
+            if (kind < K_DIRECT_KIND_COUNT && reg.index() <= K_MAX_DIRECT_INDEX)
+                directRegToIndex_[kind][reg.index()] = K_INVALID_INDEX;
+        }
         if (regToIndex_)
             regToIndex_->clear();
-        for (auto& indices : directRegToIndex_)
-            indices.clear();
         regs_.clear();
     }
 

@@ -7,9 +7,6 @@ alias WindowPaintCallback = func||(*Window)
 // Handles a window resize and receives the new client size in physical pixels.
 alias WindowResizeCallback = func||(*Window, s32, s32)
 
-// Handles a user close request before the native window is destroyed.
-alias WindowCloseCallback = func||(*Window)
-
 // Groups the optional callbacks dispatched by a [[Core.Env.Window]].
 struct WindowCallbacks
 {
@@ -17,7 +14,6 @@ struct WindowCallbacks
     {
         onPaint:  WindowPaintCallback?      // Invoked for a paint request.
         onResize: WindowResizeCallback?     // Invoked with the new client size in physical pixels.
-        onClose:  WindowCloseCallback?      // Invoked before a user-initiated close destroys the window.
     }
 }
 
@@ -64,14 +60,17 @@ struct Window
     public callbacks: WindowCallbacks     // Callbacks dispatched by the platform event adapter.
 }
 
-// Pumps window events until the window closes or a smoke run's frame budget is spent.
+// Pumps window events until closing is requested or a smoke run's frame budget is spent.
+//
+// A close request stops the loop while the window is still open. Release resources that use
+// its native handle before closing the window or leaving its scope.
 struct WindowLoop
 {
     // Frames a smoke run should render for this program, or zero to take the launcher's budget.
     //
     // A program that cycles through pages knows how many frames it takes to show them all,
     // and that count is a property of its content rather than of whoever launched it. It has
-    // no effect on a normal run, which ends only when the window closes.
+    // no effect on a normal run, which ends when the window is asked to close.
     public smokeFrames: u32
 
     internal

@@ -503,14 +503,10 @@ func onResize(window: *Env.Window, width, height: s32)
     g_Painter.setContentScale(window.dpiScale())
 }
 
-func releaseContextBeforeWindowClose(window: *Env.Window)
-{
-    g_Render.deleteContext(&g_RC)
-}
-
 #main
 {
     g_Window = try Env.createWindow({identifier: "pixel6", title: "Pixel example - text outline quality", width: W, height: H, flags: .Minimizable})
+    defer catch g_Window.close()
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
@@ -527,7 +523,6 @@ func releaseContextBeforeWindowClose(window: *Env.Window)
     loadGdiReferences()
 
     g_Window.callbacks.onResize = &onResize
-    g_Window.callbacks.onClose  = &releaseContextBeforeWindowClose
     try g_Window.show()
 
     var loop: Env.WindowLoop

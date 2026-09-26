@@ -341,14 +341,10 @@ func updateTestMode()
     nextPage()
 }
 
-func releaseContextBeforeWindowClose(window: *Env.Window)
-{
-    g_Render.deleteContext(&g_RC)
-}
-
 #main
 {
     g_Window = try Env.createWindow({identifier: "pixel7", title: "Pixel image codec showcase", width: W, height: H, flags: .Minimizable})
+    defer catch g_Window.close()
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
@@ -362,7 +358,6 @@ func releaseContextBeforeWindowClose(window: *Env.Window)
     try buildPages()
 
     g_Window.callbacks.onResize = &onResize
-    g_Window.callbacks.onClose  = &releaseContextBeforeWindowClose
     try g_Window.show()
 
     var loop: Env.WindowLoop

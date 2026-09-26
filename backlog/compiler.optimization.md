@@ -388,6 +388,14 @@ block, and the hot path keeps the register.
   sweep was disrupted by shared load: core rebuilds grew from about 2 to 5-7 seconds during it.
   Candidate/baseline medians were 2,067/2,082 ms for core rebuild, 44/49 ms for no-op,
   1,830/1,929 ms for core touch and 126/120 ms for hello. This supports no percentage claim.
+- A third prompt-4 group skips rich branch-reference scans for float selects, equality chains and
+  packed switches when their required opcodes are absent. It also skips implied-branch label maps
+  without an immediate compare and stores each label's reference count and jump position in one
+  map instead of two. Focused tests, 3,480 native and 1,500 JIT Release tests passed. Five paired
+  core rebuild medians were 3,151 ms candidate and 2,996 ms baseline under variable load; hello
+  medians were 167 and 189 ms, but a seven-pair role-reversed hello series gave 181 and 187 ms
+  with slightly higher candidate CPU. No speedup percentage is established. The full Release
+  campaign again reached the pre-existing `std/gui` error in `compiler.core.058`.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

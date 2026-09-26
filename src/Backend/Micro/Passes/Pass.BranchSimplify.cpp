@@ -790,8 +790,12 @@ namespace
     {
         const uint32_t count = static_cast<uint32_t>(layout.order.size());
 
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        std::unordered_map<uint32_t, uint32_t> labelJumpOrdinal;
+        struct LabelUse
+        {
+            uint32_t references  = 0;
+            uint32_t jumpOrdinal = 0;
+        };
+        std::unordered_map<uint32_t, LabelUse> labelUses;
         for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
         {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -803,8 +807,9 @@ namespace
             uint32_t labelId = 0;
             if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
             {
-                ++labelReferences[labelId];
-                labelJumpOrdinal[labelId] = ordinal;
+                LabelUse& use   = labelUses[labelId];
+                ++use.references;
+                use.jumpOrdinal = ordinal;
             }
         }
 
@@ -877,8 +882,8 @@ namespace
                     uint32_t labelId = 0;
                     if (!tryGetLabelId(labelId, *inst, instOps) || !visitedLabels.insert(labelId).second)
                         break;
-                    const auto     refIt      = labelReferences.find(labelId);
-                    const uint32_t references = refIt == labelReferences.end() ? 0 : refIt->second;
+                    const auto     useIt      = labelUses.find(labelId);
+                    const uint32_t references = useIt == labelUses.end() ? 0 : useIt->second.references;
                     const bool     fallsInto  = fallsIntoLabel(current);
                     if (!references)
                     {
@@ -890,7 +895,7 @@ namespace
                     if (references != 1 || fallsInto)
                         break;
 
-                    const uint32_t           from     = labelJumpOrdinal[labelId];
+                    const uint32_t           from     = useIt->second.jumpOrdinal;
                     const MicroInstrOperand* fromOps  = storage.ptr(layout.order[from])->ops(operands);
                     factCond                          = fromOps[0].cpuCond;
                     factJump                          = from;
@@ -2317,7 +2322,10 @@ namespace
         if (!context.builder)
             return false;
         scanCache.ensureLayout(storage, operands);
-        if (!scanCache.scan.layout.hasImmediateCompare)
+        // Every chain has cmp/setcc links and conditional exits. Avoid the
+        // richer reference scan when the current layout lacks one of them.
+        if (!scanCache.scan.layout.hasImmediateCompare || !scanCache.scan.layout.hasSetCondition ||
+            !scanCache.scan.layout.hasConditionalJump)
             return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
@@ -2993,7 +3001,8 @@ namespace
         if (!context.builder)
             return false;
         scanCache.ensureLayout(storage, operands);
-        if (!scanCache.scan.layout.hasImmediateCompare)
+        // Packed cases require an immediate compare followed by a conditional exit.
+        if (!scanCache.scan.layout.hasImmediateCompare || !scanCache.scan.layout.hasConditionalJump)
             return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
@@ -7350,7 +7359,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (ssaState && ssaState->isValid())
         rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout));
     // The SSA snapshot describes the code before any fold above.
-    if (!changed && hasConditionalJump && ssaState && ssaState->isValid())
+    // Implied branch facts come only from immediate compares. Avoid building
+    // its label maps for a branchy function without one.
+    if (!changed && hasConditionalJump && scanCache.scan.layout.hasImmediateCompare && ssaState && ssaState->isValid())
         rewrote(foldImpliedBranches(storage, operands, *ssaState, scanCache.scan.layout));
 
     if (changed && context.builder)
@@ -7424,7 +7435,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
 
-    rewrote(convertFloatSelectsToMinMax(storage, operands, context, scanCache));
+    // A float select starts at a conditional jump, and building the richer
+    // branch scan is unnecessary when the current layout excludes one.
+    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump)
+        rewrote(convertFloatSelectsToMinMax(storage, operands, context, scanCache));
     // The small branch-to-cmov pattern starts at a conditional jump.
     if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&
         rewrote(convertBranchesToConditionalMoves(storage, operands, context)))

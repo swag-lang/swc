@@ -24,7 +24,8 @@
 // binary operations recurse into their operands, four adjacent loads of block
 // -entry memory become one packed load, a lane permutation of an already
 // -vectorized tuple becomes one shuffle, and equal shift or rotate immediates
-// become packed shifts (a rotate expands to shift/shift/or). Shared subtrees
+// become packed shifts (a 16-bit rotate uses two word shuffles; other rotates
+// expand to shift/shift/or). Shared subtrees
 // are memoized on the ordered lane tuple, which is what turns the second half
 // of a ChaCha20 double round into shuffles of the first half's vectors
 // instead of a recomputation.
@@ -934,6 +935,18 @@ namespace
 
                         case LaneOp::RotateLeft:
                         {
+                            if (n0.imm == 16)
+                            {
+                                // Swap the 16-bit halves of each 32-bit lane.
+                                // Each shuffle preserves the half it does not touch.
+                                const uint32_t lowReg  = allocReg();
+                                const uint32_t highReg = allocReg();
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegImm, .dst = lowReg, .src = lhsReg, .op = MicroOp::VecShuffleLow16, .imm = 0xB1});
+                                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegImm, .dst = highReg, .src = lowReg, .op = MicroOp::VecShuffleHigh16, .imm = 0xB1});
+                                plan_->arithmeticOps += 2;
+                                remember(tuple, sorted, highReg);
+                                return highReg;
+                            }
                             // rol k == (x << k) | (x >> (32 - k)). Both halves
                             // read the same source, which is exactly the shape
                             // a destructive shift cannot express without a

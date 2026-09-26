@@ -216,6 +216,10 @@ namespace
                 return "vec.shl32";
             case MicroOp::VecShiftRight32:
                 return "vec.shr32";
+            case MicroOp::VecShuffleLow16:
+                return "vec.shufflelo16";
+            case MicroOp::VecShuffleHigh16:
+                return "vec.shufflehi16";
             case MicroOp::VecShuffle32:
                 return "vec.shuffle32";
             case MicroOp::VecSub32:

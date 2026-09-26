@@ -417,6 +417,43 @@ func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_CrossFileInlineTypePatternKeepsSourceToken)
+{
+    static constexpr std::string_view PROVIDER = R"(#[Swag.Inline]
+func matchesInteger(target: typeinfo)->bool => target is s32
+)";
+    static constexpr std::string_view CALLER = R"(func checkPattern(target: typeinfo)->bool
+{
+    if matchesInteger(target) do
+        return true
+    return false
+}
+)";
+    const fs::path providerPath = Unittest::makeTestSourcePath("Compiler", "InlineTypePatternProvider");
+    const fs::path callerPath   = Unittest::makeTestSourcePath("Compiler", "InlineTypePatternCaller");
+
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Sema;
+    cmdLine.name            = "compiler_cross_file_inline_type_pattern";
+    cmdLine.moduleNamespace = "CompilerInlineTypePattern";
+    cmdLine.silent          = true;
+    cmdLine.numCores        = 6;
+    cmdLine.buildCfg        = "release";
+    cmdLine.files.insert(providerPath);
+    cmdLine.files.insert(callerPath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, providerPath, PROVIDER);
+    Unittest::registerTestSource(compiler, callerPath, CALLER);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ExplicitInlineExpandsCrossFileBody)
 {
     static constexpr std::string_view PROVIDER     = R"(#[Swag.Inline]

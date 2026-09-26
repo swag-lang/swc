@@ -15,6 +15,13 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.082 — Rotate packed 32-bit words by 16 with two shuffles
+
+- Recorded: 2026-09-26 12:00
+- Area: compiler/backend, SLP vectorization and x64 encoding
+- Evidence: ChaCha's vectorized round loop rotated four 32-bit words by 16 using a packed left shift, right shift, and OR. `pshuflw` swaps the two 16-bit words in the lower half, and `pshufhw` does the same in the upper half, so the two instructions perform the same four rotations. The SLP plan now selects the shuffles for rotation by 16; the x64 encoder and its byte-level tests cover both forms. The final ChaCha main falls from 433 to 431 pre-emit Micro instructions, removing two instructions on every ten-round iteration without adding memory traffic. Disassembly confirms two `pshuflw`/`pshufhw` pairs, and `--validate-micro` preserves checksum 633277775. All 1,136 C++, 3,480 native Release, and 1,500 JIT Release tests pass. No runtime timing informed the decision.
+- Next: compare ChaCha's scalar output and checksum loops with clang-cl's issued instructions, then move to the next largest unexhausted gap.
+
 ### compiler.optimization.081 — Price memory intrinsics as possible calls when auto-inlining
 
 - Recorded: 2026-09-26 11:47
@@ -336,8 +343,9 @@ block, and the hot path keeps the register.
   observed gain and a possible guardrail regression, the gate was reverted.
 - Final validation on 2026-09-24: the Release campaign passed 1,500 JIT tests and 3,478 native
   tests, then stopped in `std/gui` on the pre-existing semantic error described in
-  `compiler.core.058`. The pre-campaign compiler build 1131 reproduces that error on unchanged
-  GUI sources. A final five-run four-workload timing attempt was stopped after three runs:
+  a semantic error in `std/gui`, since fixed by preserving the source view of generated `is`
+  casts. The pre-campaign compiler build 1131 reproduced that error on unchanged GUI sources.
+  A final five-run four-workload timing attempt was stopped after three runs:
   unrelated machine load moved a core rebuild from 4.8 to 7.3 seconds and a touched-file
   build from 3.0 to 9.2 seconds. These samples support no final percentage speedup claim.
 - A final three-pair, order-alternated comparison of build 1131 with build 1140 on the same
@@ -372,7 +380,8 @@ block, and the hot path keeps the register.
   against the earlier campaign binary were too variable for a speedup claim: candidate medians were
   2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
   2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
-  error in `compiler.core.058`, which the pre-campaign master compiler also reproduces.
+  error in `std/gui`, since fixed by preserving generated `is` cast source views; the
+  pre-campaign master compiler also reproduced it.
 - A second prompt-4 group on the merged master uses that same layout to skip range-check,
   range-and, branch-to-cmov and repeated-memory-compare scans when their required conditional
   jump or setcc is absent. The 3,480 native and 1,500 JIT Release tests passed. A five-pair A/B

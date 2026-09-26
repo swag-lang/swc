@@ -270,12 +270,16 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
         if (sourceInfo.sourceIsConst)
             destination.addFlag(TypeInfoFlagsE::Const);
         auto [typeRef, typeNode] = sema.ast().makeNode<AstNodeId::Identifier>(sema.node(nodeTypeRef).tokRef());
+        typeNode->setCodeRef(sema.node(nodeTypeRef).codeRef());
         typeNode->addFlag(AstIdentifierFlagsE::GenericTypeBinding);
         sema.setType(typeRef, sema.typeMgr().addType(destination));
         castTypeRef = typeRef;
     }
 
+    // A cloned pattern can come from another source file. Its token index is
+    // meaningful only together with the original source view.
     auto [castRef, castNode] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
+    castNode->setCodeRef(codeRef());
     castNode->addFlag(AstCastExprFlagsE::Explicit);
     castNode->modifierFlags = AstModifierFlagsE::Try;
     castNode->nodeExprRef   = nodeExprRef;
@@ -284,8 +288,10 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
     if (!hasFlag(AstIsTypeExprFlagsE::Binding))
     {
         auto [boolRef, boolNode] = sema.ast().makeNode<AstNodeId::BuiltinType>(tokRef());
+        boolNode->setCodeRef(codeRef());
         boolNode->typeTokenId    = TokenId::TypeBool;
         auto [testRef, testNode] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
+        testNode->setCodeRef(codeRef());
         testNode->addFlag(AstCastExprFlagsE::Explicit);
         testNode->nodeTypeRef = boolRef;
         testNode->nodeExprRef = castRef;

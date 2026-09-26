@@ -48,6 +48,10 @@
 //   sanitizeEpilogueStackAdjustments
 //       Same coalescing as the prologue version but applied backwards from
 //       each Ret over the run of epilogue instructions.
+//
+//   shareIdenticalReturnTails
+//       Uses one copy of an identical register-restore and stack-release tail
+//       for multiple returns from the same function.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -1240,6 +1244,130 @@ namespace
 
         return changedAny;
     }
+
+    struct ReturnTail
+    {
+        std::vector<MicroInstrRef> refs;
+    };
+
+    bool collectReturnTail(const MicroPassContext& context, const MicroReg stackPointer, const MicroInstrRef retRef, ReturnTail& tail)
+    {
+        MicroInstrRef ref = context.instructions->findPreviousInstructionRef(retRef);
+        std::vector<MicroInstrRef> reversed;
+        reversed.push_back(retRef);
+        while (const MicroInstr* inst = context.instructions->ptr(ref))
+        {
+            if (inst->op != MicroInstrOpcode::Pop)
+                break;
+            reversed.push_back(ref);
+            ref = context.instructions->findPreviousInstructionRef(ref);
+        }
+
+        const MicroInstr* release = context.instructions->ptr(ref);
+        const MicroInstrOperand* releaseOps = release ? release->ops(*context.operands) : nullptr;
+        uint64_t releaseAmount = 0;
+        if (!release || !isStackAdjustWithOp(*release, releaseOps, stackPointer, MicroOp::Add, releaseAmount) || !releaseAmount)
+            return false;
+        reversed.push_back(ref);
+        ref = context.instructions->findPreviousInstructionRef(ref);
+
+        uint32_t restoreCount = 0;
+        while (const MicroInstr* inst = context.instructions->ptr(ref))
+        {
+            const MicroInstrOperand* ops = inst->ops(*context.operands);
+            if (inst->op != MicroInstrOpcode::LoadRegMem || !ops || !ops[0].reg.isFloat() ||
+                ops[1].reg != stackPointer || ops[2].opBits != MicroOpBits::B128)
+                break;
+            reversed.push_back(ref);
+            ++restoreCount;
+            ref = context.instructions->findPreviousInstructionRef(ref);
+        }
+        if (restoreCount < 2)
+            return false;
+        tail.refs.assign(reversed.rbegin(), reversed.rend());
+        return true;
+    }
+
+    bool sameReturnTail(const MicroPassContext& context, const ReturnTail& lhs, const ReturnTail& rhs)
+    {
+        if (lhs.refs.size() != rhs.refs.size())
+            return false;
+        for (size_t i = 0; i < lhs.refs.size(); ++i)
+        {
+            const MicroInstr* a = context.instructions->ptr(lhs.refs[i]);
+            const MicroInstr* b = context.instructions->ptr(rhs.refs[i]);
+            if (!a || !b || a->op != b->op || a->numOperands != b->numOperands)
+                return false;
+            const MicroInstrOperand* ao = a->ops(*context.operands);
+            const MicroInstrOperand* bo = b->ops(*context.operands);
+            switch (a->op)
+            {
+                case MicroInstrOpcode::LoadRegMem:
+                    if (ao[0].reg != bo[0].reg || ao[1].reg != bo[1].reg ||
+                        ao[2].opBits != bo[2].opBits || ao[3].valueU64 != bo[3].valueU64)
+                        return false;
+                    break;
+                case MicroInstrOpcode::OpBinaryRegImm:
+                    if (ao[0].reg != bo[0].reg || ao[1].opBits != bo[1].opBits ||
+                        ao[2].microOp != bo[2].microOp ||
+                        ao[3].valueInt.bitWidth() != bo[3].valueInt.bitWidth() || !ao[3].valueInt.eq(bo[3].valueInt))
+                        return false;
+                    break;
+                case MicroInstrOpcode::Pop:
+                    if (ao[0].reg != bo[0].reg)
+                        return false;
+                    break;
+                case MicroInstrOpcode::Ret:
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    bool shareIdenticalReturnTails(MicroPassContext& context, const CallConv& conv)
+    {
+        if (!context.builder)
+            return false;
+        std::vector<ReturnTail> tails;
+        for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
+        {
+            if (it->op != MicroInstrOpcode::Ret)
+                continue;
+            ReturnTail tail;
+            if (collectReturnTail(context, conv.stackPointer, it.current, tail))
+                tails.push_back(std::move(tail));
+        }
+
+        bool changed = false;
+        std::vector<uint32_t> targetLabels(tails.size(), UINT32_MAX);
+        for (size_t i = 0; i < tails.size(); ++i)
+        {
+            for (size_t j = tails.size(); j-- > i + 1;)
+            {
+                if (!sameReturnTail(context, tails[i], tails[j]))
+                    continue;
+                if (targetLabels[j] == UINT32_MAX)
+                {
+                    targetLabels[j] = context.builder->createLabel().get();
+                    MicroInstrOperand labelOps[1] = {};
+                    labelOps[0].valueU64 = targetLabels[j];
+                    context.instructions->insertDerivedBefore(*context.operands, tails[j].refs.front(), MicroInstrOpcode::Label, labelOps);
+                }
+                MicroInstrOperand jumpOps[3] = {};
+                jumpOps[0].cpuCond = MicroCond::Unconditional;
+                jumpOps[1].opBits = MicroOpBits::B32;
+                jumpOps[2].valueU64 = targetLabels[j];
+                context.instructions->insertDerivedBefore(*context.operands, tails[i].refs.front(), MicroInstrOpcode::JumpCond, jumpOps);
+                for (const MicroInstrRef ref : tails[i].refs)
+                    context.instructions->erase(ref);
+                changed = true;
+                break;
+            }
+        }
+        return changed;
+    }
 }
 
 Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
@@ -1257,7 +1385,8 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedReservedCallShadow = reserveBodyCallShadow(context, conv);
     const bool      changedLoopCallFrame       = hoistLoopCallFrame(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallShadow || changedLoopCallFrame;
+    const bool      changedReturnTails        = shareIdenticalReturnTails(context, conv);
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallShadow || changedLoopCallFrame || changedReturnTails;
     context.passChanged                       = changed;
     return Result::Continue;
 }

@@ -10,11 +10,18 @@ Several entries address register residency, loop-entry shape, spill traffic, ali
 inline argument materialization. Earlier measurements used the whole-hull allocator; optimizing
 builds now use interval splitting, so those measurements identify workloads to recheck rather than
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
-the executable Micro instruction stream has no explicit phi instruction. Since build 438 a call the
-
-straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
+the executable Micro instruction stream has no explicit phi instruction. Since build 438, a call
+that the straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
+
+### compiler.optimization.079 — Share identical floating-register return tails
+
+- Recorded: 2026-09-26 11:26
+- Area: compiler/backend, final return layout
+- Evidence: Odin's raytrace `trace` uses one XMM restore and stack-release epilogue. Swag emitted the same ten XMM restores, stack release, three pops, and return twice. The final Micro pass now shares return tails only when every restore, offset, width, stack adjustment, and pop matches. The early return jumps to the later tail, leaving the hot hit path as fallthrough. `trace` falls from 196 to 183 post-emit Micro instructions; direct stack reads fall from 21 to 11. Its checksum remains 56061776 with `--validate-micro`. C++ coverage checks an identical pair and refuses a different restore offset. All 1,135 C++, 3,480 native Release, and 1,500 JIT Release tests pass, as does the independently drawn native `return_conversion_storage.swg` test. No runtime timing informed the decision.
+- Negative lead: After the prior spill-reload forwarding, the store at `[rsp+0xF0]` appeared unread. Erasing it under an allocator-spill-range and direct-access scan reduced `trace` from 196 to 195 instructions with the same checksum, but a guard for intermediate stack-pointer adjustments blocked that deletion before final frame sanitation. The scan did not prove aliases across all stack-pointer states, so the store-erasure experiment was reverted. The earlier read elimination remains.
+- Next: compare raytrace's remaining `trace` call setup and pixel accumulation against Odin. Revisit dead spill stores only after final stack layout or with a CFG-aware stack-address proof.
 
 ### compiler.optimization.078 — Produce converted colors in their selected registers
 

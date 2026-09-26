@@ -120,6 +120,10 @@ namespace
         const TypeInfo& paramType = param.type(sema.ctx());
         if (paramType.isCodeBlock() || paramType.isAnyVariadic() || paramType.isReference())
             return TypeRef::invalid();
+        // A call can convert a single-value pointer to a block pointer. The inline
+        // body must see the declared parameter type, including for indexed uses.
+        if (paramType.isBlockPointer())
+            return paramTypeRef;
         const AstNode& exprNode   = sema.node(exprRef);
         const bool     isCastExpr = exprNode.is(AstNodeId::CastExpr) || exprNode.is(AstNodeId::AutoCastExpr);
         if (!isCastExpr && !isInlineCoercibleLiteralArg(exprNode) && !isInlineContextualLambdaArg(sema, exprRef) && !SemaHelpers::canUseContextualBinding(sema, exprRef))
@@ -1931,10 +1935,12 @@ namespace
         // precisely because its value was proven non-null by flow narrowing at the call site
         // (inlineBindingDependsOnNarrowFact). Inferring the `let` type from the un-narrowed
         // argument would relabel it 'nullable' inside the callee body, where the parameter is
-        // non-null - a false use-site nullability error. Pinning to the parameter type
-        // restores the non-null contract the argument was validated against, reusing the
-        // same proven type-clone/cast mechanism as the cases below.
-        else if (!mat.homesAddress && !paramType.isAnyVariadic() && (mat.forRuntimeSafety || mat.forNarrowFact || isInlineCoercibleLiteralArg(sema.node(ioBinding.exprRef)) || contextualLambda || SemaHelpers::canUseContextualBinding(sema, ioBinding.exprRef)))
+        // non-null - a false use-site nullability error. A block-pointer parameter likewise
+        // must not be inferred as a single-value pointer from `&array[0]`. Pinning to the
+        // parameter type preserves the conversion validated at the call site.
+        else if (!mat.homesAddress && !paramType.isAnyVariadic() &&
+                 (mat.forRuntimeSafety || mat.forNarrowFact || paramType.isBlockPointer() ||
+                  isInlineCoercibleLiteralArg(sema.node(ioBinding.exprRef)) || contextualLambda || SemaHelpers::canUseContextualBinding(sema, ioBinding.exprRef)))
         {
             AstNodeRef materializedTypeRef = AstNodeRef::invalid();
             // A synthesized receiver has no declaration to clone a type node from.

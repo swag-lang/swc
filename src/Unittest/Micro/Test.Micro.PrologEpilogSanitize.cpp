@@ -768,6 +768,69 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReservesBodyCallShadow)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_HoistsSingleLoopCallFrame)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(2);
+
+    for (uint32_t mode = 0; mode < 3; ++mode)
+    {
+        MicroBuilder builder(ctx);
+        const auto   outer = builder.createLabel();
+        const auto   inner = builder.createLabel();
+        const auto   earlyExit = builder.createLabel();
+        builder.emitLoadRegImm(rcx, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(outer);
+        const MicroInstrRef outerRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(inner);
+        if (mode == 1)
+            builder.emitLoadMemReg(rsp, 8, rcx, MicroOpBits::B64);
+        if (mode == 2)
+        {
+            builder.emitCmpRegImm(rcx, ApInt(9, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, earlyExit);
+        }
+        builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 48, rcx, MicroOpBits::B64);
+        builder.emitCallReg(rax, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rcx, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(rcx, ApInt(2, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, inner);
+        builder.emitCmpRegImm(rcx, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, outer);
+        const MicroInstrRef outerJumpRef = builder.instructions().lastInstructionRef();
+        builder.placeLabel(earlyExit);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPrologEpilogSanitizePass(builder, false, MicroReg::invalid(), UINT64_MAX, 0, &encoder));
+        uint32_t index      = 0;
+        uint32_t outerIndex = UINT32_MAX;
+        uint32_t jumpIndex  = UINT32_MAX;
+        uint32_t subIndex   = UINT32_MAX;
+        uint32_t addIndex   = UINT32_MAX;
+        for (auto it = builder.instructions().view().begin(), end = builder.instructions().view().end(); it != end; ++it, ++index)
+        {
+            if (it.current == outerRef)
+                outerIndex = index;
+            if (it.current == outerJumpRef)
+                jumpIndex = index;
+            const auto* ops = it->ops(builder.operands());
+            if (isStackAdjust(*it, ops, rsp, MicroOp::Subtract, 56))
+                subIndex = index;
+            if (isStackAdjust(*it, ops, rsp, MicroOp::Add, 56))
+                addIndex = index;
+        }
+        if (outerIndex == UINT32_MAX || jumpIndex == UINT32_MAX || subIndex == UINT32_MAX || addIndex == UINT32_MAX ||
+            (mode != 0 ? (subIndex < outerIndex || addIndex > jumpIndex) : (subIndex >= outerIndex || addIndex <= jumpIndex)))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DropsSaveOfRegisterTheBodyNoLongerNames)
 {
     constexpr MicroReg rsp = MicroReg::intReg(4);

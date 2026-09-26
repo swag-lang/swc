@@ -338,9 +338,9 @@ Do not run this campaign in the main checkout. Create an isolated worktree on a 
 
   git worktree add -b generated-code-performance ../swc-perf HEAD
 
-This is not hygiene, it is measurement validity. A shared tree picks up foreign uncommitted edits
-from other sessions, and MSBuild's incremental build then links that in-flight code into the
-swc.exe you are timing - so a number moves and it is not yours. It also lets you abandon a whole
+The separate tree keeps each generated-code comparison tied to one known compiler revision. A
+shared tree picks up foreign uncommitted edits from other sessions, and MSBuild can link that
+in-flight code into the compiler being inspected. It also lets you abandon a whole
 round with one checkout instead of unpicking it, which you will do often here. Keep each successful
 optimization in a reviewable commit and integrate coherent groups of validated gains into local
 master. Integrate concurrent master changes before merging; resolve conflicts and rerun the affected
@@ -364,41 +364,49 @@ do have for free. Before your first change specifically:
   - Do not build measurement harnesses, per-configuration sweeps, or sentinels for failures you
     have not seen.
 
-Validation is triggered by having something to validate; RULES says what to run then. The clock is
-needed later than it looks, because step 6 judges on emitted code - so record the baseline campaign
-in the same session as the campaign it is compared with, not before the work starts.
+Validation is triggered by having something to validate; RULES says what to run then. Timing is a
+later milestone: record its baseline in the same session as the campaign it is compared with, not
+before the work starts.
 
-If a rung is already red when you do run it, name it in a sentence and move on: it is pre-existing
-and it is not yours.
+If a validation rung fails, stop the optimization loop, reduce the failure, and fix its root cause
+before continuing. This includes failures that predate the current change: an earlier campaign may
+have missed them. Add appropriate regression coverage and rerun the affected checks. Do not leave
+a known test failure open or dismiss it as pre-existing.
 
 GOAL
 
-Bring the code swc generates to the state of the art: match the fastest other measured language on
-each task in bench/, using runtimes from the same accepted full campaign. Concretely:
+Bring the code swc generates to the state of the art. For each task in bench/, compare the emitted
+hot loops with the fastest other language from the same accepted full campaign. Iteration after
+iteration, remove specific extra instructions, memory operations, branches, spills, or dependency
+steps until Swag matches or improves on that implementation's efficient mechanism. This static
+convergence is the primary goal, including when benchmark timings cannot resolve a small change.
+
+The runtime ratios are secondary campaign milestones:
 
   - No task slower than 1.25x its fastest non-Swag runtime.
   - Geometric mean across all tasks at or below 1.15x those per-task winners.
-  - No task regressed, ever, at any point in the campaign.
+  - No accepted batch worsens the generated code for another task without an explained tradeoff.
 
-This is the only thing being optimized here. Compile time is not a competing goal in this
-campaign - see RULES.
+Meeting the runtime milestones does not end the campaign while inspectable hot-loop gaps remain.
+Compile time is secondary to generated-code quality here; see RULES.
 
-Where it stands, clean campaign 20260925-045442 (run ms, lower is better):
+Where it stands, clean campaign 20260926-071537 (run ms, lower is better):
 
   task      swag    fastest other runtime     other ms   ratio
-  chacha    24.312  C++ / clang-cl             22.259    1.092x
-  csvagg    20.270  C++ / clang-cl             16.918    1.198x
-  dijkstra  32.445  C++ / MSVC                 29.589    1.097x
-  leven     13.358  Odin                       12.723    1.050x
-  raytrace  11.602  Odin                        9.248    1.255x
-  sha256    35.233  Zig                        36.865    0.956x
-  wordfreq  62.027  D / LDC                    51.603    1.202x
-  geometric mean                                     1.117x
+  chacha    23.626  C++ / clang-cl             20.654    1.144x
+  csvagg    16.842  Odin                       15.170    1.110x
+  dijkstra  28.934  C++ / MSVC                 26.913    1.075x
+  leven     11.617  Odin                       11.811    0.984x
+  raytrace  11.262  Odin                        9.292    1.212x
+  sha256    32.087  D / LDC                    35.285    0.909x
+  wordfreq  50.270  D / LDC                    43.861    1.146x
+  geometric mean                                     1.078x
 
-That table is one campaign on one machine, so read it as a starting order and nothing more. It
-exceeds the per-task ceiling on raytrace; any new campaign must re-evaluate its own per-task
+That table is one campaign on one machine, so use it to identify the current comparison languages
+and an initial order, not to rank individual edits. Its runtime milestones are met, but the
+generated code still has inspectable gaps. Any new full campaign must re-evaluate its own per-task
 winners and ratios. Do not re-measure it before the first change. Open the largest remaining gap
-and inspect the code or execution strategy that produced the winning time.
+and inspect the code or execution strategy of its winner.
 
 THE LOOP
 
@@ -474,22 +482,23 @@ them, and compare an unrelated input with the same property against one that lac
 decision that only fits the benchmark examples as its own validated batch. Record the audit and
 resume the next optimization; do not turn every batch into a full backend review.
 
-DO NOT STOP AT THE FIRST FAILURE
+CONTINUE AFTER FAILED OPTIMIZATION EXPERIMENTS
 
 Most of these experiments will fail. That is the normal shape of this work, and three of the
 entries already in backlog/compiler.optimization.md are failed attempts written down so the next
-one does not repeat them. When something does not work:
+one does not repeat them. These are code-quality hypotheses that fail their static comparison,
+not failing correctness tests. When an optimization hypothesis does not work:
 
   - Revert it cleanly.
-  - Write down what it ruled out, with the measurement, as a compiler.optimization.NNN entry in
+  - Write down what it ruled out, with the before/after code evidence, as a compiler.optimization.NNN entry in
     backlog/compiler.optimization.md (allocate the next file-scoped identifier as backlog/README.md states).
   - Take the next hypothesis from the same mechanism, or move to the next task.
 
-The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
-- meaning three consecutive rounds across the whole task set left the emitted code no closer to
-the corresponding fastest implementation's efficient mechanism. It does not end because one pass
-turned out to miscompile, one idea
-lost 2%, or one task resisted.
+The campaign ends when the inspectable hot loops match or surpass their corresponding winners'
+efficient mechanisms, or when three consecutive rounds across the whole task set leave the emitted
+code no closer and no concrete hypothesis remains. A requested time limit also ends that run.
+Passing the runtime-ratio milestones alone does not end it. One miscompiling pass or resistant task
+does not end it either.
 
 RULES
 

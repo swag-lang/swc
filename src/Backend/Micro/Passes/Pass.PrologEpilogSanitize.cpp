@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -32,6 +34,10 @@
 //   reserveBodyCallShadow
 //       Keeps one ABI call area below a local frame's saved stack base, then
 //       restores the original stack address before the final argument frame.
+//
+//   hoistLoopCallFrame
+//       Moves a balanced call frame around one call to the enclosing loop's
+//       entry and exit when no other operation in that loop observes rsp.
 //
 //   expandLargePrologueStackAdjustments
 //       Windows requires touching every guard page when growing the stack by
@@ -956,6 +962,167 @@ namespace
         return true;
     }
 
+    bool hoistLoopCallFrame(const MicroPassContext& context, const CallConv& conv)
+    {
+        if (!context.builder || !context.encoder)
+            return false;
+        const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
+        if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
+            return false;
+        const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+        if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
+            return false;
+        const auto dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        auto       loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
+        if (loops.empty())
+            return false;
+
+        const auto refs = cfg.instructionRefs();
+        const auto n    = cfg.instructionCount();
+        std::vector<const MicroPassHelpers::NaturalLoop*> candidates;
+        for (const auto& loop : loops | std::views::values)
+            candidates.push_back(&loop);
+        std::ranges::sort(candidates, [](const auto* lhs, const auto* rhs) { return lhs->bodySize > rhs->bodySize; });
+
+        const auto flagsDeadUntilRedefined = [&](const uint32_t begin, const uint32_t end) {
+            for (uint32_t i = begin; i < end; ++i)
+            {
+                const MicroInstr* inst = context.instructions->ptr(refs[i]);
+                if (!inst)
+                    return false;
+                const auto* ops = inst->ops(*context.operands);
+                if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops))
+                    return false;
+                if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
+                    return true;
+                if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::JumpInstruction))
+                    return false;
+            }
+            return true;
+        };
+
+        for (const auto* loop : candidates)
+        {
+            if (!loop->header || loop->tails.size() != 1)
+                continue;
+            const uint32_t header = loop->header;
+            const uint32_t tail   = loop->tails[0];
+            if (tail + 1 >= n || tail <= header || !loop->inBody[tail] || loop->bodySize != tail - header + 1)
+                continue;
+            const auto* tailInst = context.instructions->ptr(refs[tail]);
+            if (!tailInst || !MicroInstr::info(tailInst->op).flags.has(MicroInstrFlagsE::ConditionalJump))
+                continue;
+            if (cfg.predecessors(header).size() != 2 || cfg.predecessors(tail + 1).size() != 1 ||
+                cfg.predecessors(tail + 1)[0] != tail)
+                continue;
+            bool hasPreheader = false;
+            bool hasBackEdge  = false;
+            for (const uint32_t pred : cfg.predecessors(header))
+            {
+                hasPreheader |= pred == header - 1;
+                hasBackEdge |= pred == tail;
+            }
+            if (!hasPreheader || !hasBackEdge)
+                continue;
+
+            bool enclosed = true;
+            for (uint32_t i = header; i <= tail && enclosed; ++i)
+            {
+                if (!loop->inBody[i])
+                {
+                    enclosed = false;
+                    break;
+                }
+                for (const uint32_t succ : cfg.successors(i))
+                    if (succ >= n || (!loop->inBody[succ] && !(i == tail && succ == tail + 1)))
+                        enclosed = false;
+            }
+            if (!enclosed)
+                continue;
+
+            uint32_t subIndex  = n;
+            uint32_t addIndex  = n;
+            uint32_t callCount = 0;
+            uint64_t amount    = 0;
+            bool inside        = false;
+            MicroInstrRegOperandRefs regOperands;
+            for (uint32_t i = header; i <= tail && enclosed; ++i)
+            {
+                const MicroInstr* inst = context.instructions->ptr(refs[i]);
+                const auto* ops = inst ? inst->ops(*context.operands) : nullptr;
+                if (!inst)
+                {
+                    enclosed = false;
+                    break;
+                }
+                uint64_t adjust = 0;
+                if (isStackAdjustWithOp(*inst, ops, conv.stackPointer, MicroOp::Subtract, adjust))
+                {
+                    if (inside || subIndex != n || !adjust || adjust > INT32_MAX)
+                        enclosed = false;
+                    else
+                    {
+                        subIndex = i;
+                        amount   = adjust;
+                        inside   = true;
+                    }
+                    continue;
+                }
+                if (isStackAdjustWithOp(*inst, ops, conv.stackPointer, MicroOp::Add, adjust))
+                {
+                    if (!inside || adjust != amount || callCount != 1)
+                        enclosed = false;
+                    else
+                    {
+                        addIndex = i;
+                        inside   = false;
+                    }
+                    continue;
+                }
+                if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                {
+                    if (!inside || ++callCount != 1)
+                        enclosed = false;
+                    continue;
+                }
+                if (inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop)
+                {
+                    enclosed = false;
+                    break;
+                }
+                regOperands.clear();
+                inst->collectRegOperands(*context.operands, regOperands, context.encoder);
+                for (const MicroInstrRegOperandRef& operand : regOperands)
+                {
+                    if (!operand.reg || *operand.reg != conv.stackPointer)
+                        continue;
+                    const MicroInstrDef& def = MicroInstr::info(inst->op);
+                    const bool direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                                        operand.reg == &ops[def.memBaseOperandIndex].reg;
+                    if (!inside || !direct)
+                        enclosed = false;
+                }
+            }
+            if (!enclosed || inside || subIndex == n || addIndex == n || callCount != 1 ||
+                !flagsDeadUntilRedefined(header, subIndex) ||
+                !flagsDeadUntilRedefined(subIndex + 1, addIndex) ||
+                !flagsDeadUntilRedefined(addIndex + 1, tail + 1) ||
+                !flagsDeadUntilRedefined(tail + 1, n))
+                continue;
+
+            MicroInstrOperand subtract[4];
+            MicroInstrOperand release[4];
+            std::copy_n(context.instructions->ptr(refs[subIndex])->ops(*context.operands), 4, subtract);
+            std::copy_n(context.instructions->ptr(refs[addIndex])->ops(*context.operands), 4, release);
+            context.instructions->erase(refs[subIndex]);
+            context.instructions->erase(refs[addIndex]);
+            context.instructions->insertSyntheticBefore(*context.operands, refs[header], MicroInstrOpcode::OpBinaryRegImm, subtract);
+            context.instructions->insertSyntheticBefore(*context.operands, refs[tail + 1], MicroInstrOpcode::OpBinaryRegImm, release);
+            return true;
+        }
+        return false;
+    }
+
     bool needsWindowsStackProbe(const MicroPassContext& context, const uint64_t stackAdjust)
     {
         if (stackAdjust <= K_WINDOWS_STACK_PROBE_PAGE_SIZE)
@@ -1088,8 +1255,9 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedUnusedFrame        = eraseUnusedStackFrame(context, conv);
     const bool      changedCompactFrame       = compactUnusedStackPrefix(context, conv);
     const bool      changedReservedCallShadow = reserveBodyCallShadow(context, conv);
+    const bool      changedLoopCallFrame       = hoistLoopCallFrame(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallShadow;
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallShadow || changedLoopCallFrame;
     context.passChanged                       = changed;
     return Result::Continue;
 }

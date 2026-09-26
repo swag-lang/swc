@@ -71,6 +71,54 @@ SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
 }
 SWC_TEST_END()
 
+// Four constant-table reads can repay a larger branched body: each copy gets
+// a fixed table index, while an equally large dynamic body keeps its loop.
+SWC_TEST_BEGIN(LoopUnroll_LargeBranchedConstantTable_Flattens)
+{
+    std::array<std::byte, 4> source{};
+    std::array                dims{source.size()};
+    const TypeRef             arrayType = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef         cstRef    = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, std::span{source.data(), source.size()}));
+    const ConstantValue&      constant  = ctx.cstMgr().get(cstRef);
+    const uint64_t            address   = reinterpret_cast<uint64_t>(constant.getArray().data());
+
+    constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg work    = MicroReg::virtualIntReg(4);
+    for (const bool constantTable : {true, false})
+    {
+        MicroBuilder builder(ctx);
+        const auto   header = builder.createLabel();
+        const auto   skip   = builder.createLabel();
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        if (constantTable)
+            builder.emitLoadRegPtrReloc(base, address, cstRef);
+        else
+            builder.emitLoadRegImm(base, ApInt(1, 64), MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(value, MicroOpBits::B8, base, counter, 1, 0, MicroOpBits::B64);
+        builder.emitCmpRegImm(value, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B8, skip);
+        for (uint32_t i = 0; i < 100; ++i)
+            builder.emitLoadRegReg(work, base, MicroOpBits::B64);
+        builder.placeLabel(skip);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+        builder.emitRet();
+
+        SWC_RESULT(runLoopUnrollPass(builder));
+        const uint32_t expectedJumps = constantTable ? 4 : 2;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != expectedJumps ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (constantTable ? 4u : 1u) ||
+            builder.codeRelocations().size() != (constantTable ? 4u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_SeventeenConstantTableTrips_FlattenWithinSizeBudget)
 {
     std::array<std::byte, 17> source{};

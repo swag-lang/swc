@@ -15,6 +15,13 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.086 — Unroll four constant-table cases with a larger branched body
+
+- Recorded: 2026-09-26 13:51
+- Area: compiler/backend, loop unrolling and raytrace intersection
+- Evidence: Odin emits four straight-line sphere cases for raytrace's `intersect`, while Swag retained a counted loop because its pre-unroll body exceeded the 96-instruction cap. A four-trip loop over constant tables now admits up to 144 body instructions and 576 total cloned instructions; ordinary and longer loops retain their prior 96/384 caps. Constant indices expose each sphere's values to folding, and the loop backedge disappears. The final `intersect` stream falls from 206 to 205 Micro instructions despite containing all four cases, with the same 0x108 frame and no added save/restore traffic. The raytrace checksum remains 56061776 under `--validate-micro`. A focused C++ test covers a large branched constant-table body and rejects an equally large dynamic-table loop. All 1,100 C++ tests, 3,481 native DevMode tests, and 1,500 JIT DevMode tests pass; the native recovery probes produce their expected failure outcomes. No elapsed-time sample informed the decision.
+- Next: compare the floating-point dependency chain and root selection in each unrolled sphere against Odin, then inspect the remaining `trace` gap.
+
 ### compiler.optimization.085 — Compare dynamic short memory ranges in chunks
 
 - Recorded: 2026-09-26 13:10

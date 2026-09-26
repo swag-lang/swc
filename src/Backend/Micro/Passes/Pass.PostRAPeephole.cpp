@@ -137,6 +137,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldMaskedIndexIncrement);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCommutativeAddressCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryCommuteBinaryResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetFloatConversionBeforeCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowShiftCountCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldSignedCeilAverage);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldSignedFloorAverage);

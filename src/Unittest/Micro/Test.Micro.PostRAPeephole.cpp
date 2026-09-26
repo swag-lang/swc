@@ -3159,6 +3159,47 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterDwordConversion_Erased)
 }
 SWC_TEST_END()
 
+// A converted value copied for a conditional selection can be produced in
+// that destination when its old register is read only by the comparison.
+SWC_TEST_BEGIN(PostRAPeephole_FloatConversionCopyBeforeCompare)
+{
+    constexpr MicroReg rax  = MicroReg::intReg(0);
+    constexpr MicroReg rcx  = MicroReg::intReg(1);
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+
+    for (uint32_t mode = 0; mode < 4; ++mode)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegMem(xmm0, r8, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(rax, xmm0, MicroOp::ConvertFloatToInt, MicroOpBits::B64);
+        const MicroInstrRef conversionRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegReg(rcx, rax, MicroOpBits::B64);
+        if (mode == 1)
+            builder.emitLoadMemReg(r8, 8, rax, MicroOpBits::B64);
+        if (mode == 2)
+            builder.emitLoadRegImm(rcx, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(rax, ApInt(255, 64), MicroOpBits::B64);
+        const MicroInstrRef comparisonRef = builder.instructions().lastInstructionRef();
+        if (mode == 3)
+            builder.emitLoadMemReg(r8, 8, rax, MicroOpBits::B64);
+        builder.emitLoadRegImm(rax, ApInt(255, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(rcx, rax, MicroCond::Greater, MicroOpBits::B64);
+        builder.emitLoadMemReg(r8, 16, rcx, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const auto* conversion = builder.instructions().ptr(conversionRef);
+        const auto* comparison = builder.instructions().ptr(comparisonRef);
+        if (!conversion || !comparison || conversion->ops(builder.operands())[0].reg != (mode == 0 ? rcx : rax) ||
+            comparison->ops(builder.operands())[0].reg != (mode == 0 ? rcx : rax))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // `dec ; cmp 0 ; setge` reads the sign `dec` left: `dec ; setns`.
 SWC_TEST_BEGIN(PostRAPeephole_SignedOrderAgainstZeroReadsSign)
 {

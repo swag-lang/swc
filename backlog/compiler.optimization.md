@@ -16,6 +16,13 @@ straight-line path steps over — a safety panic, a cold refill — no longer co
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.078 — Produce converted colors in their selected registers
+
+- Recorded: 2026-09-26 10:12
+- Area: compiler/backend, post-allocation conversion and comparison forwarding
+- Evidence: Odin's raytrace pixel loop converts each color directly into the integer register it later clamps, while Swag copied all three converted values to separate registers before comparing them. A post-allocation rule now retargets a float-to-integer conversion and its sole later comparison to the copy destination when the original register is dead after that comparison. It proves the intervening instructions, encoder legality, and physical liveness on the current Micro stream. The three copies disappear: `__main_0` falls from 142 to 139 post-emit Micro instructions, with 35 stack/RIP memory references unchanged. The raytrace checksum remains 56061776 with `--validate-micro`. All 1,132 C++ tests pass, including a positive chain and cases with an extra source read, destination clobber, or live source; an independent native release test (`static_control.swg`) and a focused JIT/native conversion-and-clamp probe pass. No runtime timing informed the decision.
+- Next: compare the remaining per-pixel outgoing call-frame adjustments with Odin's reserved frame, and prove a general safe hoist or reuse of the call area.
+
 ### compiler.optimization.077 — Reuse constant float sign masks across branches
 
 - Recorded: 2026-09-26 10:01

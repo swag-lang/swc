@@ -341,9 +341,9 @@ namespace
         size_t passesToRun = passes.size();
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
-            // Forwarding transforms that are only sound on the freshly
-            // register-allocated IR run on the first sweep only; later sweeps
-            // are restricted to the monotonic erase/DCE cleanups.
+            // Forwarding that relies on the freshly allocated IR runs only
+            // on the first sweep. Later sweeps may still apply local rewrites
+            // that reprove liveness on the current instruction stream.
             context.isFirstOptimizationSweep = iteration == 0;
 
             bool   iterationMutated   = false;

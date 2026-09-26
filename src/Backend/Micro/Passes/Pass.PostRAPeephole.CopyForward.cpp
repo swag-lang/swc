@@ -609,6 +609,72 @@ namespace PostRaPeephole
         return false;
     }
 
+    // A converted integer may be copied for a later conditional result while
+    // its original register is read once more by the comparison. Produce it
+    // in the copied destination and retarget that one comparison, then the
+    // original register is free for the selected replacement value.
+    bool tryRetargetFloatConversionBeforeCompare(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
+            return false;
+
+        const MicroInstrRef producerRef = ctx.previousRef(copyRef);
+        const MicroInstr*   producer    = ctx.instruction(producerRef);
+        const auto*         produced    = producer ? producer->ops(*ctx.operands) : nullptr;
+        if (!producer || producer->op != MicroInstrOpcode::OpBinaryRegReg || !produced ||
+            produced[0].reg != copy[1].reg || !produced[1].reg.isFloat() ||
+            produced[2].opBits != MicroOpBits::B64 || produced[3].microOp != MicroOp::ConvertFloatToInt ||
+            ctx.isClaimed(producerRef))
+            return false;
+
+        constexpr uint32_t maxWindow = 16;
+        std::array<MicroInstrRef, maxWindow + 2> window;
+        window[0] = producerRef;
+        window[1] = copyRef;
+        MicroInstrRef cursor = ctx.nextRef(copyRef);
+        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        {
+            const MicroInstr* current = ctx.instruction(cursor);
+            if (!current || ctx.isClaimed(cursor))
+                return false;
+            const MicroInstrDef& info = MicroInstr::info(current->op);
+            if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            window[step + 1] = cursor;
+            if (regTouch(ctx, *current, copy[0].reg).def)
+                return false;
+            const RegTouch sourceTouch = regTouch(ctx, *current, copy[1].reg);
+            if (!sourceTouch.use && !sourceTouch.def)
+                continue;
+            if (sourceTouch.def || current->op != MicroInstrOpcode::CmpRegImm)
+                return false;
+            const auto* compared = current->ops(*ctx.operands);
+            if (!compared || compared[0].reg != copy[1].reg || compared[1].opBits != MicroOpBits::B64 ||
+                !ctx.isRegDeadAfter(copy[1].reg, ctx.instructionIndex + step))
+                return false;
+
+            MicroInstrOperand newProducer[4] = {produced[0], produced[1], produced[2], produced[3]};
+            newProducer[0].reg = copy[0].reg;
+            MicroInstrOperand newCompare[3] = {compared[0], compared[1], compared[2]};
+            newCompare[0].reg = copy[0].reg;
+            MicroConformanceIssue issue;
+            if (ctx.encoder->queryConformanceIssue(issue, *producer, newProducer) ||
+                ctx.encoder->queryConformanceIssue(issue, *current, newCompare) ||
+                !ctx.claimAll(std::span{window.data(), step + 2}))
+                return false;
+            ctx.emitRewrite(producerRef, producer->op, newProducer);
+            ctx.emitErase(copyRef);
+            ctx.emitRewrite(cursor, current->op, newCompare);
+            return true;
+        }
+        return false;
+    }
+
     // A count-only copy needs at most six bits. Clearing its upper half is
     // harmless once the count dies or is replaced by the shift's full result.
     bool tryNarrowShiftCountCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

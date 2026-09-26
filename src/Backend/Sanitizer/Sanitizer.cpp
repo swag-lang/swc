@@ -727,22 +727,30 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
-    for (auto it = into.freedPtrLocations.begin(); it != into.freedPtrLocations.end();)
+    if (into.freedPtrLocations && !from.freedPtrLocations)
     {
-        const auto fromIt = from.freedPtrLocations.find(it->first);
-        if (fromIt == from.freedPtrLocations.end())
+        changed |= !into.freedPtrLocations->empty();
+        into.freedPtrLocations.reset();
+    }
+    else if (into.freedPtrLocations && from.freedPtrLocations)
+    {
+        for (auto it = into.freedPtrLocations->begin(); it != into.freedPtrLocations->end();)
         {
-            it      = into.freedPtrLocations.erase(it);
-            changed = true;
-        }
-        else
-        {
-            if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+            const auto fromIt = from.freedPtrLocations->find(it->first);
+            if (fromIt == from.freedPtrLocations->end())
             {
-                it->second = {};
-                changed    = true;
+                it      = into.freedPtrLocations->erase(it);
+                changed = true;
             }
-            ++it;
+            else
+            {
+                if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+                {
+                    it->second = {};
+                    changed    = true;
+                }
+                ++it;
+            }
         }
     }
 
@@ -826,7 +834,8 @@ void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t
 
     // An object is named by where its pointer lives: rewriting that pointer makes the
     // name mean another object, so nothing said about the old one may survive it.
-    std::erase_if(state.freedPtrLocations, [slot](const auto& entry) { return entry.first.fromSlot && storeOverlapsPointer(entry.first.slot, slot); });
+    if (state.freedPtrLocations)
+        std::erase_if(*state.freedPtrLocations, [slot](const auto& entry) { return entry.first.fromSlot && storeOverlapsPointer(entry.first.slot, slot); });
 
     // Overwriting either end of a proven copy ends the equality: the copy holds a value
     // the other slot no longer has, and releasing that other slot says nothing about it.
@@ -955,22 +964,23 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
     // Lifecycle facts - a released pointer, and the slot copies that share it - follow
     // one aliasing discipline: any write that could reassign a slot revalidates it. Calls
     // are handled below, after the freeing call has marked its own arguments.
-    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() || !state.freedPtrLocations.empty();
+    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() ||
+                                   (state.freedPtrLocations && !state.freedPtrLocations->empty());
     if (hasLifecycleFacts && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
     {
         // A pointer a heap object owns is named by base and offset, so writing that
         // exact place revalidates it and any other write the analysis cannot pin drops
         // every such fact.
-        if (!state.freedPtrLocations.empty())
+        if (state.freedPtrLocations && !state.freedPtrLocations->empty())
         {
             uint8_t           baseIndex = 0;
             SanitizerLocation written;
             if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                 MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def) &&
                 resolveAccessLocation(written, state, ops[baseIndex].reg, static_cast<int64_t>(ops[def.memOffsetOperandIndex].valueU64)))
-                state.freedPtrLocations.erase(written);
+                state.freedPtrLocations->erase(written);
             else
-                state.freedPtrLocations.clear();
+                state.freedPtrLocations.reset();
         }
 
         int64_t slot = 0;
@@ -1429,9 +1439,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         // A callee can write through any pointer it is handed, so nothing said about an
         // object survives a call - the release below re-states what this one just did.
-        state.freedPtrLocations.clear();
-        for (const auto& location : newlyFreedLocations)
-            state.freedPtrLocations[location] = inst.debugSourceInfo.sourceCodeRef;
+        state.freedPtrLocations.reset();
+        if (!newlyFreedLocations.empty())
+        {
+            state.freedPtrLocations.emplace();
+            for (const auto& location : newlyFreedLocations)
+                (*state.freedPtrLocations)[location] = inst.debugSourceInfo.sourceCodeRef;
+        }
 
         // A callee handed both a pointer to release and the storage that holds it can put
         // a live address back where the released one was: what it can reassign, it did

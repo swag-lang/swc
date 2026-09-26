@@ -7478,6 +7478,19 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         localSsaState.invalidate();
     }
 
+    // Every remaining if-conversion needs a conditional JumpCond. The shared
+    // layout still describes the stream only when no preceding rewrite dropped it.
+    if (scanCache.layoutBuilt && !scanCache.scan.layout.hasConditionalJump)
+    {
+        if (changed)
+        {
+            if (context.builder)
+                context.builder->invalidateControlFlowGraph();
+            context.passChanged = true;
+        }
+        return Result::Continue;
+    }
+
     thread_local DiamondScanCache diamondCache;
     diamondCache.invalidate();
     if (convertComparedLoadDiamond(storage, operands, context, diamondCache))

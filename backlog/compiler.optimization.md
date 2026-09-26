@@ -417,6 +417,18 @@ block, and the hot path keeps the register.
   medians were 167 and 189 ms, but a seven-pair role-reversed hello series gave 181 and 187 ms
   with slightly higher candidate CPU. No speedup percentage is established. The full Release
   campaign again reached the pre-existing `std/gui` error in `compiler.core.058`.
+- A fourth prompt-4 group skips settled register-allocation sweeps after checking for remaining
+  virtual operands, defers implied-branch and jump-chain cycle sets, builds packed-switch jump
+  counts only for qualifying chains, delays range-check used-set work until the opcode shape
+  matches, and constructs short-circuit scratch maps only on paths that use them. Focused Release
+  tests passed; after merging master `f196225e0`, 3,481 native and 1,500 JIT tests passed. The
+  full Release campaign compiled `std/gui` and stopped in `std/video` because
+  `Slice.predictIntraPlane` still changed after 24 pre-RA sweeps. The unmodified master compiler
+  at `f196225e0` reproduced that exact failure with a video rebuild. Five order-alternated
+  four-workload pairs against that master gave candidate/baseline medians of 3,357/3,426 ms
+  core rebuild, 89/65 ms no-op, 2,734/2,576 ms core touch, and 245/242 ms hello. One touch
+  took 35 seconds and one no-op 1.55 seconds under shared load; these samples establish no
+  speedup percentage or stable regression.
 - Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
   rather than this entry's. For this entry, the remaining lever is structural — running the
   pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way

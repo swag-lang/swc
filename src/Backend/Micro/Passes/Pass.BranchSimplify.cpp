@@ -7436,9 +7436,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         context.builder->invalidateControlFlowGraph();
     rewrote(convertEqualityChainsToBitTests(storage, operands, context, scanCache, relocationCache));
     rewrote(convertSwitchesToPackedTables(storage, operands, context, scanCache, relocationCache));
-    // A range exit pair needs conditional jumps. Reuse the current layout
-    // when the earlier transforms left it intact.
-    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump)
+    // A range exit pair needs immediate compares and conditional jumps.
+    // Reuse the current layout when the earlier transforms left it intact.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasImmediateCompare && scanCache.scan.layout.hasConditionalJump))
         rewrote(foldRangeChecks(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
@@ -7454,8 +7454,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         rewrote(convertShortCircuitBooleans(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
-    // This fold needs a setcc result immediately before the boolean and.
-    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasSetCondition)
+    // This fold needs immediate compares and a setcc result before the boolean and.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasImmediateCompare && scanCache.scan.layout.hasSetCondition))
         rewrote(foldRangeAnds(storage, operands, context));
 
     if (changed && context.builder)

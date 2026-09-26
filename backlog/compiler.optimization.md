@@ -15,6 +15,39 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
+
+- Recorded: 2026-09-16 12:12
+- Updated: 2026-09-26 14:44 — Measured and shortened the video outlier without raising the budget.
+- Area: compiler/backend, compilation time
+- Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
+  changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
+  (Release 0.1.684) and building `bin/std/modules/gui` showed what that costs: eighteen errors,
+  all of them semantic errors about the user's own source, because the compile-time evaluations
+  those calls fold are lowered through the same loop. The loop now reports the defect itself,
+  naming the function and the budget, covered by the C++ test
+  `MicroPassManager_PreRa_ReportsALoopThatNeverSettles`. What it still does not say is how much
+  room is left: no measurement records the sweep counts a real build reaches, so whether sixteen
+  is a distant safety net or a limit some function already approaches is unknown.
+- 2026-09-26 Release diagnosis: the budget is now 24. `Slice.predictIntraPlane` in `std/video`
+  still mutated on sweep 24 with both the current compiler and an earlier unmodified master.
+  Temporarily allowing 80 sweeps showed 29 changing sweeps followed by a stable thirtieth;
+  this was a finite chain, not oscillation. The induction-variable pass reduced only one natural
+  loop per call, forcing the whole pre-RA pass battery to run between independent loop reductions.
+  Reducing distinct loops inside that pass, with a local 32-round bound and a fresh CFG per
+  reduction, lets this function converge under the unchanged 24-sweep budget. Each loop is
+  processed at most once per invocation, preserving the product-before-sum ordering protected by
+  the C++ pass tests. The `video` module's 117 tests, 3,481 native tests, and 1,500 JIT tests
+  passed on this refined form. This resolves the observed outlier; it does not measure the full
+  distribution.
+- Next: count the sweeps each function needs over a full `bin/std` build in both configurations
+  and record the distribution. A maximum far below 24 makes the budget a safety net; a
+  maximum near it makes the budget a live limit and the convergence of individual passes the
+  thing to fix.
+- Complete when: the sweep distribution over `bin/std` is recorded, and the budget is either
+  justified by it or replaced by what the measurement shows is needed.
+- Related: compiler.optimization.029, compiler.core.004.
+
 ### compiler.optimization.086 — Unroll four constant-table cases with a larger branched body
 
 - Recorded: 2026-09-26 13:51
@@ -740,28 +773,6 @@ block, and the hot path keeps the register.
 - Complete when: fresh aggregate returns have a documented ownership rule and JIT/native
   regressions cover their copy/move hooks, source cleanup, and optimized inlining.
 - Related: compiler.optimization.027.
-
-### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
-
-- Recorded: 2026-09-16 12:12
-- Updated: 2026-09-16 13:02 — The silent failure is fixed; what remains is the unmeasured budget.
-- Area: compiler/backend, compilation time
-- Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
-  changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
-  (Release 0.1.684) and building `bin/std/modules/gui` showed what that costs: eighteen errors,
-  all of them semantic errors about the user's own source, because the compile-time evaluations
-  those calls fold are lowered through the same loop. The loop now reports the defect itself,
-  naming the function and the budget, covered by the C++ test
-  `MicroPassManager_PreRa_ReportsALoopThatNeverSettles`. What it still does not say is how much
-  room is left: no measurement records the sweep counts a real build reaches, so whether sixteen
-  is a distant safety net or a limit some function already approaches is unknown.
-- Next: count the sweeps each function needs over a full `bin/std` build in both configurations
-  and record the distribution. A maximum far below sixteen makes the budget a safety net; a
-  maximum near it makes the budget a live limit and the convergence of individual passes the
-  thing to fix.
-- Complete when: the sweep distribution over `bin/std` is recorded, and the budget is either
-  justified by it or replaced by what the measurement shows is needed.
-- Related: compiler.optimization.029, compiler.core.004.
 
 ### compiler.optimization.032 — Partially unroll the SHA-256 compression rounds
 

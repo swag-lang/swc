@@ -53,6 +53,22 @@ namespace
 
         if (node.is(AstNodeId::CallExpr))
             result.numCalls++;
+        else if (const auto* intrinsic = node.safeCast<AstIntrinsicCallExpr>())
+        {
+            // A runtime-sized memory intrinsic becomes a call during code generation.
+            // The size is unknown at parse time, so price the possible call here.
+            switch (intrinsic->intrinsicId)
+            {
+                case TokenId::IntrinsicMemCpy:
+                case TokenId::IntrinsicMemMove:
+                case TokenId::IntrinsicMemSet:
+                case TokenId::IntrinsicMemCmp:
+                    result.numCalls++;
+                    break;
+                default:
+                    break;
+            }
+        }
         else if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
         {
             result.blocked = true;

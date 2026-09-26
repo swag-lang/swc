@@ -3065,7 +3065,7 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     ///////////////////////////////////////////
     if (op == MicroOp::BitwiseNot)
     {
-        emitRex(store_, opBits);
+        emitRex(store_, opBits, MicroReg{}, memReg);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         emitMemoryOperand(MODRM_REG_2);
     }
@@ -3074,7 +3074,7 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
 
     else if (op == MicroOp::Negate)
     {
-        emitRex(store_, opBits);
+        emitRex(store_, opBits, MicroReg{}, memReg);
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         emitMemoryOperand(MODRM_REG_3);
     }

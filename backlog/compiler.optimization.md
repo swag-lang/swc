@@ -84,6 +84,13 @@ block, and the hot path keeps the register.
   justified by it or replaced by what the measurement shows is needed.
 - Related: compiler.optimization.029, compiler.core.004.
 
+### compiler.optimization.088 — Encode unary memory updates with the full base register
+
+- Recorded: 2026-09-26 16:04
+- Area: compiler/backend, x64 encoding and pre-RA memory folding
+- Evidence: the Release `std/pixel` clipper test crashed on a deterministic union of 22 XOR contours. DevMode and Release O0 passed; the old September 23 compiler passed at O1. A compiler revision bisect found `4c1bc7058`, which first folds ordinary unary load/modify/store triples into `OpUnaryMem`. Its x64 encoder omitted the base register's REX.B bit, so an operation on `[r12+offset]` or `[r13+offset]` instead touched `[rsp+offset]` or `[rbp+offset]`. Existing encoder tests expected those wrong bytes. The encoder now includes the base register, and the tests expect its REX.B prefix. The fold also supplied a five-operand buffer to the four-operand opcode; it now supplies exactly four, with a C++ regression for both unary operations. The formerly crashing isolated geometry, all 570 `std/pixel` tests in both Release JIT and native execution, all 1,141 C++ tests, and all 3,481 native Release tests pass. The native recovery probes report their expected failures.
+- Next: keep encoding tests tied to the intended register and operand shape when a new fold first activates an existing opcode.
+
 ### compiler.optimization.086 — Unroll four constant-table cases with a larger branched body
 
 - Recorded: 2026-09-26 13:51

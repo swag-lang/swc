@@ -74,7 +74,7 @@ namespace InstructionCombine
                 newOps[1].opBits   = tri.opBits;
                 newOps[2].microOp  = tri.microOp;
                 newOps[3].valueU64 = loadOff;
-                ctx.emitRewrite(midRef, MicroInstrOpcode::OpUnaryMem, newOps, /*allocNewBlock=*/true);
+                ctx.emitRewrite(midRef, MicroInstrOpcode::OpUnaryMem, std::span{newOps, 4}, /*allocNewBlock=*/true);
             }
             else if (tri.middleIsRegReg)
             {

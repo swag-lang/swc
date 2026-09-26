@@ -1231,6 +1231,8 @@ namespace
             return false;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
+        if (!layout.hasConditionalJump)
+            return false;
         const auto soleUsesAre = [&](MicroReg firstReg, MicroInstrRef firstReader, MicroReg secondReg, MicroInstrRef secondReader) {
             uint32_t firstUses  = 0;
             uint32_t secondUses = 0;
@@ -1510,6 +1512,8 @@ namespace
         if (branchScan && branchScan->indirectJump)
             return false;
         const ProgramLayout& layout = layoutCache.get(storage, operands);
+        if (!layout.hasConditionalJump)
+            return false;
         const size_t count = layout.order.size();
 
         std::unordered_map<uint32_t, uint32_t> localLabelReferences;
@@ -2157,6 +2161,8 @@ namespace
         constexpr uint32_t K_MAX_CHAIN = 6;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
+        if (!layout.hasConditionalJump)
+            return false;
 
         // Labels placed past a join's test, by the join's jump.
         std::unordered_map<uint32_t, uint32_t> fallThroughLabels;

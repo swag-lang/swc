@@ -11,6 +11,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Report/Assert.h"
+#include <optional>
 
 // Pre-RA branch simplification and CFG cleanup.
 //
@@ -865,7 +866,9 @@ namespace
             if (!value.valid())
                 continue;
 
-            std::unordered_set<uint32_t> visitedLabels;
+            // Most backward walks remain in straight-line code. Allocate the
+            // cycle detector only when a label is actually encountered.
+            std::optional<std::unordered_set<uint32_t>> visitedLabels;
             int64_t                      at      = static_cast<int64_t>(ordinal) - 2;
             bool                         decided = false;
             bool                         taken   = false;
@@ -880,7 +883,11 @@ namespace
                 if (inst->op == MicroInstrOpcode::Label)
                 {
                     uint32_t labelId = 0;
-                    if (!tryGetLabelId(labelId, *inst, instOps) || !visitedLabels.insert(labelId).second)
+                    if (!tryGetLabelId(labelId, *inst, instOps))
+                        break;
+                    if (!visitedLabels)
+                        visitedLabels.emplace();
+                    if (!visitedLabels->insert(labelId).second)
                         break;
                     const auto     useIt      = labelUses.find(labelId);
                     const uint32_t references = useIt == labelUses.end() ? 0 : useIt->second.references;

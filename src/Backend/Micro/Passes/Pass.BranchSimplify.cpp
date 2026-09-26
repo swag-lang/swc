@@ -2317,7 +2317,10 @@ namespace
         if (!context.builder)
             return false;
         scanCache.ensureLayout(storage, operands);
-        if (!scanCache.scan.layout.hasImmediateCompare)
+        // Every chain has cmp/setcc links and conditional exits. Avoid the
+        // richer reference scan when the current layout lacks one of them.
+        if (!scanCache.scan.layout.hasImmediateCompare || !scanCache.scan.layout.hasSetCondition ||
+            !scanCache.scan.layout.hasConditionalJump)
             return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);

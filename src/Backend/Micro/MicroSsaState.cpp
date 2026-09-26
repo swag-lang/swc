@@ -224,13 +224,12 @@ void MicroSsaState::clear()
     // Membership is tagged by epoch. Keep the tags across functions so a small
     // function does not zero the entire buffer left by an earlier large one.
     instructionToBlock_.clear();
-    useVisitStamps_.clear();
+    // Visit stamps are generation-tagged too; only the temporary stack resets.
     useVisitStack_.clear();
     trackedDefCount_ = 0;
     valueInfoCount_  = 0;
     phiInfoCount_    = 0;
-    useVisitStamp_   = 1;
-    valid_           = false;
+    valid_ = false;
 }
 
 void MicroSsaState::invalidate()

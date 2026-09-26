@@ -7354,7 +7354,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     if (ssaState && ssaState->isValid())
         rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout));
     // The SSA snapshot describes the code before any fold above.
-    if (!changed && hasConditionalJump && ssaState && ssaState->isValid())
+    // Implied branch facts come only from immediate compares. Avoid building
+    // its label maps for a branchy function without one.
+    if (!changed && hasConditionalJump && scanCache.scan.layout.hasImmediateCompare && ssaState && ssaState->isValid())
         rewrote(foldImpliedBranches(storage, operands, *ssaState, scanCache.scan.layout));
 
     if (changed && context.builder)

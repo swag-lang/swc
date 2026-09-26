@@ -1541,9 +1541,10 @@ namespace
             return false;
         const size_t count = layout.order.size();
 
-        std::unordered_map<uint32_t, uint32_t> localLabelReferences;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> localLabelReferences;
         if (!branchScan)
         {
+            localLabelReferences.emplace();
             for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
             {
                 const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -1553,10 +1554,10 @@ namespace
                     return false;
                 uint32_t labelId = 0;
                 if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                    ++localLabelReferences[labelId];
+                    ++(*localLabelReferences)[labelId];
             }
         }
-        const auto& labelReferences = branchScan ? branchScan->labelReferences : localLabelReferences;
+        const auto& labelReferences = branchScan ? branchScan->labelReferences : *localLabelReferences;
 
         // Where every virtual integer register is read and written, and which instructions a
         // relocation pins. Both are only consulted once a jump, its single-reference forward
@@ -1570,12 +1571,11 @@ namespace
             SmallVector<uint32_t, 4> defs;
         };
 
-        std::unordered_map<uint32_t, RegSites> sites;
-        bool                                   sitesCollected = false;
-        const auto                             regSites       = [&]() -> std::unordered_map<uint32_t, RegSites>& {
-            if (!sitesCollected)
+        std::optional<std::unordered_map<uint32_t, RegSites>> sites;
+        const auto regSites = [&]() -> std::unordered_map<uint32_t, RegSites>& {
+            if (!sites)
             {
-                sitesCollected = true;
+                sites.emplace();
                 for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
                 {
                     const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -1594,14 +1594,14 @@ namespace
                         if (!reg.isVirtualInt())
                             continue;
                         if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
-                            sites[reg.index()].uses.push_back(ordinal);
+                            (*sites)[reg.index()].uses.push_back(ordinal);
                         if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
-                            sites[reg.index()].defs.push_back(ordinal);
+                            (*sites)[reg.index()].defs.push_back(ordinal);
                     }
                 }
             }
 
-            return sites;
+            return *sites;
         };
 
         const auto allWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {

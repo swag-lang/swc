@@ -848,6 +848,42 @@ SWC_TEST_BEGIN(InstCombine_MemFold_Imm_Consecutive)
 }
 SWC_TEST_END()
 
+// Folding a unary read/modify/write must retain the unary opcode's four-operand shape.
+SWC_TEST_BEGIN(InstCombine_MemFold_Unary_UsesFourOperands)
+{
+    constexpr MicroReg base = MicroReg::virtualIntReg(2);
+    constexpr MicroReg value = MicroReg::virtualIntReg(3);
+
+    for (const MicroOp op : {MicroOp::Negate, MicroOp::BitwiseNot})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegPtrImm(base, 0x1000);
+        builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+        builder.emitOpUnaryReg(value, op, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 8, value, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 0 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpUnaryMem) != 1)
+            return Result::Error;
+
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpUnaryMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (!ops || inst.numOperands != 4 || ops[0].reg != base || ops[1].opBits != MicroOpBits::B64 ||
+                ops[2].microOp != op || ops[3].valueU64 != 8)
+                return Result::Error;
+        }
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // LoadRegMem ; OpBinaryRegReg ; LoadMemReg  ->  OpBinaryMemReg
 SWC_TEST_BEGIN(InstCombine_MemFold_Reg_Consecutive)
 {

@@ -65,12 +65,13 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
 {
     ++buildId_;
 
-    clear();
-
     const uint32_t instructionCount = storage.count();
-    instructionRefs_.reserve(instructionCount);
+    // Drop surplus edge lists before clearing the lists still used by this graph.
+    // Resizing down destroys those lists, so walking them first only repeats work.
     successors_.resize(instructionCount);
     predecessors_.resize(instructionCount);
+    clear();
+    instructionRefs_.reserve(instructionCount);
 
     for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {

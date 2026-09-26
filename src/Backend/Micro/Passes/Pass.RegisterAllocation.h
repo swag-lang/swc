@@ -392,6 +392,7 @@ private:
     std::vector<uint32_t>                 virtualSpanLo_;
     std::vector<uint32_t>                 virtualSpanHi_;
     std::vector<std::vector<uint32_t>>    concreteClaimPositionsByDenseIndex_;
+    bool                                  concreteClaimPositionsComputed_ = false;
     MicroDenseRegIndex                    denseGlobalPhysRegs_;
     std::vector<SmallVector<GlobalRange>> globalRangesByPhysDense_;
     std::vector<uint8_t>                  reachableInstructions_;

@@ -70,7 +70,7 @@ struct PropHeadlessRoData
 {
     normal: s32 = 1
 
-    #[ReadOnly]
+    #[Properties.ReadOnly]
     locked: s32 = 2
 
     dynamic: s32 = 3

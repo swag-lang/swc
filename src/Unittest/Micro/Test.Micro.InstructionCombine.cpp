@@ -4782,6 +4782,43 @@ SWC_TEST_BEGIN(InstCombine_FoldsLeaOffsetIntoIndexedMemoryUpdate)
 }
 SWC_TEST_END()
 
+// Reuse a sibling address with the same index expression and a different
+// constant offset. A changed source value must prevent that substitution.
+SWC_TEST_BEGIN(InstCombine_OffsetRelatedIndexRebasesIndexedLoad)
+{
+    constexpr MicroReg base      = MicroReg::virtualIntReg(1);
+    constexpr MicroReg source    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg doubled   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg successor = MicroReg::virtualIntReg(4);
+    constexpr MicroReg value     = MicroReg::virtualIntReg(5);
+    for (const bool changeSource : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(source, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadAddressAmcRegMem(doubled, MicroOpBits::B64, source, source, 1, 0, MicroOpBits::B64);
+        if (changeSource)
+            builder.emitOpBinaryRegImm(source, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadAddressAmcRegMem(successor, MicroOpBits::B64, source, source, 1, 1, MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, doubled, 8, 8, MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::intReg(0), value, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+
+        const MicroInstr* load = nullptr;
+        for (const MicroInstr& inst : builder.instructions().view())
+            if (inst.op == MicroInstrOpcode::LoadAmcRegMem && inst.ops(builder.operands())[0].reg == value)
+                load = &inst;
+        if (!load)
+            return Result::Error;
+        const MicroInstrOperand* ops = load->ops(builder.operands());
+        if (ops[2].reg != (changeSource ? doubled : successor) || ops[6].valueU64 != (changeSource ? 8 : 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A full-width packed unary operation can read its sole source directly from
 // memory. Both scalar-address and indexed loads use the same fold.
 SWC_TEST_BEGIN(InstCombine_FullWidthVecUnary_FoldsItsLoad)

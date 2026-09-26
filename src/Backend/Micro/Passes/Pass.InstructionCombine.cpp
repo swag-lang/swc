@@ -100,6 +100,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldRightAmcLoadIntoEqualityCompare);
         r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldZeroExtAmcLoadIntoCompare);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryUseOffsetRelatedIndex);
         r.add(MicroInstrOpcode::LoadSignedExtAmcRegMem, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldConstIndexAmc);

@@ -15,6 +15,20 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.084 — Rebase an indexed load on a related address
+
+- Recorded: 2026-09-26 12:47
+- Area: compiler/backend, indexed address folding
+- Evidence: MSVC `/O2` computes Dijkstra's child index `2*i+1` once per `pop` iteration. Swag computed both `2*i` and `2*i+1`, then addressed the same child through `[heap + (2*i)*8 + 8]`. Instruction combine now recognizes two address definitions with identical reaching source values and scale, and replaces a single-use index with the related index plus an adjusted displacement. The dead `lea` drops out in the cleanup sweep. Dijkstra's `pop` falls from 49 to 48 Micro instructions and `__main_0` from 436 to 435; the inner `pop` loop has one fewer instruction and no extra memory access. Its checksum remains 4431000 with `--validate-micro`. Wordfreq `mapProbe`/`qsort`/main remain 81/72/328, raytrace `trace`/`intersect` remain 183/206, ChaCha main remains 431, and CSV main remains 1000. All 1,138 C++ tests and the independently drawn six native Release pointer-arithmetic tests pass. The focused C++ test accepts equivalent source values and rejects a source redefinition. No runtime timing informed the decision.
+- Next: compare Dijkstra's remaining heap-loop memory accesses against MSVC's pointer residency without assuming that an arbitrary heap pointer cannot alias a global.
+
+### compiler.optimization.083 — Hoisting a probe mask before load folding increases spills
+
+- Recorded: 2026-09-26 12:46
+- Area: compiler/backend, LICM and register allocation
+- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
+- Next: find a register-pressure-aware way to retain the mask, then compare the complete hash and collision loops and the call frame against LDC.
+
 ### compiler.optimization.082 — Rotate packed 32-bit words by 16 with two shuffles
 
 - Recorded: 2026-09-26 12:00

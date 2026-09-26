@@ -15,6 +15,13 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.080 — Add a doubled value with one scaled address
+
+- Recorded: 2026-09-26 11:35
+- Area: compiler/backend, post-allocation integer address folding
+- Evidence: Odin forms raytrace's `ir + 2 * ig` with one `lea` in the pixel loop. Swag first formed `2 * ig` in a temporary register, then added it to `ir`. A post-allocation rule rewrites the adjacent pair to `lea dst, [dst + source * 2]` only when the temporary is dead, the widths match, the encoder accepts the address, and no later instruction needs the original `add` flags. Raytrace's `__main_0` falls from 139 to 138 post-emit Micro instructions, with one fewer instruction on every pixel iteration and unchanged memory references. The checksum remains 56061776 with `--validate-micro`. All 1,136 C++ and 1,500 JIT Release tests pass; the independently drawn native Release `float_literal_rounding.swg` passes 2 tests. The focused C++ test accepts a dead temporary and refuses a later temporary read, live flags, or another scale. No runtime timing informed the decision.
+- Next: compare raytrace's remaining pixel and `trace` dependency chains against Odin, then inspect wordfreq's tokenization path against LDC.
+
 ### compiler.optimization.079 — Share identical floating-register return tails
 
 - Recorded: 2026-09-26 11:26

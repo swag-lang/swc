@@ -1869,6 +1869,49 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A doubled value staged in a dead temporary can be added directly with
+    // the scaled address mode. Both forms compute modulo the selected width.
+    bool tryFoldDoubledAddressAdd(Context& ctx, const MicroInstrRef addressRef, const MicroInstr& addressInst)
+    {
+        if (ctx.isClaimed(addressRef) || !ctx.encoder)
+            return false;
+        const auto* address = addressInst.ops(*ctx.operands);
+        if (!address || address[1].reg != address[2].reg || address[0].reg == address[1].reg ||
+            !address[0].reg.isInt() || !address[1].reg.isInt() ||
+            (address[3].opBits != MicroOpBits::B32 && address[3].opBits != MicroOpBits::B64) ||
+            address[4].opBits != MicroOpBits::B64 || address[5].valueU64 != 1 || address[6].valueU64 != 0)
+            return false;
+        const MicroInstrRef addRef = ctx.nextRef(addressRef);
+        const MicroInstr* add = ctx.instruction(addRef);
+        const auto* addOps = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg || !addOps ||
+            addOps[3].microOp != MicroOp::Add || addOps[1].reg != address[0].reg ||
+            addOps[0].reg == address[0].reg || !addOps[0].reg.isInt() ||
+            addOps[2].opBits != address[3].opBits ||
+            ctx.isPrivateFrameBase(address[0].reg) || ctx.isPrivateFrameBase(address[1].reg) ||
+            ctx.isPrivateFrameBase(addOps[0].reg) ||
+            !ctx.isRegDeadAfter(address[0].reg, ctx.instructionIndex + 1) ||
+            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            return false;
+
+        MicroInstrOperand folded[8] = {};
+        folded[0].reg = addOps[0].reg;
+        folded[1].reg = addOps[0].reg;
+        folded[2].reg = address[1].reg;
+        folded[3].opBits = address[3].opBits;
+        folded[4].opBits = MicroOpBits::B64;
+        folded[5].valueU64 = 2;
+        MicroInstr probe;
+        probe.op = MicroInstrOpcode::LoadAddrAmcRegMem;
+        probe.numOperands = 8;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, probe, folded) || !ctx.claimAll({addressRef, addRef}))
+            return false;
+        ctx.emitRewrite(addressRef, probe.op, folded, true);
+        ctx.emitErase(addRef);
+        return true;
+    }
+
     // A small product immediately added to another value is shorter when the
     // product is formed in the final destination by scaled addressing:
     //

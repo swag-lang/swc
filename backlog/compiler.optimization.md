@@ -15,17 +15,10 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
-### compiler.optimization.088 — Encode unary memory updates with the full base register
-
-- Recorded: 2026-09-26 16:04
-- Area: compiler/backend, x64 encoding and pre-RA memory folding
-- Evidence: the Release `std/pixel` clipper test crashed on a deterministic union of 22 XOR contours. DevMode and Release O0 passed; the old September 23 compiler passed at O1. A compiler revision bisect found `4c1bc7058`, which first folds ordinary unary load/modify/store triples into `OpUnaryMem`. Its x64 encoder omitted the base register's REX.B bit, so an operation on `[r12+offset]` or `[r13+offset]` instead touched `[rsp+offset]` or `[rbp+offset]`. Existing encoder tests expected those wrong bytes. The encoder now includes the base register, and the tests expect its REX.B prefix. The fold also supplied a five-operand buffer to the four-operand opcode; it now supplies exactly four, with a C++ regression for both unary operations. The formerly crashing isolated geometry, all 570 `std/pixel` tests in both Release JIT and native execution, all 1,141 C++ tests, and all 3,481 native Release tests pass. The native recovery probes report their expected failures.
-- Next: keep encoding tests tied to the intended register and operand shape when a new fold first activates an existing opcode.
-
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 
 - Recorded: 2026-09-16 12:12
-- Updated: 2026-09-26 15:58 — Counted pre-RA sweeps over the complete standard library in Release.
+- Updated: 2026-09-26 17:47 — Validated later prompt-4 backend workspace savings in Release.
 - Area: compiler/backend, compilation time
 - Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
   changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
@@ -71,12 +64,32 @@ block, and the hot path keeps the register.
   Sixteen functions needed more than ten sweeps; none exceeded fifteen. The current 24-sweep
   limit has nine sweeps of headroom on this corpus. The counter was removed after measurement;
   DevMode and other consumer workspaces remain unmeasured.
+- Later prompt-4 batches avoid a boolean-fusion scan without an immediate compare, count only
+  queried virtual definitions in the sanitizer, defer its call-target, diagnostic, released-location
+  and escaped-object containers, and retain live-slot, visit, block-index and register-position
+  storage across functions. The CFG no longer clears edge lists it is about to discard. These are
+  equivalent-work allocation and traversal savings; the shared machine has not yielded a stable
+  whole-build percentage. The latest Release candidate passed 3,481 native, 1,500 JIT and 781
+  `std/core` tests. After the dense-register change, all 12 standard modules built; the combined
+  test run first stopped once on an undiagnosed `CodeGen` error in `core`, which then passed alone
+  and in the next combined run. That run stopped in `pixel` with `0xC0000005` at `ntdll+0x1ff2a`;
+  the exact pre-campaign parent had crashed at the same offset earlier that day. Separate `gui`
+  and `video` runs passed 783 and 117 tests before the two latest workspace changes. A five-pair
+  four-workload timing attempt was stopped after unrelated load stretched one core touch to 30 s;
+  the shorter A/B screens establish no percentage claim.
 - Next: count DevMode sweeps and other consumer workspaces before treating the Release
   standard-library maximum as a general bound. If any function approaches 24, identify the
   pass chain that keeps changing it before raising the limit.
 - Complete when: the sweep distribution over `bin/std` is recorded, and the budget is either
   justified by it or replaced by what the measurement shows is needed.
 - Related: compiler.optimization.029, compiler.core.004.
+
+### compiler.optimization.088 — Encode unary memory updates with the full base register
+
+- Recorded: 2026-09-26 16:04
+- Area: compiler/backend, x64 encoding and pre-RA memory folding
+- Evidence: the Release `std/pixel` clipper test crashed on a deterministic union of 22 XOR contours. DevMode and Release O0 passed; the old September 23 compiler passed at O1. A compiler revision bisect found `4c1bc7058`, which first folds ordinary unary load/modify/store triples into `OpUnaryMem`. Its x64 encoder omitted the base register's REX.B bit, so an operation on `[r12+offset]` or `[r13+offset]` instead touched `[rsp+offset]` or `[rbp+offset]`. Existing encoder tests expected those wrong bytes. The encoder now includes the base register, and the tests expect its REX.B prefix. The fold also supplied a five-operand buffer to the four-operand opcode; it now supplies exactly four, with a C++ regression for both unary operations. The formerly crashing isolated geometry, all 570 `std/pixel` tests in both Release JIT and native execution, all 1,141 C++ tests, and all 3,481 native Release tests pass. The native recovery probes report their expected failures.
+- Next: keep encoding tests tied to the intended register and operand shape when a new fold first activates an existing opcode.
 
 ### compiler.optimization.086 — Unroll four constant-table cases with a larger branched body
 

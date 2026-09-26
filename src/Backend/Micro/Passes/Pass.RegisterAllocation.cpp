@@ -2268,9 +2268,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
     states_.clear();
     states_.resize(virtualRegs.size());
-    usePositionsByDenseVirtual_.clear();
     usePositionsByDenseVirtual_.resize(virtualRegs.size());
-    concreteTouchPositionsByDenseIndex_.clear();
     concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
     definitionCounts_.assign(virtualRegs.size(), 0);
 
@@ -4436,8 +4434,11 @@ void MicroRegisterAllocationPass::clearState()
     defVirtualIndices_.clear();
     useConcreteIndices_.clear();
     defConcreteIndices_.clear();
-    usePositionsByDenseVirtual_.clear();
-    concreteTouchPositionsByDenseIndex_.clear();
+    // Keep the inner capacities for the next function's register positions.
+    for (auto& positions : usePositionsByDenseVirtual_)
+        positions.clear();
+    for (auto& positions : concreteTouchPositionsByDenseIndex_)
+        positions.clear();
     nextUsePositionCursor_.clear();
     nextConcreteTouchCursor_.clear();
     liveInVirtualBits_.clear();

@@ -223,7 +223,8 @@ void MicroSsaState::clear()
     instructionRefs_.clear();
     // Membership is tagged by epoch. Keep the tags across functions so a small
     // function does not zero the entire buffer left by an earlier large one.
-    instructionToBlock_.clear();
+    // buildBlocks overwrites every active entry before reading this table.
+    // Keep its size so the next function does not zero-fill it on resize.
     // Visit stamps are generation-tagged too; only the temporary stack resets.
     useVisitStack_.clear();
     trackedDefCount_ = 0;

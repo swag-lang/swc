@@ -7385,7 +7385,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             shortCircuitLayout.invalidate();
         }
         roundChanged |= threadShortCircuitExits(storage, operands, context.builder, shortCircuitLayout);
-        roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
+        // The first-round scan can rule out labels without collecting jump
+        // targets and relocations. A preceding rewrite makes it stale.
+        if (roundChanged || !scanCache.layoutBuilt || scanCache.scan.layout.hasAnyLabel)
+            roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
         if (!roundChanged)
             break;
         rewrote(true);

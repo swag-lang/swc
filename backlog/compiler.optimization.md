@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 
 - Recorded: 2026-09-16 12:12
-- Updated: 2026-09-26 14:44 — Measured and shortened the video outlier without raising the budget.
+- Updated: 2026-09-26 15:51 — Integrated the loop reduction and recorded the Release campaign.
 - Area: compiler/backend, compilation time
 - Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
   changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
@@ -40,6 +40,24 @@ block, and the hot path keeps the register.
   the C++ pass tests. The `video` module's 117 tests, 3,481 native tests, and 1,500 JIT tests
   passed on this refined form. This resolves the observed outlier; it does not measure the full
   distribution.
+- Five order-alternated pairs against the exact previous master `a5a2414b2` gave candidate /
+  parent medians of 3,875 / 3,638 ms for core rebuild, 59 / 985 ms for no-op, 3,528 / 8,051 ms
+  for core touch, and 215 / 207 ms for hello build. Both binaries suffered unrelated load spikes:
+  a parent touch took 24 s, a candidate rebuild 12 s, and no-op runs reached 687 ms candidate
+  and 1,907 ms parent. The final quieter pair was near parity (2,829 / 2,827 ms rebuild). These
+  observations establish no percentage speedup or regression.
+- The integrated Release campaign passed repository checks, compiler suites, 3,481 native and
+  1,500 JIT tests, workspace tests, and built every standard module including `video`; it stopped
+  while executing `std/pixel` tests when `swc.exe` crashed with `0xC0000005`. The exact parent
+  reproduced the crash after tuning the same 6,580 functions. A GUI test fixture also needed
+  its property attribute qualified as `#[Properties.ReadOnly]` after the runtime added a
+  same-named attribute. Manual continuation then passed all 783 `std/gui` tests, 117 `std/video`
+  tests, 479 reference tests, every script smoke, and the first 228 application tests.
+  `Swag Scope` then stopped in semantic analysis on a forward
+  `arDecimalAt` reference. The examples smoke stopped when `pixel4` exhausted memory in polygon
+  cleanup; the parent also grew beyond 100 GiB of committed memory in the same smoke and was
+  stopped to protect the shared machine. These failures limit whole-repository validation and
+  are not evidence of a regression in this optimization.
 - Next: count the sweeps each function needs over a full `bin/std` build in both configurations
   and record the distribution. A maximum far below 24 makes the budget a safety net; a
   maximum near it makes the budget a live limit and the convergence of individual passes the

@@ -77,6 +77,31 @@ func compareDynamic(left, right: const [*] void?, size: u64)->s32
         Swag.assert(data[index] == cast(u8) (index + 8))
 }
 
+// A mismatch at any position returns the difference of the first unsigned bytes,
+// including short unaligned tails and the boundaries between comparison chunks.
+#test
+{
+    var source: [96] u8
+    var target: [96] u8
+    for &value, index in source do
+        value[] = cast(u8) ((index * 37 + 11) & 0xFF)
+
+    for size in 1 to 65
+    {
+        let leftOffset  = size % 7 + 1
+        let rightOffset = size % 5 + 3
+        for changed in size
+        {
+            copyDynamic(&target[leftOffset], &source[rightOffset], size)
+            target[leftOffset + changed] ^= 0x80
+
+            let difference = cast(s32) target[leftOffset + changed] - cast(s32) source[rightOffset + changed]
+            Swag.assert(compareDynamic(&target[leftOffset], &source[rightOffset], size) == difference)
+            Swag.assert(compareDynamic(&source[rightOffset], &target[leftOffset], size) == -difference)
+        }
+    }
+}
+
 // Dynamic sizes and every alignment around a vector boundary preserve guards,
 // ordering, and memmove's snapshot semantics.
 #test

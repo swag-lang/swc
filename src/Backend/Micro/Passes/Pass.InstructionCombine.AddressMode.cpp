@@ -149,6 +149,80 @@ namespace InstructionCombine
         }
     }
 
+    // Two address values can differ only by a constant displacement. Rebase a
+    // one-use indexed load on the other value when that absorbs the load's own
+    // displacement. The unused address computation then dies in the next sweep.
+    bool tryUseOffsetRelatedIndex(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+
+        const MicroInstrOperand* load = inst.ops(*ctx.operands);
+        if (!load || !load[2].reg.isVirtualInt() || load[0].reg == load[2].reg ||
+            (load[5].valueU64 != 1 && load[5].valueU64 != 2 && load[5].valueU64 != 4 && load[5].valueU64 != 8) ||
+            load[6].valueU64 > INT32_MAX)
+            return false;
+
+        const auto original = ctx.ssa->reachingDef(load[2].reg, ref);
+        if (!original.valid() || original.isPhi || !original.inst || original.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem ||
+            !valueHasSingleUse(*ctx.ssa, load[2].reg, original.instRef))
+            return false;
+        const MicroInstrOperand* address = original.inst->ops(*ctx.operands);
+        if (!address || address[0].reg != load[2].reg || address[3].opBits != MicroOpBits::B64 ||
+            address[4].opBits != MicroOpBits::B64 || address[6].valueU64 > INT32_MAX)
+            return false;
+
+        MicroInstrRef candidateRef = ctx.storage->findPreviousInstructionRef(ref);
+        for (uint32_t steps = 0; candidateRef.isValid() && steps < 24; ++steps,
+                      candidateRef = ctx.storage->findPreviousInstructionRef(candidateRef))
+        {
+            const MicroInstr* candidate = ctx.storage->ptr(candidateRef);
+            if (!candidate || candidate->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                continue;
+            const MicroInstrOperand* other = candidate->ops(*ctx.operands);
+            if (!other || !other[0].reg.isVirtualInt() || other[0].reg == load[2].reg ||
+                other[0].reg == load[0].reg || other[1].reg != address[1].reg ||
+                other[2].reg != address[2].reg || other[3].opBits != address[3].opBits ||
+                other[4].opBits != address[4].opBits || other[5].valueU64 != address[5].valueU64 ||
+                other[6].valueU64 > INT32_MAX)
+                continue;
+
+            const auto available = ctx.ssa->reachingDef(other[0].reg, ref);
+            if (!available.valid() || available.isPhi || available.instRef != candidateRef)
+                continue;
+
+            bool sameSources = true;
+            for (const MicroReg source : {address[1].reg, address[2].reg})
+            {
+                const auto atOriginal  = ctx.ssa->reachingDef(source, original.instRef);
+                const auto atCandidate = ctx.ssa->reachingDef(source, candidateRef);
+                if (!atOriginal.valid() || !atCandidate.valid() || atOriginal.valueId != atCandidate.valueId)
+                {
+                    sameSources = false;
+                    break;
+                }
+            }
+            if (!sameSources)
+                continue;
+
+            const int64_t offset = static_cast<int64_t>(load[6].valueU64) +
+                                   (static_cast<int64_t>(address[6].valueU64) - static_cast<int64_t>(other[6].valueU64)) *
+                                       static_cast<int64_t>(load[5].valueU64);
+            if (offset < INT32_MIN || offset > INT32_MAX)
+                continue;
+
+            std::array<MicroInstrOperand, 8> rewritten;
+            std::copy_n(load, rewritten.size(), rewritten.begin());
+            rewritten[2].reg      = other[0].reg;
+            rewritten[6].valueU64 = static_cast<uint64_t>(offset);
+            if (!ctx.claimAll({ref}))
+                return false;
+            ctx.emitRewrite(ref, inst.op, rewritten);
+            return true;
+        }
+        return false;
+    }
+
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         if (!ctx.ssa || ctx.isClaimed(ref))

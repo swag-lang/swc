@@ -118,6 +118,11 @@ late var g_Render: Pixel.IRenderer
 var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 
+func releaseContextBeforeWindowClose(window: *Env.Window)
+{
+    g_Render.deleteContext(&g_RC)
+}
+
 #main
 {
     g_Window = try Env.createWindow({identifier: "pixel1", title: "Pixel example - antialiasing comparison", width: W, height: H, flags: .Minimizable})
@@ -130,6 +135,7 @@ var g_RC:          Pixel.RenderContext
     g_Render.init()
 
     g_Window.callbacks.onResize = &onResize
+    g_Window.callbacks.onClose  = &releaseContextBeforeWindowClose
 
     try g_Window.show()
 

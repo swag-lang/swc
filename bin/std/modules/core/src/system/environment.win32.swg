@@ -444,6 +444,12 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
         let safeWindow = window
         switch msg
         {
+        case WM_CLOSE:
+            let onClose = window.callbacks.onClose
+            if onClose do
+                onClose(safeWindow)
+            return DefWindowProcA(hWnd, msg, wParam, lParam)
+
         case WM_PAINT:
             var ps: PAINTSTRUCT
             BeginPaint(hWnd, &ps)

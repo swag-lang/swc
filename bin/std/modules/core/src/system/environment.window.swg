@@ -7,6 +7,9 @@ alias WindowPaintCallback = func||(*Window)
 // Handles a window resize and receives the new client size in physical pixels.
 alias WindowResizeCallback = func||(*Window, s32, s32)
 
+// Handles a user close request before the native window is destroyed.
+alias WindowCloseCallback = func||(*Window)
+
 // Groups the optional callbacks dispatched by a [[Core.Env.Window]].
 struct WindowCallbacks
 {
@@ -14,6 +17,7 @@ struct WindowCallbacks
     {
         onPaint:  WindowPaintCallback?      // Invoked for a paint request.
         onResize: WindowResizeCallback?     // Invoked with the new client size in physical pixels.
+        onClose:  WindowCloseCallback?      // Invoked before a user-initiated close destroys the window.
     }
 }
 

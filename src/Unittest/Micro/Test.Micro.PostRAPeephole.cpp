@@ -2311,8 +2311,8 @@ SWC_TEST_BEGIN(PostRAPeephole_RipFloatLoadFoldsIntoThreeOperandOp)
             return Result::Error;
     }
 
-    // ANDPS/ANDPD read a full 128-bit memory operand while the relocated
-    // scalar constant only owns four or eight bytes. Keep its scalar load.
+    // ANDPS/ANDPD read an aligned full 128-bit memory operand. Neither a
+    // relocated scalar constant nor an eight-byte stack spill promises that.
     MicroBuilder bitwise(ctx);
     bitwise.emitClearReg(xmm1, MicroOpBits::B64);
     bitwise.emitLoadRegMem(xmm1, rip, 0, MicroOpBits::B64);
@@ -2337,6 +2337,20 @@ SWC_TEST_BEGIN(PostRAPeephole_RipFloatLoadFoldsIntoThreeOperandOp)
         Backend::Unittest::countOpcode(bitwise, MicroInstrOpcode::OpBinaryRegRegReg) != 1 ||
         bitwise.codeRelocations().front().instructionRef != maskLoadRef)
         return Result::Error;
+
+    for (const MicroOp op : {MicroOp::FloatAnd, MicroOp::FloatXor})
+    {
+        MicroBuilder spill(ctx);
+        spill.emitLoadRegMem(xmm1, CallConv::get(CallConvKind::Swag).stackPointer, 8, MicroOpBits::B64);
+        spill.emitOpBinaryRegRegReg(xmm0, xmm0, xmm1, op, MicroOpBits::B64);
+        spill.emitRet();
+        X64Encoder spillEncoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(spill, &spillEncoder));
+        if (Backend::Unittest::countOpcode(spill, MicroInstrOpcode::LoadRegMem) != 1 ||
+            Backend::Unittest::countOpcode(spill, MicroInstrOpcode::OpBinaryRegRegReg) != 1 ||
+            Backend::Unittest::countOpcode(spill, MicroInstrOpcode::OpBinaryRegMem) != 0)
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

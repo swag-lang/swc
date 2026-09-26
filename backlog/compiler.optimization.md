@@ -58,6 +58,14 @@ block, and the hot path keeps the register.
   cleanup; the parent also grew beyond 100 GiB of committed memory in the same smoke and was
   stopped to protect the shared machine. These failures limit whole-repository validation and
   are not evidence of a regression in this optimization.
+- 2026-09-26 follow-up: the `arDecimalAt` failure came from macro-injected caller code resolving
+  file-private symbols against the macro's source file. Lookup now uses the identifier's source
+  file namespace when it differs from the active AST; all 23 focused `Swag Scope` Release tests
+  pass. The `pixel4` memory growth came from a malformed RoundAnchor/SquareAnchor stroke: its
+  starting point became zero and created a huge diagonal polygon. A Pixel regression checks the
+  generated vertices; all 571 Pixel Release tests pass in JIT and native execution, and the
+  `pixel4` Release smoke completes. The separate window-close panic was fixed by releasing the
+  render context before Win32 destroys the window; manual close exits normally.
 - A temporary counter in the Release compiler recorded 29,205 pre-RA optimization-loop calls
   during `bin/std` `--rebuild` with six workers. The count includes the final unchanged sweep:
   median 3, 90th percentile 5, 95th 6, 99th 7, 99.9th 10, and maximum 15 (two functions).

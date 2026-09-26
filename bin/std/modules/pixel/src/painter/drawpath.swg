@@ -853,7 +853,8 @@ impl Painter
                         // Found the target segment - calculate adjusted point
                         let remainingDist = info.distance - accumulatedDistance
                         let ratio         = remainingDist / segmentLen
-                        info.adjustedPoint = lastPoint + segmentVec * ratio
+                        info.adjustedPoint.x = lastPoint.x + segmentVec.x * ratio
+                        info.adjustedPoint.y = lastPoint.y + segmentVec.y * ratio
                         info.pointIndex    = i
                         info.hasAdjustment = true
                         return info

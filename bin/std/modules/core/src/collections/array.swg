@@ -700,7 +700,7 @@ impl Array
 
     // Removes `numValues` elements starting at `index`, shifting the following elements to the left.
     //
-    // This is slower than [[removeAt]], but preserves the order of the remaining elements.
+    // This is slower than [[Core.Array.removeAt]], but preserves the order of the remaining elements.
     mtd removeAtOrdered(index: u64, numValues: u64 = 1)
     {
         if not numValues do

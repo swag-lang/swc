@@ -130,6 +130,11 @@ func onResize(window: *Env.Window, width, height: s32)
     g_Painter.setContentScale(window.dpiScale())
 }
 
+func releaseContextBeforeWindowClose(window: *Env.Window)
+{
+    g_Render.deleteContext(&g_RC)
+}
+
 #main
 {
     g_Window = try Env.createWindow({identifier: "pixel3", title: "Pixel font rendering: Bitmap vs MSDF vs Auto", width: W, height: H})
@@ -145,6 +150,7 @@ func onResize(window: *Env.Window, width, height: s32)
     try loadFonts()
 
     g_Window.callbacks.onResize = &onResize
+    g_Window.callbacks.onClose  = &releaseContextBeforeWindowClose
 
     try g_Window.show()
 

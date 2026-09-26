@@ -339,12 +339,24 @@ namespace
 
         addBindingTypeSymMaps(sema, lookUpCxt, scopeDepth);
 
+        // Injected caller code can retain its original source view while being resolved
+        // in the macro's AST. Its file-private symbols belong to that source file.
+        const SymbolMap* fileNamespace = &sema.fileNamespace();
+        if (lookUpCxt.codeRef.isValid() && lookUpCxt.codeRef.srcViewRef != sema.ast().srcView().ref())
+        {
+            if (const SourceFile* sourceFile = sema.ownerSourceFile(lookUpCxt.codeRef.srcViewRef))
+            {
+                if (sourceFile->fileNamespace())
+                    fileNamespace = sourceFile->fileNamespace();
+            }
+        }
+
         const MatchPriority filePathPriority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::FileNamespace};
-        addNamespacePathSymMap(sema, lookUpCxt, &sema.fileNamespace(), filePathPriority);
+        addNamespacePathSymMap(sema, lookUpCxt, fileNamespace, filePathPriority);
 
         const MatchPriority fileRootPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 1), .visibility = VisibilityTier::FileNamespace};
-        addSymMap(lookUpCxt, &sema.fileNamespace(), fileRootPriority);
-        addPersistedUsingSymMaps(lookUpCxt, &sema.fileNamespace(), fileRootPriority);
+        addSymMap(lookUpCxt, fileNamespace, fileRootPriority);
+        addPersistedUsingSymMaps(lookUpCxt, fileNamespace, fileRootPriority);
 
         // Symbols imported from other modules live under the empty-named import-root namespace
         // (as siblings of this module's namespace) so they keep their own hierarchy (e.g. `Pixel`,

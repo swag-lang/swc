@@ -168,6 +168,41 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     }
 }
 
+// The two adjusted endpoints of a straight line must stay on that line when both ends use
+// anchors. A lost starting coordinate used to turn this horizontal stroke into a diagonal.
+#test
+{
+    var painter: Painter
+    painter.begin(layoutOnly: true)
+
+    var path: LinePath
+    path.start(300, 500)
+    path.lineTo(900, 500)
+    var pen = Pen.createSolid(Color.fromArgb(Argb.Goldenrod), 18)
+    pen.begCapStyle  = .RoundAnchor
+    pen.endCapStyle  = .SquareAnchor
+    pen.capBegScaleX = 2.4
+    pen.capBegScaleY = 2.3
+    pen.capEndScaleX = 2.4
+    pen.capEndScaleY = 2.3
+    painter.drawPath(&path, pen)
+    painter.end()
+
+    var vertices = 0'u64
+    for cmd in painter.commandBuffer
+    {
+        if cmd.id != .DrawTriangles do continue
+        for i in cmd.drawTriangles.count
+        {
+            let pos = painter.vertexBuffer[cmd.drawTriangles.start + i].pos
+            Swag.assert(pos.x >= 273 and pos.x <= 927)
+            Swag.assert(pos.y >= 475 and pos.y <= 525)
+            vertices += 1
+        }
+    }
+    Swag.assert(vertices > 0)
+}
+
 // A cap stays inside the radius `capStyleRadius` promises, whatever direction its line runs in.
 //
 // It stands across the line as well as along it, so its far corner sits at the diagonal of the

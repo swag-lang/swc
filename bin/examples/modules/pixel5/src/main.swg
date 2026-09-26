@@ -330,6 +330,11 @@ func updateTestMode()
     nextPage()
 }
 
+func releaseContextBeforeWindowClose(window: *Env.Window)
+{
+    g_Render.deleteContext(&g_RC)
+}
+
 #main
 {
     g_Window = try Env.createWindow({identifier: "pixel5", title: "Pixel filters and transforms showcase", width: W, height: H, flags: .Minimizable})
@@ -346,6 +351,7 @@ func updateTestMode()
     try loadShowcase()
 
     g_Window.callbacks.onResize = &onResize
+    g_Window.callbacks.onClose  = &releaseContextBeforeWindowClose
     try g_Window.show()
 
     var loop: Env.WindowLoop

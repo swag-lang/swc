@@ -513,11 +513,12 @@ namespace PostRaPeephole
             return false;
         if (isFloat ? (!hasThreeOperandForm(op) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
-        // FloatAnd/FloatXor are packed 128-bit instructions even when the
-        // scalar value is 32 or 64 bits. A scalar constant allocation only
-        // guarantees those 4 or 8 bytes, so reading it as a memory operand can
-        // cross the allocation boundary. Keep the scalar load for those ops.
-        if (loadRelocation && (op == MicroOp::FloatAnd || op == MicroOp::FloatXor))
+        // FloatAnd/FloatXor use the packed 128-bit SSE memory form even for a
+        // scalar value. A scalar load may read only four or eight bytes from
+        // an address that is not 16-byte aligned (including stack spills),
+        // while ANDPS/ANDPD and XORPS/XORPD require an aligned full vector.
+        // Keep the scalar load for these operations.
+        if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
         MicroInstrRef sourceCopyRef = MicroInstrRef::invalid();

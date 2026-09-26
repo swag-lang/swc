@@ -363,9 +363,14 @@ func updateTestMode()
 
     g_TestFrame = 0
     if g_Page + 1 >= MaxPages do
-        Env.exit(0)
+        return
 
     nextPage()
+}
+
+func releaseContextBeforeWindowClose(window: *Env.Window)
+{
+    g_Render.deleteContext(&g_RC)
 }
 
 #main
@@ -384,6 +389,7 @@ func updateTestMode()
     loadTextShowcase()
 
     g_Window.callbacks.onResize = &onResize
+    g_Window.callbacks.onClose  = &releaseContextBeforeWindowClose
     try g_Window.show()
 
     var loop: Env.WindowLoop

@@ -1256,7 +1256,7 @@ namespace
             return false;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump)
+        if (!layout.hasConditionalJump || !layout.hasSetCondition)
             return false;
         const auto soleUsesAre = [&](MicroReg firstReg, MicroInstrRef firstReader, MicroReg secondReg, MicroInstrRef secondReader) {
             uint32_t firstUses  = 0;
@@ -2186,11 +2186,11 @@ namespace
         constexpr uint32_t K_MAX_CHAIN = 6;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump)
+        if (!layout.hasConditionalJump || !layout.hasSetCondition)
             return false;
 
         // Labels placed past a join's test, by the join's jump.
-        std::unordered_map<uint32_t, uint32_t> fallThroughLabels;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> fallThroughLabels;
 
         bool changed = false;
         for (size_t ordinal = 0; ordinal < layout.order.size(); ++ordinal)
@@ -2277,9 +2277,11 @@ namespace
                     !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, joinJumpRef) ||
                     fallsIntoBranchlessLink(layout, storage, operands, joinOrdinal + 2))
                     continue;
+                if (!fallThroughLabels)
+                    fallThroughLabels.emplace();
                 uint32_t   pastLabelId = 0;
-                const auto known       = fallThroughLabels.find(joinJumpRef.get());
-                if (known != fallThroughLabels.end())
+                const auto known       = fallThroughLabels->find(joinJumpRef.get());
+                if (known != fallThroughLabels->end())
                 {
                     pastLabelId = known->second;
                 }
@@ -2296,7 +2298,7 @@ namespace
                         labelOps[0].valueU64 = pastLabelId;
                         storage.insertDerivedBefore(operands, pastRef, MicroInstrOpcode::Label, labelOps);
                     }
-                    fallThroughLabels.emplace(joinJumpRef.get(), pastLabelId);
+                    fallThroughLabels->emplace(joinJumpRef.get(), pastLabelId);
                 }
                 if (pastLabelId == joinLabelId)
                     continue;
@@ -4472,7 +4474,7 @@ namespace
         };
 
         SmallVector<Candidate> candidates;
-        std::unordered_set<MicroInstrRef> claimedRefs;
+        std::optional<std::unordered_set<MicroInstrRef>> claimedRefs;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond)
@@ -4550,10 +4552,12 @@ namespace
                 candidate.zeroRef,
                 candidate.joinLabelRef,
             };
-            if (std::ranges::any_of(candidateRefs, [&](MicroInstrRef ref) { return claimedRefs.contains(ref); }))
+            if (!claimedRefs)
+                claimedRefs.emplace();
+            if (std::ranges::any_of(candidateRefs, [&](MicroInstrRef ref) { return claimedRefs->contains(ref); }))
                 continue;
             for (const MicroInstrRef ref : candidateRefs)
-                claimedRefs.insert(ref);
+                claimedRefs->insert(ref);
 
             candidates.push_back(candidate);
         }
@@ -7432,17 +7436,17 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         context.builder->invalidateControlFlowGraph();
     rewrote(convertEqualityChainsToBitTests(storage, operands, context, scanCache, relocationCache));
     rewrote(convertSwitchesToPackedTables(storage, operands, context, scanCache, relocationCache));
-    // A range exit pair needs conditional jumps. Reuse the current layout
-    // when the earlier transforms left it intact.
-    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump)
+    // A range exit pair needs immediate compares and conditional jumps.
+    // Reuse the current layout when the earlier transforms left it intact.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasImmediateCompare && scanCache.scan.layout.hasConditionalJump))
         rewrote(foldRangeChecks(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     // A whole `or` chain goes at once, before the two-link form takes its tail.
     rewrote(convertOrChainsToBranchless(storage, operands, context, scanCache));
     rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache, relocationCache));
-    // Both comparison shapes consume a setcc before the repeated load.
-    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasSetCondition)
+    // Both comparison shapes consume a setcc and branch before the repeated load.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasSetCondition && scanCache.scan.layout.hasConditionalJump))
         rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context, relocationCache));
     // A matching chain has both a conditional jump and a setcc. Use the
     // existing layout only while it still describes the current stream.
@@ -7450,8 +7454,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         rewrote(convertShortCircuitBooleans(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
-    // This fold needs a setcc result immediately before the boolean and.
-    if (!scanCache.layoutBuilt || scanCache.scan.layout.hasSetCondition)
+    // This fold needs immediate compares and a setcc result before the boolean and.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasImmediateCompare && scanCache.scan.layout.hasSetCondition))
         rewrote(foldRangeAnds(storage, operands, context));
 
     if (changed && context.builder)
@@ -7513,14 +7517,18 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     thread_local JumpLabelReferenceCache jumpLabelCache;
     jumpLabelCache.invalidate();
-    if (rewrote(factorByteMultiplyDiamond(storage, operands, context, jumpLabelCache)))
+    // Both shapes begin at a conditional jump. Reuse the current layout when
+    // the structural cleanup above left its instruction stream unchanged.
+    if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&
+        rewrote(factorByteMultiplyDiamond(storage, operands, context, jumpLabelCache)))
     {
         jumpLabelCache.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
 
-    if (rewrote(convertBooleanGuardPairs(storage, operands, context, jumpLabelCache)))
+    if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&
+        rewrote(convertBooleanGuardPairs(storage, operands, context, jumpLabelCache)))
     {
         if (context.builder)
             context.builder->invalidateControlFlowGraph();

@@ -7397,7 +7397,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     rewrote(convertOrChainsToBranchless(storage, operands, context, scanCache));
     rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache, relocationCache));
     rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context, relocationCache));
-    rewrote(convertShortCircuitBooleans(storage, operands, context));
+    // A matching chain has both a conditional jump and a setcc. Use the
+    // existing layout only while it still describes the current stream.
+    if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasConditionalJump && scanCache.scan.layout.hasSetCondition))
+        rewrote(convertShortCircuitBooleans(storage, operands, context));
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     rewrote(foldRangeAnds(storage, operands, context));

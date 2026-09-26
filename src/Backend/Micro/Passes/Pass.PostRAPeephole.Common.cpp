@@ -360,6 +360,55 @@ namespace PostRaPeephole
         return false;
     }
 
+    // A register about to be reused need not round-trip through its spill slot
+    // merely to copy the old value into a second register. Swap the two copies
+    // around the clobber; keep the store for any later reader of that slot.
+    bool tryMoveSpillReloadBeforeSourceOverwrite(Context& ctx, const MicroInstrRef storeRef, const MicroInstr& storeInst)
+    {
+        if (ctx.isClaimed(storeRef))
+            return false;
+        const MicroInstrOperand* store = storeInst.ops(*ctx.operands);
+        if (!store || !ctx.isPrivateFrameBase(store[0].reg) || store[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg source = store[1].reg;
+        if (source == store[0].reg || (!source.isFloat() && !source.isInt()))
+            return false;
+
+        const MicroInstrRef overwriteRef = ctx.nextRef(storeRef);
+        const MicroInstr* overwrite = ctx.instruction(overwriteRef);
+        const auto* copy = overwrite && overwrite->op == MicroInstrOpcode::LoadRegReg ? overwrite->ops(*ctx.operands) : nullptr;
+        if (!copy || copy[0].reg != source || copy[2].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroInstrRef reloadRef = ctx.nextRef(overwriteRef);
+        const MicroInstr* reload = ctx.instruction(reloadRef);
+        const auto* load = reload && reload->op == MicroInstrOpcode::LoadRegMem ? reload->ops(*ctx.operands) : nullptr;
+        if (!load || load[1].reg != store[0].reg || load[2].opBits != MicroOpBits::B64 ||
+            load[3].valueU64 != store[3].valueU64)
+            return false;
+
+        const MicroReg destination = load[0].reg;
+        const MicroReg replacement = copy[1].reg;
+        if (destination == source || replacement == source || destination == replacement ||
+            destination == store[0].reg || replacement == store[0].reg ||
+            destination.isFloat() != source.isFloat() || replacement.isFloat() != source.isFloat())
+            return false;
+        if (!ctx.claimAll({storeRef, overwriteRef, reloadRef}))
+            return false;
+
+        MicroInstrOperand save[3] = {};
+        save[0].reg = destination;
+        save[1].reg = source;
+        save[2].opBits = MicroOpBits::B64;
+        MicroInstrOperand replace[3] = {};
+        replace[0].reg = source;
+        replace[1].reg = replacement;
+        replace[2].opBits = MicroOpBits::B64;
+        ctx.emitRewrite(overwriteRef, MicroInstrOpcode::LoadRegReg, save);
+        ctx.emitRewrite(reloadRef, MicroInstrOpcode::LoadRegReg, replace);
+        return true;
+    }
+
     bool tryForwardStoredValueToReload(Context& ctx, const MicroInstrRef storeRef, const MicroInstr& storeInst)
     {
         // A register copy preserves the exact partial-register semantics of an

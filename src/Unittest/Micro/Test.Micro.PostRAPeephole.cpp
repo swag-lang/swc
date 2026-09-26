@@ -3159,6 +3159,35 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterDwordConversion_Erased)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_MovesSpillReloadBeforeRegisterOverwrite)
+{
+    const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg oldValue = MicroReg::floatReg(2);
+    constexpr MicroReg newValue = MicroReg::floatReg(9);
+    constexpr MicroReg saved = MicroReg::floatReg(12);
+
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadMemReg(base, 48, oldValue, MicroOpBits::B64);
+        builder.emitLoadRegReg(oldValue, newValue, MicroOpBits::B64);
+        builder.emitLoadRegMem(variant == 2 ? newValue : saved, base, variant == 1 ? 56 : 48, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaPeepholePass(builder));
+        if (variant == 0)
+        {
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0 ||
+                !hasLoadRegReg(builder, saved, oldValue) || !hasLoadRegReg(builder, oldValue, newValue))
+                return Result::Error;
+        }
+        else if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A converted value copied for a conditional selection can be produced in
 // that destination when its old register is read only by the comparison.
 SWC_TEST_BEGIN(PostRAPeephole_FloatConversionCopyBeforeCompare)

@@ -737,6 +737,31 @@ namespace
         return param;
     }
 
+    bool hasFunctionCallConvMismatch(const MatchFailure& fail, const TaskContext& ctx)
+    {
+        if (fail.castFailure.srcTypeRef.isInvalid() || fail.castFailure.dstTypeRef.isInvalid())
+            return false;
+
+        const TypeInfo& srcType = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.srcTypeRef));
+        const TypeInfo& dstType = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.dstTypeRef));
+        return srcType.isFunction() && dstType.isFunction() && srcType.payloadSymFunction().callConvKind() != dstType.payloadSymFunction().callConvKind();
+    }
+
+    std::string_view callConvName(CallConvKind kind)
+    {
+        switch (kind)
+        {
+            case CallConvKind::C:
+                return "C";
+            case CallConvKind::WindowsX64:
+                return "Windows x64";
+            case CallConvKind::Swag:
+                return "Swag";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
     Utf8 makeCannotCastArgumentText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
     {
         SWC_ASSERT(fail.castFailure.srcTypeRef.isValid());
@@ -744,6 +769,16 @@ namespace
 
         const Utf8 srcTypeName = ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx);
         const Utf8 dstTypeName = ctx.typeMgr().get(fail.castFailure.dstTypeRef).toName(ctx);
+        if (hasFunctionCallConvMismatch(fail, ctx))
+        {
+            const SymbolFunction& srcFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.srcTypeRef)).payloadSymFunction();
+            const SymbolFunction& dstFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.dstTypeRef)).payloadSymFunction();
+            const Utf8 actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, callConvName(srcFunc.callConvKind()));
+            const Utf8 required = std::format("'{}' with the {} calling convention", dstTypeName, callConvName(dstFunc.callConvKind()));
+            if (const SymbolVariable* param = failedParameter(fn, fail))
+                return std::format("{}, but parameter '{}' needs {}", actual, param->name(ctx), required);
+            return std::format("{}, but needs {}", actual, required);
+        }
         if (const SymbolVariable* param = failedParameter(fn, fail))
             return std::format("has type '{}', but parameter '{}' needs '{}'", srcTypeName, param->name(ctx), dstTypeName);
 
@@ -968,10 +1003,13 @@ namespace
         if (fail.castFailure.srcTypeRef.isInvalid() || fail.castFailure.dstTypeRef.isInvalid())
             return;
 
-        if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
+        if (!hasFunctionCallConvMismatch(fail, ctx))
         {
-            diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
-            return;
+            if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
+            {
+                diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
+                return;
+            }
         }
 
         diagElement.addArgument(Diagnostic::ARG_WHAT, makeCannotCastArgumentText(fn, fail, ctx));
@@ -1054,7 +1092,8 @@ namespace
                             diagElement.addArgument(Diagnostic::ARG_WHAT, makeCandidateFailureText(fn, fail, ctx));
                         }
                     }
-                    (void) addCastFailureArgs(diagElement, fail.castFailure);
+                    if (isNote || !hasFunctionCallConvMismatch(fail, ctx))
+                        (void) addCastFailureArgs(diagElement, fail.castFailure);
                     if (isNote && diagElement.id() == DiagnosticId::sema_note_overload_candidate_argument_type)
                     {
                         if (const SymbolVariable* param = declaredFailedParameter(fn, fail))

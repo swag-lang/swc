@@ -36,6 +36,9 @@ private const HTBOTTOMRIGHT = 17
 // WM_SIZE state emitted when a native window has no drawable client area.
 private const SizeMinimized = 1'u64
 
+// Hide an in-flight native placement from the compositor until its final frame is ready.
+private const DwmAttributeCloak = 13'u32
+
 // Dependency-visible Windows storage embedded by `Surface`.
 #[Swag.Opaque, Swag.NoDoc]
 #[Swag.NoCopy]
@@ -522,20 +525,33 @@ private impl Surface
 
 impl Surface
 {
+    private mtd beginDiscretePlacement()
+    {
+        .applyNativeDwmStyle()
+        let cloak = TRUE
+        discard DwmSetWindowAttribute(.hWnd, DwmAttributeCloak, cast(LPCVOID) &cloak, #sizeof(cloak))
+        .inDiscretePlacement = true
+    }
+
     private mtd finishDiscretePlacement()
     {
         .inDiscretePlacement = false
-        if not .preparedFrame do
-            return
-
         .preparedFrame = false
         if .canPresentNow()
         {
-            .presentPreparedFrame()
+            // WM_SIZE can submit before USER32 has finished changing the drawable. Some WGL
+            // drivers leave DWM showing the previous window-sized image even though SwapBuffers
+            // succeeded. Publish again once ShowWindow/SetWindowPlacement has returned and the
+            // final drawable exists, including when WM_SIZE consumed the prepared frame.
+            .invalidate()
+            .paint()
             discard ValidateRect(.hWnd, null)
         }
         else do
             .invalidate()
+
+        let cloak = FALSE
+        discard DwmSetWindowAttribute(.hWnd, DwmAttributeCloak, cast(LPCVOID) &cloak, #sizeof(cloak))
     }
 
     internal mtd const nativeRenderHandle()->const *void? => cast(const *void?) .hWnd
@@ -915,8 +931,7 @@ impl Surface
             return
         }
 
-        .applyNativeDwmStyle()
-        .inDiscretePlacement = true
+        .beginDiscretePlacement()
         defer .finishDiscretePlacement()
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
     }
@@ -940,13 +955,12 @@ impl Surface
             return
         }
 
-        .applyNativeDwmStyle()
+        .beginDiscretePlacement()
 
         // The rectangle is physical for its target monitor already; flag the move so
         // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
         .inAppPlacement = true
         defer .inAppPlacement = false
-        .inDiscretePlacement = true
         defer .finishDiscretePlacement()
 
         with var placement: WINDOWPLACEMENT
@@ -972,8 +986,7 @@ impl Surface
             return
         }
 
-        .applyNativeDwmStyle()
-        .inDiscretePlacement = true
+        .beginDiscretePlacement()
         defer .finishDiscretePlacement()
         ShowWindow(.hWnd, SW_RESTORE)
     }

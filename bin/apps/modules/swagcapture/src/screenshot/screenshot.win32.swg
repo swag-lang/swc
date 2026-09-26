@@ -26,6 +26,7 @@ internal
     var g_Hit:     HWND
     var g_Ignore:  HWND
 
+    #[Swag.CallingConvention(.C)]
     func enumProc(hWnd: HWND, _lParam: LPARAM)->BOOL
     {
         if not IsWindowVisible(hWnd) do

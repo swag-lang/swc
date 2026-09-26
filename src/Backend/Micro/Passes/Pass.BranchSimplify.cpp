@@ -7423,7 +7423,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         context.builder->invalidateControlFlowGraph();
 
     rewrote(convertFloatSelectsToMinMax(storage, operands, context, scanCache));
-    if (rewrote(convertBranchesToConditionalMoves(storage, operands, context)))
+    // The small branch-to-cmov pattern starts at a conditional jump.
+    if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&
+        rewrote(convertBranchesToConditionalMoves(storage, operands, context)))
     {
         if (context.builder)
             context.builder->invalidateControlFlowGraph();

@@ -7359,7 +7359,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         shortCircuitLayout.invalidate();
         if (round == 0 && scanCache.layoutBuilt)
             shortCircuitLayout.borrow(scanCache.scan.layout);
-        bool roundChanged = fuseMaterializedBoolBranches(storage, operands, context.builder);
+        // The first round can reuse the earlier scan unless a preceding fold rewrote
+        // the stream. Every fusion needs a SetCondReg as its boolean producer.
+        const bool canFuse = round != 0 || !scanCache.layoutBuilt || scanCache.scan.layout.hasSetCondition;
+        bool       roundChanged = canFuse && fuseMaterializedBoolBranches(storage, operands, context.builder);
         if (roundChanged)
             shortCircuitLayout.invalidate();
         const BranchScan* currentBranchScan = !roundChanged && scanCache.built ? &scanCache.scan : nullptr;

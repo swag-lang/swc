@@ -903,6 +903,54 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_LeafWithOnlyUnusedSavesKeepsNoPrologue)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_SharesIdenticalFloatRestoreTails)
+{
+    const MicroReg rsp = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg xmm0 = MicroReg::floatReg(0);
+    constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+    constexpr MicroReg xmm6 = MicroReg::floatReg(6);
+    constexpr MicroReg xmm7 = MicroReg::floatReg(7);
+
+    for (uint32_t variant = 0; variant < 2; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const MicroLabelRef second = builder.createLabel();
+        builder.emitOpBinaryRegImm(rsp, ApInt(80, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 32, xmm6, MicroOpBits::B128);
+        builder.emitLoadMemReg(rsp, 48, xmm7, MicroOpBits::B128);
+        builder.emitLoadRegReg(xmm0, xmm6, MicroOpBits::B64);
+        builder.emitLoadRegReg(xmm1, xmm7, MicroOpBits::B64);
+        builder.emitCmpRegImm(rax, ApInt(0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, second);
+        builder.emitLoadRegMem(xmm6, rsp, 32, MicroOpBits::B128);
+        builder.emitLoadRegMem(xmm7, rsp, 48, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rsp, ApInt(80, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+        builder.placeLabel(second);
+        builder.emitLoadRegMem(xmm6, rsp, 32, MicroOpBits::B128);
+        builder.emitLoadRegMem(xmm7, rsp, variant == 0 ? 48 : 64, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(rsp, ApInt(80, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPrologEpilogSanitizePass(builder));
+        uint32_t returns = 0;
+        uint32_t restores = 0;
+        uint32_t jumps = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            returns += inst.op == MicroInstrOpcode::Ret;
+            restores += inst.op == MicroInstrOpcode::LoadRegMem;
+            jumps += inst.op == MicroInstrOpcode::JumpCond;
+        }
+        if (returns != (variant == 0 ? 1u : 2u) || restores != (variant == 0 ? 2u : 4u) ||
+            jumps != (variant == 0 ? 2u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

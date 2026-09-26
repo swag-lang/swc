@@ -77,6 +77,7 @@ namespace
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledAdd);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldDoubledAddressAdd);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldBooleanOrSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryReuseNegationForSignSelect);
         r.add(MicroInstrOpcode::LoadCondRegReg, tryFoldCarrySelectOfConstants);

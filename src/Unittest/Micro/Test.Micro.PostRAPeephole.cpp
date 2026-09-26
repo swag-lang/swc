@@ -495,6 +495,47 @@ SWC_TEST_BEGIN(PostRAPeephole_ScaledAddUsesAddressThenAdd)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FoldsDoubledAddressIntoAdd)
+{
+    constexpr MicroReg result = MicroReg::intReg(0);
+    constexpr MicroReg source = MicroReg::intReg(8);
+    constexpr MicroReg staged = MicroReg::intReg(10);
+    const MicroReg stack = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressAmcRegMem(staged, MicroOpBits::B64, source, source, variant == 3 ? 2 : 1, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(result, staged, MicroOp::Add, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitLoadMemReg(stack, 16, staged, MicroOpBits::B64);
+        if (variant == 2)
+        {
+            const MicroLabelRef exit = builder.createLabel();
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+            builder.placeLabel(exit);
+        }
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        bool folded = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            folded |= ops && ops[0].reg == result && ops[1].reg == result &&
+                      ops[2].reg == source && ops[5].valueU64 == 2;
+        }
+        if (folded != (variant == 0) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != (variant == 0 ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsMaskedIndexIncrementOnlyWhenAddressIsIndependent)
 {
     constexpr MicroReg index = MicroReg::intReg(13);

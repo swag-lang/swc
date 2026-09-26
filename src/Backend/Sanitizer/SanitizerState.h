@@ -149,7 +149,7 @@ struct SanitizerState
     // and an address the codegen only ever uses as the base of an access never enters it,
     // which is what leaves an ordinary local protected. Keyed by the start of the
     // variable's storage; a compiler temporary is never protected in the first place.
-    std::unordered_set<int64_t> escapedFrameObjects;
+    std::optional<std::unordered_set<int64_t>> escapedFrameObjects;
 
     // Released pointers that did not live in the frame: keyed by the base register the
     // access went through and the offset from it. A callee can write through any pointer

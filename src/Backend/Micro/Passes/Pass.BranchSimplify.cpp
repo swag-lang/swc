@@ -4474,7 +4474,7 @@ namespace
         };
 
         SmallVector<Candidate> candidates;
-        std::unordered_set<MicroInstrRef> claimedRefs;
+        std::optional<std::unordered_set<MicroInstrRef>> claimedRefs;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond)
@@ -4552,10 +4552,12 @@ namespace
                 candidate.zeroRef,
                 candidate.joinLabelRef,
             };
-            if (std::ranges::any_of(candidateRefs, [&](MicroInstrRef ref) { return claimedRefs.contains(ref); }))
+            if (!claimedRefs)
+                claimedRefs.emplace();
+            if (std::ranges::any_of(candidateRefs, [&](MicroInstrRef ref) { return claimedRefs->contains(ref); }))
                 continue;
             for (const MicroInstrRef ref : candidateRefs)
-                claimedRefs.insert(ref);
+                claimedRefs->insert(ref);
 
             candidates.push_back(candidate);
         }
@@ -7515,14 +7517,18 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     thread_local JumpLabelReferenceCache jumpLabelCache;
     jumpLabelCache.invalidate();
-    if (rewrote(factorByteMultiplyDiamond(storage, operands, context, jumpLabelCache)))
+    // Both shapes begin at a conditional jump. Reuse the current layout when
+    // the structural cleanup above left its instruction stream unchanged.
+    if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&
+        rewrote(factorByteMultiplyDiamond(storage, operands, context, jumpLabelCache)))
     {
         jumpLabelCache.invalidate();
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
 
-    if (rewrote(convertBooleanGuardPairs(storage, operands, context, jumpLabelCache)))
+    if ((!scanCache.layoutBuilt || scanCache.scan.layout.hasConditionalJump) &&
+        rewrote(convertBooleanGuardPairs(storage, operands, context, jumpLabelCache)))
     {
         if (context.builder)
             context.builder->invalidateControlFlowGraph();

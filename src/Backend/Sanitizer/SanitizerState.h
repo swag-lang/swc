@@ -149,13 +149,21 @@ struct SanitizerState
     // and an address the codegen only ever uses as the base of an access never enters it,
     // which is what leaves an ordinary local protected. Keyed by the start of the
     // variable's storage; a compiler temporary is never protected in the first place.
-    std::unordered_set<int64_t> escapedFrameObjects;
+    std::optional<std::unordered_set<int64_t>> escapedFrameObjects;
 
     // Released pointers that did not live in the frame: keyed by the base register the
     // access went through and the offset from it. A callee can write through any pointer
     // it is handed, so unlike the frame facts these keep nothing across a call - which is
     // enough, because a release and the use that follows it sit in one body.
-    std::map<SanitizerLocation, SourceCodeRef> freedPtrLocations;
+    std::optional<std::map<SanitizerLocation, SourceCodeRef>> freedPtrLocations;
+
+    const SourceCodeRef* findFreedPtrLocation(const SanitizerLocation& location) const
+    {
+        if (!freedPtrLocations)
+            return nullptr;
+        const auto it = freedPtrLocations->find(location);
+        return it == freedPtrLocations->end() ? nullptr : &it->second;
+    }
 
     MicroReg flagsSubject = MicroReg::invalid();
 };

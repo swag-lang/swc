@@ -146,7 +146,7 @@ bool Sanitizer::frameObjectReachable(const SanitizerState& state, const int64_t 
     // A compiler temporary has no extent to bound, so nothing says which writes land in
     // it: only the storage of a declared variable can be proven out of reach.
     const LocalSlotExtent* extent = findLocalSlot(slot);
-    return !extent || state.escapedFrameObjects.contains(extent->start);
+    return !extent || (state.escapedFrameObjects && state.escapedFrameObjects->contains(extent->start));
 }
 
 void Sanitizer::markFrameObjectEscaped(SanitizerState& state, const SanitizerValue& value) const
@@ -160,7 +160,11 @@ void Sanitizer::markFrameObjectEscaped(SanitizerState& state, const SanitizerVal
     const int64_t          offset = value.hasStackOrigin() ? value.stackOrigin : value.stackOffset;
     const LocalSlotExtent* extent = findLocalSlot(offset);
     if (extent)
-        state.escapedFrameObjects.insert(extent->start);
+    {
+        if (!state.escapedFrameObjects)
+            state.escapedFrameObjects.emplace();
+        state.escapedFrameObjects->insert(extent->start);
+    }
 }
 
 void Sanitizer::markEscapesFromValueOperands(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
@@ -228,12 +232,16 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
 
     // Resolve call targets up front: checks identify what a call invokes, and the
     // fixpoint needs to know which calls never return.
-    callTargets_.clear();
+    callTargets_.reset();
     for (const MicroRelocation& rel : context_.builder->codeRelocations())
     {
         if (rel.targetSymbol &&
             (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
-            callTargets_[rel.instructionRef.get()] = rel.targetSymbol;
+        {
+            if (!callTargets_)
+                callTargets_.emplace();
+            (*callTargets_)[rel.instructionRef.get()] = rel.targetSymbol;
+        }
     }
 
     // Chain heads are the only points where states are stored and joined: the entry,
@@ -322,10 +330,10 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
 
         transferCallTarget_ = nullptr;
-        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction) && callTargets_)
         {
-            const auto itTarget = callTargets_.find(instRef.get());
-            if (itTarget != callTargets_.end())
+            const auto itTarget = callTargets_->find(instRef.get());
+            if (itTarget != callTargets_->end())
                 transferCallTarget_ = itTarget->second;
         }
         currentCallTarget_ = transferCallTarget_;
@@ -705,10 +713,15 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
 
     // The one MAY fact of the state: an address that escaped on either incoming path has
     // escaped here, so this set grows where every other one shrinks.
-    for (const int64_t object : from.escapedFrameObjects)
+    if (from.escapedFrameObjects && !from.escapedFrameObjects->empty())
     {
-        if (into.escapedFrameObjects.insert(object).second)
-            changed = true;
+        if (!into.escapedFrameObjects)
+            into.escapedFrameObjects.emplace();
+        for (const int64_t object : *from.escapedFrameObjects)
+        {
+            if (into.escapedFrameObjects->insert(object).second)
+                changed = true;
+        }
     }
 
     for (auto it = into.aliasPtrSlots.begin(); it != into.aliasPtrSlots.end();)
@@ -723,22 +736,30 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
-    for (auto it = into.freedPtrLocations.begin(); it != into.freedPtrLocations.end();)
+    if (into.freedPtrLocations && !from.freedPtrLocations)
     {
-        const auto fromIt = from.freedPtrLocations.find(it->first);
-        if (fromIt == from.freedPtrLocations.end())
+        changed |= !into.freedPtrLocations->empty();
+        into.freedPtrLocations.reset();
+    }
+    else if (into.freedPtrLocations && from.freedPtrLocations)
+    {
+        for (auto it = into.freedPtrLocations->begin(); it != into.freedPtrLocations->end();)
         {
-            it      = into.freedPtrLocations.erase(it);
-            changed = true;
-        }
-        else
-        {
-            if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+            const auto fromIt = from.freedPtrLocations->find(it->first);
+            if (fromIt == from.freedPtrLocations->end())
             {
-                it->second = {};
-                changed    = true;
+                it      = into.freedPtrLocations->erase(it);
+                changed = true;
             }
-            ++it;
+            else
+            {
+                if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+                {
+                    it->second = {};
+                    changed    = true;
+                }
+                ++it;
+            }
         }
     }
 
@@ -822,7 +843,8 @@ void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t
 
     // An object is named by where its pointer lives: rewriting that pointer makes the
     // name mean another object, so nothing said about the old one may survive it.
-    std::erase_if(state.freedPtrLocations, [slot](const auto& entry) { return entry.first.fromSlot && storeOverlapsPointer(entry.first.slot, slot); });
+    if (state.freedPtrLocations)
+        std::erase_if(*state.freedPtrLocations, [slot](const auto& entry) { return entry.first.fromSlot && storeOverlapsPointer(entry.first.slot, slot); });
 
     // Overwriting either end of a proven copy ends the equality: the copy holds a value
     // the other slot no longer has, and releasing that other slot says nothing about it.
@@ -951,22 +973,23 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
     // Lifecycle facts - a released pointer, and the slot copies that share it - follow
     // one aliasing discipline: any write that could reassign a slot revalidates it. Calls
     // are handled below, after the freeing call has marked its own arguments.
-    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() || !state.freedPtrLocations.empty();
+    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() ||
+                                   (state.freedPtrLocations && !state.freedPtrLocations->empty());
     if (hasLifecycleFacts && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
     {
         // A pointer a heap object owns is named by base and offset, so writing that
         // exact place revalidates it and any other write the analysis cannot pin drops
         // every such fact.
-        if (!state.freedPtrLocations.empty())
+        if (state.freedPtrLocations && !state.freedPtrLocations->empty())
         {
             uint8_t           baseIndex = 0;
             SanitizerLocation written;
             if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                 MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def) &&
                 resolveAccessLocation(written, state, ops[baseIndex].reg, static_cast<int64_t>(ops[def.memOffsetOperandIndex].valueU64)))
-                state.freedPtrLocations.erase(written);
+                state.freedPtrLocations->erase(written);
             else
-                state.freedPtrLocations.clear();
+                state.freedPtrLocations.reset();
         }
 
         int64_t slot = 0;
@@ -1425,9 +1448,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         // A callee can write through any pointer it is handed, so nothing said about an
         // object survives a call - the release below re-states what this one just did.
-        state.freedPtrLocations.clear();
-        for (const auto& location : newlyFreedLocations)
-            state.freedPtrLocations[location] = inst.debugSourceInfo.sourceCodeRef;
+        state.freedPtrLocations.reset();
+        if (!newlyFreedLocations.empty())
+        {
+            state.freedPtrLocations.emplace();
+            for (const auto& location : newlyFreedLocations)
+                (*state.freedPtrLocations)[location] = inst.debugSourceInfo.sourceCodeRef;
+        }
 
         // A callee handed both a pointer to release and the storage that holds it can put
         // a live address back where the released one was: what it can reassign, it did
@@ -1657,7 +1684,9 @@ void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const ReportArgu
     // instructions; report each (location, diagnostic) pair at most once.
     const uint64_t key = (static_cast<uint64_t>(codeRef.srcViewRef.get()) << 40) ^ (static_cast<uint64_t>(codeRef.tokRef.get()) << 8) ^ static_cast<uint64_t>(id);
     reported_          = true;
-    if (!reportedLocations_.insert(key).second)
+    if (!reportedLocations_)
+        reportedLocations_.emplace();
+    if (!reportedLocations_->insert(key).second)
         return;
 
     ResolvedDebugSourceInfo resolved;

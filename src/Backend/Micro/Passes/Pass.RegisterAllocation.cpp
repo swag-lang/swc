@@ -87,6 +87,39 @@ namespace
         1ull, 10ull, 100ull, 1'000ull, 10'000ull, 100'000ull, 1'000'000ull, 10'000'000ull, 100'000'000ull, 1'000'000'000ull,
     };
 
+    bool hasVirtualRegisters(const MicroStorage& instructions, const MicroOperandStorage& operands, const Encoder* encoder)
+    {
+        for (const MicroInstr& inst : instructions.view())
+        {
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (ops)
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t index = 0; index < modes.size(); ++index)
+                {
+                    if (modes[index] != MicroInstrRegMode::None && ops[index].reg.isVirtual())
+                        return true;
+                }
+            }
+
+            // Calls and encoder rules can name registers without a register-mode
+            // operand. Keep the probe equivalent to collectUseDef for these forms.
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+                for (const MicroReg reg : useDef.uses)
+                    if (reg.isVirtual())
+                        return true;
+                for (const MicroReg reg : useDef.defs)
+                    if (reg.isVirtual())
+                        return true;
+            }
+        }
+        return false;
+    }
+
     void appendUniqueDenseIndex(SmallVector<uint32_t, 4>& indices, const uint32_t value)
     {
         for (const auto existing : indices)
@@ -4447,6 +4480,11 @@ void MicroRegisterAllocationPass::clearState()
 Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
+
+    // A previous allocation sweep may already have replaced every virtual
+    // register. On later sweeps, check before rebuilding CFG and use/def data.
+    if (!context.isFirstAllocationSweep && !hasVirtualRegisters(*context.instructions, *context.operands, context.encoder))
+        return Result::Continue;
 
     clearState();
     initState(context);

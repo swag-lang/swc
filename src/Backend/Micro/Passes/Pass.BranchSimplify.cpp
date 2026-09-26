@@ -11,6 +11,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Report/Assert.h"
+#include <optional>
 
 // Pre-RA branch simplification and CFG cleanup.
 //
@@ -513,9 +514,16 @@ namespace
 
     bool tryResolveTrampolineTarget(uint32_t& outFinalTargetLabelId, const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t startLabelId)
     {
-        uint32_t                     currentLabelId = startLabelId;
+        uint32_t currentLabelId = 0;
+        if (!tryGetTrampolineTarget(currentLabelId, layout, storage, operands, startLabelId))
+        {
+            outFinalTargetLabelId = startLabelId;
+            return false;
+        }
+
         std::unordered_set<uint32_t> visited;
         visited.reserve(4);
+        visited.insert(startLabelId);
 
         while (visited.insert(currentLabelId).second)
         {
@@ -865,7 +873,9 @@ namespace
             if (!value.valid())
                 continue;
 
-            std::unordered_set<uint32_t> visitedLabels;
+            // Most backward walks remain in straight-line code. Allocate the
+            // cycle detector only when a label is actually encountered.
+            std::optional<std::unordered_set<uint32_t>> visitedLabels;
             int64_t                      at      = static_cast<int64_t>(ordinal) - 2;
             bool                         decided = false;
             bool                         taken   = false;
@@ -880,7 +890,11 @@ namespace
                 if (inst->op == MicroInstrOpcode::Label)
                 {
                     uint32_t labelId = 0;
-                    if (!tryGetLabelId(labelId, *inst, instOps) || !visitedLabels.insert(labelId).second)
+                    if (!tryGetLabelId(labelId, *inst, instOps))
+                        break;
+                    if (!visitedLabels)
+                        visitedLabels.emplace();
+                    if (!visitedLabels->insert(labelId).second)
                         break;
                     const auto     useIt      = labelUses.find(labelId);
                     const uint32_t references = useIt == labelUses.end() ? 0 : useIt->second.references;
@@ -1527,9 +1541,10 @@ namespace
             return false;
         const size_t count = layout.order.size();
 
-        std::unordered_map<uint32_t, uint32_t> localLabelReferences;
+        std::optional<std::unordered_map<uint32_t, uint32_t>> localLabelReferences;
         if (!branchScan)
         {
+            localLabelReferences.emplace();
             for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
             {
                 const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -1539,10 +1554,10 @@ namespace
                     return false;
                 uint32_t labelId = 0;
                 if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                    ++localLabelReferences[labelId];
+                    ++(*localLabelReferences)[labelId];
             }
         }
-        const auto& labelReferences = branchScan ? branchScan->labelReferences : localLabelReferences;
+        const auto& labelReferences = branchScan ? branchScan->labelReferences : *localLabelReferences;
 
         // Where every virtual integer register is read and written, and which instructions a
         // relocation pins. Both are only consulted once a jump, its single-reference forward
@@ -1556,12 +1571,11 @@ namespace
             SmallVector<uint32_t, 4> defs;
         };
 
-        std::unordered_map<uint32_t, RegSites> sites;
-        bool                                   sitesCollected = false;
-        const auto                             regSites       = [&]() -> std::unordered_map<uint32_t, RegSites>& {
-            if (!sitesCollected)
+        std::optional<std::unordered_map<uint32_t, RegSites>> sites;
+        const auto regSites = [&]() -> std::unordered_map<uint32_t, RegSites>& {
+            if (!sites)
             {
-                sitesCollected = true;
+                sites.emplace();
                 for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
                 {
                     const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -1580,14 +1594,14 @@ namespace
                         if (!reg.isVirtualInt())
                             continue;
                         if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
-                            sites[reg.index()].uses.push_back(ordinal);
+                            (*sites)[reg.index()].uses.push_back(ordinal);
                         if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
-                            sites[reg.index()].defs.push_back(ordinal);
+                            (*sites)[reg.index()].defs.push_back(ordinal);
                     }
                 }
             }
 
-            return sites;
+            return *sites;
         };
 
         const auto allWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
@@ -3046,7 +3060,7 @@ namespace
             // The chain: compares of the key, each taking its case on equality,
             // or a case range `cmp X, LO; jb .SKIP; cmp X, HI; jbe .L; .SKIP:`.
             SmallVector<std::pair<uint64_t, uint32_t>, 16> cases;
-            std::unordered_map<uint32_t, uint32_t>         chainJumps;
+            SmallVector<uint32_t, 16>                      chainJumpTargets;
             size_t                                         at            = start;
             bool                                           fallsIntoCase = false;
             uint32_t                                       fallDefaultId = 0;
@@ -3096,7 +3110,7 @@ namespace
                         break;
                     for (uint64_t caseValue = rangeLow; caseValue <= rangeHigh; ++caseValue)
                         cases.push_back({caseValue, target});
-                    ++chainJumps[target];
+                    chainJumpTargets.push_back(target);
                     at += 5;
                     continue;
                 }
@@ -3104,11 +3118,15 @@ namespace
                     !tryGetJumpTargetLabelId(target, *jump, jumpOps))
                     break;
                 cases.push_back({cmpOps[2].valueU64 & getBitsMask(keyBits), target});
-                ++chainJumps[target];
+                chainJumpTargets.push_back(target);
                 at += 2;
             }
             if (cases.size() < K_MIN_CASES)
                 continue;
+
+            std::unordered_map<uint32_t, uint32_t> chainJumps;
+            for (const uint32_t target : chainJumpTargets)
+                ++chainJumps[target];
 
             const size_t      tailAt    = at;
             const MicroInstr* tail      = instAt(tailAt);
@@ -3569,7 +3587,7 @@ namespace
         };
 
         SmallVector<RangeCheck> checks;
-        std::unordered_set<uint32_t> used;
+        std::optional<std::unordered_set<uint32_t>> used;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             RangeCheck check;
@@ -3577,7 +3595,7 @@ namespace
             check.firstJumpRef = storage.findNextInstructionRef(check.firstCmpRef);
             check.lastCmpRef   = check.firstJumpRef.isValid() ? storage.findNextInstructionRef(check.firstJumpRef) : MicroInstrRef::invalid();
             check.lastJumpRef  = check.lastCmpRef.isValid() ? storage.findNextInstructionRef(check.lastCmpRef) : MicroInstrRef::invalid();
-            if (!check.lastJumpRef.isValid() || used.contains(check.firstCmpRef.get()))
+            if (!check.lastJumpRef.isValid())
                 continue;
 
             const MicroInstr* firstCmp  = storage.ptr(check.firstCmpRef);
@@ -3586,6 +3604,8 @@ namespace
             const MicroInstr* lastJump  = storage.ptr(check.lastJumpRef);
             if (firstCmp->op != MicroInstrOpcode::CmpRegImm || lastCmp->op != MicroInstrOpcode::CmpRegImm ||
                 firstJump->op != MicroInstrOpcode::JumpCond || lastJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            if (used && used->contains(check.firstCmpRef.get()))
                 continue;
 
             const MicroInstrOperand* firstCmpOps  = firstCmp->ops(operands);
@@ -3636,7 +3656,9 @@ namespace
 
             check.low   = low;
             check.range = (high - low) & mask;
-            used.insert(check.lastCmpRef.get());
+            if (!used)
+                used.emplace();
+            used->insert(check.lastCmpRef.get());
             checks.push_back(check);
         }
 

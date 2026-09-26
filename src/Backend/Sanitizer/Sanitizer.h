@@ -207,7 +207,7 @@ private:
     std::vector<char>            inWorklist_;
     std::unordered_set<uint64_t> reportedLocations_;
 
-    std::unordered_map<uint32_t, const Symbol*> callTargets_;
+    std::optional<std::unordered_map<uint32_t, const Symbol*>> callTargets_;
 };
 
 SWC_END_NAMESPACE();

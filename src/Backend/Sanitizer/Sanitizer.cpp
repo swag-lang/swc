@@ -228,12 +228,16 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
 
     // Resolve call targets up front: checks identify what a call invokes, and the
     // fixpoint needs to know which calls never return.
-    callTargets_.clear();
+    callTargets_.reset();
     for (const MicroRelocation& rel : context_.builder->codeRelocations())
     {
         if (rel.targetSymbol &&
             (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
-            callTargets_[rel.instructionRef.get()] = rel.targetSymbol;
+        {
+            if (!callTargets_)
+                callTargets_.emplace();
+            (*callTargets_)[rel.instructionRef.get()] = rel.targetSymbol;
+        }
     }
 
     // Chain heads are the only points where states are stored and joined: the entry,
@@ -322,10 +326,10 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
 
         transferCallTarget_ = nullptr;
-        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction) && callTargets_)
         {
-            const auto itTarget = callTargets_.find(instRef.get());
-            if (itTarget != callTargets_.end())
+            const auto itTarget = callTargets_->find(instRef.get());
+            if (itTarget != callTargets_->end())
                 transferCallTarget_ = itTarget->second;
         }
         currentCallTarget_ = transferCallTarget_;

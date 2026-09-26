@@ -514,9 +514,16 @@ namespace
 
     bool tryResolveTrampolineTarget(uint32_t& outFinalTargetLabelId, const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t startLabelId)
     {
-        uint32_t                     currentLabelId = startLabelId;
+        uint32_t currentLabelId = 0;
+        if (!tryGetTrampolineTarget(currentLabelId, layout, storage, operands, startLabelId))
+        {
+            outFinalTargetLabelId = startLabelId;
+            return false;
+        }
+
         std::unordered_set<uint32_t> visited;
         visited.reserve(4);
+        visited.insert(startLabelId);
 
         while (visited.insert(currentLabelId).second)
         {

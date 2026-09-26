@@ -3060,7 +3060,7 @@ namespace
             // The chain: compares of the key, each taking its case on equality,
             // or a case range `cmp X, LO; jb .SKIP; cmp X, HI; jbe .L; .SKIP:`.
             SmallVector<std::pair<uint64_t, uint32_t>, 16> cases;
-            std::unordered_map<uint32_t, uint32_t>         chainJumps;
+            SmallVector<uint32_t, 16>                      chainJumpTargets;
             size_t                                         at            = start;
             bool                                           fallsIntoCase = false;
             uint32_t                                       fallDefaultId = 0;
@@ -3110,7 +3110,7 @@ namespace
                         break;
                     for (uint64_t caseValue = rangeLow; caseValue <= rangeHigh; ++caseValue)
                         cases.push_back({caseValue, target});
-                    ++chainJumps[target];
+                    chainJumpTargets.push_back(target);
                     at += 5;
                     continue;
                 }
@@ -3118,11 +3118,15 @@ namespace
                     !tryGetJumpTargetLabelId(target, *jump, jumpOps))
                     break;
                 cases.push_back({cmpOps[2].valueU64 & getBitsMask(keyBits), target});
-                ++chainJumps[target];
+                chainJumpTargets.push_back(target);
                 at += 2;
             }
             if (cases.size() < K_MIN_CASES)
                 continue;
+
+            std::unordered_map<uint32_t, uint32_t> chainJumps;
+            for (const uint32_t target : chainJumpTargets)
+                ++chainJumps[target];
 
             const size_t      tailAt    = at;
             const MicroInstr* tail      = instAt(tailAt);

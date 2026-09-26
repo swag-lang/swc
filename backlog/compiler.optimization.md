@@ -18,7 +18,7 @@ block, and the hot path keeps the register.
 ### compiler.optimization.039 — Nothing measures how close a function comes to the sweep budget
 
 - Recorded: 2026-09-16 12:12
-- Updated: 2026-09-26 15:51 — Integrated the loop reduction and recorded the Release campaign.
+- Updated: 2026-09-26 15:58 — Counted pre-RA sweeps over the complete standard library in Release.
 - Area: compiler/backend, compilation time
 - Evidence: the pre-RA optimization loop sweeps at most sixteen times, and a function that still
   changes on the sixteenth stops the build. Lowering that budget to three with a temporary knob
@@ -58,10 +58,15 @@ block, and the hot path keeps the register.
   cleanup; the parent also grew beyond 100 GiB of committed memory in the same smoke and was
   stopped to protect the shared machine. These failures limit whole-repository validation and
   are not evidence of a regression in this optimization.
-- Next: count the sweeps each function needs over a full `bin/std` build in both configurations
-  and record the distribution. A maximum far below 24 makes the budget a safety net; a
-  maximum near it makes the budget a live limit and the convergence of individual passes the
-  thing to fix.
+- A temporary counter in the Release compiler recorded 29,205 pre-RA optimization-loop calls
+  during `bin/std` `--rebuild` with six workers. The count includes the final unchanged sweep:
+  median 3, 90th percentile 5, 95th 6, 99th 7, 99.9th 10, and maximum 15 (two functions).
+  Sixteen functions needed more than ten sweeps; none exceeded fifteen. The current 24-sweep
+  limit has nine sweeps of headroom on this corpus. The counter was removed after measurement;
+  DevMode and other consumer workspaces remain unmeasured.
+- Next: count DevMode sweeps and other consumer workspaces before treating the Release
+  standard-library maximum as a general bound. If any function approaches 24, identify the
+  pass chain that keeps changing it before raising the limit.
 - Complete when: the sweep distribution over `bin/std` is recorded, and the budget is either
   justified by it or replaced by what the measurement shows is needed.
 - Related: compiler.optimization.029, compiler.core.004.

@@ -790,8 +790,12 @@ namespace
     {
         const uint32_t count = static_cast<uint32_t>(layout.order.size());
 
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        std::unordered_map<uint32_t, uint32_t> labelJumpOrdinal;
+        struct LabelUse
+        {
+            uint32_t references  = 0;
+            uint32_t jumpOrdinal = 0;
+        };
+        std::unordered_map<uint32_t, LabelUse> labelUses;
         for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
         {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -803,8 +807,9 @@ namespace
             uint32_t labelId = 0;
             if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
             {
-                ++labelReferences[labelId];
-                labelJumpOrdinal[labelId] = ordinal;
+                LabelUse& use   = labelUses[labelId];
+                ++use.references;
+                use.jumpOrdinal = ordinal;
             }
         }
 
@@ -877,8 +882,8 @@ namespace
                     uint32_t labelId = 0;
                     if (!tryGetLabelId(labelId, *inst, instOps) || !visitedLabels.insert(labelId).second)
                         break;
-                    const auto     refIt      = labelReferences.find(labelId);
-                    const uint32_t references = refIt == labelReferences.end() ? 0 : refIt->second;
+                    const auto     useIt      = labelUses.find(labelId);
+                    const uint32_t references = useIt == labelUses.end() ? 0 : useIt->second.references;
                     const bool     fallsInto  = fallsIntoLabel(current);
                     if (!references)
                     {
@@ -890,7 +895,7 @@ namespace
                     if (references != 1 || fallsInto)
                         break;
 
-                    const uint32_t           from     = labelJumpOrdinal[labelId];
+                    const uint32_t           from     = useIt->second.jumpOrdinal;
                     const MicroInstrOperand* fromOps  = storage.ptr(layout.order[from])->ops(operands);
                     factCond                          = fromOps[0].cpuCond;
                     factJump                          = from;

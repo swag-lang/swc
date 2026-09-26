@@ -106,6 +106,21 @@ namespace
     }
 }
 
+std::string_view CallConv::displayName(CallConvKind kind)
+{
+    switch (kind)
+    {
+        case CallConvKind::C:
+            return "C";
+        case CallConvKind::WindowsX64:
+            return "Windows x64";
+        case CallConvKind::Swag:
+            return "Swag";
+    }
+
+    SWC_UNREACHABLE();
+}
+
 uint32_t CallConv::numArgRegisterSlots() const
 {
     // A call site can only use argument register slots common to int and float lanes.

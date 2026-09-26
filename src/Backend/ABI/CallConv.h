@@ -94,6 +94,7 @@ struct CallConv
     static void            setup();
     static const CallConv& get(CallConvKind kind);
     static const CallConv& swag();
+    static std::string_view displayName(CallConvKind kind);
 };
 
 SWC_END_NAMESPACE();

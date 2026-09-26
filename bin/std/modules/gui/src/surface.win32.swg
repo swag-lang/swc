@@ -36,9 +36,6 @@ private const HTBOTTOMRIGHT = 17
 // WM_SIZE state emitted when a native window has no drawable client area.
 private const SizeMinimized = 1'u64
 
-// Hide an in-flight native placement from the compositor until its final frame is ready.
-private const DwmAttributeCloak = 13'u32
-
 // Dependency-visible Windows storage embedded by `Surface`.
 #[Swag.Opaque, Swag.NoDoc]
 #[Swag.NoCopy]
@@ -525,14 +522,6 @@ private impl Surface
 
 impl Surface
 {
-    private mtd beginDiscretePlacement()
-    {
-        .applyNativeDwmStyle()
-        let cloak = TRUE
-        discard DwmSetWindowAttribute(.hWnd, DwmAttributeCloak, cast(LPCVOID) &cloak, #sizeof(cloak))
-        .inDiscretePlacement = true
-    }
-
     private mtd finishDiscretePlacement()
     {
         .inDiscretePlacement = false
@@ -550,8 +539,6 @@ impl Surface
         else do
             .invalidate()
 
-        let cloak = FALSE
-        discard DwmSetWindowAttribute(.hWnd, DwmAttributeCloak, cast(LPCVOID) &cloak, #sizeof(cloak))
     }
 
     internal mtd const nativeRenderHandle()->const *void? => cast(const *void?) .hWnd
@@ -931,9 +918,26 @@ impl Surface
             return
         }
 
-        .beginDiscretePlacement()
+        .applyNativeDwmStyle()
+        .inDiscretePlacement = true
         defer .finishDiscretePlacement()
-        ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
+
+        // ShowWindow can expose the old drawable after moving it to the monitor origin,
+        // before the maximized size has arrived. Commit both coordinates in one placement.
+        var pt: POINT
+        pt.x = cast(s32) .position.x
+        pt.y = cast(s32) .position.y
+        let monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST)
+        var info: MONITORINFO
+        catch GetMonitorInfoA(monitor, &info)
+        let shadow = cast(s32) (.app.theme.metrics.surfaceWnd_ShadowSize * .dpiScale)
+        let style = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
+        SetWindowLongPtrW(.hWnd, GWL_STYLE, cast #bit (LONG_PTR) (style | WS_MAXIMIZE))
+        catch SetWindowPos(.hWnd, null,
+                           info.rcWork.left - shadow, info.rcWork.top - shadow,
+                           info.rcWork.right - info.rcWork.left + 2 * shadow,
+                           info.rcWork.bottom - info.rcWork.top + 2 * shadow,
+                           SWP_NOZORDER | SWP_NOCOPYBITS | SWP_FRAMECHANGED)
     }
 
     // Leaves a maximized or minimized state and places the surface, in one native transaction.
@@ -955,12 +959,13 @@ impl Surface
             return
         }
 
-        .beginDiscretePlacement()
+        .applyNativeDwmStyle()
 
         // The rectangle is physical for its target monitor already; flag the move so
         // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
         .inAppPlacement = true
         defer .inAppPlacement = false
+        .inDiscretePlacement = true
         defer .finishDiscretePlacement()
 
         with var placement: WINDOWPLACEMENT
@@ -986,9 +991,16 @@ impl Surface
             return
         }
 
-        .beginDiscretePlacement()
+        .applyNativeDwmStyle()
+        .inDiscretePlacement = true
         defer .finishDiscretePlacement()
-        ShowWindow(.hWnd, SW_RESTORE)
+        let style = cast(u32) GetWindowLongPtrW(.hWnd, GWL_STYLE)
+        SetWindowLongPtrW(.hWnd, GWL_STYLE, cast #bit (LONG_PTR) (style & ~WS_MAXIMIZE))
+        let pos = .restoredPosition
+        catch SetWindowPos(.hWnd, null,
+                           cast(s32) pos.x, cast(s32) pos.y,
+                           cast(s32) pos.width, cast(s32) pos.height,
+                           SWP_NOZORDER | SWP_NOCOPYBITS | SWP_FRAMECHANGED)
     }
 
     // Shows the surface minimized.

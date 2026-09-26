@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -747,21 +748,6 @@ namespace
         return srcType.isFunction() && dstType.isFunction() && srcType.payloadSymFunction().callConvKind() != dstType.payloadSymFunction().callConvKind();
     }
 
-    std::string_view callConvName(CallConvKind kind)
-    {
-        switch (kind)
-        {
-            case CallConvKind::C:
-                return "C";
-            case CallConvKind::WindowsX64:
-                return "Windows x64";
-            case CallConvKind::Swag:
-                return "Swag";
-        }
-
-        SWC_UNREACHABLE();
-    }
-
     Utf8 makeCannotCastArgumentText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
     {
         SWC_ASSERT(fail.castFailure.srcTypeRef.isValid());
@@ -773,8 +759,8 @@ namespace
         {
             const SymbolFunction& srcFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.srcTypeRef)).payloadSymFunction();
             const SymbolFunction& dstFunc = ctx.typeMgr().get(ctx.typeMgr().unwrapAlias(ctx, fail.castFailure.dstTypeRef)).payloadSymFunction();
-            const Utf8 actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, callConvName(srcFunc.callConvKind()));
-            const Utf8 required = std::format("'{}' with the {} calling convention", dstTypeName, callConvName(dstFunc.callConvKind()));
+            const Utf8 actual   = std::format("has type '{}' with the {} calling convention", srcTypeName, CallConv::displayName(srcFunc.callConvKind()));
+            const Utf8 required = std::format("'{}' with the {} calling convention", dstTypeName, CallConv::displayName(dstFunc.callConvKind()));
             if (const SymbolVariable* param = failedParameter(fn, fail))
                 return std::format("{}, but parameter '{}' needs {}", actual, param->name(ctx), required);
             return std::format("{}, but needs {}", actual, required);

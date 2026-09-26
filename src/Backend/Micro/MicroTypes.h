@@ -141,6 +141,8 @@ enum class MicroOp : uint8_t
     VecOr,
     VecShiftLeft32,
     VecShiftRight32,
+    VecShuffleLow16,
+    VecShuffleHigh16,
     VecShuffle32,
     VecSub32,
     VecXor,

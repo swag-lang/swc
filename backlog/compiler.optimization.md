@@ -15,6 +15,13 @@ that the straight-line path steps over — a safety panic, a cold refill — no 
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
+### compiler.optimization.082 — Rotate packed 32-bit words by 16 with two shuffles
+
+- Recorded: 2026-09-26 12:00
+- Area: compiler/backend, SLP vectorization and x64 encoding
+- Evidence: ChaCha's vectorized round loop rotated four 32-bit words by 16 using a packed left shift, right shift, and OR. `pshuflw` swaps the two 16-bit words in the lower half, and `pshufhw` does the same in the upper half, so the two instructions perform the same four rotations. The SLP plan now selects the shuffles for rotation by 16; the x64 encoder and its byte-level tests cover both forms. The final ChaCha main falls from 433 to 431 pre-emit Micro instructions, removing two instructions on every ten-round iteration without adding memory traffic. Disassembly confirms two `pshuflw`/`pshufhw` pairs, and `--validate-micro` preserves checksum 633277775. All 1,136 C++, 3,480 native Release, and 1,500 JIT Release tests pass. No runtime timing informed the decision.
+- Next: compare ChaCha's scalar output and checksum loops with clang-cl's issued instructions, then move to the next largest unexhausted gap.
+
 ### compiler.optimization.081 — Price memory intrinsics as possible calls when auto-inlining
 
 - Recorded: 2026-09-26 11:47

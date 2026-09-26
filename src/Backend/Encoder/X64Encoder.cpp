@@ -4431,6 +4431,19 @@ void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, Micro
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
     SWC_ASSERT(value <= 0xFF);
 
+    // pshuflw/pshufhw each permute one 64-bit half and preserve the other.
+    // Together with control B1 they rotate every 32-bit lane by 16 bits.
+    if (op == MicroOp::VecShuffleLow16 || op == MicroOp::VecShuffleHigh16)
+    {
+        emitCpuOp(store_, op == MicroOp::VecShuffleLow16 ? 0xF2 : 0xF3);
+        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, 0x70);
+        emitModRm(store_, regDst, regSrc);
+        emitValue(store_, value, MicroOpBits::B8);
+        return;
+    }
+
     // vroundps/vroundpd xmm1, xmm2, imm8 (VEX.128.66.0F3A 08|09 /r ib): plain
     // destination-in-reg shape, vvvv unused.
     if (op == MicroOp::VecRoundF32 || op == MicroOp::VecRoundF64)

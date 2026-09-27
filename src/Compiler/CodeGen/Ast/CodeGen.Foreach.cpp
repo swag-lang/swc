@@ -4,6 +4,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCString.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -196,14 +197,6 @@ namespace
         }
 
         return codeGen.payload(exprRef);
-    }
-
-    SemaNodeView foreachExprView(CodeGen& codeGen, AstNodeRef exprRef)
-    {
-        const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
-        if (storedView.type() != nullptr)
-            return storedView;
-        return codeGen.viewType(exprRef);
     }
 
     const SymbolEnum* enumSymbolFromTypeRef(CodeGen& codeGen, TypeRef typeRef)
@@ -443,7 +436,7 @@ namespace
         }
         else
         {
-            const SemaNodeView exprView    = foreachExprView(codeGen, exprRef);
+            const SemaNodeView exprView    = CodeGenExprView::storedOrType(codeGen, exprRef);
             CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
             TypeRef            exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
             CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);

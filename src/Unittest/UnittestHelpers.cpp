@@ -141,6 +141,50 @@ namespace Backend::Unittest
         return count;
     }
 
+    uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op)
+    {
+        const MicroOperandStorage& operands = builder.operands();
+        uint32_t                   count    = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (ops && ops[3].microOp == op)
+                ++count;
+        }
+
+        return count;
+    }
+
+    uint32_t firstOpcodePosition(const MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        uint32_t position = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                return position;
+            ++position;
+        }
+
+        return std::numeric_limits<uint32_t>::max();
+    }
+
+    bool isStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp, uint64_t expectedImmediate)
+    {
+        if (!ops)
+            return false;
+        if (inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4)
+            return false;
+        if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
+            return false;
+        if (ops[2].microOp != expectedOp)
+            return false;
+        if (ops[3].valueU64 != expectedImmediate)
+            return false;
+        return true;
+    }
+
     Result assertNoVirtualRegs(MicroBuilder& builder)
     {
         auto& storeOps = builder.operands();

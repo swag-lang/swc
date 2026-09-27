@@ -32,19 +32,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-    // First linear position of an opcode, or UINT32_MAX.
-    uint32_t firstPosition(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        uint32_t position = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                return position;
-            ++position;
-        }
-
-        return std::numeric_limits<uint32_t>::max();
-    }
 
     uint32_t lastPosition(const MicroBuilder& builder, const MicroInstrOpcode opcode)
     {
@@ -94,10 +81,10 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadStorePair_HoistsAndSinks)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 2)
         return Result::Error;
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadVecRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
-    const uint32_t posStore = firstPosition(builder, MicroInstrOpcode::StoreVecMemReg);
-    const uint32_t posRet   = firstPosition(builder, MicroInstrOpcode::Ret);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadVecRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posStore = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::StoreVecMemReg);
+    const uint32_t posRet   = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Ret);
     if (posLoad > posLabel)
         return Result::Error;
     if (posStore + 1 != posRet)
@@ -134,8 +121,8 @@ SWC_TEST_BEGIN(VecLoopPromote_BackwardJumpWithoutCycleLeavesPackedAccesses)
         builder.instructions().ptr(load)->op != MicroInstrOpcode::LoadVecRegMem ||
         builder.instructions().ptr(store)->op != MicroInstrOpcode::StoreVecMemReg)
         return Result::Error;
-    if (firstPosition(builder, MicroInstrOpcode::LoadVecRegMem) != 4 ||
-        firstPosition(builder, MicroInstrOpcode::StoreVecMemReg) != 5)
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadVecRegMem) != 4 ||
+        Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::StoreVecMemReg) != 5)
         return Result::Error;
     return Result::Continue;
 }
@@ -178,7 +165,7 @@ SWC_TEST_BEGIN(VecLoopPromote_StackAndOneParameterAreTheRootLimit)
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != 1 ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1)
             return Result::Error;
-        if ((firstPosition(builder, MicroInstrOpcode::LoadVecRegMem) < firstPosition(builder, MicroInstrOpcode::Label)) == secondParameter)
+        if ((Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadVecRegMem) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label)) == secondParameter)
             return Result::Error;
     }
     return Result::Continue;
@@ -208,8 +195,8 @@ SWC_TEST_BEGIN(VecLoopPromote_OverlappingScalarStore_Blocks)
 
     SWC_RESULT(runVecLoopPromotePass(builder));
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadVecRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadVecRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLoad < posLabel)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
@@ -250,7 +237,7 @@ SWC_TEST_BEGIN(VecLoopPromote_LoadOnlyChunk_HoistsWithoutStore)
         return Result::Error;
 
     const uint32_t posLastLoad = lastPosition(builder, MicroInstrOpcode::LoadVecRegMem);
-    const uint32_t posLabel    = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLabel    = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLastLoad > posLabel)
         return Result::Error;
 
@@ -276,7 +263,7 @@ SWC_TEST_BEGIN(VecLoopPromote_StackPointerDefinitionInBody_Blocks)
     builder.emitRet();
 
     SWC_RESULT(runVecLoopPromotePass(builder));
-    if (firstPosition(builder, MicroInstrOpcode::LoadVecRegMem) < firstPosition(builder, MicroInstrOpcode::Label))
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadVecRegMem) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;

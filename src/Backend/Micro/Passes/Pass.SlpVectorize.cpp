@@ -1965,6 +1965,8 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     const Runtime::BuildCfgBackend& backendCfg = context.builder->backendBuildCfg();
     if (!backendCfg.optimizes() || !backendCfg.vectorize)
         return Result::Continue;
+    if (context.instructions->count() < K_LANE_COUNT * 2)
+        return Result::Continue;
 
     SlpFunctionContext fn;
     fn.context  = &context;

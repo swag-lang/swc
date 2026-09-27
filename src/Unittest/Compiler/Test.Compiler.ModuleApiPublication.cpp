@@ -10,6 +10,7 @@
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/Compiler/CompilerTestFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -37,16 +38,6 @@ namespace
     private:
         fs::path path_;
     };
-
-    Result writePublicationSource(const fs::path& path, const std::string_view text)
-    {
-        std::error_code ec;
-        fs::create_directories(path.parent_path(), ec);
-        if (ec)
-            return Result::Error;
-        FileSystem::IoErrorInfo error;
-        return FileSystem::writeBinaryFile(path, text.data(), text.size(), error);
-    }
 
     struct ImportResult
     {
@@ -98,8 +89,8 @@ namespace
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_IncompletePublicationIsRejectedAndCanBeRebuilt)
 {
     ApiPublicationTestDirectory directory("Incomplete");
-    SWC_RESULT(writePublicationSource(directory.path() / "consumer.swg", CONSUMER_SOURCE));
-    SWC_RESULT(writePublicationSource(directory.apiDirectory() / "value.swg", API_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", CONSUMER_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", API_SOURCE));
 
     Utf8 because;
     {
@@ -158,15 +149,15 @@ func importedFailure()->s32 => MissingImportedBodySymbol
 }
 )";
 
-    SWC_RESULT(writePublicationSource(directory.apiDirectory() / "value.swg", apiSource));
-    SWC_RESULT(writePublicationSource(directory.path() / "consumer.swg", validConsumer));
+    SWC_RESULT(CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", apiSource));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", validConsumer));
 
     ImportResult unusedInvalidBody;
     runPublicationImporter(unusedInvalidBody, directory);
     if (unusedInvalidBody.process != Os::ProcessRunResult::Ok || unusedInvalidBody.exitCode != 0)
         return Result::Error;
 
-    SWC_RESULT(writePublicationSource(directory.path() / "consumer.swg", invalidConsumer));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", invalidConsumer));
     ImportResult usedInvalidBody;
     runPublicationImporter(usedInvalidBody, directory);
     if (usedInvalidBody.process != Os::ProcessRunResult::Ok || usedInvalidBody.exitCode == 0)
@@ -179,8 +170,8 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterWaitsForCompletePublication)
 {
     ApiPublicationTestDirectory directory("Concurrent");
-    SWC_RESULT(writePublicationSource(directory.path() / "consumer.swg", CONSUMER_SOURCE));
-    SWC_RESULT(writePublicationSource(directory.apiDirectory() / "value.swg", "this API is still being written\n"));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", CONSUMER_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", "this API is still being written\n"));
 
     ImportResult      importer;
     std::atomic<bool> finished = false;
@@ -200,7 +191,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterWaitsForCompletePublication)
         started.arrive_and_wait();
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         returnedBeforePublication = finished.load(std::memory_order_acquire);
-        writeResult               = writePublicationSource(directory.apiDirectory() / "value.swg", API_SOURCE);
+        writeResult               = CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", API_SOURCE);
         if (writeResult == Result::Continue)
             writeResult = publication.completePublication(because);
     }
@@ -215,10 +206,10 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_RepublishesCapturedSourcesAndMetadata)
     ApiPublicationTestDirectory directory("Snapshot");
     const fs::path              source      = directory.apiDirectory();
     const fs::path              destination = directory.path() / "mirror";
-    SWC_RESULT(writePublicationSource(source / "value.swg", API_SOURCE));
-    SWC_RESULT(writePublicationSource(source / ".swc-deps", "#import(\"dependency\")\n"));
-    SWC_RESULT(writePublicationSource(destination / "stale.swg", "obsolete\n"));
-    SWC_RESULT(writePublicationSource(destination / "artifact.lib", "retained artifact\n"));
+    SWC_RESULT(CompilerTestFile::writeText(source / "value.swg", API_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(source / ".swc-deps", "#import(\"dependency\")\n"));
+    SWC_RESULT(CompilerTestFile::writeText(destination / "stale.swg", "obsolete\n"));
+    SWC_RESULT(CompilerTestFile::writeText(destination / "artifact.lib", "retained artifact\n"));
 
     std::vector<ModuleApi::SourceSnapshot> files;
     FileSystem::IoErrorInfo                ioError;
@@ -267,7 +258,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_SnapshotReplacesEqualSizeAndTimestampContent
     const fs::path              path        = destination / "value.swg";
     constexpr std::string_view  oldContent  = "#global public\nconst PublicationValue = 41\n";
     static_assert(oldContent.size() == API_SOURCE.size());
-    SWC_RESULT(writePublicationSource(path, oldContent));
+    SWC_RESULT(CompilerTestFile::writeText(path, oldContent));
 
     std::error_code ec;
     const auto      writeTime = fs::last_write_time(path, ec);
@@ -299,8 +290,8 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestam
     ApiPublicationTestDirectory directory("ScriptCacheSameMetadata");
     const fs::path              source = directory.apiDirectory() / "value.swg";
     const fs::path              script = directory.path() / "consumer.swgs";
-    SWC_RESULT(writePublicationSource(source, API_SOURCE));
-    SWC_RESULT(writePublicationSource(script, "#import(\"dep\", location: \".\")\n#main {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(source, API_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(script, "#import(\"dep\", location: \".\")\n#main {}\n"));
 
     std::error_code ec;
     const auto      writeTime = fs::last_write_time(source, ec);
@@ -320,7 +311,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestam
         ModuleApi::DirectoryAccess publication;
         Utf8                       because;
         SWC_RESULT(publication.beginPublication(because, directory.apiDirectory()));
-        SWC_RESULT(writePublicationSource(source, newContent));
+        SWC_RESULT(CompilerTestFile::writeText(source, newContent));
         fs::last_write_time(source, writeTime, ec);
         if (ec)
             return Result::Error;

@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Post-RA copy coalescing: when a value is produced into a scratch register
@@ -55,45 +56,6 @@ namespace PostRaPeephole
                     return false;
             }
             return true;
-        }
-
-        bool regInList(std::span<const MicroReg> list, MicroReg reg)
-        {
-            for (const MicroReg r : list)
-                if (r == reg)
-                    return true;
-            return false;
-        }
-
-        struct RegTouch
-        {
-            bool use = false;
-            bool def = false;
-        };
-
-        RegTouch regTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg)
-        {
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
-            {
-                const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
-                return {regInList(useDef.uses.span(), reg), regInList(useDef.defs.span(), reg)};
-            }
-
-            RegTouch touch;
-            if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
-            {
-                const auto modes = info.resolvedRegModes(ops);
-                for (size_t i = 0; i < modes.size(); ++i)
-                {
-                    if (modes[i] == MicroInstrRegMode::None || ops[i].reg != reg)
-                        continue;
-                    touch.use |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
-                    touch.def |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
-                }
-            }
-            return touch;
         }
 
         bool instructionMentionsAny(const Context& ctx, const MicroInstr& inst, std::initializer_list<MicroReg> regs)

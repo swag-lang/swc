@@ -8,6 +8,7 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Os/Os.h"
+#include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -36,11 +37,6 @@ namespace
         fs::path path_;
     };
 
-    Result readText(std::string& result, const fs::path& path)
-    {
-        FileSystem::IoErrorInfo error;
-        return FileSystem::readTextFile(path, result, error);
-    }
 }
 
 SWC_TEST_BEGIN(Compiler_NewScriptCommandParsesDefaultPath)
@@ -119,7 +115,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesRunnableScript)
         return Result::Error;
 
     std::string source;
-    if (readText(source, testDir.path() / "hello.swgs") != Result::Continue)
+    if (CompilerTestFile::readText(source, testDir.path() / "hello.swgs") != Result::Continue)
         return Result::Error;
     if (source != EXPECTED)
         return Result::Error;
@@ -150,9 +146,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesAndExtendsWorkspace)
         const fs::path modulePath = workspacePath / "modules" / moduleName;
         std::string    moduleSource;
         std::string    mainSource;
-        if (readText(moduleSource, modulePath / "module.swg") != Result::Continue)
+        if (CompilerTestFile::readText(moduleSource, modulePath / "module.swg") != Result::Continue)
             return Result::Error;
-        if (readText(mainSource, modulePath / "src" / "main.swg") != Result::Continue)
+        if (CompilerTestFile::readText(mainSource, modulePath / "src" / "main.swg") != Result::Continue)
             return Result::Error;
         if (moduleSource != EXPECTED_MODULE || mainSource != EXPECTED_MAIN)
             return Result::Error;

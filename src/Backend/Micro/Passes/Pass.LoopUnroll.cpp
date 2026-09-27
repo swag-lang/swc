@@ -434,6 +434,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     MicroBuilder&        builder  = *context.builder;
+    if (storage.count() < 5)
+        return Result::Continue;
 
     // Unroll every candidate in this one run: leaving the rest for later runs
     // would spend one fixed-point iteration per loop, and a function with
@@ -444,10 +446,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
     {
         unrolledOne = false;
 
-        // Program layout: ordinals, label positions, and every jump with its target.
+        // Program layout: ordinals, label positions, and plausible back-edge jumps.
         std::vector<MicroInstrRef>                 order;
         std::unordered_map<uint64_t, LabelInfo>    labels;
-        std::vector<std::pair<uint32_t, uint64_t>> jumps;
+        SmallVector<std::pair<uint32_t, uint64_t>, 4> jumps;
         order.reserve(storage.count());
 
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
@@ -468,8 +470,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 labels[ops[0].valueU64].ordinal = ord;
             else if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
             {
-                jumps.emplace_back(ord, ops[2].valueU64);
                 LabelInfo& target = labels[ops[2].valueU64];
+                if (target.ordinal != std::numeric_limits<uint32_t>::max() && target.ordinal + 4 <= ord)
+                    jumps.emplace_back(ord, ops[2].valueU64);
                 if (target.firstJump == std::numeric_limits<uint32_t>::max())
                     target.firstJump = ord;
                 target.lastJump = ord;

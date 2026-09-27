@@ -171,13 +171,6 @@ namespace
         return Result::Continue;
     }
 
-    Result reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
-    }
 }
 
 namespace ModuleApiExport
@@ -282,15 +275,15 @@ namespace ModuleApi
         for (fs::recursive_directory_iterator it(destinationDirectory, ec), end; it != end; it.increment(ec))
         {
             if (ec)
-                return reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
+                return FileSystem::reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
             if (!isPublishedFile(it->path()) || paths.contains(it->path().lexically_normal()))
                 continue;
             fs::remove(it->path(), ec);
             if (ec)
-                return reportInvalidFolder(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
+                return FileSystem::reportInvalidFolder(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
         }
         if (ec)
-            return reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
+            return FileSystem::reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
 
         for (const SourceSnapshot& file : files)
         {
@@ -312,7 +305,7 @@ namespace ModuleApi
             SWC_RESULT(ModuleApiExport::writeModuleApiFile(ctx, path, file.content));
             fs::last_write_time(path, file.writeTime, ec);
             if (ec)
-                return reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
+                return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
         }
         return Result::Continue;
     }
@@ -372,7 +365,7 @@ namespace ModuleApi
         SWC_RESULT(removeStaleGeneratedModuleApiFiles(ctx, directory, publishedPaths));
         Utf8 because;
         if (publication.completePublication(because) != Result::Continue)
-            return reportInvalidFolder(ctx, directory, because);
+            return FileSystem::reportInvalidFolder(ctx, directory, because);
         return Result::Continue;
     }
 
@@ -415,7 +408,7 @@ namespace ModuleApi
         DirectoryAccess publication;
         Utf8            because;
         if (publication.beginPublication(because, exportApiDir) != Result::Continue)
-            return reportInvalidFolder(ctx, exportApiDir, because);
+            return FileSystem::reportInvalidFolder(ctx, exportApiDir, because);
 
         std::vector<fs::path> publishedPaths;
         if (suppressExport)
@@ -493,7 +486,7 @@ namespace ModuleApi
             if (!inserted.second)
             {
                 const Utf8 because = std::format("duplicate exported API file name from '{}' and '{}'", inserted.first->second.string(), file->path().string());
-                return reportInvalidFolder(ctx, dstPath, because);
+                return FileSystem::reportInvalidFolder(ctx, dstPath, because);
             }
 
             wholeExports.push_back({file, std::move(dstPath), fileInfo.hasModuleNamespace});
@@ -527,7 +520,7 @@ namespace ModuleApi
         if (const auto it = wholeFileExportNames.find(generatedFileName); it != wholeFileExportNames.end())
         {
             const Utf8 because = std::format("generated module API file name '{}' conflicts with exported file '{}'", generatedFileName.c_str(), it->second.string());
-            return reportInvalidFolder(ctx, generatedDstPath, because);
+            return FileSystem::reportInvalidFolder(ctx, generatedDstPath, because);
         }
 
         Utf8 content;

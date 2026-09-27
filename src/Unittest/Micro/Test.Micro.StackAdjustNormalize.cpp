@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -26,21 +27,6 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, nullptr, passContext);
-    }
-
-    bool isStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp, uint64_t expectedImmediate)
-    {
-        if (!ops)
-            return false;
-        if (inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4)
-            return false;
-        if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
-            return false;
-        if (ops[2].microOp != expectedOp)
-            return false;
-        if (ops[3].valueU64 != expectedImmediate)
-            return false;
-        return true;
     }
 
     bool findStoreOffsetForSourceReg(const MicroBuilder& builder, MicroReg srcReg, uint64_t& outOffset)
@@ -95,7 +81,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RemovesBodyAdjustsAndRebasesOffsets)
     for (const MicroInstr& inst : builder.instructions().view())
     {
         const MicroInstrOperand* ops = inst.ops(operands);
-        if (isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 56) || isStackAdjust(inst, ops, rsp, MicroOp::Add, 56))
+        if (Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 56) || Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Add, 56))
             ++stackAdjustCount;
     }
 
@@ -106,7 +92,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RemovesBodyAdjustsAndRebasesOffsets)
     if (beginIt == builder.instructions().view().end())
         return Result::Error;
 
-    if (!isStackAdjust(*beginIt, beginIt->ops(operands), rsp, MicroOp::Subtract, 56))
+    if (!Backend::Unittest::isStackAdjust(*beginIt, beginIt->ops(operands), rsp, MicroOp::Subtract, 56))
         return Result::Error;
 
     MicroInstrRef retRef = MicroInstrRef::invalid();
@@ -127,7 +113,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RemovesBodyAdjustsAndRebasesOffsets)
     if (!beforeRet)
         return Result::Error;
 
-    if (!isStackAdjust(*beforeRet, beforeRet->ops(operands), rsp, MicroOp::Add, 56))
+    if (!Backend::Unittest::isStackAdjust(*beforeRet, beforeRet->ops(operands), rsp, MicroOp::Add, 56))
         return Result::Error;
 
     uint64_t firstStoreOffset  = 0;
@@ -187,7 +173,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesBranchingDepths)
             retRef = it.current;
 
         const MicroInstrOperand* ops = it->ops(operands);
-        if (!isStackAdjust(*it, ops, rsp, MicroOp::Subtract, 56) && !isStackAdjust(*it, ops, rsp, MicroOp::Add, 56))
+        if (!Backend::Unittest::isStackAdjust(*it, ops, rsp, MicroOp::Subtract, 56) && !Backend::Unittest::isStackAdjust(*it, ops, rsp, MicroOp::Add, 56))
             continue;
 
         if (firstAdjustRef.isInvalid())
@@ -206,9 +192,9 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesBranchingDepths)
     if (!firstAdjust || !lastAdjust)
         return Result::Error;
 
-    if (!isStackAdjust(*firstAdjust, firstAdjust->ops(operands), rsp, MicroOp::Subtract, 56))
+    if (!Backend::Unittest::isStackAdjust(*firstAdjust, firstAdjust->ops(operands), rsp, MicroOp::Subtract, 56))
         return Result::Error;
-    if (!isStackAdjust(*lastAdjust, lastAdjust->ops(operands), rsp, MicroOp::Add, 56))
+    if (!Backend::Unittest::isStackAdjust(*lastAdjust, lastAdjust->ops(operands), rsp, MicroOp::Add, 56))
         return Result::Error;
 
     if (builder.instructions().findPreviousInstructionRef(retRef) != lastAdjustRef)
@@ -315,13 +301,13 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_SkipsCallsBelowMaxDepth)
     for (const MicroInstr& inst : builder.instructions().view())
     {
         const MicroInstrOperand* ops = inst.ops(operands);
-        if (isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 40))
+        if (Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 40))
             ++countSub40;
-        else if (isStackAdjust(inst, ops, rsp, MicroOp::Add, 40))
+        else if (Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Add, 40))
             ++countAdd40;
-        else if (isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 56))
+        else if (Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Subtract, 56))
             ++countSub56;
-        else if (isStackAdjust(inst, ops, rsp, MicroOp::Add, 56))
+        else if (Backend::Unittest::isStackAdjust(inst, ops, rsp, MicroOp::Add, 56))
             ++countAdd56;
     }
 
@@ -375,8 +361,8 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RebasesAdjacentCopiesWithRecycledRefs)
     const auto  firstAdd  = builder.instructions().findNextInstructionRef(firstCopy);
     const auto  secondAdd = builder.instructions().findNextInstructionRef(secondCopy);
     const auto& operands  = builder.operands();
-    if (!isStackAdjust(*builder.instructions().ptr(firstAdd), builder.instructions().ptr(firstAdd)->ops(operands), r10, MicroOp::Add, 32) ||
-        !isStackAdjust(*builder.instructions().ptr(secondAdd), builder.instructions().ptr(secondAdd)->ops(operands), r11, MicroOp::Add, 32))
+    if (!Backend::Unittest::isStackAdjust(*builder.instructions().ptr(firstAdd), builder.instructions().ptr(firstAdd)->ops(operands), r10, MicroOp::Add, 32) ||
+        !Backend::Unittest::isStackAdjust(*builder.instructions().ptr(secondAdd), builder.instructions().ptr(secondAdd)->ops(operands), r11, MicroOp::Add, 32))
         return Result::Error;
     if (builder.instructions().findNextInstructionRef(firstAdd) != secondCopy)
         return Result::Error;
@@ -403,7 +389,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesMaximumDepthWithAndWithoutCalls)
         if (builder.instructions().ptr(originalAdjust))
             return Result::Error;
         const auto first = builder.instructions().view().begin();
-        if (!isStackAdjust(*first, first->ops(builder.operands()), rsp, MicroOp::Subtract, maxDepth))
+        if (!Backend::Unittest::isStackAdjust(*first, first->ops(builder.operands()), rsp, MicroOp::Subtract, maxDepth))
             return Result::Error;
         if (builder.instructions().count() != (hasCall ? 4u : 3u))
             return Result::Error;
@@ -436,7 +422,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RestoresEveryReturnInOriginalOrder)
 
     const auto& operands = builder.operands();
     const auto  first    = builder.instructions().view().begin();
-    if (!isStackAdjust(*first, first->ops(operands), rsp, MicroOp::Subtract, 32))
+    if (!Backend::Unittest::isStackAdjust(*first, first->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
 
     uint32_t returnCount = 0;
@@ -448,7 +434,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RestoresEveryReturnInOriginalOrder)
             return Result::Error;
         const auto  restoreRef = builder.instructions().findPreviousInstructionRef(it.current);
         const auto* restore    = builder.instructions().ptr(restoreRef);
-        if (!restore || !isStackAdjust(*restore, restore->ops(operands), rsp, MicroOp::Add, 32))
+        if (!restore || !Backend::Unittest::isStackAdjust(*restore, restore->ops(operands), rsp, MicroOp::Add, 32))
             return Result::Error;
         ++returnCount;
     }

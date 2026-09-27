@@ -194,13 +194,6 @@ namespace
         return (dependencyRoot / fs::path(std::string(moduleName))).lexically_normal();
     }
 
-    Result reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
-    }
 
     // Answers where the standard library workspace lives.
     //
@@ -224,7 +217,7 @@ namespace
         outRoot.clear();
         const std::optional<Utf8> installRoot = Os::readEnvironmentVariable("SWAG_PATH");
         if (!installRoot.has_value() || installRoot->empty())
-            return reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined, and no standard library sits beside the compiler");
+            return FileSystem::reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined, and no standard library sits beside the compiler");
 
         outRoot = fs::path(installRoot->c_str());
         SWC_RESULT(FileSystem::resolveFolder(ctx, outRoot));
@@ -810,17 +803,17 @@ namespace
         for (fs::recursive_directory_iterator it(directory, ec), end; it != end; it.increment(ec))
         {
             if (ec)
-                return reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
+                return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
             const bool regular = it->is_regular_file(ec);
             if (ec)
-                return reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
+                return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
             if (!regular)
                 continue;
             if (ModuleApi::isPublishedFile(it->path()))
                 paths.push_back(it->path());
         }
         if (ec)
-            return reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
+            return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
         std::ranges::sort(paths);
         outFiles.reserve(paths.size());
         for (const fs::path& path : paths)
@@ -829,10 +822,10 @@ namespace
             source.path      = path;
             source.writeTime = fs::last_write_time(path, ec);
             if (ec)
-                return reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
+                return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
             FileSystem::IoErrorInfo ioError;
             if (FileSystem::readTextFile(path, source.content, ioError) != Result::Continue)
-                return reportInvalidFolder(ctx, directory, FileSystem::describeIoFailure(ioError));
+                return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::describeIoFailure(ioError));
             outFiles.push_back(std::move(source));
         }
         return Result::Continue;
@@ -2591,7 +2584,7 @@ Result DependencyPlanBuilder::resolveLinkAndSharedDirs(CompilerInstance::Resolve
     if (importRequest.linkBackendKind != Runtime::BuildCfgBackendKind::None)
     {
         if (findDependencyConfigurationDirectoryForBackend(outPaths.linkDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), importRequest.linkBackendKind) != Result::Continue)
-            return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+            return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
         return Result::Continue;
     }
 
@@ -2733,7 +2726,7 @@ Result DependencyPlanBuilder::resolveDependencyImportDir(CompilerInstance::Resol
 
         Utf8 because;
         if (!tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest))
-            return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+            return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
 
         return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
     }
@@ -2754,7 +2747,7 @@ Result DependencyPlanBuilder::resolveDependencyImportDir(CompilerInstance::Resol
             const fs::path dependencyRoot = WorkspaceLayout::workspaceOutputDirectory(instance().cmdLine().workspacePath);
             Utf8           because;
             if (findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
-                return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+                return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
             return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
         }
     }
@@ -2773,10 +2766,10 @@ Result DependencyPlanBuilder::resolveDependencyImportDir(CompilerInstance::Resol
     if (matches.empty())
     {
         if (instance().cmdLine().importApiDirs.empty())
-            return reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), "no workspace dependency was found and no --import-api-dir root was provided");
+            return FileSystem::reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), "no workspace dependency was found and no --import-api-dir root was provided");
 
         const Utf8 because = std::format("module '{}' was not found in any dependency root for {}", importRequest.moduleName.c_str(), dependencyConfigurationLabel(instance().cmdLine()).c_str());
-        return reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), because);
+        return FileSystem::reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), because);
     }
 
     std::ranges::sort(matches, {}, &DependencyConfigCandidate::path);
@@ -2789,7 +2782,7 @@ Result DependencyPlanBuilder::resolveDependencyImportDir(CompilerInstance::Resol
             paths.push_back(match.path);
 
         const Utf8 because = std::format("multiple dependency roots match {} ({})", dependencyConfigurationLabel(instance().cmdLine()).c_str(), joinDependencyPaths(paths).c_str());
-        return reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), because);
+        return FileSystem::reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), because);
     }
 
     outPaths.apiDir         = matches.front().path;
@@ -2966,7 +2959,7 @@ Result DependencyPlanBuilder::resolveNode(size_t& outIndex, CompilerInstance::De
         ModuleApi::DirectoryAccess access;
         Utf8                       because;
         if (access.openRead(because, sourceApiDir) != Result::Continue)
-            return reportInvalidFolder(taskCtx(), sourceApiDir, because);
+            return FileSystem::reportInvalidFolder(taskCtx(), sourceApiDir, because);
 
         node.apiReadTime = fs::file_time_type::clock::now();
         SWC_RESULT(captureModuleApiSources(taskCtx(), node.apiFiles, sourceApiDir));
@@ -4509,7 +4502,7 @@ Result CompilerInstance::collectImportedApiFolderFiles(TaskContext& ctx, const f
     ModuleApi::DirectoryAccess access;
     Utf8                       because;
     if (access.openRead(because, folder) != Result::Continue)
-        return reportInvalidFolder(ctx, folder, because);
+        return FileSystem::reportInvalidFolder(ctx, folder, because);
 
     std::vector<ModuleApi::SourceSnapshot> sources;
     SWC_RESULT(captureModuleApiSources(ctx, sources, folder));
@@ -4532,7 +4525,7 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
             auto     importBackendKind = Runtime::BuildCfgBackendKind::None;
             Utf8     because;
             if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine, &importBackendKind) != Result::Continue)
-                return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
+                return FileSystem::reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
 
             SWC_RESULT(collectImportedApiFolderFiles(ctx, importDir, moduleName.view()));
             fs::path sharedDir;
@@ -4561,7 +4554,7 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
         ModuleApi::DirectoryAccess access;
         Utf8                       because;
         if (access.openRead(because, directory) != Result::Continue)
-            return reportInvalidFolder(ctx, directory, because);
+            return FileSystem::reportInvalidFolder(ctx, directory, because);
 
         for (const fs::path& path : paths)
         {

@@ -105,25 +105,18 @@ namespace
         return owner->isNamespace() && owner->idRef().isValid();
     }
 
-    template<typename T>
-    bool isImportedApiSource(const CompilerInstance& compiler, const T& symbol)
-    {
-        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
-        return sourceFile && sourceFile->isImportedApi();
-    }
-
     bool canRegisterNativeFunction(const CompilerInstance& compiler, const SymbolFunction& symbol, const bool requireRoot)
     {
         if (!isEligibleNativeFunction(symbol))
             return false;
-        if (isImportedApiSource(compiler, symbol))
+        if (compiler.isImportedApiSource(symbol))
             return false;
         return !requireRoot || isNativeRootFunction(symbol);
     }
 
     bool canRegisterNativeGlobalVariable(const CompilerInstance& compiler, const SymbolVariable& symbol)
     {
-        if (isImportedApiSource(compiler, symbol))
+        if (compiler.isImportedApiSource(symbol))
             return false;
         if (!symbol.hasGlobalStorage())
             return false;
@@ -889,7 +882,7 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    if (isImportedApiSource(*this, *symbol))
+    if (isImportedApiSource(*symbol))
         return;
 
     bool inserted = false;
@@ -1142,6 +1135,12 @@ const SourceFile* CompilerInstance::sourceViewFile(SourceViewRef ref) const
 const SourceFile* CompilerInstance::sourceViewFile(const Symbol& symbol) const
 {
     return sourceViewFile(symbol.srcViewRef());
+}
+
+bool CompilerInstance::isImportedApiSource(const Symbol& symbol) const
+{
+    const SourceFile* sourceFile = sourceViewFile(symbol);
+    return sourceFile && sourceFile->isImportedApi();
 }
 
 const SourceFile* CompilerInstance::owningSourceFile(const SourceView& srcView) const

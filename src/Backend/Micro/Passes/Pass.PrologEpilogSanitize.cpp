@@ -217,11 +217,11 @@ namespace
         // `frameDelta` bytes ABOVE the final stack pointer, and addresses stack arguments as `[fp + disp]`
         // under that assumption. Since fp is now `frameDelta` lower, each frame-pointer-relative access is
         // re-anchored by adding frameDelta to its displacement so it still reaches the same address.
-        std::vector<MicroInstrRef> framePointerSetupRefs;
-        MicroInstrRef              framePointerPushRef = MicroInstrRef::invalid();
-        MicroInstrRef              afterStackShapeRef  = MicroInstrRef::invalid();
-        uint64_t                   frameDelta          = 0;
-        bool                       seenPrologueStore   = false;
+        SmallVector<MicroInstrRef, 2> framePointerSetupRefs;
+        MicroInstrRef                 framePointerPushRef = MicroInstrRef::invalid();
+        MicroInstrRef                 afterStackShapeRef  = MicroInstrRef::invalid();
+        uint64_t                      frameDelta          = 0;
+        bool                          seenPrologueStore   = false;
 
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
@@ -772,7 +772,7 @@ namespace
             return false;
 
         const uint64_t             reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
-        SmallVector<MicroInstrRef> order;
+        SmallVector<MicroInstrRef, 33> order;
         const auto view  = context.instructions->view();
         auto       it    = view.begin();
         const auto endIt = view.end();
@@ -1007,7 +1007,7 @@ namespace
 
         const auto                                        refs = cfg.instructionRefs();
         const auto                                        n    = cfg.instructionCount();
-        std::vector<const MicroPassHelpers::NaturalLoop*> candidates;
+        SmallVector<const MicroPassHelpers::NaturalLoop*, 4> candidates;
         for (const auto& loop : loops | std::views::values)
             candidates.push_back(&loop);
         std::ranges::sort(candidates, [](const auto* lhs, const auto* rhs) { return lhs->bodySize > rhs->bodySize; });
@@ -1276,8 +1276,8 @@ namespace
 
     bool collectReturnTail(const MicroPassContext& context, const MicroReg stackPointer, const MicroInstrRef retRef, ReturnTail& tail)
     {
-        MicroInstrRef              ref = context.instructions->findPreviousInstructionRef(retRef);
-        std::vector<MicroInstrRef> reversed;
+        MicroInstrRef                 ref = context.instructions->findPreviousInstructionRef(retRef);
+        SmallVector<MicroInstrRef, 8> reversed;
         reversed.push_back(retRef);
         while (const MicroInstr* inst = context.instructions->ptr(ref))
         {
@@ -1381,13 +1381,15 @@ namespace
             return false;
 
         bool                  changed = false;
-        std::vector<uint32_t> targetLabels(tails.size(), UINT32_MAX);
+        std::vector<uint32_t> targetLabels;
         for (size_t i = 0; i < tails.size(); ++i)
         {
             for (size_t j = tails.size(); j-- > i + 1;)
             {
                 if (!sameReturnTail(context, tails[i], tails[j]))
                     continue;
+                if (targetLabels.empty())
+                    targetLabels.assign(tails.size(), UINT32_MAX);
                 if (targetLabels[j] == UINT32_MAX)
                 {
                     targetLabels[j]               = context.builder->createLabel().get();

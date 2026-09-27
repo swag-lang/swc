@@ -964,23 +964,20 @@ namespace
                         // two-address update across iterations.
                         const MicroInstrUseDef* ud = &useDefs[i];
 
-                        SmallVector<MicroReg> pullRegs;
-                        if (ud->defs.size() == 1)
-                            pullRegs.push_back(ud->defs[0]);
-                        for (const MicroReg use : ud->uses)
-                            pullRegs.push_back(use);
-
-                        for (const MicroReg reg : pullRegs)
-                        {
+                        const auto pullWeb = [&](const MicroReg reg) {
                             const auto webIt = websByReg.find(reg);
                             if (webIt == websByReg.end())
-                                continue;
+                                return;
                             for (const uint32_t defSlot : webIt->second.defSlots)
                             {
                                 if (hoistSet.contains(defSlot) && keep.insert(defSlot).second)
                                     worklist.push_back(defSlot);
                             }
-                        }
+                        };
+                        if (ud->defs.size() == 1)
+                            pullWeb(ud->defs[0]);
+                        for (const MicroReg use : ud->uses)
+                            pullWeb(use);
                     }
 
                     hoistSet = std::move(keep);

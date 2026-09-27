@@ -7,6 +7,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
+#include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -35,23 +36,6 @@ namespace
         fs::path path_;
     };
 
-    Result writeText(const fs::path& path, const std::string_view text)
-    {
-        std::error_code ec;
-        fs::create_directories(path.parent_path(), ec);
-        if (ec)
-            return Result::Error;
-
-        FileSystem::IoErrorInfo error;
-        return FileSystem::writeBinaryFile(path, text.data(), text.size(), error);
-    }
-
-    Result readText(std::string& result, const fs::path& path)
-    {
-        FileSystem::IoErrorInfo error;
-        return FileSystem::readTextFile(path, result, error);
-    }
-
     Result runFormat(TaskContext& ctx, CommandLine& cmdLine)
     {
         cmdLine.command  = CommandKind::Format;
@@ -72,31 +56,31 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_FormatCommandHonorsExplicitDotPaths)
     FormatCommandTestDirectory testDir("HonorsExplicitDotPaths");
 
     const fs::path explicitFile = testDir.path() / ".explicit" / "input.swg";
-    SWC_RESULT(writeText(explicitFile, SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(explicitFile, SOURCE));
 
     CommandLine fileCommand;
     fileCommand.files.insert(explicitFile);
     SWC_RESULT(runFormat(ctx, fileCommand));
 
     std::string formatted;
-    SWC_RESULT(readText(formatted, explicitFile));
+    SWC_RESULT(CompilerTestFile::readText(formatted, explicitFile));
     if (formatted != EXPECTED)
         return Result::Error;
 
     const fs::path worktreeFile = testDir.path() / ".worktree" / "src" / "input.swg";
     const fs::path cacheFile    = testDir.path() / ".worktree" / ".output" / "cached.swg";
-    SWC_RESULT(writeText(worktreeFile, SOURCE));
-    SWC_RESULT(writeText(cacheFile, SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(worktreeFile, SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(cacheFile, SOURCE));
 
     CommandLine directoryCommand;
     directoryCommand.directories.insert(testDir.path() / ".worktree");
     SWC_RESULT(runFormat(ctx, directoryCommand));
 
-    SWC_RESULT(readText(formatted, worktreeFile));
+    SWC_RESULT(CompilerTestFile::readText(formatted, worktreeFile));
     if (formatted != EXPECTED)
         return Result::Error;
 
-    SWC_RESULT(readText(formatted, cacheFile));
+    SWC_RESULT(CompilerTestFile::readText(formatted, cacheFile));
     if (formatted != SOURCE)
         return Result::Error;
 }

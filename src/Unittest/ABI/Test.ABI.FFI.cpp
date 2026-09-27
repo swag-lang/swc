@@ -91,6 +91,11 @@ SWC_TEST_BEGIN(ABI_SwagUsesIndependentArgumentBanksWithoutShadowSpace)
 
     if (swag.stackShadowSpace != 0 || swag.intArgRegs.size() != 6 || swag.floatArgRegs.size() != 6)
         return Result::Error;
+    for (uint32_t i = 0; i < swag.floatArgRegs.size(); ++i)
+    {
+        if (swag.floatArgRegs[i] != MicroReg::floatReg(i) || swag.floatTransientRegs[i] != swag.floatArgRegs[i] || swag.isFloatPersistentReg(swag.floatArgRegs[i]))
+            return Result::Error;
+    }
     for (uint32_t i = 0; i < args.size(); ++i)
     {
         const uint32_t expected = i < 3 ? i : i - 3;

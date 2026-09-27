@@ -105,16 +105,9 @@ namespace
     using CodeGenTypeHelpers::floatBinaryMicroOp;
     using CodeGenTypeHelpers::intBinaryMicroOp;
 
-    TypeRef unwrapAssignScalarTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return typeRef;
-        return codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
-    }
-
     MicroReg materializeAssignPointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        operandTypeRef                = unwrapAssignScalarTypeRef(codeGen, operandTypeRef);
+        operandTypeRef                = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), operandTypeRef);
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits srcBits     = CodeGenTypeHelpers::scalarStoreBits(operandType, codeGen.ctx());
         SWC_ASSERT(operandType.isIntLike());
@@ -304,7 +297,7 @@ namespace
 
         if (assignOp == TokenId::SymLowerLowerEqual || assignOp == TokenId::SymGreaterGreaterEqual)
         {
-            const TypeRef     countTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
+            const TypeRef     countTypeRef = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), encodeCtx.rightTypeRef);
             const TypeInfo&   countType    = codeGen.typeMgr().get(countTypeRef);
             const MicroOpBits countBits    = CodeGenTypeHelpers::numericBits(countType);
             const MicroReg    countReg     = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, countTypeRef);
@@ -365,7 +358,7 @@ namespace
             resultReg        = CodeGenVectorHelpers::emitConstantShift(codeGen, binaryOp, leftReg, laneType, node.nodeRightRef);
             if (!resultReg.isValid())
             {
-                const TypeRef     countTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
+                const TypeRef     countTypeRef = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), encodeCtx.rightTypeRef);
                 const TypeInfo&   countType    = codeGen.typeMgr().get(countTypeRef);
                 const MicroOpBits countBits    = CodeGenTypeHelpers::numericBits(countType);
                 MicroReg          countReg     = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, countTypeRef);
@@ -383,7 +376,7 @@ namespace
         }
         else
         {
-            const TypeRef   rightResolvedTypeRef = unwrapAssignScalarTypeRef(codeGen, encodeCtx.rightTypeRef);
+            const TypeRef   rightResolvedTypeRef = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), encodeCtx.rightTypeRef);
             const TypeInfo& rightType            = codeGen.typeMgr().get(rightResolvedTypeRef);
 
             MicroReg rhsReg;

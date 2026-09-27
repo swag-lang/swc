@@ -78,13 +78,6 @@ namespace
         return K_DEFAULT_UNROLL_MEM_LIMIT;
     }
 
-    TypeRef unwrapScalarStoreTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return typeRef;
-        return codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
-    }
-
     void emitMemCopyChunk(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint64_t offset, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid())
     {
         if (chunkSize == 16)
@@ -749,8 +742,8 @@ void CodeGenMemoryHelpers::loadOperandToRegister(MicroReg& outReg, CodeGen& code
 
 MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    srcTypeRef    = unwrapScalarStoreTypeRef(codeGen, srcTypeRef);
-    targetTypeRef = unwrapScalarStoreTypeRef(codeGen, targetTypeRef);
+    srcTypeRef    = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), srcTypeRef);
+    targetTypeRef = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), targetTypeRef);
     SWC_ASSERT(srcTypeRef.isValid());
     SWC_ASSERT(targetTypeRef.isValid());
 

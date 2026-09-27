@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroTypes.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Report/Assert.h"
@@ -10,6 +11,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace CodeGenTypeHelpers
 {
+    inline TypeRef unwrapAliasEnumTypeRef(const TypeManager& typeMgr, TaskContext& ctx, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return typeRef;
+        return typeMgr.get(typeRef).unwrapAliasEnum(ctx, typeRef);
+    }
+
     inline MicroOpBits bitsFromStorageSize(uint64_t size)
     {
         if (size == 1 || size == 2 || size == 4 || size == 8)

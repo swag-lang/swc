@@ -1516,27 +1516,42 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     std::vector<RematRecipe> remat(virtualCount);
     {
-        std::vector<uint32_t> defCount(virtualCount, 0);
-        std::vector<uint32_t> defAt(virtualCount, std::numeric_limits<uint32_t>::max());
+        struct DefinitionSite
+        {
+            uint32_t count     = 0;
+            uint32_t lastIndex = 0;
+        };
+        std::vector<DefinitionSite> definitions(virtualCount);
         for (uint32_t idx = 0; idx < instructionCount_; ++idx)
         {
             for (const uint32_t denseIndex : defVirtualIndices_[idx])
             {
-                ++defCount[denseIndex];
-                defAt[denseIndex] = idx;
+                DefinitionSite& site = definitions[denseIndex];
+                ++site.count;
+                site.lastIndex = idx;
             }
         }
         std::unordered_map<uint32_t, const MicroRelocation*> relocationByInstruction;
-        for (const MicroRelocation& relocation : context_->builder->codeRelocations())
-        {
-            if (relocation.instructionRef.isValid())
-                relocationByInstruction[relocation.instructionRef.get()] = &relocation;
-        }
+        bool relocationsIndexed = false;
+        // Only relocation-backed rematerializations need this function-wide index.
+        const auto findRelocation = [&](const MicroInstrRef ref) -> const MicroRelocation* {
+            if (!relocationsIndexed)
+            {
+                for (const MicroRelocation& relocation : context_->builder->codeRelocations())
+                {
+                    if (relocation.instructionRef.isValid())
+                        relocationByInstruction[relocation.instructionRef.get()] = &relocation;
+                }
+                relocationsIndexed = true;
+            }
+            const auto found = relocationByInstruction.find(ref.get());
+            return found == relocationByInstruction.end() ? nullptr : found->second;
+        };
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {
-            if (defCount[denseIndex] != 1)
+            if (definitions[denseIndex].count != 1)
                 continue;
-            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[defAt[denseIndex]];
+            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[definitions[denseIndex].lastIndex];
             const MicroInstr*        inst   = instructions_->ptr(defRef);
             const MicroInstrOperand* ops    = inst ? inst->ops(*operands_) : nullptr;
             if (!ops || ops[0].reg != virtualRegs[denseIndex])
@@ -1567,13 +1582,13 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                     break;
                 case MicroInstrOpcode::LoadRegPtrReloc:
                 {
-                    const auto found = relocationByInstruction.find(defRef.get());
-                    if (found == relocationByInstruction.end())
+                    const MicroRelocation* relocation = findRelocation(defRef);
+                    if (!relocation)
                         break;
                     recipe.op         = MicroInstrOpcode::LoadRegPtrReloc;
                     recipe.immediate  = ops[2];
                     recipe.bits       = ops[1].opBits;
-                    recipe.relocation = *found->second;
+                    recipe.relocation = *relocation;
                     recipe.relocated  = true;
                     recipe.valid      = true;
                     break;
@@ -1588,12 +1603,12 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                     // ops: [0] dst, [1] base, [2] opBits, [3] offset
                     if (!ops[1].reg.isInstructionPointer())
                         break;
-                    const auto found = relocationByInstruction.find(defRef.get());
-                    if (found == relocationByInstruction.end() || found->second->kind != MicroRelocation::Kind::ConstantAddress)
+                    const MicroRelocation* relocation = findRelocation(defRef);
+                    if (!relocation || relocation->kind != MicroRelocation::Kind::ConstantAddress)
                         break;
                     recipe.op         = MicroInstrOpcode::LoadRegMem;
                     recipe.bits       = ops[2].opBits;
-                    recipe.relocation = *found->second;
+                    recipe.relocation = *relocation;
                     recipe.relocated  = true;
                     recipe.valid      = true;
                     break;
@@ -1619,31 +1634,39 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             bool     isJump      = false;
         };
         std::vector<LabelEdge> labelEdges;
-        for (uint32_t s = 0; s < instructionCount_ && s < predecessors_.size(); ++s)
-        {
-            const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
-            if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
-                continue;
-            for (const uint32_t p : predecessors_[s])
+        bool                   labelEdgesReady = false;
+        // The edge walk is needed only for a rematerializable definition with no direct uses.
+        const auto ensureLabelEdges = [&] {
+            if (labelEdgesReady)
+                return;
+            labelEdgesReady = true;
+            for (uint32_t s = 0; s < instructionCount_ && s < predecessors_.size(); ++s)
             {
-                if (p >= instructionCount_)
+                const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
+                if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
                     continue;
-                const MicroInstr* predInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[p]);
-                if (!predInst)
-                    continue;
-                labelEdges.push_back({s, p, MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::JumpInstruction)});
+                for (const uint32_t p : predecessors_[s])
+                {
+                    if (p >= instructionCount_)
+                        continue;
+                    const MicroInstr* predInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[p]);
+                    if (!predInst)
+                        continue;
+                    labelEdges.push_back({s, p, MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::JumpInstruction)});
+                }
             }
-        }
+        };
         std::vector<bool> reached;
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {
             RematRecipe& recipe = remat[denseIndex];
             if (!recipe.valid)
                 continue;
-            recipe.defIndex             = defAt[denseIndex];
+            recipe.defIndex             = definitions[denseIndex].lastIndex;
             const LiveInterval* defNode = locate(denseIndex, recipe.defIndex * 2 + 1);
             if (!defNode || !defNode->usePositions.empty())
                 continue;
+            ensureLabelEdges();
 
             const uint32_t      first     = result.valueNodesBegin[denseIndex];
             const uint32_t      last      = result.valueNodesBegin[denseIndex + 1];
@@ -1723,47 +1746,54 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const auto isParkStore = [&](const Connector& connector) {
             return !connector.dst.isValid() && isGuardedCall(connector.beforeIndex);
         };
-        std::vector<uint64_t> resolutionStoreCost(virtualCount, 0);
+        std::vector<uint64_t> resolutionStoreCost;
         for (const Connector& connector : connectors)
         {
             if (!connector.dst.isValid() && !isParkStore(connector))
-                resolutionStoreCost[connector.denseIndex] += weightAt(connector.beforeIndex);
-        }
-        bool rewritten = false;
-        for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
-        {
-            if (!resolutionStoreCost[denseIndex])
-                continue;
-            SmallVector<Connector, 4> defStores;
-            uint64_t                  defStoreCost = 0;
-            bool                      placeable    = true;
-            for (uint32_t n = result.valueNodesBegin[denseIndex]; placeable && n < result.valueNodesBegin[denseIndex + 1]; ++n)
             {
-                const LiveInterval& node = result.nodes[n];
-                for (const uint32_t defPos : node.defPositions)
-                {
-                    const uint32_t defIndex = defPos / 2;
-                    if (defIndex + 1 >= instructionCount_ || node.spilled || !node.assignedReg.isValid())
-                    {
-                        placeable = false;
-                        break;
-                    }
-                    defStores.push_back({defIndex + 1, 0, MicroReg::invalid(), node.assignedReg, denseIndex});
-                    defStoreCost += weightAt(defIndex);
-                }
+                if (resolutionStoreCost.empty())
+                    resolutionStoreCost.assign(virtualCount, 0);
+                resolutionStoreCost[connector.denseIndex] += weightAt(connector.beforeIndex);
             }
-            if (!placeable || defStores.empty() || defStoreCost > resolutionStoreCost[denseIndex])
-                continue;
-            std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid() && !isParkStore(connector); });
-            for (const Connector& store : defStores)
-                connectors.push_back(store);
-            rewritten = true;
         }
-        if (rewritten)
+        if (!resolutionStoreCost.empty())
         {
-            std::erase_if(trampolines, [&](const Trampoline& trampoline) {
-                return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
-            });
+            bool rewritten = false;
+            for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
+            {
+                if (!resolutionStoreCost[denseIndex])
+                    continue;
+                SmallVector<Connector, 4> defStores;
+                uint64_t                  defStoreCost = 0;
+                bool                      placeable    = true;
+                for (uint32_t n = result.valueNodesBegin[denseIndex]; placeable && n < result.valueNodesBegin[denseIndex + 1]; ++n)
+                {
+                    const LiveInterval& node = result.nodes[n];
+                    for (const uint32_t defPos : node.defPositions)
+                    {
+                        const uint32_t defIndex = defPos / 2;
+                        if (defIndex + 1 >= instructionCount_ || node.spilled || !node.assignedReg.isValid())
+                        {
+                            placeable = false;
+                            break;
+                        }
+                        defStores.push_back({defIndex + 1, 0, MicroReg::invalid(), node.assignedReg, denseIndex});
+                        defStoreCost += weightAt(defIndex);
+                    }
+                }
+                if (!placeable || defStores.empty() || defStoreCost > resolutionStoreCost[denseIndex])
+                    continue;
+                std::erase_if(connectors, [&](const Connector& connector) { return connector.denseIndex == denseIndex && !connector.dst.isValid() && !isParkStore(connector); });
+                for (const Connector& store : defStores)
+                    connectors.push_back(store);
+                rewritten = true;
+            }
+            if (rewritten)
+            {
+                std::erase_if(trampolines, [&](const Trampoline& trampoline) {
+                    return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
+                });
+            }
         }
     }
 
@@ -1781,6 +1811,9 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         std::vector<bool> emitted;
         for (auto& [point, list] : byPoint)
         {
+            // A lone connector already has order zero and cannot form a copy dependency.
+            if (list.size() == 1)
+                continue;
             uint32_t order = 0;
             emitted.assign(list.size(), false);
             for (;;)

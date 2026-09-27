@@ -1804,6 +1804,9 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         std::vector<bool> emitted;
         for (auto& [point, list] : byPoint)
         {
+            // A lone connector already has order zero and cannot form a copy dependency.
+            if (list.size() == 1)
+                continue;
             uint32_t order = 0;
             emitted.assign(list.size(), false);
             for (;;)

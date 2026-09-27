@@ -1801,6 +1801,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // register another one writes must run first. A cycle needs a bounce and
     // stage 1 declines it. A trampoline is its own point even when it shares
     // the physical insertion spot with a fall-through edge's connectors.
+    // With at most one connector, its default order zero is already final.
+    if (connectors.size() > 1)
     {
         std::map<uint64_t, std::vector<size_t>> byPoint;
         for (size_t i = 0; i < connectors.size(); ++i)

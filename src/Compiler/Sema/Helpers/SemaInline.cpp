@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaReexpandExpr.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -60,17 +61,6 @@ namespace
         }
 
         return false;
-    }
-
-    bool isInlineReexpandableExpr(const AstNode& node)
-    {
-        return node.is(AstNodeId::CallExpr) ||
-               node.is(AstNodeId::IntrinsicCallExpr) ||
-               node.is(AstNodeId::UnaryExpr) ||
-               node.is(AstNodeId::BinaryExpr) ||
-               node.is(AstNodeId::RelationalExpr) ||
-               node.is(AstNodeId::IndexExpr) ||
-               node.is(AstNodeId::CastExpr);
     }
 
     bool isBindingAssigned(const SemaClone::ParamBinding& binding)
@@ -589,7 +579,7 @@ namespace
         // payload that gives that block expression semantics, so let the cloned call re-inline.
         if (resolvedRef != argRef &&
             SemaInline::expansionPayload(sema, resolvedRef) &&
-            isInlineReexpandableExpr(sema.node(argRef)))
+            SemaReexpandExpr::isReexpandableExpr(sema.node(argRef)))
             return argRef;
 
         return resolvedRef;
@@ -617,7 +607,7 @@ namespace
                 return AstNodeRef::invalid();
             }
 
-            if (isInlineReexpandableExpr(exprNode))
+            if (SemaReexpandExpr::isReexpandableExpr(exprNode))
             {
                 const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
                 if (resolvedRef.isValid() && resolvedRef != exprRef && SemaInline::expansionPayload(sema, resolvedRef))

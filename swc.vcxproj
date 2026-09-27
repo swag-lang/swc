@@ -848,6 +848,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCloneTypes.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaReexpandExpr.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaEscapeTypes.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaEscape.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaInitFlow.h"/>

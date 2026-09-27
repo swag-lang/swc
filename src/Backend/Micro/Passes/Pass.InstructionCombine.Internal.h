@@ -117,6 +117,20 @@ namespace InstructionCombine
 
     //===-- Shared helpers --------------------------------------------------===//
 
+    inline bool skipSingleUseIntCopy(Context& ctx, MicroSsaState::ReachingDef& def, MicroInstrRef& copyRef, MicroOpBits bits)
+    {
+        if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const auto* copy = def.inst->ops(*ctx.operands);
+            if (!copy || !copy[1].reg.isVirtualInt() || copy[2].opBits != bits ||
+                ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                return false;
+            copyRef = def.instRef;
+            def     = ctx.ssa->reachingDef(copy[1].reg, copyRef);
+        }
+        return true;
+    }
+
     bool        isSameOpBitsInt(MicroOpBits a, MicroOpBits b);
     bool        isRightIdentity(MicroOp op, MicroOpBits opBits, uint64_t imm);
     bool        isRightAbsorbing(MicroOp op, MicroOpBits opBits, uint64_t imm, uint64_t& outResult);

@@ -80,6 +80,17 @@ public:
     const SymbolMap* symMap() const { return symMap_; }
 
     void                           addUsingSymMap(SymbolMap* symMap) { usingSymMaps_.push_back(symMap); }
+    static void addUsingSymMapIfMissing(SemaScope& scope, SymbolMap* usingSymMap)
+    {
+        SWC_ASSERT(usingSymMap != nullptr);
+        for (const SymbolMap* existing : scope.usingSymMaps())
+        {
+            if (existing == usingSymMap)
+                return;
+        }
+
+        scope.addUsingSymMap(usingSymMap);
+    }
     const SmallVector<SymbolMap*>& usingSymMaps() const { return usingSymMaps_; }
 
     void                        addSymbol(Symbol* symbol) { symbols_.push_back(symbol); }

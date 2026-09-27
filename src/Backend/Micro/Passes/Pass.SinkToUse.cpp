@@ -294,6 +294,8 @@ Result MicroSinkToUsePass::run(MicroPassContext& context)
     // of the legalize/allocate loop see it as a no-op.
     if (!context.isFirstAllocationSweep)
         return Result::Continue;
+    if (context.instructions->count() < 3)
+        return Result::Continue;
 
     bool changedAny = false;
     for (uint32_t round = 0; round < K_MAX_ROUNDS; ++round)

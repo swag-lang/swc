@@ -441,6 +441,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
+    if (storage.count() < 4)
+        return Result::Continue;
 
     // Recognition does not mutate the listing. Index all incoming jumps once;
     // every header can then check its unique back edge without rescanning the function.
@@ -451,11 +453,15 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     };
     std::unordered_map<uint32_t, JumpTarget> jumpsByTarget;
     std::vector<MicroInstrRef>               order;
+    bool                                     hasJumpCond = false;
     order.reserve(storage.count());
     for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
     {
         const auto ordinal = static_cast<uint32_t>(order.size());
         order.push_back(it.current);
+        if (it->op != MicroInstrOpcode::JumpCond)
+            continue;
+        hasJumpCond = true;
         uint32_t target = 0;
         if (!tryGetJumpTargetLabelId(target, *it, it->ops(operands)))
             continue;
@@ -463,6 +469,9 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         ++incoming.count;
         incoming.ordinal = ordinal;
     }
+
+    if (!hasJumpCond)
+        return Result::Continue;
 
     if (placeShortLoopStep(context, order))
         return Result::Continue;

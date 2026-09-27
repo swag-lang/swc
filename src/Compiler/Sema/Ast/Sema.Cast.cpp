@@ -110,17 +110,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap | AstModifierFlagsE::Try | AstModifierFlagsE::Assume));
 
     // Cast kind
-    CastFlags castFlags = CastFlagsE::Zero;
-    if (modifierFlags.has(AstModifierFlagsE::Bit))
-        castFlags.add(CastFlagsE::BitCast);
-    if (modifierFlags.has(AstModifierFlagsE::UnConst))
-        castFlags.add(CastFlagsE::UnConst);
-    if (modifierFlags.has(AstModifierFlagsE::Wrap))
-        castFlags.add(CastFlagsE::NoOverflow);
-    if (modifierFlags.has(AstModifierFlagsE::Try))
-        castFlags.add(CastFlagsE::Try);
-    if (modifierFlags.has(AstModifierFlagsE::Assume))
-        castFlags.add(CastFlagsE::Assume);
+    CastFlags castFlags = Cast::modifierCastFlags(modifierFlags);
     castFlags.add(CastFlagsE::FromExplicitNode);
 
     const bool runtimeTarget     = sema.isValue(nodeTypeRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), nodeTypeView.typeRef());

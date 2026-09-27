@@ -80,6 +80,23 @@ struct Cast
     static Result  concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
     static TypeRef indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef);
 
+    // Modifier bits shared by explicit and destination-deduced casts.
+    static CastFlags modifierCastFlags(AstModifierFlags modifierFlags)
+    {
+        CastFlags castFlags = CastFlagsE::Zero;
+        if (modifierFlags.has(AstModifierFlagsE::Bit))
+            castFlags.add(CastFlagsE::BitCast);
+        if (modifierFlags.has(AstModifierFlagsE::UnConst))
+            castFlags.add(CastFlagsE::UnConst);
+        if (modifierFlags.has(AstModifierFlagsE::Wrap))
+            castFlags.add(CastFlagsE::NoOverflow);
+        if (modifierFlags.has(AstModifierFlagsE::Try))
+            castFlags.add(CastFlagsE::Try);
+        if (modifierFlags.has(AstModifierFlagsE::Assume))
+            castFlags.add(CastFlagsE::Assume);
+        return castFlags;
+    }
+
     // What a 'cast()' contributes to a cast request. It is explicit, but its destination comes
     // from the context instead of being written down, and both the cast path and the overload
     // matcher have to say so identically.

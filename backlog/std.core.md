@@ -39,6 +39,236 @@ language.parallelism.001. The concurrency entries own Core integration, algorith
 migration against that native surface; they do not introduce Core-owned task or synchronization
 types.
 
+### std.core.001 — No blocking TCP sockets
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-27 18:13 — define blocking socket acceptance.
+- Problem: there are no TCP sockets. A Swag program cannot open even a blocking connection.
+- Consequence: this rules out servers, clients, tooling that talks to a registry or an API, package
+  management, telemetry, and every application whose value involves a network. It is the single
+  largest capability gap in the language, larger than anything in the compiler.
+- Put the blocking TCP and address foundation in a `net` module importing `core`; do not put a
+  network stack in the module every program links. Platform leaves are owned by
+  platform.portability.088.
+- Related: std.core.003, std.core.004, std.core.005, std.core.006, std.core.007, std.core.008, std.core.002, platform.portability.088
+
+- Complete when: A separate net module opens, listens for, accepts, reads, writes, and closes blocking TCP connections by portable address, with loopback tests for EOF, partial transfer, and connection failure.
+
+### std.core.004 — No non-blocking socket readiness API
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define readiness acceptance.
+
+Add non-blocking sockets and readiness notification after the concurrency decision in language.parallelism.001. Keep
+the readiness mechanism separate from the blocking socket foundation.
+
+- Related: std.core.001, language.parallelism.001, std.core.028
+
+- Complete when: Non-blocking sockets expose a documented readiness and cancellation contract that serves multiple connections without busy waiting, with tests for readable, writable, closed, and failed peers.
+
+### std.core.013 — No BLAKE2s implementation
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define BLAKE2s acceptance.
+
+`Hash.Blake2b` already implements incremental and one-shot keyed and unkeyed hashing, with
+variable digest lengths and tests in `src/tests/crypto/blake2b.test.swg`. Add BLAKE2s with the
+same operation family and published vectors; BLAKE3 remains independent.
+
+- Related: std.core.014
+
+- Complete when: BLAKE2s supports incremental and one-shot keyed and unkeyed hashing with variable digest lengths, and published vectors match across chunk boundaries and invalid parameters.
+
+### std.core.002 — No UDP sockets
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define datagram acceptance.
+
+Add datagram sockets, endpoints, size/error behavior, and broadcast/multicast decisions
+independently of TCP connection semantics.
+
+- Related: std.core.001, std.core.003, std.core.004
+
+- Complete when: UDP sockets send and receive complete datagrams with portable endpoints, report size and truncation behavior explicitly, and pass loopback and error tests; broadcast and multicast support are decided and documented.
+
+### std.core.003 — No DNS resolver
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define resolver acceptance.
+
+Add host/service resolution to the `net` module over the platform resolver, with explicit address
+ordering, cancellation, and failure semantics.
+
+- Related: std.core.001
+
+- Complete when: The net module resolves host and service names to portable addresses with documented ordering, cancellation, and failure behavior, tested against local and invalid names.
+
+### std.core.005 — No TLS transport
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define TLS transport acceptance.
+
+Provide client and server TLS over the socket contract. Decide explicitly whether each platform
+binds its native provider or the project owns a portable implementation.
+
+- Related: std.core.001, std.core.010, std.core.015, std.core.016
+
+- Complete when: Client and server TLS operate over the socket contract with certificate validation, handshake and shutdown failures, and stream ownership stated, with local-peer tests for accepted and rejected credentials.
+
+### std.core.006 — No HTTP client
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define HTTP client acceptance.
+
+Implement an HTTP/1.1 client over std.core.001 and std.core.005, with streaming bodies, redirects, cancellation,
+and bounded parsing as its own public contract.
+
+- Related: std.core.001, std.core.005
+
+- Complete when: An HTTP/1.1 client streams requests and responses, follows bounded redirect policy, cancels active transfers, and rejects oversized or malformed headers in local-server tests.
+
+### std.core.007 — No HTTP server
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define HTTP server acceptance.
+
+Implement HTTP/1.1 server parsing, response streaming, connection lifetime, and limits independently
+of the client API.
+
+- Related: std.core.001, std.core.004, std.core.005, std.core.006
+
+- Complete when: An HTTP/1.1 server parses bounded requests and streams responses over multiple connection lifetimes, with tests for malformed framing, cancellation, and graceful shutdown.
+
+### std.core.008 — No WebSocket protocol
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define WebSocket acceptance.
+
+Add WebSocket handshake and frame processing above HTTP without making it part of the HTTP client's
+completion criteria.
+
+- Related: std.core.006, std.core.007
+
+- Complete when: A WebSocket peer completes the HTTP upgrade and exchanges masked and fragmented frames, control frames, and close handshakes within declared size limits, with client and server tests.
+
+### std.core.010 — No AES implementation
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-27 18:13 — define AES block-cipher acceptance.
+- Present: Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256, PBKDF2,
+  BLAKE2b, Argon2id, ChaCha20, Poly1305, ChaCha20-Poly1305, and several non-cryptographic hashes.
+- Add AES with hardware acceleration where available and constant-time fallback behavior, then add
+  separately numbered modes only when their contracts are chosen.
+- Related: std.core.005, std.core.011, std.core.012, std.core.013, std.core.014, std.core.015, std.core.016, std.core.017
+
+- Complete when: AES-128, AES-192, and AES-256 block operations match published vectors in hardware and fallback paths, the fallback has a documented constant-time contract, and cipher modes retain separate backlog IDs.
+
+### std.core.011 — No SHA-512 family
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define SHA-512 family acceptance.
+
+Implement SHA-384/SHA-512 and HMAC variants with standard vectors and streaming parity with the
+existing SHA-256 API.
+
+- Related: std.core.010
+
+- Complete when: SHA-384 and SHA-512 digests and their HMAC variants match published vectors for one-shot and chunked input, including empty input and boundary block lengths.
+
+### std.core.012 — No SHA-3 family
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define SHA-3 family acceptance.
+
+Implement the SHA-3 digest family and SHAKE extendable-output functions as a distinct sponge-based
+API.
+
+- Related: std.core.010
+
+- Complete when: The supported SHA-3 digest sizes and SHAKE output lengths match published vectors across one-shot and incremental input, including empty and multi-block messages.
+
+### std.core.014 — No BLAKE3 implementation
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define BLAKE3 acceptance.
+
+Add BLAKE3 hashing, keyed hashing, key derivation, and parallel tree processing as one algorithm
+contract.
+
+- Related: std.core.013
+
+- Complete when: BLAKE3 unkeyed, keyed, and key-derivation modes match published vectors across chunk and tree boundaries, and parallel and serial processing return identical outputs.
+
+### std.core.015 — No Ed25519 signatures
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define Ed25519 acceptance.
+
+Add key generation, signing, verification, strict input validation, and published vectors for
+Ed25519.
+
+- Related: std.core.005, std.core.016
+
+- Complete when: Key generation, signing, and verification match published vectors, while malformed encodings, wrong messages, and invalid keys are rejected with an explicit failure contract.
+
+### std.core.016 — No X25519 key agreement
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:13 — define X25519 acceptance.
+
+Add X25519 key generation and shared-secret derivation with low-order input handling stated and
+tested.
+
+- Related: std.core.005, std.core.015
+
+- Complete when: Key generation and shared-secret derivation match published vectors for both peers, and low-order or invalid inputs follow the documented rejection policy.
+
+### std.core.017 — No RSA interoperability
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-27 18:13 — define RSA interoperability decision.
+
+Provide only the RSA operations and padding schemes justified by external interoperability, with
+unsafe legacy modes excluded from the default surface.
+
+- Related: std.core.005
+
+- Complete when: A named interoperability case fixes the required RSA operations and safe padding schemes; accepted cases pass external vectors and unsafe legacy forms are rejected, or the entry is retired with a recorded decision that no use case justifies it.
+
+### std.core.021 — No gzip container support
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-27 18:13 — define gzip-container acceptance.
+
+Add the gzip container over the existing deflate/inflate and zlib support, including headers,
+trailers, checksums, and concatenated members.
+
+- Related: std.core.022, std.core.023
+
+- Complete when: Gzip reading and writing validate headers, trailers, checksums, and concatenated members over existing Deflate, with round-trip, truncation, and corruption tests.
+
+### std.core.023 — No TAR container support
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-27 18:13 — define TAR-container acceptance.
+
+Add streaming TAR reading and writing, with the supported metadata and extension variants stated.
+
+- Related: std.core.021
+
+- Complete when: A streaming TAR reader and writer round-trip regular files, directories, and the declared metadata and extension variants, while malformed sizes and unsafe paths fail under explicit limits.
+
+### std.core.024 — Time zones
+
+- Recorded: 2026-08-05 07:43
+- Updated: 2026-09-27 18:13 — define time-zone acceptance.
+
+`time` handles UTC and local. There is no IANA zone database, no historical offsets, and no DST
+rules for an arbitrary zone. Any application that schedules or displays times across regions is
+stuck at the boundary.
+
+- Complete when: A named IANA zone converts UTC and local civil times using historical offsets and daylight-saving rules, and tests cover transitions, ambiguous times, missing times, and unknown zones.
+
 ### std.core.019 — Unambiguous regular-expression captures replay the search
 
 - Recorded: 2026-09-06 17:42
@@ -204,29 +434,6 @@ types.
   with equal matching behavior or retained for a measured reason.
 - Related: std.core.019
 
-### std.core.001 — No blocking TCP sockets
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Problem: there are no TCP sockets. A Swag program cannot open even a blocking connection.
-- Consequence: this rules out servers, clients, tooling that talks to a registry or an API, package
-  management, telemetry, and every application whose value involves a network. It is the single
-  largest capability gap in the language, larger than anything in the compiler.
-- Put the blocking TCP and address foundation in a `net` module importing `core`; do not put a
-  network stack in the module every program links. Platform leaves are owned by
-  platform.portability.088.
-- Related: std.core.003, std.core.004, std.core.005, std.core.006, std.core.007, std.core.008, std.core.002, platform.portability.088
-
-### std.core.004 — No non-blocking socket readiness API
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-Add non-blocking sockets and readiness notification after the concurrency decision in language.parallelism.001. Keep
-the readiness mechanism separate from the blocking socket foundation.
-
-- Related: std.core.001, language.parallelism.001, std.core.028
-
 ### std.core.020 — Unicode scripts and most derived properties are missing
 
 - Recorded: 2026-08-29 16:36
@@ -243,176 +450,6 @@ the readiness mechanism separate from the blocking socket foundation.
 - Complete when: the script names of UAX #24 resolve, a test matches text in two scripts, and the
   tables are generated rather than hand-written.
 - Related: std.core.019
-
-### std.core.013 — No BLAKE2s implementation
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-`Hash.Blake2b` already implements incremental and one-shot keyed and unkeyed hashing, with
-variable digest lengths and tests in `src/tests/crypto/blake2b.test.swg`. Add BLAKE2s with the
-same operation family and published vectors; BLAKE3 remains independent.
-
-- Related: std.core.014
-
-### std.core.002 — No UDP sockets
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add datagram sockets, endpoints, size/error behavior, and broadcast/multicast decisions
-independently of TCP connection semantics.
-
-- Related: std.core.001, std.core.003, std.core.004
-
-### std.core.003 — No DNS resolver
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add host/service resolution to the `net` module over the platform resolver, with explicit address
-ordering, cancellation, and failure semantics.
-
-- Related: std.core.001
-
-### std.core.005 — No TLS transport
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Provide client and server TLS over the socket contract. Decide explicitly whether each platform
-binds its native provider or the project owns a portable implementation.
-
-- Related: std.core.001, std.core.010, std.core.015, std.core.016
-
-### std.core.006 — No HTTP client
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement an HTTP/1.1 client over std.core.001 and std.core.005, with streaming bodies, redirects, cancellation,
-and bounded parsing as its own public contract.
-
-- Related: std.core.001, std.core.005
-
-### std.core.007 — No HTTP server
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement HTTP/1.1 server parsing, response streaming, connection lifetime, and limits independently
-of the client API.
-
-- Related: std.core.001, std.core.004, std.core.005, std.core.006
-
-### std.core.008 — No WebSocket protocol
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add WebSocket handshake and frame processing above HTTP without making it part of the HTTP client's
-completion criteria.
-
-- Related: std.core.006, std.core.007
-
-### std.core.010 — No AES implementation
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Present: Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256, PBKDF2, ChaCha20, and
-  several non-cryptographic hashes.
-- Add AES with hardware acceleration where available and constant-time fallback behavior, then add
-  separately numbered modes only when their contracts are chosen.
-- Related: std.core.005, std.core.011, std.core.012, std.core.013, std.core.014, std.core.015, std.core.016, std.core.017
-
-### std.core.011 — No SHA-512 family
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement SHA-384/SHA-512 and HMAC variants with standard vectors and streaming parity with the
-existing SHA-256 API.
-
-- Related: std.core.010
-
-### std.core.012 — No SHA-3 family
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement the SHA-3 digest family and SHAKE extendable-output functions as a distinct sponge-based
-API.
-
-- Related: std.core.010
-
-### std.core.014 — No BLAKE3 implementation
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add BLAKE3 hashing, keyed hashing, key derivation, and parallel tree processing as one algorithm
-contract.
-
-- Related: std.core.013
-
-### std.core.015 — No Ed25519 signatures
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add key generation, signing, verification, strict input validation, and published vectors for
-Ed25519.
-
-- Related: std.core.005, std.core.016
-
-### std.core.016 — No X25519 key agreement
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add X25519 key generation and shared-secret derivation with low-order input handling stated and
-tested.
-
-- Related: std.core.005, std.core.015
-
-### std.core.017 — No RSA interoperability
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Provide only the RSA operations and padding schemes justified by external interoperability, with
-unsafe legacy modes excluded from the default surface.
-
-- Related: std.core.005
-
-### std.core.021 — No gzip container support
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add the gzip container over the existing deflate/inflate and zlib support, including headers,
-trailers, checksums, and concatenated members.
-
-- Related: std.core.022, std.core.023
-
-### std.core.023 — No TAR container support
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add streaming TAR reading and writing, with the supported metadata and extension variants stated.
-
-- Related: std.core.021
-
-### std.core.024 — Time zones
-
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-`time` handles UTC and local. There is no IANA zone database, no historical offsets, and no DST
-rules for an arbitrary zone. Any application that schedules or displays times across regions is
-stuck at the boundary.
-
 ---
 
 ## Out of scope

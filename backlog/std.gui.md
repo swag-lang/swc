@@ -33,6 +33,477 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
+### std.gui.001 — Clipboard data cannot represent virtual files
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:09 — define clipboard virtual-file acceptance.
+
+Expose the same virtual-file descriptor and deferred contents through clipboard ownership without
+making clipboard completion depend on drag interaction.
+
+- Related: platform.portability.068
+
+- Complete when: A clipboard owner publishes virtual-file names, metadata, and deferred contents through the typed-value API, and another GUI consumer retrieves them after the copy action without initiating a drag.
+
+### std.gui.010 — No keyboard access keys
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:09 — define keyboard access-key acceptance.
+
+Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
+one keyboard access-key contract.
+
+- Related: platform.portability.048
+
+- Complete when: Alt reveals mnemonic underlines, activates a unique caption or menu target from the keyboard, and restores focus correctly; tests cover duplicate and unavailable keys.
+
+### std.gui.013 — Gesture recognizers have no claim arbitration
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define gesture-claim acceptance.
+
+Add an arena or claim rule so a child control and its scrolling parent cannot both execute one raw
+pointer sequence.
+
+- Related: std.gui.011, std.gui.012, std.gui.014, std.gui.016, std.gui.017, std.gui.018, std.gui.019
+
+- Complete when: A child recognizer and scrolling parent receive one pointer sequence under an explicit winner/cancellation rule, and tests prove only the winner performs the action.
+
+### std.gui.014 — No tap recognizer
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define tap-recognizer acceptance.
+
+Recognize a tap with platform-appropriate distance and timing thresholds.
+
+- Related: std.gui.013, std.gui.015
+
+- Complete when: A touch sequence within documented movement and duration thresholds emits one tap, while movement, cancellation, and a second pointer prevent a false tap in headless tests.
+
+### std.gui.015 — No double-tap recognizer
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define double-tap acceptance.
+
+Recognize double tap as a composition of successful taps without delaying the single-tap contract
+unless a control explicitly requests it.
+
+- Related: std.gui.013, std.gui.014
+
+- Complete when: Two qualifying taps within the configured interval and distance emit one double tap, and a single tap is delayed only for controls that request double-tap arbitration.
+
+### std.gui.016 — No long-press recognizer
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define long-press acceptance.
+
+Recognize long press with movement cancellation and an explicit interaction with context menus.
+
+- Related: std.gui.013
+
+- Complete when: A stationary held contact emits one long press and its requested context action, while release, movement, cancellation, or a competing gesture prevents it.
+
+### std.gui.017 — No pan recognizer
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define pan-recognizer acceptance.
+
+Recognize single- and multi-pointer pan with capture transfer and velocity reporting.
+
+- Related: std.gui.013, std.gui.021
+
+- Complete when: Single- and multi-pointer movement emit pan deltas and bounded velocity, transfer capture according to the claim rule, and stop on cancellation in headless tests.
+
+### std.gui.018 — No pinch recognizer
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define pinch-recognizer acceptance.
+
+Report scale around the contact centroid without combining pinch completion with rotation.
+
+- Related: std.gui.013, std.gui.019
+
+- Complete when: Two contacts report scale around their centroid with stable start, update, and end phases, while rotation remains separately observable and contact loss ends the pinch.
+
+### std.gui.019 — No rotate recognizer
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define rotate-recognizer acceptance.
+
+Report rotation independently of pinch scale while sharing std.gui.013's arbitration.
+
+- Related: std.gui.013, std.gui.018
+
+- Complete when: Two contacts report signed rotation around their centroid independently of pinch scale, and gesture arbitration prevents duplicate actions in headless tests.
+
+### std.gui.020 — No touch-sized input profile
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:09 — define touch-target acceptance.
+
+Add a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
+  the 12-pixel slider thumb and the small scroll-bar profile are not finger targets.
+
+- Related: std.gui.013, std.gui.021, std.gui.022
+
+- Complete when: A touch input profile expands effective hit targets for the slider, scroll bar, and representative small controls without enlarging their painted glyphs, with headless boundary tests.
+
+### std.gui.021 — Touch scrolling has no inertia
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define kinetic-scroll acceptance.
+
+Drive kinetic scrolling from the shared animation scheduler using the velocity reported by std.gui.017,
+with deterministic deceleration and reduced-motion behavior.
+
+- Related: std.gui.017
+
+- Complete when: A pan release continues scrolling with bounded deterministic deceleration, stops at content bounds or cancellation, and follows reduced-motion policy in scheduler-driven tests.
+
+### std.gui.022 — Nested scroll views do not chain touch motion
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define nested-touch-scroll acceptance.
+
+Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
+
+- Related: std.gui.013, std.gui.017, std.gui.021
+
+- Complete when: At a scroll boundary, unconsumed pan distance transfers once to the nearest eligible ancestor without losing or duplicating motion, with nested-view headless tests.
+
+### std.gui.023 — Pen pressure is not modeled end to end
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:09 — define pen-pressure acceptance.
+
+Carry pressure and pen identity from native input through drawing tools. `Swag Capture` is the proving
+application, and the headless host must inject pen events so the behavior is testable without
+hardware.
+
+- Related: std.gui.011, std.gui.024
+
+- Complete when: Native and headless pen events carry identity and pressure through GUI routing to a Swag Capture drawing tool, and varying pressure changes the recorded stroke in a deterministic test.
+
+### std.gui.024 — No palm rejection during a pen stroke
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:09 — define pen-versus-palm acceptance.
+
+Suppress competing touch contacts according to an explicit rule while a pen owns the drawing
+gesture, with headless mixed-device tests.
+
+- Related: std.gui.012, std.gui.013, std.gui.023
+
+- Complete when: An explicit palm-rejection rule suppresses competing touch contacts while a pen owns a drawing gesture and restores ordinary touch behavior after pen release, with mixed-device headless tests.
+
+### std.gui.026 — Docking has no tab-reorder or landing-preview interaction
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define dock-interaction acceptance.
+
+Add internal tab reorder and edge/stack docking with an overlay that shows the exact landing
+rectangle. Moving a pane transfers logical ownership, commands, and focus without destroying it.
+
+- Related: std.gui.025
+
+- Complete when: Tab reorder and edge or stack docking show an accurate landing rectangle and transfer pane identity, commands, and focus without destroying the view, with interaction tests.
+
+### std.gui.027 — Docked panes cannot float and redock
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:09 — define floating-pane acceptance.
+
+Move a pane into a floating surface and redock it while preserving identity, focus, and DPI-correct
+geometry.
+
+- Related: std.gui.025, std.gui.026, std.gui.028
+
+- Complete when: A pane floats into its own surface and redocks with unchanged identity and focus; geometry remains usable when monitor scale or topology changes.
+
+### std.gui.029 — No multi-document host
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:09 — define multi-document-host acceptance.
+
+Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/save flow,
+close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
+pages, and test close veto and focus independently of docking. Swag Capture's open captures are the
+first consumer; Swag Vault does not need this merely as a demonstration.
+
+- Related: std.gui.025
+
+- Complete when: DocumentHost tracks active and dirty documents, close veto/save, close-others, reorder, and command routing, while tests cover lazy pages and focus independently of docking.
+
+### std.gui.034 — No print preview
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:09 — define shared print-preview acceptance.
+
+Render through exactly std.gui.030's page callback into a zoomable on-screen view; do not create a second
+pagination path that can disagree with paper.
+
+- Related: std.gui.030, std.gui.033, app.capture.001
+
+- Complete when: Preview uses the same page count and paint callback as printing, zooms through representative pages, and matches fake-backend output without a separate pagination path.
+
+### std.gui.035 — Data-driven UI resource for `std/gui`
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-27 18:09 — define typed UI-resource decision.
+- Area: bin/std
+- Found while: simplifying the Swag Vault vault cards after `FormCtrl` was judged too heavy
+- Observation: a UI described by a data string is only worth it when the caller never needs the
+  controls back. The removed `FormCtrl` proved the opposite case: every consumer built an
+  `Array'FormFieldDefinition`, then immediately recovered typed pointers by string identifier
+  (`notnull (notnull form.findField("create.size")).accessoryChoice`), so the data layer added a
+  stringly-typed boundary without removing a single control pointer. A full markup would extend
+  that boundary from four fields to the whole window unless the resource is resolved at compile
+  time into typed members.
+- Evidence: commits 3b382e68a and 8009467a0 removed `FormCtrl`, `FormFieldDefinition`,
+  `FormFieldKind`, `FormChoice`, and `FormField` (177 lines) and replaced three consumers with
+  `FormLayoutCtrl` builders that return the concrete control. Swag Vault's two cards lost their two
+  field-description functions and every `findField` lookup. `Core.File.TweakFile` already parses a
+  text format onto struct fields through reflection, and `ThemeStyle.addStyleSheetColors` shows the
+  existing string-resource precedent in `std/gui`.
+- Next step: prototype the compile-time half first, since it is what decides the design. Parse a
+  small UI resource in a `#run` block with `TweakFile` as the model, and check whether the parsed
+  tree can emit typed member declarations for a window struct through `#code`/generated source. If
+  typed accessors cannot be generated at compile time, a UI resource reintroduces exactly the
+  lookup boundary the builders just removed, and a resource editor would ship that cost to every
+  window. Only then evaluate the editor.
+
+- Complete when: A bounded compile-time resource prototype either generates typed window members consumed without runtime string lookup, or demonstrates why that route fails and retires the resource proposal before editor work.
+
+### std.gui.003 — Construction-time text does not automatically retranslate
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define automatic text-rebinding acceptance.
+
+`Application.setLanguage` already broadcasts `LanguageChanged`, and its documented contract asks
+windows with construction-time text to handle that notification. Command-driven surfaces and
+explicitly rebuilt grids already refresh. Define an automatic binding for text resolved once at
+construction so static labels do not depend on each application remembering a manual handler.
+
+- Related: std.gui.004
+
+- Complete when: A label initialized from the GUI string catalog updates after Application.setLanguage without an application-specific notification handler, while command-driven controls retain their existing behavior in a localization test.
+
+### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
+
+- Recorded: 2026-08-11 08:09
+- Updated: 2026-09-27 18:08 — define fractional composite-size acceptance.
+- Area: std/gui
+- Found while: the dialog-sizing investigation; dialogs and tooltips have fixes, while other
+  self-sizing composites still need a systematic fractional-size audit.
+- Observation: `Wnd.resize` rounds a window's logical size to whole units and
+  `Surface.setPosition` places a native window on whole physical pixels. A composite that measures
+  its content, commits that measurement as its size, and then assumes the content still fits loses
+  up to half a logical unit in the round trip. Half a unit is enough: in the message box it was one
+  wrapped line, and it clipped the second sentence of every error box on a scaled display. Only
+  some lengths land on a losing fraction, which is why it read as intermittent.
+- Evidence: `Dialog.physicalRoom` and the commit-then-measure order in
+  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs, and
+  [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) now rounds its measurement *up* on both
+  axes. The tool tip is what the pattern costs when nobody guards it: a third of a pixel dropped
+  from the committed height put the content one line over its viewport, which raised a scroll bar,
+  which took twenty units of width, which re-wrapped the text and hid its tail — on every tip in
+  the toolkit, including one-word ones.
+- Next step: audit the remaining composites that size themselves from a measurement — the popup
+  list, the menu popup, and the automatic label height — for that pattern, and either round out
+  through one shared helper or measure the second axis after committing the first. Prove it the way
+  `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
+
+- Complete when: Popup lists, menu popups, and automatic labels retain all measured content after committing size across fractional scales and a sweep of content lengths, with no new scroll bar or clipped last line.
+
+### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
+
+- Recorded: 2026-08-07 19:13
+- Updated: 2026-09-27 18:08 — define cross-family optical-alignment decision.
+- Area: std/gui
+- Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
+  the fixed-width theme family and read as riding high inside its own box.
+- Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
+  which hands the placement to the internal leading of the face. Measured on the shipped theme:
+  Segoe UI at 13 has `ascent 14.03, descent -3.27, capHeight 9.11`, so its capitals sit 0.83
+  logical pixels below the middle of its line box; the fixed family at 14 has
+  `ascent 10.40, descent -3.60, capHeight 8.94` and sits 1.07 above. Two fields of one form set in
+  the two families therefore put their words 1.9 pixels apart, and neither on the middle of the
+  frame the reader compares them against. `EditBox`, `ComboBox` and `PopupListCtrl` now center on the capitals
+  through `StringVertAlignment.OpticalCenter`; other labels and menu rows still center on the line box.
+- Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
+  [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
+  `bin/apps/modules/swagvault/src/tests/goldens/surface.png`: the "256" digits of the capacity
+  field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
+  password placeholder below it sat exactly on the middle of its own box.
+- Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
+  are read against their neighbours rather than against a frame, and they all share the interface
+  family, so line-box centering is consistent among them today — the defect only shows where a
+  frame is drawn or where two families meet. If it does follow, `Gui.opticalTop` degenerates to a
+  plain centering and its twenty-odd call sites go with it, and every golden holding text moves by
+  the offset of its face; that is the whole cost, and it is why the existing change is limited to the framed fields and
+  popup-list rows. Pin the decision with a headless test that puts one field of each
+  family side by side and asserts their capitals share a center.
+
+- Complete when: A headless side-by-side case measures the cap centers of framed fields, labels, menus, and list rows across shipped font families; the chosen placement rule is documented and the resulting goldens pin the decision.
+
+### std.gui.004 — French is the only shipped GUI translation
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define next-language acceptance.
+
+Add each additional shipped language as an independently reviewable resource contribution, with
+coverage checks that prevent untranslated keys. Use `Core.Globalization.CultureInfo` for locale
+date/name data and plural selection instead of maintaining GUI-local culture tables.
+
+- Related: std.gui.003
+
+- Complete when: At least one additional GUI translation ships as a separately reviewed resource, its key coverage is checked, and locale data and plural selection use Core.Globalization rather than GUI-local rules.
+
+### std.gui.011 — No pointer-event model
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define pointer-event model acceptance.
+
+`MouseEvent` describes one mouse position,
+one button and one global capture owner; it has no pointer identifier, device kind, contact area,
+pressure or tilt. Treating touch as synthesized mouse input permits one finger to click, but loses
+multiple contacts and cannot distinguish a pen stroke
+from a pan.
+
+The smallest coherent input layer is:
+
+- Add a `PointerEvent` carrying a stable pointer id, mouse/touch/pen kind, primary/contact state,
+  surface position, buttons, pressure, tilt and contact rectangle, routed and bubbled like the
+  existing events. Native adapters belong to platform.portability.054.
+- Related: std.gui.012, std.gui.013, std.gui.020, std.gui.023, platform.portability.054
+
+- Complete when: Common GUI events carry pointer identity, mouse/touch/pen kind, contact state, position, buttons, pressure, tilt, and contact bounds through routing and bubbling, with headless tests for simultaneous contacts.
+
+### std.gui.012 — Pointer capture is application-wide rather than per pointer
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define per-pointer capture acceptance.
+
+Add capture per pointer rather than one application-wide mouse capture, with cancellation when the
+OS takes a contact away and an explicit rule for suppressing compatibility mouse events.
+The native translation belongs to platform.portability.054.
+- Related: std.gui.011, std.gui.013
+
+- Complete when: Two active pointers can hold independent capture owners, cancellation releases only the affected owner, and compatibility mouse messages do not trigger a second action in mixed-device tests.
+
+### std.gui.025 — No docking layout host
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define programmatic dock-host acceptance.
+
+The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
+known panes, and a `Surface` can own a window. Add the split-tree model whose leaves are tab stacks
+and whose panes have stable identity. Interaction, floating, persistence, and document semantics
+are std.gui.026, std.gui.027, std.gui.028, and std.gui.029 respectively.
+
+The proposed `DockHost` would own a split tree whose leaves are tab stacks, with close/hide and
+minimum sizes. Start with programmatic docked layout and stable pane
+identity; drag interaction, floating surfaces, and persistence have their own identifiers.
+
+- Related: std.gui.029, std.gui.026, std.gui.027, std.gui.028
+
+- Complete when: A DockHost programmatically builds split leaves and tab stacks with stable pane IDs, close/hide, and minimum-size behavior, and layout tests cover nested splits without depending on drag, floating, or persistence.
+
+### std.gui.045 — Verify the gui10 first-frame palette report
+
+- Recorded: 2026-08-16 19:24
+- Updated: 2026-09-27 18:08 — define first-frame palette disposition.
+- Recorded observation: a Palettes-page launch was reported to show neutral selector colors
+  until a pointer-triggered repaint. No frame capture or minimal reproducer is checked in.
+- The recorded command used `--light --palettes`. Current `main.swg` maps `--light` to the
+  neutral Light variant, whose system-blue accent is intentionally `#1473E6`; that color alone
+  does not demonstrate a wrong palette. The same blue on the Widgets page is also expected.
+- Source check: `variantColors` builds plain `ThemeColors` values and one local `Theme` for the
+  sheet variant. `setLight` changes that value's palette, metrics and rectangles; this does not
+  establish the earlier hypothesis that a local theme changes the application theme.
+- Next: capture the first and second frames with the checkout-local DevMode compiler using
+  `tools/examples.swgs dm run gui10 --run-arg=--swagdark --run-arg=--palettes`, then compare the
+  selector, caption and ground against the requested variant. If a mismatch remains, trace the
+  affected window's style cache and invalidation. Remove this lead if the corrected reproduction
+  is stable.
+
+- Complete when: A checkout-local gui10 capture records the first and next frames under --swagdark --palettes; either a reproducible mismatch is fixed with a frame regression or stable matching frames retire this lead with evidence.
+
+### std.gui.028 — Docking layouts cannot be persisted
+
+- Recorded: 2026-08-09 11:49
+- Updated: 2026-09-27 18:08 — define dock-layout persistence acceptance.
+
+Serialize stable pane identifiers, splits, active tabs, and floating rectangles. Restore constrains
+missing-monitor rectangles and ignores panes the application no longer registers.
+
+- Related: std.gui.025, platform.portability.084, std.gui.027
+
+- Complete when: A dock layout round-trips stable pane IDs, splits, active tabs, and floating rectangles, and restore ignores missing panes while constraining rectangles to available monitors in tests.
+
+### std.gui.030 — No printable-document pagination contract
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define printer-independent pagination acceptance.
+
+Let a document answer page count and paint page `n` into a page-sized `Pixel.Painter` using
+physical units. Define imageable bounds, multi-page failures, and vector-versus-raster behavior
+without coupling the document to one printer backend. A fake backend records commands for CI.
+
+- Related: std.pixel.005, platform.portability.086, std.gui.033, std.gui.034
+
+- Complete when: One document page callback reports count and paints in physical units into Pixel.Painter; a fake backend verifies imageable bounds, page order, multi-page failure, and vector/raster fallback.
+
+### std.gui.032 — Print jobs cannot be cancelled
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define print-cancellation acceptance.
+
+Propagate cancellation from the GUI through pagination and the platform spooler, with a distinct
+cancelled result and cleanup tests in the fake backend.
+
+- Related: std.gui.030, platform.portability.086
+
+- Complete when: Cancellation from the GUI stops pagination and spooling, returns a distinct cancelled result, and leaves no open page or job handle in fake-backend failure tests.
+
+### std.gui.033 — No page-setup model
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:08 — define page-setup acceptance.
+
+Model paper, orientation, margins, scale/fit, and copies independently of printer discovery and
+preview. Validate requested settings against the capabilities supplied by platform.portability.086.
+
+- Related: std.gui.030, platform.portability.086, std.gui.034
+
+- Complete when: Paper, orientation, margins, scale or fit, and copies form a printer-independent value that validates against declared device capabilities, with tests for unsupported combinations.
+
+### std.gui.040 — A check box does not line up with the fields of the form it stands in
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-09-27 18:08 — define check-box ink-alignment acceptance.
+- Area: std/gui
+- Found while: adding the read-only option to the Swag Vault open-vault card, which put the first
+  check box of that surface directly under a column of edit boxes.
+- Observation: `ThemeMetrics.btnCheck_Size` is 24 and is what `CheckButton` and `RadioButton`
+  place their marker with, but the atlas tiles behind it carry their shape inset inside their cell
+  (`check_bk` is a 22-unit square at 5,5 of a 32-unit tile), so the *ink* of the box starts about
+  3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
+  form column therefore reads as indented against every field above it.
+- Evidence: measured on the rendered surface, `bin/apps/modules/swagvault` in the former light Swag palette: the
+  edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
+  inset exists vertically on other atlas glyphs: in `surface.png` the folder icon of the
+  container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
+  its ink still comes out about a pixel above that middle.
+- Next step: decide who owns the difference. Either the tiles fill their cell and `btnCheck_Size`
+  becomes the ink (which changes the drawn box everywhere, from about 16.5 to 24 logical pixels),
+  or the widgets learn the inset and place the cell so the ink lands on the rectangle they were
+  given. The second keeps the drawn size and is the smaller change, but it needs the inset to come
+  from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
+  already describes itself.
+
+- Complete when: Check and radio marker ink aligns with the field column in the Swag Vault form and representative GUI layouts across shipped palettes and scales, without changing hit bounds or clipping the atlas tile.
+
 ### std.gui.057 — Prevent stale compositor frames during maximize and restore
 
 - Recorded: 2026-09-26 18:37
@@ -115,72 +586,6 @@ prove it. Operating-system integrations live in
   equivalent pixels, bounded resource ownership and frame queues, and real input-latency evidence.
 - Related: std.gui.049, std.gui.056, platform.portability.066
 
-### std.gui.003 — Construction-time text does not automatically retranslate
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-12 07:21 — Retain automatic text binding beyond the shipped language notification.
-
-`Application.setLanguage` already broadcasts `LanguageChanged`, and its documented contract asks
-windows with construction-time text to handle that notification. Command-driven surfaces and
-explicitly rebuilt grids already refresh. Define an automatic binding for text resolved once at
-construction so static labels do not depend on each application remembering a manual handler.
-
-- Related: std.gui.004
-
-### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
-
-- Recorded: 2026-08-11 08:09
-- Updated: 2026-09-12 07:21 — Separate the remaining composite audit from the shipped dialog and tooltip fixes.
-- Area: std/gui
-- Found while: the dialog-sizing investigation; dialogs and tooltips have fixes, while other
-  self-sizing composites still need a systematic fractional-size audit.
-- Observation: `Wnd.resize` rounds a window's logical size to whole units and
-  `Surface.setPosition` places a native window on whole physical pixels. A composite that measures
-  its content, commits that measurement as its size, and then assumes the content still fits loses
-  up to half a logical unit in the round trip. Half a unit is enough: in the message box it was one
-  wrapped line, and it clipped the second sentence of every error box on a scaled display. Only
-  some lengths land on a losing fraction, which is why it read as intermittent.
-- Evidence: `Dialog.physicalRoom` and the commit-then-measure order in
-  [messagedlg.swg](../bin/std/modules/gui/src/dialogs/messagedlg.swg) close it for dialogs, and
-  [tooltip.swg](../bin/std/modules/gui/src/tooltip.swg) now rounds its measurement *up* on both
-  axes. The tool tip is what the pattern costs when nobody guards it: a third of a pixel dropped
-  from the committed height put the content one line over its viewport, which raised a scroll bar,
-  which took twenty units of width, which re-wrapped the text and hid its tail — on every tip in
-  the toolkit, including one-word ones.
-- Next step: audit the remaining composites that size themselves from a measurement — the popup
-  list, the menu popup, and the automatic label height — for that pattern, and either round out
-  through one shared helper or measure the second axis after committing the first. Prove it the way
-  `dialogs.layout.test.swg` does, by sweeping the content length rather than picking one.
-
-### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
-
-- Recorded: 2026-08-07 19:13
-- Updated: 2026-09-11 22:39 — Include the shipped optical centering of popup-list rows.
-- Area: std/gui
-- Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
-  the fixed-width theme family and read as riding high inside its own box.
-- Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
-  which hands the placement to the internal leading of the face. Measured on the shipped theme:
-  Segoe UI at 13 has `ascent 14.03, descent -3.27, capHeight 9.11`, so its capitals sit 0.83
-  logical pixels below the middle of its line box; the fixed family at 14 has
-  `ascent 10.40, descent -3.60, capHeight 8.94` and sits 1.07 above. Two fields of one form set in
-  the two families therefore put their words 1.9 pixels apart, and neither on the middle of the
-  frame the reader compares them against. `EditBox`, `ComboBox` and `PopupListCtrl` now center on the capitals
-  through `StringVertAlignment.OpticalCenter`; other labels and menu rows still center on the line box.
-- Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
-  [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
-  `bin/apps/modules/swagvault/src/tests/goldens/surface.png`: the "256" digits of the capacity
-  field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
-  password placeholder below it sat exactly on the middle of its own box.
-- Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
-  are read against their neighbours rather than against a frame, and they all share the interface
-  family, so line-box centering is consistent among them today — the defect only shows where a
-  frame is drawn or where two families meet. If it does follow, `Gui.opticalTop` degenerates to a
-  plain centering and its twenty-odd call sites go with it, and every golden holding text moves by
-  the offset of its face; that is the whole cost, and it is why the existing change is limited to the framed fields and
-  popup-list rows. Pin the decision with a headless test that puts one field of each
-  family side by side and asserts their capitals share a center.
-
 ### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
 
 - Recorded: 2026-09-06 21:57
@@ -198,17 +603,6 @@ construction so static labels do not depend on each application remembering a ma
 - Complete when: an identifier formatted at the call site either works or is rejected at build
   time, and a test in `menu.test.swg` pins whichever it is.
 
-### std.gui.004 — French is the only shipped GUI translation
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
-
-Add each additional shipped language as an independently reviewable resource contribution, with
-coverage checks that prevent untranslated keys. Use `Core.Globalization.CultureInfo` for locale
-date/name data and plural selection instead of maintaining GUI-local culture tables.
-
-- Related: std.gui.003
-
 ### std.gui.049 — One dirty rectangle couples distant changes on a surface
 
 - Recorded: 2026-09-06 17:42
@@ -223,337 +617,6 @@ date/name data and plural selection instead of maintaining GUI-local culture tab
 - Complete when: distant local changes stay local under a bounded invalidation policy, or the
   single rectangle is retained for a measured reason, with paint/golden tests for the decision.
 - Related: std.gui.054
-
-### std.gui.011 — No pointer-event model
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-`MouseEvent` describes one mouse position,
-one button and one global capture owner; it has no pointer identifier, device kind, contact area,
-pressure or tilt. Treating touch as synthesized mouse input permits one finger to click, but loses
-multiple contacts and cannot distinguish a pen stroke
-from a pan.
-
-The smallest coherent input layer is:
-
-- Add a `PointerEvent` carrying a stable pointer id, mouse/touch/pen kind, primary/contact state,
-  surface position, buttons, pressure, tilt and contact rectangle, routed and bubbled like the
-  existing events. Native adapters belong to platform.portability.054.
-- Related: std.gui.012, std.gui.013, std.gui.020, std.gui.023, platform.portability.054
-
-### std.gui.012 — Pointer capture is application-wide rather than per pointer
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-Add capture per pointer rather than one application-wide mouse capture, with cancellation when the
-OS takes a contact away and an explicit rule for suppressing compatibility mouse events.
-The native translation belongs to platform.portability.054.
-- Related: std.gui.011, std.gui.013
-
-### std.gui.025 — No docking layout host
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
-
-The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
-known panes, and a `Surface` can own a window. Add the split-tree model whose leaves are tab stacks
-and whose panes have stable identity. Interaction, floating, persistence, and document semantics
-are std.gui.026, std.gui.027, std.gui.028, and std.gui.029 respectively.
-
-The proposed `DockHost` would own a split tree whose leaves are tab stacks, with close/hide and
-minimum sizes. Start with programmatic docked layout and stable pane
-identity; drag interaction, floating surfaces, and persistence have their own identifiers.
-
-- Related: std.gui.029, std.gui.026, std.gui.027, std.gui.028
-
-### std.gui.045 — Verify the gui10 first-frame palette report
-
-- Recorded: 2026-08-16 19:24
-- Updated: 2026-09-06 07:51 — git: prompt 6
-- Recorded observation: a Palettes-page launch was reported to show neutral selector colors
-  until a pointer-triggered repaint. No frame capture or minimal reproducer is checked in.
-- The recorded command used `--light --palettes`. Current `main.swg` maps `--light` to the
-  neutral Light variant, whose system-blue accent is intentionally `#1473E6`; that color alone
-  does not demonstrate a wrong palette. The same blue on the Widgets page is also expected.
-- Source check: `variantColors` builds plain `ThemeColors` values and one local `Theme` for the
-  sheet variant. `setLight` changes that value's palette, metrics and rectangles; this does not
-  establish the earlier hypothesis that a local theme changes the application theme.
-- Next: capture the first and second frames with the checkout-local DevMode compiler using
-  `tools/examples.swgs dm run gui10 --run-arg=--swagdark --run-arg=--palettes`, then compare the
-  selector, caption and ground against the requested variant. If a mismatch remains, trace the
-  affected window's style cache and invalidation. Remove this lead if the corrected reproduction
-  is stable.
-
-### std.gui.028 — Docking layouts cannot be persisted
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-Serialize stable pane identifiers, splits, active tabs, and floating rectangles. Restore constrains
-missing-monitor rectangles and ignores panes the application no longer registers.
-
-- Related: std.gui.025, platform.portability.084, std.gui.027
-
-### std.gui.030 — No printable-document pagination contract
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-Let a document answer page count and paint page `n` into a page-sized `Pixel.Painter` using
-physical units. Define imageable bounds, multi-page failures, and vector-versus-raster behavior
-without coupling the document to one printer backend. A fake backend records commands for CI.
-
-- Related: std.pixel.005, platform.portability.086, std.gui.033, std.gui.034
-
-### std.gui.032 — Print jobs cannot be cancelled
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-Propagate cancellation from the GUI through pagination and the platform spooler, with a distinct
-cancelled result and cleanup tests in the fake backend.
-
-- Related: std.gui.030, platform.portability.086
-
-### std.gui.033 — No page-setup model
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
-
-Model paper, orientation, margins, scale/fit, and copies independently of printer discovery and
-preview. Validate requested settings against the capabilities supplied by platform.portability.086.
-
-- Related: std.gui.030, platform.portability.086, std.gui.034
-
-### std.gui.040 — A check box does not line up with the fields of the form it stands in
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-04 23:01 — git: Refresh what the backlog and the changelog claim
-- Area: std/gui
-- Found while: adding the read-only option to the Swag Vault open-vault card, which put the first
-  check box of that surface directly under a column of edit boxes.
-- Observation: `ThemeMetrics.btnCheck_Size` is 24 and is what `CheckButton` and `RadioButton`
-  place their marker with, but the atlas tiles behind it carry their shape inset inside their cell
-  (`check_bk` is a 22-unit square at 5,5 of a 32-unit tile), so the *ink* of the box starts about
-  3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
-  form column therefore reads as indented against every field above it.
-- Evidence: measured on the rendered surface, `bin/apps/modules/swagvault` in the former light Swag palette: the
-  edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
-  inset exists vertically on other atlas glyphs: in `surface.png` the folder icon of the
-  container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
-  its ink still comes out about a pixel above that middle.
-- Next step: decide who owns the difference. Either the tiles fill their cell and `btnCheck_Size`
-  becomes the ink (which changes the drawn box everywhere, from about 16.5 to 24 logical pixels),
-  or the widgets learn the inset and place the cell so the ink lands on the rectangle they were
-  given. The second keeps the drawn size and is the smaller change, but it needs the inset to come
-  from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
-  already describes itself.
-
-### std.gui.001 — Clipboard data cannot represent virtual files
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Expose the same virtual-file descriptor and deferred contents through clipboard ownership without
-making clipboard completion depend on drag interaction.
-
-- Related: platform.portability.068
-
-### std.gui.010 — No keyboard access keys
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
-one keyboard access-key contract.
-
-- Related: platform.portability.048
-
-### std.gui.013 — Gesture recognizers have no claim arbitration
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add an arena or claim rule so a child control and its scrolling parent cannot both execute one raw
-pointer sequence.
-
-- Related: std.gui.011, std.gui.012, std.gui.014, std.gui.016, std.gui.017, std.gui.018, std.gui.019
-
-### std.gui.014 — No tap recognizer
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Recognize a tap with platform-appropriate distance and timing thresholds.
-
-- Related: std.gui.013, std.gui.015
-
-### std.gui.015 — No double-tap recognizer
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Recognize double tap as a composition of successful taps without delaying the single-tap contract
-unless a control explicitly requests it.
-
-- Related: std.gui.013, std.gui.014
-
-### std.gui.016 — No long-press recognizer
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Recognize long press with movement cancellation and an explicit interaction with context menus.
-
-- Related: std.gui.013
-
-### std.gui.017 — No pan recognizer
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Recognize single- and multi-pointer pan with capture transfer and velocity reporting.
-
-- Related: std.gui.013, std.gui.021
-
-### std.gui.018 — No pinch recognizer
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Report scale around the contact centroid without combining pinch completion with rotation.
-
-- Related: std.gui.013, std.gui.019
-
-### std.gui.019 — No rotate recognizer
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Report rotation independently of pinch scale while sharing std.gui.013's arbitration.
-
-- Related: std.gui.013, std.gui.018
-
-### std.gui.020 — No touch-sized input profile
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
-  the 12-pixel slider thumb and the small scroll-bar profile are not finger targets.
-
-- Related: std.gui.013, std.gui.021, std.gui.022
-
-### std.gui.021 — Touch scrolling has no inertia
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Drive kinetic scrolling from the shared animation scheduler using the velocity reported by std.gui.017,
-with deterministic deceleration and reduced-motion behavior.
-
-- Related: std.gui.017
-
-### std.gui.022 — Nested scroll views do not chain touch motion
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
-
-- Related: std.gui.013, std.gui.017, std.gui.021
-
-### std.gui.023 — Pen pressure is not modeled end to end
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Carry pressure and pen identity from native input through drawing tools. `Swag Capture` is the proving
-application, and the headless host must inject pen events so the behavior is testable without
-hardware.
-
-- Related: std.gui.011, std.gui.024
-
-### std.gui.024 — No palm rejection during a pen stroke
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Suppress competing touch contacts according to an explicit rule while a pen owns the drawing
-gesture, with headless mixed-device tests.
-
-- Related: std.gui.012, std.gui.013, std.gui.023
-
-### std.gui.026 — Docking has no tab-reorder or landing-preview interaction
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add internal tab reorder and edge/stack docking with an overlay that shows the exact landing
-rectangle. Moving a pane transfers logical ownership, commands, and focus without destroying it.
-
-- Related: std.gui.025
-
-### std.gui.027 — Docked panes cannot float and redock
-
-- Recorded: 2026-08-09 11:49
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Move a pane into a floating surface and redock it while preserving identity, focus, and DPI-correct
-geometry.
-
-- Related: std.gui.025, std.gui.026, std.gui.028
-
-### std.gui.029 — No multi-document host
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/save flow,
-close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
-pages, and test close veto and focus independently of docking. Swag Capture's open captures are the
-first consumer; Swag Vault does not need this merely as a demonstration.
-
-- Related: std.gui.025
-
-### std.gui.034 — No print preview
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Render through exactly std.gui.030's page callback into a zoomable on-screen view; do not create a second
-pagination path that can disagree with paper.
-
-- Related: std.gui.030, std.gui.033, app.capture.001
-
-### std.gui.035 — Data-driven UI resource for `std/gui`
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: bin/std
-- Found while: simplifying the Swag Vault vault cards after `FormCtrl` was judged too heavy
-- Observation: a UI described by a data string is only worth it when the caller never needs the
-  controls back. The removed `FormCtrl` proved the opposite case: every consumer built an
-  `Array'FormFieldDefinition`, then immediately recovered typed pointers by string identifier
-  (`notnull (notnull form.findField("create.size")).accessoryChoice`), so the data layer added a
-  stringly-typed boundary without removing a single control pointer. A full markup would extend
-  that boundary from four fields to the whole window unless the resource is resolved at compile
-  time into typed members.
-- Evidence: commits 3b382e68a and 8009467a0 removed `FormCtrl`, `FormFieldDefinition`,
-  `FormFieldKind`, `FormChoice`, and `FormField` (177 lines) and replaced three consumers with
-  `FormLayoutCtrl` builders that return the concrete control. Swag Vault's two cards lost their two
-  field-description functions and every `findField` lookup. `Core.File.TweakFile` already parses a
-  text format onto struct fields through reflection, and `ThemeStyle.addStyleSheetColors` shows the
-  existing string-resource precedent in `std/gui`.
-- Next step: prototype the compile-time half first, since it is what decides the design. Parse a
-  small UI resource in a `#run` block with `TweakFile` as the model, and check whether the parsed
-  tree can emit typed member declarations for a window struct through `#code`/generated source. If
-  typed accessors cannot be generated at compile time, a UI resource reintroduces exactly the
-  lookup boundary the builders just removed, and a resource editor would ship that cost to every
-  window. Only then evaluate the editor.
-
 ---
 
 ## Out of scope

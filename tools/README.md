@@ -122,8 +122,9 @@ tags form a union; combined file and tag filters form an intersection.
 
 Run `tools\tests.swgs` first, then `tools\integrations.swgs opengl`,
 `tools\integrations.swgs windows`, and `tools\integrations.swgs smoke` when an interactive desktop
-is available. Running `tools\integrations.swgs` without a campaign name executes those three in
-order. Each accepts `dm`, `-bc`, and `--all-cfg` like the aggregate test tool.
+is available. Running `tools\integrations.swgs` without a campaign name executes the renderer,
+current-host window, and smoke campaigns in that order. `windows` reports an error on other hosts.
+Each accepts `dm`, `-bc`, and `--all-cfg` like the aggregate test tool.
 
 ## Maintenance
 

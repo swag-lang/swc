@@ -36,6 +36,322 @@ new platform implements capabilities rather than copies policy.
 The following entries implement the target backends and remove the Windows-bound behavior exposed
 by portable modules and products. The earlier entries prepare and enforce the same boundaries.
 
+### platform.portability.041 — Hardware discovery has no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host hardware-discovery acceptance.
+
+Implement the portable CPU, memory, display-adjacent, and machine capability queries currently
+provided only by Windows.
+
+- Complete when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
+
+### platform.portability.042 — Console I/O has no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host console acceptance.
+
+Implement terminal encoding, capability, color, prompt, and byte output for the chosen second
+platform behind the existing common formatting layer.
+
+- Complete when: The chosen second host passes common terminal encoding, color/capability, prompt, and raw-byte output tests, including redirected output and a terminal without color support.
+
+### platform.portability.043 — Stack capture has no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host stack-capture acceptance.
+
+Provide address capture and current-image discovery for the chosen second platform behind the
+runtime host boundary.
+
+- Related: platform.portability.003, platform.portability.045, platform.portability.044
+
+- Complete when: A stack captured on the chosen second host returns ordered addresses and their owning images for native and generated frames, with deterministic behavior when frames or images cannot be resolved.
+
+### platform.portability.044 — Debug-symbol access has no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host symbol-access acceptance.
+
+Locate and read the target's debug information for captured addresses, leaving parsing and
+presentation in the existing common layer.
+
+- Related: platform.portability.043
+
+- Complete when: The chosen second host resolves captured addresses from its debug information to function and source locations when symbols are present, and reports missing or stripped symbols without losing the raw addresses.
+
+### platform.portability.045 — Debugger integration has no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host debugger acceptance.
+
+Implement debugger detection, break/attach behavior, and any debugger-facing host operations
+independently of stack-symbol presentation.
+
+- Related: platform.portability.003, platform.portability.043
+
+- Complete when: Debugger presence, break, and attach operations on the chosen second host follow an explicit success/failure contract, with tests for attached and unattached behavior independent of stack-symbol formatting.
+
+### platform.portability.046 — Input devices have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host device-input acceptance.
+
+Implement keyboard and gamepad acquisition for the chosen second platform while keeping normalized
+state and policy in common code.
+
+- Complete when: The chosen second host acquires keyboard and gamepad state into the normalized input model, including connect/disconnect and focus loss, with platform tests that keep native device identifiers out of common callers.
+
+### platform.portability.053 — No second-platform text-input routing
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host committed-text acceptance.
+
+Translate committed native text input into the portable text event independently of IME
+composition.
+
+- Related: platform.portability.049, platform.portability.052, platform.portability.061
+
+- Complete when: The chosen second-platform GUI emits committed Unicode text through the portable text event for ordinary, dead-key, and multi-codepoint input without confusing it with physical key events or IME composition.
+
+### platform.portability.055 — No second-platform clipboard integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host clipboard acceptance.
+
+Implement clipboard ownership and platform-format conversion behind the portable typed-value
+contract.
+
+- Related: platform.portability.050
+
+- Complete when: The chosen second-platform GUI reads and writes the supported typed clipboard values with clear ownership and format conversion, and round-trip tests cover text, empty data, and owner shutdown.
+
+### platform.portability.057 — No second-platform GUI packaging
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host GUI-package acceptance.
+
+Package the GUI runtime and native dependencies for the chosen second platform.
+
+- Related: platform.portability.050, platform.portability.058, platform.portability.059
+
+- Complete when: A packaged GUI application on the chosen second platform launches on a clean target with its renderer, fonts, and native dependencies present, and a packaging smoke exercises open, render, and close.
+
+### platform.portability.058 — No second-platform GUI font integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host GUI-font acceptance.
+
+Connect GUI font selection and fallback to the installed-font catalog for the chosen platform.
+
+- Related: platform.portability.016, platform.portability.057
+
+- Complete when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
+
+### platform.portability.059 — No second-platform file-dialog integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host file-dialog acceptance.
+
+Connect the toolkit-owned file dialog to the target filesystem and native path expectations.
+
+- Related: platform.portability.033, platform.portability.057
+
+- Complete when: The toolkit file dialog on the chosen second host opens and saves paths using native filesystem rules, reports cancellation and failure distinctly, and retains its common selection behavior in tests.
+
+### platform.portability.060 — Accessibility has no second-platform integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host accessibility acceptance.
+
+Map the platform's native assistive-technology service to the accessibility contract from platform.portability.048.
+
+- Related: platform.portability.048, platform.portability.050, platform.portability.061, platform.portability.062
+
+- Complete when: The chosen second-platform assistive-technology adapter exposes the common control tree, names, states, focus, and actions, with an integration test that inspects and operates supported controls.
+
+### platform.portability.061 — IME has no second-platform integration
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define second-host IME acceptance.
+
+Map the platform's composition and candidate-window service to the input-method contract from
+platform.portability.049.
+
+- Related: platform.portability.049, platform.portability.050
+
+- Complete when: The chosen second-platform GUI displays composition and candidates, commits or cancels text correctly, and preserves caret and focus state in an integration test using the common input-method contract.
+
+### platform.portability.076 — Crash-dump exclusion has only a Windows-specific design
+
+- Recorded: 2026-08-30 12:27
+- Updated: 2026-09-27 18:06 — define cross-host dump-exclusion acceptance.
+- Owner: Swag Vault
+- Define the portable security capability and its unsupported behavior, register key regions with
+  Windows Error Reporting as the first backend, and verify the configured dump policy. Add target
+  adapters only where the OS offers an enforceable equivalent.
+- Related: platform.portability.075
+
+- Complete when: Swag Vault reports whether dump exclusion is enforceable on the host; Windows registers key regions with the configured crash-dump policy and a controlled dump inspection proves protected bytes are absent, while unsupported hosts fail explicitly.
+
+### platform.portability.077 — Release signing and elevation policy are Windows-only
+
+- Recorded: 2026-08-30 12:27
+- Updated: 2026-09-27 18:06 — define target signing and elevation acceptance.
+- Owner: release process
+- Problem: the application requests UAC elevation to start the driver. Unsigned, the consent dialog
+  reads "Unknown publisher" for an encryption tool. This is a larger adoption obstacle than any
+  feature on this list.
+- Next: define signing, verification, elevation, and packaging requirements per shipped target.
+  Apply an OV or EV certificate to `swagvault.exe`; record the corresponding macOS signing and
+  notarization contract before that port ships, and state the Linux package policy explicitly.
+- Note: elevation is only required because the portable WinFsp driver has to be registered by the
+  guardian process. A system-wide WinFsp installation makes `loadWinFsp` take the installed runtime
+  and skip the guardian entirely, which is also what allows an automated end-to-end test loop
+  without a consent dialog on every run.
+
+- Complete when: Each shipped Swag Vault target has documented signing, verification, packaging, and elevation policy; the Windows release verifies a signed publisher in the elevation flow, and macOS/Linux packages meet their declared verification gates.
+
+### platform.portability.079 — No macOS filesystem backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:06 — define macOS mount-backend acceptance.
+- Owner: Swag Vault
+- Add the macOS mount backend and packaging independently of Linux, choosing the supported FUSE or
+  native filesystem mechanism explicitly.
+- Related: platform.portability.078
+
+- Complete when: A packaged macOS Swag Vault mount passes the common filesystem and lifecycle tests, including failed mount, open-handle unmount, and shutdown under active I/O, through a documented supported filesystem mechanism.
+
+### platform.portability.023 — System-icon retrieval and caching are coupled in native GUI code
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:05 — define portable system-icon cache acceptance.
+
+Split `Application`'s system-icon code into a native operation that obtains one image and common
+  Swag that caches it, resizes it, appends it to an atlas, and returns a GUI `Icon`. Do the same for
+  each cache consumer without making unrelated shell behavior part of this entry.
+
+- Complete when: Native code obtains one requested icon image; common Swag owns resize, atlas insertion, reuse, and eviction for every system-icon consumer, with a test proving repeated requests reuse one cached result.
+
+### platform.portability.026 — Portable surface policy remains in native leaves
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:05 — define common surface-policy acceptance.
+
+Keep `Surface` position clamping, headless fallbacks, state updates, and command posting common.
+  A native surface backend should only create/destroy/show/move the host window, translate input
+  and window-manager events, manage clipboard/drag/drop/tray integration, and expose an opaque
+  renderer handle.
+
+- Related: platform.portability.050
+
+- Complete when: Position clamping, headless fallback, state transitions, and command posting run from common Surface code on Windows and the chosen second host; native leaves only operate host windows and integrations, with lifecycle tests on both backends.
+
+### platform.portability.027 — Audio backend selection is repeated compile-time dispatch
+
+- Recorded: 2026-08-09 11:06
+- Updated: 2026-09-27 18:05 — define audio backend-interface acceptance.
+
+Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a backend interface or
+  operation table. Driver selection, validation, voice/bus lifecycle, streaming-buffer rotation,
+  gain conversion, state transitions, and codec work stay common; XAudio2 is one implementation.
+
+- Related: platform.portability.065
+
+- Complete when: Engine, voice, bus, streaming, gain, and state operations dispatch through one backend interface instead of repeated OS branches, and the NoSound and XAudio2 contract suites retain the same observable behavior.
+
+### platform.portability.032 — Process services have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host process-service acceptance.
+
+Add process creation, waiting, termination, pipes, exit status, and resource semantics for the
+chosen second platform. The common-policy extraction is tracked separately in platform.portability.008 and platform.portability.009.
+
+- Related: platform.portability.008, platform.portability.009, platform.portability.011
+
+- Complete when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
+
+### platform.portability.033 — Filesystem services have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host filesystem acceptance.
+
+Implement directory, file, stream, metadata, path-state, and mutation primitives for the chosen
+second platform behind the existing common orchestration and path contracts.
+
+- Complete when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
+
+### platform.portability.034 — Threads have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host thread acceptance.
+
+Implement thread creation, start, join, yield, sleep, identity, and priority for the chosen second
+platform without copying common lifecycle policy into the native leaf.
+
+- Related: platform.portability.035
+
+- Complete when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
+
+### platform.portability.036 — Clocks have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host clock acceptance.
+
+Implement wall-clock fields and monotonic ticks for the chosen second platform.
+
+- Related: platform.portability.037
+
+- Complete when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
+
+### platform.portability.037 — Timers have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host timer acceptance.
+
+Implement native timer wait/wake mechanisms for the chosen second platform behind the common
+scheduler in platform.portability.029.
+
+- Related: platform.portability.036, platform.portability.029
+
+- Complete when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
+
+### platform.portability.038 — Environment services have no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host environment acceptance.
+
+Implement environment variables, arguments, locale, special directories, and generic desktop
+actions for the chosen second platform.
+
+- Related: platform.portability.005, platform.portability.010, platform.portability.015
+
+- Complete when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
+
+### platform.portability.039 — Native errors have no second-platform mapping
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host native-error acceptance.
+
+Map the second platform's error domain into the portable `core` failure contract, preserving native
+detail without leaking native codes into portable callers.
+
+- Complete when: Representative filesystem and process failures on the chosen second host map to portable core failures while retaining inspectable native detail, and common callers branch only on portable errors.
+
+### platform.portability.040 — The sandbox has no second-platform backend
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-09-27 18:05 — define second-host sandbox acceptance.
+
+Implement the sandbox's platform enforcement and early-startup behavior for the chosen second
+platform independently of general environment services.
+
+- Related: platform.portability.038, platform.portability.010
+
+- Complete when: The chosen second host applies sandbox restrictions before user code and imported native modules run, rejects forbidden filesystem and process actions in integration tests, and reports unsupported enforcement explicitly.
+
 ### platform.portability.001 — No build-only non-Windows portability configuration
 
 - Recorded: 2026-08-09 11:06
@@ -745,38 +1061,6 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
 - Related: app.scope.viewers.009, app.scope.viewers.011, platform.portability.073,
   platform.portability.074
 
-### platform.portability.023 — System-icon retrieval and caching are coupled in native GUI code
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Split `Application`'s system-icon code into a native operation that obtains one image and common
-  Swag that caches it, resizes it, appends it to an atlas, and returns a GUI `Icon`. Do the same for
-  each cache consumer without making unrelated shell behavior part of this entry.
-
-### platform.portability.026 — Portable surface policy remains in native leaves
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Keep `Surface` position clamping, headless fallbacks, state updates, and command posting common.
-  A native surface backend should only create/destroy/show/move the host window, translate input
-  and window-manager events, manage clipboard/drag/drop/tray integration, and expose an opaque
-  renderer handle.
-
-- Related: platform.portability.050
-
-### platform.portability.027 — Audio backend selection is repeated compile-time dispatch
-
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a backend interface or
-  operation table. Driver selection, validation, voice/bus lifecycle, streaming-buffer rotation,
-  gain conversion, state transitions, and codec work stay common; XAudio2 is one implementation.
-
-- Related: platform.portability.065
-
 ### platform.portability.031 — Decide deliberately whether Swag should ship its own libm
 
 - Recorded: 2026-08-09 11:06
@@ -814,201 +1098,6 @@ The decision is complete when the hosted Linux ABI can ship without it and the o
 goal has measurable reasons, semantics, provenance, and acceptance tests. “Other languages do it”
 is not by itself a requirement; mature languages make different choices according to whether they
 target an operating system, a freestanding environment, deterministic numerics, or all three.
-
-### platform.portability.032 — Process services have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Add process creation, waiting, termination, pipes, exit status, and resource semantics for the
-chosen second platform. The common-policy extraction is tracked separately in platform.portability.008 and platform.portability.009.
-
-- Related: platform.portability.008, platform.portability.009, platform.portability.011
-
-### platform.portability.033 — Filesystem services have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement directory, file, stream, metadata, path-state, and mutation primitives for the chosen
-second platform behind the existing common orchestration and path contracts.
-
-### platform.portability.034 — Threads have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement thread creation, start, join, yield, sleep, identity, and priority for the chosen second
-platform without copying common lifecycle policy into the native leaf.
-
-- Related: platform.portability.035
-
-### platform.portability.036 — Clocks have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement wall-clock fields and monotonic ticks for the chosen second platform.
-
-- Related: platform.portability.037
-
-### platform.portability.037 — Timers have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement native timer wait/wake mechanisms for the chosen second platform behind the common
-scheduler in platform.portability.029.
-
-- Related: platform.portability.036, platform.portability.029
-
-### platform.portability.038 — Environment services have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement environment variables, arguments, locale, special directories, and generic desktop
-actions for the chosen second platform.
-
-- Related: platform.portability.005, platform.portability.010, platform.portability.015
-
-### platform.portability.039 — Native errors have no second-platform mapping
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Map the second platform's error domain into the portable `core` failure contract, preserving native
-detail without leaking native codes into portable callers.
-
-### platform.portability.040 — The sandbox has no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement the sandbox's platform enforcement and early-startup behavior for the chosen second
-platform independently of general environment services.
-
-- Related: platform.portability.038, platform.portability.010
-
-### platform.portability.041 — Hardware discovery has no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement the portable CPU, memory, display-adjacent, and machine capability queries currently
-provided only by Windows.
-
-### platform.portability.042 — Console I/O has no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement terminal encoding, capability, color, prompt, and byte output for the chosen second
-platform behind the existing common formatting layer.
-
-### platform.portability.043 — Stack capture has no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Provide address capture and current-image discovery for the chosen second platform behind the
-runtime host boundary.
-
-- Related: platform.portability.003, platform.portability.045, platform.portability.044
-
-### platform.portability.044 — Debug-symbol access has no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Locate and read the target's debug information for captured addresses, leaving parsing and
-presentation in the existing common layer.
-
-- Related: platform.portability.043
-
-### platform.portability.045 — Debugger integration has no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement debugger detection, break/attach behavior, and any debugger-facing host operations
-independently of stack-symbol presentation.
-
-- Related: platform.portability.003, platform.portability.043
-
-### platform.portability.046 — Input devices have no second-platform backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement keyboard and gamepad acquisition for the chosen second platform while keeping normalized
-state and policy in common code.
-
-### platform.portability.053 — No second-platform text-input routing
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Translate committed native text input into the portable text event independently of IME
-composition.
-
-- Related: platform.portability.049, platform.portability.052, platform.portability.061
-
-### platform.portability.055 — No second-platform clipboard integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Implement clipboard ownership and platform-format conversion behind the portable typed-value
-contract.
-
-- Related: platform.portability.050
-
-### platform.portability.057 — No second-platform GUI packaging
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Package the GUI runtime and native dependencies for the chosen second platform.
-
-- Related: platform.portability.050, platform.portability.058, platform.portability.059
-
-### platform.portability.058 — No second-platform GUI font integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Connect GUI font selection and fallback to the installed-font catalog for the chosen platform.
-
-- Related: platform.portability.016, platform.portability.057
-
-### platform.portability.059 — No second-platform file-dialog integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Connect the toolkit-owned file dialog to the target filesystem and native path expectations.
-
-- Related: platform.portability.033, platform.portability.057
-
-### platform.portability.060 — Accessibility has no second-platform integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Map the platform's native assistive-technology service to the accessibility contract from platform.portability.048.
-
-- Related: platform.portability.048, platform.portability.050, platform.portability.061, platform.portability.062
-
-### platform.portability.061 — IME has no second-platform integration
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-Map the platform's composition and candidate-window service to the input-method contract from
-platform.portability.049.
-
-- Related: platform.portability.049, platform.portability.050
 
 ### platform.portability.063 — Spatialization is coupled to an unused X3DAudio handle
 
@@ -1123,38 +1212,3 @@ capture side. The editor, the forms, the library, and the serialization are alre
 - Complete when: supported targets prove the key pages are locked or refuse securely, and Vault
   contains no direct `VirtualLock`, `mlock`, or equivalent call.
 - Related: platform.portability.076
-
-### platform.portability.076 — Crash-dump exclusion has only a Windows-specific design
-
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Owner: Swag Vault
-- Define the portable security capability and its unsupported behavior, register key regions with
-  Windows Error Reporting as the first backend, and verify the configured dump policy. Add target
-  adapters only where the OS offers an enforceable equivalent.
-- Related: platform.portability.075
-
-### platform.portability.077 — Release signing and elevation policy are Windows-only
-
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Owner: release process
-- Problem: the application requests UAC elevation to start the driver. Unsigned, the consent dialog
-  reads "Unknown publisher" for an encryption tool. This is a larger adoption obstacle than any
-  feature on this list.
-- Next: define signing, verification, elevation, and packaging requirements per shipped target.
-  Apply an OV or EV certificate to `swagvault.exe`; record the corresponding macOS signing and
-  notarization contract before that port ships, and state the Linux package policy explicitly.
-- Note: elevation is only required because the portable WinFsp driver has to be registered by the
-  guardian process. A system-wide WinFsp installation makes `loadWinFsp` take the installed runtime
-  and skip the guardian entirely, which is also what allows an automated end-to-end test loop
-  without a consent dialog on every run.
-
-### platform.portability.079 — No macOS filesystem backend
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Owner: Swag Vault
-- Add the macOS mount backend and packaging independently of Linux, choosing the supported FUSE or
-  native filesystem mechanism explicitly.
-- Related: platform.portability.078

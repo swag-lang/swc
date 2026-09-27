@@ -34,9 +34,10 @@ Runs desktop integrations separately from the headless test set.
   -bc <config>       release or devmode (default devmode)
   --all-cfg          repeat the integrations in both configurations
 
-OpenGL selects renderer integration tests; windows selects host-window tests;
-smoke launches scripts, examples, and applications. With no name, all three run
-in that order. These checks may create real windows and require a desktop.
+OpenGL selects renderer integration tests; windows selects Windows host-window
+tests; smoke launches scripts, examples, and applications. With no name, the
+renderer, current-host window, and smoke campaigns run in that order. These
+checks may create real windows and require a desktop.
 """)
 
     case "unittests":

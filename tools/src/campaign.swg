@@ -177,6 +177,12 @@ public func runIntegrations(context: *Context, options: *Options)->s32 fail
         return 1
     }
 
+    if options.command == "windows" and not WINDOWS
+    {
+        Console.println("integrations.swgs windows requires a Windows host.")
+        return 1
+    }
+
     let configurations = options.configurations()
     if options.command.isEmpty() or options.command == "opengl"
     {
@@ -192,7 +198,7 @@ public func runIntegrations(context: *Context, options: *Options)->s32 fail
         }
     }
 
-    if options.command.isEmpty() or options.command == "windows"
+    if (options.command.isEmpty() and WINDOWS) or options.command == "windows"
     {
         for cfg in configurations
         {

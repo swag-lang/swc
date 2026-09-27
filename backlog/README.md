@@ -35,15 +35,17 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [std.core.md](std.core.md) | `std/core` | 2026-09-27 18:13 |
+| [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-27 18:11 |
+| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-27 18:09 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-09-27 18:08 |
-| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:03 |
+| [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-09-27 18:06 |
 | [app.prism.md](app.prism.md) | The Swag Prism application | 2026-09-27 17:52 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-09-27 17:52 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-09-27 17:50 |
 | [std.pixel.md](std.pixel.md) | `std/pixel` | 2026-09-27 17:49 |
 | [compiler.command.format.md](compiler.command.format.md) | The `format` command | 2026-09-27 17:45 |
 | [compiler.optimization.md](compiler.optimization.md) |Backend optimization passes, register allocation, and generated-code performance| 2026-09-27 17:44 |
-| [std.gui.md](std.gui.md) | `std/gui` | 2026-09-26 18:56 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, services, and workspace build engine | 2026-09-24 14:07 |
 | [std.video.md](std.video.md) | `std/video` | 2026-09-23 19:25 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-09-23 17:21 |
@@ -52,7 +54,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [app.scope.md](app.scope.md) | The Swag Scope application shell, document lifecycle, and window hosting | 2026-09-12 20:10 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-09-12 18:05 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-09-12 07:12 |
-| [std.core.md](std.core.md) | `std/core` | 2026-09-12 06:43 |
 | [app.scope.indesign.md](app.scope.indesign.md) | The Swag Scope InDesign viewer | 2026-09-12 06:37 |
 | [app.scope.text.md](app.scope.text.md) | The Swag Scope basic-text, code, subtitle, table, diff, and log viewers | 2026-09-12 06:24 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-09-12 06:19 |
@@ -73,7 +74,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [app.scope.audio.md](app.scope.audio.md) | The Swag Scope sound viewer | 2026-09-06 07:51 |
 | [app.scope.opendocument.md](app.scope.opendocument.md) | The Swag Scope OpenDocument decoder and reader | 2026-09-06 07:51 |
 | [compiler.distribution.md](compiler.distribution.md) | Release delivery, first use, local learning, and agent-grade command discovery | 2026-09-06 07:51 |
-| [std.truetype.md](std.truetype.md) | `std/truetype` | 2026-09-01 08:37 |
 
 Put an entry in the domain where it will be investigated or fixed, not where it happened to be
 noticed. Create a new domain file only when a real cluster forms; a category holding one isolated

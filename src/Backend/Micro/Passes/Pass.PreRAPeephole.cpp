@@ -70,16 +70,6 @@ Result MicroPreRaPeepholePass::run(MicroPassContext& context)
     ctx.encoder  = context.encoder;
     ctx.storage  = context.instructions;
     ctx.operands = context.operands;
-    if (ctx.builder)
-    {
-        ctx.relocated.reserve(ctx.builder->codeRelocations().size());
-        for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
-        {
-            if (reloc.instructionRef.isValid())
-                ctx.relocated.insert(reloc.instructionRef.get());
-        }
-    }
-
     runPerInstructionPatterns(ctx);
 
     if (ctx.actions.empty())

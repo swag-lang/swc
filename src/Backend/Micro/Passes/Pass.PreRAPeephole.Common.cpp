@@ -6,6 +6,25 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PreRaPeephole
 {
+    bool Context::isRelocated(const MicroInstrRef ref)
+    {
+        if (!relocationsReady)
+        {
+            relocationsReady = true;
+            if (builder)
+            {
+                relocated.reserve(builder->codeRelocations().size());
+                for (const MicroRelocation& reloc : builder->codeRelocations())
+                {
+                    if (reloc.instructionRef.isValid())
+                        relocated.insert(reloc.instructionRef.get());
+                }
+            }
+        }
+
+        return relocated.contains(ref.get());
+    }
+
     bool Context::claimAll(std::initializer_list<MicroInstrRef> refs)
     {
         for (const MicroInstrRef ref : refs)

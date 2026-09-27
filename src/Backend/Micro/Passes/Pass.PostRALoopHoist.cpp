@@ -887,7 +887,7 @@ namespace
         // Physical liveness is only useful for a loop with a clean
         // fall-through preheader. The instruction stream stays unchanged
         // until all candidate loops have been analyzed.
-        std::vector<const NaturalLoop*> loops;
+        SmallVector<const NaturalLoop*, 4> loops;
         loops.reserve(loopsByHeader.size());
         for (const auto& loop : loopsByHeader | std::views::values)
         {

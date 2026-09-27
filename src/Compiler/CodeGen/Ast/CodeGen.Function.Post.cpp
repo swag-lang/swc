@@ -1100,15 +1100,6 @@ namespace
         return Result::Continue;
     }
 
-    bool canUseCompilerRunBlockDirectCallWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
-    {
-        if (normalizedRet.isVoid || normalizedRet.isIndirect)
-            return false;
-        if (exprNode.isNot(AstNodeId::CallExpr))
-            return false;
-        return payload.isValue();
-    }
-
     bool isCompilerFunctionDecl(CodeGen& codeGen)
     {
         const AstNodeRef declRef = codeGen.function().declNodeRef();
@@ -1143,7 +1134,7 @@ namespace
             }
             else
             {
-                if (canUseCompilerRunBlockDirectCallWriteBack(exprNode, exprPayload, normalizedRet))
+                if (CodeGenFunctionHelpers::canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet.isVoid, normalizedRet.isIndirect))
                     ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
                 else
                     ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);

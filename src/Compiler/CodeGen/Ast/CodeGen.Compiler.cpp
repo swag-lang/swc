@@ -164,17 +164,6 @@ namespace
         codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
     }
 
-    bool canUseDirectCallReturnWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
-    {
-        if (normalizedRet.isVoid || normalizedRet.isIndirect)
-            return false;
-
-        if (exprNode.isNot(AstNodeId::CallExpr))
-            return false;
-
-        return payload.isValue();
-    }
-
     void collectCompilerFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
@@ -529,7 +518,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         // A direct call expression may still own the ABI return registers, so write them back without
         // round-tripping through a freshly materialized virtual value.
-        if (canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet))
+        if (CodeGenFunctionHelpers::canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet.isVoid, normalizedRet.isIndirect))
             ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
         else
             ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);

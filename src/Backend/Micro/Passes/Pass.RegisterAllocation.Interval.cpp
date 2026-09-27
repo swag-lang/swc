@@ -1117,22 +1117,27 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     if (walk.failed)
         return false;
 
-    // Group nodes per value for the consumers (rewrite, resolution, dump).
-    std::vector<uint32_t> order(out.nodes.size());
-    for (uint32_t i = 0; i < order.size(); ++i)
-        order[i] = i;
-    std::ranges::sort(order, [&](const uint32_t a, const uint32_t b) {
-        if (out.nodes[a].denseIndex != out.nodes[b].denseIndex)
-            return out.nodes[a].denseIndex < out.nodes[b].denseIndex;
-        return out.nodes[a].start() < out.nodes[b].start();
-    });
-    std::vector<LiveInterval> sorted;
-    sorted.reserve(out.nodes.size());
-    for (const uint32_t i : order)
-        sorted.push_back(std::move(out.nodes[i]));
-    out.nodes = std::move(sorted);
-
     const size_t virtualCount = denseVirtualRegs_.regs().size();
+    // The initial nodes are already in dense-value order. Only a split (or a
+    // parked call range) appends nodes and requires regrouping them.
+    if (out.nodes.size() != virtualCount)
+    {
+        std::vector<uint32_t> order(out.nodes.size());
+        for (uint32_t i = 0; i < order.size(); ++i)
+            order[i] = i;
+        std::ranges::sort(order, [&](const uint32_t a, const uint32_t b) {
+            if (out.nodes[a].denseIndex != out.nodes[b].denseIndex)
+                return out.nodes[a].denseIndex < out.nodes[b].denseIndex;
+            return out.nodes[a].start() < out.nodes[b].start();
+        });
+        std::vector<LiveInterval> sorted;
+        sorted.reserve(out.nodes.size());
+        for (const uint32_t i : order)
+            sorted.push_back(std::move(out.nodes[i]));
+        out.nodes = std::move(sorted);
+    }
+
+    // Group nodes per value for the consumers (rewrite, resolution, dump).
     out.valueNodesBegin.assign(virtualCount + 1, 0);
     for (const LiveInterval& node : out.nodes)
         ++out.valueNodesBegin[node.denseIndex + 1];
@@ -1801,6 +1806,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // register another one writes must run first. A cycle needs a bounce and
     // stage 1 declines it. A trampoline is its own point even when it shares
     // the physical insertion spot with a fall-through edge's connectors.
+    // With at most one connector, its default order zero is already final.
+    if (connectors.size() > 1)
     {
         std::map<uint64_t, std::vector<size_t>> byPoint;
         for (size_t i = 0; i < connectors.size(); ++i)

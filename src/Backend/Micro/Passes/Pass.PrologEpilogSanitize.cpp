@@ -772,7 +772,7 @@ namespace
             return false;
 
         const uint64_t             reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
-        SmallVector<MicroInstrRef> order;
+        SmallVector<MicroInstrRef, 33> order;
         const auto view  = context.instructions->view();
         auto       it    = view.begin();
         const auto endIt = view.end();

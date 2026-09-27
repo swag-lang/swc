@@ -12,6 +12,20 @@ class MicroBuilder;
 
 namespace MicroPassHelpers
 {
+    inline bool instructionReadsMemory(const MicroInstr& inst)
+    {
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+            !info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+            inst.op != MicroInstrOpcode::LoadAddrRegMem)
+            return true;
+
+        return inst.op == MicroInstrOpcode::LoadAmcRegMem ||
+               inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
+               inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
+               inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
+    }
+
     // Immediate-dominator tree over the per-instruction CFG
     // (Cooper-Harvey-Kennedy). Shared by the passes that reason about
     // dominance on the linear instruction stream (LICM, value numbering).

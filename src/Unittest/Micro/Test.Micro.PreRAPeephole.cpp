@@ -26,17 +26,6 @@ namespace
         return builder.runPasses(passManager, encoder, passContext);
     }
 
-    const MicroInstr* findFirstOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                return &inst;
-        }
-
-        return nullptr;
-    }
-
     const MicroInstr* findNthOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode, uint32_t nth)
     {
         uint32_t current = 0;
@@ -67,7 +56,7 @@ SWC_TEST_BEGIN(PreRAPeephole_FloatBinary_DefinesIndependentResult)
             builder.emitOpBinaryRegReg(result, b, operation, bits);
             builder.emitRet();
             SWC_RESULT(runPreRaPeepholePass(builder, &encoder));
-            const MicroInstr* fused = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg);
+            const MicroInstr* fused = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg);
             if (!fused || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg))
                 return Result::Error;
             const MicroInstrOperand* ops = fused->ops(builder.operands());
@@ -121,7 +110,7 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsLoadImmIntoStore)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 2)
         return Result::Error;
 
-    const MicroInstr* storeInst = findFirstOpcode(builder, MicroInstrOpcode::LoadMemImm);
+    const MicroInstr* storeInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadMemImm);
     if (!storeInst)
         return Result::Error;
 
@@ -151,7 +140,7 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsLoadImmIntoCmpMem)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemImm) != 1)
         return Result::Error;
 
-    const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpMemImm);
+    const MicroInstr* cmpInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::CmpMemImm);
     if (!cmpInst)
         return Result::Error;
 
@@ -181,7 +170,7 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsLoadImmIntoMemBinary)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemImm) != 1)
         return Result::Error;
 
-    const MicroInstr* memOp = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryMemImm);
+    const MicroInstr* memOp = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::OpBinaryMemImm);
     if (!memOp)
         return Result::Error;
 
@@ -208,7 +197,7 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsCopyIntoNextUseOnlySlots)
 
     SWC_RESULT(runPreRaPeepholePass(builder));
 
-    const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpMemReg);
+    const MicroInstr* cmpInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::CmpMemReg);
     if (!cmpInst)
         return Result::Error;
 
@@ -240,7 +229,7 @@ SWC_TEST_BEGIN(PreRAPeephole_TransfersForbiddenPhysRegsAcrossCopyForward)
     if (!builder.isVirtualRegPhysRegForbidden(src, callConv.intReturn))
         return Result::Error;
 
-    const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpMemReg);
+    const MicroInstr* cmpInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::CmpMemReg);
     if (!cmpInst)
         return Result::Error;
 
@@ -267,7 +256,7 @@ SWC_TEST_BEGIN(PreRAPeephole_DoesNotRewriteExchangeUseDefConsumer)
 
     SWC_RESULT(runPreRaPeepholePass(builder));
 
-    const MicroInstr* exchangeInst = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegReg);
+    const MicroInstr* exchangeInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegReg);
     if (!exchangeInst)
         return Result::Error;
 
@@ -299,7 +288,7 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsLoadImmIntoAmcStore)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcMemImm) != 1)
         return Result::Error;
 
-    const MicroInstr* storeInst = findFirstOpcode(builder, MicroInstrOpcode::LoadAmcMemImm);
+    const MicroInstr* storeInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadAmcMemImm);
     if (!storeInst)
         return Result::Error;
 
@@ -329,7 +318,7 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsClearRegIntoImmediateCompare)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemImm) != 1)
         return Result::Error;
 
-    const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpMemImm);
+    const MicroInstr* cmpInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::CmpMemImm);
     if (!cmpInst)
         return Result::Error;
 
@@ -386,7 +375,7 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsConstantAcrossAddressCopy)
         builder.emitRet();
 
         SWC_RESULT(runPreRaPeepholePass(builder));
-        const MicroInstr* folded = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegImm);
+        const MicroInstr* folded = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegImm);
         const auto*       ops    = folded ? folded->ops(builder.operands()) : nullptr;
         if (!ops || ops[0].reg != index || ops[2].microOp != MicroOp::Add || ops[3].valueU64 != 24 ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
@@ -448,7 +437,7 @@ SWC_TEST_BEGIN(PreRAPeephole_CombinesAdjacentRegImmAdd)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1)
         return Result::Error;
 
-    const MicroInstr* addInst = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegImm);
+    const MicroInstr* addInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::OpBinaryRegImm);
     if (!addInst)
         return Result::Error;
 
@@ -500,7 +489,7 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsCopyAddIntoLoadAddress)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 1)
         return Result::Error;
 
-    const MicroInstr* addrInst = findFirstOpcode(builder, MicroInstrOpcode::LoadAddrRegMem);
+    const MicroInstr* addrInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadAddrRegMem);
     if (!addrInst)
         return Result::Error;
 
@@ -533,7 +522,7 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsCopyAddIntoLoadAddressDespiteMismatchedForbidd
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 1)
         return Result::Error;
 
-    const MicroInstr* addrInst = findFirstOpcode(builder, MicroInstrOpcode::LoadAddrRegMem);
+    const MicroInstr* addrInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadAddrRegMem);
     if (!addrInst)
         return Result::Error;
 
@@ -589,7 +578,7 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcIndexImmediateIntoSimpleLoad)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
 
-    const MicroInstr* loadInst = findFirstOpcode(builder, MicroInstrOpcode::LoadRegMem);
+    const MicroInstr* loadInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadRegMem);
     if (!loadInst)
         return Result::Error;
 
@@ -616,7 +605,7 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsAddressBaseIntoAmcStore)
 
     SWC_RESULT(runPreRaPeepholePass(builder));
 
-    const MicroInstr* storeInst = findFirstOpcode(builder, MicroInstrOpcode::LoadAmcMemImm);
+    const MicroInstr* storeInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadAmcMemImm);
     if (!storeInst)
         return Result::Error;
 
@@ -650,7 +639,7 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcAddressIntoStore)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcMemReg) != 1)
         return Result::Error;
 
-    const MicroInstr* storeInst = findFirstOpcode(builder, MicroInstrOpcode::LoadAmcMemReg);
+    const MicroInstr* storeInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadAmcMemReg);
     if (!storeInst)
         return Result::Error;
 
@@ -712,7 +701,7 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsAmcAddressIntoMemoryUpdate)
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryMemReg) != 0)
         return Result::Error;
-    const MicroInstr* update = findFirstOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemReg);
+    const MicroInstr* update = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemReg);
     if (!update)
         return Result::Error;
     const MicroInstrOperand* ops = update->ops(builder.operands());

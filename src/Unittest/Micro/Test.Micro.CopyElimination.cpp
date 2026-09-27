@@ -25,16 +25,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-    const MicroInstr* findFirstOpcode(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                return &inst;
-        }
-
-        return nullptr;
-    }
 }
 
 // mov v1, v1 -> erased.
@@ -74,7 +64,7 @@ SWC_TEST_BEGIN(CopyElim_ChainedCopies_CanonicalizesSource)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
-    const MicroInstr* copyInst = findFirstOpcode(builder, MicroInstrOpcode::LoadRegReg);
+    const MicroInstr* copyInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadRegReg);
     if (!copyInst)
         return Result::Error;
 
@@ -111,7 +101,7 @@ SWC_TEST_BEGIN(CopyElim_RewritesPureUseAcrossJoin)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
 
-    const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpRegImm);
+    const MicroInstr* cmpInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::CmpRegImm);
     if (!cmpInst)
         return Result::Error;
 
@@ -141,7 +131,7 @@ SWC_TEST_BEGIN(CopyElim_DoesNotPropagatePastSourceRedefinition)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
-    const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpRegImm);
+    const MicroInstr* cmpInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::CmpRegImm);
     if (!cmpInst)
         return Result::Error;
 

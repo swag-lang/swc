@@ -4354,8 +4354,6 @@ namespace
         if (!context.builder)
             return false;
 
-        const auto& labelReferences = labelCache.get(storage, operands);
-
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond)
@@ -4363,7 +4361,7 @@ namespace
             const MicroInstrOperand* branchOps  = it->ops(operands);
             uint32_t                 armLabelId = 0;
             if (!branchOps || branchOps[0].cpuCond == MicroCond::Unconditional ||
-                !tryGetJumpTargetLabelId(armLabelId, *it, branchOps) || jumpLabelReferenceCount(labelReferences, armLabelId) != 1)
+                !tryGetJumpTargetLabelId(armLabelId, *it, branchOps))
                 continue;
 
             const MicroInstrRef fallCopyRef  = storage.findNextInstructionRef(it.current);
@@ -4386,6 +4384,9 @@ namespace
                 fallMergeOps[1].reg != fallOpOps[0].reg ||
                 !joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
                 joinJumpOps[0].cpuCond != MicroCond::Unconditional)
+                continue;
+            const auto& labelReferences = labelCache.get(storage, operands);
+            if (jumpLabelReferenceCount(labelReferences, armLabelId) != 1)
                 continue;
             uint32_t joinLabelId = 0;
             if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || jumpLabelReferenceCount(labelReferences, joinLabelId) != 1)
@@ -4463,8 +4464,6 @@ namespace
         if (!context.builder)
             return false;
 
-        const auto& labelReferences = labelCache.get(storage, operands);
-
         struct Candidate
         {
             MicroInstrRef firstJumpRef  = MicroInstrRef::invalid();
@@ -4494,7 +4493,7 @@ namespace
             if (!MicroPassHelpers::invertCondition(candidate.firstTrue, firstJumpOps[0].cpuCond))
                 continue;
             uint32_t falseLabelId = 0;
-            if (!tryGetJumpTargetLabelId(falseLabelId, *it, firstJumpOps) || jumpLabelReferenceCount(labelReferences, falseLabelId) != 2)
+            if (!tryGetJumpTargetLabelId(falseLabelId, *it, firstJumpOps))
                 continue;
 
             const MicroInstrRef secondCmpRef = storage.findNextInstructionRef(candidate.firstJumpRef);
@@ -4509,6 +4508,9 @@ namespace
             uint32_t secondTarget = 0;
             if (!tryGetJumpTargetLabelId(secondTarget, *secondJump, secondJumpOps) || secondTarget != falseLabelId ||
                 !MicroPassHelpers::invertCondition(candidate.secondTrue, secondJumpOps[0].cpuCond))
+                continue;
+            const auto& labelReferences = labelCache.get(storage, operands);
+            if (jumpLabelReferenceCount(labelReferences, falseLabelId) != 2)
                 continue;
 
             candidate.oneRef         = storage.findNextInstructionRef(candidate.secondJumpRef);

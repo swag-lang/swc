@@ -3862,29 +3862,11 @@ namespace
                             ++sourceMentions;
                     }
                 }
-                const auto swapCondition = [](MicroCond& out, const MicroCond in) {
-                    switch (in)
-                    {
-                        case MicroCond::Equal: out = MicroCond::Equal; return true;
-                        case MicroCond::NotEqual: out = MicroCond::NotEqual; return true;
-                        case MicroCond::Zero: out = MicroCond::Zero; return true;
-                        case MicroCond::NotZero: out = MicroCond::NotZero; return true;
-                        case MicroCond::Above: out = MicroCond::Below; return true;
-                        case MicroCond::AboveOrEqual: out = MicroCond::BelowOrEqual; return true;
-                        case MicroCond::Below: out = MicroCond::Above; return true;
-                        case MicroCond::BelowOrEqual: out = MicroCond::AboveOrEqual; return true;
-                        case MicroCond::Greater: out = MicroCond::Less; return true;
-                        case MicroCond::GreaterOrEqual: out = MicroCond::LessOrEqual; return true;
-                        case MicroCond::Less: out = MicroCond::Greater; return true;
-                        case MicroCond::LessOrEqual: out = MicroCond::GreaterOrEqual; return true;
-                        default: return false;
-                    }
-                };
                 const MicroInstrOperand* setOps  = set->ops(operands);
                 const MicroInstrOperand* jumpOps = it->ops(operands);
                 if (sourceMentions != 2 || !setOps || !jumpOps ||
-                    !swapCondition(swappedSetCond, setOps[1].cpuCond) ||
-                    !swapCondition(swappedJumpCond, jumpOps[0].cpuCond))
+                    !MicroPassHelpers::swapCompareCondition(swappedSetCond, setOps[1].cpuCond) ||
+                    !MicroPassHelpers::swapCompareCondition(swappedJumpCond, jumpOps[0].cpuCond))
                     continue;
             }
 

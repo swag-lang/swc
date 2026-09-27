@@ -12,6 +12,28 @@ class MicroBuilder;
 
 namespace MicroPassHelpers
 {
+    // Condition code after swapping the operands of an integer compare.
+    // Conditions without a direct swapped form return false.
+    inline bool swapCompareCondition(MicroCond& out, MicroCond in)
+    {
+        switch (in)
+        {
+            case MicroCond::Equal: out = MicroCond::Equal; return true;
+            case MicroCond::NotEqual: out = MicroCond::NotEqual; return true;
+            case MicroCond::Zero: out = MicroCond::Zero; return true;
+            case MicroCond::NotZero: out = MicroCond::NotZero; return true;
+            case MicroCond::Above: out = MicroCond::Below; return true;
+            case MicroCond::AboveOrEqual: out = MicroCond::BelowOrEqual; return true;
+            case MicroCond::Below: out = MicroCond::Above; return true;
+            case MicroCond::BelowOrEqual: out = MicroCond::AboveOrEqual; return true;
+            case MicroCond::Greater: out = MicroCond::Less; return true;
+            case MicroCond::GreaterOrEqual: out = MicroCond::LessOrEqual; return true;
+            case MicroCond::Less: out = MicroCond::Greater; return true;
+            case MicroCond::LessOrEqual: out = MicroCond::GreaterOrEqual; return true;
+            default: return false;
+        }
+    }
+
     inline bool isVariableScalarShiftOp(MicroOp op)
     {
         switch (op)

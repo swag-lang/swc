@@ -129,7 +129,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_ThreadsRepeatedIndexedZeroTestOnlyOnProvenPaths)
     constexpr MicroReg index = MicroReg::intReg(13);
     constexpr MicroReg other = MicroReg::intReg(14);
     constexpr MicroReg value = MicroReg::intReg(0);
-    for (uint32_t mode = 0; mode < 6; ++mode)
+    for (uint32_t mode = 0; mode < 7; ++mode)
     {
         SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         if (mode != 1)
@@ -170,6 +170,11 @@ SWC_TEST_BEGIN(PostRALoopRotate_ThreadsRepeatedIndexedZeroTestOnlyOnProvenPaths)
             builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitCmpRegImm(value, ApInt(0, 32), MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, match);
+        if (mode == 6)
+        {
+            const std::array targets{match};
+            builder.emitJumpReg(value, targets);
+        }
         builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         emitUsedTest(base);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, probe);

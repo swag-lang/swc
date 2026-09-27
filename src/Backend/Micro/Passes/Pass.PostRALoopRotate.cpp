@@ -186,6 +186,24 @@ namespace
                 std::ranges::find(addressTaken, at - 1) != addressTaken.end())
                 continue;
 
+            // This rewrite removes matchLabel. Every explicit edge to it
+            // must be a direct jump that the retargeting below can update.
+            bool directMatchEdges = true;
+            for (const uint32_t predecessor : cfg.predecessors(at - 1))
+            {
+                if (predecessor == at - 2)
+                    continue;
+                const MicroInstr* incoming = storage.ptr(order[predecessor]);
+                uint32_t          target   = 0;
+                if (!incoming || !tryGetJumpTargetLabelId(target, *incoming, incoming->ops(operands)) || target != matchId)
+                {
+                    directMatchEdges = false;
+                    break;
+                }
+            }
+            if (!directMatchEdges)
+                continue;
+
             const auto* cellOps = compare->ops(operands);
             uint32_t    visits  = 0;
             std::unordered_set<uint64_t> visiting;

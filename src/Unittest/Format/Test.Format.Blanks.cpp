@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkBlanksRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatBlanks_MaxConsecutiveEmptyLinesUnlimited)
 {
     static constexpr std::string_view SOURCE =
@@ -40,7 +24,7 @@ SWC_TEST_BEGIN(FormatBlanks_MaxConsecutiveEmptyLinesUnlimited)
 
     FormatOptions options;
     options.maxConsecutiveEmptyLines = 0;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -68,7 +52,7 @@ SWC_TEST_BEGIN(FormatBlanks_MaxConsecutiveEmptyLinesCollapses)
 
     FormatOptions options;
     options.maxConsecutiveEmptyLines = 2;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -94,7 +78,7 @@ SWC_TEST_BEGIN(FormatBlanks_MaxConsecutiveEmptyLinesOne)
 
     FormatOptions options;
     options.maxConsecutiveEmptyLines = 1;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -117,7 +101,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterOpeningBraceNever)
     FormatOptions options;
     options.blankLineAfterOpeningBrace = FormatBlankLineStyle::Never;
     options.maxConsecutiveEmptyLines   = 0;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -134,7 +118,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterOpeningBracePreserve)
     FormatOptions options;
     options.blankLineAfterOpeningBrace = FormatBlankLineStyle::Preserve;
     options.maxConsecutiveEmptyLines   = 0;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -155,7 +139,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterOpeningBraceAlways)
 
     FormatOptions options;
     options.blankLineAfterOpeningBrace = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -178,7 +162,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeClosingBraceNever)
     FormatOptions options;
     options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Never;
     options.maxConsecutiveEmptyLines    = 0;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -195,7 +179,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeClosingBracePreserve)
     FormatOptions options;
     options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Preserve;
     options.maxConsecutiveEmptyLines    = 0;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -216,7 +200,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeClosingBraceAlways)
 
     FormatOptions options;
     options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -264,7 +248,7 @@ SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksAlways)
     FormatOptions options;
     options.blankLineBeforeAccessBlock = FormatBlankLineStyle::Always;
     options.blankLineAfterAccessBlock  = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -306,7 +290,7 @@ SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksNever)
     options.blankLineBeforeAccessBlock = FormatBlankLineStyle::Never;
     options.blankLineAfterAccessBlock  = FormatBlankLineStyle::Never;
     options.maxConsecutiveEmptyLines   = 0;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -329,7 +313,7 @@ SWC_TEST_BEGIN(FormatBlanks_AroundAccessBlocksPreserve)
     options.blankLineBeforeAccessBlock = FormatBlankLineStyle::Preserve;
     options.blankLineAfterAccessBlock  = FormatBlankLineStyle::Preserve;
     options.maxConsecutiveEmptyLines   = 0;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -353,7 +337,7 @@ SWC_TEST_BEGIN(FormatBlanks_TrimTrailingNewlinesCollapsesToOne)
     FormatOptions options;
     options.trimTrailingNewlines     = true;
     options.maxConsecutiveEmptyLines = 0;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -371,7 +355,7 @@ SWC_TEST_BEGIN(FormatBlanks_TrimTrailingNewlinesDisabled)
     FormatOptions options;
     options.trimTrailingNewlines     = false;
     options.maxConsecutiveEmptyLines = 0;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -403,7 +387,7 @@ SWC_TEST_BEGIN(FormatBlanks_CombinedBlockEdges)
     options.blankLineAfterOpeningBrace  = FormatBlankLineStyle::Never;
     options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Never;
     options.maxConsecutiveEmptyLines    = 0;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -432,7 +416,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeFunctionAlways)
 
     FormatOptions options;
     options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -465,7 +449,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeFunctionKeepsDocCommentAttached)
 
     FormatOptions options;
     options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -482,7 +466,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeFunctionKeepsShortFormsStacked)
 
     FormatOptions options;
     options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -511,7 +495,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeTypeAlways)
 
     FormatOptions options;
     options.blankLineBeforeTypeDefinition = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -536,7 +520,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockAlways)
 
     FormatOptions options;
     options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -552,7 +536,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockKeepsBlockStartAndRuns)
 
     FormatOptions options;
     options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -578,7 +562,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockKeepsInlineBodyStart)
     FormatOptions options;
     options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
     options.blankLineAfterOpeningBrace  = FormatBlankLineStyle::Never;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -595,7 +579,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterGlobalBlockInsertsBlank)
 
     FormatOptions options;
     options.blankLineAfterGlobalBlock = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -618,7 +602,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterGlobalThenUsingBlocks)
     FormatOptions options;
     options.blankLineAfterGlobalBlock = FormatBlankLineStyle::Always;
     options.blankLineAfterUsingBlock  = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -658,7 +642,7 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenCasesMultiLine)
 
     FormatOptions options;
     options.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -689,7 +673,7 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenCasesNeverRemovesBlanks)
 
     FormatOptions options;
     options.blankLineBetweenCases = FormatCaseBlankStyle::Never;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -718,7 +702,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBraceAlways)
 
     FormatOptions options;
     options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -747,7 +731,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBraceNever)
 
     FormatOptions options;
     options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Never;
-    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -766,7 +750,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBracePreserve)
 
     FormatOptions options;
     options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Preserve;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -787,7 +771,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBraceKeepsElseAttached)
 
     FormatOptions options;
     options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Always;
-    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 

@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkWrapRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatWrap_BreaksAfterComma)
 {
     static constexpr std::string_view SOURCE =
@@ -45,7 +29,7 @@ SWC_TEST_BEGIN(FormatWrap_BreaksAfterComma)
     FormatOptions options;
     options.columnLimit             = 36;
     options.continuationIndentWidth = 4;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -79,7 +63,7 @@ SWC_TEST_BEGIN(FormatWrap_ForceSingleLineLists)
     options.parameterListLayout           = FormatListLayout::Block;
     options.binPackArguments              = FormatBinPackStyle::OnePerLine;
     options.binPackParameters             = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -124,7 +108,7 @@ SWC_TEST_BEGIN(FormatWrap_FormatterSelectsListLineMode)
     options.parameterListLayout          = FormatListLayout::Block;
     options.binPackArguments             = FormatBinPackStyle::OnePerLine;
     options.binPackParameters            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -154,7 +138,7 @@ SWC_TEST_BEGIN(FormatWrap_SourceSelectsSingleLineLists)
     options.parameterListLayout          = FormatListLayout::Block;
     options.binPackArguments             = FormatBinPackStyle::OnePerLine;
     options.binPackParameters            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -183,7 +167,7 @@ SWC_TEST_BEGIN(FormatWrap_SourceSelectsNestedSingleLineLists)
     options.sourceSelectsArgumentLayout   = true;
     options.argumentListLayout            = FormatListLayout::Block;
     options.binPackArguments              = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -217,7 +201,7 @@ SWC_TEST_BEGIN(FormatWrap_HangingIndentLists)
     options.parameterListLayout          = FormatListLayout::HangingIndent;
     options.binPackArguments             = FormatBinPackStyle::OnePerLine;
     options.binPackParameters            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -250,7 +234,7 @@ SWC_TEST_BEGIN(FormatWrap_HangingAlignLists)
     options.parameterListLayout          = FormatListLayout::HangingAlign;
     options.binPackArguments             = FormatBinPackStyle::OnePerLine;
     options.binPackParameters            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -286,7 +270,7 @@ SWC_TEST_BEGIN(FormatWrap_VerticalLists)
     options.parameterListLayout          = FormatListLayout::Vertical;
     options.binPackArguments             = FormatBinPackStyle::OnePerLine;
     options.binPackParameters            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -324,7 +308,7 @@ SWC_TEST_BEGIN(FormatWrap_BlockLists)
     options.parameterListLayout          = FormatListLayout::Block;
     options.binPackArguments             = FormatBinPackStyle::OnePerLine;
     options.binPackParameters            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -355,7 +339,7 @@ SWC_TEST_BEGIN(FormatWrap_ForceSingleLineLogicalExpressions)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::Before;
     options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -383,7 +367,7 @@ SWC_TEST_BEGIN(FormatWrap_SourceSelectsSingleLineLogicalExpressions)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::Before;
     options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -412,7 +396,7 @@ SWC_TEST_BEGIN(FormatWrap_LogicalOperatorsAfter)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
     options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -441,7 +425,7 @@ SWC_TEST_BEGIN(FormatWrap_LogicalOperatorsBefore)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::Before;
     options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -470,7 +454,7 @@ SWC_TEST_BEGIN(FormatWrap_LogicalOperandsOnePerLine)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
     options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -499,7 +483,7 @@ SWC_TEST_BEGIN(FormatWrap_LogicalHangingIndent)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingIndent;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
     options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -528,7 +512,7 @@ SWC_TEST_BEGIN(FormatWrap_LogicalOperandsPack)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
     options.logicalOperandPacking                = FormatLogicalPacking::Pack;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -561,7 +545,7 @@ SWC_TEST_BEGIN(FormatWrap_FormatterSelectsLogicalExpressionLineMode)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
     options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -589,7 +573,7 @@ SWC_TEST_BEGIN(FormatWrap_NestedLogicalExpressions)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
     options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -643,7 +627,7 @@ SWC_TEST_BEGIN(FormatWrap_NormalizesAdversarialLists)
     options.parameterListLayout            = FormatListLayout::HangingAlign;
     options.binPackArguments               = FormatBinPackStyle::OnePerLine;
     options.binPackParameters              = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -678,7 +662,7 @@ SWC_TEST_BEGIN(FormatWrap_NormalizesAdversarialLogicalExpression)
     options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
     options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
     options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -720,7 +704,7 @@ SWC_TEST_BEGIN(FormatWrap_AlignsMultilineArgumentContents)
     options.sourceSelectsArgumentLayout = true;
     options.argumentListLayout          = FormatListLayout::HangingAlign;
     options.binPackArguments            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -756,7 +740,7 @@ SWC_TEST_BEGIN(FormatWrap_ClosureCapturesStayInsideArgument)
     options.sourceSelectsArgumentLayout = true;
     options.argumentListLayout          = FormatListLayout::HangingAlign;
     options.binPackArguments            = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -771,7 +755,7 @@ SWC_TEST_BEGIN(FormatWrap_NoWrapWhenDisabled)
 
     FormatOptions options;
     options.columnLimit = 0;
-    return checkWrapRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -788,7 +772,7 @@ SWC_TEST_BEGIN(FormatWrap_BreakBeforeBinaryOperators)
     options.columnLimit                = 24;
     options.continuationIndentWidth    = 4;
     options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::Before;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -822,7 +806,7 @@ SWC_TEST_BEGIN(FormatWrap_BinPackLists)
     options.parameterListLayout          = FormatListLayout::HangingIndent;
     options.binPackArguments             = FormatBinPackStyle::Pack;
     options.binPackParameters            = FormatBinPackStyle::Pack;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -839,7 +823,7 @@ SWC_TEST_BEGIN(FormatWrap_BinPackParametersOnePerLine)
 
     FormatOptions options;
     options.binPackParameters = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -864,7 +848,7 @@ SWC_TEST_BEGIN(FormatWrap_BinPackArgumentsOnePerLine)
 
     FormatOptions options;
     options.binPackArguments = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -895,7 +879,7 @@ SWC_TEST_BEGIN(FormatWrap_NoColumnLimitNeverMovesAStatementBreak)
     applyFormatStyle(options, FormatNamedStyle::Swag);
     if (options.columnLimit != 0)
         return Result::Error;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -923,7 +907,7 @@ SWC_TEST_BEGIN(FormatWrap_ColumnLimitBreaksHighestInTheExpression)
     options.indentWidth                = 4;
     options.columnLimit                = 40;
     options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::After;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -949,7 +933,7 @@ SWC_TEST_BEGIN(FormatWrap_ColumnLimitAlignsNewOperandLinesInOnePass)
     options.columnLimit                = 40;
     options.alignOperands              = true;
     options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::After;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -980,7 +964,7 @@ SWC_TEST_BEGIN(FormatWrap_ColumnLimitBreaksAtTheLoosestOperator)
     options.indentWidth                = 4;
     options.columnLimit                = 40;
     options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::After;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1006,7 +990,7 @@ SWC_TEST_BEGIN(FormatWrap_ColumnLimitKeepsOneIndentPerStatement)
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
     options.columnLimit = 40;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1031,7 +1015,7 @@ SWC_TEST_BEGIN(FormatWrap_ContinuationOutsideBracketsTakesCanonicalIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1056,7 +1040,7 @@ SWC_TEST_BEGIN(FormatWrap_ContinuationInsideBracketsKeepsRelativeIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1088,7 +1072,7 @@ SWC_TEST_BEGIN(FormatWrap_WrappedCaseValuesAlignUnderTheFirstValue)
     options.indentStyle      = FormatIndentStyle::Spaces;
     options.indentWidth      = 4;
     options.indentCaseLabels = false;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1120,7 +1104,7 @@ SWC_TEST_BEGIN(FormatWrap_SourceSelectsLiteralLayout)
     options.sourceSelectsLiteralLayout = true;
     options.literalListLayout          = FormatListLayout::HangingAlign;
     options.binPackLiteralItems        = FormatBinPackStyle::OnePerLine;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1152,7 +1136,7 @@ SWC_TEST_BEGIN(FormatWrap_HugTrailingTableArgument)
     options.argumentListLayout          = FormatListLayout::HangingAlign;
     options.binPackArguments            = FormatBinPackStyle::OnePerLine;
     options.hugTrailingBlockArgument    = true;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1185,7 +1169,7 @@ SWC_TEST_BEGIN(FormatWrap_HugTrailingClosureArgument)
     options.argumentListLayout          = FormatListLayout::HangingAlign;
     options.binPackArguments            = FormatBinPackStyle::OnePerLine;
     options.hugTrailingBlockArgument    = true;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1217,7 +1201,7 @@ SWC_TEST_BEGIN(FormatWrap_HugTrailingBlockLiteralItem)
     options.sourceSelectsLiteralLayout = true;
     options.literalListLayout          = FormatListLayout::HangingAlign;
     options.hugTrailingBlockItem       = true;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1253,7 +1237,7 @@ SWC_TEST_BEGIN(FormatWrap_HugSkipsEarlierMultilineArgument)
     options.argumentListLayout          = FormatListLayout::HangingAlign;
     options.binPackArguments            = FormatBinPackStyle::OnePerLine;
     options.hugTrailingBlockArgument    = true;
-    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

@@ -11,6 +11,7 @@ class SymbolFunction;
 class SymbolVariable;
 class Sema;
 class TypeInfo;
+struct AstNode;
 enum class CallConvKind : uint8_t;
 struct CallConv;
 struct CodeGenNodePayload;
@@ -39,6 +40,8 @@ namespace CodeGenFunctionHelpers
     // Opens the local stack frame: reserves it on the stack and pins its base in a virtual
     // register constrained to a callee-saved one, so the base survives every call the body makes.
     void emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind);
+    void emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind);
+    bool canUseDirectCallReturnWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, bool returnIsVoid, bool returnIsIndirect);
 
     bool                  functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc);
     bool                  usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar);

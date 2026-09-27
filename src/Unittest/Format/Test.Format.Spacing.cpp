@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkSpacingRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatSpacing_SpaceAfterComma)
 {
     static constexpr std::string_view SOURCE =
@@ -44,7 +28,7 @@ SWC_TEST_BEGIN(FormatSpacing_SpaceAfterComma)
     FormatOptions options;
     options.spaceAfterComma  = true;
     options.spaceBeforeComma = false;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -71,7 +55,7 @@ SWC_TEST_BEGIN(FormatSpacing_NormalizeHorizontalWhitespace)
     options.spaceAroundBinaryOperators     = true;
     options.spaceAfterComma                = true;
     options.spaceBeforeComma               = false;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -95,7 +79,7 @@ SWC_TEST_BEGIN(FormatSpacing_NamedArgumentColons)
     options.spaceBeforeColonInNamedArguments = false;
     options.spaceAfterColonInNamedArguments  = true;
     options.spaceAfterComma                  = true;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -114,7 +98,7 @@ SWC_TEST_BEGIN(FormatSpacing_TrueOptionsKeepManualAlignment)
     options.spaceAfterColonInDeclarations = true;
     options.spaceAroundAssignmentOperator = true;
     options.spaceAfterComma               = true;
-    return checkSpacingRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -134,7 +118,7 @@ SWC_TEST_BEGIN(FormatSpacing_NoSpaceAfterComma)
 
     FormatOptions options;
     options.spaceAfterComma = false;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -156,7 +140,7 @@ SWC_TEST_BEGIN(FormatSpacing_SpaceAroundAssignment)
 
     FormatOptions options;
     options.spaceAroundAssignmentOperator = true;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -170,7 +154,7 @@ SWC_TEST_BEGIN(FormatSpacing_NoSpaceAroundAssignment)
 
     FormatOptions options;
     options.spaceAroundAssignmentOperator = false;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -186,7 +170,7 @@ SWC_TEST_BEGIN(FormatSpacing_SpaceAroundBinaryOperators)
 
     FormatOptions options;
     options.spaceAroundBinaryOperators = true;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -200,7 +184,7 @@ SWC_TEST_BEGIN(FormatSpacing_NoSpaceAroundBinaryOperators)
 
     FormatOptions options;
     options.spaceAroundBinaryOperators = false;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -220,10 +204,10 @@ SWC_TEST_BEGIN(FormatSpacing_SpaceAroundArrow)
 
     FormatOptions options;
     options.spaceAroundArrow = true;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceAroundArrow = false;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -237,10 +221,10 @@ SWC_TEST_BEGIN(FormatSpacing_FatArrow)
 
     FormatOptions options;
     options.spaceAroundFatArrow = true;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceAroundFatArrow = false;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -263,7 +247,7 @@ SWC_TEST_BEGIN(FormatSpacing_ColonInDeclarations)
     FormatOptions options;
     options.spaceBeforeColonInDeclarations = false;
     options.spaceAfterColonInDeclarations  = true;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -278,7 +262,7 @@ SWC_TEST_BEGIN(FormatSpacing_ColonInBaseClause)
     FormatOptions options;
     options.spaceBeforeColonInBaseClause  = false;
     options.spaceAfterColonInDeclarations = true;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -300,10 +284,10 @@ SWC_TEST_BEGIN(FormatSpacing_InsideParentheses)
 
     FormatOptions options;
     options.spaceInsideParentheses = true;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceInsideParentheses = false;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -317,10 +301,10 @@ SWC_TEST_BEGIN(FormatSpacing_InEmptyParentheses)
 
     FormatOptions options;
     options.spaceInEmptyParentheses = true;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceInEmptyParentheses = false;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -342,10 +326,10 @@ SWC_TEST_BEGIN(FormatSpacing_InsideBrackets)
 
     FormatOptions options;
     options.spaceInsideBrackets = true;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceInsideBrackets = false;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -365,10 +349,10 @@ SWC_TEST_BEGIN(FormatSpacing_AfterCast)
 
     FormatOptions options;
     options.spaceAfterCast = false;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceAfterCast = true;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -388,10 +372,10 @@ SWC_TEST_BEGIN(FormatSpacing_AfterKeyword)
 
     FormatOptions options;
     options.spaceAfterKeyword = true;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceAfterKeyword = false;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -418,7 +402,7 @@ SWC_TEST_BEGIN(FormatSpacing_AfterUnaryOperator)
 
     FormatOptions options;
     options.spaceAfterUnaryOperator = false;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -436,7 +420,7 @@ SWC_TEST_BEGIN(FormatSpacing_PostfixDereference)
 
     FormatOptions options;
     options.spaceAfterUnaryOperator = true;
-    return checkSpacingRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -458,10 +442,10 @@ SWC_TEST_BEGIN(FormatSpacing_BeforeParenthesesControl)
 
     FormatOptions options;
     options.spaceBeforeParentheses = FormatSpaceBeforeParens::Never;
-    SWC_RESULT(checkSpacingRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.spaceBeforeParentheses = FormatSpaceBeforeParens::ControlStatements;
-    return checkSpacingRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -483,7 +467,7 @@ SWC_TEST_BEGIN(FormatSpacing_InsideBracesOfLiterals)
 
     FormatOptions options;
     options.spaceInsideBraces = true;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -497,7 +481,7 @@ SWC_TEST_BEGIN(FormatSpacing_FailClosesAFunctionTypeNotAnOperand)
 
     FormatOptions options;
     options.spaceAroundBinaryOperators = true;
-    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

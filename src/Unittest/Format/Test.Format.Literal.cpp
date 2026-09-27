@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkLiteralRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatLiteral_PreserveLeavesNumericLiteralsUntouched)
 {
     static constexpr std::string_view SOURCE =
@@ -35,7 +19,7 @@ SWC_TEST_BEGIN(FormatLiteral_PreserveLeavesNumericLiteralsUntouched)
         "#assert(42'U32 == 42'U32)\n";
 
     const FormatOptions options;
-    return checkLiteralRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -46,7 +30,7 @@ SWC_TEST_BEGIN(FormatLiteral_PreserveCharacterTypeSuffix)
         "#assert(#typeof('\\n'rune) == rune)\n";
 
     const FormatOptions options;
-    return checkLiteralRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -62,7 +46,7 @@ SWC_TEST_BEGIN(FormatLiteral_HexDigitCaseUpperAndLower)
         static constexpr std::string_view EXPECTED =
             "#assert(0xABCD == 0xABCD)\n"
             "#assert(0xDEAD_BEEF == 0xDEAD_BEEF)\n";
-        SWC_RESULT(checkLiteralRewrite(ctx, SOURCE, EXPECTED, options));
+        SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
     }
 
     {
@@ -71,7 +55,7 @@ SWC_TEST_BEGIN(FormatLiteral_HexDigitCaseUpperAndLower)
         static constexpr std::string_view EXPECTED =
             "#assert(0xabcd == 0xabcd)\n"
             "#assert(0xdead_beef == 0xdead_beef)\n";
-        SWC_RESULT(checkLiteralRewrite(ctx, SOURCE, EXPECTED, options));
+        SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
     }
 }
 SWC_TEST_END()
@@ -84,14 +68,14 @@ SWC_TEST_BEGIN(FormatLiteral_HexPrefixCaseUpperAndLower)
         FormatOptions options;
         options.hexLiteralPrefixCase               = FormatLiteralCase::Upper;
         static constexpr std::string_view EXPECTED = "#assert(0XFF == 0XFF)\n";
-        SWC_RESULT(checkLiteralRewrite(ctx, SOURCE, EXPECTED, options));
+        SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
     }
 
     {
         FormatOptions options;
         options.hexLiteralPrefixCase               = FormatLiteralCase::Lower;
         static constexpr std::string_view EXPECTED = "#assert(0xFF == 0xFF)\n";
-        SWC_RESULT(checkLiteralRewrite(ctx, SOURCE, EXPECTED, options));
+        SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
     }
 }
 SWC_TEST_END()
@@ -104,14 +88,14 @@ SWC_TEST_BEGIN(FormatLiteral_FloatExponentCaseUpperAndLower)
         FormatOptions options;
         options.floatExponentCase                  = FormatLiteralCase::Upper;
         static constexpr std::string_view EXPECTED = "#assert(1.5E10 == 1.5E-3)\n";
-        SWC_RESULT(checkLiteralRewrite(ctx, SOURCE, EXPECTED, options));
+        SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
     }
 
     {
         FormatOptions options;
         options.floatExponentCase                  = FormatLiteralCase::Lower;
         static constexpr std::string_view EXPECTED = "#assert(1.5e10 == 1.5e-3)\n";
-        SWC_RESULT(checkLiteralRewrite(ctx, SOURCE, EXPECTED, options));
+        SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
     }
 }
 SWC_TEST_END()
@@ -125,7 +109,7 @@ SWC_TEST_BEGIN(FormatLiteral_NormalizeHexDigitSeparators)
     options.hexDigitSeparatorGroupSize = 4;
 
     static constexpr std::string_view EXPECTED = "#assert(0xDEAD_BEEF_CAFE == 0x1234_5678)\n";
-    return checkLiteralRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -138,7 +122,7 @@ SWC_TEST_BEGIN(FormatLiteral_NormalizeBinaryDigitSeparators)
     options.hexDigitSeparatorGroupSize = 4;
 
     static constexpr std::string_view EXPECTED = "#assert(0b10_1010_1010 == 0b1111_0000_1111_0000)\n";
-    return checkLiteralRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -151,7 +135,7 @@ SWC_TEST_BEGIN(FormatLiteral_NormalizeDecimalDigitSeparators)
     options.decimalDigitSeparatorGroupSize = 3;
 
     static constexpr std::string_view EXPECTED = "#assert(1_234_567 == 12_345)\n";
-    return checkLiteralRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -164,7 +148,7 @@ SWC_TEST_BEGIN(FormatLiteral_NormalizeFloatDigitSeparators)
     options.decimalDigitSeparatorGroupSize = 3;
 
     static constexpr std::string_view EXPECTED = "#assert(12_345.678_90e12_345 == 1.0)\n";
-    return checkLiteralRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -179,7 +163,7 @@ SWC_TEST_BEGIN(FormatLiteral_CombinedHexCaseAndNormalization)
     options.hexDigitSeparatorGroupSize = 4;
 
     static constexpr std::string_view EXPECTED = "#assert(0xDEAD_BEEF_CAFE == 0xFF)\n";
-    return checkLiteralRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

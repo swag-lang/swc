@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkUsingRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatUsing_SortAscending)
 {
     static constexpr std::string_view SOURCE =
@@ -41,7 +25,7 @@ SWC_TEST_BEGIN(FormatUsing_SortAscending)
 
     FormatOptions options;
     options.sortUsingStatements = FormatSortOrder::Ascending;
-    return checkUsingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -59,7 +43,7 @@ SWC_TEST_BEGIN(FormatUsing_SortCaseInsensitive)
 
     FormatOptions options;
     options.sortUsingStatements = FormatSortOrder::CaseInsensitiveAscending;
-    return checkUsingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -73,7 +57,7 @@ SWC_TEST_BEGIN(FormatUsing_BlankLineSplitsRuns)
 
     FormatOptions options;
     options.sortUsingStatements = FormatSortOrder::Ascending;
-    return checkUsingRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -90,7 +74,7 @@ SWC_TEST_BEGIN(FormatUsing_Merge)
 
     FormatOptions options;
     options.mergeUsingStatements = true;
-    return checkUsingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -108,7 +92,7 @@ SWC_TEST_BEGIN(FormatUsing_SortAndMerge)
     FormatOptions options;
     options.sortUsingStatements  = FormatSortOrder::Ascending;
     options.mergeUsingStatements = true;
-    return checkUsingRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

@@ -6,26 +6,10 @@
 #include "Format/FormatOptionsLoader.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkCommentsRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatComments_SpaceAfterLineCommentPrefix)
 {
     static constexpr std::string_view SOURCE =
@@ -42,7 +26,7 @@ SWC_TEST_BEGIN(FormatComments_SpaceAfterLineCommentPrefix)
 
     FormatOptions options;
     options.spaceAfterLineCommentPrefix = true;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -59,7 +43,7 @@ SWC_TEST_BEGIN(FormatComments_NormalizeSectionSeparators)
     FormatOptions options;
     options.normalizeSectionSeparators = true;
     options.sectionSeparatorWidth      = 20;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -78,7 +62,7 @@ SWC_TEST_BEGIN(FormatComments_ReflowParagraph)
     FormatOptions options;
     options.commentReflow = FormatCommentReflow::Reflow;
     options.columnLimit   = 16;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -97,7 +81,7 @@ SWC_TEST_BEGIN(FormatComments_ReflowJoinsShortLines)
     FormatOptions options;
     options.commentReflow = FormatCommentReflow::Reflow;
     options.columnLimit   = 40;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -115,7 +99,7 @@ SWC_TEST_BEGIN(FormatComments_NormalizeMode)
 
     FormatOptions options;
     options.commentReflow = FormatCommentReflow::Normalize;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -140,7 +124,7 @@ SWC_TEST_BEGIN(FormatComments_LastInBlockKeepsBlockIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -171,7 +155,7 @@ SWC_TEST_BEGIN(FormatComments_LastInNestedBlockKeepsBlockIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -208,7 +192,7 @@ SWC_TEST_BEGIN(FormatComments_LastInSwitchKeepsArmIndent)
     options.indentWidth      = 4;
     options.indentCaseLabels = false;
     options.indentCaseBlocks = true;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -247,7 +231,7 @@ SWC_TEST_BEGIN(FormatComments_BeforeCaseLabelKeepsLabelIndent)
     options.indentWidth      = 4;
     options.indentCaseLabels = false;
     options.indentCaseBlocks = true;
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -276,7 +260,7 @@ SWC_TEST_BEGIN(FormatComments_InsideABracketSettleInOnePass)
 
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Swag);
-    return checkCommentsRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkFormatOffRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatOff_LineCommentDisablesNumberFormatting)
 {
     static constexpr std::string_view SOURCE =
@@ -43,7 +27,7 @@ SWC_TEST_BEGIN(FormatOff_LineCommentDisablesNumberFormatting)
 
     FormatOptions options;
     options.hexLiteralCase = FormatLiteralCase::Upper;
-    return checkFormatOffRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -63,7 +47,7 @@ SWC_TEST_BEGIN(FormatOff_NoOnComment_RestOfFileRaw)
 
     FormatOptions options;
     options.hexLiteralCase = FormatLiteralCase::Upper;
-    return checkFormatOffRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -93,7 +77,7 @@ SWC_TEST_BEGIN(FormatOff_MultipleRegions)
 
     FormatOptions options;
     options.hexLiteralCase = FormatLiteralCase::Upper;
-    return checkFormatOffRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -115,7 +99,7 @@ SWC_TEST_BEGIN(FormatOff_BlockComment)
 
     FormatOptions options;
     options.hexLiteralCase = FormatLiteralCase::Upper;
-    return checkFormatOffRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -139,7 +123,7 @@ SWC_TEST_BEGIN(FormatOff_CustomMarkers)
     options.hexLiteralCase   = FormatLiteralCase::Upper;
     options.formatOffComment = "fmt:off";
     options.formatOnComment  = "fmt:on";
-    return checkFormatOffRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -164,7 +148,7 @@ SWC_TEST_BEGIN(FormatOff_EolNotRewrittenInDisabledRegion)
 
     FormatOptions options;
     options.endOfLineStyle = FormatEndOfLineStyle::Lf;
-    return checkFormatOffRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

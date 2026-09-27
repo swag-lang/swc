@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkBracesRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatBraces_AllmanMovesBraceToOwnLine)
 {
     static constexpr std::string_view SOURCE =
@@ -40,7 +24,7 @@ SWC_TEST_BEGIN(FormatBraces_AllmanMovesBraceToOwnLine)
 
     FormatOptions options;
     options.braceStyle = FormatBraceStyle::Allman;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -65,7 +49,7 @@ SWC_TEST_BEGIN(FormatStatements_OneStatementPerLine)
     FormatOptions options;
     options.oneStatementPerLine       = true;
     options.removeRedundantSemicolons = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -89,7 +73,7 @@ SWC_TEST_BEGIN(FormatStatements_UsingFieldPrefixStaysTogether)
     FormatOptions options;
     options.oneStructFieldPerLine = true;
     options.alignStructFields     = FormatAlignMode::Consecutive;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -110,7 +94,7 @@ SWC_TEST_BEGIN(FormatStatements_OneEnumValuePerLine)
     FormatOptions options;
     options.oneEnumValuePerLine         = true;
     options.allowShortEnumsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -135,7 +119,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortInlineDoBodiesSplit)
     FormatOptions options;
     options.allowShortIfStatementsOnSingleLine = false;
     options.allowShortLoopsOnSingleLine        = false;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -168,7 +152,7 @@ SWC_TEST_BEGIN(FormatBraces_DestructuringPatternsStayInlineAndIndentAsStatements
     options.alignConsecutiveAssignments  = FormatAlignMode::None;
     options.alignConsecutiveDeclarations = FormatAlignMode::None;
     options.alignConsecutiveConstants    = FormatAlignMode::None;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -187,7 +171,7 @@ SWC_TEST_BEGIN(FormatBraces_AttachJoinsBrace)
 
     FormatOptions options;
     options.braceStyle = FormatBraceStyle::Attach;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -212,7 +196,7 @@ SWC_TEST_BEGIN(FormatBraces_AllmanOnControlBlocks)
 
     FormatOptions options;
     options.braceStyle = FormatBraceStyle::Allman;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -245,7 +229,7 @@ SWC_TEST_BEGIN(FormatBraces_BreakBeforeElse)
 
     FormatOptions options;
     options.breakBeforeElse = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -278,7 +262,7 @@ SWC_TEST_BEGIN(FormatBraces_JoinElseToBrace)
 
     FormatOptions options;
     options.breakBeforeElse = false;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -294,7 +278,7 @@ SWC_TEST_BEGIN(FormatBraces_CompactEmptyBraces)
 
     FormatOptions options;
     options.compactEmptyBraces = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -312,7 +296,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortFunctionsNeverSplits)
 
     FormatOptions options;
     options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -323,7 +307,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortFunctionsNeverKeepsEmpty)
 
     FormatOptions options;
     options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -379,7 +363,7 @@ SWC_TEST_BEGIN(FormatBraces_SourceSelectsDefinitionLayout)
     options.oneStructFieldPerLine           = true;
     options.oneStatementPerLine             = true;
     options.removeRedundantSemicolons       = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -404,7 +388,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortBlocksInlineJoins)
 
     FormatOptions options;
     options.allowShortBlocksOnSingleLine = FormatShortBlockStyle::Inline;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -428,7 +412,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortIfNeverSplits)
 
     FormatOptions options;
     options.allowShortIfStatementsOnSingleLine = false;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -453,7 +437,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortLoopsJoin)
 
     FormatOptions options;
     options.allowShortLoopsOnSingleLine = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -469,7 +453,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortEnumsSplit)
 
     FormatOptions options;
     options.allowShortEnumsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -501,7 +485,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortCaseSplits)
 
     FormatOptions options;
     options.caseBodyStyle = FormatCaseBodyStyle::NextLine;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -530,7 +514,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortCaseJoins)
 
     FormatOptions options;
     options.caseBodyStyle = FormatCaseBodyStyle::SameLine;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -563,7 +547,7 @@ SWC_TEST_BEGIN(FormatBraces_CaseUniformJoinsJumpTable)
 
     FormatOptions options;
     options.caseBodyStyle = FormatCaseBodyStyle::Uniform;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -600,7 +584,7 @@ SWC_TEST_BEGIN(FormatBraces_CaseUniformExpandsMixedSwitch)
 
     FormatOptions options;
     options.caseBodyStyle = FormatCaseBodyStyle::Uniform;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -638,7 +622,7 @@ SWC_TEST_BEGIN(FormatBraces_StaticIfChainAlignsAndBreaks)
     options.breakBeforeElse = true;
     options.indentStyle     = FormatIndentStyle::Spaces;
     options.indentWidth     = 4;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -691,7 +675,7 @@ SWC_TEST_BEGIN(FormatBraces_StaticControl)
     options.braceStyle      = FormatBraceStyle::Allman;
     options.breakBeforeElse = true;
     options.caseBodyStyle   = FormatCaseBodyStyle::Uniform;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -703,7 +687,7 @@ SWC_TEST_BEGIN(FormatBraces_StaticIfSingleLineChainStaysInline)
     FormatOptions options;
     options.braceStyle      = FormatBraceStyle::Allman;
     options.breakBeforeElse = true;
-    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -740,7 +724,7 @@ SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
 
     FormatOptions options;
     options.braceStyle = FormatBraceStyle::Allman;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -765,7 +749,7 @@ SWC_TEST_BEGIN(FormatBraces_AllmanOnStaticIfBlocks)
 
     FormatOptions options;
     options.braceStyle = FormatBraceStyle::Allman;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -781,7 +765,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortStructsKeepTupleTypes)
 
     FormatOptions options;
     options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -797,7 +781,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortStructsStillSplitDeclarations)
 
     FormatOptions options;
     options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -814,7 +798,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortFunctionsKeepClosureArguments)
 
     FormatOptions options;
     options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -834,7 +818,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortBlocksKeepInitializerLiterals)
     FormatOptions options;
     options.allowShortBlocksOnSingleLine  = FormatShortBlockStyle::Never;
     options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -853,7 +837,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortFunctionsInlineKeepsClosureBodies)
 
     FormatOptions options;
     options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Inline;
-    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -885,7 +869,7 @@ SWC_TEST_BEGIN(FormatStatements_RemoveRedundantSemicolons)
 
     FormatOptions options;
     options.removeRedundantSemicolons = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -911,7 +895,7 @@ SWC_TEST_BEGIN(FormatStatements_RemoveConditionParentheses)
 
     FormatOptions options;
     options.removeConditionParentheses = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -932,7 +916,7 @@ SWC_TEST_BEGIN(FormatBraces_BreakBeforeWhere)
 
     FormatOptions options;
     options.breakBeforeWhere = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -958,7 +942,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortClosuresNeverSplits)
 
     FormatOptions options;
     options.allowShortClosuresOnSingleLine = FormatShortBlockStyle::Never;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -999,7 +983,7 @@ SWC_TEST_BEGIN(FormatBraces_UniformKeepsArmsWhoseCallIsWrapped)
     options.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
     options.binPackArguments      = FormatBinPackStyle::OnePerLine;
     options.argumentListLayout    = FormatListLayout::HangingAlign;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1042,7 +1026,7 @@ SWC_TEST_BEGIN(FormatBraces_UniformExpandsWhenAnArmCarriesABlock)
     options.indentCaseBlocks      = true;
     options.caseBodyStyle         = FormatCaseBodyStyle::Uniform;
     options.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1068,7 +1052,7 @@ SWC_TEST_BEGIN(FormatBraces_SemicolonPushedToEndOfLineByWrappingIsRemoved)
     options.removeRedundantSemicolons = true;
     options.binPackArguments          = FormatBinPackStyle::OnePerLine;
     options.argumentListLayout        = FormatListLayout::HangingAlign;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -1091,7 +1075,7 @@ SWC_TEST_BEGIN(FormatBraces_AnonymousStructTypeKeepsItsShape)
     options.oneStructFieldPerLine         = true;
     options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Source;
     options.alignAfterOpenBracket         = true;
-    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

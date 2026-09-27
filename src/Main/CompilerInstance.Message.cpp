@@ -45,13 +45,6 @@ namespace
                !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
     }
 
-    template<typename T>
-    bool isImportedCompilerMessageSource(const CompilerInstance& compiler, const T& symbol)
-    {
-        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
-        return sourceFile && sourceFile->isImportedApi();
-    }
-
     struct DeferredCompilerGeneratedSource
     {
         Utf8                   text;
@@ -209,7 +202,7 @@ namespace
             return false;
         if (!isCompilerMessageEligibleFunction(symbol))
             return false;
-        if (isImportedCompilerMessageSource(compiler, symbol))
+        if (compiler.isImportedApiSource(symbol))
             return false;
         if (!isModuleLevelSymbol(symbol))
             return false;
@@ -226,7 +219,7 @@ namespace
             return false;
         if (!symbol.idRef().isValid())
             return false;
-        if (isImportedCompilerMessageSource(compiler, symbol))
+        if (compiler.isImportedApiSource(symbol))
             return false;
         if (!isModuleLevelSymbol(symbol))
             return false;
@@ -241,7 +234,7 @@ namespace
             return false;
         if (!symbol.hasGlobalStorage() || symbol.globalStorageKind() == DataSegmentKind::Compiler)
             return false;
-        if (isImportedCompilerMessageSource(compiler, symbol))
+        if (compiler.isImportedApiSource(symbol))
             return false;
         if (!isModuleLevelSymbol(symbol))
             return false;

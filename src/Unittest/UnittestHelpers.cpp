@@ -170,6 +170,21 @@ namespace Backend::Unittest
         return std::numeric_limits<uint32_t>::max();
     }
 
+    bool isStackAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp, uint64_t expectedImmediate)
+    {
+        if (!ops)
+            return false;
+        if (inst.op != MicroInstrOpcode::OpBinaryRegImm || inst.numOperands < 4)
+            return false;
+        if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
+            return false;
+        if (ops[2].microOp != expectedOp)
+            return false;
+        if (ops[3].valueU64 != expectedImmediate)
+            return false;
+        return true;
+    }
+
     Result assertNoVirtualRegs(MicroBuilder& builder)
     {
         auto& storeOps = builder.operands();

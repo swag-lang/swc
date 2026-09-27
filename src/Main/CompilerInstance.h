@@ -367,6 +367,7 @@ public:
     const SourceFile*                       ownerSourceFile(const SourceView& srcView) const;
     const SourceFile*                       sourceViewFile(SourceViewRef ref) const;
     const SourceFile*                       sourceViewFile(const Symbol& symbol) const;
+    bool                                    isImportedApiSource(const Symbol& symbol) const;
     const SourceFile*                       owningSourceFile(const SourceView& srcView) const;
     const SourceFile*                       owningSourceFile(const SourceView* srcView) const;
     bool                                    tryTokenCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange, const SourceCodeRef& codeRef) const;

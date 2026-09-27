@@ -20,11 +20,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType)
-    {
-        return srcType.isAny() && srcType.isNullable() && dstType.isString() && dstType.isNullable();
-    }
-
     bool isImplicitArrayToSliceElementQualificationCast(const TypeInfo& srcElemType, const TypeInfo& dstElemType)
     {
         if (srcElemType.kind() != dstElemType.kind())

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Cast/CastConstant.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -103,12 +104,6 @@ namespace
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), ptrCst));
     }
 
-    ConstantRef addValuePointerConstant(Sema& sema, TypeRef dstPointeeTypeRef, TypeInfoFlags dstFlags, uint64_t ptrValue)
-    {
-        const ConstantValue ptrCst = ConstantValue::makeValuePointer(sema.ctx(), dstPointeeTypeRef, ptrValue, dstFlags);
-        return sema.cstMgr().addConstant(sema.ctx(), ptrCst);
-    }
-
     // The i-th value node of the array literal being cast, unwrapped from its
     // initializer, or invalid when the cast carries no literal node to rewrite.
     AstNodeRef aggregateElemValueNodeRef(const Sema& sema, AstNodeRef aggregateNodeRef, size_t elemIndex)
@@ -142,7 +137,7 @@ namespace
             ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
         }
 
-        outCstRef = addValuePointerConstant(sema, dstType.payloadTypeRef(), dstType.flags(), ptr);
+        outCstRef = CastConstant::addValuePointerConstant(sema, dstType.payloadTypeRef(), dstType.flags(), ptr);
         return Result::Continue;
     }
 

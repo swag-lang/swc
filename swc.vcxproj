@@ -815,6 +815,7 @@
         <ClInclude Include="src\Backend\Native\SymbolSort.h"/>
         <ClInclude Include="src\Backend\RuntimeContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
+        <ClInclude Include="src\Compiler\Sema\Cast\CastConstant.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantManager.h"/>

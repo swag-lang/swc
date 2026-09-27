@@ -1085,17 +1085,11 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         uint32_t idx = 0;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
-            if (it->op != MicroInstrOpcode::Label)
-                continue;
-            isLabelAt[idx] = 1;
-        }
+            if (it->op == MicroInstrOpcode::Label)
+                isLabelAt[idx] = 1;
 
-        // A jump whose target is the very next label lands after anything
-        // inserted before that label, so such a predecessor cannot be the
-        // entry that runs the fill.
-        idx = 0;
-        for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
-        {
+            // A jump to the next label lands after anything inserted before
+            // that label, so it cannot enter through the reservation fill.
             if (!MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::JumpInstruction))
                 continue;
             if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
@@ -2348,12 +2342,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
     worklist_.clear();
     worklist_.reserve(instructionCount_);
-    inWorklist_.assign(instructionCount_, 0);
+    inWorklist_.assign(instructionCount_, 1);
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-    {
         worklist_.push_back(idx);
-        inWorklist_[idx] = 1;
-    }
 
     tempOutVirtual_.assign(virtualWordCount, 0);
     tempOutConcrete_.assign(concreteWordCount, 0);

@@ -666,6 +666,19 @@ namespace
             immediate = magnitude;
         }
 
+        // These cases never need a fresh register. Powers of two (and 1) are
+        // normally reduced earlier; a masked immediate can still become one
+        // when its stored value carried bits above the operand width.
+        if (!isSigned && Math::isPowerOfTwo(immediate))
+            return false;
+        if (isSigned && immediate == 1)
+        {
+            // n / 1 == n, n % 1 == 0, for any signed n.
+            ops[2].microOp  = isModulo ? MicroOp::And : MicroOp::Add;
+            ops[3].valueU64 = 0;
+            return true;
+        }
+
         if (nextVirtualIntRegIndex == 0)
             nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
@@ -673,12 +686,6 @@ namespace
 
         if (!isSigned)
         {
-            // Powers of two (and 1) are reduced to shift/mask before this point; the
-            // masked immediate can still be one when the stored value carried bits
-            // above the operand width. Leave that oddity to the hardware divide.
-            if (Math::isPowerOfTwo(immediate))
-                return false;
-
             const UnsignedDivisionMagic magic = computeUnsignedDivisionMagic(immediate, bits);
             if (isModulo)
             {
@@ -693,14 +700,6 @@ namespace
             }
 
             storage.erase(instRef);
-            return true;
-        }
-
-        if (immediate == 1)
-        {
-            // n / 1 == n, n % 1 == 0, for any signed n.
-            ops[2].microOp  = isModulo ? MicroOp::And : MicroOp::Add;
-            ops[3].valueU64 = 0;
             return true;
         }
 

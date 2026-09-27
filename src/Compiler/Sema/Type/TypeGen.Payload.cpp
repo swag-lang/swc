@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Symbol/SymbolOrder.h"
 #include "Compiler/Sema/Type/TypeGenGenericArg.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
@@ -411,13 +412,6 @@ namespace
             rtType.totalCount *= dims[i];
     }
 
-    bool compareEnumValueOrder(const SymbolEnumValue* left, const SymbolEnumValue* right)
-    {
-        SWC_ASSERT(left);
-        SWC_ASSERT(right);
-        return left->tokRef().get() < right->tokRef().get();
-    }
-
     std::vector<const SymbolEnumValue*> collectEnumValues(const SymbolEnum& symEnum)
     {
         std::vector<const Symbol*> symbols;
@@ -432,7 +426,7 @@ namespace
                 result.push_back(enumValue);
         }
 
-        std::ranges::sort(result, compareEnumValueOrder);
+        std::ranges::sort(result, SymbolOrder::beforeToken);
         return result;
     }
 

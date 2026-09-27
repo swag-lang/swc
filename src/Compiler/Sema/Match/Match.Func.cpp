@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaDeclHelpers.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -48,11 +49,6 @@ namespace
         {
             ast.appendNodes(outArgs, quotedList->spanChildrenRef);
         }
-    }
-
-    Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
-    {
-        return sema.tryCreateDeclSema(ownedSema, fn.srcViewRef(), fn.decl(), fn.declNodeRef());
     }
 
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
@@ -1722,7 +1718,7 @@ namespace
         if (fn.parameters().empty())
         {
             std::unique_ptr<Sema> declSemaHolder;
-            Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, fn, declSemaHolder);
+            Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, fn, declSemaHolder);
             if (!declSema)
                 declSema = &sema;
             const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;

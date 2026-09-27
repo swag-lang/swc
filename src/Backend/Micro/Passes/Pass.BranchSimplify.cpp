@@ -60,25 +60,8 @@ namespace
         return getNumBits(value.opBits) >= getNumBits(readBits);
     }
 
-    struct KnownValueTraits
-    {
-        [[maybe_unused]] static bool isValid(const KnownValue&)
-        {
-            return true;
-        }
-
-        [[maybe_unused]] static bool same(const KnownValue& lhs, const KnownValue& rhs)
-        {
-            return lhs.value == rhs.value && lhs.opBits == rhs.opBits;
-        }
-    };
-
-    struct KnownValueContext
-    {
-        const MicroSsaState*       ssaState = nullptr;
-        const MicroStorage*        storage  = nullptr;
-        const MicroOperandStorage* operands = nullptr;
-    };
+    using KnownValueTraits  = MicroSsaKnownValueTraits;
+    using KnownValueContext = MicroSsaKnownValueContext;
 
     struct ProgramLayout
     {
@@ -90,12 +73,6 @@ namespace
         bool                                   hasImmediateCompare = false;
         bool                                   hasSetCondition     = false;
     };
-
-    bool tryGetKnownReachingValue(KnownValue& outValue, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroReg reg, MicroInstrRef instRef)
-    {
-        SWC_ASSERT(context.ssaState != nullptr);
-        return tryGetSsaReachingValue<KnownValue, KnownValueTraits>(outValue, *context.ssaState, knownValues, knownFlags, reg, instRef);
-    }
 
     bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
     {

@@ -14,8 +14,8 @@
 // their distance to the statement instead of taking the canonical indent. That
 // is what carries a hand-packed data table: its rows are aligned in columns the
 // formatter cannot see, and forcing the canonical indent on them was measured to
-// destroy that alignment (`bin/examples/modules/opengl3`, where rows starting
-// with `1,` carry a leading blank so the numbers line up under `-1,`).
+// destroy that alignment when rows starting with `1,` carry a leading blank
+// so the numbers line up under `-1,`.
 //
 // A `column-limit` above 0 turns the greedy breaker below on. It stays greedy:
 // it picks the break highest in the expression tree that still fits, one break

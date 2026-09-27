@@ -103,7 +103,7 @@ namespace PostRaPeephole
         constexpr uint32_t K_MAX_SPAN = 64;
         // Only predecessors between source and candidate can be visited.
         std::array<uint8_t, K_MAX_SPAN + 1> visited;
-        std::vector<uint32_t>               pending;
+        SmallVector<uint32_t, K_MAX_SPAN>    pending;
         for (uint32_t candidateIndex = 1; candidateIndex + 2 < refs.size(); ++candidateIndex)
         {
             const MicroInstrRef candidateRef = refs[candidateIndex];

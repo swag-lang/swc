@@ -78,7 +78,7 @@ SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesOnlyExactGroups)
     constexpr MicroReg loaded  = MicroReg::virtualIntReg(3);
     constexpr MicroReg value   = MicroReg::virtualIntReg(4);
     constexpr MicroReg accum   = MicroReg::virtualIntReg(5);
-    for (const auto [bound, escapedValue] : {std::pair<uint64_t, bool>{64, false}, {66, false}, {64, true}})
+    for (const auto [bound, escapedValue] : {std::pair<uint64_t, bool>{64, false}, {128, false}, {66, false}, {64, true}})
     {
         MicroBuilder builder(ctx);
         const auto   header = builder.createLabel();
@@ -98,8 +98,8 @@ SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesOnlyExactGroups)
         builder.emitRet();
 
         SWC_RESULT(runLoopUnrollPass(builder));
-        const bool vectorized = bound == 64 && !escapedValue;
-        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != (vectorized ? 1u : 0u) ||
+        const bool vectorized = (bound == 64 || bound == 128) && !escapedValue;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != (vectorized ? (bound == 128 ? 2u : 1u) : 0u) ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (vectorized ? 0u : 1u) ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
             return Result::Error;
@@ -108,7 +108,7 @@ SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesOnlyExactGroups)
             if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
                 continue;
             const auto* ops = inst.ops(builder.operands());
-            if (ops[0].reg == counter && ops[3].valueU64 != (vectorized ? 4u : 1u))
+            if (ops[0].reg == counter && ops[3].valueU64 != (vectorized ? (bound == 128 ? 8u : 4u) : 1u))
                 return Result::Error;
         }
     }

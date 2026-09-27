@@ -152,9 +152,12 @@ namespace
                 return false;
         }
 
-        uint32_t nextInt   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
-        uint32_t nextFloat = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
-        if (nextInt > MicroReg::K_MAX_INDEX - 3 || nextFloat > MicroReg::K_MAX_INDEX - 4)
+        // Two independent packed accumulators shorten the XOR dependency chain
+        // when an exact group of eight is available.
+        const bool twoVectors = cmpOps[2].valueU64 >= 128 && cmpOps[2].valueU64 % 8 == 0;
+        uint32_t   nextInt    = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        uint32_t   nextFloat  = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+        if (nextInt > MicroReg::K_MAX_INDEX - 3 || nextFloat > MicroReg::K_MAX_INDEX - (twoVectors ? 6u : 4u))
             return false;
         const MicroReg scalar = MicroReg::virtualIntReg(nextInt++);
         const MicroReg ptr    = MicroReg::virtualIntReg(nextInt++);
@@ -162,12 +165,14 @@ namespace
         const MicroReg index  = MicroReg::virtualFloatReg(nextFloat++);
         const MicroReg stride = MicroReg::virtualFloatReg(nextFloat++);
         const MicroReg packed = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg temp   = MicroReg::virtualFloatReg(nextFloat);
+        const MicroReg temp       = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg upperIndex = twoVectors ? MicroReg::virtualFloatReg(nextFloat++) : MicroReg::invalid();
+        const MicroReg upperAccum = twoVectors ? MicroReg::virtualFloatReg(nextFloat) : MicroReg::invalid();
         const MicroInstrRef headerRef = order[headerOrdinal];
         const MicroInstrRef bodyRef   = order[headerOrdinal + 1];
         const MicroInstrRef afterRef  = order[jumpOrdinal + 1];
         MicroInstrOperand vectorStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
-        vectorStep[3].setImmediateValue(ApInt(4, 64));
+        vectorStep[3].setImmediateValue(ApInt(twoVectors ? 8 : 4, 64));
         const auto insert = [&](MicroInstrRef before, MicroInstrOpcode op, std::span<const MicroInstrOperand> args) {
             storage.insertDerivedBefore(operands, before, op, args);
         };
@@ -221,8 +226,21 @@ namespace
         emitImmediate(headerRef, scalar, 4);
         emitCopy(headerRef, stride, scalar, MicroOpBits::B32);
         emitShuffle(headerRef, stride, stride, 0);
+        if (twoVectors)
+        {
+            emitCopy(headerRef, upperIndex, index, MicroOpBits::B128);
+            emitBinary(headerRef, upperIndex, stride, MicroOp::VecAdd32, MicroOpBits::B128);
+            emitImmediate(headerRef, scalar, 8);
+            emitCopy(headerRef, stride, scalar, MicroOpBits::B32);
+            emitShuffle(headerRef, stride, stride, 0);
+        }
         clear[0].reg = packed;
         insert(headerRef, MicroInstrOpcode::ClearReg, clear);
+        if (twoVectors)
+        {
+            clear[0].reg = upperAccum;
+            insert(headerRef, MicroInstrOpcode::ClearReg, clear);
+        }
 
         MicroInstrOperand address[8] = {};
         address[0].reg = ptr;
@@ -239,12 +257,22 @@ namespace
         insert(bodyRef, MicroInstrOpcode::LoadVecRegMem, vecLoad);
         emitBinary(bodyRef, temp, index, MicroOp::VecAdd32, MicroOpBits::B128);
         emitBinary(bodyRef, packed, temp, MicroOp::VecXor, MicroOpBits::B128);
+        if (twoVectors)
+        {
+            vecLoad[3].valueU64 = 16;
+            insert(bodyRef, MicroInstrOpcode::LoadVecRegMem, vecLoad);
+            emitBinary(bodyRef, temp, upperIndex, MicroOp::VecAdd32, MicroOpBits::B128);
+            emitBinary(bodyRef, upperAccum, temp, MicroOp::VecXor, MicroOpBits::B128);
+            emitBinary(bodyRef, upperIndex, stride, MicroOp::VecAdd32, MicroOpBits::B128);
+        }
         emitBinary(bodyRef, index, stride, MicroOp::VecAdd32, MicroOpBits::B128);
 
         insert(order[headerOrdinal + 5], MicroInstrOpcode::OpBinaryRegImm, vectorStep);
         for (uint32_t o = headerOrdinal + 1; o <= headerOrdinal + 5; ++o)
             storage.erase(order[o]);
 
+        if (twoVectors)
+            emitBinary(afterRef, packed, upperAccum, MicroOp::VecXor, MicroOpBits::B128);
         emitShuffle(afterRef, temp, packed, 0x4E);
         emitBinary(afterRef, packed, temp, MicroOp::VecXor, MicroOpBits::B128);
         emitShuffle(afterRef, temp, packed, 0xB1);

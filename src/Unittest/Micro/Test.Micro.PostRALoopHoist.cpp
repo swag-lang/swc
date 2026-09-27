@@ -25,19 +25,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-    // First linear position of an opcode, or UINT32_MAX.
-    uint32_t firstPosition(const MicroBuilder& builder, const MicroInstrOpcode opcode)
-    {
-        uint32_t position = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == opcode)
-                return position;
-            ++position;
-        }
-
-        return std::numeric_limits<uint32_t>::max();
-    }
 }
 
 // The shape the register allocator leaves behind: a base pointer reloaded from
@@ -65,8 +52,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_InvariantReload_MovesToPreheader)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLoad > posLabel)
         return Result::Error;
 
@@ -200,8 +187,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_SlotWrittenInBody_Blocks)
 
     SWC_RESULT(runPostRaLoopHoistPass(builder));
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLoad < posLabel)
         return Result::Error;
 
@@ -236,8 +223,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_OpaqueStoreInBody_Blocks)
 
     SWC_RESULT(runPostRaLoopHoistPass(builder));
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLoad < posLabel)
         return Result::Error;
 
@@ -270,8 +257,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_OpaqueStoreOverPrivateFrame_Hoists)
 
     SWC_RESULT(runPostRaLoopHoistPass(builder));
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLoad > posLabel)
         return Result::Error;
 
@@ -309,8 +296,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_SecondReload_BecomesCopy)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLoad > posLabel)
         return Result::Error;
 
@@ -340,8 +327,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_DestinationLiveAtPreheader_Blocks)
 
     SWC_RESULT(runPostRaLoopHoistPass(builder));
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (posLoad < posLabel)
         return Result::Error;
 
@@ -384,10 +371,10 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedSlot_LeavesTheLoop)
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
         return Result::Error;
 
-    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
-    const uint32_t posStore = firstPosition(builder, MicroInstrOpcode::LoadMemReg);
-    const uint32_t posRet   = firstPosition(builder, MicroInstrOpcode::Ret);
+    const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posStore = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadMemReg);
+    const uint32_t posRet   = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Ret);
     if (posLoad > posLabel)
         return Result::Error;
     if (posStore + 1 != posRet)
@@ -436,8 +423,8 @@ SWC_TEST_BEGIN(PostRALoopHoist_CarriedRegisterReusedElsewhere_Blocks)
         SWC_RESULT(runPostRaLoopHoistPass(builder));
 
         // The load and the store stay where they were, inside the loop.
-        const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
-        const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+        const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         if (posLoad < posLabel)
             return Result::Error;
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
@@ -466,7 +453,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_SecondDefinitionOfDestinationBlocks)
     SWC_RESULT(runPostRaLoopHoistPass(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
         return Result::Error;
-    if (firstPosition(builder, MicroInstrOpcode::LoadRegMem) < firstPosition(builder, MicroInstrOpcode::Label))
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
         return Result::Error;
     return Result::Continue;
 }

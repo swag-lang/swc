@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -299,18 +300,6 @@ namespace
         }
     }
 
-    MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo)
-    {
-        if (paramInfo.isFloat)
-        {
-            SWC_ASSERT(paramInfo.registerIndex < callConv.floatArgRegs.size());
-            return callConv.floatArgRegs[paramInfo.registerIndex];
-        }
-
-        SWC_ASSERT(paramInfo.registerIndex < callConv.intArgRegs.size());
-        return callConv.intArgRegs[paramInfo.registerIndex];
-    }
-
     void collectFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
@@ -381,7 +370,7 @@ namespace
                 if (laterParamInfo.isFloat != paramInfo.isFloat)
                     continue;
 
-                futureSourceRegs.push_back(parameterSourcePhysReg(callConv, laterParamInfo));
+                futureSourceRegs.push_back(CodeGenParameterReg::parameterSourcePhysReg(callConv, laterParamInfo));
             }
 
             CodeGenNodePayload symbolPayload;

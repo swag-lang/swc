@@ -185,10 +185,8 @@ namespace
 
         outResult = {};
         outResult.instructionDepths.reserve(context.instructions->count());
-        outResult.stackAdjustRefs.reserve(context.instructions->count() / 4 + 1);
 
         std::unordered_map<uint32_t, uint64_t> labelDepthById;
-        labelDepthById.reserve(context.instructions->count() / 8 + 1);
 
         uint64_t depth = 0;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
@@ -214,6 +212,8 @@ namespace
             StackAdjustInfo adjustInfo;
             if (tryParseStackAdjust(*it, ops, conv.stackPointer, adjustInfo))
             {
+                if (outResult.stackAdjustRefs.empty())
+                    outResult.stackAdjustRefs.reserve(context.instructions->count() / 4 + 1);
                 outResult.stackAdjustRefs.push_back(it.current);
                 if (adjustInfo.op == MicroOp::Subtract)
                 {
@@ -234,7 +234,11 @@ namespace
 
             uint32_t jumpLabelId = 0;
             if (tryGetJumpTargetLabelId(*it, ops, jumpLabelId))
+            {
+                if (labelDepthById.empty())
+                    labelDepthById.reserve(context.instructions->count() / 8 + 1);
                 mergeLabelDepth(labelDepthById, jumpLabelId, depth);
+            }
         }
 
         return true;

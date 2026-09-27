@@ -164,27 +164,6 @@ namespace
         codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
     }
 
-    void emitCompilerFunctionStackEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
-    {
-        if (!codeGen.hasLocalStackFrame())
-            return;
-
-        const CallConv& callConv = CallConv::get(callConvKind);
-        MicroBuilder&   builder  = codeGen.builder();
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
-    }
-
-    bool canUseDirectCallReturnWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
-    {
-        if (normalizedRet.isVoid || normalizedRet.isIndirect)
-            return false;
-
-        if (exprNode.isNot(AstNodeId::CallExpr))
-            return false;
-
-        return payload.isValue();
-    }
-
     void collectCompilerFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
@@ -320,18 +299,18 @@ namespace
         {
             if (!codeGen.currentInstructionBlocksFallthrough())
             {
-                emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+                CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
                 builder.emitRet();
             }
 
             builder.placeLabel(payload->fallibleFunctionFailLabel);
-            emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
             payload->clearFallibleFunctionTarget();
             return Result::Continue;
         }
 
-        emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+        CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
         builder.emitRet();
         return Result::Continue;
     }
@@ -387,7 +366,7 @@ Result AstCompilerRunBlock::codeGenPostNode(CodeGen& codeGen)
 
     const CallConvKind callConvKind = codeGen.function().callConvKind();
     MicroBuilder&      builder      = codeGen.builder();
-    emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+    CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
     builder.emitRet();
     return Result::Continue;
 }
@@ -539,7 +518,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         // A direct call expression may still own the ABI return registers, so write them back without
         // round-tripping through a freshly materialized virtual value.
-        if (canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet))
+        if (CodeGenFunctionHelpers::canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet.isVoid, normalizedRet.isIndirect))
             ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
         else
             ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
@@ -551,7 +530,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         }
     }
     SWC_RESULT(codeGen.emitDeferredActionsForReturn());
-    emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+    CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
     builder.emitRet();
     return Result::Continue;
 }

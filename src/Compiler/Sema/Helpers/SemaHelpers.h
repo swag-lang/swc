@@ -21,6 +21,7 @@ struct CodeGenLoweringPayload;
 
 namespace SemaHelpers
 {
+    bool   isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef);
     Result materializeMovedValue(Sema& sema, SemaNodeView& view);
     bool   ownsExpressionValue(Sema& sema, AstNodeRef nodeRef);
     bool   expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef);

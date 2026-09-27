@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Symbol.Function.h"
+#include "Symbol.Enum.h"
 #include "Symbol.Interface.h"
 #include "Symbol.Struct.h"
 #include "Symbol.Variable.h"
@@ -109,6 +110,16 @@ void SymbolImpl::setSymEnum(SymbolEnum* sym)
     removeExtraFlag(SymbolImplFlagsE::ForStruct);
     addExtraFlag(SymbolImplFlagsE::ForEnum);
     ownerEnum_ = sym;
+}
+
+TypeRef SymbolImpl::ownerTypeRef() const
+{
+    if (isForStruct())
+        return symStruct()->typeRef();
+    if (isForEnum())
+        return symEnum()->typeRef();
+
+    return TypeRef::invalid();
 }
 
 void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)

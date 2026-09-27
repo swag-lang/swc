@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkFileRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatFile_InlineBodyOwnsNestedBraceIndent)
 {
     static constexpr std::string_view SOURCE =
@@ -56,7 +40,7 @@ SWC_TEST_BEGIN(FormatFile_InlineBodyOwnsNestedBraceIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -85,7 +69,7 @@ SWC_TEST_BEGIN(FormatFile_InlineIfBranchStopsBeforeElse)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -114,7 +98,7 @@ SWC_TEST_BEGIN(FormatFile_CatchHandlerAlignsAndIndents)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -153,7 +137,7 @@ SWC_TEST_BEGIN(FormatFile_InlineDestructuringIsNotABlock)
     options.indentWidth                        = 4;
     options.allowShortBlocksOnSingleLine       = FormatShortBlockStyle::Empty;
     options.allowShortIfStatementsOnSingleLine = false;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -164,7 +148,7 @@ SWC_TEST_BEGIN(FormatFile_InsertFinalNewline)
 
     FormatOptions options;
     options.insertFinalNewline = true;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -180,7 +164,7 @@ SWC_TEST_BEGIN(FormatFile_TrimLeadingBlankLines)
 
     FormatOptions options;
     options.trimLeadingBlankLines = true;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -192,7 +176,7 @@ SWC_TEST_BEGIN(FormatFile_TrimLeadingBlankLinesDisabled)
 
     FormatOptions options;
     options.trimLeadingBlankLines = false;
-    return checkFileRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -205,7 +189,7 @@ SWC_TEST_BEGIN(FormatFile_ReservedIdentifiersAreFormattable)
         "}\n";
 
     const FormatOptions options;
-    return checkFileRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -231,7 +215,7 @@ SWC_TEST_BEGIN(FormatFile_IndentInsideParensEnforcesContinuation)
     options.indentStyle        = FormatIndentStyle::Spaces;
     options.indentWidth        = 4;
     options.indentInsideParens = true;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -257,7 +241,7 @@ SWC_TEST_BEGIN(FormatFile_AlignOperandsOnWrappedCondition)
     options.indentStyle   = FormatIndentStyle::Spaces;
     options.indentWidth   = 4;
     options.alignOperands = true;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -280,7 +264,7 @@ SWC_TEST_BEGIN(FormatFile_WhereClauseIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -309,7 +293,7 @@ SWC_TEST_BEGIN(FormatFile_WhereBlockIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -325,7 +309,7 @@ SWC_TEST_BEGIN(FormatFile_EndOfLineStyleLf)
 
     FormatOptions options;
     options.endOfLineStyle = FormatEndOfLineStyle::Lf;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -341,7 +325,7 @@ SWC_TEST_BEGIN(FormatFile_EndOfLineStyleCrLf)
 
     FormatOptions options;
     options.endOfLineStyle = FormatEndOfLineStyle::CrLf;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -357,7 +341,7 @@ SWC_TEST_BEGIN(FormatFile_TrimTrailingWhitespace)
 
     FormatOptions options;
     options.preserveTrailingWhitespace = false;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -376,7 +360,7 @@ SWC_TEST_BEGIN(FormatFile_BlankLineAfterUsingBlock)
 
     FormatOptions options;
     options.blankLineAfterUsingBlock = FormatBlankLineStyle::Always;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -412,7 +396,7 @@ SWC_TEST_BEGIN(FormatFile_BlankLineBeforeFunctionDefinition)
 
     FormatOptions options;
     options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -433,7 +417,7 @@ SWC_TEST_BEGIN(FormatFile_IndentStyleSpacesNormalizesTabs)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -454,7 +438,7 @@ SWC_TEST_BEGIN(FormatFile_IndentStyleTabs)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Tabs;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -481,7 +465,7 @@ SWC_TEST_BEGIN(FormatFile_ReindentFixesBadIndent)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -510,7 +494,7 @@ SWC_TEST_BEGIN(FormatFile_ElseBeforeNestedIfAligns)
     FormatOptions options;
     options.indentStyle = FormatIndentStyle::Spaces;
     options.indentWidth = 4;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -532,7 +516,7 @@ SWC_TEST_BEGIN(FormatFile_IndentNamespaceBodyOff)
     options.indentStyle         = FormatIndentStyle::Spaces;
     options.indentWidth         = 4;
     options.indentNamespaceBody = false;
-    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -562,10 +546,10 @@ SWC_TEST_BEGIN(FormatFile_IndentCaseLabels)
     options.indentStyle      = FormatIndentStyle::Spaces;
     options.indentWidth      = 4;
     options.indentCaseLabels = true;
-    SWC_RESULT(checkFileRewrite(ctx, SOURCE, EXPECTED, options));
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
 
     options.indentCaseLabels = false;
-    return checkFileRewrite(ctx, EXPECTED, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, EXPECTED, SOURCE, options);
 }
 SWC_TEST_END()
 

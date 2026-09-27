@@ -1551,19 +1551,9 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef implOwnerTypeRef(const SymbolImpl& symImpl)
-    {
-        if (symImpl.isForStruct())
-            return symImpl.symStruct()->typeRef();
-        if (symImpl.isForEnum())
-            return symImpl.symEnum()->typeRef();
-
-        return TypeRef::invalid();
-    }
-
     TypeRef implReceiverTypeRef(Sema& sema, const SymbolImpl& symImpl, bool isConstReceiver)
     {
-        const TypeRef ownerType = implOwnerTypeRef(symImpl);
+        const TypeRef ownerType = symImpl.ownerTypeRef();
         if (!ownerType.isValid())
             return TypeRef::invalid();
 
@@ -1993,7 +1983,7 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
     TaskContext&        ctx       = sema.ctx();
-    const TypeRef       ownerType = implOwnerTypeRef(*symImpl);
+    const TypeRef       ownerType = symImpl->ownerTypeRef();
     const IdentifierRef idRef     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
     const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
     auto*               sym       = Symbol::make<SymbolVariable>(ctx, this, tokRef(), idRef, flags);

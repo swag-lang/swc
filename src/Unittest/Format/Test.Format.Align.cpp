@@ -5,26 +5,10 @@
 #include "Format/FormatOptions.h"
 #include "Format/Formatter.h"
 #include "Main/TaskContext.h"
+#include "Unittest/Format/FormatRewriteCheck.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-namespace
-{
-    Result checkAlignRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
-    {
-        Formatter formatter(options);
-        SWC_RESULT(formatter.prepare(parentCtx.global(), source));
-        if (formatter.text() != expected)
-            return Result::Error;
-
-        Formatter secondPass(options);
-        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
-        if (secondPass.text() != expected)
-            return Result::Error;
-        return Result::Continue;
-    }
-}
-
 SWC_TEST_BEGIN(FormatAlign_ConsecutiveAssignments)
 {
     static constexpr std::string_view SOURCE =
@@ -47,7 +31,7 @@ SWC_TEST_BEGIN(FormatAlign_ConsecutiveAssignments)
 
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -66,7 +50,7 @@ SWC_TEST_BEGIN(FormatAlign_ConsecutiveAliases)
     FormatOptions options;
     options.normalizeHorizontalWhitespace = true;
     options.alignConsecutiveAliases       = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -89,7 +73,7 @@ SWC_TEST_BEGIN(FormatAlign_AliasesAcrossAttributesAndBlankLines)
     FormatOptions options;
     options.normalizeHorizontalWhitespace = true;
     options.alignConsecutiveAliases       = FormatAlignMode::AcrossBlanks;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -115,7 +99,7 @@ SWC_TEST_BEGIN(FormatAlign_AssignmentsBreakOnIndentation)
 
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -133,7 +117,7 @@ SWC_TEST_BEGIN(FormatAlign_AssignmentsBreakOnBlankLine)
 
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -161,7 +145,7 @@ SWC_TEST_BEGIN(FormatAlign_AssignmentsAcrossBlanks)
 
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::AcrossBlanks;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -183,7 +167,7 @@ SWC_TEST_BEGIN(FormatAlign_ConsecutiveDeclarations)
 
     FormatOptions options;
     options.alignConsecutiveDeclarations = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -211,7 +195,7 @@ SWC_TEST_BEGIN(FormatAlign_ControlDeclarationsBreakDeclarationGroups)
     options.normalizeHorizontalWhitespace = true;
     options.alignConsecutiveDeclarations  = FormatAlignMode::Consecutive;
     options.alignDeclarationInitializers  = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -227,7 +211,7 @@ SWC_TEST_BEGIN(FormatAlign_ConsecutiveConstants)
 
     FormatOptions options;
     options.alignConsecutiveConstants = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -249,7 +233,7 @@ SWC_TEST_BEGIN(FormatAlign_StructFields)
 
     FormatOptions options;
     options.alignStructFields = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -271,7 +255,7 @@ SWC_TEST_BEGIN(FormatAlign_EnumValues)
 
     FormatOptions options;
     options.alignEnumValues = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -287,7 +271,7 @@ SWC_TEST_BEGIN(FormatAlign_NoneRemovesAlignment)
 
     FormatOptions options;
     options.alignConsecutiveConstants = FormatAlignMode::None;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -310,7 +294,7 @@ SWC_TEST_BEGIN(FormatAlign_TrailingComments)
     FormatOptions options;
     options.alignTrailingComments    = true;
     options.trailingCommentMinSpaces = 5;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -337,7 +321,7 @@ SWC_TEST_BEGIN(FormatAlign_TrailingCommentsBreakOnIndentation)
     FormatOptions options;
     options.alignTrailingComments    = true;
     options.trailingCommentMinSpaces = 5;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -360,7 +344,7 @@ SWC_TEST_BEGIN(FormatAlign_TrailingCommentsNormalized)
     FormatOptions options;
     options.alignTrailingComments    = false;
     options.trailingCommentMinSpaces = 1;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -376,7 +360,7 @@ SWC_TEST_BEGIN(FormatAlign_FatArrowsConsecutive)
 
     FormatOptions options;
     options.alignFatArrows = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -392,7 +376,7 @@ SWC_TEST_BEGIN(FormatAlign_FatArrowsBreakOnPlainFunction)
 
     FormatOptions options;
     options.alignFatArrows = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -420,7 +404,7 @@ SWC_TEST_BEGIN(FormatAlign_SingletonTightensStalePadding)
 
     FormatOptions options;
     options.alignStructFields = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -450,7 +434,7 @@ SWC_TEST_BEGIN(FormatAlign_StructFieldsWithTypeQualifiers)
 
     FormatOptions options;
     options.alignStructFields = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -483,7 +467,7 @@ SWC_TEST_BEGIN(FormatAlign_StructFieldGridMixed)
     FormatOptions options;
     options.alignStructFields            = FormatAlignMode::Consecutive;
     options.alignStructFieldInitializers = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -509,7 +493,7 @@ SWC_TEST_BEGIN(FormatAlign_StructFieldGridOffKeepsSingleColumn)
 
     FormatOptions options;
     options.alignStructFields = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -534,7 +518,7 @@ SWC_TEST_BEGIN(FormatAlign_DeclarationGridInitializers)
     FormatOptions options;
     options.alignConsecutiveDeclarations = FormatAlignMode::Consecutive;
     options.alignDeclarationInitializers = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -555,7 +539,7 @@ SWC_TEST_BEGIN(FormatAlign_ConstantGridTypes)
     FormatOptions options;
     options.alignConsecutiveConstants = FormatAlignMode::Consecutive;
     options.alignConstantTypes        = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -574,7 +558,7 @@ SWC_TEST_BEGIN(FormatAlign_QualifiedConstantGridTypes)
     FormatOptions options;
     options.alignConsecutiveConstants = FormatAlignMode::Consecutive;
     options.alignConstantTypes        = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -613,7 +597,7 @@ SWC_TEST_BEGIN(FormatAlign_QualifiedDeclarationPrefixes)
     options.alignDeclarationInitializers = true;
     options.alignStructFields            = FormatAlignMode::Consecutive;
     options.alignFatArrows               = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -643,7 +627,7 @@ SWC_TEST_BEGIN(FormatAlign_CaseBodiesConsecutive)
 
     FormatOptions options;
     options.alignCaseBodies = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -663,7 +647,7 @@ SWC_TEST_BEGIN(FormatAlign_ArrayColumns)
 
     FormatOptions options;
     options.alignArrayColumns = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -677,7 +661,7 @@ SWC_TEST_BEGIN(FormatAlign_ArrayColumnsSkipsRaggedRows)
 
     FormatOptions options;
     options.alignArrayColumns = true;
-    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -700,7 +684,7 @@ SWC_TEST_BEGIN(FormatAlign_HangingLineFollowsAlignedAnchor)
     options.normalizeHorizontalWhitespace = true;
     options.alignConsecutiveAliases       = FormatAlignMode::Consecutive;
     options.alignAfterOpenBracket         = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -723,7 +707,7 @@ SWC_TEST_BEGIN(FormatAlign_AfterOpenBracketUsesLiteralBrace)
     FormatOptions options;
     options.indentStyle           = FormatIndentStyle::Spaces;
     options.alignAfterOpenBracket = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -739,7 +723,7 @@ SWC_TEST_BEGIN(FormatAlign_AfterOpenBracketKeepsDataTableRows)
     FormatOptions options;
     options.indentStyle           = FormatIndentStyle::Spaces;
     options.alignAfterOpenBracket = true;
-    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -758,7 +742,7 @@ SWC_TEST_BEGIN(FormatAlign_OperandsInsideBracketAnchorOnBracket)
     FormatOptions options;
     options.indentStyle   = FormatIndentStyle::Spaces;
     options.alignOperands = true;
-    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
@@ -781,7 +765,7 @@ SWC_TEST_BEGIN(FormatAlign_OperandsOutsideBracketAnchorOnStatement)
     FormatOptions options;
     options.indentStyle   = FormatIndentStyle::Spaces;
     options.alignOperands = true;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -806,7 +790,7 @@ SWC_TEST_BEGIN(FormatAlign_OutlierGapLeavesLongLineAlone)
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
     options.alignOutlierGap             = 16;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -833,7 +817,7 @@ SWC_TEST_BEGIN(FormatAlign_OutlierGapKeepsGradedTable)
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
     options.alignOutlierGap             = 16;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -862,7 +846,7 @@ SWC_TEST_BEGIN(FormatAlign_OutlierGapDropsBothEnds)
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
     options.alignOutlierGap             = 8;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -885,7 +869,7 @@ SWC_TEST_BEGIN(FormatAlign_AcrossBlanksReadsTheCappedBlankCount)
     FormatOptions options;
     options.alignConsecutiveAliases  = FormatAlignMode::AcrossBlanks;
     options.maxConsecutiveEmptyLines = 1;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -915,7 +899,7 @@ SWC_TEST_BEGIN(FormatAlign_AccessModifierLineDoesNotBreakTheGroup)
 
     FormatOptions options;
     options.alignStructFields = FormatAlignMode::Consecutive;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -948,7 +932,7 @@ SWC_TEST_BEGIN(FormatAlign_WrappedArgumentsFollowTheAlignedHead)
     options.alignDeclarationInitializers = true;
     options.binPackArguments             = FormatBinPackStyle::OnePerLine;
     options.argumentListLayout           = FormatListLayout::HangingAlign;
-    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

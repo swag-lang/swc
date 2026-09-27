@@ -237,23 +237,13 @@ namespace
 
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
-    TypeRef implOwnerTypeRef(const SymbolImpl& symImpl)
-    {
-        if (symImpl.isForStruct())
-            return symImpl.symStruct()->typeRef();
-        if (symImpl.isForEnum())
-            return symImpl.symEnum()->typeRef();
-
-        return TypeRef::invalid();
-    }
-
     TypeRef methodReceiverTypeRef(Sema& sema, const SymbolFunction& func)
     {
         const SymbolImpl* symImpl = func.declImplContext();
         if (!symImpl)
             return TypeRef::invalid();
 
-        const TypeRef ownerTypeRef = implOwnerTypeRef(*symImpl);
+        const TypeRef ownerTypeRef = symImpl->ownerTypeRef();
         if (!ownerTypeRef.isValid())
             return TypeRef::invalid();
 

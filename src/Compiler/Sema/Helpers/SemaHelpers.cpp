@@ -16,6 +16,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool SemaHelpers::isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef)
+{
+    if (typeRef.isInvalid())
+        return false;
+
+    const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+    const TypeRef effectiveTypeRef = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    return sema.typeMgr().get(effectiveTypeRef).isAnyVariadic();
+}
+
 void SemaHelpers::addCurrentScopeSymbol(Sema& sema, Symbol* sym)
 {
     SemaScope* scope = currentLocalSymbolScope(sema);

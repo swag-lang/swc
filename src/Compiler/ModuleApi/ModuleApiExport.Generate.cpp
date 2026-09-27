@@ -437,22 +437,8 @@ namespace
         if (srcView.token(startTokRef).id != TokenId::SymLeftParen)
             return endTokRef;
 
-        uint32_t parenBalance = 0;
-        for (uint32_t tokIndex = startTokRef.get(); tokIndex < srcView.tokens().size(); ++tokIndex)
-        {
-            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
-            if (tokenId == TokenId::SymLeftParen)
-                parenBalance++;
-            else if (tokenId == TokenId::SymRightParen)
-            {
-                SWC_ASSERT(parenBalance != 0);
-                parenBalance--;
-                if (!parenBalance)
-                    return TokenRef(tokIndex);
-            }
-        }
-
-        return endTokRef;
+        const TokenRef closeTokRef = ModuleApi::matchingModuleApiDelimiter(srcView, startTokRef, TokenId::SymLeftParen, TokenId::SymRightParen);
+        return closeTokRef.isValid() ? closeTokRef : endTokRef;
     }
 
     bool functionDeclPrefixHasExplicitReturnType(const SourceFile& file, const AstFunctionDecl& functionDecl, const uint32_t prefixEndOffset)

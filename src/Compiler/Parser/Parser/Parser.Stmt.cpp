@@ -43,28 +43,7 @@ AstNodeRef Parser::parseTopLevelStorageModifier()
     if (!nextIsAny(TokenId::KwdPublic, TokenId::KwdPrivate, TokenId::KwdInternal, TokenId::SymLeftCurly))
         return parseVarDecl();
 
-    EnumFlags<AstVarStorageFlagsE> storageFlags = AstVarStorageFlagsE::Zero;
-    while (true)
-    {
-        AstVarStorageFlagsE storageFlag = AstVarStorageFlagsE::Zero;
-        switch (id())
-        {
-            case TokenId::KwdLate: storageFlag = AstVarStorageFlagsE::Late; break;
-            case TokenId::KwdTls: storageFlag = AstVarStorageFlagsE::Tls; break;
-            case TokenId::KwdGlobal: storageFlag = AstVarStorageFlagsE::Global; break;
-            default: break;
-        }
-
-        if (storageFlag == AstVarStorageFlagsE::Zero)
-            break;
-        if (storageFlags.has(storageFlag))
-        {
-            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_storage_modifier, ref());
-            diag.report(*ctx_);
-        }
-        storageFlags.add(storageFlag);
-        consume();
-    }
+    const EnumFlags<AstVarStorageFlagsE> storageFlags = parseStorageModifiers();
 
     const EnumFlags<AstVarStorageFlagsE> savedStorageFlags = topLevelStorageFlags_;
     topLevelStorageFlags_.add(storageFlags);

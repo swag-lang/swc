@@ -101,6 +101,8 @@ namespace PostRaPeephole
         };
 
         constexpr uint32_t K_MAX_SPAN = 64;
+        std::vector<uint8_t>  visited;
+        std::vector<uint32_t> pending;
         for (uint32_t candidateIndex = 1; candidateIndex + 2 < refs.size(); ++candidateIndex)
         {
             const MicroInstrRef candidateRef = refs[candidateIndex];
@@ -138,9 +140,10 @@ namespace PostRaPeephole
                            offset <= ctx.passContext->spillAreaHi && width <= ctx.passContext->spillAreaHi - offset;
                 };
 
-                std::vector<uint8_t>  visited(refs.size());
-                std::vector<uint32_t> pending{candidateIndex};
-                bool                  valid = true;
+                visited.assign(refs.size(), 0);
+                pending.clear();
+                pending.push_back(candidateIndex);
+                bool valid = true;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();

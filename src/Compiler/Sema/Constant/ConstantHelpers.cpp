@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantFoldStorage.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -20,19 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef constantFoldStorageTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (!typeInfo.isAlias() && !typeInfo.isEnum())
-            return typeRef;
-
-        const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(sema.ctx(), typeRef);
-        return storageTypeRef.isValid() ? storageTypeRef : typeRef;
-    }
-
     uint32_t sourceCodeLocationShardIndex(const SourceCodeRange& codeRange, const SymbolFunction* function)
     {
         uint32_t hash = Math::hash(codeRange.srcView ? codeRange.srcView->ref().get() : 0);
@@ -374,7 +362,7 @@ Result ConstantHelpers::waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, 
 uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view)
 {
     SWC_ASSERT(view.type());
-    TypeRef storageTypeRef = constantFoldStorageTypeRef(sema, view.typeRef());
+    TypeRef storageTypeRef = ConstantHelpers::constantFoldStorageTypeRef(sema, view.typeRef());
     if (view.cstRef().isValid())
     {
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);

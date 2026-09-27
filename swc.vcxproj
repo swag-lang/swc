@@ -646,6 +646,7 @@
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
         <ClInclude Include="src\Backend\JIT\JITPatchJob.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
+        <ClInclude Include="src\Backend\Debug\DebugPath.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfoCodeView.h"/>
         <ClInclude Include="src\Backend\Debug\DebugRecordCollector.h"/>
         <ClInclude Include="src\Backend\Encoder\Encoder.h"/>

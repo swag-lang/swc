@@ -13,28 +13,6 @@ namespace
         return node.is(AstNodeId::ErrorManagementExpr) && ast.srcView().token(node.tokRef()).id == TokenId::SymBang;
     }
 
-    void markCallCalleeNode(Ast& ast, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return;
-
-        AstNode& calleeNode = ast.node(nodeRef);
-        switch (calleeNode.id())
-        {
-            case AstNodeId::Identifier:
-                calleeNode.cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::CallCallee);
-                break;
-            case AstNodeId::MemberAccessExpr:
-                calleeNode.cast<AstMemberAccessExpr>().addFlag(AstMemberAccessExprFlagsE::CallCallee);
-                break;
-            case AstNodeId::AutoMemberAccessExpr:
-                calleeNode.cast<AstAutoMemberAccessExpr>().addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
-                break;
-            default:
-                break;
-        }
-    }
-
     bool canStartSubType(TokenId id)
     {
         if (Token::isType(id))
@@ -170,6 +148,28 @@ namespace
             default:
                 return -1;
         }
+    }
+}
+
+void Parser::markCallCalleeNode(AstNodeRef nodeRef)
+{
+    if (nodeRef.isInvalid())
+        return;
+
+    AstNode& calleeNode = ast_->node(nodeRef);
+    switch (calleeNode.id())
+    {
+        case AstNodeId::Identifier:
+            calleeNode.cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::CallCallee);
+            break;
+        case AstNodeId::MemberAccessExpr:
+            calleeNode.cast<AstMemberAccessExpr>().addFlag(AstMemberAccessExprFlagsE::CallCallee);
+            break;
+        case AstNodeId::AutoMemberAccessExpr:
+            calleeNode.cast<AstAutoMemberAccessExpr>().addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+            break;
+        default:
+            break;
     }
 }
 
@@ -484,7 +484,7 @@ AstNodeRef Parser::parseQuotedSingleSuffixValue()
         if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
             const TokenRef tokQuote = consume();
-            markCallCalleeNode(*ast_, nodeRef);
+            markCallCalleeNode(nodeRef);
 
             if (is(TokenId::SymLeftParen))
             {
@@ -556,7 +556,7 @@ AstNodeRef Parser::parseQuotedIdentifier()
     if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
     {
         const TokenRef tokQuote = consume();
-        markCallCalleeNode(*ast_, idRef);
+        markCallCalleeNode(idRef);
 
         if (is(TokenId::SymLeftParen))
         {
@@ -722,7 +722,7 @@ AstNodeRef Parser::parsePostFixExpression()
         if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
             const TokenRef tokQuote = consume();
-            markCallCalleeNode(*ast_, nodeRef);
+            markCallCalleeNode(nodeRef);
 
             if (is(TokenId::SymLeftParen))
             {

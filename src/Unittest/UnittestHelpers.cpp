@@ -141,6 +141,17 @@ namespace Backend::Unittest
         return count;
     }
 
+    const MicroInstr* findFirstOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                return &inst;
+        }
+
+        return nullptr;
+    }
+
     uint32_t countBinaryRegRegOp(const MicroBuilder& builder, MicroOp op)
     {
         const MicroOperandStorage& operands = builder.operands();

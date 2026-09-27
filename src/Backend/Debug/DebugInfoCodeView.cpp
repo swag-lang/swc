@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
+#include "Backend/Debug/DebugPath.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Runtime.h"
@@ -213,13 +214,6 @@ namespace
         std::unordered_map<Utf8, uint32_t> offsets;
         std::vector<Entry>                 entries;
     };
-
-    Utf8 codeViewPathString(const fs::path& path)
-    {
-        fs::path normalized = path.lexically_normal();
-        normalized.make_preferred();
-        return {normalized.string()};
-    }
 
     const char* sectionBaseSymbolName(const Utf8& sectionName)
     {
@@ -501,7 +495,7 @@ namespace
                     continue;
 
                 const SourceFile* sourceFile = resolvedRange.source.sourceFile;
-                const Utf8        path       = codeViewPathString(sourceFile->path());
+                const Utf8        path       = DebugPath::normalizedString(sourceFile->path());
                 if (!sourceFile->isRuntime())
                     return path;
                 if (firstSource.empty())
@@ -515,17 +509,17 @@ namespace
     Utf8 buildInfoCurrentDirectory(const DebugInfoObjectRequest& request, const Utf8& primarySource)
     {
         if (!primarySource.empty())
-            return codeViewPathString(fs::path(primarySource.c_str()).parent_path());
+            return DebugPath::normalizedString(fs::path(primarySource.c_str()).parent_path());
 
         if (!request.objectPath.empty())
-            return codeViewPathString(request.objectPath.parent_path());
+            return DebugPath::normalizedString(request.objectPath.parent_path());
 
         std::error_code ec;
         const fs::path  currentPath = fs::current_path(ec);
         if (ec)
             return {};
 
-        return codeViewPathString(currentPath);
+        return DebugPath::normalizedString(currentPath);
     }
 
     Utf8 buildInfoSourceFileName(const Utf8& primarySource)
@@ -538,7 +532,7 @@ namespace
 
     Utf8 buildInfoCommandLine(const TaskContext& ctx)
     {
-        return std::format("{} --build-cfg {} --artifact-kind {} --arch {}", codeViewPathString(Os::getExeFullName()), ctx.cmdLine().buildCfg, backendKindName(ctx.compiler().buildCfg().backendKind), targetArchName(ctx.cmdLine().targetArch));
+        return std::format("{} --build-cfg {} --artifact-kind {} --arch {}", DebugPath::normalizedString(Os::getExeFullName()), ctx.cmdLine().buildCfg, backendKindName(ctx.compiler().buildCfg().backendKind), targetArchName(ctx.cmdLine().targetArch));
     }
 
     FunctionLines collectFunctionLines(const TaskContext& ctx, const MachineCode& code)
@@ -558,7 +552,7 @@ namespace
             if (!resolvedRange.source.sourceFile)
                 continue;
 
-            const auto codeViewFileName = codeViewPathString(resolvedRange.source.sourceFile->path());
+            const auto codeViewFileName = DebugPath::normalizedString(resolvedRange.source.sourceFile->path());
             if (currentBlock == std::numeric_limits<size_t>::max() || currentFileName != codeViewFileName)
             {
                 currentBlock = result.blocks.size();
@@ -610,7 +604,7 @@ namespace
 
     void appendObjNameRecord(ByteArray& bytes, const fs::path& objectPath)
     {
-        const auto     objectName   = codeViewPathString(objectPath);
+        const auto     objectName   = DebugPath::normalizedString(objectPath);
         const uint32_t recordOffset = beginRecord(bytes, K_S_OBJNAME);
         writeU32(bytes, 0);
         writeCString(bytes, objectName);
@@ -1373,11 +1367,11 @@ namespace
 
         const Utf8 primarySource       = primarySourcePath(functionLines);
         const Utf8 buildCurrentDir     = buildInfoCurrentDirectory(request, primarySource);
-        const Utf8 buildTool           = codeViewPathString(Os::getExeFullName());
+        const Utf8 buildTool           = DebugPath::normalizedString(Os::getExeFullName());
         const Utf8 buildSourceFileName = buildInfoSourceFileName(primarySource);
         fs::path   buildPdbPath        = request.objectPath;
         buildPdbPath.replace_extension(".pdb");
-        const Utf8     buildPdbPathString = codeViewPathString(buildPdbPath);
+        const Utf8     buildPdbPathString = DebugPath::normalizedString(buildPdbPath);
         const Utf8     buildCommandLine   = buildInfoCommandLine(*request.ctx);
         const uint32_t currentDirId       = types.appendStringId(buildCurrentDir);
         const uint32_t buildToolId        = types.appendStringId(buildTool);
@@ -1596,11 +1590,11 @@ void DebugInfoCodeView::buildPdbInfo(DebugInfoPdbResult& outResult, const DebugI
 
     const Utf8 primarySource       = primarySourcePath(request);
     const Utf8 buildCurrentDir     = buildInfoCurrentDirectory(request, primarySource);
-    const Utf8 buildTool           = codeViewPathString(Os::getExeFullName());
+    const Utf8 buildTool           = DebugPath::normalizedString(Os::getExeFullName());
     const Utf8 buildSourceFileName = buildInfoSourceFileName(primarySource);
     fs::path   buildPdbPath        = request.objectPath;
     buildPdbPath.replace_extension(".pdb");
-    const Utf8     buildPdbPathString = request.objectPath.empty() ? Utf8{} : codeViewPathString(buildPdbPath);
+    const Utf8     buildPdbPathString = request.objectPath.empty() ? Utf8{} : DebugPath::normalizedString(buildPdbPath);
     const Utf8     buildCommandLine   = buildInfoCommandLine(*request.ctx);
     const uint32_t currentDirId       = ids.appendStringId(buildCurrentDir);
     const uint32_t buildToolId        = ids.appendStringId(buildTool);

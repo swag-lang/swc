@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
@@ -40,18 +41,6 @@ namespace
     {
         const AstNode& node = codeGen.node(codeGen.curNodeRef());
         return node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().modifierFlags.has(AstModifierFlagsE::Bit);
-    }
-
-    uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
-    {
-        const uint64_t dstElementSize = dstElementType.sizeOf(codeGen.ctx());
-        if (dstElementSize)
-            return srcArrayType.sizeOf(codeGen.ctx()) / dstElementSize;
-
-        uint64_t totalCount = 1;
-        for (const uint64_t dim : srcArrayType.payloadArrayDims())
-            totalCount *= dim;
-        return totalCount;
     }
 
     TypeRef sliceCastSourceArrayTypeRef(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef srcTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
@@ -757,7 +746,7 @@ namespace
         SWC_ASSERT(dstType.isSlice());
 
         const TypeInfo& dstElementType = codeGen.typeMgr().get(dstType.payloadTypeRef());
-        const uint64_t  elementCount   = sliceCountFromArrayCast(codeGen, srcType, dstElementType);
+        const uint64_t  elementCount   = CodeGenArraySlice::sliceCountFromArrayCast(codeGen, srcType, dstElementType);
 
         MicroBuilder&            builder    = codeGen.builder();
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);

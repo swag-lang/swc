@@ -655,6 +655,7 @@
         <ClInclude Include="src\Backend\Micro\MicroReg.h"/>
         <ClInclude Include="src\Backend\Micro\MicroRelocation.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenArraySlice.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenVectorHelpers.h"/>

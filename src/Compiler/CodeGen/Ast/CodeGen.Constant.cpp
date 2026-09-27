@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -24,18 +25,6 @@ namespace
         TypeRef    typeRef  = TypeRef::invalid();
         uint32_t   offset   = 0;
     };
-
-    uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
-    {
-        const uint64_t dstElementSize = dstElementType.sizeOf(codeGen.ctx());
-        if (dstElementSize)
-            return srcArrayType.sizeOf(codeGen.ctx()) / dstElementSize;
-
-        uint64_t totalCount = 1;
-        for (const uint64_t dim : srcArrayType.payloadArrayDims())
-            totalCount *= dim;
-        return totalCount;
-    }
 
     uint64_t alignUpTo(uint64_t value, uint32_t alignment)
     {
@@ -710,7 +699,7 @@ namespace
                         if (safeArrayCstRef.isInvalid())
                             return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
+                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), CodeGenArraySlice::sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);

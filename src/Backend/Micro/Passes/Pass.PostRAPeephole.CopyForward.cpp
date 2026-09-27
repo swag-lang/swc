@@ -657,18 +657,8 @@ namespace PostRaPeephole
         if (!ops || ops[countIndex].reg != copy[0].reg || ops[three ? 1 : 0].reg == copy[0].reg ||
             (ops[countIndex + 1].opBits != MicroOpBits::B32 && ops[countIndex + 1].opBits != MicroOpBits::B64))
             return false;
-        switch (ops[countIndex + 2].microOp)
-        {
-            case MicroOp::ShiftLeft:
-            case MicroOp::ShiftArithmeticLeft:
-            case MicroOp::ShiftRight:
-            case MicroOp::ShiftArithmeticRight:
-            case MicroOp::RotateLeft:
-            case MicroOp::RotateRight:
-                break;
-            default:
-                return false;
-        }
+        if (!MicroPassHelpers::isVariableScalarShiftOp(ops[countIndex + 2].microOp))
+            return false;
         if (!(three && ops[0].reg == copy[0].reg) && !ctx.isRegDeadAfter(copy[0].reg, ctx.instructionIndex + 1))
             return false;
         if (!ctx.claimAll({ref, shiftRef}))

@@ -22,6 +22,9 @@ source inventory for code-quality campaigns.
 
 Campaigns 4 and 5 constrain each other on purpose: speed must not cost memory, and memory must not
 cost speed. Run them one at a time, and let each one re-measure both numbers before claiming a win.
+Campaign 4 changes compiler work to reduce compilation time; campaign 6 improves the compiler's
+source without changing that work. Assign an idea by its intended result: a faster compiler belongs
+to 4, while a mechanically equivalent cleanup belongs to 6, even when both touch the same file.
 
 Campaign 1 runs directly on `master`. Campaigns 2 through 7 run in their own worktree, never in
 the main checkout; each prompt states its own rule. For the isolated campaigns,
@@ -988,8 +991,8 @@ an isolated branch and worktree from that exact commit:
 
   git worktree add -b codex/compiler-code-health ../swc-compiler-code-health HEAD
 
-Never copy uncommitted changes from the main checkout into it. Keep temporary reports under the
-ignored .tmp directory and keep generated output out of the final diff.
+Never copy uncommitted changes from the main checkout into it. Keep temporary reports outside every
+checkout, as required by modify-swag-codebase, and keep generated output out of the final diff.
 
 SCOPE
 
@@ -997,6 +1000,25 @@ Restrict edits to project-owned compiler and support code under src/ and the pro
 to describe it. Exclude vendored code, generated output, language behavior, public module APIs,
 diagnostic wording, command-line behavior, serialized formats, ABI, runtime contracts, cache
 formats, and build-system semantics.
+
+Remove references from compiler implementation code to specific content under bin/, including
+examples, tests, reference pages, applications, and standard modules. The compiler must not know
+which sample happens to exercise it. Keep bin/ paths in test fixtures, repository tools, and
+documentation that actually operate on those workspaces; replace compiler-side special cases with
+the existing general contract only when source inspection proves equivalent behavior. If a path
+is part of a user-visible default or another contract, report it for separate work.
+
+Remove references to the x64 encoder from compiler code outside the backend areas that own x64
+instruction selection, encoding, and their direct integration. Keep target-specific details at
+those boundaries; use an existing target-neutral interface when that is mechanically equivalent.
+Do not disguise x64 work behind a new generic name or change the supported target contract.
+
+Campaign 4 owns changes intended to reduce compile time, CPU work, contention, or memory traffic
+on compilation paths, with measurements and performance guardrails. This campaign owns source
+quality and dependency boundaries, with a source-based equivalence argument. Do not claim a prompt
+6 gain from faster compilation, and do not move a performance hypothesis into this campaign to
+avoid measuring it. If a cleanup exposes a separate speed opportunity, leave that opportunity for
+campaign 4.
 
 The campaign covers these mechanical improvements:
 
@@ -1073,24 +1095,32 @@ header family, one internal rename, or one duplication pattern. A duplication sp
 subsystems is still collapsed, at the boundary they already share; only a genuine compatibility
 decision is grounds to skip.
 
-THE LOOP
+THE LOOP — PRIORITIZE CODE ITERATIONS
 
-For each batch:
-
-  1. Read every affected declaration, definition, include path, and caller before editing. State
-     the equivalence argument and the exact dependency or duplication being removed.
+  1. Select one small source-quality issue from the inventory. Read its affected declarations,
+     definitions, include paths, and callers. State the equivalence argument and the exact
+     dependency, duplication, bin/ reference, or misplaced x64 dependency being removed. Spend
+     minutes, not hours, investigating before the first edit.
   2. Make the smallest complete edit. Add direct includes to real users before removing a
      transitive include. Keep lightweight types by value; do not hide real layout dependencies.
-  3. Search the whole repository for every renamed symbol, moved type, removed include, helper, and
-     project entry. Update all exact references in the same batch.
-  4. Inspect the diff immediately. Reject unrelated formatting, line-ending churn, reordered code,
-     or an edit whose safety now depends on an assumption not visible in the source.
-  5. Compile or run the narrowest validation boundary that can detect a mistake in the batch. If a
-     failure reveals that the edit was not purely mechanical, revert that edit instead of widening
-     the campaign into a behavioral fix.
+     Search for all exact references and update them in the same batch.
+  3. Inspect the diff immediately. Reject unrelated formatting, line-ending churn, reordered code,
+     or an edit whose safety depends on an assumption not visible in the source. Admit and run a
+     small incremental DevMode recompile promptly after each source batch. Fix or revert a failed
+     edit before starting another; do not accumulate uncompiled source changes.
+  4. Run the smallest focused test when the batch changes code that a test can meaningfully
+     exercise. Include-only, comment-only, and project-entry batches can stop at the recompile or
+     project-file check. Rotate a targeted test from another affected area every few retained
+     batches; run a broader relevant suite at spaced milestones, after a risky shared-header or
+     cross-subsystem change, and before final integration. Follow validate-swag-changes and load
+     admission before each build and test. Do not run a broad suite after every small edit or a
+     reverted trial.
+  5. Commit each retained, validated batch with `[prompt 6]` in its subject. Integrate a coherent
+     group into local master after its checks pass. Keep routine observations in the final report.
 
-Prefer small reviewable batches. A mechanically safe campaign may be broad in aggregate, but every
-individual transformation must remain locally obvious.
+Aim for several distinct code hypotheses per work session. Keep batches small and reviewable and
+return to code promptly after the next decision boundary. The campaign may be broad in aggregate,
+but each transformation must remain locally obvious.
 
 VERSION AND VALIDATION
 
@@ -1101,11 +1131,13 @@ worktree does not provide separate machine resources.
 Select validation from the final diff using validate-swag-changes:
 
   - Parse the Visual Studio project files after changing their entries or filters.
-  - Build DevMode after the final source batch.
+  - Rebuild DevMode incrementally after each source batch, and ensure the final source batch has a
+    green build. Recheck after integration when merged source differs from the validated worktree.
   - Also build Release when the campaign crosses compiler architecture, shared headers, conditional
     compilation, or source sets; otherwise do not add Release by habit.
   - Run the focused C++ or compiler suite boundaries that exercise code moved or mechanically
-    refactored. Include-only and comment-only batches do not justify unrelated behavioral suites.
+    refactored. Add broader relevant tests at spaced milestones. Include-only and comment-only
+    batches do not justify unrelated behavioral suites.
   - Do not run performance measurements for a purely mechanical cleanup. The campaign is invalid
     if an edit needs benchmarking to establish that it is safe.
 
